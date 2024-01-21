@@ -76,7 +76,7 @@ def test_llm() -> None:
         "cache_seed": None,
         "config_list": config_list,
     }
-    mw = LLMMiddleware(llm_config=llm_config, system_message="You are a helpful assistant.")
+    mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     messages = [{"role": "user", "content": "1+1="}]
     reply = mw.call(messages=messages)
     assert "2" in reply
@@ -94,7 +94,7 @@ async def test_llm_async() -> None:
         "cache_seed": None,
         "config_list": config_list,
     }
-    mw = LLMMiddleware(llm_config=llm_config, system_message="You are a helpful assistant.")
+    mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     messages = [{"role": "user", "content": "1+1="}]
     reply = await mw.a_call(messages=messages)
     assert "2" in reply
@@ -111,7 +111,7 @@ def test_llm_tool_calls() -> None:
         "cache_seed": None,
         "config_list": config_list,
     }
-    mw = LLMMiddleware(llm_config=llm_config, system_message="You are a helpful assistant.")
+    mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     for tool in _tools:
         mw.update_tool_signature(tool, is_remove=None)
 
@@ -135,7 +135,7 @@ def test_llm_tool_calls_parallel() -> None:
         "cache_seed": None,
         "config_list": config_list,
     }
-    mw = LLMMiddleware(llm_config=llm_config, system_message="You are a helpful assistant.")
+    mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     for tool in _tools:
         mw.update_tool_signature(tool, is_remove=None)
 

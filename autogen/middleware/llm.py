@@ -24,8 +24,9 @@ class LLMMiddleware:
 
     def __init__(
         self,
+        name: str,
         llm_config: Dict,
-        system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
+        system_message: Union[str, List] = "You are a helpful AI Assistant.",
         cache: Optional[Cache] = None,
     ) -> None:
         if isinstance(system_message, str):
@@ -38,6 +39,7 @@ class LLMMiddleware:
             raise ValueError("llm_config must be provided")
         if not isinstance(llm_config, dict):
             raise ValueError(f"llm_config must be a dict, but got {llm_config}")
+        self._name = name
         self._llm_config = llm_config
         self._client = OpenAIWrapper(**self._llm_config)
         self._client_cache = cache
@@ -248,9 +250,9 @@ class LLMMiddleware:
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
         if self._client is None:
-            print(f"No cost incurred from agent '{self.name}'.")
+            print(f"No cost incurred from agent '{self._name}'.")
         else:
-            print(f"Agent '{self.name}':")
+            print(f"Agent '{self._name}':")
             self._client.print_usage_summary(mode)
 
     def get_actual_usage(self) -> Union[None, Dict[str, int]]:

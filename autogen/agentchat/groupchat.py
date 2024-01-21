@@ -362,7 +362,7 @@ class GroupChatManager(ConversableAgent):
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
-            if self._is_termination_msg(message):
+            if self._termination._is_termination_msg(message):
                 # The conversation is over
                 break
             # broadcast the message to all agents except the speaker
@@ -418,7 +418,7 @@ class GroupChatManager(ConversableAgent):
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
 
-            if self._is_termination_msg(message):
+            if self._termination._is_termination_msg(message):
                 # The conversation is over
                 break
 

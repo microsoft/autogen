@@ -18,6 +18,16 @@ def _dummy_reply(
         return {"content": "Hello World", "role": "assistant"}
 
 
+async def _dummy_reply_async(
+    message: Union[Dict, str],
+    sender: Agent,
+    request_reply: Optional[bool] = None,
+    silent: Optional[bool] = False,
+) -> str:
+    """Generate a dummy reply."""
+    return _dummy_reply(message, sender, request_reply, silent)
+
+
 def test_message_store() -> None:
     md = MessageStoreMiddleware(name="Assistant")
     message = {"role": "user", "content": "Hi there"}
@@ -46,7 +56,7 @@ async def test_message_store_async() -> None:
         sender=sender,
         request_reply=True,
         silent=False,
-        next=_dummy_reply,
+        next=_dummy_reply_async,
     )
     assert reply == {"content": "Hello World", "role": "assistant"}
     assert md.oai_messages[sender] == [

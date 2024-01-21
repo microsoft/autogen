@@ -169,15 +169,27 @@ class _ReplyFunctionMiddleware:
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        if (exclude and self._reply_func not in exclude) and self._match_trigger(self._trigger, sender):
+        if self._match_trigger(self._trigger, sender):
             final, reply = self._reply_func(self._recipient, messages, sender, self._config)
             if final:
                 # Short-circuit the middleware chain if the reply is final.
                 return reply
-        return next(messages=messages, sender=sender, exclude=exclude)
+        return next(messages=messages, sender=sender)
+
+    async def a_call(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Union[str, Dict, None]:
+        if self._match_trigger(self._trigger, sender):
+            final, reply = await self._reply_func(self._recipient, messages, sender, self._config)
+            if final:
+                # Short-circuit the middleware chain if the reply is final.
+                return reply
+        return await next(messages=messages, sender=sender)
 
     def reset_config(self):
         if self._reset_config is not None:
@@ -306,18 +318,17 @@ class ConversableAgent(Agent):
         self.reply_at_receive = defaultdict(bool)
 
         # Initialize middleware.
-        if llm_config is not None:
-            allow_format_str_template = llm_config.get("allow_format_str_template", False)
-        else:
-            allow_format_str_template = False
-        self._message_store = MessageStoreMiddleware(name, allow_format_str_template)
-        self._llm = LLMMiddleware(llm_config, system_message)
+        self._message_store = MessageStoreMiddleware(
+            name, allow_format_str_template=llm_config and llm_config.get("allow_format_str_template", False)
+        )
+        self._llm = LLMMiddleware(name, llm_config if llm_config else self.DEFAULT_CONFIG, system_message)
         self._tool_use = ToolUseMiddleware(function_map)
         self._code_execution = CodeExecutionMiddleware(code_execution_config)
         self._termination = TerminationAndHumanReplyMiddleware(
             is_termination_msg, max_consecutive_auto_reply, human_input_mode
         )
         self._middleware = [self._termination, self._code_execution, self._tool_use, self._llm]
+        self._async_middleware = [self._termination, self._tool_use, self._llm]
 
     @property
     def client(self) -> OpenAIWrapper:
@@ -395,10 +406,13 @@ class ConversableAgent(Agent):
             reset_config (Callable): the function to reset the config.
                 The function returns None. Signature: ```def reset_config(config: Any)```
         """
-        self._middleware.insert(
-            _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config),
-            position=position,
-        )
+        # TODO: wrapper for sync and async reply functions.
+        if inspect.iscoroutinefunction(reply_func):
+            self._async_middleware.insert(
+                position, _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config)
+            )
+        else:
+            self._middleware.insert(position, _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config))
         # TODO: is this still relevant?
         if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
@@ -718,11 +732,12 @@ class ConversableAgent(Agent):
         self.stop_reply_at_receive()
         if self._llm.client is not None:
             self._llm.client.clear_usage_summary()
-        for reply_func_tuple in self._reply_func_list:
-            if reply_func_tuple["reset_config"] is not None:
-                reply_func_tuple["reset_config"](reply_func_tuple["config"])
-            else:
-                reply_func_tuple["config"] = copy.copy(reply_func_tuple["init_config"])
+        for mw in self._middleware:
+            if isinstance(mw, _ReplyFunctionMiddleware):
+                mw.reset_config()
+        for mw in self._async_middleware:
+            if isinstance(mw, _ReplyFunctionMiddleware):
+                mw.reset_config()
 
     def stop_reply_at_receive(self, sender: Optional[Agent] = None):
         """Reset the reply_at_receive of the sender."""
@@ -994,12 +1009,12 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self.chat_messages[sender]
 
-        middleware = self._middleware
+        middleware = self._async_middleware
 
         # Remove excluded reply_func.
         if exclude is not None:
             middleware = []
-            for mw in self._middleware:
+            for mw in self._async_middleware:
                 if isinstance(mw, _ReplyFunctionMiddleware) and mw._reply_func in exclude:
                     continue
                 middleware.append(mw)
@@ -1008,7 +1023,7 @@ class ConversableAgent(Agent):
         async def chain(messages, sender, next=None):
             return await self._default_auto_reply
 
-        for mw in reversed(mw):
+        for mw in reversed(middleware):
             chain = functools.partial(mw.a_call, next=chain)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.

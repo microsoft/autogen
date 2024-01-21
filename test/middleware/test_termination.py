@@ -9,7 +9,6 @@ from autogen.middleware.termination import TerminationAndHumanReplyMiddleware
 def _dummpy_reply(
     message: Union[Dict, str],
     sender: Agent,
-    request_reply: Optional[bool] = None,
     silent: Optional[bool] = False,
 ) -> str:
     """Generate a dummy reply."""
@@ -17,6 +16,15 @@ def _dummpy_reply(
         return "Hello World"
     else:
         return {"content": "Hello World", "role": "assistant"}
+
+
+async def _dummpy_reply_async(
+    message: Union[Dict, str],
+    sender: Agent,
+    silent: Optional[bool] = False,
+) -> str:
+    """Generate a dummy reply."""
+    return _dummpy_reply(message, sender, silent)
 
 
 def test_termination_termination_msg() -> None:
@@ -72,7 +80,7 @@ async def test_human_input_async(mock_human_input) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="ALWAYS")
     sender = Agent("User")
-    reply = await md.a_call(messages=[{"role": "user", "content": "Hey"}], sender=sender, next=_dummpy_reply)
+    reply = await md.a_call(messages=[{"role": "user", "content": "Hey"}], sender=sender, next=_dummpy_reply_async)
     mock_human_input.assert_called_once()
     assert reply == {"content": "I am a human.", "role": "user"}
 
@@ -97,6 +105,8 @@ async def test_human_input_termination_async(mock_human_input) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="TERIMATION")
     sender = Agent("User")
-    reply = await md.a_call(messages=[{"role": "user", "content": "TERMINATE"}], sender=sender, next=_dummpy_reply)
+    reply = await md.a_call(
+        messages=[{"role": "user", "content": "TERMINATE"}], sender=sender, next=_dummpy_reply_async
+    )
     mock_human_input.assert_called_once()
     assert reply == {"content": "I am a human.", "role": "user"}
