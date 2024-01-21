@@ -42,6 +42,35 @@ class LLMMiddleware:
         self._client = OpenAIWrapper(**self._llm_config)
         self._client_cache = cache
 
+    @property
+    def system_messages(self) -> List[Dict]:
+        return self._oai_system_messages
+
+    @system_messages.setter
+    def system_messages(self, system_message: Union[str, List]) -> None:
+        if isinstance(system_message, str):
+            self._oai_system_messages = [{"content": system_message, "role": "system"}]
+        elif isinstance(system_message, list):
+            self._oai_system_messages = system_message
+        else:
+            raise ValueError(f"system_message must be a string or a list of messages, but got {system_message}")
+
+    @property
+    def client(self) -> OpenAIWrapper:
+        return self._client
+
+    @client.setter
+    def client(self, client: OpenAIWrapper) -> None:
+        self._client = client
+
+    @property
+    def client_cache(self) -> Cache:
+        return self._client_cache
+
+    @client_cache.setter
+    def client_cache(self, cache: Cache) -> None:
+        self._client_cache = cache
+
     def call(
         self,
         messages: List[Dict],
@@ -215,6 +244,28 @@ class LLMMiddleware:
         return await asyncio.get_event_loop().run_in_executor(
             None, functools.partial(self._generate_oai_reply, messages=messages, config=config)
         )
+
+    def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
+        """Print the usage summary."""
+        if self._client is None:
+            print(f"No cost incurred from agent '{self.name}'.")
+        else:
+            print(f"Agent '{self.name}':")
+            self._client.print_usage_summary(mode)
+
+    def get_actual_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the actual usage summary."""
+        if self._client is None:
+            return None
+        else:
+            return self._client.actual_usage_summary
+
+    def get_total_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the total usage summary."""
+        if self._client is None:
+            return None
+        else:
+            return self._client.total_usage_summary
 
     @staticmethod
     def _normalize_name(name):

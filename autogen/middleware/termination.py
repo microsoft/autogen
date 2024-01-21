@@ -62,7 +62,8 @@ class TerminationAndHumanReplyMiddleware:
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        final, reply = self._check_termination_and_human_reply(messages, sender)
+        message = messages[-1]
+        final, reply = self._check_termination_and_human_reply(message, sender)
         if final:
             return reply
         return next(messages, sender)
@@ -73,7 +74,8 @@ class TerminationAndHumanReplyMiddleware:
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        final, reply = await self._a_check_termination_and_human_reply(messages, sender)
+        message = messages[-1]
+        final, reply = await self._a_check_termination_and_human_reply(message, sender)
         if final:
             return reply
         return await next(messages, sender)
@@ -82,11 +84,31 @@ class TerminationAndHumanReplyMiddleware:
         """The maximum number of consecutive auto replies."""
         return self._max_consecutive_auto_reply if sender is None else self._max_consecutive_auto_reply_dict[sender]
 
+    def update_max_consecutive_auto_reply(self, value: int, sender: Optional[Agent] = None):
+        """Update the maximum number of consecutive auto replies.
+
+        Args:
+            value (int): the maximum number of consecutive auto replies.
+            sender (Agent): when the sender is provided, only update the max_consecutive_auto_reply for that sender.
+        """
+        if sender is None:
+            self._max_consecutive_auto_reply = value
+            for k in self._max_consecutive_auto_reply_dict:
+                self._max_consecutive_auto_reply_dict[k] = value
+        else:
+            self._max_consecutive_auto_reply_dict[sender] = value
+
+    def reset_consecutive_auto_reply_counter(self, sender: Optional[Agent] = None):
+        """Reset the consecutive_auto_reply_counter of the sender."""
+        if sender is None:
+            self._consecutive_auto_reply_counter.clear()
+        else:
+            self._consecutive_auto_reply_counter[sender] = 0
+
     def _check_termination_and_human_reply(
         self,
-        messages: Optional[List[Dict]] = None,
+        message: Dict,
         sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, None]]:
         """Check if the conversation should be terminated, and if human reply is provided.
 
@@ -105,13 +127,6 @@ class TerminationAndHumanReplyMiddleware:
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        # Function implementation...
-
-        if config is None:
-            config = self
-        if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
         reply = ""
         no_human_input_msg = ""
         if self._human_input_mode == "ALWAYS":
@@ -196,9 +211,8 @@ class TerminationAndHumanReplyMiddleware:
 
     async def _a_check_termination_and_human_reply(
         self,
-        messages: Optional[List[Dict]] = None,
+        message: Dict,
         sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, None]]:
         """(async) Check if the conversation should be terminated, and if human reply is provided.
 
@@ -217,11 +231,6 @@ class TerminationAndHumanReplyMiddleware:
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        if config is None:
-            config = self
-        if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
         reply = ""
         no_human_input_msg = ""
         if self._human_input_mode == "ALWAYS":

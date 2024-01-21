@@ -46,7 +46,7 @@ class MessageStoreMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        self._process_received_message(message, sender, silent)
+        self._process_incoming_message(message, sender, silent)
         if request_reply is False:
             return
         reply = next(message=message, sender=sender, request_reply=request_reply, silent=silent)
@@ -75,7 +75,7 @@ class MessageStoreMiddleware:
             Union[str, Dict, None]: the reply message.
 
         """
-        self._process_received_message(message, sender, silent)
+        self._process_incoming_message(message, sender, silent)
         if request_reply is False:
             return
         reply = await next(message=message, sender=sender, request_reply=request_reply, silent=silent)
@@ -91,6 +91,17 @@ class MessageStoreMiddleware:
             Dict[Agent, list]: the messages stored in the middleware, grouped by agent.
         """
         return self._oai_messages
+
+    def clear_history(self, agent: Optional[Agent] = None):
+        """Clear the chat history of the agent.
+
+        Args:
+            agent: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
+        """
+        if agent is None:
+            self._oai_messages.clear()
+        else:
+            self._oai_messages[agent].clear()
 
     def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
         """The last message exchanged with the agent.
@@ -117,7 +128,7 @@ class MessageStoreMiddleware:
             )
         return self._oai_messages[agent][-1]
 
-    def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
+    def _process_incoming_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if not valid:
@@ -127,8 +138,8 @@ class MessageStoreMiddleware:
         if not silent:
             self._print_received_message(message, sender)
 
-    def _process_outgoing_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
-        valid = self._append_oai_message(message, "assistant", sender)
+    def _process_outgoing_message(self, message: Union[Dict, str], recipient: Agent, silent: bool):
+        valid = self._append_oai_message(message, "assistant", recipient)
         if not valid:
             raise ValueError(
                 "Reply message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."

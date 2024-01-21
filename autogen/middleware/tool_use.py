@@ -284,6 +284,11 @@ class ToolUseMiddleware:
             "content": str(content),
         }
 
+    def can_execute_function(self, name: Union[List[str], str]) -> bool:
+        """Whether the agent can execute the function."""
+        names = name if isinstance(name, list) else [name]
+        return all([n in self._function_map for n in names])
+
     @staticmethod
     def _str_for_tool_response(tool_response):
         func_id = tool_response.get("tool_call_id", "")

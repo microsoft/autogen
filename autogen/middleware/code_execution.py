@@ -77,9 +77,18 @@ class CodeExecutionMiddleware:
         else:
             return next(messages, sender)
 
-    def _generate_code_execution_reply(self, messages: List[Dict]) -> Tuple[bool, Optional[str]]:
+    @property
+    def use_docker(self) -> Union[bool, str, None]:
+        """Bool value of whether to use docker to execute the code,
+        or str value of the docker image name to use, or None when code execution is disabled.
+        """
+        return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
+
+    def _generate_code_execution_reply(
+        self, messages: List[Dict], config: Optional[Union[Dict, Literal[False]]] = None
+    ) -> Tuple[bool, Optional[str]]:
         """Generate a reply using code execution."""
-        code_execution_config = self._code_execution_config
+        code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
         last_n_messages = code_execution_config.pop("last_n_messages", 1)
