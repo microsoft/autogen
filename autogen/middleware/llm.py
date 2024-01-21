@@ -5,6 +5,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from autogen.agentchat.agent import Agent
 from autogen._pydantic import model_dump
+from autogen.cache.cache import Cache
 from autogen.oai.client import OpenAIWrapper
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ class LLMMiddleware:
         self,
         llm_config: Dict,
         system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
+        cache: Optional[Cache] = None,
     ) -> None:
         if isinstance(system_message, str):
             self._oai_system_messages = [{"content": system_message, "role": "system"}]
@@ -38,6 +40,7 @@ class LLMMiddleware:
             raise ValueError(f"llm_config must be a dict, but got {llm_config}")
         self._llm_config = llm_config
         self._client = OpenAIWrapper(**self._llm_config)
+        self._client_cache = cache
 
     def call(
         self,
@@ -186,6 +189,7 @@ class LLMMiddleware:
         response = client.create(
             context=messages[-1].pop("context", None),
             messages=self._oai_system_messages + all_messages,
+            cache=self._client_cache,
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
