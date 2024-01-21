@@ -6,7 +6,7 @@
       "base_url": "Your Azure base URL here",
       "api_type": "azure",
       "api_version": "Your Azure API version here",
-      "description": "Azure Open AI"
+      "description": "Azure Open AI model configuration"
     },
     {
       "model": "gpt-4-1106-preview",
@@ -16,7 +16,7 @@
       "model": "TheBloke/zephyr-7B-alpha-AWQ",
       "api_key": "EMPTY",
       "base_url": "Your Model Endpoint",
-      "description": "Zephyr (Local Model)"
+      "description": "Zephyr (local model configuration)"
     }
   ],
   "agents": [

@@ -638,6 +638,7 @@ export const ModelSelector = ({
 
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
+
     setConfigs(updatedConfigs);
   };
 
@@ -679,18 +680,25 @@ export const ModelSelector = ({
     fetchModels();
   }, []);
 
-  const modelItems: MenuProps["items"] = models.map(
-    (model: IModelConfig, index: number) => ({
-      key: index,
-      label: model.model,
-      value: index,
-    })
-  );
+  const modelItems: MenuProps["items"] =
+    models.length > 0
+      ? models.map((model: IModelConfig, index: number) => ({
+          key: index,
+          label: model.model,
+          value: index,
+        }))
+      : [
+          {
+            key: -1,
+            label: "No models found",
+            value: 0,
+          },
+        ];
 
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
-    const selectedModel = models[selectedIndex];
-    // add model to flowspec
+    let selectedModel = models[selectedIndex];
+    selectedModel = sanitizeModelConfig(selectedModel);
     const updatedConfigs = [...configs, selectedModel];
     setConfigs(updatedConfigs);
   };
@@ -700,6 +708,7 @@ export const ModelSelector = ({
       <Dropdown
         menu={{ items: modelItems, onClick: modelOnClick }}
         placement="bottomRight"
+        trigger={["click"]}
       >
         <div
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
@@ -957,21 +966,19 @@ export const AgentFlowSpecView = ({
   // Event handlers for updating local state and propagating changes
 
   const onControlChange = (value: any, key: string) => {
+    if (key === "llm_config") {
+      if (value.config_list.length === 0) {
+        value = false;
+      }
+    }
     const updatedFlowSpec = {
       ...localFlowSpec,
       config: { ...localFlowSpec.config, [key]: value },
     };
+    console.log(updatedFlowSpec.config.llm_config);
     setLocalFlowSpec(updatedFlowSpec);
     setFlowSpec(updatedFlowSpec);
   };
-
-  const onDebouncedControlChange = React.useCallback(
-    debounce((value: any, key: string) => {
-      onControlChange(value, key);
-      console.log("debounce");
-    }, 3000),
-    [onControlChange]
-  );
 
   const llm_config = localFlowSpec.config.llm_config || { config_list: [] };
 
@@ -1421,6 +1428,7 @@ const GroupChatFlowSpecView = ({
       <Dropdown
         menu={{ items: agentItems, onClick: agentOnClick }}
         placement="bottomRight"
+        trigger={["click"]}
       >
         <div
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"

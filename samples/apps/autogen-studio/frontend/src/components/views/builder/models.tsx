@@ -347,8 +347,8 @@ const ModelsView = ({}: any) => {
 
           <div className="text-xs mb-2 pb-1  ">
             {" "}
-            Configure an model that can be reused in your agents{" "}
-            {selectedModel?.model}
+            Create model configurations that can be reused in your agents and
+            workflows. {selectedModel?.model}
           </div>
           {models && models.length > 0 && (
             <div className="w-full  relative">

@@ -58,7 +58,6 @@ const GalleryView = ({ location }: any) => {
     };
 
     const onSuccess = (data: any) => {
-      console.log(data);
       if (data && data.status) {
         message.success(data.message);
         console.log("gallery", data);
@@ -121,11 +120,11 @@ const GalleryView = ({ location }: any) => {
             navigate(`/gallery?id=${item.id}`);
           }}
           className="h-full p-2 cursor-pointer"
-          title={truncateText(item.messages[0].content, 20)}
+          title={truncateText(item.messages[0]?.content || "", 20)}
         >
           <div className="my-2">
             {" "}
-            {truncateText(item.messages[0].content, 80)}
+            {truncateText(item.messages[0]?.content || "", 80)}
           </div>
           <div className="text-xs">
             {" "}

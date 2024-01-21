@@ -272,7 +272,7 @@ const WorkflowView = ({}: any) => {
 
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
     const newConfig = sampleWorkflowConfig(key);
-    console.log("newConfig", newConfig);
+
     setNewWorkflow(newConfig);
     setShowNewWorkflowModal(true);
   };
@@ -311,6 +311,7 @@ const WorkflowView = ({}: any) => {
               <Dropdown
                 menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
                 placement="bottomRight"
+                trigger={["click"]}
               >
                 <div
                   className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
