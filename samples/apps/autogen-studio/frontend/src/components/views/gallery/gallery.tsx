@@ -59,7 +59,7 @@ const GalleryView = ({ location }: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         console.log("gallery", data);
         if (galleryId) {
           // Set the currently viewed gallery item
