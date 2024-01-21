@@ -16,7 +16,7 @@ def ui(
     workers: int = 1,
     reload: Annotated[bool, typer.Option("--reload")] = False,
     docs: bool = False,
-    appdir: str = None
+    appdir: str = None,
 ):
     """
     Run the AutoGen Studio UI.

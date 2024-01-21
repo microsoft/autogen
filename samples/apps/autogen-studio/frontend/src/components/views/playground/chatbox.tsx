@@ -306,7 +306,6 @@ const ChatBox = ({
         if (res.status === 200) {
           res.json().then((data) => {
             if (data && data.status) {
-              console.log("******* response received ", data);
               const botMesage: IChatMessage = {
                 text: data.message,
                 sender: "bot",
