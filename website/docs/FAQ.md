@@ -192,6 +192,34 @@ Please refer to https://microsoft.github.io/autogen/docs/reference/agentchat/con
 The "use_docker" arg in an agent's code_execution_config will be set to the name of the image containing the change after execution, when the conversation finishes.
 You can save that image name. For a new conversation, you can set "use_docker" to the saved name of the image to start execution there.
 
+## Database locked error
+
+When using VMs such as Azure Machine Learning compute instances,
+you may encounter a "database locked error". This is because the
+[LLM cache](./Use-Cases/agent_chat.md#cache)
+is trying to write to a location that the application does not have access to.
+
+You can set the `cache_path_root` to a location where the application has access.
+For example,
+
+```python
+from autogen import Cache
+
+with Cache.disk(cache_path_root="/tmp/.cache") as cache:
+    agent_a.initate_chat(agent_b, ..., cache=cache)
+```
+
+You can also use Redis cache instead of disk cache. For example,
+
+```python
+from autogen import Cache
+
+with Cache.redis(redis_url=...) as cache:
+    agent_a.initate_chat(agent_b, ..., cache=cache)
+```
+
+You can also disable the cache. See [here](./Use-Cases/agent_chat.md#llm-caching) for details.
+
 ## Agents are throwing due to docker not running, how can I resolve this?
 
 If running AutoGen locally the default for agents who execute code is for them to try and perform code execution within a docker container. If docker is not running, this will cause the agent to throw an error. To resolve this you have the below options:
