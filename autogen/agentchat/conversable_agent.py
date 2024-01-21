@@ -954,7 +954,6 @@ class ConversableAgent(Agent):
         # Call the middleware chain.
         return chain(messages, sender)
 
-    @register_for_middleware
     async def a_generate_reply(
         self,
         messages: Optional[List[Dict]] = None,
