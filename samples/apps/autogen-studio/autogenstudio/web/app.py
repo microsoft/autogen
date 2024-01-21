@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
-
+from ..version import VERSION
 
 from ..datamodel import (
     ChatWebRequestModel,
@@ -37,16 +37,18 @@ app.add_middleware(
 )
 
 
-root_file_path = os.path.dirname(os.path.abspath(__file__))
+root_file_path = os.environ.get(
+    "AUTOGENSTUDIO_APPDIR") or os.path.dirname(os.path.abspath(__file__))
 # init folders skills, workdir, static, files etc
 folders = init_webserver_folders(root_file_path)
+ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
 app.mount(
-    "/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
+    "/", StaticFiles(directory=ui_folder_path, html=True), name="ui")
 api.mount(
     "/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
@@ -475,3 +477,12 @@ async def delete_user_workflow(req: DBWebRequestModel):
             "status": False,
             "message": "Error occurred while deleting workflow: " + str(ex_error),
         }
+
+
+@api.get("/version")
+async def get_version():
+    return {
+        "status": True,
+        "message": "Version retrieved successfully",
+        "data": {"version": VERSION},
+    }
