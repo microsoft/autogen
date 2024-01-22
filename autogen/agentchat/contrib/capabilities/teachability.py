@@ -1,13 +1,13 @@
 import os
+from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from typing import Callable, Dict, Optional, Union, List, Any
 import chromadb
 from chromadb.config import Settings
 import pickle
 
-from autogen.middleware.base import add_middleware
 
 try:
     from termcolor import colored
@@ -63,19 +63,99 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a middleware for processing the last message.
-        class ProcessLastMessageMiddleware:
+        class TeachabilityMiddleware:
             def __init__(self, *, agent: ConversableAgent, teachability: Teachability):
                 self.teachability = teachability
                 self.agent = agent
 
-            def call(self, user_text: str, next: Callable[[str], str]):
-                user_text = next(user_text)
-                return self.teachability.process_last_message(user_text)
+            def call(
+                self,
+                messages: Optional[List[Dict]] = None,
+                sender: Optional[Agent] = None,
+                next: Optional[Callable[..., Any]] = None,
+            ) -> Union[str, Dict, None]:
+                if messages is None or len(messages) == 0:
+                    # No messages to process.
+                    if next is not None:
+                        return next(messages, sender)
+                    else:
+                        return None
+                last_message = messages[-1]
+                if "function_call" in last_message or "context" in last_message or "content" not in last_message:
+                    # Last message is a function call, or contains a context key, or has no content.
+                    if next is not None:
+                        return next(messages, sender)
+                    else:
+                        return None
+                user_text = last_message["content"]
+                if not isinstance(user_text, str):
+                    # Last message content is not a string. TODO: Multimodal agents will use a dict here.
+                    if next is not None:
+                        return next(messages, sender)
+                    else:
+                        return None
+                if user_text == "exit":
+                    # Last message is an exit command.
+                    if next is not None:
+                        return next(messages, sender)
+                    else:
+                        return None
+                # Apply teachability to the last message.
+                processed_user_text = self.teachability.process_last_message(user_text)
+                # Replace the last user message with the expanded one.
+                messages = messages.copy()
+                messages[-1]["content"] = processed_user_text
+                # Pass the messages to the next middleware.
+                if next is not None:
+                    return next(messages, sender)
+                else:
+                    return None
 
-        add_middleware(
-            agent.process_last_message_user_text,
-            ProcessLastMessageMiddleware(agent=agent, teachability=self),
-        )
+            async def a_call(
+                self,
+                messages: Optional[List[Dict]] = None,
+                sender: Optional[Agent] = None,
+                next: Optional[Callable[..., Any]] = None,
+            ) -> Union[str, Dict, None]:
+                if messages is None or len(messages) == 0:
+                    # No messages to process.
+                    if next is not None:
+                        return await next(messages, sender)
+                    else:
+                        return None
+                last_message = messages[-1]
+                if "function_call" in last_message or "context" in last_message or "content" not in last_message:
+                    # Last message is a function call, or contains a context key, or has no content.
+                    if next is not None:
+                        return await next(messages, sender)
+                    else:
+                        return None
+                user_text = last_message["content"]
+                if not isinstance(user_text, str):
+                    # Last message content is not a string. TODO: Multimodal agents will use a dict here.
+                    if next is not None:
+                        return await next(messages, sender)
+                    else:
+                        return None
+                if user_text == "exit":
+                    # Last message is an exit command.
+                    if next is not None:
+                        return await next(messages, sender)
+                    else:
+                        return None
+                # Apply teachability to the last message.
+                processed_user_text = self.teachability.process_last_message(user_text)
+                # Replace the last user message with the expanded one.
+                messages = messages.copy()
+                messages[-1]["content"] = processed_user_text
+                # Pass the messages to the next middleware.
+                if next is not None:
+                    return await next(messages, sender)
+                else:
+                    return None
+
+        agent._middleware.insert(0, TeachabilityMiddleware(agent=agent, teachability=self))
+        agent._async_middleware.insert(0, TeachabilityMiddleware(agent=agent, teachability=self))
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
