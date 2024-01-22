@@ -4,7 +4,9 @@ import re
 import pytest
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
-from conftest import skip_openai
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
