@@ -9,6 +9,7 @@ from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
 
+from autogen.cache.cache import Cache
 from autogen.oai import completion
 
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
@@ -35,7 +36,6 @@ else:
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
-    import diskcache
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
@@ -48,12 +48,15 @@ if not logger.handlers:
     _ch.setFormatter(logger_formatter)
     logger.addHandler(_ch)
 
+LEGACY_DEFAULT_CACHE_SEED = 41
+LEGACY_CACHE_DIR = ".cache"
+
 
 class OpenAIWrapper:
     """A wrapper class for openai client."""
 
-    cache_path_root: str = ".cache"
     extra_kwargs = {
+        "cache",
         "cache_seed",
         "filter_func",
         "allow_format_str_template",
@@ -62,6 +65,7 @@ class OpenAIWrapper:
         "api_type",
         "tags",
     }
+
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
     aopenai_kwargs = set(inspect.getfullargspec(AzureOpenAI.__init__).kwonlyargs)
     openai_kwargs = openai_kwargs | aopenai_kwargs
@@ -205,9 +209,14 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - `cache_seed` (int | None) for the cache. Default to 41.
+            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+                Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
+                then the cache_seed argument is ignored. If this argument is not provided or None,
+                then the cache_seed argument is used.
+            - (Legacy) cache_seed (int | None) for using the DiskCache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
+                Note: this is a legacy argument. It is only used when the cache argument is not provided.
             - filter_func (Callable | None): A function that takes in the context and the response
                 and returns a boolean to indicate whether the response is valid. E.g.,
 
@@ -235,13 +244,21 @@ class OpenAIWrapper:
             # construct the create params
             params = self._construct_create_params(create_config, extra_kwargs)
             # get the cache_seed, filter_func and context
-            cache_seed = extra_kwargs.get("cache_seed", 41)
+            cache_seed = extra_kwargs.get("cache_seed", LEGACY_DEFAULT_CACHE_SEED)
+            cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
-            # Try to load the response from cache
-            if cache_seed is not None:
-                with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
+            cache_client = None
+            if cache is not None:
+                # Use the cache object if provided.
+                cache_client = cache
+            elif cache_seed is not None:
+                # Legacy cache behavior, if cache_seed is given, use DiskCache.
+                cache_client = Cache.disk(cache_seed, LEGACY_CACHE_DIR)
+
+            if cache_client is not None:
+                with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
                     response: ChatCompletion = cache.get(key, None)
@@ -276,9 +293,9 @@ class OpenAIWrapper:
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = self.cost(response)
                 self._update_usage_summary(response, use_cache=False)
-                if cache_seed is not None:
+                if cache_client is not None:
                     # Cache the response
-                    with diskcache.Cache(f"{self.cache_path_root}/{cache_seed}") as cache:
+                    with cache_client as cache:
                         cache.set(key, response)
 
                 # check the filter
