@@ -25,7 +25,9 @@ else:
 try:
     from openai import OpenAI
 except ImportError:
-    skip_openai = True  # noqa: F811, set skip_openai to True since it's not installed.
+    skip_oai = True
+else:
+    skip_oai = False or skip_openai
 
 try:
     BING_API_KEY = os.environ["BING_API_KEY"]
@@ -34,7 +36,7 @@ except KeyError:
 else:
     skip_bing = False
 
-if not skip_openai:
+if not skip_oai:
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
 
 
@@ -91,7 +93,7 @@ def test_web_surfer():
 
 
 @pytest.mark.skipif(
-    skip_openai,
+    skip_oai,
     reason="do not run if oai is not installed",
 )
 def test_web_surfer_oai():
