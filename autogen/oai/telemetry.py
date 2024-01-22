@@ -5,6 +5,7 @@ import json
 try:
     import openai
     from openai.types.chat import ChatCompletion
+
     ERROR = None
 except ImportError:
     ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
@@ -27,7 +28,6 @@ class Telemetry:
         """
         self.cur.execute(query)
 
-
     def _to_dict(self, obj):
         if isinstance(obj, (int, float, str, bool)):
             return obj
@@ -39,7 +39,6 @@ class Telemetry:
             return {k: self._to_dict(v) for k, v in vars(obj).items()}
         else:
             return obj
-
 
     def cleanup_config(self, d, keyword):
         if not isinstance(d, dict):
@@ -53,7 +52,6 @@ class Telemetry:
             if isinstance(value, dict):
                 self.cleanup_config(value, keyword)
 
-
     def insert(self, telemetry_id, request, response, is_cached, client_config, start_time):
         end_time = self.get_current_ts()
 
@@ -63,7 +61,7 @@ class Telemetry:
         if isinstance(response, ChatCompletion):
             response_messages = json.dumps(self._to_dict(response))
         elif isinstance(response, str):
-            response_messages = json.dumps({'error': response})
+            response_messages = json.dumps({"error": response})
         else:
             raise "invalid type of response"
 
@@ -71,20 +69,22 @@ class Telemetry:
             # TODO: handle insert failure
             query = """INSERT INTO messages (
                 telemetry_id, request, response, is_cached, client_config, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?)"""
-            self.cur.execute(query, (
-                telemetry_id,
-                json.dumps(request),
-                response_messages,
-                is_cached,
-                json.dumps(client_config),
-                start_time,
-                end_time))
+            self.cur.execute(
+                query,
+                (
+                    telemetry_id,
+                    json.dumps(request),
+                    response_messages,
+                    is_cached,
+                    json.dumps(client_config),
+                    start_time,
+                    end_time,
+                ),
+            )
             self.con.commit()
-
 
     def get_current_ts(self):
         return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-
 
     def close(self):
         if self.con:
