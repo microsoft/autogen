@@ -841,6 +841,9 @@ class ConversableAgent(Agent):
             messages = self._oai_messages[sender]
         last_n_messages = code_execution_config.pop("last_n_messages", "auto")
 
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+
         messages_to_scan = last_n_messages
         if last_n_messages == "auto":
             # Find when the agent last spoke
