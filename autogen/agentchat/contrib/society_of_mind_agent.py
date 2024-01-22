@@ -1,3 +1,4 @@
+# ruff: noqa: E722
 import json
 import traceback
 import copy
@@ -166,7 +167,10 @@ class SocietyOfMindAgent(ConversableAgent):
 
                 self.chat_manager.send(attributed_message, agent, request_reply=False, silent=True)
 
-        self.initiate_chat(self.chat_manager, message=messages[-1], clear_history=False)
+        try:
+            self.initiate_chat(self.chat_manager, message=messages[-1], clear_history=False)
+        except:
+            traceback.print_exc()
 
         response_preparer = self.response_preparer
         return True, response_preparer(self, self._group_chat.messages)
