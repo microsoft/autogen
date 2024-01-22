@@ -9,10 +9,8 @@ import pathlib
 import argparse
 import docker
 import random
-
-# import np
 from autogen import config_list_from_json
-
+from autogen.oai.openai_utils import filter_config
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -542,7 +540,7 @@ def run_cli(args):
         "-m",
         "--model",
         type=str,
-        help="Filters the config_list to include only models matching the provided model name (default: None, which is all models).",
+        help="Filters the config_list to include only models matching the provided model name or tag (default: None, which is all models).",
         default=None,
     )
     parser.add_argument(
@@ -569,21 +567,22 @@ def run_cli(args):
     parsed_args = parser.parse_args(args)
 
     # Load the OAI_CONFIG_LIST
-    config_list = []
+    config_list = config_list_from_json(env_or_file=parsed_args.config)
+
+    # Add the model name to the tags to simplify filtering
+    for entry in config_list:
+        if "tags" not in entry:
+            entry["tags"] = list()
+        if entry["model"] not in entry["tags"]:
+            entry["tags"].append(entry["model"])
+
+    # Filter if requested
     if parsed_args.model is not None:
-        config_list = config_list_from_json(
-            env_or_file=parsed_args.config,
-            filter_dict={"model": [parsed_args.model]},
-        )
+        filter_dict = {"tags": [parsed_args.model]}
+        config_list = filter_config(config_list, filter_dict)
         if len(config_list) == 0:
             sys.exit(
-                f"The model configuration list is empty. This may be because the '{parsed_args.config}' file or environment variable could not be found, or because the model filter '{parsed_args.model}' returned 0 results."
-            )
-    else:
-        config_list = config_list_from_json(env_or_file=parsed_args.config)
-        if len(config_list) == 0:
-            sys.exit(
-                f"The model configuration list is empty. This is likely because the '{parsed_args.config}' file or environment variable could not be found."
+                f"The model configuration list is empty. This may be because the model filter '{parsed_args.model}' returned 0 results."
             )
 
     # Don't allow both --docker-image and --native on the same command
