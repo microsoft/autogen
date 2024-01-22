@@ -167,7 +167,8 @@ class GroupChatFlowSpec:
 
     type: Literal["groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
+    groupchat_config: Optional[GroupChatConfig] = field(
+        default_factory=GroupChatConfig)
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
@@ -237,6 +238,8 @@ class Session(object):
     id: Optional[str] = None
     timestamp: Optional[str] = None
     flow_config: AgentWorkFlowConfig = None
+    name: Optional[str] = None
+    description: Optional[str] = None
 
     def __post_init__(self):
         if self.timestamp is None:
