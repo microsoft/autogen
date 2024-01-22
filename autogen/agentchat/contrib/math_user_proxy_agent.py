@@ -221,7 +221,7 @@ class MathUserProxyAgent(UserProxyAgent):
         pycode = pycode.replace("; ", "\n").replace(";", "\n")
         pycode = self._previous_code + _add_print_to_last_line(pycode)
 
-        return_code, output, _ = execute_code(pycode, **self._code_execution_config, timeout=5)
+        return_code, output, _ = execute_code(pycode, **self._code_execution._code_execution_config, timeout=5)
         is_success = return_code == 0
 
         if not is_success:
@@ -246,14 +246,14 @@ class MathUserProxyAgent(UserProxyAgent):
         if is_success:
             # remove print and check if it still works
             tmp = self._previous_code + "\n" + _remove_print(pycode) + "\n"
-            rcode, _, _ = execute_code(tmp, **self._code_execution_config)
+            rcode, _, _ = execute_code(tmp, **self._code_execution._code_execution_config)
         else:
             # only add imports and check if it works
             tmp = self._previous_code + "\n"
             for line in pycode.split("\n"):
                 if "import" in line:
                     tmp += line + "\n"
-            rcode, _, _ = execute_code(tmp, **self._code_execution_config)
+            rcode, _, _ = execute_code(tmp, **self._code_execution._code_execution_config)
 
         if rcode == 0:
             self._previous_code = tmp

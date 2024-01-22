@@ -330,14 +330,14 @@ def test_max_consecutive_auto_reply():
     assert agent.max_consecutive_auto_reply() == agent.max_consecutive_auto_reply(agent1) == 1
 
     agent1.initiate_chat(agent, message="hello")
-    assert agent._consecutive_auto_reply_counter[agent1] == 1
+    assert agent._termination._consecutive_auto_reply_counter[agent1] == 1
     agent1.initiate_chat(agent, message="hello again")
     # with auto reply because the counter is reset
     assert agent1.last_message(agent)["role"] == "user"
     assert len(agent1.chat_messages[agent]) == 2
     assert len(agent.chat_messages[agent1]) == 2
 
-    assert agent._consecutive_auto_reply_counter[agent1] == 1
+    assert agent._termination._consecutive_auto_reply_counter[agent1] == 1
     agent1.send(message="bye", recipient=agent)
     # no auto reply
     assert agent1.last_message(agent)["role"] == "assistant"
@@ -762,19 +762,15 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+    agent = ConversableAgent(name="agent", llm_config=False)
 
-        with pytest.raises(RuntimeError) as e:
+    with pytest.raises(RuntimeError) as e:
 
-            @agent.register_for_llm(description="run cell in ipython and return the execution result.")
-            def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+        @agent.register_for_llm(description="run cell in ipython and return the execution result.")
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
 
-        assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
+    assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
 
 
 def test_register_for_execution():

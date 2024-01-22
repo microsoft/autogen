@@ -1,6 +1,6 @@
 import autogen
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
 import os
@@ -30,16 +30,26 @@ def test_get_human_input():
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
     # Use MagicMock to create a mock get_human_input function
-    user_proxy.get_human_input = MagicMock(return_value="This is a test")
+    with patch(
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
+    ) as mock_get_human_input:
+        mock_get_human_input.return_value = "This is a test"
+        # user_proxy.get_human_input = MagicMock(return_value="This is a test")
 
-    user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
+        user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.check_termination_and_human_reply)
 
-    user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
-    # Test without supplying messages parameter
-    user_proxy.initiate_chat(assistant, clear_history=True)
+        user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
+        mock_get_human_input.assert_called()
 
-    # Assert that custom_a_get_human_input was called at least once
-    user_proxy.get_human_input.assert_called()
+    with patch(
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
+    ) as mock_get_human_input:
+        mock_get_human_input.return_value = "This is a test"
+        # Test without supplying messages parameter
+        user_proxy.initiate_chat(assistant, clear_history=True)
+
+        # Assert that custom_a_get_human_input was called at least once
+        mock_get_human_input.assert_called()
 
 
 if __name__ == "__main__":

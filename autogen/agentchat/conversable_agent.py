@@ -351,16 +351,14 @@ class ConversableAgent(Agent):
         self._message_store = MessageStoreMiddleware(
             name, allow_format_str_template=llm_config and llm_config.get("allow_format_str_template", False)
         )
-        self._llm = LLMMiddleware(name, llm_config if llm_config else self.DEFAULT_CONFIG, system_message)
+        self._llm = LLMMiddleware(name, llm_config, system_message)
         self._tool_use = ToolUseMiddleware(function_map)
         self._code_execution = CodeExecutionMiddleware(code_execution_config)
         self._termination = TerminationAndHumanReplyMiddleware(
             is_termination_msg, max_consecutive_auto_reply, human_input_mode
         )
-        self._check_empty_reply = CheckEmptyReplyMiddleware(self)
-
-        self._middleware = [self._termination, self._code_execution, self._tool_use, self._llm, self._check_empty_reply]
-        self._async_middleware = [self._termination, self._tool_use, self._llm, self._check_empty_reply]
+        self._middleware = [self._termination, self._code_execution, self._tool_use, self._llm]
+        self._async_middleware = [self._termination, self._tool_use, self._llm]
 
         # Middleware lookup for backward compatibility to support the exclude argument in generate_reply.
         self._middleware_lookup = {
@@ -1372,7 +1370,7 @@ class ConversableAgent(Agent):
             f = get_function_schema(func, name=func._name, description=func._description)
 
             # register the function to the agent if there is LLM config, raise an exception otherwise
-            if self.llm_config is None:
+            if not self.llm_config:
                 raise RuntimeError("LLM config must be setup before registering a function for LLM.")
 
             if api_style == "function":

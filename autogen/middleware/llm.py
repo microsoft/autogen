@@ -25,7 +25,7 @@ class LLMMiddleware:
     def __init__(
         self,
         name: str,
-        llm_config: Dict,
+        llm_config: Optional[Union[Dict[str, Any], bool]],
         system_message: Union[str, List] = "You are a helpful AI Assistant.",
         cache: Optional[Cache] = None,
     ) -> None:
@@ -37,11 +37,11 @@ class LLMMiddleware:
             raise ValueError(f"system_message must be a string or a list of messages, but got {system_message}")
         if llm_config is None:
             raise ValueError("llm_config must be provided")
-        if not isinstance(llm_config, dict):
-            raise ValueError(f"llm_config must be a dict, but got {llm_config}")
+        if not (isinstance(llm_config, dict) or isinstance(llm_config, bool)):
+            raise ValueError(f"llm_config must be a dict or bool, but got {llm_config}")
         self._name = name
         self._llm_config = llm_config
-        self._client = OpenAIWrapper(**self._llm_config)
+        self._client = OpenAIWrapper(**self._llm_config) if llm_config else None
         self._client_cache = cache
 
     @property
@@ -89,11 +89,14 @@ class LLMMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        final, reply = self._generate_oai_reply(messages)
-        if final:
-            return reply
-        else:
+        if self._llm_config is False:
             return next(messages, sender)
+        else:
+            final, reply = self._generate_oai_reply(messages)
+            if final:
+                return reply
+            else:
+                return next(messages, sender)
 
     async def a_call(
         self,
@@ -111,11 +114,14 @@ class LLMMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        final, reply = await self._a_generate_oai_reply(messages)
-        if final:
-            return reply
+        if self._llm_config is False:
+            return next(messages, sender)
         else:
-            return await next(messages, sender)
+            final, reply = await self._a_generate_oai_reply(messages)
+            if final:
+                return reply
+            else:
+                return await next(messages, sender)
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.

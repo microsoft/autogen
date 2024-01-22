@@ -1,7 +1,7 @@
 import asyncio
 import os
 import sys
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import autogen
 import pytest
@@ -33,11 +33,24 @@ async def test_async_get_human_input():
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
     user_proxy.a_get_human_input = AsyncMock(return_value="This is a test")
+    with patch(
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware.a_get_human_input"
+    ) as a_mock_get_human_input:
+        a_mock_get_human_input.return_value = "This is a test"
 
-    user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
+        # user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
 
-    await user_proxy.a_initiate_chat(assistant, clear_history=True, message="Hello.")
-    # Test without message
-    await user_proxy.a_initiate_chat(assistant, clear_history=True)
-    # Assert that custom a_get_human_input was called at least once
-    user_proxy.a_get_human_input.assert_called()
+        await user_proxy.a_initiate_chat(assistant, clear_history=True, message="Hello.")
+
+        # Assert that custom a_get_human_input was called at least once
+        a_mock_get_human_input.assert_awaited()
+
+    with patch(
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware.a_get_human_input"
+    ) as a_mock_get_human_input:
+        a_mock_get_human_input.return_value = "This is a test"
+
+        # Test without message
+        await user_proxy.a_initiate_chat(assistant, clear_history=True)
+        # Assert that custom a_get_human_input was called at least once
+        a_mock_get_human_input.assert_awaited()
