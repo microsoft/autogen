@@ -120,26 +120,27 @@ positional arguments:
                 ./scenarios)
 
 options:
-  -h, --help    show this help message and exit
-
-  -r REPEAT, --repeat REPEAT
-                The number of repetitions to run for each scenario (default: 1).
-
+  -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
-                The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
-
+                        The environment variable name or path to the OAI_CONFIG_LIST (default: OAI_CONFIG_LIST).
+  -r REPEAT, --repeat REPEAT
+                        The number of repetitions to run for each scenario (default: 1).
+  -s SUBSAMPLE, --subsample SUBSAMPLE
+                        Run on a subsample of the tasks in the JSONL file(s). If a decimal value is specified, then run on
+                        the given proportion of tasks in each file. For example "0.7" would run on 70% of tasks, and "1.0"
+                        would run on 100% of tasks. If an integer value is specified, then randomly select *that* number of
+                        tasks from each specified JSONL file. For example "7" would run tasks, while "1" would run only 1
+                        task from each specified JSONL file. (default: 1.0; which is 100%)
   -m MODEL, --model MODEL
-                Filters the config_list to include only models matching the provided model name (default: None, which is all models).
-
+                        Filters the config_list to include only models matching the provided model name (default: None, which
+                        is all models).
   --requirements REQUIREMENTS
-                The requirements file to pip install before running the scenario.
-
+                        The requirements file to pip install before running the scenario.
   -d DOCKER_IMAGE, --docker-image DOCKER_IMAGE
-                The Docker image to use when running scenarios. Can not be used together with --native.
-                (default: 'autogen/testbed:default', which will be created if not present)
-
-  --native      Run the scenarios natively rather than in docker.
-                NOTE: This is not advisable, and should be done with great caution.
+                        The Docker image to use when running scenarios. Can not be used together with --native. (default:
+                        'autogen/testbed:default', which will be created if not present)
+  --native              Run the scenarios natively rather than in docker. NOTE: This is not advisable, and should be done
+                        with great caution.
 ```
 
 ## Results
