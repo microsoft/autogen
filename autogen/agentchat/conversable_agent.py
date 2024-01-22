@@ -116,37 +116,33 @@ class _ReplyFunctionMiddleware:
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        if not (exclude and self._reply_func in exclude):
-            if self._match_trigger(self._trigger, sender):
-                final, reply = self._reply_func(self._recipient, messages, sender, self._config)
-                if final:
-                    # Short-circuit the middleware chain if the reply is final.
-                    return reply
-        return next(messages=messages, sender=sender, exclude=exclude)
+        if self._match_trigger(self._trigger, sender):
+            final, reply = self._reply_func(self._recipient, messages, sender, self._config)
+            if final:
+                # Short-circuit the middleware chain if the reply is final.
+                return reply
+        return next(messages=messages, sender=sender)
 
     async def a_call(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        if not (exclude and self._reply_func in exclude):
-            if self._match_trigger(self._trigger, sender):
-                if inspect.iscoroutinefunction(self._reply_func):
-                    final, reply = await self._reply_func(self._recipient, messages, sender, self._config)
-                    if final:
-                        # Short-circuit the middleware chain if the reply is final.
-                        return reply
-                else:
-                    raise RuntimeError(
-                        "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
-                        f"The following async reply functions are found: {self._reply_func.__name__}"
-                    )
-        return await next(messages=messages, sender=sender, exclude=exclude)
+        if self._match_trigger(self._trigger, sender):
+            if inspect.iscoroutinefunction(self._reply_func):
+                final, reply = await self._reply_func(self._recipient, messages, sender, self._config)
+                if final:
+                    # Short-circuit the middleware chain if the reply is final.
+                    return reply
+            else:
+                raise RuntimeError(
+                    "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+                    f"The following async reply functions are found: {self._reply_func.__name__}"
+                )
+        return await next(messages=messages, sender=sender)
 
     def reset_config(self):
         if self._reset_config is not None:
@@ -974,7 +970,7 @@ class ConversableAgent(Agent):
             chain = functools.partial(mw.call, next=chain)
 
         # Call the middleware chain.
-        return chain(messages, sender)
+        return chain(messages=messages, sender=sender)
 
     async def a_generate_reply(
         self,
@@ -1029,14 +1025,14 @@ class ConversableAgent(Agent):
                 middleware.append(mw)
 
         # Build middleware chain.
-        async def chain(messages, sender, next=None):
+        async def chain(messages, sender, exclude, next=None):
             return await self._default_auto_reply
 
         for mw in reversed(middleware):
             chain = functools.partial(mw.a_call, next=chain)
 
         # Call the middleware chain.
-        return await chain(messages, sender)
+        return await chain(messages=messages, sender=sender)
 
     def get_human_input(self, prompt: str) -> str:
         """Get human input.

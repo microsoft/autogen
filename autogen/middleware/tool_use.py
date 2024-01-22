@@ -122,8 +122,11 @@ class ToolUseMiddleware:
             func_call = message["function_call"]
             func_name = func_call.get("name", "")
             func = self._function_map.get(func_name, None)
-            if func and inspect.iscoroutinefunction(func):
-                _, func_return = await self._a_execute_function(func_call)
+            if func:
+                if inspect.iscoroutinefunction(func):
+                    _, func_return = await self._a_execute_function(func_call)
+                else:
+                    _, func_return = self._execute_function(func_call)
                 return True, func_return
         return False, None
 

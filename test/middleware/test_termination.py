@@ -74,7 +74,7 @@ def test_human_input(mock_human_input) -> None:
 
 @pytest.mark.asyncio()
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input", return_value="I am a human."
+    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input", return_value="I am a human."
 )
 async def test_human_input_async(mock_human_input) -> None:
     # Test default termination message.
@@ -99,7 +99,7 @@ def test_human_input_termination(mock_human_input) -> None:
 
 @pytest.mark.asyncio()
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input", return_value="I am a human."
+    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input", return_value="I am a human."
 )
 async def test_human_input_termination_async(mock_human_input) -> None:
     # Test default termination message.
