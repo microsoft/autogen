@@ -5,7 +5,7 @@ import time
 import pytest
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
-from autogen.cache.cache import Cache
+from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai, skip_redis  # noqa: E402
