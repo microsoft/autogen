@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import os
 import sys
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
@@ -15,6 +14,8 @@ from autogen.oai import completion
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 from autogen._pydantic import model_dump
+
+import socket_connection_singleton
 
 TOOL_ENABLED = False
 try:
@@ -488,6 +489,8 @@ class OpenAIWrapper:
 
                         # If content is present, print it to the terminal and update response variables
                         if content is not None:
+                            if socket_connection_singleton.clientsocket is not None:
+                                socket_connection_singleton.clientsocket.send(bytes(str(content), "utf-8"))
                             print(content, end="", flush=True)
                             response_contents[choice.index] += content
                             completion_tokens += 1
