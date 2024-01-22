@@ -31,6 +31,9 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
+    - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
+        "clear history" phrase in user prompt. This is experimental feature.
+        See description of GroupChatManager.clear_agents_history function for more info.
     """
 
     agents: List[Agent]
@@ -40,6 +43,7 @@ class GroupChat:
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True
+    enable_clear_history: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
 
@@ -386,7 +390,7 @@ class GroupChatManager(ConversableAgent):
                 break
 
             # check for "clear history" phrase in reply and activate clear history function if found
-            if type(reply) is dict and reply["role"] == "user":
+            if groupchat.enable_clear_history and type(reply) is dict and reply["role"] == "user":
                 if "CLEAR HISTORY" in reply["content"].upper():
                     reply["content"] = self.clear_agents_history(reply["content"], groupchat)
 
