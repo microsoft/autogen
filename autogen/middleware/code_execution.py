@@ -88,6 +88,7 @@ class CodeExecutionMiddleware:
         self, messages: List[Dict], config: Optional[Union[Dict, Literal[False]]] = None
     ) -> Tuple[bool, Optional[str]]:
         """Generate a reply using code execution."""
+
         code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
@@ -111,6 +112,8 @@ class CodeExecutionMiddleware:
         # if no code blocks are found, continue
         for i in range(min(len(messages), messages_to_scan)):
             message = messages[-(i + 1)]
+            if "content" not in message:
+                continue
             if not message["content"]:
                 continue
             code_blocks = extract_code(message["content"])

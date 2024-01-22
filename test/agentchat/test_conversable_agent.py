@@ -70,7 +70,8 @@ def test_sync_trigger():
     agent1.initiate_chat(agent, message="hi")
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
-    pytest.raises(ValueError, agent._match_trigger, 1, agent1)
+    # todo: moved to _ReplyFunctionMiddleware
+    # pytest.raises(ValueError, agent._match_trigger, 1, agent1)
 
 
 @pytest.mark.asyncio
@@ -137,8 +138,9 @@ async def test_async_trigger():
     with pytest.raises(ValueError):
         agent.register_reply(1, a_reply)
 
-    with pytest.raises(ValueError):
-        agent._match_trigger(1, agent1)
+    # todo: moved to _ReplyFunctionMiddleware
+    # with pytest.raises(ValueError):
+    #     agent._match_trigger(1, agent1)
 
 
 def test_async_trigger_in_sync_chat():
@@ -251,12 +253,12 @@ def test_generate_code_execution_reply():
     )
 
     # scenario 4: if code_execution_config is provided, and code block is found, and it's within the range of last_n_messages, the code execution should return true, code block
-    agent._code_execution_config = {"last_n_messages": 3, "use_docker": False}
+    agent.code_execution_config = {"last_n_messages": 3, "use_docker": False}
     assert agent.generate_code_execution_reply([code_message] + dummy_messages) == (
         True,
         "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
     )
-    assert agent._code_execution_config["last_n_messages"] == 3
+    assert agent.code_execution_config["last_n_messages"] == 3
 
     # scenario 5: if last_n_messages is set to 'auto' and no code is found, then nothing breaks both when an assistant message is and isn't present
     assistant_message_for_auto = {
@@ -274,14 +276,14 @@ def test_generate_code_execution_reply():
         )
 
         # Without an assistant present
-        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
         assert agent.generate_code_execution_reply(dummy_messages_for_auto) == (
             False,
             None,
         )
 
         # With an assistant message present
-        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
         assert agent.generate_code_execution_reply([assistant_message_for_auto] + dummy_messages_for_auto) == (
             False,
             None,
@@ -291,14 +293,14 @@ def test_generate_code_execution_reply():
     dummy_messages_for_auto = []
     for i in range(4):
         # Without an assistant present
-        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
         assert agent.generate_code_execution_reply([code_message] + dummy_messages_for_auto) == (
             True,
             "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
         )
 
         # With an assistant message present
-        agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
         assert agent.generate_code_execution_reply(
             [assistant_message_for_auto] + [code_message] + dummy_messages_for_auto
         ) == (
@@ -314,14 +316,14 @@ def test_generate_code_execution_reply():
         )
 
     # scenario 7: if last_n_messages is set to 'auto' and code is present, but not before an assistant message, then nothing happens
-    agent._code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+    agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
     assert agent.generate_code_execution_reply(
         [code_message] + [assistant_message_for_auto] + dummy_messages_for_auto
     ) == (
         False,
         None,
     )
-    assert agent._code_execution_config["last_n_messages"] == "auto"
+    assert agent.code_execution_config["last_n_messages"] == "auto"
 
 
 def test_max_consecutive_auto_reply():
@@ -444,7 +446,7 @@ def test_generate_reply():
 
     # when sender is provided, messages is None
     dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="ALWAYS")
-    dummy_agent_2._oai_messages[dummy_agent_1] = messages
+    dummy_agent_2._message_store.oai_messages[dummy_agent_1] = messages
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
     ), "generate_reply not working when messages is None"

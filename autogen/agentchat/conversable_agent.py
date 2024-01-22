@@ -6,13 +6,13 @@ import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from autogen.middleware.code_execution import CodeExecutionMiddleware
-from autogen.middleware.llm import LLMMiddleware
-from autogen.middleware.message_store import MessageStoreMiddleware
-from autogen.middleware.termination import TerminationAndHumanReplyMiddleware
-from autogen.middleware.tool_use import ToolUseMiddleware
-
 from .. import OpenAIWrapper
+from ..middleware.code_execution import CodeExecutionMiddleware
+from ..middleware.llm import LLMMiddleware
+from ..middleware.message_store import MessageStoreMiddleware
+from ..middleware.termination import TerminationAndHumanReplyMiddleware
+from ..middleware.tool_use import ToolUseMiddleware
+from ..asyncio_utils import async_to_sync
 from ..cache.cache import Cache
 
 
@@ -94,8 +94,8 @@ class _ReplyFunctionMiddleware:
     def __init__(
         self,
         recipient: Agent,
-        reply_func: Callable,
-        trigger: Union[None, str, type, Agent, Callable[[Agent], bool], List],
+        reply_func: Callable[..., Any],
+        trigger: Optional[Union[str, type, Agent, Callable[[Agent], bool], List[Any]]],
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
     ):
@@ -116,27 +116,37 @@ class _ReplyFunctionMiddleware:
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        if self._match_trigger(self._trigger, sender):
-            final, reply = self._reply_func(self._recipient, messages, sender, self._config)
-            if final:
-                # Short-circuit the middleware chain if the reply is final.
-                return reply
-        return next(messages=messages, sender=sender)
+        if not (exclude and self._reply_func in exclude):
+            if self._match_trigger(self._trigger, sender):
+                final, reply = self._reply_func(self._recipient, messages, sender, self._config)
+                if final:
+                    # Short-circuit the middleware chain if the reply is final.
+                    return reply
+        return next(messages=messages, sender=sender, exclude=exclude)
 
     async def a_call(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
+        exclude: Optional[List[Callable]] = None,
         next: Optional[Callable[..., Any]] = None,
     ) -> Union[str, Dict, None]:
-        if self._match_trigger(self._trigger, sender):
-            final, reply = await self._reply_func(self._recipient, messages, sender, self._config)
-            if final:
-                # Short-circuit the middleware chain if the reply is final.
-                return reply
-        return await next(messages=messages, sender=sender)
+        if not (exclude and self._reply_func in exclude):
+            if self._match_trigger(self._trigger, sender):
+                if inspect.iscoroutinefunction(self._reply_func):
+                    final, reply = await self._reply_func(self._recipient, messages, sender, self._config)
+                    if final:
+                        # Short-circuit the middleware chain if the reply is final.
+                        return reply
+                else:
+                    raise RuntimeError(
+                        "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+                        f"The following async reply functions are found: {self._reply_func.__name__}"
+                    )
+        return await next(messages=messages, sender=sender, exclude=exclude)
 
     def reset_config(self):
         if self._reset_config is not None:
@@ -293,9 +303,24 @@ class ConversableAgent(Agent):
         }
 
     @property
+    def code_execution_config(self) -> Dict:
+        """The code execution config."""
+        return self._code_execution._code_execution_config
+
+    @code_execution_config.setter
+    def code_execution_config(self, value: Dict) -> None:
+        """Set the code execution config."""
+        self._code_execution._code_execution_config = value
+
+    @property
     def llm_config(self) -> Union[Dict, Literal[False]]:
         """The llm config."""
         return self._llm._llm_config
+
+    @llm_config.setter
+    def llm_config(self, value: Union[Dict, Literal[False]]) -> None:
+        """Set the llm config."""
+        self._llm._llm_config = value
 
     @property
     def client(self) -> OpenAIWrapper:
@@ -378,11 +403,28 @@ class ConversableAgent(Agent):
             self._async_middleware.insert(
                 position, _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config)
             )
+            if not ignore_async_in_sync_chat:
+
+                @functools.wraps(reply_func)
+                def _raise_runtime_error(*args, **kwargs):
+                    raise RuntimeError(
+                        "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+                        f"The following async reply functions are found: {reply_func.__name__}"
+                    )
+
+                self._middleware.insert(
+                    position, _ReplyFunctionMiddleware(self, _raise_runtime_error, trigger, config, reset_config)
+                )
         else:
+
+            @functools.wraps(reply_func)
+            async def _async_reply_func(*args, **kwargs):
+                return reply_func(*args, **kwargs)
+
             self._middleware.insert(position, _ReplyFunctionMiddleware(self, reply_func, trigger, config, reset_config))
-        # TODO: is this still relevant?
-        if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
-            self._ignore_async_func_in_sync_chat_list.append(reply_func)
+            self._async_middleware.insert(
+                position, _ReplyFunctionMiddleware(self, _async_reply_func, trigger, config, reset_config)
+            )
 
     @property
     def system_message(self) -> Union[str, List]:
@@ -771,7 +813,7 @@ class ConversableAgent(Agent):
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
         """
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
         message = messages[-1]
         return self._tool_use._generate_function_call_reply(message)
 
