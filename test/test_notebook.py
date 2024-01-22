@@ -46,24 +46,24 @@ def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=Fals
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if openai is not installed or py!=3.11",
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
 )
 def test_agentchat_auto_feedback_from_code(save=False):
     run_notebook("agentchat_auto_feedback_from_code_execution.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
 )
 def _test_oai_completion(save=False):
     run_notebook("oai_completion.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.12"),
+    reason="do not run if openai is not installed or py!=3.12",
 )
 def test_agentchat_function_call(save=False):
     run_notebook("agentchat_function_call.ipynb", save=save)
@@ -78,40 +78,41 @@ def test_agentchat_function_call_currency_calculator(save=False):
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
 )
 def test_agentchat_function_call_async(save=False):
     run_notebook("agentchat_function_call_async.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.12"),
+    reason="do not run if openai is not installed or py!=3.12",
 )
 def _test_agentchat_MathChat(save=False):
     run_notebook("agentchat_MathChat.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if openai is not installed or py!=3.11",
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
 )
 def _test_oai_chatgpt_gpt4(save=False):
     run_notebook("oai_chatgpt_gpt4.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
 )
-def test_hierarchy_flow_using_select_speaker(save=False):
+def _test_hierarchy_flow_using_select_speaker(save=False):
+    # TODO: recover this test after rewriting after the new group chat api
     run_notebook("agentchat_hierarchy_flow_using_select_speaker.ipynb", save=save)
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip or not sys.version.startswith("3.12"),
+    reason="do not run if openai is not installed or py!=3.12",
 )
 def test_graph_modelling_language_using_select_speaker(save=False):
     run_notebook("agentchat_graph_modelling_language_using_select_speaker.ipynb", save=save)
@@ -121,8 +122,8 @@ def test_graph_modelling_language_using_select_speaker(save=False):
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
 )
-def test_oai_client_cost(save=False):
-    run_notebook("oai_client_cost.ipynb", save=save)
+def test_agentchat_cost_token_tracking(save=False):
+    run_notebook("agentchat_cost_token_tracking.ipynb", save=save)
 
 
 if __name__ == "__main__":
@@ -131,4 +132,5 @@ if __name__ == "__main__":
     # test_oai_completion(save=True)
     # test_agentchat_MathChat(save=True)
     # test_agentchat_function_call(save=True)
-    test_graph_modelling_language_using_select_speaker(save=True)
+    # test_graph_modelling_language_using_select_speaker(save=True)
+    test_agentchat_function_call_async(save=True)

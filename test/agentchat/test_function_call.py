@@ -2,10 +2,13 @@ import pytest
 import asyncio
 import json
 import autogen
-from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -18,7 +21,7 @@ else:
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
-        KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
     functions = [
         {

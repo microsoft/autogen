@@ -2,8 +2,10 @@ import pytest
 import sys
 import autogen
 import os
-from conftest import skip_openai
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -12,7 +14,6 @@ from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 try:
     import openai
-
 except ImportError:
     skip = True
 else:
@@ -41,6 +42,7 @@ def test_mode_compress():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": "gpt-3.5-turbo",
         },
         compress_config={
             "mode": "COMPRESS",
@@ -79,6 +81,7 @@ def test_mode_customized():
                 "timeout": 600,
                 "cache_seed": 43,
                 "config_list": config_list,
+                "model": "gpt-3.5-turbo",
             },
             compress_config={
                 "mode": "CUSTOMIZED",
@@ -148,6 +151,7 @@ def test_compress_message():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": "gpt-3.5-turbo",
         },
         compress_config={
             "mode": "COMPRESS",
@@ -183,6 +187,7 @@ def test_mode_terminate():
             "timeout": 600,
             "cache_seed": 43,
             "config_list": config_list,
+            "model": "gpt-3.5-turbo",
         },
         compress_config=True,
     )
@@ -206,8 +211,19 @@ def test_mode_terminate():
     assert final, "Terminating the conversation at max token limit is not working."
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_new_compressible_agent_description():
+    assistant = CompressibleAgent(name="assistant", description="this is a description")
+
+    assert assistant.description == "this is a description", "description is not set correctly"
+
+
 if __name__ == "__main__":
     test_mode_compress()
     test_mode_customized()
     test_compress_message()
     test_mode_terminate()
+    test_new_compressible_agent_description()

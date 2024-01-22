@@ -38,9 +38,7 @@ const WorkflowView = ({}: any) => {
     React.useState<IFlowConfig | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
-    defaultConfig
-  );
+  const [newWorkflow] = React.useState<IFlowConfig | null>(defaultConfig);
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);
@@ -195,7 +193,7 @@ const WorkflowView = ({}: any) => {
     handler,
   }: {
     workflow: IFlowConfig | null;
-    setWorkflow: (workflow: IFlowConfig | null) => void;
+    setWorkflow?: (workflow: IFlowConfig | null) => void;
     showWorkflowModal: boolean;
     setShowWorkflowModal: (show: boolean) => void;
     handler?: (workflow: IFlowConfig) => void;
@@ -207,7 +205,7 @@ const WorkflowView = ({}: any) => {
       <Modal
         title={
           <>
-            Agent Specification{" "}
+            Workflow Specification{" "}
             <span className="text-accent font-normal">
               {localWorkflow?.name}
             </span>{" "}
@@ -223,7 +221,7 @@ const WorkflowView = ({}: any) => {
         }}
         onCancel={() => {
           setShowWorkflowModal(false);
-          setWorkflow(null);
+          setWorkflow?.(null);
         }}
       >
         {localWorkflow && (
@@ -251,7 +249,6 @@ const WorkflowView = ({}: any) => {
 
       <WorkflowModal
         workflow={newWorkflow}
-        setWorkflow={setNewWorkflow}
         showWorkflowModal={showNewWorkflowModal}
         setShowWorkflowModal={setShowNewWorkflowModal}
         handler={(workflow: IFlowConfig) => {
