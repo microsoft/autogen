@@ -999,27 +999,21 @@ class ConversableAgent(Agent):
 
         if is_async:
             middleware = [mw for mw in self._async_middleware if not _excluded(mw, exclude)]
+
+            # Build middleware chain.
+            async def a_chain(messages, sender, next=None):
+                return self._default_auto_reply
+
+            # print("Chaining middlewares: ")
+            for mw in reversed(middleware):
+                # print(f" - {mw}")
+                a_chain = functools.partial(mw.a_call, next=a_chain)
+
+            return a_chain
+
         else:
             middleware = [mw for mw in self._middleware if not _excluded(mw, exclude)]
 
-        if is_async:
-            # Build middleware chain.
-            async def chain(messages, sender, next=None):
-                return self._default_auto_reply
-
-            # print("Chaining async middlewares: ")
-            for mw in reversed(middleware):
-                # print(f" - {mw}")
-                def get_next(next):
-                    @functools.wraps(mw.a_call)
-                    async def chain_next(*args, next=next, **kwargs):
-                        return await mw.a_call(*args, next=next, **kwargs)
-
-                    return chain_next
-
-                chain = get_next(next=chain)
-
-        else:
             # Build middleware chain.
             def chain(messages, sender, next=None):
                 return self._default_auto_reply
@@ -1029,18 +1023,7 @@ class ConversableAgent(Agent):
                 # print(f" - {mw}")
                 chain = functools.partial(mw.call, next=chain)
 
-        return chain
-
-    # building chain is expensive, don't do it in the default case
-    def _get_middleware_chain(
-        self, is_async: bool, exclude: Optional[List[Middleware, Any]] = None
-    ) -> Callable[..., Any]:
-        if exclude:
-            return self._build_middleware_chain(is_async=is_async, exclude=exclude)
-        else:
-            if not hasattr(self, "_middleware_chain"):
-                self._middleware_chain = self._build_middleware_chain(is_async=is_async, exclude=None)
-            return self._middleware_chain
+            return chain
 
     def generate_reply(
         self,

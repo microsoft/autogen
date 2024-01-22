@@ -138,10 +138,6 @@ async def test_async_trigger():
     with pytest.raises(ValueError):
         agent.register_reply(1, a_reply)
 
-    # todo: moved to _ReplyFunctionMiddleware
-    # with pytest.raises(ValueError):
-    #     agent._match_trigger(1, agent1)
-
 
 def test_async_trigger_in_sync_chat():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
