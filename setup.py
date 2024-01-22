@@ -52,6 +52,8 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
+        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+        "redis": ["redis"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
