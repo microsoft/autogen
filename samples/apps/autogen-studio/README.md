@@ -1,4 +1,6 @@
 # AutoGen Studio
+[![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
+[![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
 
 ![ARA](./docs/ara_stockprices.png)
 
@@ -109,7 +111,7 @@ The agent workflow responds by _writing and executing code_ to create a python p
 ## FAQ
 
 **Q: Where can I adjust the default skills, agent and workflow configurations?**
-A: You can modify agent configurations directly from the UI or by editing the [dbdefaults.json](autogentstudio/utils/dbdefaults.json) file which is used to initialize the database.
+A: You can modify agent configurations directly from the UI or by editing the [dbdefaults.json](autogenstudio/utils/dbdefaults.json) file which is used to initialize the database.
 
 **Q: If I want to reset the entire conversation with an agent, how do I go about it?**
 A: To reset your conversation history, you can delete the `database.sqlite` file. If you need to clear user-specific data, remove the relevant `autogenstudio/web/files/user/<user_id_md5hash>` folder.
