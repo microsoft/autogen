@@ -8,6 +8,10 @@ AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
 If you are already an AutoGenBench pro, and want the full technical specifications, please review the [contributor's guide](CONTRIBUTING.md).
 
+
+## Docker Requirement
+AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
+
 ## Installation and Setup
 
 **To get the most out of AutoGenBench, the `autogenbench` package should be installed**. At present, the easiest way to do this is to install it via `pip`:
@@ -40,10 +44,6 @@ For some benchmark scenarios, additional keys may be required (e.g., keys for th
     "BING_API_KEY": "xxxyyyzzz"
 }
 ```
-
-## Docker Requirement
-AutoGenBench also requires Docker (Desktop or Engine). **It will not run in GitHub codespaces**, unless you opt for native execution (with is strongly discouraged). To install Docker Desktop see [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/).
-
 
 ## A Typical Session
 Once AutoGenBench and necessary keys are installed, a typical session will look as follows:
@@ -166,6 +166,6 @@ Within each folder, you will find the following files:
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
 - *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
 
-## Contributing or defining new tasks or benchmarks
+## Contributing or Defining New Tasks or Benchmarks
 
 If you would like to develop -- or even contribute -- your own tasks or benchmarks, please review the [contributor's guide](CONTRIBUTING.md) for complete technical details.
