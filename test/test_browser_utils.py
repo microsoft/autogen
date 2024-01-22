@@ -120,7 +120,7 @@ def test_simple_text_browser():
     browser.visit_page(PLAIN_TEXT_URL)
     assert browser.page_content.strip() == expected_results.strip()
 
-    # Direclty download an image, and compute its md5
+    # Directly download an image, and compute its md5
     response = requests.get(IMAGE_URL, stream=True)
     response.raise_for_status()
     expected_md5 = hashlib.md5(response.raw.read()).hexdigest()

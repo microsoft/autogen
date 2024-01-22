@@ -205,7 +205,7 @@ class WebSurferAgent(ConversableAgent):
             is_termination_msg=lambda m: False,
         )
 
-        # Helper fuctions
+        # Helper functions
         def _browser_state():
             header = f"Address: {self.browser.address}\n"
             if self.browser.page_title is not None:

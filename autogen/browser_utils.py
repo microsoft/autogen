@@ -233,7 +233,7 @@ class SimpleTextBrowser:
                     # Convert newlines
                     webpage_text = re.sub(r"\r\n", "\n", webpage_text)
 
-                    # Remove excesive blank lines
+                    # Remove excessive blank lines
                     self.page_title = soup.title.string
                     self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
                 elif content_type == "text/plain":
