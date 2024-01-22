@@ -334,18 +334,32 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
+        super()._prepare_chat(recipient, clear_history, prepare_recipient)
+
+        if clear_history:
+            self._groupchat.reset()
+
+        for agent in self._groupchat.agents:
+            if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
+                agent._prepare_chat(self, clear_history, False)
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[GroupChat] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Tuple[bool, Optional[str]]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
         groupchat = config
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.previous_cache = a.client_cache
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
             if self._is_termination_msg(message):
@@ -379,6 +393,10 @@ class GroupChatManager(ConversableAgent):
             message = self.last_message(speaker)
             if i == groupchat.max_round - 1:
                 groupchat.append(message, speaker)
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.client_cache = a.previous_cache
+                a.previous_cache = None
         return True, None
 
     async def a_run_chat(
@@ -393,6 +411,10 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.previous_cache = a.client_cache
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
 
@@ -426,6 +448,10 @@ class GroupChatManager(ConversableAgent):
             # The speaker sends the message without requesting a reply
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.client_cache = a.previous_cache
+                a.previous_cache = None
         return True, None
 
     def _raise_exception_on_async_reply_functions(self) -> None:
