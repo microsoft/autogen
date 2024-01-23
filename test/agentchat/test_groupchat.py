@@ -525,7 +525,7 @@ def test_clear_agents_history():
         human_input_mode="ALWAYS",
         llm_config=False,
     )
-    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=3)
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=3, enable_clear_history=True)
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
     # testing pure "clear history" statement

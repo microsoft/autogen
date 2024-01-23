@@ -394,7 +394,7 @@ class GroupChatManager(ConversableAgent):
                 break
 
             # check for "clear history" phrase in reply and activate clear history function if found
-            if groupchat.enable_clear_history and type(reply) is dict and reply["role"] == "user":
+            if groupchat.enable_clear_history and isinstance(reply, dict):
                 if "CLEAR HISTORY" in reply["content"].upper():
                     reply["content"] = self.clear_agents_history(reply["content"], groupchat)
 
@@ -477,6 +477,14 @@ class GroupChatManager(ConversableAgent):
 
     def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
         """Clears history of messages for all agents or selected one. Can preserve selected number of last messages.
+        That function is called when user manually provide "clear history" phrase in his reply.
+        When "clear history" is provided, the history of messages for all agents is cleared.
+        When "clear history <agent_name>" is provided, the history of messages for selected agent is cleared.
+        When "clear history <nr_of_messages_to_preserve>" is provided, the history of messages for all agents is cleared
+        except last <nr_of_messages_to_preserve> messages.
+        When "clear history <agent_name> <nr_of_messages_to_preserve>" is provided, the history of messages for selected
+        agent is cleared except last <nr_of_messages_to_preserve> messages.
+        Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
 
         Args:
             reply (str): Admin reply to analyse.
