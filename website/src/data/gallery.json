@@ -6,6 +6,12 @@
     "tags": ["ui"]
   },
   {
+    "title": "A Stateful Dev Environment Powered by Jupyter Notebook",
+    "link": "https://github.com/olimoz/AI_Teams_AutoGen/blob/main/JupyterNotebooksForAutoGen.ipynb",
+    "description": "An AutoGen Teams Powered by Jupyter notebook.",
+    "tags": ["extension", "tools"]
+  },
+  {
     "title": "Solving Security Vulnerabilities with AutoGen",
     "link": "https://www.linkedin.com/pulse/solving-security-vulnerabilities-llms-society-mind-model-leah-bonser-kcswc?trk=public_post_feed-article-content",
     "description": "An article discussing the use of AutoGen to tackle security vulnerabilities.",
