@@ -323,7 +323,7 @@ class WebSurferAgent(ConversableAgent):
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai."""
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
 
         self._user_proxy.reset()
         self._assistant.reset()

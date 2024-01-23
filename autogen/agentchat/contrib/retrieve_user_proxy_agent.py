@@ -319,7 +319,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
         message = messages[-1]
         update_context_case1, update_context_case2 = self._check_update_context(message)
         if (update_context_case1 or update_context_case2) and self.update_context:

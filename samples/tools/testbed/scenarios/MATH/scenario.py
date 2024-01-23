@@ -46,7 +46,7 @@ user_proxy.initiate_chat(assistant, message=PROMPT)
 
 # --------- extract reply ---------
 response_with_ans = ""
-messages = assistant._oai_messages[user_proxy]
+messages = assistant._message_store.oai_messages[user_proxy]
 for j in range(len(messages) - 1, -1, -1):
     if (
         messages[j]["role"] == "assistant"

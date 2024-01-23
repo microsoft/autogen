@@ -65,7 +65,7 @@ class LLaVAAgent(MultimodalConversableAgent):
             raise AssertionError(error_msg)
 
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
 
         # The formats for LLaVA and GPT are different. So, we manually handle them here.
         images = []

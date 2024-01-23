@@ -27,7 +27,7 @@ class RetrieveAssistantAgent(AssistantAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
         message = messages[-1]
         if "exitcode: 0 (execution succeeded)" in message.get("content", ""):
             # Terminate the conversation when the code execution succeeds. Although sometimes even when the

@@ -137,7 +137,7 @@ class GPTAssistantAgent(ConversableAgent):
         """
 
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._message_store.oai_messages[sender]
         unread_index = self._unread_index[sender] or 0
         pending_messages = messages[unread_index:]
 
@@ -177,7 +177,7 @@ class GPTAssistantAgent(ConversableAgent):
                 response["content"] += "\n\n"
             response["content"] += message["content"]
 
-        self._unread_index[sender] = len(self._oai_messages[sender]) + 1
+        self._unread_index[sender] = len(self._message_store.oai_messages[sender]) + 1
         return True, response
 
     def _get_run_response(self, thread, run):

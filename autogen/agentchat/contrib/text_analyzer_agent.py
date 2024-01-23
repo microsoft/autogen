@@ -52,7 +52,7 @@ class TextAnalyzerAgent(ConversableAgent):
         if self.llm_config is False:
             raise ValueError("TextAnalyzerAgent requires self.llm_config to be set in its base class.")
         if messages is None:
-            messages = self._oai_messages[sender]  # In case of a direct call.
+            messages = self._message_store.oai_messages[sender]  # In case of a direct call.
         assert len(messages) == 2
 
         # Delegate to the analysis method.
