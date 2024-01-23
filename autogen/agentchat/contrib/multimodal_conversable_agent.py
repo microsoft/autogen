@@ -61,8 +61,8 @@ class MultimodalConversableAgent(ConversableAgent):
         Args:
             system_message (str): system message for the OpenAIWrapper inference.
         """
-        self._oai_system_message[0]["content"] = self._message_to_dict(system_message)["content"]
-        self._oai_system_message[0]["role"] = "system"
+        self._llm._oai_system_message[0]["content"] = self._message_to_dict(system_message)["content"]
+        self._llm._oai_system_message[0]["role"] = "system"
 
     @staticmethod
     def _message_to_dict(message: Union[Dict, List, str]) -> Dict:
