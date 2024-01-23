@@ -96,8 +96,12 @@ class GeminiClient:
                 print("InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...")
                 time.sleep(5)
                 return self.call(params)
-            # ans = response.text # failed. Not sure why.
-            ans: str = chat.history[-1].parts[0].text
+            except Exception as e:
+                print("Exception occurred while calling Gemini API:", e)
+                ans = "TERMINATE"
+            else:
+                # ans = response.text # failed. Not sure why.
+                ans: str = chat.history[-1].parts[0].text
         elif model_name == "gemini-pro-vision":
             # B. handle the vision model
             # Gemini's vision model does not support chat history yet
@@ -181,6 +185,8 @@ def concat_parts(parts: List[Part]) -> List:
             concatenated_parts.append(previous_part)
             previous_part = current_part
 
+    if previous_part.text == "":
+        previous_part.text = "empty"  # Empty content is not allowed.
     concatenated_parts.append(previous_part)
 
     # TODO: handle inline_data, function_call, function_response
