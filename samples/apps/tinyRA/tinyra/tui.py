@@ -35,6 +35,41 @@ logging.basicConfig(
 )
 
 
+MODEL = "gpt-4"
+USER_NAME = os.environ.get("USER", None)
+if USER_NAME is None:
+    print("Please set the USER environment variable with your name.")
+    exit(1)
+CONFIG = configparser.ConfigParser()
+CHATDB = os.path.join(DATA_PATH, "chat_history.db")
+
+USER_PROFILE_TEXT = ""
+OPERATING_SYSTEM = platform.system()
+UTILS_FILE = os.path.join(DATA_PATH, "agent_utils.py")
+if not os.path.exists(UTILS_FILE):
+    with open(UTILS_FILE, "w") as f:
+        f.write("")
+CONFIG_LIST = config_list_from_json("OAI_CONFIG_LIST")
+LLM_CONFIG = config_list_from_json("OAI_CONFIG_LIST")[0]
+LLM_CONFIG["seed"] = 42
+
+META_SYSTEM_MESSAGE = f"""
+You are a helpful researcher assistant named "TinyRA".
+When introducing yourself do not forget your name!
+
+You are running on {OPERATING_SYSTEM} operating system.
+You are here to help "{USER_NAME}" with his research.
+
+The following is the bio of {USER_NAME}:
+<bio>
+{USER_PROFILE_TEXT}
+</bio>
+
+Respond to {USER_NAME}'s messages to be most helpful.
+
+"""
+
+
 def init_database():
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
@@ -49,25 +84,6 @@ def init_database():
     )
     conn.commit()
     conn.close()
-
-
-MODEL = "gpt-4"
-USER_NAME = os.environ.get("TINYRA_USER", None)
-if USER_NAME is None:
-    print("Please set the TINYRA_USER environment variable with your name.")
-CONFIG = configparser.ConfigParser()
-CHATDB = os.path.join(DATA_PATH, "chat_history.db")
-if not os.path.exists(CHATDB):
-    init_database()
-USER_PROFILE_TEXT = ""
-OPERATING_SYSTEM = platform.system()
-UTILS_FILE = os.path.join(DATA_PATH, "agent_utils.py")
-if not os.path.exists(UTILS_FILE):
-    with open(UTILS_FILE, "w") as f:
-        f.write("")
-CONFIG_LIST = config_list_from_json("OAI_CONFIG_LIST")
-LLM_CONFIG = config_list_from_json("OAI_CONFIG_LIST")[0]
-LLM_CONFIG["seed"] = 42
 
 
 def fetch_chat_history() -> List[Dict[str, str]]:
@@ -170,7 +186,11 @@ async def ask_gpt(messages):
     messages = [{k: v for k, v in m.items() if k in ["role", "content"]} for m in messages]
     messages = [m for m in messages if m["role"] in ["assistant", "user"]]
 
-    assistant = AssistantAgent("assistant", llm_config=LLM_CONFIG)
+    assistant = AssistantAgent(
+        "assistant",
+        system_message=META_SYSTEM_MESSAGE + "\nAdditional instructions\n" + AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+        llm_config=LLM_CONFIG,
+    )
     user = UserProxyAgent("user", code_execution_config=False)
 
     logging.debug("Messages", messages)
@@ -331,18 +351,7 @@ async def handle_user_input():
         if respond_directly:
             system_message = {
                 "role": "system",
-                "content": f"""
-                            You are a helpful researcher assistant named "tinyRA".
-                            You are running on {OPERATING_SYSTEM} operating system.
-                            You are here to help {USER_NAME} with his research.
-                            The following is the bio of {USER_NAME}:
-
-                            <bio>
-                            {USER_PROFILE_TEXT}
-                            </bio>
-
-                            Respond to {USER_NAME}'s messages to be most helpful.
-                            """,
+                "content": META_SYSTEM_MESSAGE,
             }
 
             filtered_messages = [system_message] + filtered_messages
@@ -528,7 +537,7 @@ class TinyRA(App):
 
     BINDINGS = [
         ("ctrl+t", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+c", "request_quit", "Quit TinyRA"),
+        ("ctrl+z", "request_quit", "Quit TinyRA"),
         ("ctrl+r", "handle_again", "Retry Last User Msg"),
         ("ctrl+g", "memorize_autogen", "Memorize"),
     ]
@@ -580,11 +589,28 @@ def main() -> None:
 
 
 def run_tinyra():
+    import sys
     import subprocess
+
+    # check if the user specified reset as the command line argument
+    # if yes, issue a warning and reset the chat history
+
+    if len(sys.argv) > 1 and sys.argv[1] == "reset":
+        print("Resetting chat history. This will delete all chat history.")
+        print("Press enter to continue or Ctrl+C to cancel.")
+        input()
+        # remove the chat history file
+        if os.path.exists(CHATDB):
+            os.remove(CHATDB)
+        return
 
     workdir = os.path.join(DATA_PATH, "work_dir")
     if not os.path.exists(workdir):
         os.makedirs(workdir)
+
+    if not os.path.exists(CHATDB):
+        init_database()
+
     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
     subprocess.run(["bash", script_path], check=True)
 
