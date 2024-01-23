@@ -7,7 +7,7 @@ trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'windows-latest'
 
 steps:
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-policheck.PoliCheck@2
