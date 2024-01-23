@@ -52,11 +52,13 @@ def init_database():
 
 
 MODEL = "gpt-4"
+USER_NAME = os.environ.get("TINYRA_USER", None)
+if USER_NAME is None:
+    print("Please set the TINYRA_USER environment variable with your name.")
 CONFIG = configparser.ConfigParser()
 CHATDB = os.path.join(DATA_PATH, "chat_history.db")
 if not os.path.exists(CHATDB):
     init_database()
-USER_NAME = "Gagan"
 USER_PROFILE_TEXT = ""
 OPERATING_SYSTEM = platform.system()
 UTILS_FILE = os.path.join(DATA_PATH, "agent_utils.py")
@@ -64,10 +66,8 @@ if not os.path.exists(UTILS_FILE):
     with open(UTILS_FILE, "w") as f:
         f.write("")
 CONFIG_LIST = config_list_from_json("OAI_CONFIG_LIST")
-llm_config = config_list_from_json("OAI_CONFIG_LIST")[0]
-llm_config["seed"] = 42
-
-# MODEL = ""
+LLM_CONFIG = config_list_from_json("OAI_CONFIG_LIST")[0]
+LLM_CONFIG["seed"] = 42
 
 
 def fetch_chat_history() -> List[Dict[str, str]]:
@@ -123,10 +123,23 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
         num_tokens += 2  # every reply is primed with <im_start>assistant
         return num_tokens
     else:
-        raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}.""")
+        raise NotImplementedError(
+            f"""num_tokens_from_messages() is not presently implemented for model {model}. Currently supports OpenAI models with prefix "gpt-3.5" and "gpt4" only."""
+        )
 
 
-def truncate_messages(messages, model):
+def truncate_messages(messages, model, minimum_response_tokens=1000):
+    """
+    Truncates messages to fit within the maximum context length of a given model.
+
+    Args:
+        messages: a list of messages
+        model: the model to truncate for
+        minimum_response_tokens: the minimum number of tokens to leave for the response
+
+    Returns:
+        A list of messages that fit within the maximum context length of the model.
+    """
     max_context_tokens = None
     if model == "gpt-4-32k":
         max_context_tokens = 32000
@@ -144,7 +157,8 @@ def truncate_messages(messages, model):
     while True:
         new_messages = [messages[0]] + messages[start_idx:]
         prompt_tokens = num_tokens_from_messages(new_messages)
-        if prompt_tokens <= max_context_tokens - 1000:
+
+        if prompt_tokens <= max_context_tokens - minimum_response_tokens:
             break
         else:
             start_idx += 1
@@ -156,7 +170,7 @@ async def ask_gpt(messages):
     messages = [{k: v for k, v in m.items() if k in ["role", "content"]} for m in messages]
     messages = [m for m in messages if m["role"] in ["assistant", "user"]]
 
-    assistant = AssistantAgent("assistant", llm_config=llm_config)
+    assistant = AssistantAgent("assistant", llm_config=LLM_CONFIG)
     user = UserProxyAgent("user", code_execution_config=False)
 
     logging.debug("Messages", messages)
@@ -174,22 +188,15 @@ async def ask_gpt(messages):
     return response
 
 
-async def chat_completion_wrapper(row_id, *args, **kwargs):
-    max_retries = 500
-    count = 0
-    # row_id = insert_chat_message("info", "Requesting response...")
+async def chat_completion_wrapper(row_id, **kwargs):
     while True:
         try:
             response = await ask_gpt(kwargs["messages"])
             response["id"] = row_id
             return response
         except Exception as e:
-            count += 1
-            if count > max_retries:
-                insert_chat_message("error", f"{e}", row_id)
-                return None
-            insert_chat_message("info", f"Retrying again ({count})...{e}", row_id)
-            await asyncio.sleep(2)  # You can adjust the retry delay as needed.
+            insert_chat_message("error", f"{e}", row_id)
+            return None
 
 
 def function_names_to_markdown_table(file_path):
@@ -244,12 +251,7 @@ async def get_standalone_func(content):
         }
     ]
     row_id = insert_chat_message("info", "Generating code...")
-    response = await chat_completion_wrapper(
-        row_id=row_id,
-        model=MODEL,
-        messages=messages,
-        max_tokens=800,
-    )
+    response = await chat_completion_wrapper(row_id=row_id, messages=messages)
 
     return response["content"]
 
@@ -326,11 +328,6 @@ async def handle_user_input():
         else:
             respond_directly = False
 
-        # requires_autogen = {"requires_code": True, "confidence": 1.0}
-        # respond_directly = False
-
-        # respond_directly = requires_autogen is not None and requires_autogen["requires_code"] == False
-
         if respond_directly:
             system_message = {
                 "role": "system",
@@ -351,10 +348,7 @@ async def handle_user_input():
             filtered_messages = [system_message] + filtered_messages
             insert_chat_message("info", f"Generating direct response for {last_user_message_id}", row_id)
             response = await chat_completion_wrapper(
-                row_id=row_id,
-                model=MODEL,
-                messages=truncate_messages(filtered_messages, MODEL),
-                max_tokens=800,
+                row_id=row_id, messages=truncate_messages(filtered_messages, MODEL)
             )
             if response is not None:
                 insert_chat_message(response["role"], response["content"], row_id=response["id"])
@@ -402,12 +396,7 @@ async def check_requires_autogen(messages, row_id):
 
     Only respond with a valid json object.
     """
-    response = await chat_completion_wrapper(
-        row_id=row_id,
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=800,
-    )
+    response = await chat_completion_wrapper(row_id=row_id, messages=[{"role": "user", "content": prompt}])
     # response = await chat_completion_wrapper()
     response = response["content"]
     # check if the response is valid json
@@ -466,7 +455,7 @@ class DirectoryTreeContainer(ScrollableContainer):
         yield DirectoryTree(os.path.join(DATA_PATH, "work_dir"))
 
     def _on_mount(self) -> None:
-        self.set_interval(5, self.update_dir_contents)
+        self.set_interval(5, self.update_dir_contents)  # wait 5 seconds before updating
 
     def update_dir_contents(self):
         self.query_one(DirectoryTree).reload()
@@ -543,6 +532,8 @@ class TinyRA(App):
         ("ctrl+r", "handle_again", "Retry Last User Msg"),
         ("ctrl+g", "memorize_autogen", "Memorize"),
     ]
+
+    # TODO: Add a key binding for help
 
     CSS_PATH = "tui.css"
 

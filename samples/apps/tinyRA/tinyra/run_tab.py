@@ -8,7 +8,12 @@ msgid = None
 # get the first arg
 if len(sys.argv) > 1:
     msgid = int(sys.argv[1])
+    if msgid < 1:
+        msgid = None
 
+if msgid is None:
+    print("Please specify a valid message id")
+    exit(1)
 
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
@@ -21,7 +26,6 @@ user = UserProxyAgent(
 )
 
 messages = tui.fetch_chat_history()
-
 task = messages[msgid - 1]
 
 user.initiate_chat(assistant, message=task)
