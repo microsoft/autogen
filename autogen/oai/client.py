@@ -270,6 +270,14 @@ class OpenAIWrapper:
                     response: ChatCompletion = cache.get(key, None)
 
                     if response is not None:
+                        try:
+                            response.cost  # type: ignore [attr-defined]
+                        except AttributeError:
+                            # update attribute if cost is not calculated
+                            response.cost = self.cost(response)
+                            cache.set(key, response)
+                        self._update_usage_summary(response, use_cache=True)
+
                         # Log the cache hit
                         autogen.telemetry.log_chat_completion(
                             invocation_id=invocation_id,
@@ -279,16 +287,10 @@ class OpenAIWrapper:
                             response=response,
                             is_cached=1,
                             client_config=self._config_list[i],
+                            cost=response.cost,
                             start_time=request_ts,
                         )
 
-                        try:
-                            response.cost  # type: ignore [attr-defined]
-                        except AttributeError:
-                            # update attribute if cost is not calculated
-                            response.cost = self.cost(response)
-                            cache.set(key, response)
-                        self._update_usage_summary(response, use_cache=True)
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
@@ -310,6 +312,7 @@ class OpenAIWrapper:
                     response=f"error_code:{error_code}, config {i} failed",
                     is_cached=0,
                     client_config=self._config_list[i],
+                    cost=0,
                     start_time=request_ts,
                 )
 
@@ -337,6 +340,7 @@ class OpenAIWrapper:
                     response=response,
                     is_cached=0,
                     client_config=self._config_list[i],
+                    cost=response.cost,
                     start_time=request_ts,
                 )
 

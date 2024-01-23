@@ -66,6 +66,7 @@ SAMPLE_LOG_CHAT_COMPLETION_ARGS = {
     "response": SAMPLE_CHAT_RESPONSE,
     "is_cached": 0,
     "client_config": {"model": "gpt-4", "api_type": "azure"},
+    "cost": 0.347,
     "start_time": autogen.telemetry.get_current_ts(),
 }
 
@@ -82,7 +83,7 @@ def test_telemetry():
     con = autogen.telemetry.get_connection()
     cur = con.cursor()
     for row in cur.execute(
-        "SELECT id, invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, start_time, end_time FROM chat_completions;"
+        "SELECT id, invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, cost, start_time, end_time FROM chat_completions;"
     ):
         assert row[1] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["invocation_id"]
         assert row[2] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["client_id"]
@@ -91,7 +92,8 @@ def test_telemetry():
         assert json.loads(row[6]) == SAMPLE_LOG_CHAT_COMPLETION_ARGS["response"]
         assert row[7] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["is_cached"]
         assert json.loads(row[8]) == SAMPLE_LOG_CHAT_COMPLETION_ARGS["client_config"]
-        assert row[9] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["start_time"]
+        assert row[9] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["cost"]
+        assert row[10] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["start_time"]
 
     autogen.telemetry.stop_logging()
 

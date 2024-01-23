@@ -38,6 +38,7 @@ def start_logging(dbname="telemetry.db"):
             response TEXT,
             is_cached INEGER,
             client_config TEXT,
+            cost REAL,
             start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
             end_time DATETIME DEFAULT CURRENT_TIMESTAMP)
     """
@@ -75,7 +76,7 @@ def _to_dict(obj, exclude=[]):
         return obj
 
 
-def log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, client_config, start_time):
+def log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, client_config, cost, start_time):
     """
     Log a chat completion to the telemetry database.
 
@@ -90,7 +91,8 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
         request (dict):                     A dictionary representing the the request or call to the OpenAI client endpoint
         response (str or ChatCompletion):   The response from OpenAI
         is_chached (int):                   1 if the response was a cache hit, 0 otherwise
-        client_config (dict):               A dictionaru representing the underlying OpenAI client configuration (model, etc.)
+        client_config (dict):               A dictionary representing the underlying OpenAI client configuration (model, etc.)
+        cost(float):                        The cost for OpenAI response
         start_time (str):                   A string representing the moment the request was initiated
     """
 
@@ -109,6 +111,8 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
         response_messages = json.dumps(response, indent=4)
     elif isinstance(response, str):
         response_messages = json.dumps({"error": response})
+    elif response is None:
+        response_messages = ""
     else:
         raise "invalid type of response"
 
@@ -119,7 +123,7 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
             del _client_config[k]
 
     query = """INSERT INTO chat_completions (
-        invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, cost, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
     this._cur.execute(
         query,
         (
@@ -131,6 +135,7 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
             response_messages,
             is_cached,
             json.dumps(_client_config),
+            cost,
             start_time,
             end_time,
         ),
