@@ -69,6 +69,12 @@
     "tags": ["ui"]
   },
   {
+    "title": "Full Function UI for AutoGen Powered by Panel",
+    "link": "https://youtu.be/9lSaRP9GLCY?si=HihULAe3FFyteFHY",
+    "description": "A UI allows users to directly interact with AI agents in real-time during a group chat scenario",
+    "tags": ["ui"]
+  },
+  {
     "title": "AutoGen Monitoring and Observability",
     "link": "https://docs.arize.com/phoenix/quickstart/llm-traces/autogen-support",
     "description": "Documentation on monitoring and observability features for AutoGen.",

@@ -2,6 +2,16 @@
 const math = require("remark-math");
 const katex = require("rehype-katex");
 
+customPostCssPlugin = () => {
+  return {
+    name: "custom-postcss",
+    configurePostCss(options) {
+      options.plugins.push(require("postcss-preset-env"));
+      return options;
+    }
+  };
+}
+
 module.exports = {
   title: "AutoGen",
   tagline: "Enable Next-Gen Large Language Model Applications",
@@ -145,7 +155,6 @@ module.exports = {
   ],
 
   plugins: [
-    // ... Your other plugins.
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
@@ -160,5 +169,6 @@ module.exports = {
         // When applying `zh` in language, please install `nodejieba` in your project.
       },
     ],
+    customPostCssPlugin
   ],
 };
