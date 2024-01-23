@@ -123,6 +123,8 @@ class OpenAIWrapper:
         else:
             self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
+        self.wrapper_id = id(self)
+
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -282,7 +284,7 @@ class OpenAIWrapper:
                         autogen.telemetry.log_chat_completion(
                             invocation_id=invocation_id,
                             client_id=id(client),
-                            wrapper_id=id(self),
+                            wrapper_id=self.wrapper_id,
                             request=params,
                             response=response,
                             is_cached=1,
@@ -307,7 +309,7 @@ class OpenAIWrapper:
                 autogen.telemetry.log_chat_completion(
                     invocation_id=invocation_id,
                     client_id=id(client),
-                    wrapper_id=id(self),
+                    wrapper_id=self.wrapper_id,
                     request=params,
                     response=f"error_code:{error_code}, config {i} failed",
                     is_cached=0,
@@ -335,7 +337,7 @@ class OpenAIWrapper:
                 autogen.telemetry.log_chat_completion(
                     invocation_id=invocation_id,
                     client_id=id(client),
-                    wrapper_id=id(self),
+                    wrapper_id=self.wrapper_id,
                     request=params,
                     response=response,
                     is_cached=0,

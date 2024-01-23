@@ -118,7 +118,7 @@ class ConversableAgent(Agent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
-        log_new_agent(self, locals())
+
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
@@ -137,6 +137,8 @@ class ConversableAgent(Agent):
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
+
+        log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None

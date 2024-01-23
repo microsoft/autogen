@@ -49,7 +49,7 @@ def start_logging(dbname="telemetry.db"):
             id INTEGER PRIMARY KEY,
             wrapper_id INTEGER,
             session_id TEXT,
-            name TEXT,
+            agent TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);
     """
     this._cur.execute(query)
@@ -159,18 +159,23 @@ def log_new_agent(agent, init_args):
     if ERROR:
         raise ERROR
 
-    print(_to_dict(init_args, exclude=["self", "__class__"]))
+    args = _to_dict(init_args, exclude=["self", "__class__"])
 
-    # _client_config = copy.deepcopy(client_config)
-    # for k in ["api_key", "organization"]:
-    #    if k in _client_config:
-    #        del _client_config[k]
-    #
-    # query = """INSERT INTO chat_completions (
-    #    invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-    # this._cur.execute(
-    #    query,
-    #    (
+    if 'llm_config' in args:
+        if 'config_list' in args['llm_config']:
+            for config in args['llm_config']['config_list']:
+                del config['api_key']
+
+    query = """INSERT INTO agents (wrapper_id, session_id, agent, timestamp) VALUES (?, ?, ?, ?)"""
+    this._cur.execute(
+       query,
+       (
+           agent.client.wrapper_id if agent.client is not None else "",
+           this._session_id,
+           json.dumps(args),
+           get_current_ts()
+       )
+    )
 
 
 def get_current_ts():
