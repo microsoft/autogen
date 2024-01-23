@@ -15,8 +15,6 @@ steps:
   inputs:
     targetType: F
     optionsPE: '1|2|3|4'
-    optionsUEPATH: '$(Build.SourcesDirectory)\policheck_exclusions.xml'
-    optionsRulesDBPath: '$(Build.SourcesDirectory)\policheck_exclusions.mdb'
 
 - task: securedevelopmentteam.vss-secure-development-tools.build-task-postanalysis.PostAnalysis@2
   displayName: 'Policheck Break Build'
