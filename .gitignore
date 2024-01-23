@@ -175,8 +175,7 @@ test/test_files/agenteval-in-out/out/
 # Files created by tests
 *tmp_code_*
 test/agentchat/test_agent_scripts/*
-autogen/extensions/draw_rocket.py
-autogen/extensions/rocket_ascii_art.py
+autogen/extensions/*rocket*.py
 notebook/coding
 test/executed_openai_notebook_output.txt
 test/agentchat/tsp_add_new_point.py
