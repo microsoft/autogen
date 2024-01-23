@@ -569,7 +569,7 @@ def test_clear_agents_history():
     ]
     assert groupchat.messages == [
         {'content': 'This is bob speaking.', 'role': 'user', 'name': 'bob'},
-        {'content': 'How you doing?', 'role': 'user', 'name': 'sam'}
+        {'content': 'How you doing?', 'role': 'user', 'name': 'sam'},
     ]
 
     # testing clear history with defined agent and nr of messages to preserve
