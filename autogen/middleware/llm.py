@@ -115,7 +115,7 @@ class LLMMiddleware:
             Union[str, Dict, None]: the reply message.
         """
         if self._llm_config is False:
-            return next(messages, sender)
+            return await next(messages, sender)
         else:
             final, reply = await self._a_generate_oai_reply(messages)
             if final:

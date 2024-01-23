@@ -323,11 +323,11 @@ def test_generate_code_execution_reply():
 
     # scenario 8: if last_n_messages is misconfigures, we expect to see an error
     with pytest.raises(ValueError):
-        agent._code_execution_config = {"last_n_messages": -1, "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": -1, "use_docker": False}
         agent.generate_code_execution_reply([code_message])
 
     with pytest.raises(ValueError):
-        agent._code_execution_config = {"last_n_messages": "hello world", "use_docker": False}
+        agent.code_execution_config = {"last_n_messages": "hello world", "use_docker": False}
         agent.generate_code_execution_reply([code_message])
 
 

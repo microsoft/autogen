@@ -32,9 +32,8 @@ async def test_async_get_human_input():
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
 
-    user_proxy.a_get_human_input = AsyncMock(return_value="This is a test")
     with patch(
-        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware.a_get_human_input"
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input"
     ) as a_mock_get_human_input:
         a_mock_get_human_input.return_value = "This is a test"
 
@@ -46,7 +45,7 @@ async def test_async_get_human_input():
         a_mock_get_human_input.assert_awaited()
 
     with patch(
-        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware.a_get_human_input"
+        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input"
     ) as a_mock_get_human_input:
         a_mock_get_human_input.return_value = "This is a test"
 
