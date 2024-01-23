@@ -159,7 +159,7 @@ async def ask_gpt(messages):
     assistant = AssistantAgent("assistant", llm_config=llm_config)
     user = UserProxyAgent("user", code_execution_config=False)
 
-    logging.info(messages)
+    logging.debug("Messages", messages)
     for i, message in enumerate(messages):
         if message["role"] == "assistant":
             await assistant.a_send(message, user, request_reply=False)
@@ -169,9 +169,8 @@ async def ask_gpt(messages):
                 is_last_user_msg = True
             await user.a_send(message, assistant, request_reply=is_last_user_msg)
 
-    logging.info(assistant.chat_messages)
     response = assistant.chat_messages[user][-1]
-    logging.info(response)
+    logging.debug("Response", response)
     return response
 
 
@@ -443,9 +442,6 @@ class ReactiveAssistantMessage(Markdown):
         self.classes = f"{self.message['role'].lower()}-message message"
 
     def watch_message(self) -> str:
-        role = self.message["role"]
-        if role not in ["info", "error"]:
-            self.scroll_visible()
         self.update(message2markdown(self.message))
 
 
@@ -497,21 +493,30 @@ class ChatDisplay(ScrollableContainer):
     chat_history = reactive(fetch_chat_history)
     old_chat_history = reactive(fetch_chat_history)
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         self.set_interval(1.0, self.update_chat_history)
+        logging.info("Waiting 2 sec for message mounting to complete.")
+        await asyncio.sleep(2)
+        logging.info("Scrolling to end of container.")
+        self.scroll_end()
 
     def update_chat_history(self) -> None:
         self.chat_history = fetch_chat_history()
 
-    def watch_chat_history(self) -> None:
+    async def watch_chat_history(self) -> None:
         len_old = len(self.old_chat_history)
         len_new = len(self.chat_history)
-        # add widgets for new messages
-        for i in range(len_old, len_new):
-            text = message_display_handler(self.chat_history[i])
-            self.mount(text)
-            if i == len_new - 1:
-                text.scroll_visible()
+        if len_new > len_old:
+            logging.info("New message detected. Mounting them.")
+            # add widgets for new messages
+            for i in range(len_old, len_new):
+                logging.info(f"Mounting message {i}")
+                text = message_display_handler(self.chat_history[i])
+                self.mount(text)
+
+                # text.scroll_visible(animate=False)
+                self.scroll_end()
+                logging.info(f"Scrolling to message {i}")
         self.old_chat_history = self.chat_history
 
     def compose(self) -> ComposeResult:
@@ -543,9 +548,6 @@ class TinyRA(App):
 
     TITLE = "TinyRA"
     SUB_TITLE = "A minimalistic Research Assistant"
-
-    def on_mount(self) -> None:
-        self.query_one(ChatDisplay).scroll_end(animate=False)
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""

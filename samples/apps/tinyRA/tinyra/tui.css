@@ -53,5 +53,5 @@ Screen{
 }
 
 .assistant-message {
-    border: dashed white;
+    border: $boost;
 }
