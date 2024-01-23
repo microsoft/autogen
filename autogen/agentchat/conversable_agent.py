@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
+from ..telemetry import log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -117,6 +118,7 @@ class ConversableAgent(Agent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
+        log_new_agent(self, locals())
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]

@@ -43,6 +43,17 @@ def start_logging(dbname="telemetry.db"):
     """
     this._cur.execute(query)
 
+    query = """
+        CREATE TABLE IF NOT EXISTS agents(
+            id INTEGER PRIMARY KEY,
+            wrapper_id INTEGER,
+            session_id TEXT,
+            name TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);
+    """
+    this._cur.execute(query)
+    this._con.commit()
+
 
 def get_connection():
     """
@@ -51,15 +62,15 @@ def get_connection():
     return this._con
 
 
-def _to_dict(obj):
+def _to_dict(obj, exclude=[]):
     if isinstance(obj, (int, float, str, bool)):
         return obj
     elif isinstance(obj, dict):
-        return {k: _to_dict(v) for k, v in obj.items()}
+        return {k: _to_dict(v) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
         return [_to_dict(v) for v in obj]
     elif hasattr(obj, "__dict__"):
-        return {k: _to_dict(v) for k, v in vars(obj).items()}
+        return {k: _to_dict(v) for k, v in vars(obj).items() if k not in exclude}
     else:
         return obj
 
@@ -125,6 +136,36 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
         ),
     )
     this._con.commit()
+
+
+def log_new_agent(agent, init_args):
+    """
+    Log the birth of a new agent.
+
+    Args:
+        agent (ConversableAgent):   The agent to log.
+        init_args (dict):           The arguments passed to the construct the conversable agent
+    """
+
+    # Nothing to do
+    if this._con is None:
+        return
+
+    if ERROR:
+        raise ERROR
+
+    print(_to_dict(init_args, exclude=["self", "__class__"]))
+
+    # _client_config = copy.deepcopy(client_config)
+    # for k in ["api_key", "organization"]:
+    #    if k in _client_config:
+    #        del _client_config[k]
+    #
+    # query = """INSERT INTO chat_completions (
+    #    invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+    # this._cur.execute(
+    #    query,
+    #    (
 
 
 def get_current_ts():
