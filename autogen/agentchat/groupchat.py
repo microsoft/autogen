@@ -374,7 +374,7 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                speaker = groupchat.select_speaker(speaker, self)
+                speaker = groupchat.select_speaker(speaker, speaker)
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
@@ -431,7 +431,7 @@ class GroupChatManager(ConversableAgent):
                 break
             try:
                 # select the next speaker
-                speaker = await groupchat.a_select_speaker(speaker, self)
+                speaker = await groupchat.a_select_speaker(speaker, speaker)
                 # let the speaker speak
                 reply = await speaker.a_generate_reply(sender=self)
             except KeyboardInterrupt:
