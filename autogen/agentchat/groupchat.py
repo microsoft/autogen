@@ -397,7 +397,6 @@ class GroupChatManager(ConversableAgent):
             if groupchat.enable_clear_history and isinstance(reply, dict):
                 if "CLEAR HISTORY" in reply["content"].upper():
                     reply["content"] = self.clear_agents_history(reply["content"], groupchat)
-
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
@@ -524,8 +523,15 @@ class GroupChatManager(ConversableAgent):
         else:
             if nr_messages_to_preserve:
                 print(f"Clearing history for all agents except last {nr_messages_to_preserve} messages.")
+                # clearing history for groupchat here
+                temp = groupchat.messages[-nr_messages_to_preserve:]
+                groupchat.messages.clear()
+                groupchat.messages.extend(temp)
             else:
                 print("Clearing history for all agents.")
+                # clearing history for groupchat here
+                groupchat.messages.clear()
+            # clearing history for agents
             for agent in groupchat.agents:
                 agent.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
 

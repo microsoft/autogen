@@ -535,7 +535,8 @@ def test_clear_agents_history():
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
     assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
-
+    assert groupchat.messages == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    
     # testing clear history for defined agent
     with mock.patch.object(builtins, "input", lambda _: "clear history bob. How you doing?"):
         agent1.initiate_chat(group_chat_manager, message="hello")
@@ -547,6 +548,11 @@ def test_clear_agents_history():
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
     assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    assert groupchat.messages == [
+        {"content": "hello", "role": "user", "name": "alice"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
 
     # testing clear history with defined nr of messages to preserve
     with mock.patch.object(builtins, "input", lambda _: "clear history 1. How you doing?"):
@@ -560,6 +566,10 @@ def test_clear_agents_history():
     assert agent2_history == [
         {"content": "This is bob speaking.", "role": "assistant"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert groupchat.messages == [
+        {'content': 'This is bob speaking.', 'role': 'user', 'name': 'bob'},
+        {'content': 'How you doing?', 'role': 'user', 'name': 'sam'}
     ]
 
     # testing clear history with defined agent and nr of messages to preserve
@@ -576,6 +586,11 @@ def test_clear_agents_history():
         {"content": "This is bob speaking.", "role": "assistant"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
     ]
+    assert groupchat.messages == [
+        {"content": "hello", "name": "alice", "role": "user"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
 
 
 if __name__ == "__main__":
@@ -588,5 +603,5 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    test_invalid_allow_repeat_speaker()
+    # test_invalid_allow_repeat_speaker()
     test_clear_agents_history()
