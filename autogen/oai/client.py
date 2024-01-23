@@ -15,10 +15,10 @@ from autogen.cache.cache import Cache
 from autogen.oai import completion
 
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
-from autogen.oai.telemetry import Telemetry
 from autogen.token_count_utils import count_token
 from autogen._pydantic import model_dump
 
+import autogen.telemetry
 
 TOOL_ENABLED = False
 try:
@@ -123,9 +123,6 @@ class OpenAIWrapper:
         else:
             self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
-
-        # TODO: add a config flag for logging, close the db connection properly
-        self.telemetry = Telemetry()
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -239,6 +236,7 @@ class OpenAIWrapper:
         """
         if ERROR:
             raise ERROR
+        invocation_id = str(uuid.uuid4())
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
@@ -256,11 +254,6 @@ class OpenAIWrapper:
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
 
-            telemetry_id = str(uuid.uuid4())
-            cleaned_client_config = {}
-            # cleaned_client_config = copy.deepcopy(client_config)
-            # self.telemetry.cleanup_config(cleaned_client_config, "key") # remove api-key and api_key
-
             cache_client = None
             if cache is not None:
                 # Use the cache object if provided.
@@ -273,18 +266,22 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
-                    request_ts = self.telemetry.get_current_ts()
+                    request_ts = autogen.telemetry.get_current_ts()
                     response: ChatCompletion = cache.get(key, None)
-                    self.telemetry.insert(
-                        telemetry_id=telemetry_id,
-                        params=params,
-                        response=response,
-                        is_cached=1,
-                        client_config=cleaned_client_config,
-                        start_time=request_ts,
-                    )
 
                     if response is not None:
+                        # Log the cache hit
+                        autogen.telemetry.log_chat_completion(
+                            invocation_id=invocation_id,
+                            client_id=id(client),
+                            wrapper_id=id(self),
+                            request=params,
+                            response=response,
+                            is_cached=1,
+                            client_config=self._config_list[i],
+                            start_time=request_ts,
+                        )
+
                         try:
                             response.cost  # type: ignore [attr-defined]
                         except AttributeError:
@@ -301,16 +298,18 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
-                request_ts = self.telemetry.get_current_ts()
+                request_ts = autogen.telemetry.get_current_ts()
                 response = self._completions_create(client, params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
-                self.telemetry.insert(
-                    telemetry_id=telemetry_id,
-                    params=params,
+                autogen.telemetry.log_chat_completion(
+                    invocation_id=invocation_id,
+                    client_id=id(client),
+                    wrapper_id=id(self),
+                    request=params,
                     response=f"error_code:{error_code}, config {i} failed",
                     is_cached=0,
-                    client_config=cleaned_client_config,
+                    client_config=self._config_list[i],
                     start_time=request_ts,
                 )
 
@@ -330,12 +329,14 @@ class OpenAIWrapper:
                         cache.set(key, response)
 
                 # Log the telemetry
-                self.telemetry.insert(
-                    telemetry_id=telemetry_id,
-                    params=params,
+                autogen.telemetry.log_chat_completion(
+                    invocation_id=invocation_id,
+                    client_id=id(client),
+                    wrapper_id=id(self),
+                    request=params,
                     response=response,
                     is_cached=0,
-                    client_config=cleaned_client_config,
+                    client_config=self._config_list[i],
                     start_time=request_ts,
                 )
 
