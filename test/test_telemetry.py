@@ -5,7 +5,9 @@ import uuid
 import sys
 import os
 import json
+from unittest.mock import Mock
 
+WRAPPER_ID = 140610167717744
 SAMPLE_CHAT_REQUEST = json.loads(
     """
 {
@@ -61,7 +63,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 SAMPLE_LOG_CHAT_COMPLETION_ARGS = {
     "invocation_id": str(uuid.uuid4()),
     "client_id": 140609438577184,
-    "wrapper_id": 140610167717744,
+    "wrapper_id": WRAPPER_ID,
     "request": SAMPLE_CHAT_REQUEST,
     "response": SAMPLE_CHAT_RESPONSE,
     "is_cached": 0,
@@ -70,33 +72,92 @@ SAMPLE_LOG_CHAT_COMPLETION_ARGS = {
     "start_time": autogen.telemetry.get_current_ts(),
 }
 
+SAMPLE_AGENT_INIT_ARGS = {
+    "name": "teacher",
+    "system_message": "some system message",
+    "is_termination_msg": None,
+    "max_consecutive_auto_reply": 2,
+    "human_input_mode": "NEVER",
+    "function_map": None,
+    "code_execution_config": False,
+    "llm_config": {
+        "config_list": [
+            {"model": "gpt-4", "base_url": "some base url", "api_type": "azure", "api_version": "2023-12-01-preview"}
+        ]
+    },
+    "default_auto_reply": "",
+    "description": None,
+}
+
+SAMPLE_LOG_NEW_AGENT_ARGS = {
+    "wrapper_id": WRAPPER_ID,
+    "agent": SAMPLE_AGENT_INIT_ARGS,
+}
+
+# skip id, session_id
+COMPLETION_QUERY = """
+    SELECT invocation_id, client_id, wrapper_id, request, response, is_cached,
+        client_config, cost, start_time, end_time FROM chat_completions
+"""
+
+AGENT_QUERY = """
+    SELECT wrapper_id, agent FROM agents
+"""
+
 ###############################################################
 
 
-def test_telemetry():
+def test_log_completion():
     autogen.telemetry.start_logging(dbname=":memory:")
-
-    # Add something to the log
     autogen.telemetry.log_chat_completion(**SAMPLE_LOG_CHAT_COMPLETION_ARGS)
 
-    # Check what's in the db
     con = autogen.telemetry.get_connection()
     cur = con.cursor()
-    for row in cur.execute(
-        "SELECT id, invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, client_config, cost, start_time, end_time FROM chat_completions;"
-    ):
-        assert row[1] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["invocation_id"]
-        assert row[2] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["client_id"]
-        assert row[3] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["wrapper_id"]
-        assert json.loads(row[5]) == SAMPLE_LOG_CHAT_COMPLETION_ARGS["request"]
-        assert json.loads(row[6]) == SAMPLE_LOG_CHAT_COMPLETION_ARGS["response"]
-        assert row[7] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["is_cached"]
-        assert json.loads(row[8]) == SAMPLE_LOG_CHAT_COMPLETION_ARGS["client_config"]
-        assert row[9] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["cost"]
-        assert row[10] == SAMPLE_LOG_CHAT_COMPLETION_ARGS["start_time"]
 
+    for row in cur.execute(COMPLETION_QUERY):
+        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
+            # request, response, client_config
+            if idx == 3 or idx == 4 or idx == 6:
+                val = json.loads(val)
+            assert val == arg
     autogen.telemetry.stop_logging()
 
 
-if __name__ == "__main__":
-    test_telemetry()
+def test_log_completion_with_none_response():
+    SAMPLE_LOG_CHAT_COMPLETION_ARGS["response"] = None
+
+    autogen.telemetry.start_logging(dbname=":memory:")
+    autogen.telemetry.log_chat_completion(**SAMPLE_LOG_CHAT_COMPLETION_ARGS)
+
+    con = autogen.telemetry.get_connection()
+    cur = con.cursor()
+
+    for row in cur.execute(COMPLETION_QUERY):
+        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
+            if idx == 4:  # response
+                assert val == ""
+                continue
+            elif idx == 3 or idx == 6:  # request, client_config
+                val = json.loads(val)
+            assert val == arg
+    autogen.telemetry.stop_logging()
+
+
+def test_log_new_agent():
+    autogen.telemetry.start_logging(dbname=":memory:")
+
+    mock_agent = Mock()
+    mock_agent.client = Mock()
+    mock_agent.client.wrapper_id = WRAPPER_ID
+    autogen.telemetry.log_new_agent(mock_agent, SAMPLE_AGENT_INIT_ARGS)
+
+    con = autogen.telemetry.get_connection()
+    cur = con.cursor()
+
+    for row in cur.execute(AGENT_QUERY):
+        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_NEW_AGENT_ARGS.values()):
+            if idx == 1:  # agent
+                val = json.loads(val)
+            assert val == arg
+
+    autogen.telemetry.stop_logging()

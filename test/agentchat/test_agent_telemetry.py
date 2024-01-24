@@ -5,7 +5,6 @@ import json
 import sys
 import uuid
 
-from autogen.agentchat import ConversableAgent, UserProxyAgent
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
@@ -62,12 +61,14 @@ def test_agent_telemetry():
     )
 
     student.initiate_chat(
-       teacher,
-       message="Can you explain the difference between eigenvalues and singular values again?",
+        teacher,
+        message="Can you explain the difference between eigenvalues and singular values again?",
     )
 
     con = autogen.telemetry.get_connection()
     cur = con.cursor()
+
+    # Test completions table
     cur.execute("SELECT * FROM chat_completions;")
     rows = cur.fetchall()
 
@@ -94,16 +95,39 @@ def test_agent_telemetry():
         assert first_request_role == "system"
 
         response = json.loads(row[6])
-        assert "choices" in response and len(response['choices']) > 0
+        assert "choices" in response and len(response["choices"]) > 0
 
         client_config = json.loads(row[8])
         assert "model" in client_config and "api_type" in client_config
 
-        assert row[9] > 0 # cost
+        assert row[9] > 0  # cost
         assert row[10], "start timestamp is empty"
         assert row[11], "end timestamp is empty"
+
+    # Test agents table
+    cur.execute("SELECT * FROM agents")
+    rows = cur.fetchall()
+
+    assert len(rows) == 2
+
+    session_id = rows[0][2]
+
+    for idx, row in enumerate(rows):
+        assert row[1], "wrapper id is empty"
+        assert row[2] and row[2] == session_id
+
+        agent = json.loads(row[3])
+        if idx == 0:
+            assert agent["name"] == "teacher"
+            agent["system_message"] == teacher_message
+        elif idx == 1:
+            assert agent["name"] == "student"
+            agent["system_message"] = student_message
+
+        agent_config = agent["llm_config"]["config_list"][0]
+        assert "api_key" not in agent_config
+        assert "api-key" not in agent_config
+        assert "api_version" in agent_config
+
+        assert row[4], "timestamp is empty"
     autogen.telemetry.stop_logging()
-
-
-if __name__ == "__main__":
-    test_agent_telemetry()

@@ -26,7 +26,6 @@ def start_logging(dbname="telemetry.db"):
     """
     this._con = sqlite3.connect(dbname)
     this._cur = this._con.cursor()
-    this._session_id = str(uuid.uuid4())
     query = """
         CREATE TABLE IF NOT EXISTS chat_completions(
             id INTEGER PRIMARY KEY,
@@ -76,7 +75,9 @@ def _to_dict(obj, exclude=[]):
         return obj
 
 
-def log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, client_config, cost, start_time):
+def log_chat_completion(
+    invocation_id, client_id, wrapper_id, request, response, is_cached, client_config, cost, start_time
+):
     """
     Log a chat completion to the telemetry database.
 
@@ -152,7 +153,6 @@ def log_new_agent(agent, init_args):
         init_args (dict):           The arguments passed to the construct the conversable agent
     """
 
-    # Nothing to do
     if this._con is None:
         return
 
@@ -161,20 +161,21 @@ def log_new_agent(agent, init_args):
 
     args = _to_dict(init_args, exclude=["self", "__class__"])
 
-    if 'llm_config' in args:
-        if 'config_list' in args['llm_config']:
-            for config in args['llm_config']['config_list']:
-                del config['api_key']
+    if "llm_config" in args and "config_list" in args["llm_config"]:
+        for config in args["llm_config"]["config_list"]:
+            for k in ["api_key"]:
+                if k in config:
+                    del config[k]
 
     query = """INSERT INTO agents (wrapper_id, session_id, agent, timestamp) VALUES (?, ?, ?, ?)"""
     this._cur.execute(
-       query,
-       (
-           agent.client.wrapper_id if agent.client is not None else "",
-           this._session_id,
-           json.dumps(args),
-           get_current_ts()
-       )
+        query,
+        (
+            agent.client.wrapper_id if agent.client is not None else "",
+            this._session_id,
+            json.dumps(args),
+            get_current_ts(),
+        ),
     )
 
 
