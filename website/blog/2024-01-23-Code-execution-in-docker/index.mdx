@@ -31,7 +31,29 @@ user_proxy = UserProxyAgent("user_proxy", code_execution_config={"work_dir": "co
 user_proxy.initiate_chat(assistant, message="Plot a chart of NVDA and TESLA stock price change YTD.")
 ```
 
-## Related documentation and how to opt-out of the default behaviour
+To opt out of from this default behaviour there are some options.
+
+### Diasable code execution entirely
+
+- Set `code_execution_config` to `False` for each code-execution agent. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
+```
+
+### Run code execution locally
+
+- `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent.
+- To set it for all code-execution agents at once: set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(name="user_proxy",
+    code_execution_config={"work_dir":"coding", "use_docker":False})
+```
+
+## Related documentation
 
 - [Code execution with docker](https://microsoft.github.io/autogen/docs/Installation#code-execution-with-docker-default)
 - [How to disable code execution in docker](https://microsoft.github.io/autogen/docs/FAQ#agents-are-throwing-due-to-docker-not-running-how-can-i-resolve-this)
