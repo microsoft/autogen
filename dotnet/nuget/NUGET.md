@@ -1,5 +1,8 @@
 ## AutoGen
-
+### Update on 0.0.6 (2024-01-23)
+- Add `MiddlewareAgent`
+- Use `MiddlewareAgent` to implement existing agent hooks (RegisterPreProcess, RegisterPostProcess, RegisterReply)
+- Remove `AutoReplyAgent`, `PreProcessAgent`, `PostProcessAgent` because they are replaced by `MiddlewareAgent`
 ### Update on 0.0.5
 - Simplify `IAgent` interface by removing `ChatLLM` Property
 - Add `GenerateReplyOptions` to `IAgent.GenerateReplyAsync` which allows user to specify or override the options when generating reply

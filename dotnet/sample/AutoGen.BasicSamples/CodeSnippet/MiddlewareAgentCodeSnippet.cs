@@ -51,6 +51,8 @@ public class MiddlewareAgentCodeSnippet
         {
             var lastMessage = messages.Last();
             lastMessage.Content = $"[middleware shortcut]";
+
+            return lastMessage;
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
