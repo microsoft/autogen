@@ -36,9 +36,10 @@ logging.basicConfig(
 
 
 MODEL = "gpt-4"
-USER_NAME = os.environ.get("USER", None)
+OS_USER_NAME = os.environ.get("USER", None)
+USER_NAME = os.environ.get("TINYRA_USER", OS_USER_NAME)
 if USER_NAME is None:
-    print("Please set the USER environment variable with your name.")
+    print("Please set the TINYRA_USER environment variable with your name, e.g., export TINYRA_USER=Bob")
     exit(1)
 CONFIG = configparser.ConfigParser()
 CHATDB = os.path.join(DATA_PATH, "chat_history.db")
@@ -587,9 +588,14 @@ def message2markdown(message: Dict[str, str]) -> str:
         A markdown string.
     """
     role = message["role"]
+    if role == "user":
+        role = USER_NAME
+    else:
+        role = "TinyRA"
+    # role = role.capitalize()
     content = message["content"]
     id = message["id"]
-    return f"[{id}] {role.capitalize()}: {content}"
+    return f"[{id}] {role}: {content}"
 
 
 class ReactiveAssistantMessage(Markdown):
