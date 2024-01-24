@@ -1,7 +1,7 @@
 import sys
 import os
 from autogen import config_list_from_json
-from autogen import AssistantAgent, UserProxyAgent
+from autogen import AssistantAgent, UserProxyAgent, Agent
 import tui
 
 msgid = None
@@ -17,10 +17,32 @@ if msgid is None:
 
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
+
+def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
+    # check the contents of the last N messages
+    # if all empty, terminate
+    all_empty = True
+    last_n = 2
+    for message in reversed(messages):
+        if last_n == 0:
+            break
+        if message["role"] == "user":
+            last_n -= 1
+            if len(message["content"]) > 0:
+                all_empty = False
+                break
+    if all_empty:
+        return True, "TERMINATE"
+    return False, None
+
+
 # TODO: Experiment with CompressibleAgent instead of AssistantAgent
 assistant = AssistantAgent(
     "tinyra", system_message=tui.ASSISTANT_SYSTEM_MESSAGE, llm_config={"config_list": config_list}
 )
+
+assistant.register_reply(Agent, terminate_on_consecutive_empty, 1)
+
 user = UserProxyAgent(
     "user",
     code_execution_config={"work_dir": os.path.join(tui.DATA_PATH, "work_dir")},
@@ -41,9 +63,12 @@ user.initiate_chat(assistant, message=task, clear_history=False)
 
 print("Computing final output...")
 user.send(
-    """Based on the above conversation, create one single response for the user.
-This is the final output that will be sent to the user.
-Make sure that this response is good enough to be sent to the user and professional.
+    f"""Based on the results in above conversation, create a response for the user.
+While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
+All they want to see is the appropriate result for their task (repeated below) in a manner that would be most useful.
+The task was: {task}
+
+There is no need to use the word TERMINATE in this response.
 """,
     assistant,
     request_reply=False,
