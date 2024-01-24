@@ -633,13 +633,19 @@ class SkillsDisplayContainer(ScrollableContainer):
 
 
 class DirectoryTreeContainer(ScrollableContainer):
+    dirpath = os.path.join(DATA_PATH, "work_dir")
+    dir_contents = reactive(str(os.listdir(dirpath)))
+
     def compose(self) -> ComposeResult:
-        yield DirectoryTree(os.path.join(DATA_PATH, "work_dir"))
+        yield DirectoryTree(self.dirpath)
 
-    def _on_mount(self) -> None:
-        self.set_interval(5, self.update_dir_contents)  # wait 5 seconds before updating
+    def on_mount(self) -> None:
+        self.set_interval(1, self.update_dir_contents)
 
-    def update_dir_contents(self):
+    def update_dir_contents(self) -> None:
+        self.dir_contents = str(os.listdir(self.dirpath))
+
+    def watch_dir_contents(self):
         self.query_one(DirectoryTree).reload()
 
 
