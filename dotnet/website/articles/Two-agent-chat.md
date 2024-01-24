@@ -16,7 +16,7 @@ The following example shows how to start a conversation between the teacher agen
 > The conversation is terminated when teacher agent sends a message containing the keyword: @AutoGen.GroupChatExtension.TERMINATE.
 
 > [!NOTE]
-> The teacher agent uses @AutoGen.AgentExtension.RegisterPostProcess* to register a post process function which returns a hard-coded termination message when a certain condition is met. Comparing with putting the @AutoGen.GroupChatExtension.TERMINATE keyword in the prompt, this approach is more robust especially when a weaker LLM model is used.
+> The teacher agent uses @AutoGen.MiddlewareExtension.RegisterPostProcess* to register a post process function which returns a hard-coded termination message when a certain condition is met. Comparing with putting the @AutoGen.GroupChatExtension.TERMINATE keyword in the prompt, this approach is more robust especially when a weaker LLM model is used.
 
 > [!NOTE]
-> Other than @AutoGen.AgentExtension.RegisterPostProcess*, you can also extend agent behavior with @AutoGen.AgentExtension.RegisterReply* and @AutoGen.AgentExtension.RegisterPreProcess*. For more information, please refer to [Register preprocess function](./Register-preprocess.md), [Register reply function](./Register-reply.md) and [Register postprocess function](./Register-postprocess.md).
+> Other than @AutoGen.MiddlewareExtension.RegisterPostProcess*, you can also extend agent behavior with @AutoGen.MiddlewareExtension.RegisterReply* and @AutoGen.MiddlewareExtension.RegisterPreProcess*. For more information, please refer to [Middleware-agent](./Middleware-agent.md).

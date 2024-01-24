@@ -15,14 +15,8 @@
 - name: Dynamic group chat
   href: Group-chat.md
 
-- name: Register reply function
-  href: Register-reply.md
-
-- name: Register preprocess function
-  href: Register-preprocess.md
-
-- name: Register postprocess function
-  href: Register-postprocess.md
+- name: Create MiddlewareAgent
+  href: Middleware-agent.md
 
 - name: Use function call
   href: Use-function-call.md

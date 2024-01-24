@@ -82,9 +82,9 @@ teacher, please create the next math question";
                 {
                     // check admin reply to make sure it calls UpdateProgress function
                     var maxAttempt = 5;
+                    var reply = await agent.GenerateReplyAsync(messages, options, ct);
                     while (maxAttempt-- > 0)
                     {
-                        var reply = await agent.GenerateReplyAsync(messages, options, ct);
                         var formattedMessage = reply.FormatMessage();
                         this._output.WriteLine(formattedMessage);
                         if (reply.Content?.Contains("[UPDATE_PROGRESS]") is true || options?.Functions is { Length: 0 })

@@ -45,8 +45,7 @@ The code below shows how to create `reviewer` agent. `reviewer` agent is a dotne
 [!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_reviewer)]
 
 > [!TIP]
-> You can use @AutoGen.AgentExtension.RegisterPostProcess* to modify the behavior of an agent. For more information, please refer to [Register postprocess function](./Register-postprocess.md).
-
+> You can use @AutoGen.MiddlewareExtension.RegisterPostProcess* to modify the behavior of an agent. For more information, please refer to [Middleware-agent](./Middleware-agent.md).
 ### Create runner agent
 
 The code below shows how to create `runner` agent. `runner` agent is a dotnet code runner who can run code written by `coder` and print the result.
@@ -54,7 +53,7 @@ The code below shows how to create `runner` agent. `runner` agent is a dotnet co
 [!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_runner)]
 
 > [!TIP]
-> You can use @AutoGen.AgentExtension.RegisterPreProcess* and @AutoGen.AgentExtension.RegisterReply* to modify the behavior of an agent. For more information, please refer to [Register preprocess function](./Register-preprocess.md) and [Register reply function](./Register-reply.md).
+> You can use @AutoGen.MiddlewareExtension.RegisterPreProcess* and @AutoGen.MiddlewareExtension.RegisterReply* to modify the behavior of an agent. For more information, please refer to [Middleware-agent](./Middleware-agent.md).
 
 > [!TIP]
 > `AutoGen` provides a built-in support for running code snippet. For more information, please check out [Execute code snippet](./Run-dotnet-code.md).
