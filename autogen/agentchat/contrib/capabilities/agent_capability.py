@@ -10,6 +10,6 @@ class AgentCapability:
     def add_to_agent(self, agent: ConversableAgent):
         """
         Adds a particular capability to the given agent. Must be implemented by the capability subclass.
-        An implementation will typically call `add_middleware()` one or more times. See teachability.py as an example.
+        An implementation will typically implement one or more `Middleware`. See teachability.py as an example.
         """
         raise NotImplementedError
