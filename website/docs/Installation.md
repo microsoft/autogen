@@ -190,8 +190,8 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 ```python
 user_proxy = autogen.UserProxyAgent(
     name="agent",
-    llm_config=llm_config
-    code_execution_config=False
+    llm_config=llm_config,
+    code_execution_config=False,
 )
 ```
 
