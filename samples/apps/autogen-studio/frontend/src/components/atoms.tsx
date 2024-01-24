@@ -10,19 +10,24 @@ import {
   PencilIcon,
   UserGroupIcon,
   UsersIcon,
+  ExclamationCircleIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
 import {
   Button,
+  Divider,
   Dropdown,
   Input,
   MenuProps,
   Modal,
   Select,
   Slider,
+  Space,
   Tooltip,
   message,
+  theme,
 } from "antd";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
@@ -43,6 +48,7 @@ import TextArea from "antd/es/input/TextArea";
 import { appContext } from "../hooks/provider";
 import Item from "antd/es/list/Item";
 
+const { useToken } = theme;
 interface CodeProps {
   node?: any;
   inline?: any;
@@ -627,14 +633,14 @@ export const ModelSelector = ({
   const { user } = React.useContext(appContext);
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
 
-  const sanitizeModelConfig = (config: IModelConfig) => {
-    const sanitizedConfig: IModelConfig = { model: config.model };
-    if (config.api_key) sanitizedConfig.api_key = config.api_key;
-    if (config.base_url) sanitizedConfig.base_url = config.base_url;
-    if (config.api_type) sanitizedConfig.api_type = config.api_type;
-    if (config.api_version) sanitizedConfig.api_version = config.api_version;
-    return sanitizedConfig;
-  };
+  // const sanitizeModelConfig = (config: IModelConfig) => {
+  //   const sanitizedConfig: IModelConfig = { model: config.model };
+  //   if (config.api_key) sanitizedConfig.api_key = config.api_key;
+  //   if (config.base_url) sanitizedConfig.base_url = config.base_url;
+  //   if (config.api_type) sanitizedConfig.api_type = config.api_type;
+  //   if (config.api_version) sanitizedConfig.api_version = config.api_version;
+  //   return sanitizedConfig;
+  // };
 
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
@@ -684,13 +690,20 @@ export const ModelSelector = ({
     models.length > 0
       ? models.map((model: IModelConfig, index: number) => ({
           key: index,
-          label: model.model,
+          label: (
+            <>
+              <div>{model.model}</div>
+              <div className="text-xs text-accent">
+                {truncateText(model.description || "", 20)}
+              </div>
+            </>
+          ),
           value: index,
         }))
       : [
           {
             key: -1,
-            label: "No models found",
+            label: <>No models found</>,
             value: 0,
           },
         ];
@@ -698,10 +711,29 @@ export const ModelSelector = ({
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
     let selectedModel = models[selectedIndex];
-    selectedModel = sanitizeModelConfig(selectedModel);
+    selectedModel = selectedModel;
     const updatedConfigs = [...configs, selectedModel];
     setConfigs(updatedConfigs);
   };
+
+  const menuStyle: React.CSSProperties = {
+    boxShadow: "none",
+  };
+
+  const { token } = useToken();
+  const contentStyle: React.CSSProperties = {
+    backgroundColor: token.colorBgElevated,
+    borderRadius: token.borderRadiusLG,
+    boxShadow: token.boxShadowSecondary,
+  };
+
+  const addModelsMessage = (
+    <span className="text-xs">
+      {" "}
+      <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" /> Please
+      create models in the Model tab
+    </span>
+  );
 
   const AddModelsDropDown = () => {
     return (
@@ -709,6 +741,20 @@ export const ModelSelector = ({
         menu={{ items: modelItems, onClick: modelOnClick }}
         placement="bottomRight"
         trigger={["click"]}
+        dropdownRender={(menu) => (
+          <div style={contentStyle}>
+            {React.cloneElement(menu as React.ReactElement, {
+              style: menuStyle,
+            })}
+            {models.length === 0 && (
+              <>
+                <Divider style={{ margin: 0 }} />
+                <Space style={{ padding: 8 }}></Space>
+                <div className="p-3">{addModelsMessage}</div>
+              </>
+            )}
+          </div>
+        )}
       >
         <div
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
@@ -722,7 +768,7 @@ export const ModelSelector = ({
 
   const handleOk = () => {
     if (newModelConfig?.model.trim()) {
-      const sanitizedConfig = sanitizeModelConfig(newModelConfig);
+      const sanitizedConfig = newModelConfig;
 
       if (editIndex !== null) {
         // Edit existing model
@@ -756,15 +802,21 @@ export const ModelSelector = ({
   };
 
   const modelButtons = configs.map((config, i) => {
-    const tooltipText = `${config.model} \n ${config.base_url || ""} \n ${
-      config.api_type || ""
-    }`;
+    const tooltipText = (
+      <>
+        <div>{config.model}</div>
+        {config.base_url && <div>{config.base_url}</div>}
+        <div className="text-xs text-accent">
+          {truncateText(config.description || "", 90)}
+        </div>
+      </>
+    );
     return (
       <div
         key={"modelrow_" + i}
-        role="button"
+        // role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
-        onClick={() => showModal(config, i)}
+        // onClick={() => showModal(config, i)}
       >
         <div className="inline-flex">
           {" "}
@@ -1032,7 +1084,7 @@ export const AgentFlowSpecView = ({
           value={flowSpec.config.max_consecutive_auto_reply}
           control={
             <Slider
-              min={2}
+              min={1}
               max={30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}

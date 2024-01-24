@@ -148,12 +148,6 @@ const ModelsView = ({}: any) => {
     }
   }, []);
 
-  React.useEffect(() => {
-    if (selectedModel) {
-      console.log("selected agent", selectedModel);
-    }
-  }, [selectedModel]);
-
   const modelRows = (models || []).map((model: IModelConfig, i: number) => {
     return (
       <div key={"modelrow" + i} className=" " style={{ width: "200px" }}>
@@ -360,7 +354,8 @@ const ModelsView = ({}: any) => {
           {models && models.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
-              No models found. Please create a new agent.
+              No models found. Please create a new model which can be reused
+              with agents.
             </div>
           )}
 
