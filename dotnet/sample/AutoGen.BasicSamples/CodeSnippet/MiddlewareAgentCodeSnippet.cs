@@ -85,11 +85,11 @@ public class MiddlewareAgentCodeSnippet
                 {
                     await Task.Delay(1000);
                     var reviewPrompt = @"The format is not json, please modify your response to json format
--- ORIGINAL MESSAGE --
-{reply.Content}
--- END OF ORIGINAL MESSAGE --
-
-Reply again with json format.";
+        -- ORIGINAL MESSAGE --
+        {reply.Content}
+        -- END OF ORIGINAL MESSAGE --
+        
+        Reply again with json format.";
                     reply = await agent.SendAsync(reviewPrompt, messages, ct);
                 }
             }

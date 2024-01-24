@@ -13,12 +13,12 @@ The following code snippet shows how to create a middleware agent on top of an e
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=code_snippet_1)]
 
 ### Register middleware function
-The following code snippet shows how to register middleware functions to a middleware agent using @AutoGen.MiddlewareExtension.Use*.
+The following code snippet shows how to register middleware functions to a middleware agent using @AutoGen.MiddlewareAgent.Use*.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=code_snippet_2)]
 
 > [!NOTE]
-> @AutoGen.MiddlewareExtension.Use* adds middleware to the agent itself. To avoid modifying the original agent, use @AutoGen.MiddlewareExtension.RegisterMiddleware* instead.
+> @AutoGen.MiddlewareAgent.Use* adds middleware to the agent itself. To avoid modifying the original agent, use @AutoGen.MiddlewareExtension.RegisterMiddleware* instead.
 
 ### Register multiple middleware functions
 The following code snippet shows the calling order when multiple middleware functions are registered. The middleware 1 will be invoked first, then middleware 0, and finally the original agent.
