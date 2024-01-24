@@ -173,6 +173,7 @@ class GroupChatFlowSpec:
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
     description: Optional[str] = None
+    skills: Optional[Union[None, List[Skill]]] = None
 
     def __post_init__(self):
         if self.timestamp is None:

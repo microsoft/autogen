@@ -113,24 +113,39 @@ class AutoGenWorkFlowManager:
         agent_spec.config.is_termination_msg = agent_spec.config.is_termination_msg or (
             lambda x: "TERMINATE" in x.get("content", "").rstrip()[-20:]
         )
-        skills_prompt = ""
-        if agent_spec.skills:
-            # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
 
-        if agent_spec.type == "userproxy":
+        # sanitize llm_config if present
+        if agent_spec.config.llm_config is not False:
+            config_list = []
+            for llm in agent_spec.config.llm_config.config_list:
+                print(" >> llm config", llm)
+                valid_keys = ["model", "base_url",
+                              "api_key", "api_type", "api_version"]
+                # only add key if value is not None
+                config_list.append(
+                    {k: v for k, v in llm.items() if v is not None and k in valid_keys})
+            agent_spec.config.llm_config.config_list = config_list
+        if agent_spec.config.code_execution_config is not False:
             code_execution_config = agent_spec.config.code_execution_config or {}
             code_execution_config["work_dir"] = self.work_dir
+            # tbd check if docker is installed
+            code_execution_config["use_docker"] = False
             agent_spec.config.code_execution_config = code_execution_config
 
-        if agent_spec.type == "assistant":
-            agent_spec.config.system_message = (
-                autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-                + "\n\n"
-                + agent_spec.config.system_message
-                + "\n\n"
-                + skills_prompt
-            )
+        if agent_spec.skills:
+            # get skill prompt, also write skills to a file named skills.py
+            skills_prompt = ""
+            skills_prompt = get_skills_from_prompt(
+                agent_spec.skills, self.work_dir)
+
+            if agent_spec.type == "assistant":
+                agent_spec.config.system_message = (
+                    autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+                    + "\n\n"
+                    + agent_spec.config.system_message
+                    + "\n\n"
+                    + skills_prompt
+                )
 
         return agent_spec
 
@@ -144,7 +159,7 @@ class AutoGenWorkFlowManager:
         Returns:
             An instance of the loaded agent.
         """
-
+        agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "groupchat":
             agents = [
                 self.load(self.sanitize_agent_spec(agent_config)) for agent_config in agent_spec.groupchat_config.agents
@@ -152,11 +167,11 @@ class AutoGenWorkFlowManager:
             group_chat_config = agent_spec.groupchat_config.dict()
             group_chat_config["agents"] = agents
             groupchat = autogen.GroupChat(**group_chat_config)
-            manager = autogen.GroupChatManager(groupchat=groupchat, **agent_spec.config.dict())
+            manager = autogen.GroupChatManager(
+                groupchat=groupchat, **agent_spec.config.dict())
             return manager
 
         else:
-            agent_spec = self.sanitize_agent_spec(agent_spec)
             agent = self.load_agent_config(agent_spec.config, agent_spec.type)
             return agent
 
@@ -173,10 +188,12 @@ class AutoGenWorkFlowManager:
         """
         if agent_type == "assistant":
             agent = autogen.AssistantAgent(**agent_config.dict())
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         elif agent_type == "userproxy":
             agent = autogen.UserProxyAgent(**agent_config.dict())
-            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent.register_reply(
+                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         else:
             raise ValueError(f"Unknown agent type: {agent_type}")
         return agent
