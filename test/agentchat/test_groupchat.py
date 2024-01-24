@@ -536,6 +536,7 @@ def test_clear_agents_history():
     assert agent1_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
     assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
     assert groupchat.messages == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+
     # testing clear history for defined agent
     with mock.patch.object(builtins, "input", lambda _: "clear history bob. How you doing?"):
         agent1.initiate_chat(group_chat_manager, message="hello")
