@@ -571,6 +571,24 @@ class TinyRA(App):
         self.query_one(Input).value = ""
         self.run_worker(handle_user_input())
 
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        """Called when the user click a file in the directory tree."""
+        event.stop()
+        try:
+            # open the file using the default app
+            logging.info(f"Opening file {event.path}")
+            # check if the app is running in a codespace
+            if os.environ.get("CODESPACES"):
+                os.system(f"code {event.path}")
+            else:
+                os.startfile(event.path)
+        except Exception:
+            # TODO: Not implemented
+            pass
+        else:
+            # TODO: Not implemented
+            pass
+
     def action_request_quit(self) -> None:
         self.app.exit()
 
