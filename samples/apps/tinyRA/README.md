@@ -1,5 +1,8 @@
 # TinyRA
 
+[![PyPI version](https://badge.fury.io/py/tinyra.svg)](https://badge.fury.io/py/tinyra)
+[![Downloads](https://static.pepy.tech/badge/tinyra/week)](https://pepy.tech/project/tinyra)
+
 TinyRA is a minimalistic Research Assistant built with AutoGen agents.
 
 ## Installation
