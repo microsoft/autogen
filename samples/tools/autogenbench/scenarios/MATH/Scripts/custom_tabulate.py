@@ -10,10 +10,7 @@ def scorer(instance_dir):
         with open(checker_messages, "rt") as fh:
             messages = json.loads(fh.read())["checker_proxy"]
             results = messages[-1]["content"].lower()
-            if (
-                "the answer is correct" in results
-                or "the answer is approximated but should be correct" in results
-            ):
+            if "the answer is correct" in results or "the answer is approximated but should be correct" in results:
                 return True
             else:
                 return False
