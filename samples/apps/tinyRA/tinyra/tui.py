@@ -69,6 +69,13 @@ Respond to {USER_NAME}'s messages to be most helpful.
 
 """
 
+ASSISTANT_SYSTEM_MESSAGE = (
+    META_SYSTEM_MESSAGE
+    + "\nAdditional instructions\n"
+    + AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+    + "\n\nDon't forget to reply with TERMINATE when the task is done or you get stuck in introductory, empty message, or apology loop"
+)
+
 
 def init_database():
     conn = sqlite3.connect(CHATDB)
@@ -160,7 +167,7 @@ def truncate_messages(messages, model, minimum_response_tokens=1000):
     if model == "gpt-4-32k":
         max_context_tokens = 32000
     elif model == "gpt-4":
-        max_context_tokens = 8000
+        max_context_tokens = 32000
     elif model == "gpt-3.5-turbo":
         max_context_tokens = 4000
     elif model == "gpt-3.5-turbo-16k":
@@ -188,7 +195,7 @@ async def ask_gpt(messages):
 
     assistant = AssistantAgent(
         "assistant",
-        system_message=META_SYSTEM_MESSAGE + "\nAdditional instructions\n" + AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+        system_message=ASSISTANT_SYSTEM_MESSAGE,
         llm_config=LLM_CONFIG,
     )
     user = UserProxyAgent("user", code_execution_config=False)

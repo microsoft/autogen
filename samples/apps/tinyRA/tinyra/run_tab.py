@@ -17,7 +17,10 @@ if msgid is None:
 
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
-assistant = AssistantAgent("tinyra", llm_config={"config_list": config_list})
+# TODO: Experiment with CompressibleAgent instead of AssistantAgent
+assistant = AssistantAgent(
+    "tinyra", system_message=tui.ASSISTANT_SYSTEM_MESSAGE, llm_config={"config_list": config_list}
+)
 user = UserProxyAgent(
     "user",
     code_execution_config={"work_dir": os.path.join(tui.DATA_PATH, "work_dir")},
@@ -26,9 +29,28 @@ user = UserProxyAgent(
 )
 
 messages = tui.fetch_chat_history()
-task = messages[msgid - 1]
+history = messages[-10 : msgid - 1]
+task = messages[msgid - 1]["content"]
+for msg in history:
+    if msg["role"] == "user":
+        user.send(msg["content"], assistant, request_reply=False, silent=False)
+    else:
+        assistant.send(msg["content"], user, request_reply=False, silent=False)
+print("Chat history loaded with {} messages".format(len(history)))
+user.initiate_chat(assistant, message=task, clear_history=False)
 
-user.initiate_chat(assistant, message=task)
+print("Computing final output...")
+user.send(
+    """Based on the above conversation, create one single response for the user.
+This is the final output that will be sent to the user.
+Make sure that this response is good enough to be sent to the user and professional.
+""",
+    assistant,
+    request_reply=False,
+    silent=True,
+)
+response = assistant.generate_reply(assistant.chat_messages[user], user)
+assistant.send(response, user, request_reply=False, silent=True)
 
 last_message = assistant.chat_messages[user][-1]["content"]
 
