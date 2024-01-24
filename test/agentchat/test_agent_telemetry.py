@@ -1,9 +1,9 @@
 import pytest
 import autogen
 import autogen.telemetry
-import uuid
+import json
 import sys
-import os
+import uuid
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
@@ -34,35 +34,74 @@ if not skip:
 )
 def test_agent_telemetry():
     autogen.telemetry.start_logging(dbname=":memory:")
-
     llm_config = {"config_list": config_list}
-    autogen.AssistantAgent(
+
+    teacher_message = """
+        You are roleplaying a math teacher, and your job is to help your students with linear algebra.
+        Keep your explanations short.
+    """
+    teacher = autogen.AssistantAgent(
         "teacher",
-        system_message="You are roleplaying a math teacher, and your job is to help your students with linear algebra. Keep your explanations short.",
+        system_message=teacher_message,
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         llm_config=llm_config,
         max_consecutive_auto_reply=2,
     )
 
-    autogen.AssistantAgent(
+    student_message = """
+        You are roleplaying a high school student strugling with linear algebra.
+        Regardless how well the teacher explains things to you, you just don't quite get it.
+        Keep your questions short.
+    """
+    student = autogen.AssistantAgent(
         "student",
-        system_message="You are roleplaying a high school student strugling with linear algebra. Regardless how well the teacher explains things to you, you just don't quite get it. Keep your questions short.",
+        system_message=student_message,
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         llm_config=llm_config,
         max_consecutive_auto_reply=1,
     )
 
-    # student.initiate_chat(
-    #    teacher,
-    #    message="Can you explain the difference between eigenvalues and singular values again?",
-    # )
+    student.initiate_chat(
+       teacher,
+       message="Can you explain the difference between eigenvalues and singular values again?",
+    )
 
-    # Check what's in the db
     con = autogen.telemetry.get_connection()
     cur = con.cursor()
-    for row in cur.execute("SELECT * FROM chat_completions;"):
-        print(row)
+    cur.execute("SELECT * FROM chat_completions;")
+    rows = cur.fetchall()
 
+    assert len(rows) == 3
+
+    # verify session id
+    session_id = rows[0][4]
+    assert all(row[4] == session_id for row in rows)
+
+    for idx, row in enumerate(rows):
+        assert row[1] and str(uuid.UUID(row[1], version=4)) == row[1], "invocation id is not valid uuid"
+        assert row[2], "client id is empty"
+        assert row[3], "wrapper id is empty"
+        assert row[4] and row[4] == session_id
+
+        request = json.loads(row[5])
+        first_request_message = request["messages"][0]["content"]
+        first_request_role = request["messages"][0]["role"]
+
+        if idx == 0 or idx == 2:
+            assert first_request_message == teacher_message
+        elif idx == 1:
+            assert first_request_message == student_message
+        assert first_request_role == "system"
+
+        response = json.loads(row[6])
+        assert "choices" in response and len(response['choices']) > 0
+
+        client_config = json.loads(row[8])
+        assert "model" in client_config and "api_type" in client_config
+
+        assert row[9] > 0 # cost
+        assert row[10], "start timestamp is empty"
+        assert row[11], "end timestamp is empty"
     autogen.telemetry.stop_logging()
 
 
