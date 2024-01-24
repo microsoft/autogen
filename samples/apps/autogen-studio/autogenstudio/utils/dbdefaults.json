@@ -1,4 +1,24 @@
 {
+  "models": [
+    {
+      "model": "gpt-4",
+      "api_key": "Your Azure API key here",
+      "base_url": "Your Azure base URL here",
+      "api_type": "azure",
+      "api_version": "Your Azure API version here",
+      "description": "Azure Open AI model configuration"
+    },
+    {
+      "model": "gpt-4-1106-preview",
+      "description": "OpenAI model configuration"
+    },
+    {
+      "model": "TheBloke/zephyr-7B-alpha-AWQ",
+      "api_key": "EMPTY",
+      "base_url": "Your Model Endpoint",
+      "description": "Zephyr (local model configuration)"
+    }
+  ],
   "agents": [
     {
       "type": "userproxy",
@@ -79,10 +99,160 @@
   ],
   "workflows": [
     {
+      "name": "Visualization Agent Workflow",
+      "description": "This workflow is used for visualization tasks.",
+      "sender": {
+        "type": "userproxy",
+        "description": "User proxy agent to execute code",
+        "config": {
+          "name": "userproxy",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 5,
+          "system_message": "",
+          "llm_config": false,
+          "code_execution_config": {
+            "work_dir": null,
+            "use_docker": false
+          }
+        }
+      },
+      "receiver": {
+        "type": "assistant",
+        "description": "Visualization assistant to create plans and write code to generate visualizations",
+        "config": {
+          "name": "visualization_assistant",
+          "llm_config": {
+            "config_list": [
+              {
+                "model": "gpt-4-1106-preview"
+              },
+              {
+                "model": "gpt-3.5-turbo-16k"
+              },
+              {
+                "model": "TheBloke/zephyr-7B-alpha-AWQ",
+                "base_url": "http://localhost:8000/v1"
+              }
+            ],
+            "temperature": 0.1,
+            "timeout": 600,
+            "cache_seed": null
+          },
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 4,
+          "system_message": "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD A LINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is 12/10/2023. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request '. The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
+        }
+      },
+      "type": "twoagents"
+    },
+    {
+      "name": "Travel Agent Group Chat Workflow",
+      "description": "A group chat workflow",
+      "type": "groupchat",
+      "sender": {
+        "type": "userproxy",
+        "config": {
+          "name": "userproxy",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 5,
+          "system_message": "",
+          "llm_config": false,
+          "code_execution_config": {
+            "work_dir": null,
+            "use_docker": false
+          }
+        }
+      },
+      "receiver": {
+        "type": "groupchat",
+        "config": {
+          "name": "group_chat_manager",
+          "llm_config": {
+            "config_list": [
+              {
+                "model": "gpt-4-1106-preview"
+              }
+            ],
+            "temperature": 0.1,
+            "timeout": 600,
+            "cache_seed": 42
+          },
+          "human_input_mode": "NEVER",
+          "system_message": "Group chat manager"
+        },
+        "groupchat_config": {
+          "admin_name": "Admin",
+          "max_round": 10,
+          "speaker_selection_method": "auto",
+
+          "agents": [
+            {
+              "type": "assistant",
+              "config": {
+                "name": "primary_assistant",
+                "llm_config": {
+                  "config_list": [
+                    {
+                      "model": "gpt-4-1106-preview"
+                    }
+                  ],
+                  "temperature": 0.1,
+                  "timeout": 600,
+                  "cache_seed": 42
+                },
+                "human_input_mode": "NEVER",
+                "max_consecutive_auto_reply": 8,
+                "system_message": "You are a helpful assistant that can suggest a travel itinerary for a user. You are the primary cordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN that ends with the word TERMINATE. "
+              }
+            },
+            {
+              "type": "assistant",
+              "config": {
+                "name": "local_assistant",
+                "llm_config": {
+                  "config_list": [
+                    {
+                      "model": "gpt-4-1106-preview"
+                    }
+                  ],
+                  "temperature": 0.1,
+                  "timeout": 600,
+                  "cache_seed": 42
+                },
+                "human_input_mode": "NEVER",
+                "max_consecutive_auto_reply": 8,
+                "system_message": "You are a helpful assistant that can review travel plans, providing critical feedback on how the trip can be enriched for enjoyment of the local culture. If the plan already includes local experiences, you can mention that the plan is satisfactory, with rationale."
+              }
+            },
+            {
+              "type": "assistant",
+              "config": {
+                "name": "language_assistant",
+                "llm_config": {
+                  "config_list": [
+                    {
+                      "model": "gpt-4-1106-preview"
+                    }
+                  ],
+                  "temperature": 0.1,
+                  "timeout": 600,
+                  "cache_seed": 42
+                },
+                "human_input_mode": "NEVER",
+                "max_consecutive_auto_reply": 8,
+                "system_message": "You are a helpful assistant that can review travel plans, providing feedback on important/critical tips about how best to address language or communication challenges for the given destination. If the plan already includes language tips, you can mention that the plan is satisfactory, with rationale."
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "General Agent Workflow",
       "description": "This workflow is used for general purpose tasks.",
       "sender": {
         "type": "userproxy",
+        "description": "A user proxy agent that executes code.",
         "config": {
           "name": "userproxy",
           "human_input_mode": "NEVER",
@@ -136,54 +306,7 @@
           "system_message": "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
         }
       },
-      "type": "default"
-    },
-    {
-      "name": "Visualization Agent Workflow",
-      "description": "This workflow is used for visualization tasks.",
-      "sender": {
-        "type": "userproxy",
-        "description": "User proxy agent to execute code",
-        "config": {
-          "name": "userproxy",
-          "human_input_mode": "NEVER",
-          "max_consecutive_auto_reply": 5,
-          "system_message": "",
-          "llm_config": false,
-          "code_execution_config": {
-            "work_dir": null,
-            "use_docker": false
-          }
-        }
-      },
-      "receiver": {
-        "type": "assistant",
-        "description": "Visualization assistant to create plans and write code to generate visualizations",
-        "config": {
-          "name": "visualization_assistant",
-          "llm_config": {
-            "config_list": [
-              {
-                "model": "gpt-4-1106-preview"
-              },
-              {
-                "model": "gpt-3.5-turbo-16k"
-              },
-              {
-                "model": "TheBloke/zephyr-7B-alpha-AWQ",
-                "base_url": "http://localhost:8000/v1"
-              }
-            ],
-            "temperature": 0.1,
-            "timeout": 600,
-            "cache_seed": null
-          },
-          "human_input_mode": "NEVER",
-          "max_consecutive_auto_reply": 4,
-          "system_message": "Your task is to ensure you generate a high quality visualization for the user. Your visualizations must follow best practices and you must articulate your reasoning for your choices. The visualization must not have grid or outline box. The visualization should have an APPROPRIATE ASPECT RATIO e..g rectangular for time series data. The title must be bold. Importantly, if THE CHART IS A LINE CHART, you MUST ADD A LINE OF BEST FIT and ADD TEXT ON THE SLOPE OF EACH LINE. Note that today's date is 12/10/2023. At each point, do your best to determine if the user's request has been addressed and if so, respond with a summary. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request '. The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE."
-        }
-      },
-      "type": "default"
+      "type": "twoagents"
     }
   ]
 }

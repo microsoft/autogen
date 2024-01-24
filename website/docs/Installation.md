@@ -4,9 +4,9 @@ AutoGen is a versatile tool that can be installed and run in Docker or locally u
 
 ## Option 1: Install and Run AutoGen in Docker
 
-Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers).
+Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/.devcontainer](https://github.com/microsoft/autogen/tree/main/.devcontainer).
 
-**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/samples/dockers
+**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/.devcontainer
 
 - **autogen_base_img**: For a basic setup, you can use the `autogen_base_img` to run simple scripts or applications. This is ideal for general users or those new to AutoGen.
 - **autogen_full_img**: Advanced users or those requiring more features can use `autogen_full_img`. Be aware that this version loads ALL THE THINGS and thus is very large. Take this into consideration if you build your application off of it.
@@ -21,16 +21,16 @@ Docker, an indispensable tool in modern software development, offers a compellin
 
 AutoGen now provides updated Dockerfiles tailored for different needs. Building a Docker image is akin to setting the foundation for your project's environment:
 
-- **Autogen Basic (dockerfile.base)**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
+- **Autogen Basic**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
 
   ```bash
-  docker build -f samples/dockers/Dockerfile.base -t autogen_base_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/base/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git
   ```
 
-- **Autogen Advanced (dockerfile.full)**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
+- **Autogen Advanced**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
    ```bash
-   docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
+   docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git
    ```
 
 ### Step 3: Run AutoGen Applications from Docker Image
@@ -86,9 +86,11 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 #### Additional Resources
 
+- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
+
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 
-- Details on how to use the Dockerfile.dev version can be found on the [Contributing](Contribute.md#docker)
+- Details on how to use the Dockerfile dev version can be found on the [Contributing](Contribute.md#docker)
 
 ## Option 2: Install AutoGen Locally Using Virtual Environment
 
@@ -180,6 +182,16 @@ user_proxy = autogen.UserProxyAgent(
     llm_config=llm_config,
     system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
 Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
+```
+
+**Turn off code execution entirely**: if you want to turn off code execution entirely, set `code_execution_config` to `False`. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    llm_config=llm_config,
+    code_execution_config=False,
 )
 ```
 

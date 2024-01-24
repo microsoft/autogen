@@ -14,7 +14,13 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import { Card, CodeBlock, LaunchButton, LoadingOverlay } from "../../atoms";
+import {
+  BounceLoader,
+  Card,
+  CodeBlock,
+  LaunchButton,
+  LoadingOverlay,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
@@ -87,7 +93,7 @@ const SkillsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
         // console.log("skills", data.data);
         setSkills(data.data);
       } else {
@@ -162,28 +168,33 @@ const SkillsView = ({}: any) => {
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
     return (
       <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
-        <Card
-          className="h-full p-2 cursor-pointer"
-          title={skill.title}
-          onClick={() => {
-            setSelectedSkill(skill);
-            setShowSkillModal(true);
-          }}
-        >
-          <div className="my-2"> {truncateText(skill.content, 70)}</div>
-          <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-        </Card>
-
-        <div className="text-right mt-2">
-          <div
-            role="button"
-            className="text-accent text-xs inline-block"
+        <div>
+          {" "}
+          <Card
+            className="h-full p-2 cursor-pointer"
+            title={truncateText(skill.title, 25)}
             onClick={() => {
-              deleteSkill(skill);
+              setSelectedSkill(skill);
+              setShowSkillModal(true);
             }}
           >
-            <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-            <span className="text-xs"> delete</span>
+            <div style={{ minHeight: "65px" }} className="my-2   break-words">
+              {" "}
+              {truncateText(skill.content, 70)}
+            </div>
+            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+          </Card>
+          <div className="text-right mt-2">
+            <div
+              role="button"
+              className="text-accent text-xs inline-block"
+              onClick={() => {
+                deleteSkill(skill);
+              }}
+            >
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs"> delete</span>
+            </div>
           </div>
         </div>
       </div>
@@ -191,7 +202,7 @@ const SkillsView = ({}: any) => {
   });
 
   return (
-    <div className="  ">
+    <div className=" text-primary ">
       <Modal
         title={selectedSkill?.name}
         width={800}
@@ -205,7 +216,7 @@ const SkillsView = ({}: any) => {
       >
         {selectedSkill && (
           <div>
-            <div className="mb-2">{selectedSkill.file_name}</div>
+            <div className="mb-2">{selectedSkill.title}</div>
 
             <CodeBlock code={selectedSkill?.content} language="python" />
           </div>
@@ -281,10 +292,17 @@ const SkillsView = ({}: any) => {
             </div>
           )}
 
-          {skills && skills.length === 0 && (
+          {skills && skills.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No skills found. Please create a new skill.
+            </div>
+          )}
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
         </div>
