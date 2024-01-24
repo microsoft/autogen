@@ -395,9 +395,9 @@ class GroupChatManager(ConversableAgent):
 
             # check for "clear history" phrase in reply and activate clear history function if found
             if (
-                    groupchat.enable_clear_history
-                    and isinstance(reply, dict)
-                    and "CLEAR HISTORY" in reply["content"].upper()
+                groupchat.enable_clear_history
+                and isinstance(reply, dict)
+                and "CLEAR HISTORY" in reply["content"].upper()
             ):
                 reply["content"] = self.clear_agents_history(reply["content"], groupchat)
             # The speaker sends the message without requesting a reply
