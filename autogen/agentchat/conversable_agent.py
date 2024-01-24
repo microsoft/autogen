@@ -7,7 +7,7 @@ import logging
 import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
-
+import warnings
 from .. import OpenAIWrapper
 from ..cache.cache import Cache
 from ..code_utils import (
@@ -700,6 +700,20 @@ class ConversableAgent(Agent):
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
 
+        # TODO: once finalized, need to revise async version as well
+        takeaway = ""
+        if "get_takeaway" in context:
+            takeaway_method = context["get_takeaway"]
+            if takeaway_method == "last_msg":
+                takeaway = self._get_chat_takeaway_from_agent(recipient)
+            elif takeaway_method == "llm_summary":
+                # TODO use LLM to summarize the chat by sending another message
+                self.send(recipient, message="Summarize the chat" + self.chat_history, silent=silent)
+                takeaway = "Placeholder for LLM summary"
+            elif context["takeaway"] is callable:
+                takeaway = takeaway_method(self.chat_history)
+        return takeaway
+
     async def a_initiate_chat(
         self,
         recipient: "ConversableAgent",
@@ -731,6 +745,125 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
+
+    def _get_chat_takeaway_from_agent(self, agent: "ConversableAgent") -> str:
+        """Get the chat takeaway from an agent participating in a chat.
+        Could be overridden by the agent to provide a custom chat takeaway.
+
+        Args:
+            agent: the participating agent in a chat.
+
+        Returns:
+            str: the chat takeaway from the agent.
+        """
+        try:
+            takeaway = agent.last_message(self)["content"]
+        except (IndexError, AttributeError):
+            takeaway = ""
+            warnings.warn("No takeaway found for agent: " + agent.name, UserWarning)
+        takeaway = takeaway.replace("TERMINATE", "")
+        return takeaway
+
+    def prompt_takeaways(self, takeaways: List[str]):
+        """Prompt the user to select a takeaway from a list of takeaways.
+        Could be overridden by the agent to provide a custom prompt.
+        """
+        if takeaways:
+            return "\nContext: \n" + ("\n").join([t for t in takeaways])
+        else:
+            return ""
+
+    def initiate_chats(self, chats_info: List[Dict], carryover_previous_takeaway: bool = True):
+        """Initiate chats with multiple agents.
+
+        Args:
+            chats_info (List[Dict]): a list of dictionaries containing the information of the chats.
+                Each dictionary should contain the following fields:
+                - "recipient": the recipient agent.
+                - "context": any context information.
+                    "message" needs to be provided if the `generate_init_message` method is not overridden.
+                              Otherwise, input() will be called to get the initial message.
+            carryover_previous_takeaway (bool): whether to append the takeaway from the previous task to the current task.
+        """
+        receipts_set = set()
+        for chat_info in chats_info:
+            assert "recipient" in chat_info, "recipient must be provided."
+            receipts_set.add(chat_info["recipient"])
+        assert len(receipts_set) == len(chats_info), "recipients must be different."
+
+        self._chat_queue = chats_info
+        self._finished_chats = {}
+        takeaway = []
+        while self._chat_queue:
+            chat_info = self._chat_queue.pop(0)
+            if "message" not in chat_info:
+                warnings.warn(
+                    "message is not provided in chat_info. input() will be called to get the initial message.",
+                    UserWarning,
+                )
+                chat_info["message"] = self.generate_init_message()
+
+            if carryover_previous_takeaway:
+                chat_info["message"] = chat_info.get("message", "") + self.prompt_takeaways(
+                    list(self._finished_chats.values())
+                )
+            current_agent = chat_info["recipient"]
+            takeaway = self.initiate_chat(**chat_info)
+            self._finished_chats[current_agent] = takeaway
+
+    async def a_initiate_chats(self, chats_info: List[Dict], carryover_previous_takeaway: bool = True):
+        """(async) Initiate chats with multiple agents.
+
+        Args:
+            chats_info (List[Dict]): a list of dictionaries containing the information of the chats.
+                Each dictionary should contain the following fields:
+                - "recipient": the recipient agent.
+                - "context": any context information.
+                    "message" needs to be provided if the `generate_init_message` method is not overridden.
+                              Otherwise, input() will be called to get the initial message.
+            carryover_previous_takeaway (bool): whether to append the takeaway from the previous task to the current task.
+        """
+        receipts_set = set()
+        for chat_info in chats_info:
+            assert "recipient" in chat_info, "recipient must be provided."
+            receipts_set.add(chat_info["recipient"])
+        assert len(receipts_set) == len(chats_info), "recipients must be different."
+
+        self._chat_queue = chats_info
+        self._finished_chats = {}
+        while self._chat_queue:
+            chat_info = self._chat_queue.pop(0)
+            if "message" not in chat_info:
+                warnings.warn(
+                    "message is not provided in chat_info. input() will be called to get the initial message.",
+                    UserWarning,
+                )
+                chat_info["message"] = self.generate_init_message()
+            if carryover_previous_takeaway:
+                chat_info["message"] = chat_info.get("message", "") + self.prompt_takeaways(
+                    list(self._finished_chats.values())
+                )
+            current_agent = chat_info["recipient"]
+            await self.a_initiate_chat(**chat_info)
+            takeaway = self._get_chat_takeaway_from_agent(current_agent)
+            self._finished_chats[current_agent] = takeaway
+
+    def add_chat_info(self, chat_info: Dict):
+        """Add a chat to the chat queue.
+
+        Args:
+            chat_info (Dict): a dictionary containing the information of the chat.
+                The dictionary should contain the following fields:
+                - "recipient": the recipient agent.
+                - "context": any context information.
+                    "message" needs to be provided if the `generate_init_message` method is not overridden.
+                              Otherwise, input() will be called to get the initial message.
+        """
+        self._chat_queue.append(chat_info)
+
+    def remove_task(self, chat_index: int = -1):
+        """Remove the chat_index-th chat from the chat queue."""
+        self._chat_queue.pop(chat_index)
 
     def reset(self):
         """Reset the agent."""
