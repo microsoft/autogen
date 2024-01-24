@@ -6,7 +6,7 @@ There are a number of benefits of using `autogen` to perform inference: performa
 
 ## Tune Inference Parameters (for openai<1)
 
-Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#tune-inference-hyperparameters)
+Find a list of examples in this page: [Tune Inference Parameters Examples](../Examples.md#inference-hyperparameters-tuning)
 
 ### Choices to optimize
 
@@ -168,23 +168,74 @@ Total cost: 0.00027
 
 ## Caching
 
-API call results are cached locally and reused when the same request is issued. This is useful when repeating or continuing experiments for reproducibility and cost saving. It still allows controlled randomness by setting the "cache_seed" specified in `OpenAIWrapper.create()` or the constructor of `OpenAIWrapper`.
+API call results are cached locally and reused when the same request is issued.
+This is useful when repeating or continuing experiments for reproducibility and cost saving.
+
+Starting version 0.2.8, a configurable context manager allows you to easily configure
+the cache, using either DiskCache or Redis.
+All `OpenAIWrapper` created inside the context manager can use the same cache
+through the constructor.
 
 ```python
-client = OpenAIWrapper(cache_seed=...)
-client.create(...)
+from autogen import Cache
+
+with Cache.redis(redis_url="redis://localhost:6379/0") as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
+
+with Cache.disk() as cache:
+    client = OpenAIWrapper(..., cache=cache)
+    client.create(...)
 ```
+
+You can also set a cache directly in the `create()` method.
 
 ```python
-client = OpenAIWrapper()
-client.create(cache_seed=..., ...)
+client = OpenAIWrapper(...)
+with Cache.disk() as cache:
+    client.create(..., cache=cache)
 ```
 
-Caching is enabled by default with cache_seed 41. To disable it please set `cache_seed` to None.
+You can vary the `cache_seed` parameter to get different LLM output while
+still using cache.
 
-_NOTE_. openai v1.1 introduces a new param `seed`. The difference between autogen's `cache_seed` and openai's `seed` is that:
-* autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
-* openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
+```python
+# Setting the cache_seed to 1 will use a different cache from the default one
+# and you will see different output.
+with Cache.disk(cache_seed=1) as cache:
+    client.create(..., cache=cache)
+```
+
+By default DiskCache uses `.cache` for storage. To change the cache directory,
+set `cache_path_root`:
+
+```python
+with Cache.disk(cache_path_root="/tmp/autogen_cache") as cache:
+    client.create(..., cache=cache)
+```
+
+### Turnning off cache
+
+For backward compatibility, DiskCache is always enabled by default
+with `cache_seed` set to 41. To fully disable it, set `cache_seed` to None.
+
+```python
+# Turn off cache in constructor,
+client = OpenAIWrapper(..., cache_seed=None)
+# or directly in create().
+client.create(..., cache_seed=None)
+```
+
+### Difference between `cache_seed` and openai's `seed` parameter
+
+openai v1.1 introduces a new param `seed`.
+The differences between autogen's `cache_seed` and openai's `seed`:
+    - autogen uses local disk cache to guarantee the exactly same output is produced
+    for the same input and when cache is hit, no openai api call will be made.
+    - openai's `seed` is a best-effort deterministic sampling with no guarantee
+    of determinism. When using openai's `seed` with `cache_seed` set to None,
+    even for the same input, an openai api call will be made and there is
+    no guarantee for getting exactly the same output.
 
 ## Error handling
 
