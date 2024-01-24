@@ -2,7 +2,7 @@ import asyncio
 import inspect
 import json
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
     from termcolor import colored
