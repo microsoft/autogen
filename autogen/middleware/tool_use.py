@@ -6,10 +6,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 try:
     from termcolor import colored
-except ImportError:
+except ImportError:  # pragma: no cover
 
-    def colored(x, *args, **kwargs):
-        return x
+    def colored(text: Any, *args: Any, **kwargs: Any) -> str:  # type: ignore[misc]
+        return str(text)
 
 
 from autogen.agentchat.agent import Agent
@@ -27,22 +27,22 @@ class ToolUseMiddleware:
 
     """
 
-    def __init__(self, function_map: Optional[Dict[str, Callable]] = None):
+    def __init__(self, function_map: Optional[Dict[str, Callable[..., Any]]] = None):
         if function_map is None:
             self._function_map = {}
         else:
             # Validate function names
             for name in function_map.keys():
-                self._assert_valid_name(name)
+                self._ensure_valid_name(name)
             # Make a copy of the function map
             self._function_map = function_map.copy()
 
     def call(
         self,
-        messages: List[Dict],
+        messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
         Args:
@@ -55,91 +55,85 @@ class ToolUseMiddleware:
         """
         message = messages[-1]
         if "function_call" in message and message["function_call"]:
-            final, reply = self._generate_function_call_reply(message)
-            if final:
-                return reply
-        if "tool_calls" in message and message["tool_calls"]:
-            final, reply = self._generate_tool_calls_reply(message)
-            if final:
-                return reply
-        return next(messages, sender)
+            return self._generate_function_call_reply(message)
+        elif "tool_calls" in message and message["tool_calls"]:
+            return self._generate_tool_calls_reply(message)
+        else:
+            return next(messages, sender)  # type: ignore[no-any-return, misc]
 
     async def a_call(
         self,
-        messages: List[Dict],
+        messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         message = messages[-1]
         if "function_call" in message and message["function_call"]:
-            final, reply = await self._a_generate_function_call_reply(message)
-            if final:
-                return reply
-        if "tool_calls" in message and message["tool_calls"]:
-            final, reply = await self._a_generate_tool_calls_reply(message)
-            if final:
-                return reply
-        return await next(messages, sender)
+            return await self._a_generate_function_call_reply(message)
+        elif "tool_calls" in message and message["tool_calls"]:
+            return await self._a_generate_tool_calls_reply(message)
+        else:
+            return await next(messages, sender)  # type: ignore[no-any-return, misc]
 
     @property
-    def function_map(self) -> Dict[str, Callable]:
+    def function_map(self) -> Dict[str, Callable[..., Any]]:
         return self._function_map
 
-    def register_function(self, function_map: Dict[str, Callable]):
+    def register_function(self, function_map: Dict[str, Callable[..., Any]]) -> None:
         """Register functions to the middleware.
 
         Args:
             function_map: a dictionary mapping function names to functions.
         """
         for name in function_map.keys():
-            self._assert_valid_name(name)
+            self._ensure_valid_name(name)
         self._function_map.update(function_map)
 
-    def _generate_function_call_reply(self, message: Dict) -> Tuple[bool, Union[Dict, None]]:
+    def _generate_function_call_reply(self, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Generate a reply using function call.
 
         "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
         """
-        if "function_call" in message and message["function_call"]:
-            func_call = message["function_call"]
-            func = self._function_map.get(func_call.get("name", None), None)
-            if inspect.iscoroutinefunction(func):
-                return False, None
-            _, func_return = self._execute_function(message["function_call"])
-            return True, func_return
-        return False, None
+        func_call = message["function_call"]
+        func = self._function_map.get(func_call.get("name", None), None)
+        if inspect.iscoroutinefunction(func):
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(self._a_execute_function(message["function_call"]))
+        else:
+            return self._execute_function(message["function_call"])
 
-    async def _a_generate_function_call_reply(self, message: Dict) -> Tuple[bool, Union[Dict, None]]:
+    async def _a_generate_function_call_reply(self, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Generate a reply using async function call.
 
         "function_call" replaced by "tool_calls" as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-functions
         """
-        if "function_call" in message:
-            func_call = message["function_call"]
-            func_name = func_call.get("name", "")
-            func = self._function_map.get(func_name, None)
-            if func:
-                if inspect.iscoroutinefunction(func):
-                    _, func_return = await self._a_execute_function(func_call)
-                else:
-                    _, func_return = self._execute_function(func_call)
-                return True, func_return
-        return False, None
+        func_call = message["function_call"]
+        func_name = func_call.get("name", "")
+        func = self._function_map.get(func_name, None)
+        if inspect.iscoroutinefunction(func):
+            return await self._a_execute_function(func_call)
+        else:
+            return self._execute_function(func_call)
 
-    def _generate_tool_calls_reply(self, message: List[Dict]) -> Tuple[bool, Union[Dict, None]]:
+    def _generate_tool_calls_reply(self, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Generate a reply using tool call."""
-        tool_returns = []
+        tool_returns: List[Dict[str, str]] = []
+        loop = None
         for tool_call in message.get("tool_calls", []):
             id = tool_call["id"]
             function_call = tool_call.get("function", {})
             func = self._function_map.get(function_call.get("name", None), None)
             if inspect.iscoroutinefunction(func):
-                continue
-            _, func_return = self._execute_function(function_call)
+                if loop is None:
+                    loop = asyncio.get_event_loop()
+
+                func_return = loop.run_until_complete(self._a_execute_function(function_call))
+            else:
+                func_return = self._execute_function(function_call)
             tool_returns.append(
                 {
                     "tool_call_id": id,
@@ -147,45 +141,51 @@ class ToolUseMiddleware:
                     "content": func_return.get("content", ""),
                 }
             )
-        if tool_returns:
-            return True, {
+
+        return (
+            {
                 "role": "tool",
                 "tool_responses": tool_returns,
                 "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
             }
-        return False, None
+            if tool_returns
+            else None
+        )
 
-    async def _a_generate_tool_calls_reply(self, message: Dict) -> Tuple[bool, Union[Dict, None]]:
+    async def _a_generate_tool_calls_reply(self, message: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Generate a reply using async function call."""
         async_tool_calls = []
         for tool_call in message.get("tool_calls", []):
             async_tool_calls.append(self._a_execute_tool_call(tool_call))
-        if async_tool_calls:
-            tool_returns = await asyncio.gather(*async_tool_calls)
-            return True, {
+        tool_returns = await asyncio.gather(*async_tool_calls)
+        return (
+            {
                 "role": "tool",
                 "tool_responses": tool_returns,
                 "content": "\n\n".join([self._str_for_tool_response(tool_return) for tool_return in tool_returns]),
             }
-        return False, None
+            if async_tool_calls
+            else None
+        )
 
-    async def _a_execute_tool_call(self, tool_call):
+    async def _a_execute_tool_call(self, tool_call: Dict[str, Any]) -> Dict[str, str]:
         id = tool_call["id"]
         function_call = tool_call.get("function", {})
-        _, func_return = await self._a_execute_function(function_call)
+        func_return = await self._a_execute_function(function_call)
         return {
             "tool_call_id": id,
             "role": "tool",
             "content": func_return.get("content", ""),
         }
 
-    def _execute_function(self, func_call, verbose: bool = False) -> Tuple[bool, Dict[str, str]]:
+    def _execute_function(self, func_call: Dict[str, Any], verbose: bool = False) -> Dict[str, str]:
         """Execute a function call and return the result.
 
         Override this function to modify the way to execute function and tool calls.
 
         Args:
             func_call: a dictionary extracted from openai message at "function_call" or "tool_calls" with keys "name" and "arguments".
+            verbose: whether to print the input arguments and output.
 
         Returns:
             A tuple of (is_exec_success, result_dict).
@@ -198,7 +198,6 @@ class ToolUseMiddleware:
         func_name = func_call.get("name", "")
         func = self._function_map.get(func_name, None)
 
-        is_exec_success = False
         if func is not None:
             # Extract arguments from a json-like string and put it into a dict.
             input_string = self._format_json_str(func_call.get("arguments", "{}"))
@@ -216,25 +215,24 @@ class ToolUseMiddleware:
                 )
                 try:
                     content = func(**arguments)
-                    is_exec_success = True
                 except Exception as e:
                     content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
 
-        if verbose:
+        if verbose:  # pragma: no cover
             print(
                 colored(f"\nInput arguments: {arguments}\nOutput:\n{content}", "magenta"),
                 flush=True,
             )
 
-        return is_exec_success, {
+        return {
             "name": func_name,
             "role": "function",
             "content": str(content),
         }
 
-    async def _a_execute_function(self, func_call):
+    async def _a_execute_function(self, func_call: Dict[str, Any]) -> Dict[str, str]:
         """Execute an async function call and return the result.
 
         Override this function to modify the way async functions and tools are executed.
@@ -253,7 +251,6 @@ class ToolUseMiddleware:
         func_name = func_call.get("name", "")
         func = self._function_map.get(func_name, None)
 
-        is_exec_success = False
         if func is not None:
             # Extract arguments from a json-like string and put it into a dict.
             input_string = self._format_json_str(func_call.get("arguments", "{}"))
@@ -275,13 +272,12 @@ class ToolUseMiddleware:
                     else:
                         # Fallback to sync function if the function is not async
                         content = func(**arguments)
-                    is_exec_success = True
                 except Exception as e:
                     content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
 
-        return is_exec_success, {
+        return {
             "name": func_name,
             "role": "function",
             "content": str(content),
@@ -293,13 +289,13 @@ class ToolUseMiddleware:
         return all([n in self._function_map for n in names])
 
     @staticmethod
-    def _str_for_tool_response(tool_response):
+    def _str_for_tool_response(tool_response: Dict[str, str]) -> str:
         func_id = tool_response.get("tool_call_id", "")
         response = tool_response.get("content", "")
         return f"Tool Call Id: {func_id}\n{response}"
 
     @staticmethod
-    def _assert_valid_name(name):
+    def _ensure_valid_name(name: str) -> None:
         """
         Ensure that configured names are valid, raises ValueError if not.
 
@@ -309,10 +305,9 @@ class ToolUseMiddleware:
             raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
         if len(name) > 64:
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
-        return name
 
     @staticmethod
-    def _format_json_str(jstr):
+    def _format_json_str(jstr: str) -> str:
         """Remove newlines outside of quotes, and handle JSON escape sequences.
 
         1. this function removes the newline in the query outside of quotes otherwise json.loads(s) will fail.
