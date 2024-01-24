@@ -12,7 +12,7 @@ __version__ = version["__version__"]
 setup(
     name="tinyra",
     version=__version__,
-    description="A minimalistic research assistant built with AutoGen.",
+    description="A minimalistic, terminal-based research assistant built with AutoGen.",
     packages=["tinyra"],
     package_data={"tinyra": ["*"]},
     install_requires=["textual", "tiktoken", "pyautogen", "pyperclip"],
