@@ -1,14 +1,10 @@
+import sys
 import pytest
 from autogen.middleware.code_execution import CodeExecutionMiddleware
 from autogen.code_utils import (
     is_docker_running,
     in_docker_container,
 )
-
-
-def docker_running():
-    return is_docker_running() or in_docker_container()
-
 
 _code_message_1 = """Execute the following Python code:
 
@@ -39,7 +35,10 @@ def test_code_execution_no_docker() -> None:
     assert reply == _code_message_1_expected_reply
 
 
-@pytest.mark.skipif(not docker_running(), reason="docker not running")
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running()) or in_docker_container(),
+    reason="docker is not running or in docker container already",
+)
 def test_code_execution_docker() -> None:
     md = CodeExecutionMiddleware(
         code_execution_config={
