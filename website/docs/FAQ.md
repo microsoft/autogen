@@ -224,7 +224,7 @@ You can also disable the cache. See [here](./Use-Cases/agent_chat.md#llm-caching
 
 If running AutoGen locally the default for agents who execute code is for them to try and perform code execution within a docker container. If docker is not running, this will cause the agent to throw an error. To resolve this you have some options.
 
-### If you want to diasable code execution entirely
+### If you want to disable code execution entirely
 
 - Set `code_execution_config` to `False` for each code-execution agent. E.g.:
 
