@@ -38,7 +38,7 @@ To opt out of from this default behaviour there are some options.
 - Set `code_execution_config` to `False` for each code-execution agent. E.g.:
 
 ```python
-user_proxy = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
+user_proxy = autogen.UserProxyAgent(name="user_proxy", llm_config=llm_config, code_execution_config=False)
 ```
 
 ### Run code execution locally
@@ -49,7 +49,7 @@ user_proxy = autogen.UserProxyAgent(name="user_proxy", code_execution_config=Fal
 E.g.:
 
 ```python
-user_proxy = autogen.UserProxyAgent(name="user_proxy",
+user_proxy = autogen.UserProxyAgent(name="user_proxy", llm_config=llm_config,
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
 

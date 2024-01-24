@@ -231,6 +231,7 @@ If running AutoGen locally the default for agents who execute code is for them t
 ```python
 user_proxy = autogen.UserProxyAgent(
     name="agent",
+    llm_config=llm_config,
     code_execution_config=False)
 ```
 
@@ -247,6 +248,6 @@ E.g.:
 
 ```python
 user_proxy = autogen.UserProxyAgent(
-    name="agent",
+    name="agent", llm_config=llm_config,
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
