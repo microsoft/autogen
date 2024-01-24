@@ -77,7 +77,10 @@ ASSISTANT_SYSTEM_MESSAGE = (
 )
 
 
-def init_database():
+def init_database() -> None:
+    """
+    Initialize the chat history database.
+    """
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
     c.execute(
@@ -94,6 +97,12 @@ def init_database():
 
 
 def fetch_chat_history() -> List[Dict[str, str]]:
+    """
+    Fetch the chat history from the database.
+
+    Returns:
+        A list of chat messages.
+    """
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
     c.execute("SELECT id, role, content FROM chat_history")
@@ -102,7 +111,16 @@ def fetch_chat_history() -> List[Dict[str, str]]:
     return chat_history
 
 
-def fetch_row(id) -> Dict[str, str]:
+def fetch_row(id: int) -> Dict[str, str]:
+    """
+    Fetch a single row from the database.
+
+    Args:
+        id: the id of the row to fetch
+
+    Returns:
+        A single row from the database.
+    """
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
     c.execute("SELECT role, content FROM chat_history WHERE id = ?", (id,))
@@ -111,7 +129,18 @@ def fetch_row(id) -> Dict[str, str]:
     return row[0]
 
 
-def insert_chat_message(role, content, row_id=None):
+def insert_chat_message(role: str, content: str, row_id: int = None) -> int:
+    """
+    Insert a chat message into the database.
+
+    Args:
+        role: the role of the message
+        content: the content of the message
+        row_id: the id of the row to update. If None, a new row is inserted.
+
+    Returns:
+        The id of the inserted (or modified) row.
+    """
     try:
         with sqlite3.connect(CHATDB) as conn:
             c = conn.cursor()
@@ -129,8 +158,17 @@ def insert_chat_message(role, content, row_id=None):
         print(f"Error inserting or updating chat message: {e}")
 
 
-def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
-    """Returns the number of tokens used by a list of messages."""
+def num_tokens_from_messages(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo-0301") -> int:
+    """
+    Returns the number of tokens used by a list of messages.
+
+    Args:
+        messages: a list of messages
+        model: the model to use for encoding
+
+    Returns:
+        The number of tokens used by the messages.
+    """
     try:
         encoding = tiktoken.encoding_for_model(model)
     except KeyError:
@@ -151,7 +189,9 @@ def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0301"):
         )
 
 
-def truncate_messages(messages, model, minimum_response_tokens=1000):
+def truncate_messages(
+    messages: List[Dict[str, str]], model: str, minimum_response_tokens: int = 1000
+) -> List[Dict[str, str]]:
     """
     Truncates messages to fit within the maximum context length of a given model.
 
@@ -188,7 +228,16 @@ def truncate_messages(messages, model, minimum_response_tokens=1000):
     return new_messages
 
 
-async def ask_gpt(messages):
+async def ask_gpt(messages: List[Dict[str, str]]) -> Dict[str, str]:
+    """
+    Sends a list of messages to the GPT model and returns the response.
+
+    Args:
+        messages (list): A list of dictionaries representing the chat history. Each dictionary should have "role" and "content" keys.
+
+    Returns:
+        dict: The response from the GPT model with "role" and "content" keys.
+    """
     # filer only role and content keys from the chat history
     messages = [{k: v for k, v in m.items() if k in ["role", "content"]} for m in messages]
     messages = [m for m in messages if m["role"] in ["assistant", "user"]]
@@ -215,10 +264,20 @@ async def ask_gpt(messages):
     return response
 
 
-async def chat_completion_wrapper(row_id, **kwargs):
+async def chat_completion_wrapper(row_id: int, messages: List[Dict[str, str]]) -> Dict[str, str]:
+    """
+    A wrapper around ask_gpt() that handles errors and retries.
+
+    Args:
+        row_id: the id of the row to update
+        messages: a list of messages
+
+    Returns:
+        The response from the GPT model with "role" and "content" keys.
+    """
     while True:
         try:
-            response = await ask_gpt(kwargs["messages"])
+            response = await ask_gpt(messages)
             response["id"] = row_id
             return response
         except Exception as e:
@@ -226,7 +285,17 @@ async def chat_completion_wrapper(row_id, **kwargs):
             return None
 
 
-def function_names_to_markdown_table(file_path):
+def function_names_to_markdown_table(file_path: str) -> str:
+    """
+    Given a python file, extract the function names and docstrings
+    and return them as a markdown table.
+
+    Args:
+        file_path: the path to the python file
+
+    Returns:
+        A markdown table with function names and docstrings.
+    """
     with open(file_path, "r") as f:
         content = f.read()
     tree = ast.parse(content)
@@ -241,12 +310,26 @@ def function_names_to_markdown_table(file_path):
     return table
 
 
-def get_available_functions():
+def get_available_functions() -> str:
+    """
+    Get the available functions from the agent_utils.py file
+    and return them as a markdown table.
+    """
     markdown_table = function_names_to_markdown_table(UTILS_FILE)
     return markdown_table
 
 
-def json_to_markdown_code_block(json_data, pretty_print=True):
+def json_to_markdown_code_block(json_data: dict, pretty_print: bool = True) -> str:
+    """
+    Converts a JSON object to a markdown code block.
+
+    Args:
+        json_data (dict): The JSON object to convert.
+        pretty_print (bool, optional): Whether to pretty print the JSON. Defaults to True.
+
+    Returns:
+        str: The markdown code block representing the JSON object.
+    """
     if pretty_print:
         json_string = json.dumps(json_data, indent=2)
     else:
@@ -256,14 +339,33 @@ def json_to_markdown_code_block(json_data, pretty_print=True):
     return markdown_code_block
 
 
-async def handle_autogen(msg_id):
+async def handle_autogen(msg_id: int) -> None:
+    """
+    Handle the autogen message with the given msg_id.
+
+    Args:
+        msg_id (int): The ID of the message.
+
+    Raises:
+        subprocess.CalledProcessError: If the subprocess execution fails.
+
+    """
     import subprocess
 
     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
     subprocess.run(["bash", script_path, "tab", str(msg_id)], check=True)
 
 
-async def get_standalone_func(content):
+async def get_standalone_func(content: str) -> str:
+    """
+    Given a message, extract the python function and return it as a string.
+
+    Args:
+        content: the message content
+
+    Returns:
+        A string representing the python function.
+    """
     messages = [
         {
             "role": "user",
@@ -283,14 +385,50 @@ async def get_standalone_func(content):
     return response["content"]
 
 
-def is_cp_format(string):
+def is_cp_format(string: str) -> bool:
+    """
+    Check if the string is in the cp format.
+
+    Args:
+        string: the string to check
+
+    Returns:
+        True if the string is in the cp format, False otherwise.
+    """
     import re
 
     pattern = r"cp \d+$"
     return bool(re.match(pattern, string))
 
 
-async def handle_user_input():
+async def handle_user_input() -> None:
+    """
+    Handle the user input.
+
+
+    This function is called when the user submits a message.
+
+    It handles several cases.
+    - if the message is in the cp format and if yes,
+    it copies the message with the given id to the clipboard.
+
+    - if the message is not in the cp format, it checks if the message
+    is an autogen message and if yes, it generates the code for the message.
+
+    - if the message is not an autogen message, it checks if the message
+    requires autogen and if yes, it generates the code for the message.
+
+    - if the message does not require autogen, it generates a direct response
+    for the message.
+
+    The response is generated by sending the messages to the GPT model.
+
+    It also handles the @memorize command and inserts the function to the
+    end of the file agent_utils.py.
+
+    When a response is generated, it is inserted into the chat history.
+    """
+
     messages = fetch_chat_history()
 
     # find the last user message
@@ -377,17 +515,27 @@ async def handle_user_input():
             await handle_autogen(last_user_message_id)
 
 
-async def check_requires_autogen(messages, row_id):
+async def check_requires_autogen(messages: List[Dict[str, str]], row_id: int) -> Dict[str, str] or None:
     """
     Given the last message use a gpt call to determine whether
     the query requires autogen.
+
+    Args:
+        messages (list): List of messages in the conversation.
+        row_id (int): The row ID of the conversation.
+
+    Returns:
+        dict or None: A dictionary with the following keys:
+            - "requires_code": True or False indicating whether the query requires code.
+            - "confidence": A number between 0 and 1 indicating the confidence in the answer.
+            Returns None if the response is not a valid JSON object.
     """
     last_messages = messages[-5:]
     query = "\n".join([f"{m['role']}: {m['content']}" for m in last_messages])
 
     prompt = f"""
     Below is a conversation between a user and an assistant.
-    Does correctly satisfactorly responding to the user's last message require
+    Does correctly satisfactorily responding to the user's last message require
     writing python or shell code? Answer smartly.
 
     Queries that require code:
@@ -425,7 +573,19 @@ async def check_requires_autogen(messages, row_id):
         return None
 
 
-def message2markdown(message):
+# TODO: Improve documentation for functions below
+
+
+def message2markdown(message: Dict[str, str]) -> str:
+    """
+    Convert a message to markdown that can be displayed in the chat display.
+
+    Args:
+        message: a message
+
+    Returns:
+        A markdown string.
+    """
     role = message["role"]
     content = message["content"]
     id = message["id"]
