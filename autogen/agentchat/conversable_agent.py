@@ -14,7 +14,6 @@ from .middleware.llm import LLMMiddleware
 from .middleware.message_store import MessageStoreMiddleware
 from .middleware.termination import TerminationAndHumanReplyMiddleware
 from .middleware.tool_use import ToolUseMiddleware
-from ..asyncio_utils import async_to_sync
 from ..cache.cache import Cache
 
 
