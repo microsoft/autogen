@@ -2,6 +2,7 @@ import {
   IAgentConfig,
   IAgentFlowSpec,
   IFlowConfig,
+  IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
   IStatus,
@@ -222,7 +223,7 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
-export const sampleWorkflowConfig = () => {
+export const sampleWorkflowConfig = (type = "twoagents") => {
   const llm_model_config: IModelConfig[] = [
     {
       model: "gpt-4-1106-preview",
@@ -271,9 +272,41 @@ export const sampleWorkflowConfig = () => {
     description: "Default Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: assistantFlowSpec,
-    type: "default",
+    type: "twoagents",
   };
 
+  const groupChatAssistantConfig = Object.assign({}, assistantConfig);
+  groupChatAssistantConfig.name = "groupchat_assistant";
+  groupChatAssistantConfig.system_message =
+    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
+
+  const groupChatFlowSpec: IGroupChatFlowSpec = {
+    type: "groupchat",
+    config: groupChatAssistantConfig,
+    groupchat_config: {
+      agents: [assistantFlowSpec, assistantFlowSpec],
+      admin_name: "groupchat_assistant",
+      messages: [],
+      max_round: 10,
+      speaker_selection_method: "auto",
+      allow_repeat_speaker: false,
+    },
+    description: "Default Group  Workflow",
+  };
+
+  const groupChatWorkFlowConfig: IFlowConfig = {
+    name: "Default Group Workflow",
+    description: "Default Group  Workflow",
+    sender: userProxyFlowSpec,
+    receiver: groupChatFlowSpec,
+    type: "groupchat",
+  };
+
+  if (type === "twoagents") {
+    return workFlowConfig;
+  } else if (type === "groupchat") {
+    return groupChatWorkFlowConfig;
+  }
   return workFlowConfig;
 };
 
@@ -383,7 +416,7 @@ export const examplePrompts = [
   {
     title: "Stock Price",
     prompt:
-      "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
+      "Plot a chart of NVDA and TESLA stock price for 2023. Save the result to a file named nvda_tesla.png",
   },
   {
     title: "Sine Wave",
@@ -401,3 +434,16 @@ export const examplePrompts = [
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
 ];
+
+export const fetchVersion = () => {
+  const versionUrl = getServerUrl() + "/version";
+  return fetch(versionUrl)
+    .then((response) => response.json())
+    .then((data) => {
+      return data;
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      return null;
+    });
+};

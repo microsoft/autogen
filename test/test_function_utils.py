@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import unittest.mock
 from typing import Dict, List, Literal, Optional, Tuple
@@ -355,7 +356,7 @@ def test_get_load_param_if_needed_function() -> None:
     assert actual == expected, actual
 
 
-def test_load_basemodels_if_needed() -> None:
+def test_load_basemodels_if_needed_sync() -> None:
     @load_basemodels_if_needed
     def f(
         base: Annotated[Currency, "Base currency"],
@@ -363,7 +364,27 @@ def test_load_basemodels_if_needed() -> None:
     ) -> Tuple[Currency, CurrencySymbol]:
         return base, quote_currency
 
+    assert not inspect.iscoroutinefunction(f)
+
     actual = f(base={"currency": "USD", "amount": 123.45}, quote_currency="EUR")
+    assert isinstance(actual[0], Currency)
+    assert actual[0].amount == 123.45
+    assert actual[0].currency == "USD"
+    assert actual[1] == "EUR"
+
+
+@pytest.mark.asyncio
+async def test_load_basemodels_if_needed_async() -> None:
+    @load_basemodels_if_needed
+    async def f(
+        base: Annotated[Currency, "Base currency"],
+        quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+    ) -> Tuple[Currency, CurrencySymbol]:
+        return base, quote_currency
+
+    assert inspect.iscoroutinefunction(f)
+
+    actual = await f(base={"currency": "USD", "amount": 123.45}, quote_currency="EUR")
     assert isinstance(actual[0], Currency)
     assert actual[0].amount == 123.45
     assert actual[0].currency == "USD"

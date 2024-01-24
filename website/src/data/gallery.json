@@ -69,6 +69,12 @@
     "tags": ["ui"]
   },
   {
+    "title": "Full Function UI for AutoGen Powered by Panel",
+    "link": "https://youtu.be/9lSaRP9GLCY?si=HihULAe3FFyteFHY",
+    "description": "A UI allows users to directly interact with AI agents in real-time during a group chat scenario",
+    "tags": ["ui"]
+  },
+  {
     "title": "AutoGen Monitoring and Observability",
     "link": "https://docs.arize.com/phoenix/quickstart/llm-traces/autogen-support",
     "description": "Documentation on monitoring and observability features for AutoGen.",
@@ -157,6 +163,13 @@
     "link": "https://github.com/antoineross/Autogen-UI/tree/main",
     "description": "Chainlit chat interface with multi-agent conversation between agents to complete a tasks",
     "image": "default.png",
+    "tags": ["ui"]
+  },
+  {
+    "title": "XForce IDE: Build AutoGen based workforces from a drag and drop UI",
+    "link": "https://ide.x-force.ai",
+    "description": "X-Force IDE is a low-code, agent-as-a-service UI framework that lets you create AutoGen-based workforces from a drag-and-drop-like user interface.",
+    "image": "x-force-ide-ui.png",
     "tags": ["ui"]
   }
 ]
