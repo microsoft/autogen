@@ -125,7 +125,6 @@ class OpenAIWrapper:
             self._config_list = [extra_kwargs]
         self.wrapper_id = id(self)
 
-
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
         openai_config = {k: v for k, v in config.items() if k in self.openai_kwargs}
