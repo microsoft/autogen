@@ -34,6 +34,17 @@ public class MiddlewareAgentCodeSnippet
         reply = await middlewareAgent.SendAsync("Hello World");
         reply.Content.Should().Be("[middleware 0] Hello World");
         #endregion code_snippet_2
+        #region code_snippet_2_1
+        middlewareAgent = agent.RegisterMiddleware(async (messages, options, agnet, ct) =>
+        {
+            var lastMessage = messages.Last();
+            lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+            return await agent.GenerateReplyAsync(messages, options, ct);
+        });
+
+        reply = await middlewareAgent.SendAsync("Hello World");
+        reply.Content.Should().Be("[middleware 0] Hello World");
+        #endregion code_snippet_2_1
         #region code_snippet_3
         middlewareAgent.Use(async (messages, options, next, ct) =>
         {
@@ -71,7 +82,7 @@ public class MiddlewareAgentCodeSnippet
         #endregion code_snippet_logging_to_console
 
         #region code_snippet_response_format_forcement
-        var functionCallAgent = middlewareAgent.RegisterMiddleware(async (messages, options, agent, ct) =>
+        var jsonAgent = middlewareAgent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
             var maxAttempt = 5;
             var reply = await agent.GenerateReplyAsync(messages, options, ct);
@@ -94,7 +105,7 @@ public class MiddlewareAgentCodeSnippet
                 }
             }
 
-            return reply;
+            throw new Exception("agent fails to generate json response");
         });
         #endregion code_snippet_response_format_forcement
     }
