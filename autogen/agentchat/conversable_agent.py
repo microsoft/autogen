@@ -20,7 +20,10 @@ from ..code_utils import (
     extract_code,
     infer_lang,
 )
-
+import subprocess
+import os
+from typing import Union, Dict
+from IPython import get_ipython
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
@@ -1419,6 +1422,56 @@ class ConversableAgent(Agent):
             logs (str): the logs of the code execution.
             image (str or None): the docker image used for the code execution.
         """
+
+        result = self._ipython.run_cell("%%capture --no-display cap\n" + code)
+        log = self._ipython.ev("cap.stdout")
+        log += self._ipython.ev("cap.stderr")
+
+        if result.result is not None:
+            log += str(result.result)
+
+        exitcode = 0 if result.success else 1
+
+        if result.error_before_exec is not None:
+            log += f"\n{result.error_before_exec}"
+            exitcode = 1
+
+        if result.error_in_exec is not None:
+            log += f"\n{result.error_in_exec}"
+            exitcode = 1
+
+            # Check if the error message indicates that a module is not found
+            if "No module named" in str(result.error_in_exec):
+                missing_module = str(result.error_in_exec).split("'")[1]
+                try:
+                    # Use pip search to find the correct package name
+                    search_result = subprocess.run(["pip", "search", missing_module], capture_output=True, text=True)
+
+                    # Check if the package name is found in the search result
+                    if missing_module.lower() in search_result.stdout.lower():
+                        print(f"Installing {missing_module}...")
+                        !pip install {missing_module}
+
+                        # Retry running the code after installation
+                        result_after_install = self._ipython.run_cell("%%capture --no-display cap\n" + code)
+
+                        # Update log and exit code based on the result after installation
+                        log = self._ipython.ev("cap.stdout") + self._ipython.ev("cap.stderr")
+                        log += str(result_after_install.result) if result_after_install.result is not None else ""
+                        exitcode = 0 if result_after_install.success else 1
+
+                        if result_after_install.error_before_exec is not None:
+                            log += f"\n{result_after_install.error_before_exec}"
+                            exitcode = 1
+                        if result_after_install.error_in_exec is not None:
+                            log += f"\n{result_after_install.error_in_exec}"
+                            exitcode = 1
+                except Exception as install_error:
+                    # Handle installation error
+                    log += f"\nError installing {missing_module}: {install_error}"
+                    exitcode = 1
+
+        
         return execute_code(code, **kwargs)
 
     def execute_code_blocks(self, code_blocks):
