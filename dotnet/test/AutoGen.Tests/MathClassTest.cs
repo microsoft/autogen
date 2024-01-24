@@ -46,7 +46,8 @@ The answer is {answer}, teacher please check answer";
         {
             if (correctAnswerCount >= 5)
             {
-                return GroupChatExtension.TERMINATE;
+                return $@"// ignore this line [UPDATE_PROGRESS]
+{GroupChatExtension.TERMINATE}";
             }
             else
             {
@@ -76,6 +77,29 @@ teacher, please create the next math question";
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
                     { this.UpdateProgressFunction.Name, this.UpdateProgressWrapper },
+                })
+                .RegisterMiddleware(async (messages, options, agent, ct) =>
+                {
+                    // check admin reply to make sure it calls UpdateProgress function
+                    var maxAttempt = 5;
+                    while (maxAttempt-- > 0)
+                    {
+                        var reply = await agent.GenerateReplyAsync(messages, options, ct);
+                        var formattedMessage = reply.FormatMessage();
+                        this._output.WriteLine(formattedMessage);
+                        if (reply.Content?.Contains("[UPDATE_PROGRESS]") is true || options?.Functions is { Length: 0 })
+                        {
+                            return reply;
+                        }
+                        else
+                        {
+                            await Task.Delay(1000);
+                            var review = "Admin, please update progress based on conversation";
+                            reply = await agent.SendAsync(review, messages, ct);
+                        }
+                    }
+
+                    throw new Exception("Admin does not call UpdateProgress function");
                 });
 
             await RunMathChatAsync(teacher, student, admin);
