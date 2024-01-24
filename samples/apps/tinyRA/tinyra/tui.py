@@ -5,6 +5,9 @@ import configparser
 import platform
 import json
 import logging
+import argparse
+import shutil
+import subprocess
 
 from typing import List, Dict
 
@@ -44,6 +47,26 @@ if USER_NAME is None:
 CONFIG = configparser.ConfigParser()
 CHATDB = os.path.join(DATA_PATH, "chat_history.db")
 
+
+def init_database() -> None:
+    """
+    Initialize the chat history database.
+    """
+    conn = sqlite3.connect(CHATDB)
+    c = conn.cursor()
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
 USER_PROFILE_TEXT = ""
 OPERATING_SYSTEM = platform.system()
 UTILS_FILE = os.path.join(DATA_PATH, "agent_utils.py")
@@ -77,24 +100,12 @@ ASSISTANT_SYSTEM_MESSAGE = (
     + "\n\nDon't forget to reply with TERMINATE when the task is done or you get stuck in introductory, empty message, or apology loop"
 )
 
+WORK_DIR = os.path.join(DATA_PATH, "work_dir")
+if not os.path.exists(WORK_DIR):
+    os.makedirs(WORK_DIR)
 
-def init_database() -> None:
-    """
-    Initialize the chat history database.
-    """
-    conn = sqlite3.connect(CHATDB)
-    c = conn.cursor()
-    c.execute(
-        """
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            role TEXT NOT NULL,
-            content TEXT NOT NULL
-        )
-        """
-    )
-    conn.commit()
-    conn.close()
+if not os.path.exists(CHATDB):
+    init_database()
 
 
 def fetch_chat_history() -> List[Dict[str, str]]:
@@ -787,27 +798,28 @@ def main() -> None:
 
 
 def run_tinyra():
-    import sys
-    import subprocess
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--reset", action="store_true", help="Reset chat history")
+    parser.add_argument("--reset-all", action="store_true", help="Reset chat history and delete data path")
+    args = parser.parse_args()
 
-    # check if the user specified reset as the command line argument
-    # if yes, issue a warning and reset the chat history
-
-    if len(sys.argv) > 1 and sys.argv[1] == "reset":
-        print("Resetting chat history. This will delete all chat history.")
+    if args.reset_all:
+        print(f"Warning: Resetting chat history and deleting data path {DATA_PATH}")
         print("Press enter to continue or Ctrl+C to cancel.")
         input()
-        # remove the chat history file
+        if os.path.exists(CHATDB):
+            os.remove(CHATDB)
+        if os.path.exists(DATA_PATH):
+            shutil.rmtree(DATA_PATH)
+        return
+
+    if args.reset:
+        print(f"Warning: Resetting chat history. This will delete all chat history in {CHATDB}")
+        print("Press enter to continue or Ctrl+C to cancel.")
+        input()
         if os.path.exists(CHATDB):
             os.remove(CHATDB)
         return
-
-    workdir = os.path.join(DATA_PATH, "work_dir")
-    if not os.path.exists(workdir):
-        os.makedirs(workdir)
-
-    if not os.path.exists(CHATDB):
-        init_database()
 
     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
     subprocess.run(["bash", script_path], check=True)

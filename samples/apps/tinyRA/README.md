@@ -35,8 +35,19 @@ tinyra
 
 _Note_: TinyRA will create a new directory in your system at `~/.tinyra`. This directory contains database(s), logs, and work directory that is shared between you and TinyRA.
 
-You can reset TinyRA via the following command:
+
+
+You can reset the chat history of TinyRA via the following command:
 
 ```
-tinyra reset
+tinyra --reset
 ```
+This will delete all chat history. You will be prompted to confirm this action.
+If you want to reset the chat history and delete the data path, use the following command:
+
+
+```
+tinyra --reset-all
+```
+
+This will delete all chat history and the data path. You will be prompted to confirm this action.
