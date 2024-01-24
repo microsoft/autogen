@@ -5,8 +5,6 @@ from typing import Any, Callable, Dict, List, Optional, Protocol
 
 from typing_extensions import TypeVar
 
-from ..asyncio_utils import match_caller_type
-
 __all__ = ["Middleware", "MiddlewareCallable", "add_middleware", "register_for_middleware", "set_middlewares"]
 
 F = TypeVar("F", bound=Callable[..., Any])

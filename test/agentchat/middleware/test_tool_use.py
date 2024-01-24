@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from autogen.agentchat.agent import Agent
 
-from autogen.middleware.tool_use import ToolUseMiddleware
+from autogen.agentchat.middleware.tool_use import ToolUseMiddleware
 
 
 def _tool_func_1(arg1: str, arg2: str) -> str:
@@ -302,7 +302,7 @@ def test_tool_use_missing_functions_sync(is_function_async: bool) -> None:
         }
         if is_function_async
         else {
-            "_tool_func_1": _tool_func_1,
+            "_tool_func_1": _tool_func_1,  # type: ignore [dict-item]
         }
     )
     messages = [_tool_use_message_1]
@@ -319,7 +319,7 @@ async def test_tool_use_missing_functions_async(is_function_async: bool) -> None
         }
         if is_function_async
         else {
-            "_tool_func_1": _tool_func_1,
+            "_tool_func_1": _tool_func_1,  # type: ignore [dict-item]
         }
     )
     messages = [_tool_use_message_1]

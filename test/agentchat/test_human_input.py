@@ -31,7 +31,7 @@ def test_get_human_input():
 
     # Use MagicMock to create a mock get_human_input function
     with patch(
-        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
+        "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
     ) as mock_get_human_input:
         mock_get_human_input.return_value = "This is a test"
         # user_proxy.get_human_input = MagicMock(return_value="This is a test")
@@ -42,7 +42,7 @@ def test_get_human_input():
         mock_get_human_input.assert_called()
 
     with patch(
-        "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
+        "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input"
     ) as mock_get_human_input:
         mock_get_human_input.return_value = "This is a test"
         # Test without supplying messages parameter

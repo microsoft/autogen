@@ -2,7 +2,7 @@ from typing import Dict, Optional, Union
 
 import pytest
 from autogen.agentchat.agent import Agent
-from autogen.middleware.message_store import MessageStoreMiddleware
+from autogen.agentchat.middleware.message_store import MessageStoreMiddleware
 
 
 def _dummy_reply(

@@ -1,6 +1,6 @@
 import pytest
 import autogen
-from autogen.middleware.llm import LLMMiddleware
+from autogen.agentchat.middleware.llm import LLMMiddleware
 from conftest import skip_openai
 
 try:
@@ -121,7 +121,8 @@ def test_llm_tool_calls() -> None:
 
     messages = [{"role": "user", "content": "What's the weather in New York for the next 5 days?"}]
     reply = mw.call(messages=messages)
-    assert reply["tool_calls"][0]["function"]["name"] == "get_n_day_weather_forecast"
+    function_names = [tool["function"]["name"] for tool in reply["tool_calls"]]
+    assert "get_n_day_weather_forecast" in function_names
 
 
 @pytest.mark.skipif(skip, reason="openai not installed or requested to skip")

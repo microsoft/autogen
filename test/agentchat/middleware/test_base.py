@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from autogen.middleware.base import (
+from autogen.agentchat.middleware.base import (
     _build_middleware_chain,
     _next_function_base,
     _next_function_step,

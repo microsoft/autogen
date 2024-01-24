@@ -1,7 +1,4 @@
 {
-    "containerEnv": {
-        "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}"
-    },
     "customizations":  {
         "vscode": {
             "extensions": [

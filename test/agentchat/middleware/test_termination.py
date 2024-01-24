@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from autogen.agentchat.agent import Agent
-from autogen.middleware.termination import TerminationAndHumanReplyMiddleware
+from autogen.agentchat.middleware.termination import TerminationAndHumanReplyMiddleware
 
 
 def _dummpy_reply(
@@ -61,7 +61,8 @@ async def test_termination_termination_msg_async() -> None:
 
 
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input", return_value="I am a human."
+    "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input",
+    return_value="I am a human.",
 )
 def test_human_input(mock_human_input) -> None:
     # Test default termination message.
@@ -74,7 +75,8 @@ def test_human_input(mock_human_input) -> None:
 
 @pytest.mark.asyncio()
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input", return_value="I am a human."
+    "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input",
+    return_value="I am a human.",
 )
 async def test_human_input_async(mock_human_input) -> None:
     # Test default termination message.
@@ -86,7 +88,8 @@ async def test_human_input_async(mock_human_input) -> None:
 
 
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input", return_value="I am a human."
+    "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input",
+    return_value="I am a human.",
 )
 def test_human_input_termination(mock_human_input) -> None:
     # Test default termination message.
@@ -99,7 +102,8 @@ def test_human_input_termination(mock_human_input) -> None:
 
 @pytest.mark.asyncio()
 @patch(
-    "autogen.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input", return_value="I am a human."
+    "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input",
+    return_value="I am a human.",
 )
 async def test_human_input_termination_async(mock_human_input) -> None:
     # Test default termination message.
