@@ -581,7 +581,8 @@ class TinyRA(App):
             if os.environ.get("CODESPACES"):
                 os.system(f"code {event.path}")
             else:
-                os.startfile(event.path)
+                # open the file using the default app
+                os.system(f"open {event.path}")
         except Exception:
             # TODO: Not implemented
             pass
