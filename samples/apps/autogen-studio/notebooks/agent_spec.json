@@ -34,7 +34,7 @@
         ],
         "temperature": 0.1,
         "timeout": 600,
-        "cache_seed": null
+        "cache_seed": 42
       },
       "human_input_mode": "NEVER",
       "max_consecutive_auto_reply": 8,
