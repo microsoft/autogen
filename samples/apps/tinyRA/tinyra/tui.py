@@ -494,7 +494,8 @@ async def handle_user_input() -> None:
             if m["role"] in ["assistant", "user", "system"]
         ]
 
-        row_id = insert_chat_message("info", "Checking if the query requires decomposition...")
+        row_id = insert_chat_message("info", "Thinking...")
+        logging.info("Checking if the query requires direct response or coding")
         requires_autogen = await check_requires_autogen(filtered_messages, row_id)
         insert_chat_message("info", f"requires_autogen: {requires_autogen}", row_id)
 
@@ -512,16 +513,20 @@ async def handle_user_input() -> None:
             }
 
             filtered_messages = [system_message] + filtered_messages
-            insert_chat_message("info", f"Generating direct response for {last_user_message_id}", row_id)
+            logging.info(f"Generating direct response for {last_user_message_id}", row_id)
+            insert_chat_message("info", "Thinking...", row_id)
             response = await chat_completion_wrapper(
                 row_id=row_id, messages=truncate_messages(filtered_messages, MODEL)
             )
             if response is not None:
                 insert_chat_message(response["role"], response["content"], row_id=response["id"])
         else:
+            logging.info(
+                f"Generating code to answer {last_user_message_id} (conf: {requires_autogen['confidence']})..."
+            )
             insert_chat_message(
                 "info",
-                f"Generating code to answer {last_user_message_id} (conf: {requires_autogen['confidence']})...",
+                "Thinking more deeply...",
                 row_id,
             )
             await handle_autogen(last_user_message_id)
