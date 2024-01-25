@@ -164,20 +164,20 @@ First, provide a `MANIFEST.json` file in the root of your benchmark. An example 
 ```json
 {
     "files": {
-        "Templates/TwoAgents/prompt.txt": "samples/tools/autogenbench/scenarios/HumanEval/Templates/TwoAgents/prompt.txt",
-        "Templates/TwoAgents/coding/my_tests.py": "samples/tools/autogenbench/scenarios/HumanEval/Templates/TwoAgents/coding/my_tests.py",
-        "Templates/TwoAgents/scenario.py": "samples/tools/autogenbench/scenarios/HumanEval/Templates/TwoAgents/scenario.py",
-        "README.md": "samples/tools/autogenbench/scenarios/HumanEval/README.md",
-	"Scripts/init_tasks.py": "samples/tools/autogenbench/scenarios/HumanEval/Scripts/init_tasks.py",
-	"Scripts/custom_tabulate.py": "samples/tools/autogenbench/scenarios/HumanEval/Scripts/custom_tabulate.py"
+        "Templates/TwoAgents/prompt.txt": "Templates/TwoAgents/prompt.txt",
+        "Templates/TwoAgents/coding/my_tests.py": "Templates/TwoAgents/coding/my_tests.py",
+        "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
+        "README.md": "README.md",
+	"Scripts/init_tasks.py": "Scripts/init_tasks.py",
+	"Scripts/custom_tabulate.py": "Scripts/custom_tabulate.py"
     }
 }
 ```
 
-The keys of the `files` dictionary are local paths, relative to your benchmark's root directory. The values are relative paths in the AutoGen GitHub repository (relative to `https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/`), where {BRANCH} is defined in `autogenbench/clone_cmd.py`.
+The keys of the `files` dictionary are local paths, relative to your benchmark's root directory. The values are relative paths in the AutoGen GitHub repository (relative to the folder where the MANIFEST.json file is located). In most cases, the keys and values will be identical.
 
 #### SCENARIOS dictionary
-Second, you must add an entry to the `SCENARIOS` dictionary in `autogenbranch/clone_cmd.py`.
+Second, you must add an entry to the `scenarios` dictionary in `autogen/samples/tools/autogenbench/scenarios/MANIFEST.json`.
 
 #### Scripts/init_tasks.py
 Finally, you should provide an `Scripts/init_tasks.py` file, in your benchmark folder, and include a `main()` method therein. This method will be loaded and called automatically by `autogenbench clone` after all manifest files have been downloaded.

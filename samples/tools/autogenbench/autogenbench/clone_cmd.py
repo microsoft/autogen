@@ -11,7 +11,7 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
 DEFAULT_REPO = "https://raw.githubusercontent.com/microsoft/autogen/"
-DEFAULT_BRANCH = "autogenbench_clone_path"
+DEFAULT_BRANCH = "main"
 DEFAULT_PATH = "/samples/tools/autogenbench/scenarios/"
 # Full url is specified by DEFAULT_REPO + DEFAULT_BRANCH + DEFAULT_PATH
 
@@ -40,12 +40,14 @@ def clone_scenario(scenario, base_url):
     # If the scenario is a url, then we can just look up that folder directly
     if scenario.startswith("http://") or scenario.startswith("https://"):
         scenario_url = scenario
+        local_folder = os.path.abspath(".")
     # otherwise, read it from the main manifest file
     else:
         scenarios = get_scenarios(base_url)
         if scenario not in scenarios:
             raise ValueError(f"No such scenario '{scenario}'.")
         scenario_url = _expand_url(scenarios[scenario], base_url)
+        local_folder = os.path.abspath(scenario)
 
     # Download the manifest
     print("Fetching manifest...")
@@ -57,8 +59,13 @@ def clone_scenario(scenario, base_url):
     # Download the files
     for item in manifest["files"].items():
         path = item[0]
+
+        # Fixes paths on windows
+        parts = path.split("/")
+        path = os.path.join(*parts)
+
         raw_url = _expand_url(item[1], scenario_url)
-        dir_name = os.path.join(scenario, os.path.dirname(path))
+        dir_name = os.path.join(local_folder, os.path.dirname(path))
         file_name = os.path.basename(path)
         path = os.path.join(dir_name, file_name)
 
@@ -77,16 +84,16 @@ def clone_scenario(scenario, base_url):
                 fh.write(chunk)
 
     # Run any init_tasks scripts
-    init_tasks_script = os.path.join(scenario, "Scripts", "init_tasks.py")
+    init_tasks_script = os.path.join(local_folder, "Scripts", "init_tasks.py")
     if os.path.isfile(init_tasks_script):
         load_module(init_tasks_script).main()
 
     # Print the success
     print(f"\n\nSuccessfully cloned '{scenario}'")
     for readme in ["README.md", "README.txt", "README"]:
-        if os.path.isfile(os.path.join(scenario, readme)):
+        if os.path.isfile(os.path.join(local_folder, readme)):
             print(
-                f"Please read '{os.path.join(scenario, readme)}' for more information on running this benchmark."
+                f"Please read '{os.path.join(local_folder, readme)}' for more information on running this benchmark."
             )
             break
 
@@ -112,11 +119,18 @@ def clone_cli(args):
         action="store_true",
         help="List the scenarios available for download.",
     )
+    parser.add_argument(
+        "-b",
+        "--branch",
+        type=str,
+        help=f"The specific branch in the AutoGen GitHub repository from which scenarios will be cloned (default: {DEFAULT_BRANCH}).",
+        default=DEFAULT_BRANCH,
+    )
 
     parsed_args = parser.parse_args(args)
 
     # Generate the base_url
-    base_url = DEFAULT_REPO + DEFAULT_BRANCH + DEFAULT_PATH
+    base_url = DEFAULT_REPO + parsed_args.branch + DEFAULT_PATH
 
     # Check if we are just printing a list
     if parsed_args.list:
