@@ -10,8 +10,10 @@ SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
-DEFAULT_BRANCH = "autogenbench"
-DEFAULT_BASE_URL = "https://raw.githubusercontent.com/microsoft/autogen/"
+DEFAULT_REPO = "https://raw.githubusercontent.com/microsoft/autogen/"
+DEFAULT_BRANCH = "autogenbench_clone_path"
+DEFAULT_PATH = "/samples/tools/autogenbench/scenarios/"
+# Full url is specified by DEFAULT_REPO + DEFAULT_BRANCH + DEFAULT_PATH
 
 
 def _expand_url(url_fragment, base_url):
@@ -28,27 +30,34 @@ def get_scenarios(base_url):
     """
     Return a list of scenarios.
     """
-    response = requests.get(_expand_url("MANIFEST.json"), stream=False)
+    response = requests.get(_expand_url("MANIFEST.json", base_url), stream=False)
     response.raise_for_status()
     manifest = json.loads(response.text)
-    return manifest["manifests"]
+    return manifest["scenarios"]
 
 
 def clone_scenario(scenario, base_url):
-    if scenario not in get_scenarios():
-        raise ValueError(f"No such scenario '{scenario}'.")
+    # If the scenario is a url, then we can just look up that folder directly
+    if scenario.startswith("http://") or scenario.startswith("https://"):
+        scenario_url = scenario
+    # otherwise, read it from the main manifest file
+    else:
+        scenarios = get_scenarios(base_url)
+        if scenario not in scenarios:
+            raise ValueError(f"No such scenario '{scenario}'.")
+        scenario_url = _expand_url(scenarios[scenario], base_url)
 
     # Download the manifest
     print("Fetching manifest...")
     manifest = None
-    response = requests.get(_expand_url(get_scenarios()[scenario]), stream=False)
+    response = requests.get(_expand_url("MANIFEST.json", scenario_url), stream=False)
     response.raise_for_status()
     manifest = json.loads(response.text)
 
     # Download the files
     for item in manifest["files"].items():
         path = item[0]
-        raw_url = _expand_url(item[1])
+        raw_url = _expand_url(item[1], scenario_url)
         dir_name = os.path.join(scenario, os.path.dirname(path))
         file_name = os.path.basename(path)
         path = os.path.join(dir_name, file_name)
@@ -107,7 +116,7 @@ def clone_cli(args):
     parsed_args = parser.parse_args(args)
 
     # Generate the base_url
-    base_url = DEFAULT_BASE_URL + DEFAULT_BRANCH + "/"
+    base_url = DEFAULT_REPO + DEFAULT_BRANCH + DEFAULT_PATH
 
     # Check if we are just printing a list
     if parsed_args.list:

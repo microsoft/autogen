@@ -1,9 +1,9 @@
 {
     "files": {
-        "Templates/TwoAgents/scenario_finalize.sh": "samples/tools/autogenbench/scenarios/Examples/Templates/TwoAgents/scenario_finalize.sh",
-        "Templates/TwoAgents/scenario.py": "samples/tools/autogenbench/scenarios/Examples/Templates/TwoAgents/scenario.py",
-        "Templates/TwoAgents/scenario_init.sh": "samples/tools/autogenbench/scenarios/Examples/Templates/TwoAgents/scenario_init.sh",
-        "Tasks/default_two_agents.jsonl": "samples/tools/autogenbench/scenarios/Examples/Tasks/default_two_agents.jsonl",
-        "README.md": "samples/tools/autogenbench/scenarios/Examples/README.md"
+        "Templates/TwoAgents/scenario_finalize.sh": "Templates/TwoAgents/scenario_finalize.sh",
+        "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
+        "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh",
+        "Tasks/default_two_agents.jsonl": "Tasks/default_two_agents.jsonl",
+        "README.md": "README.md"
     }
 }

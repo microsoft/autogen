@@ -1,11 +1,11 @@
 {
     "files": {
-        "README.md": "samples/tools/autogenbench/scenarios/MATH/README.md",
-        "Scripts/init_tasks.py": "samples/tools/autogenbench/scenarios/MATH/Scripts/init_tasks.py",
-        "Scripts/custom_tabulate.py": "samples/tools/autogenbench/scenarios/MATH/Scripts/custom_tabulate.py",
-        "Templates/TwoAgents/prompt.txt": "samples/tools/autogenbench/scenarios/MATH/Templates/TwoAgents/prompt.txt",
-        "Templates/TwoAgents/expected_answer.txt": "samples/tools/autogenbench/scenarios/MATH/Templates/TwoAgents/expected_answer.txt",
-        "Templates/TwoAgents/scenario.py": "samples/tools/autogenbench/scenarios/MATH/Templates/TwoAgents/scenario.py",
-        "Templates/TwoAgents/scenario_init.sh": "samples/tools/autogenbench/scenarios/MATH/Templates/TwoAgents/scenario_init.sh"
+        "README.md": "README.md",
+        "Scripts/init_tasks.py": "Scripts/init_tasks.py",
+        "Scripts/custom_tabulate.py": "Scripts/custom_tabulate.py",
+        "Templates/TwoAgents/prompt.txt": "Templates/TwoAgents/prompt.txt",
+        "Templates/TwoAgents/expected_answer.txt": "Templates/TwoAgents/expected_answer.txt",
+        "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
+        "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh"
     }
 }
