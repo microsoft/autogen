@@ -610,6 +610,10 @@ def message2markdown(message: Dict[str, str]) -> str:
 
 
 class ReactiveAssistantMessage(Markdown):
+    """
+    A reactive markdown widget for displaying assistant messages.
+    """
+
     message = reactive({"role": "assistant", "content": "loading...", "id": -1})
 
     def set_id(self, msg_id):
@@ -627,7 +631,18 @@ class ReactiveAssistantMessage(Markdown):
         self.update(message2markdown(self.message))
 
 
-def message_display_handler(message):
+def message_display_handler(message: Dict[str, str]) -> Markdown or ReactiveAssistantMessage:
+    """
+    Given a message, return a widget for displaying the message.
+    If the message is from the user, return a markdown widget.
+    If the message is from the assistant, return a reactive markdown widget.
+
+    Args:
+        message: a message
+
+    Returns:
+        A markdown widget or a reactive markdown widget.
+    """
     role = message["role"]
     if role == "user":
         text = Markdown(message2markdown(message), classes=f"{role.lower()}-message message")
@@ -639,11 +654,19 @@ def message_display_handler(message):
 
 
 class SkillsDisplayContainer(ScrollableContainer):
+    """
+    A container for displaying the available skills.
+    """
+
     def compose(self) -> ComposeResult:
         yield SkillsDisplay()
 
 
 class DirectoryTreeContainer(ScrollableContainer):
+    """
+    A container for displaying the directory tree.
+    """
+
     dirpath = os.path.join(DATA_PATH, "work_dir")
     dir_contents = reactive(str(os.listdir(dirpath)))
 
@@ -661,6 +684,10 @@ class DirectoryTreeContainer(ScrollableContainer):
 
 
 class SkillsDisplay(Markdown):
+    """
+    A markdown widget for displaying the available skills.
+    """
+
     skills = reactive(get_available_functions)
 
     def watch_skills(self) -> None:
@@ -672,11 +699,17 @@ class SkillsDisplay(Markdown):
     def update_skills(self):
         self.skills = get_available_functions()
 
-    # def compose(self) -> ComposeResult:
-    #     yield Markdown(self.skills)
-
 
 class ChatDisplay(ScrollableContainer):
+    """
+    A container for displaying the chat history.
+
+    The chat history is fetched from the database and displayed.
+    Its updated every second.
+
+    When a new message is detected, it is mounted to the container.
+    """
+
     limit_history = 100
     chat_history = reactive(fetch_chat_history)
     old_chat_history = reactive(fetch_chat_history)
@@ -714,6 +747,10 @@ class ChatDisplay(ScrollableContainer):
 
 
 class ChatInput(Static):
+    """
+    A widget for user input.
+    """
+
     def on_mount(self) -> None:
         input = self.query_one(Input)
         input.focus()
@@ -723,7 +760,23 @@ class ChatInput(Static):
 
 
 class TinyRA(App):
-    """A Textual app to display chat history."""
+    """
+    A Textual app to display chat history.
+
+    The app is composed of the following widgets:
+    - Header
+    - DirectoryTreeContainer
+    - ChatDisplay
+    - SkillsDisplayContainer
+    - ChatInput
+    - Footer
+
+    The app also has the following key bindings:
+    - ctrl+t: toggle dark mode
+    - ctrl+z: quit the app
+    - ctrl+r: retry last user message
+    - ctrl+g: memorize the autogen message
+    """
 
     BINDINGS = [
         ("ctrl+t", "toggle_dark", "Toggle dark mode"),
@@ -793,11 +846,15 @@ class TinyRA(App):
 
 
 def main() -> None:
+    """Run the app."""
     app = TinyRA()
     app.run()
 
 
-def run_tinyra():
+def run_tinyra() -> None:
+    """
+    Run the TinyRA app.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--reset", action="store_true", help="Reset chat history")
     parser.add_argument("--reset-all", action="store_true", help="Reset chat history and delete data path")
