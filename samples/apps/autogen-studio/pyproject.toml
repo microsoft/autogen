@@ -25,7 +25,7 @@ dependencies = [
     "uvicorn",
     "arxiv",
     "pyautogen>=0.2.0",
-    "psycopg2"
+    "psycopg2-binary"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"]}
 

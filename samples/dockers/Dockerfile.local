@@ -45,11 +45,8 @@ RUN yarn install --frozen-lockfile --ignore-engines
 
 EXPOSE 8081
 
-# Start Command AutoGen Docs (ensure that the previous CMD lines are commented and uncomment the following line if you need to start AutoGen Docs)
-COPY docker-scripts/autogenstudio-start.sh /home/autogen/autogenstudio-start.sh
-RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
-
-CMD ["/home/autogen/autogenstudio-start.sh"]
+# Start Command AutoGen Studio UI
+CMD ["autogenstudio", "ui", "--port", "8081", "--host", "0.0.0.0"]
 
 # cmd to build image: docker build -t autogenstudio-local_img -f Dockerfile.local .
 # cmd to run container: docker run -it -p 8081:8081 --name autogenstudio-local autogenstudio-local_img
