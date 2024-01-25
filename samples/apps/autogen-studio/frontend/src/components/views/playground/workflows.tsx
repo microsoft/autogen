@@ -41,7 +41,7 @@ const AgentsWorkflowView = () => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
+        // message.success(data.message);
 
         setWorkflowConfigs(data.data);
         if (data.data.length > 0) {
@@ -69,13 +69,13 @@ const AgentsWorkflowView = () => {
 
   return (
     <div className=" mb-4 relative">
-      <div className="font-semibold pb-2 border-b">
+      {/* <div className="font-semibold pb-2 border-b">
         <Square2StackIcon className="h-5 w-5 inline-block mr-1" />
-        Workflow{" "}
-      </div>
-      <div className="text-xs mt-2 mb-2 pb-1  ">
+        Agents Workflow{" "}
+      </div> */}
+      <div className="text-sm mt-2 mb-2 pb-1  ">
         {" "}
-        Select or create an agent workflow.{" "}
+        Please select an agent workflow to begin.{" "}
       </div>
 
       <div className="relative mt-2 ">
@@ -98,7 +98,7 @@ const AgentsWorkflowView = () => {
         )}
         <div className="mt-2 text-xs">
           {" "}
-          Create new workflows{" "}
+          View all workflows{" "}
           <span className="text-accent">
             {" "}
             <Link to="/build">here</Link>
