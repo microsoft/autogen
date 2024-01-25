@@ -16,7 +16,8 @@ on:
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
-
+permissions:
+  contents: write
 jobs:
   checks:
     if: github.event_name != 'push'
