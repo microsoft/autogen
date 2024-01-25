@@ -4,7 +4,7 @@ import typer
 import uvicorn
 
 from .version import VERSION
-from .utils.dbutils import DBManager
+#from .utils.dbutils import DBManager
 
 app = typer.Typer()
 

@@ -6,7 +6,23 @@ import threading
 from datetime import datetime
 import os
 from typing import Any, List, Dict, Optional, Tuple
-from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Session, Skill
+from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Model, Session, Skill
+
+
+MODELS_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS models (
+                id TEXT NOT NULL,
+                user_id TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                model TEXT,
+                api_key TEXT,
+                base_url TEXT,
+                api_type TEXT,
+                api_version TEXT,
+                description TEXT,
+                UNIQUE (id, user_id)
+            )
+            """
 
 MESSAGES_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS messages (
@@ -140,7 +156,10 @@ class DBManager:
                 "agents": table_exists("agents"),
                 "workflows": table_exists("workflows")
             }
-        
+
+            # Create the models table
+            self.cursor.execute(MODELS_TABLE_SQL)
+
             # Create the table with the specified columns, appropriate data types, and a UNIQUE constraint on (root_msg_id, msg_id)
             self.cursor.execute(MESSAGES_TABLE_SQL)
 
@@ -257,6 +276,95 @@ class DBManager:
         """
         self.conn.close()
 
+def get_models(user_id: str, dbmanager: DBManager) -> List[dict]:
+    """
+    Get all models for a given user from the database.
+
+    Args:
+        user_id: The user id to get models for
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+    query = "SELECT * FROM models WHERE user_id = %s OR user_id = %s"
+    args = (user_id, "default")
+    results = dbmanager.query(query, args, return_json=True)
+    return results
+
+
+def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
+    """
+    Insert or update a model configuration in the database.
+
+    Args:
+        model: The Model object containing model configuration data
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+
+    # Check if the model config with the provided id already exists in the database
+    existing_model = get_item_by_field("models", "id", model.id, dbmanager)
+
+    if existing_model:
+        # If the model config exists, update it with the new data
+        updated_data = {
+            "model": model.model,
+            "api_key": model.api_key,
+            "base_url": model.base_url,
+            "api_type": model.api_type,
+            "api_version": model.api_version,
+            "user_id": model.user_id,
+            "timestamp": model.timestamp,
+            "description": model.description,
+        }
+        update_item("models", model.id, updated_data, dbmanager)
+    else:
+        # If the model config does not exist, insert a new one
+        query = """
+            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        args = (
+            model.id,
+            model.user_id,
+            model.timestamp,
+            model.model,
+            model.api_key,
+            model.base_url,
+            model.api_type,
+            model.api_version,
+            model.description,
+        )
+        dbmanager.execute_commit(query=query, args=args)
+
+    # Return the inserted or updated model config
+    models = get_models(model.user_id, dbmanager)
+    return models
+
+
+def delete_model(model: Model, dbmanager: DBManager) -> List[dict]:
+    """
+    Delete a model configuration from the database where id = model.id and user_id = model.user_id.
+
+    Args:
+        model: The Model object containing model configuration data
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+
+    query = "DELETE FROM models WHERE id = %s AND user_id = %s"
+    args = (model.id, model.user_id)
+    dbmanager.execute_commit(query=query, args=args)
+
+    # Return the remaining model configs
+    models = get_models(model.user_id, dbmanager)
+    return models
+
 
 def create_message(message: Message, dbmanager: DBManager) -> None:
     """
@@ -266,6 +374,10 @@ def create_message(message: Message, dbmanager: DBManager) -> None:
     :param dbmanager: The DBManager instance used to interact with the database
     """
     query = "INSERT INTO messages (user_id, root_msg_id, msg_id, role, content, metadata, timestamp, session_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+
+     # Ensure timestamp is a string in the ISO 8601 format
+    timestamp_str = message.timestamp if isinstance(message.timestamp, str) else message.timestamp.isoformat()
+
     args = (
         message.user_id,
         message.root_msg_id,
@@ -273,10 +385,10 @@ def create_message(message: Message, dbmanager: DBManager) -> None:
         message.role,
         message.content,
         message.metadata,
-        message.timestamp,
+        timestamp_str,
         message.session_id,
     )
-    dbmanager.query(query=query, args=args)
+    dbmanager.execute_commit(query=query, args=args)
 
 
 def get_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[dict]:
@@ -292,6 +404,12 @@ def get_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[di
     query = "SELECT * FROM messages WHERE user_id = %s AND session_id = %s"
     args = (user_id, session_id)
     result = dbmanager.query(query=query, args=args, return_json=True)
+    
+    # Convert datetime objects to strings in ISO 8601 format
+    for msg in result:
+        if isinstance(msg['timestamp'], datetime):
+            msg['timestamp'] = msg['timestamp'].isoformat()
+
     # Sort by timestamp ascending
     result = sorted(result, key=lambda k: k["timestamp"], reverse=False)
     return result
