@@ -171,7 +171,7 @@ const SkillsView = ({}: any) => {
         <div>
           {" "}
           <Card
-            className="h-full p-2 cursor-pointer"
+            className="h-full p-2 cursor-pointer group"
             title={truncateText(skill.title, 25)}
             onClick={() => {
               setSelectedSkill(skill);
@@ -183,19 +183,27 @@ const SkillsView = ({}: any) => {
               {truncateText(skill.content, 70)}
             </div>
             <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
             <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteSkill(skill);
+              onMouseEnter={(e) => {
+                e.stopPropagation();
               }}
+              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              {" "}
+              <div
+                role="button"
+                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteSkill(skill);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs hidden"> delete</span>
+              </div>
             </div>
-          </div>
+          </Card>
+          <div className="text-right mt-2"></div>
         </div>
       </div>
     );

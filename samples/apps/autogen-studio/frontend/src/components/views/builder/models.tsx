@@ -1,21 +1,15 @@
 import {
+  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { Input, Modal, message } from "antd";
 import * as React from "react";
-import { IAgentFlowSpec, IModelConfig, IStatus } from "../../types";
+import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
-import {
-  AgentFlowSpecView,
-  BounceLoader,
-  Card,
-  LaunchButton,
-  LoadBox,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, LaunchButton, LoadingOverlay } from "../../atoms";
 import TextArea from "antd/es/input/TextArea";
 
 const ModelsView = ({}: any) => {
@@ -155,7 +149,7 @@ const ModelsView = ({}: any) => {
           <Card
             className="h-full p-2 cursor-pointer"
             title={
-              <div className="  ">{truncateText(model.model || "", 25)}</div>
+              <div className="  ">{truncateText(model.model || "", 20)}</div>
             }
             onClick={() => {
               setSelectedModel(model);
@@ -167,19 +161,26 @@ const ModelsView = ({}: any) => {
               {truncateText(model.description || model.model || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(model.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
             <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteModel(model);
+              onMouseEnter={(e) => {
+                e.stopPropagation();
               }}
+              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              {" "}
+              <div
+                role="button"
+                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteModel(model);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs hidden"> delete</span>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -343,6 +344,12 @@ const ModelsView = ({}: any) => {
             {" "}
             Create model configurations that can be reused in your agents and
             workflows. {selectedModel?.model}
+            <span className="block my-2 border rounded border-secondary p-2">
+              <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
+              Note: When you reuse a model in your agent/workflow, a{" "}
+              <span className="font-semibold underline">copy</span> of the model
+              details is added to the agent/workflow.
+            </span>
           </div>
           {models && models.length > 0 && (
             <div className="w-full  relative">
