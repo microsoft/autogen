@@ -17,11 +17,7 @@ on:
   merge_group:
     types: [checks_requested]
 permissions:
-  pages: write
-    # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
+  contents: write
 jobs:
   checks:
     if: github.event_name != 'push'
