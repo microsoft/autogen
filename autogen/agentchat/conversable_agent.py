@@ -7,10 +7,6 @@ import logging
 import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
-import warnings
-from autogen.coding.base import CodeBlock
-
-from autogen.coding.factory import CodeExecutorFactory
 
 from .. import OpenAIWrapper
 from ..cache.cache import Cache
@@ -170,17 +166,7 @@ class ConversableAgent(Agent):
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
-
-        if self._code_execution_config is not None and self._code_execution_config is not False:
-            # Register code execution reply functions with a code executor.
-            code_executor = CodeExecutorFactory.create(self._code_execution_config)
-            self.register_reply(
-                [Agent, None],
-                ConversableAgent.generate_code_execution_reply,
-                config=code_executor,
-                reset_config=code_executor.reset,
-            )
-
+        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
@@ -851,20 +837,9 @@ class ConversableAgent(Agent):
         code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
-        if isinstance(code_execution_config, dict):
-            warnings.warn(
-                "Usage of dictionary config in generate_code_execution_reply will be deprecated. "
-                "Please pass a CodeExecutor object instead when registering generate_code_execution_reply.",
-                DeprecationWarning,
-            )
-            # For backward compatibility, convert the dictionary config to a CodeExecutor object.
-            code_executor = CodeExecutorFactory.create(code_execution_config)
-        else:
-            # Use the provided code executor.
-            code_executor = code_execution_config
         if messages is None:
             messages = self._oai_messages[sender]
-        last_n_messages = code_executor.code_execution_config.get("last_n_messages", "auto")
+        last_n_messages = code_execution_config.pop("last_n_messages", "auto")
 
         if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
             raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
@@ -895,8 +870,12 @@ class ConversableAgent(Agent):
 
             # found code blocks, execute code and push "last_n_messages" back
             exitcode, logs = self.execute_code_blocks(code_blocks)
+            code_execution_config["last_n_messages"] = last_n_messages
             exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
             return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
+        code_execution_config["last_n_messages"] = last_n_messages
 
         return False, None
 
@@ -1402,8 +1381,6 @@ class ConversableAgent(Agent):
         """Get human input.
 
         Override this method to customize the way to get human input.
-        To customize code execution, register a `generate_code_execution_reply`.
-        with a custom code executor created by `autogen.coding.CodeExecutorFactory`.
 
         Args:
             prompt (str): prompt for the human input.
@@ -1428,11 +1405,10 @@ class ConversableAgent(Agent):
         reply = input(prompt)
         return reply
 
-    def run_code(self, code: str, **kwargs):
-        """(Deprecated) Run the code and return the result.
+    def run_code(self, code, **kwargs):
+        """Run the code and return the result.
 
-        NOTE: overidding this method in the future may result in undefined behavior.
-
+        Override this function to modify the way to run the code.
         Args:
             code (str): the code to be executed.
             **kwargs: other keyword arguments.
@@ -1443,43 +1419,10 @@ class ConversableAgent(Agent):
             logs (str): the logs of the code execution.
             image (str or None): the docker image used for the code execution.
         """
-        # Find the config for the code executor.
-        code_executor = None
-        found_reply_func = False
-        for reply_func_tuple in self._reply_func_list:
-            if reply_func_tuple["reply_func"] == self.generate_code_execution_reply:
-                found_reply_func = True
-                code_executor = reply_func_tuple["config"]["code_executor"]
-                break
-        if found_reply_func is False or self._code_execution_config is False:
-            # This is the case when this code is running in a subclass that is
-            # not registered with a generate_code_execution_reply method or
-            # no code execution config is specified.
-            warnings.warn("Calling run_code directly will be deprecated in the future.")
-            # Just run the code with the default code executor.
-            code_executor = CodeExecutorFactory.create(kwargs)
-        elif code_executor is None:
-            # This is the case when this code is running in a subclass that is
-            # registered with a generate_code_execution_reply method, but the
-            # code executor is not specified in the config.
-            warnings.warn(
-                "Calling run_code directly or without specifying a code executor "
-                "when registering generate_code_execution_reply will be deprecated in the future."
-            )
-            # For backward compatibility, we create a code executor on the fly.
-            code_executor = CodeExecutorFactory.create(self._code_execution_config)
-        # Run the code with the specified code executor.
-        language = kwargs.get("lang", "python")
-        code_result = code_executor.execute_code(CodeBlock(code=code, language=language), **kwargs)
-        return (code_result.exit_code, code_result.output, code_result.docker_image_name)
+        return execute_code(code, **kwargs)
 
     def execute_code_blocks(self, code_blocks):
-        """(Deprecated) Execute the code blocks and return the result.
-
-        NOTE: Overriding this method in the future may result in undefined behavior.
-        To customize code execution, register a `generate_code_execution_reply`.
-        with a custom code executor created by `autogen.coding.CodeExecutorFactory`.
-        """
+        """Execute the code blocks and return the result."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block
