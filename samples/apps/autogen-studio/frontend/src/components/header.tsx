@@ -95,7 +95,7 @@ const Header = ({ meta, link }: any) => {
                     return (
                       <div
                         key={index + "linkrow"}
-                        className={`text-primary  items-center hover:text-accent   px-1 pt-1 block   text-sm font-medium `}
+                        className={`text-primary  items-center hover:text-accent  px-1 pt-1 block   text-sm font-medium `}
                       >
                         <Link
                           className="hover:text-accent h-full flex flex-col"
@@ -257,7 +257,7 @@ const Header = ({ meta, link }: any) => {
                     as="a"
                     href="#"
                     onClick={() => logout()}
-                    className="block px-4 py-2 text-base font-medium text-secondary hover:text-primary hover:bg-secondary"
+                    className="block px-4 py-2 text-base font-medium text-secondary hover:text-primary "
                   >
                     Sign out
                   </Disclosure.Button>
