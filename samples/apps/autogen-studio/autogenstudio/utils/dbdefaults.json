@@ -15,8 +15,8 @@
     {
       "model": "TheBloke/zephyr-7B-alpha-AWQ",
       "api_key": "EMPTY",
-      "base_url": "Your Model Endpoint",
-      "description": "Zephyr (local model configuration)"
+      "base_url": "http://localhost:8000/v1",
+      "description": "Local model example with vLLM server endpoint"
     }
   ],
   "agents": [
@@ -57,14 +57,8 @@
         "llm_config": {
           "config_list": [
             {
-              "model": "gpt-4-1106-preview"
-            },
-            {
-              "model": "gpt-3.5-turbo-16k"
-            },
-            {
-              "model": "TheBloke/zephyr-7B-alpha-AWQ",
-              "base_url": "http://localhost:8000/v1"
+              "model": "gpt-4-1106-preview",
+              "api_key": "sk-samplekey"
             }
           ],
           "temperature": 0.1,
@@ -124,14 +118,8 @@
           "llm_config": {
             "config_list": [
               {
-                "model": "gpt-4-1106-preview"
-              },
-              {
-                "model": "gpt-3.5-turbo-16k"
-              },
-              {
-                "model": "TheBloke/zephyr-7B-alpha-AWQ",
-                "base_url": "http://localhost:8000/v1"
+                "model": "gpt-4-1106-preview",
+                "api_key": "sk-samplekey"
               }
             ],
             "temperature": 0.1,
@@ -287,14 +275,8 @@
           "llm_config": {
             "config_list": [
               {
-                "model": "gpt-4-1106-preview"
-              },
-              {
-                "model": "gpt-3.5-turbo-16k"
-              },
-              {
-                "model": "TheBloke/zephyr-7B-alpha-AWQ",
-                "base_url": "http://localhost:8000/v1"
+                "model": "gpt-4-1106-preview",
+                "api_key": "sk-samplekey"
               }
             ],
             "temperature": 0.1,
