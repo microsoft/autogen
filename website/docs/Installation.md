@@ -185,6 +185,16 @@ Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 ```
 
+**Turn off code execution entirely**: if you want to turn off code execution entirely, set `code_execution_config` to `False`. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    llm_config=llm_config,
+    code_execution_config=False,
+)
+```
+
 ### Migration guide to v0.2
 
 openai v1 is a total rewrite of the library with many breaking changes. For example, the inference requires instantiating a client, instead of using a global class method.
