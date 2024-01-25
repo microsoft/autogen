@@ -699,20 +699,7 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-
-        # TODO: once finalized, need to revise async version as well
-        takeaway = ""
-        if "get_takeaway" in context:
-            takeaway_method = context["get_takeaway"]
-            if takeaway_method == "last_msg":
-                takeaway = self._get_chat_takeaway_from_agent(recipient)
-            elif takeaway_method == "llm_summary":
-                # TODO use LLM to summarize the chat by sending another message
-                # self.send(recipient, message="Summarize the chat" + self._oai_messages, silent=silent)
-                takeaway = "Placeholder for LLM summary"
-            elif context["takeaway"] is callable:
-                takeaway = takeaway_method(self._oai_messages)
-        return takeaway
+        return self.get_chat_takeaway(context.get("takeaway_method"), recipient)
 
     async def a_initiate_chat(
         self,
@@ -745,8 +732,9 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
+        return self.get_chat_takeaway(context.get("takeaway_method"), recipient)
 
-    def _get_chat_takeaway_from_agent(self, agent: "ConversableAgent") -> str:
+    def get_chat_takeaway(self, takeaway_method, target_agent=None) -> str:
         """Get the chat takeaway from an agent participating in a chat.
         Could be overridden by the agent to provide a custom chat takeaway.
 
@@ -756,13 +744,64 @@ class ConversableAgent(Agent):
         Returns:
             str: the chat takeaway from the agent.
         """
-        try:
-            takeaway = agent.last_message(self)["content"]
-        except (IndexError, AttributeError):
-            takeaway = ""
-            warnings.warn("No takeaway found for agent: " + agent.name, UserWarning)
-        takeaway = takeaway.replace("TERMINATE", "")
+        agent = target_agent if target_agent is not None else self
+        takeaway = ""
+        extraction_prompt = (
+            "Identify and extract the final solution to the originally asked question based on the conversation."
+        )
+        if takeaway_method == "last_msg":
+            try:
+                takeaway = agent.last_message(self)["content"]
+                takeaway = takeaway.replace("TERMINATE", "")
+            except (IndexError, AttributeError):
+                warnings.warn("No takeaway found for agent: " + agent.name, UserWarning)
+        elif takeaway_method == "llm":
+            takeaway = self._lmm_response_preparer(extraction_prompt, agent._oai_messages[self], target_agent)
+        else:
+            warnings.warn(
+                "No takeaway is extracted as takeaway method is not supported: " + takeaway_method, UserWarning
+            )
         return takeaway
+
+    def _lmm_response_preparer(self, prompt, messages, llm_agent=None):
+        """Default takeaway preparer with llm
+
+        Args:
+            prompt (str): The prompt used to extract the final response from the transcript.
+            messages (list): The messages generated as part of a chat conversation.
+        """
+
+        _messages = [
+            {
+                "role": "system",
+                "content": """Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:""",
+            }
+        ]
+        for message in messages:
+            message = copy.deepcopy(message)
+            message["role"] = "user"
+            _messages.append(message)
+
+        _messages.append(
+            {
+                "role": "system",
+                "content": prompt,
+            }
+        )
+
+        if llm_agent and llm_agent.client is not None:
+            llm_client = llm_agent.client
+        elif self.client is not None:
+            llm_client = self.client
+        else:
+            raise ValueError("No OpenAIWrapper client is found.")
+
+        response = llm_client.create(context=None, messages=_messages, cache=self.client_cache)
+        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
+        if not isinstance(extracted_response, str):
+            return str(extracted_response.model_dump(mode="dict"))
+        else:
+            return extracted_response
 
     def prompt_takeaways(self, new_message: str, takeaways: List[str] = []):
         """Prompt the user to select a takeaway from a list of takeaways.
