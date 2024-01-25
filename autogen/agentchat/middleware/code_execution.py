@@ -64,10 +64,7 @@ class CodeExecutionMiddleware:
             Union[str, Dict, None]: the reply message.
         """
         final, reply = self._generate_code_execution_reply(messages)
-        if final:
-            return reply
-        else:
-            return next(messages, sender)  # type: ignore[no-any-return, misc]
+        return reply if final else next(messages, sender)  # type: ignore[no-any-return, misc]
 
     @property
     def use_docker(self) -> Union[bool, str, None]:

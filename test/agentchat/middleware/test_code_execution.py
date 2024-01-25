@@ -1,4 +1,5 @@
 import sys
+from typing import Any, Dict, Literal, Optional, Tuple, Union
 
 import pytest
 
@@ -15,6 +16,26 @@ Done.
 """
 
 _code_message_1_expected_reply = "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n"
+
+
+_code_execution_configs = [
+    (False, False),
+    (None, {"use_docker": True}),
+    ({}, {"use_docker": True}),
+    ({"use_docker": True}, {"use_docker": True}),
+    ({"use_docker": False}, {"use_docker": False}),
+    ({"use_docker": None}, {"use_docker": True}),
+]
+
+CodeConfig = Optional[Union[Dict[str, Any], Literal[False]]]
+
+
+@pytest.mark.parametrize("param", _code_execution_configs)
+def test_use_docker(param: Tuple[CodeConfig, CodeConfig]) -> None:
+    code_execution_config, expected_code_execution_config = param
+    md = CodeExecutionMiddleware(code_execution_config=code_execution_config)
+
+    assert md._code_execution_config == expected_code_execution_config, code_execution_config
 
 
 def test_code_execution_no_docker() -> None:
