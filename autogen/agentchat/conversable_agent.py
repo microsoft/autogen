@@ -695,8 +695,7 @@ class ConversableAgent(Agent):
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
-        message = self.generate_init_message(**context)
-        self.send(message, recipient, silent=silent)
+        self.send(self.generate_init_message(**context), recipient, silent=silent)
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
