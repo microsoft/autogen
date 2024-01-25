@@ -36,17 +36,24 @@ def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
     return False, None
 
 
+def post_update_to_main(recipient, messages, sender, **kwargs):
+    update_message = f"Computing response... ({len(messages)}/)"
+    tui.insert_chat_message("info", update_message, msgid + 1)
+    return False, None
+
+
 # TODO: Experiment with CompressibleAgent instead of AssistantAgent
 assistant = AssistantAgent(
     "tinyra", system_message=tui.ASSISTANT_SYSTEM_MESSAGE, llm_config={"config_list": config_list}
 )
 
-assistant.register_reply(Agent, terminate_on_consecutive_empty, 1)
+assistant.register_reply(Agent, terminate_on_consecutive_empty, 2)
+assistant.register_reply(Agent, post_update_to_main, 1)
 
 user = UserProxyAgent(
     "user",
     code_execution_config={"work_dir": os.path.join(tui.DATA_PATH, "work_dir")},
-    human_input_mode="TERMINATE",
+    human_input_mode="NEVER",
     is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
 )
 
@@ -61,7 +68,10 @@ for msg in history:
 print("Chat history loaded with {} messages".format(len(history)))
 user.initiate_chat(assistant, message=task, clear_history=False)
 
-print("Computing final output...")
+# print("Computing final output...")
+
+tui.insert_chat_message("info", "Almost done. Computing final output...", msgid + 1)
+
 user.send(
     f"""Based on the results in above conversation, create a response for the user.
 While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
@@ -79,5 +89,4 @@ assistant.send(response, user, request_reply=False, silent=True)
 
 last_message = assistant.chat_messages[user][-1]["content"]
 
-print(tui.CHATDB)
 tui.insert_chat_message("assistant", last_message, msgid + 1)

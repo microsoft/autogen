@@ -621,7 +621,7 @@ class ReactiveAssistantMessage(Markdown):
         # self.message = fetch_row(self.msg_id)
 
     def on_mount(self) -> None:
-        self.set_interval(1, self.update_message)
+        self.set_interval(0.2, self.update_message)
 
     def update_message(self):
         self.message = fetch_row(self.msg_id)

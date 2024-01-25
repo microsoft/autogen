@@ -69,6 +69,7 @@ if [ "$mode" == "tab" ]; then
 
     # if it does not, add a new tab to the tmux session at the end
     tmux new-window -t tinyaRAtmux -n $newtab
+
     tmux select-window -t tinyaRAtmux:$newtab
      # If VIRTUAL_ENV_VALUE is not empty, export it
     if [ -n "$VIRTUAL_ENV_VALUE" ]; then
@@ -81,4 +82,7 @@ if [ "$mode" == "tab" ]; then
     fi
     CMD1+="export TERMCOLOR=truecolor && python $SCRIPTS_DIR/run_tab.py $msgid && exit"
     tmux send-keys -t tinyaRAtmux:$newtab "$CMD1" C-m
+
+    # shift focus to the main tab
+    tmux select-window -t tinyaRAtmux:0
 fi
