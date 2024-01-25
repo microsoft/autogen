@@ -92,9 +92,7 @@ def clone_scenario(scenario, base_url):
     print(f"\n\nSuccessfully cloned '{scenario}'")
     for readme in ["README.md", "README.txt", "README"]:
         if os.path.isfile(os.path.join(local_folder, readme)):
-            print(
-                f"Please read '{os.path.join(local_folder, readme)}' for more information on running this benchmark."
-            )
+            print(f"Please read '{os.path.join(local_folder, readme)}' for more information on running this benchmark.")
             break
 
 
