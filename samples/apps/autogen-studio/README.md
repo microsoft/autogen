@@ -66,6 +66,18 @@ For Windows users, to build the frontend, you may need alternative commands to b
 
 ```
 
+### Postgres setup
+
+Add the following evn varibles to use Postgres database connection, if USE_POSTGRES is not True then it will default to sqlite
+
+USE_POSTGRES=True
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DATABASE_NAME=
+POSTGRES_HOST=
+POSTGRES_PORT=
+
+
 ### Running the Application
 
 Once installed, run the web UI by entering the following in your terminal:

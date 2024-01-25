@@ -1,0 +1,55 @@
+# Basic setup
+FROM python:3.11-slim-bookworm
+
+# Update and install dependencies
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        software-properties-common sudo git npm vim nano curl\
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Setup a non-root user 'autogen' with sudo access
+RUN adduser --disabled-password --gecos '' autogen
+RUN adduser autogen sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+USER autogen
+WORKDIR /home/autogen
+
+# Set environment variable
+ENV PATH="/home/autogen/.local/bin:$PATH"
+#ENV OPENAI_API_KEY="{OpenAI-API-Key}"
+
+# Copy the Autogen studio files
+COPY LICENSE /home/autogen
+COPY samples/apps/autogen-studio /home/autogen
+# give permissions to autogen user
+RUN sudo chown -R autogen:autogen /home/autogen
+
+RUN sudo python -m pip install --upgrade pip
+RUN pip install --upgrade typing_extensions
+# Install AutoGen in editable mode with extra components
+RUN pip install -e .[test,teachable,lmm,retrievechat,mathchat,blendsearch]
+# Pre-load popular Python packages
+RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
+RUN pip install fastapi==0.103.2 uvicorn typer arxiv Annotated Doc pyautogen==0.2.0 psycopg2-binary
+
+# can use this to install psycopg2 if you dont want to use the psycopg2-binary
+# RUN apt-get update && apt-get install -y libpq-dev gcc
+
+# Setup Docusaurus and Yarn for the documentation website
+RUN sudo npm install -g gatsby-cli
+RUN sudo npm install --global yarn
+RUN pip install pydoc-markdown
+RUN cd frontend
+RUN yarn install --frozen-lockfile --ignore-engines
+
+EXPOSE 8081
+
+# Start Command AutoGen Docs (ensure that the previous CMD lines are commented and uncomment the following line if you need to start AutoGen Docs)
+COPY docker-scripts/autogenstudio-start.sh /home/autogen/autogenstudio-start.sh
+RUN sudo chmod +x /home/autogen/autogenstudio-start.sh
+
+CMD ["/home/autogen/autogenstudio-start.sh"]
+
+# cmd to build image: docker build -t autogenstudio-local_img -f Dockerfile.local .
+# cmd to run container: docker run -it -p 8081:8081 --name autogenstudio-local autogenstudio-local_img

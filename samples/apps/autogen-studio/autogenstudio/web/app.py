@@ -14,10 +14,12 @@ from ..datamodel import (
     Message,
     Session,
 )
-from ..utils import md5_hash, init_webserver_folders, DBManager, dbutils
+from ..utils import md5_hash, init_webserver_folders, dbutils_postgres as dbutils_postgres, dbutils_sqlite as dbutils_sqlite
 
 from ..chatmanager import AutoGenChatManager
 
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
@@ -48,11 +50,23 @@ app.mount("/api", api)
 app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
 api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
+use_postgres = os.environ.get("USE_POSTGRES", "False").lower() == "true"
 
-db_path = os.path.join(root_file_path, "database.sqlite")
-dbmanager = DBManager(path=db_path)  # manage database operations
+DBManager = dbutils_postgres.DBManager if use_postgres else dbutils_sqlite.DBManager
+dbutils = dbutils_postgres if use_postgres else dbutils_sqlite
+
+if (use_postgres):
+    user = os.environ.get("POSTGRES_USER", "postgres")
+    password = os.environ.get("POSTGRES_PASSWORD", "mysecretpassword")
+    dbname = os.environ.get("POSTGRES_DATABASE_NAME", "postgres")
+    host = os.environ.get("POSTGRES_HOST", "localhost")
+    port = os.environ.get("POSTGRES_PORT", "5432")
+    dbmanager = DBManager(dbname=dbname,user=user,password=password, host=host, port=port)
+else:
+    db_path = os.path.join(root_file_path, "database.sqlite")
+    dbmanager = DBManager(path=db_path)
+
 chatmanager = AutoGenChatManager()  # manage calls to autogen
-
 
 @api.post("/messages")
 async def add_message(req: ChatWebRequestModel):
