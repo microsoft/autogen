@@ -15,6 +15,12 @@ if msgid is None:
     print("Please specify a valid message id")
     exit(1)
 
+messages = tui.fetch_chat_history()
+history = messages[-10 : msgid - 1]
+task = messages[msgid - 1]["content"]
+
+len_history = len(history)
+
 config_list = config_list_from_json("OAI_CONFIG_LIST")
 
 
@@ -44,12 +50,12 @@ def summarize(text):
 
 def post_update_to_main(recipient, messages, sender, **kwargs):
     last_assistant_message = None
-    for msg in reversed(messages):
+    for msg in reversed(messages[len_history:]):
         if msg["role"] == "assistant":
             last_assistant_message = msg
             break
 
-    update_message = f"Computing response... ({len(messages)}/)"
+    update_message = "Computing response..."
     if last_assistant_message:
         summary = summarize(last_assistant_message["content"])
         update_message = f"{summary}..."
@@ -73,9 +79,7 @@ user = UserProxyAgent(
     is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
 )
 
-messages = tui.fetch_chat_history()
-history = messages[-10 : msgid - 1]
-task = messages[msgid - 1]["content"]
+
 for msg in history:
     if msg["role"] == "user":
         user.send(msg["content"], assistant, request_reply=False, silent=False)
