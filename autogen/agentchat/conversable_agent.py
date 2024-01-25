@@ -7,6 +7,10 @@ import logging
 import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+import warnings
+from autogen.coding.base import CodeExecutor
+
+from autogen.coding.factory import CodeExecutorFactory
 
 from .. import OpenAIWrapper
 from ..cache.cache import Cache
@@ -166,7 +170,25 @@ class ConversableAgent(Agent):
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
-        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+
+        # Do not register code executor if code execution is disabled.
+        if self._code_execution_config is not False:
+            if self._code_execution_config is True or (
+                isinstance(self._code_execution_config, dict) and self._code_execution_config.get("executor") is None
+            ):
+                # Legacy code executor using code_utils.
+                warnings.warn(
+                    "Using legacy code executor. Please use the new code executor "
+                    "by setting 'executor' in code_execution_config. "
+                    "For example: code_execution_config={'executor': 'commandline'}. "
+                    "The legacy code executor will be removed in the future.",
+                    DeprecationWarning,
+                )
+                self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+            else:
+                self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
+                self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
+
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
@@ -827,13 +849,64 @@ class ConversableAgent(Agent):
             None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
         )
 
+    def _generate_code_execution_reply_using_executor(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Union[Dict, Literal[False]]] = None,
+    ):
+        """Generate a reply using code executor."""
+        code_execution_config = config if config is not None else self._code_execution_config
+        if code_execution_config is False:
+            return False, None
+        if messages is None:
+            messages = self._oai_messages[sender]
+        last_n_messages = code_execution_config.get("last_n_messages", "auto")
+
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+
+        messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            # Find when the agent last spoke
+            messages_to_scan = 0
+            for i in range(len(messages)):
+                message = messages[-(i + 1)]
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    messages_to_scan += 1
+
+        # iterate through the last n messages in reverse
+        # if code blocks are found, execute the code blocks and return the output
+        # if no code blocks are found, continue
+        for i in range(min(len(messages), messages_to_scan)):
+            message = messages[-(i + 1)]
+            if not message["content"]:
+                continue
+            code_blocks = self._code_executor.extract_code_blocks(message["content"])
+            if len(code_blocks) == 1 and code_blocks[0].language == UNKNOWN:
+                continue
+
+            # found code blocks, execute code and push "last_n_messages" back
+            code_result = self._code_executor.execute_code_blocks(code_blocks)
+            exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
+            return True, f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+
+        return False, None
+
     def generate_code_execution_reply(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Union[Dict, Literal[False]]] = None,
     ):
-        """Generate a reply using code execution."""
+        """(Deprecated) Generate a reply using code execution.
+
+        NOTE: this function uses the legacy code utils and will be removed in the future.
+        """
         code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None

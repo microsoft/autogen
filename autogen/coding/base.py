@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Optional, Protocol, Tuple
+from typing import Dict, List, Optional, Protocol, Tuple, runtime_checkable
 
 from pydantic import BaseModel
 
@@ -22,9 +22,6 @@ class CodeResult(BaseModel):
 
     """The output of the code execution."""
     output: str
-
-    """The docker image name used for the code execution."""
-    docker_image_name: Optional[str]
 
 
 class CodeExecutor(Protocol):
@@ -52,19 +49,26 @@ class CodeExecutor(Protocol):
         """
         ...  # pragma: no cover
 
-    @property
-    def code_execution_config(self) -> Dict:
-        """Return the code execution config."""
-        ...  # pragma: no cover
-
-    def execute_code(self, code: CodeBlock, **kwargs) -> CodeResult:
-        """Execute code and return the result.
+    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+        """Extract code blocks from a message.
 
         This method should be implemented by the code executor.
 
         Args:
-            code (CodeBlock): The code to execute.
-            **kwargs: Other arguments.
+            message (str): The message to extract code blocks from.
+
+        Returns:
+            List[CodeBlock]: The extracted code blocks.
+        """
+        ...  # pragma: no cover
+
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        """Execute code blocks and return the result.
+
+        This method should be implemented by the code executor.
+
+        Args:
+            code_blocks (List[CodeBlock]): The code blocks to execute.
 
         Returns:
             CodeResult: The result of the code execution.

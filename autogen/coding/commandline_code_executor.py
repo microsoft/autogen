@@ -1,5 +1,8 @@
 from __future__ import annotations
-from typing import Dict, Tuple
+from typing import Dict, List, Optional, Tuple, Union
+import warnings
+
+from pydantic import BaseModel, Field
 
 from autogen.coding.base import CodeBlock, CodeResult
 
@@ -11,10 +14,10 @@ except ImportError:
         return x
 
 
-from autogen.code_utils import execute_code
+from autogen.code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code, extract_code, infer_lang
 
 
-class CommandlineCodeExecutor:
+class CommandlineCodeExecutor(BaseModel):
     """A code executor class that executes code through command line without persisting
     any state in memory between executions.
 
@@ -41,36 +44,95 @@ If you want the user to save the code in a file before executing it, put # filen
             """Add this capability to an agent."""
             agent.update_system_message(agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE)
 
-    def __init__(self, code_execution_config: Dict):
-        self._code_execution_config = code_execution_config.copy()
+    timeout: Optional[int] = Field(default=DEFAULT_TIMEOUT, ge=1)
+    filename: Optional[str] = None
+    work_dir: Optional[str] = Field(default=WORKING_DIR)
+    use_docker: Optional[Union[List[str], str, bool]] = None
+    docker_image_name: Optional[str] = None
+
+    def _get_use_docker_for_code_utils(self):
+        if self.use_docker is False:
+            return False
+        if self.docker_image_name is not None:
+            # Docker image name is set, use it.
+            return self.docker_image_name
+        # Docker image name has not being set, use the default.
+        return self.use_docker
 
     @property
     def user_capability(self) -> CommandlineCodeExecutor.UserCapability:
         """Export a user capability that can be added to an agent."""
         return CommandlineCodeExecutor.UserCapability()
 
-    @property
-    def code_execution_config(self) -> Dict:
-        """Return the code execution config."""
-        return self._code_execution_config
+    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+        """Extract code blocks from a message.
 
-    def execute_code(self, code_block: CodeBlock, **kwargs) -> CodeResult:
-        """Execute code and return the result."""
-        args = self._code_execution_config.copy()
-        args.update(kwargs)
-        # Remove arguments not in execute_code.
-        for key in list(args.keys()):
-            if key not in execute_code.__code__.co_varnames:
-                args.pop(key)
-        # Remove lang argument as we are getting it from code_block.
-        args.pop("lang", None)
-        # Execute code and obtain a docker image name if created.
-        exit_code, output, docker_image_name = execute_code(code_block.code, lang=code_block.language, **args)
-        if docker_image_name is not None:
-            self._code_execution_config["use_docker"] = docker_image_name
-        return CodeResult(exit_code=exit_code, output=output, docker_image_name=docker_image_name)
+        This method should be implemented by the code executor.
+
+        Args:
+            message: The message to extract code blocks from.
+
+        Returns:
+            A list of code blocks.
+        """
+        code_blocks = []
+        for lang, code in extract_code(message):
+            if not lang:
+                lang = infer_lang(code)
+            code_blocks.append(CodeBlock(code=code, language=lang))
+        return code_blocks
+
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        """Execute the code blocks and return the result."""
+        logs_all = ""
+        for i, code_block in enumerate(code_blocks):
+            lang, code = code_block.language, code_block.code
+            print(
+                colored(
+                    f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
+                    "red",
+                ),
+                flush=True,
+            )
+            if lang in ["bash", "shell", "sh"]:
+                exitcode, logs, image = execute_code(
+                    code=code,
+                    lang=lang,
+                    timeout=self.timeout,
+                    work_dir=self.work_dir,
+                    filename=self.filename,
+                    use_docker=self._get_use_docker_for_code_utils(),
+                )
+            elif lang in ["python", "Python"]:
+                if code.startswith("# filename: "):
+                    filename = code[11 : code.find("\n")].strip()
+                else:
+                    filename = None
+                exitcode, logs, image = execute_code(
+                    code,
+                    lang="python",
+                    filename=filename,
+                    timeout=self.timeout,
+                    work_dir=self.work_dir,
+                    use_docker=self._get_use_docker_for_code_utils(),
+                )
+            else:
+                # In case the language is not supported, we return an error message.
+                exitcode, logs, image = (
+                    1,
+                    f"unknown language {lang}",
+                    None,
+                )
+                # raise NotImplementedError
+            if image is not None:
+                # Update the image to use for the next execution.
+                self.docker_image_name = image
+            logs_all += "\n" + logs
+            if exitcode != 0:
+                break
+        return CodeResult(exit_code=exitcode, output=logs_all)
 
     def reset(self) -> None:
         """Reset the code executor."""
         # Reset the image to None so that the next execution will use a new image.
-        self._code_execution_config["use_docker"] = None
+        self.docker_image_name = None
