@@ -10,42 +10,38 @@ SCRIPT_NAME = os.path.basename(SCRIPT_PATH)
 SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 # Where are the manifests located?
-BRANCH = "autogenbench"
-URL_PREFIX = f"https://raw.githubusercontent.com/microsoft/autogen/{BRANCH}/"
-SCENARIOS = {
-    "Examples": "samples/tools/autogenbench/scenarios/Examples/MANIFEST.json",
-    "HumanEval": "samples/tools/autogenbench/scenarios/HumanEval/MANIFEST.json",
-    "GAIA": "samples/tools/autogenbench/scenarios/GAIA/MANIFEST.json",
-    "AutoGPT": "samples/tools/autogenbench/scenarios/AutoGPT/MANIFEST.json",
-    "MATH": "samples/tools/autogenbench/scenarios/MATH/MANIFEST.json",
-}
+DEFAULT_BRANCH = "autogenbench"
+DEFAULT_BASE_URL = "https://raw.githubusercontent.com/microsoft/autogen/"
 
 
-def get_scenarios():
-    """
-    Return a list of scenarios.
-    """
-    return SCENARIOS.keys()
-
-
-def _expand_url(url_fragment):
+def _expand_url(url_fragment, base_url):
     """
     If the url is a relative path, append the URL_PREFIX, otherwise return it whole.
     """
     if url_fragment.startswith("http://") or url_fragment.startswith("https://"):
         return url_fragment
     else:
-        return URL_PREFIX + url_fragment
+        return base_url + url_fragment
 
 
-def clone_scenario(scenario):
+def get_scenarios(base_url):
+    """
+    Return a list of scenarios.
+    """
+    response = requests.get(_expand_url("MANIFEST.json"), stream=False)
+    response.raise_for_status()
+    manifest = json.loads(response.text)
+    return manifest["manifests"]
+
+
+def clone_scenario(scenario, base_url):
     if scenario not in get_scenarios():
         raise ValueError(f"No such scenario '{scenario}'.")
 
     # Download the manifest
     print("Fetching manifest...")
     manifest = None
-    response = requests.get(_expand_url(SCENARIOS[scenario]), stream=False)
+    response = requests.get(_expand_url(get_scenarios()[scenario]), stream=False)
     response.raise_for_status()
     manifest = json.loads(response.text)
 
@@ -80,7 +76,9 @@ def clone_scenario(scenario):
     print(f"\n\nSuccessfully cloned '{scenario}'")
     for readme in ["README.md", "README.txt", "README"]:
         if os.path.isfile(os.path.join(scenario, readme)):
-            print(f"Please read '{os.path.join(scenario, readme)}' for more information on running this benchmark.")
+            print(
+                f"Please read '{os.path.join(scenario, readme)}' for more information on running this benchmark."
+            )
             break
 
 
@@ -108,10 +106,13 @@ def clone_cli(args):
 
     parsed_args = parser.parse_args(args)
 
+    # Generate the base_url
+    base_url = DEFAULT_BASE_URL + DEFAULT_BRANCH + "/"
+
     # Check if we are just printing a list
     if parsed_args.list:
         print("The following scenarios / benchmarks are available:\n")
-        for s in get_scenarios():
+        for s in get_scenarios(base_url):
             print(f"  {s}")
         print()
         return 0
@@ -120,6 +121,6 @@ def clone_cli(args):
         parser.error("the following arguments are required: scenario")
 
     try:
-        clone_scenario(parsed_args.scenario)
+        clone_scenario(parsed_args.scenario, base_url)
     except ValueError as e:
         parser.error(str(e) + "\nUse '--list' to see a list of available scenarios.")

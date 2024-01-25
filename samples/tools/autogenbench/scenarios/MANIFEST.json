@@ -1,0 +1,9 @@
+{
+    "manifests": {
+        "Examples": "Examples/MANIFEST.json",
+        "HumanEval": "HumanEval/MANIFEST.json",
+        "GAIA": "GAIA/MANIFEST.json",
+        "AutoGPT": "AutoGPT/MANIFEST.json",
+        "MATH": "MATH/MANIFEST.json"
+    }
+}
