@@ -8,13 +8,7 @@ import chromadb
 from chromadb.config import Settings
 import pickle
 
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.tty_utils import colored
 
 
 class Teachability(AgentCapability):

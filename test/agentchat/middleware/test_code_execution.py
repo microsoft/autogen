@@ -1,10 +1,9 @@
 import sys
+
 import pytest
+
 from autogen.agentchat.middleware.code_execution import CodeExecutionMiddleware
-from autogen.code_utils import (
-    is_docker_running,
-    in_docker_container,
-)
+from autogen.code_utils import in_docker_container, is_docker_running
 
 _code_message_1 = """Execute the following Python code:
 

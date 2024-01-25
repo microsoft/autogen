@@ -81,7 +81,7 @@ def content_str(content: Union[str, List, None]) -> str:
     return rst
 
 
-def infer_lang(code):
+def infer_lang(code: str) -> str:
     """infer the language for the code.
     TODO: make it robust.
     """
@@ -226,7 +226,7 @@ def _cmd(lang):
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
-def is_docker_running():
+def is_docker_running() -> bool:
     """Check if docker is running.
 
     Returns:
@@ -242,7 +242,7 @@ def is_docker_running():
         return False
 
 
-def in_docker_container():
+def in_docker_container() -> bool:
     """Check if the code is running in a docker container.
 
     Returns:

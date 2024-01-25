@@ -1,20 +1,13 @@
+import os
+import sys
+
+from autogen.tty_utils import colored
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.capabilities.teachability import Teachability
 from autogen import ConversableAgent
 
-import os
-import sys
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
-
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
 
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.

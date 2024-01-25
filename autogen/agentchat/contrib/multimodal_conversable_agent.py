@@ -4,13 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
 from autogen.agentchat.contrib.img_utils import gpt4v_formatter
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.tty_utils import colored
 
 
 from autogen.code_utils import content_str

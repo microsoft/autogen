@@ -1,16 +1,17 @@
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import pytest
+
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.middleware.message_store import MessageStoreMiddleware
 
 
 def _dummy_reply(
-    message: Union[Dict, str],
+    message: Union[Dict[str, Any], str],
     sender: Agent,
     request_reply: Optional[bool] = None,
     silent: Optional[bool] = False,
-) -> str:
+) -> Union[str, Dict[str, str]]:
     """Generate a dummy reply."""
     if isinstance(message, str):
         return "Hello World"
@@ -19,11 +20,11 @@ def _dummy_reply(
 
 
 async def _dummy_reply_async(
-    message: Union[Dict, str],
+    message: Union[Dict[str, Any], str],
     sender: Agent,
     request_reply: Optional[bool] = None,
     silent: Optional[bool] = False,
-) -> str:
+) -> Union[str, Dict[str, str]]:
     """Generate a dummy reply."""
     return _dummy_reply(message, sender, request_reply, silent)
 

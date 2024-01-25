@@ -1,9 +1,10 @@
 import json
 from typing import Any, Callable, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock
-import pytest
-from autogen.agentchat.agent import Agent
 
+import pytest
+
+from autogen.agentchat.agent import Agent
 from autogen.agentchat.middleware.tool_use import ToolUseMiddleware
 
 
@@ -302,7 +303,7 @@ def test_tool_use_missing_functions_sync(is_function_async: bool) -> None:
         }
         if is_function_async
         else {
-            "_tool_func_1": _tool_func_1,  # type: ignore [dict-item]
+            "_tool_func_1": _tool_func_1,
         }
     )
     messages = [_tool_use_message_1]
@@ -319,7 +320,7 @@ async def test_tool_use_missing_functions_async(is_function_async: bool) -> None
         }
         if is_function_async
         else {
-            "_tool_func_1": _tool_func_1,  # type: ignore [dict-item]
+            "_tool_func_1": _tool_func_1,
         }
     )
     messages = [_tool_use_message_1]

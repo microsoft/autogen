@@ -13,13 +13,7 @@ from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.img_utils import get_image_data, llava_formatter
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.tty_utils import colored
 
 
 logger = logging.getLogger(__name__)

@@ -1,16 +1,17 @@
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.middleware.termination import TerminationAndHumanReplyMiddleware
 
 
 def _dummpy_reply(
-    message: Union[Dict, str],
+    message: Union[Dict[str, Any], str],
     sender: Agent,
     silent: Optional[bool] = False,
-) -> str:
+) -> Union[str, Dict[str, str]]:
     """Generate a dummy reply."""
     if isinstance(message, str):
         return "Hello World"
@@ -19,10 +20,10 @@ def _dummpy_reply(
 
 
 async def _dummpy_reply_async(
-    message: Union[Dict, str],
+    message: Union[Dict[str, Any], str],
     sender: Agent,
     silent: Optional[bool] = False,
-) -> str:
+) -> Union[str, Dict[str, str]]:
     """Generate a dummy reply."""
     return _dummpy_reply(message, sender, silent)
 
@@ -64,7 +65,7 @@ async def test_termination_termination_msg_async() -> None:
     "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input",
     return_value="I am a human.",
 )
-def test_human_input(mock_human_input) -> None:
+def test_human_input(mock_human_input: MagicMock) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="ALWAYS")
     sender = Agent("User")
@@ -78,7 +79,7 @@ def test_human_input(mock_human_input) -> None:
     "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input",
     return_value="I am a human.",
 )
-async def test_human_input_async(mock_human_input) -> None:
+async def test_human_input_async(mock_human_input: MagicMock) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="ALWAYS")
     sender = Agent("User")
@@ -91,7 +92,7 @@ async def test_human_input_async(mock_human_input) -> None:
     "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._get_human_input",
     return_value="I am a human.",
 )
-def test_human_input_termination(mock_human_input) -> None:
+def test_human_input_termination(mock_human_input: MagicMock) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="TERIMATION")
     sender = Agent("User")
@@ -105,7 +106,7 @@ def test_human_input_termination(mock_human_input) -> None:
     "autogen.agentchat.middleware.termination.TerminationAndHumanReplyMiddleware._a_get_human_input",
     return_value="I am a human.",
 )
-async def test_human_input_termination_async(mock_human_input) -> None:
+async def test_human_input_termination_async(mock_human_input: MagicMock) -> None:
     # Test default termination message.
     md = TerminationAndHumanReplyMiddleware(human_input_mode="TERIMATION")
     sender = Agent("User")

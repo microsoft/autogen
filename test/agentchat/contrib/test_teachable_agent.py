@@ -2,6 +2,7 @@ import pytest
 import os
 import sys
 from autogen import ConversableAgent, config_list_from_json
+from autogen.tty_utils import colored
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import skip_openai  # noqa: E402
@@ -16,13 +17,6 @@ except ImportError:
     skip = True
 else:
     skip = False or skip_openai
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
 
 
 # Specify the model to use by uncommenting one of the following lines.

@@ -20,14 +20,6 @@ from ..cache.cache import Cache
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
 __all__ = ("ConversableAgent",)
 
 logger = logging.getLogger(__name__)

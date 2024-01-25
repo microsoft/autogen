@@ -1,18 +1,10 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, Optional, Union
-from autogen.code_utils import content_str
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Union
 
-from autogen.oai.client import OpenAIWrapper
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
-from autogen.agentchat.agent import Agent
+from ...code_utils import content_str
+from ...oai.client import OpenAIWrapper
+from ...tty_utils import colored
+from ..agent import Agent
 
 
 class MessageStoreMiddleware:
@@ -23,17 +15,17 @@ class MessageStoreMiddleware:
 
     def __init__(self, name: str, allow_format_str_template: bool = False) -> None:
         self._name = name
-        self._oai_messages = defaultdict(list)
+        self._oai_messages: DefaultDict[Agent, List[Dict[str, Optional[str]]]] = defaultdict(list)
         self._allow_format_str_template = allow_format_str_template
 
     def call(
         self,
-        message: Union[Dict, str],
+        message: Union[Dict[str, Any], str],
         sender: Agent,
         request_reply: Optional[bool] = None,
-        silent: Optional[bool] = False,
+        silent: bool = False,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
         Args:
@@ -48,20 +40,20 @@ class MessageStoreMiddleware:
         """
         self._process_incoming_message(message, sender, silent)
         if request_reply is False:
-            return
-        reply = next(message=message, sender=sender, request_reply=request_reply, silent=silent)
+            return None
+        reply = next(message=message, sender=sender, request_reply=request_reply, silent=silent)  # type: ignore[misc]
         if reply is not None:
             self._process_outgoing_message(reply, sender, silent)
-        return reply
+        return reply  # type: ignore[no-any-return]
 
     async def a_call(
         self,
-        message: Union[Dict, str],
+        message: Union[Dict[str, Any], str],
         sender: Agent,
         request_reply: Optional[bool] = None,
-        silent: Optional[bool] = False,
+        silent: bool = False,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware asynchronously.
 
         Args:
@@ -77,14 +69,14 @@ class MessageStoreMiddleware:
         """
         self._process_incoming_message(message, sender, silent)
         if request_reply is False:
-            return
-        reply = await next(message=message, sender=sender, request_reply=request_reply, silent=silent)
+            return None
+        reply = await next(message=message, sender=sender, request_reply=request_reply, silent=silent)  # type: ignore[misc]
         if reply is not None:
             self._process_outgoing_message(reply, sender, silent)
-        return reply
+        return reply  # type: ignore[no-any-return]
 
     @property
-    def oai_messages(self) -> Dict[Agent, list]:
+    def oai_messages(self) -> DefaultDict[Agent, List[Dict[str, Optional[str]]]]:
         """The messages stored in the middleware.
 
         Returns:
@@ -92,7 +84,7 @@ class MessageStoreMiddleware:
         """
         return self._oai_messages
 
-    def clear_history(self, agent: Optional[Agent] = None):
+    def clear_history(self, agent: Optional[Agent] = None) -> None:
         """Clear the chat history of the agent.
 
         Args:
@@ -103,7 +95,7 @@ class MessageStoreMiddleware:
         else:
             self._oai_messages[agent].clear()
 
-    def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
+    def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict[str, Optional[str]]]:
         """The last message exchanged with the agent.
 
         Args:
@@ -128,7 +120,7 @@ class MessageStoreMiddleware:
             )
         return self._oai_messages[agent][-1]
 
-    def _process_incoming_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
+    def _process_incoming_message(self, message: Union[Dict[str, Any], str], sender: Agent, silent: bool) -> None:
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if not valid:
@@ -138,14 +130,14 @@ class MessageStoreMiddleware:
         if not silent:
             self._print_received_message(message, sender)
 
-    def _process_outgoing_message(self, message: Union[Dict, str], recipient: Agent, silent: bool):
+    def _process_outgoing_message(self, message: Union[Dict[str, Any], str], recipient: Agent, silent: bool) -> None:
         valid = self._append_oai_message(message, "assistant", recipient)
         if not valid:
             raise ValueError(
                 "Reply message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
-    def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
+    def _append_oai_message(self, message: Union[Dict[str, Any], str], role: str, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
         If the message received is a string, it will be put in the "content" field of the new dictionary.
@@ -185,7 +177,7 @@ class MessageStoreMiddleware:
         return True
 
     @staticmethod
-    def _message_to_dict(message: Union[Dict, str]) -> Dict:
+    def _message_to_dict(message: Union[Dict[str, Any], str]) -> Dict[str, Optional[str]]:
         """Convert a message to a dictionary.
 
         The message can be a string or a dictionary. The string will be put in
@@ -198,13 +190,13 @@ class MessageStoreMiddleware:
         else:
             return dict(message)
 
-    def _print_received_message(self, message: Union[Dict, str], sender: Agent):
+    def _print_received_message(self, message: Union[Dict[str, Any], str], sender: Agent) -> None:
         # print the message received
         print(colored(sender.name, "yellow"), "(to", f"{self._name}):\n", flush=True)
         message = self._message_to_dict(message)
 
         if message.get("tool_responses"):  # Handle tool multi-call responses
-            for tool_response in message["tool_responses"]:
+            for tool_response in message["tool_responses"]:  # type: ignore[union-attr]
                 self._print_received_message(tool_response, sender)
             if message.get("role") == "tool":
                 return  # If role is tool, then content is just a concatenation of all tool_responses
@@ -223,10 +215,10 @@ class MessageStoreMiddleware:
             content = message.get("content")
             if content is not None:
                 if "context" in message:
-                    content = OpenAIWrapper.instantiate(content, message["context"], self._allow_format_str_template)
+                    content = OpenAIWrapper.instantiate(content, message["context"], self._allow_format_str_template)  # type: ignore[arg-type]
                 print(content_str(content), flush=True)
             if "function_call" in message and message["function_call"]:
-                function_call = dict(message["function_call"])
+                function_call: Dict[str, Any] = dict(message["function_call"])  # type: ignore[arg-type]
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
                 )
@@ -240,8 +232,8 @@ class MessageStoreMiddleware:
                 print(colored("*" * len(func_print), "green"), flush=True)
             if "tool_calls" in message and message["tool_calls"]:
                 for tool_call in message["tool_calls"]:
-                    id = tool_call.get("id", "(No id found)")
-                    function_call = dict(tool_call.get("function", {}))
+                    id = tool_call.get("id", "(No id found)")  # type: ignore[attr-defined]
+                    function_call = dict(tool_call.get("function", {}))  # type: ignore[attr-defined]
                     func_print = f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
                     print(colored(func_print, "green"), flush=True)
                     print(

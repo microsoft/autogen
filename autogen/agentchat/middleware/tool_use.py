@@ -4,15 +4,9 @@ import json
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
-try:
-    from termcolor import colored
-except ImportError:  # pragma: no cover
-
-    def colored(text: Any, *args: Any, **kwargs: Any) -> str:  # type: ignore[misc]
-        return str(text)
-
-
 from autogen.agentchat.agent import Agent
+
+from ...tty_utils import colored
 
 
 class ToolUseMiddleware:

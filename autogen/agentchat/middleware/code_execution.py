@@ -1,16 +1,6 @@
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
-from autogen.agentchat.agent import Agent
-
-from autogen.code_utils import (
+from ...code_utils import (
     UNKNOWN,
     check_can_use_docker_or_throw,
     decide_use_docker,
@@ -18,6 +8,8 @@ from autogen.code_utils import (
     extract_code,
     infer_lang,
 )
+from ...tty_utils import colored
+from ..agent import Agent
 
 
 class CodeExecutionMiddleware:
@@ -44,9 +36,9 @@ class CodeExecutionMiddleware:
 
     def __init__(
         self,
-        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        code_execution_config: Optional[Union[Dict[str, Any], Literal[False]]] = None,
     ):
-        self._code_execution_config: Union[Dict, Literal[False]] = (
+        self._code_execution_config: Union[Dict[str, Any], Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
         )
         if isinstance(self._code_execution_config, dict):
@@ -57,10 +49,10 @@ class CodeExecutionMiddleware:
 
     def call(
         self,
-        messages: List[Dict],
+        messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
         Args:
@@ -75,7 +67,7 @@ class CodeExecutionMiddleware:
         if final:
             return reply
         else:
-            return next(messages, sender)
+            return next(messages, sender)  # type: ignore[no-any-return, misc]
 
     @property
     def use_docker(self) -> Union[bool, str, None]:
@@ -85,7 +77,7 @@ class CodeExecutionMiddleware:
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
     def _generate_code_execution_reply(
-        self, messages: List[Dict], config: Optional[Union[Dict, Literal[False]]] = None
+        self, messages: List[Dict[str, Any]], config: Optional[Union[Dict[str, Any], Literal[False]]] = None
     ) -> Tuple[bool, Optional[str]]:
         """Generate a reply using code execution."""
 
@@ -134,7 +126,7 @@ class CodeExecutionMiddleware:
 
         return False, None
 
-    def _execute_code_blocks(self, code_blocks):
+    def _execute_code_blocks(self, code_blocks: List[Tuple[str, str]]) -> Tuple[int, str]:
         """Execute the code blocks and return the result."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
@@ -149,13 +141,13 @@ class CodeExecutionMiddleware:
                 flush=True,
             )
             if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = self._run_code(code, lang=lang, **self._code_execution_config)
+                exitcode, logs, image = self._run_code(code, lang=lang, **self._code_execution_config)  # type: ignore[arg-type]
             elif lang in ["python", "Python"]:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
                     filename = None
-                exitcode, logs, image = self._run_code(
+                exitcode, logs, image = self._run_code(  # type: ignore[arg-type]
                     code,
                     lang="python",
                     filename=filename,
@@ -170,13 +162,13 @@ class CodeExecutionMiddleware:
                 )
                 # raise NotImplementedError
             if image is not None:
-                self._code_execution_config["use_docker"] = image
+                self._code_execution_config["use_docker"] = image  # type: ignore[index]
             logs_all += "\n" + logs
             if exitcode != 0:
                 return exitcode, logs_all
         return exitcode, logs_all
 
-    def _run_code(self, code, **kwargs):
+    def _run_code(self, code: Optional[str], **kwargs: Any) -> Tuple[int, str, Optional[str]]:
         """Run the code and return the result.
 
         Override this function to modify the way to run the code.

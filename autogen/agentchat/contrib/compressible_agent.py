@@ -7,12 +7,7 @@ import logging
 import inspect
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from ...tty_utils import colored
 
 
 logger = logging.getLogger(__name__)

@@ -14,12 +14,7 @@ from autogen import logger
 from typing import Callable, Dict, Optional, Union, List, Tuple, Any
 from IPython import get_ipython
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.tty_utils import colored
 
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the

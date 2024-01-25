@@ -1,7 +1,10 @@
+from typing import Any, Dict
+
 import pytest
+from conftest import skip_openai
+
 import autogen
 from autogen.agentchat.middleware.llm import LLMMiddleware
-from conftest import skip_openai
 
 try:
     import openai
@@ -78,7 +81,7 @@ def test_llm() -> None:
     }
     mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     messages = [{"role": "user", "content": "1+1="}]
-    reply = mw.call(messages=messages)
+    reply: Dict[str, Any] = mw.call(messages=messages)  # type: ignore[assignment]
     assert "2" in reply
 
 
@@ -96,7 +99,7 @@ async def test_llm_async() -> None:
     }
     mw = LLMMiddleware(name="assistant", llm_config=llm_config, system_message="You are a helpful assistant.")
     messages = [{"role": "user", "content": "1+1="}]
-    reply = await mw.a_call(messages=messages)
+    reply: Dict[str, Any] = await mw.a_call(messages=messages)  # type: ignore[assignment]
     assert "2" in reply
 
 
@@ -116,11 +119,11 @@ def test_llm_tool_calls() -> None:
         mw.update_tool_signature(tool, is_remove=None)
 
     messages = [{"role": "user", "content": "What's the current weather in New York?"}]
-    reply = mw.call(messages=messages)
+    reply: Dict[str, Any] = mw.call(messages=messages)  # type: ignore[assignment]
     assert reply["tool_calls"][0]["function"]["name"] == "get_current_weather"
 
     messages = [{"role": "user", "content": "What's the weather in New York for the next 5 days?"}]
-    reply = mw.call(messages=messages)
+    reply = mw.call(messages=messages)  # type: ignore[assignment]
     function_names = [tool["function"]["name"] for tool in reply["tool_calls"]]
     assert "get_n_day_weather_forecast" in function_names
 
@@ -143,6 +146,6 @@ def test_llm_tool_calls_parallel() -> None:
     messages = [{"role": "user", "content": "What's the current weather in New York and San Francisco?"}]
     reply = mw.call(messages=messages)
     print(reply)
-    assert len(reply["tool_calls"]) == 2
-    assert reply["tool_calls"][0]["function"]["name"] == "get_current_weather"
-    assert reply["tool_calls"][1]["function"]["name"] == "get_current_weather"
+    assert len(reply["tool_calls"]) == 2  # type: ignore[index]
+    assert reply["tool_calls"][0]["function"]["name"] == "get_current_weather"  # type: ignore[index]
+    assert reply["tool_calls"][1]["function"]["name"] == "get_current_weather"  # type: ignore[index]

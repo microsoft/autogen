@@ -1,7 +1,6 @@
 from functools import wraps
 from typing import Any, Dict, List, Optional, Protocol
 
-
 __all__ = ["Middleware"]
 
 

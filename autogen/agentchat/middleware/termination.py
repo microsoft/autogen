@@ -1,16 +1,9 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
-from autogen.agentchat.agent import Agent
-from autogen.code_utils import content_str
+from ...code_utils import content_str
+from ...tty_utils import colored
+from ..agent import Agent
 
 
 class TerminationAndHumanReplyMiddleware:
@@ -40,51 +33,56 @@ class TerminationAndHumanReplyMiddleware:
 
     def __init__(
         self,
-        is_termination_msg: Callable[[str], bool] = None,
+        is_termination_msg: Optional[Callable[[Dict[str, Any]], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
     ):
-        self._is_termination_msg = (
-            is_termination_msg
-            if is_termination_msg is not None
-            else (lambda x: content_str(x.get("content")) == "TERMINATE")
+        def _default_is_termination_msg(message: Dict[str, Any]) -> bool:
+            return content_str(message.get("content")) == "TERMINATE"
+
+        self._is_termination_msg: Callable[[Dict[str, Any]], bool] = (
+            is_termination_msg if is_termination_msg is not None else _default_is_termination_msg
         )
         self._human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
         )
-        self._consecutive_auto_reply_counter = defaultdict(int)
-        self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
+        self._consecutive_auto_reply_counter: DefaultDict[Optional[Agent], int] = defaultdict(int)
+        self._max_consecutive_auto_reply_dict: DefaultDict[Optional[Agent], int] = defaultdict(
+            self.max_consecutive_auto_reply
+        )
 
     def call(
         self,
-        messages: Optional[List[Dict]] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
-        message = messages[-1]
-        final, reply = self._check_termination_and_human_reply(message, sender)
-        if final:
-            return reply
-        return next(messages, sender)
+    ) -> Optional[Union[str, Dict[str, Any]]]:
+        if messages is not None:
+            message = messages[-1]
+            final, reply = self._check_termination_and_human_reply(message, sender)
+            if final:
+                return reply
+        return next(messages, sender)  # type: ignore [no-any-return, misc]
 
     async def a_call(
         self,
-        messages: Optional[List[Dict]] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
-        message = messages[-1]
-        final, reply = await self._a_check_termination_and_human_reply(message, sender)
-        if final:
-            return reply
-        return await next(messages, sender)
+    ) -> Optional[Union[str, Dict[str, Any]]]:
+        if messages is not None:
+            message = messages[-1]
+            final, reply = await self._a_check_termination_and_human_reply(message, sender)
+            if final:
+                return reply
+        return await next(messages, sender)  # type: ignore [no-any-return, misc]
 
     def max_consecutive_auto_reply(self, sender: Optional[Agent] = None) -> int:
         """The maximum number of consecutive auto replies."""
         return self._max_consecutive_auto_reply if sender is None else self._max_consecutive_auto_reply_dict[sender]
 
-    def update_max_consecutive_auto_reply(self, value: int, sender: Optional[Agent] = None):
+    def update_max_consecutive_auto_reply(self, value: int, sender: Optional[Agent] = None) -> None:
         """Update the maximum number of consecutive auto replies.
 
         Args:
@@ -98,7 +96,7 @@ class TerminationAndHumanReplyMiddleware:
         else:
             self._max_consecutive_auto_reply_dict[sender] = value
 
-    def reset_consecutive_auto_reply_counter(self, sender: Optional[Agent] = None):
+    def reset_consecutive_auto_reply_counter(self, sender: Optional[Agent] = None) -> None:
         """Reset the consecutive_auto_reply_counter of the sender."""
         if sender is None:
             self._consecutive_auto_reply_counter.clear()
@@ -107,9 +105,9 @@ class TerminationAndHumanReplyMiddleware:
 
     def _check_termination_and_human_reply(
         self,
-        message: Dict,
+        message: Dict[str, Any],
         sender: Optional[Agent] = None,
-    ) -> Tuple[bool, Union[str, None]]:
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """Check if the conversation should be terminated, and if human reply is provided.
 
         This method checks for conditions that require the conversation to be terminated, such as reaching
@@ -131,7 +129,7 @@ class TerminationAndHumanReplyMiddleware:
         no_human_input_msg = ""
         if self._human_input_mode == "ALWAYS":
             reply = self._get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "  # type: ignore [union-attr]
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -144,9 +142,9 @@ class TerminationAndHumanReplyMiddleware:
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = self._get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -157,7 +155,7 @@ class TerminationAndHumanReplyMiddleware:
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self._get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -196,7 +194,7 @@ class TerminationAndHumanReplyMiddleware:
                     ]
                 )
 
-            response = {"role": "user", "content": reply}
+            response: Dict[str, Any] = {"role": "user", "content": reply}
             if tool_returns:
                 response["tool_responses"] = tool_returns
 
@@ -211,9 +209,9 @@ class TerminationAndHumanReplyMiddleware:
 
     async def _a_check_termination_and_human_reply(
         self,
-        message: Dict,
+        message: Dict[str, Any],
         sender: Optional[Agent] = None,
-    ) -> Tuple[bool, Union[str, None]]:
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """(async) Check if the conversation should be terminated, and if human reply is provided.
 
         This method checks for conditions that require the conversation to be terminated, such as reaching
@@ -235,7 +233,7 @@ class TerminationAndHumanReplyMiddleware:
         no_human_input_msg = ""
         if self._human_input_mode == "ALWAYS":
             reply = await self._a_get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "  # type: ignore [union-attr]
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -248,9 +246,9 @@ class TerminationAndHumanReplyMiddleware:
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = await self._a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -261,7 +259,7 @@ class TerminationAndHumanReplyMiddleware:
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = await self._a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "  # type: ignore [union-attr]
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -300,7 +298,7 @@ class TerminationAndHumanReplyMiddleware:
                     ]
                 )
 
-            response = {"role": "user", "content": reply}
+            response: Dict[str, Any] = {"role": "user", "content": reply}
             if tool_returns:
                 response["tool_responses"] = tool_returns
 

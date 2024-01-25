@@ -2,9 +2,10 @@ import asyncio
 import functools
 import logging
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from autogen.agentchat.agent import Agent
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
 from autogen._pydantic import model_dump
+from autogen.agentchat.agent import Agent
 from autogen.cache.cache import Cache
 from autogen.oai.client import OpenAIWrapper
 
@@ -25,12 +26,12 @@ class LLMMiddleware:
     def __init__(
         self,
         name: str,
-        llm_config: Optional[Union[Dict[str, Any], bool]],
-        system_message: Union[str, List] = "You are a helpful AI Assistant.",
+        llm_config: Optional[Union[Dict[str, Any], Literal[False]]],
+        system_message: Union[str, List[Dict[str, str]]] = "You are a helpful AI Assistant.",
         cache: Optional[Cache] = None,
     ) -> None:
         if isinstance(system_message, str):
-            self._oai_system_messages = [{"content": system_message, "role": "system"}]
+            self._oai_system_messages: List[Dict[str, str]] = [{"content": system_message, "role": "system"}]
         elif isinstance(system_message, list):
             self._oai_system_messages = system_message
         else:
@@ -41,15 +42,15 @@ class LLMMiddleware:
             raise ValueError(f"llm_config must be a dict or bool, but got {llm_config}")
         self._name = name
         self._llm_config = llm_config
-        self._client = OpenAIWrapper(**self._llm_config) if llm_config else None
+        self._client = OpenAIWrapper(**self._llm_config) if llm_config else None  # type: ignore[arg-type]
         self._client_cache = cache
 
     @property
-    def system_messages(self) -> List[Dict]:
+    def system_messages(self) -> List[Dict[str, str]]:
         return self._oai_system_messages
 
     @system_messages.setter
-    def system_messages(self, system_message: Union[str, List]) -> None:
+    def system_messages(self, system_message: List[Dict[str, str]]) -> None:
         if isinstance(system_message, str):
             self._oai_system_messages = [{"content": system_message, "role": "system"}]
         elif isinstance(system_message, list):
@@ -58,27 +59,27 @@ class LLMMiddleware:
             raise ValueError(f"system_message must be a string or a list of messages, but got {system_message}")
 
     @property
-    def client(self) -> OpenAIWrapper:
+    def client(self) -> Optional[OpenAIWrapper]:
         return self._client
 
     @client.setter
-    def client(self, client: OpenAIWrapper) -> None:
+    def client(self, client: Optional[OpenAIWrapper]) -> None:
         self._client = client
 
     @property
-    def client_cache(self) -> Cache:
+    def client_cache(self) -> Optional[Cache]:
         return self._client_cache
 
     @client_cache.setter
-    def client_cache(self, cache: Cache) -> None:
+    def client_cache(self, cache: Optional[Cache]) -> None:
         self._client_cache = cache
 
     def call(
         self,
-        messages: List[Dict],
+        messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
         Args:
@@ -90,20 +91,20 @@ class LLMMiddleware:
             Union[str, Dict, None]: the reply message.
         """
         if self._llm_config is False:
-            return next(messages, sender)
+            return next(messages, sender)  # type: ignore[no-any-return, misc]
         else:
             final, reply = self._generate_oai_reply(messages)
             if final:
                 return reply
             else:
-                return next(messages, sender)
+                return next(messages, sender)  # type: ignore[no-any-return, misc]
 
     async def a_call(
         self,
-        messages: List[Dict],
+        messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware asynchronously.
 
         Args:
@@ -115,15 +116,15 @@ class LLMMiddleware:
             Union[str, Dict, None]: the reply message.
         """
         if self._llm_config is False:
-            return await next(messages, sender)
+            return await next(messages, sender)  # type: ignore[no-any-return, misc]
         else:
             final, reply = await self._a_generate_oai_reply(messages)
             if final:
                 return reply
             else:
-                return await next(messages, sender)
+                return await next(messages, sender)  # type: ignore[no-any-return, misc]
 
-    def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
+    def update_function_signature(self, func_sig: Union[str, Dict[str, Any]], is_remove: None) -> None:
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
@@ -149,10 +150,10 @@ class LLMMiddleware:
                     func for func in self._llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
-            self._assert_valid_name(func_sig["name"])
+            self._ensure_valid_name(func_sig["name"])  # type: ignore[index]
             if "functions" in self._llm_config.keys():
                 self._llm_config["functions"] = [
-                    func for func in self._llm_config["functions"] if func.get("name") != func_sig["name"]
+                    func for func in self._llm_config["functions"] if func.get("name") != func_sig["name"]  # type: ignore[index]
                 ] + [func_sig]
             else:
                 self._llm_config["functions"] = [func_sig]
@@ -162,11 +163,11 @@ class LLMMiddleware:
 
         self._client = OpenAIWrapper(**self._llm_config)
 
-    def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
+    def update_tool_signature(self, tool_sig: Dict[str, Any], is_remove: Optional[bool] = None) -> None:
         """update a tool_signature in the LLM configuration for tool_call.
 
         Args:
-            tool_sig (str or dict): description/name of the tool to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools
+            tool_sig (dict): description/name of the tool to update/remove to the model. See: https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools
             is_remove: whether removing the tool from llm_config with name 'tool_sig'
         """
 
@@ -185,7 +186,7 @@ class LLMMiddleware:
                     tool for tool in self._llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
-            self._assert_valid_name(tool_sig["function"]["name"])
+            self._ensure_valid_name(tool_sig["function"]["name"])
             if "tools" in self._llm_config.keys():
                 self._llm_config["tools"] = [
                     tool
@@ -202,9 +203,9 @@ class LLMMiddleware:
 
     def _generate_oai_reply(
         self,
-        messages: List[Dict],
-        config: Optional[Any] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
+        messages: List[Dict[str, Any]],
+        config: Optional[OpenAIWrapper] = None,
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
         """Generate a reply using autogen.oai."""
         client = self._client if config is None else config
         if client is None:
@@ -233,7 +234,7 @@ class LLMMiddleware:
 
         # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str):
-            extracted_response = model_dump(extracted_response)
+            extracted_response = model_dump(extracted_response)  # type: ignore[assignment]
         if isinstance(extracted_response, dict):
             if extracted_response.get("function_call"):
                 extracted_response["function_call"]["name"] = self._normalize_name(
@@ -241,13 +242,13 @@ class LLMMiddleware:
                 )
             for tool_call in extracted_response.get("tool_calls") or []:
                 tool_call["function"]["name"] = self._normalize_name(tool_call["function"]["name"])
-        return True, extracted_response
+        return True, extracted_response  # type: ignore[return-value]
 
     async def _a_generate_oai_reply(
         self,
-        messages: List[Dict],
-        config: Optional[Any] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
+        messages: List[Dict[str, Any]],
+        config: Optional[OpenAIWrapper] = None,
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
         """Generate a reply using autogen.oai asynchronously."""
         return await asyncio.get_event_loop().run_in_executor(
             None, functools.partial(self._generate_oai_reply, messages=messages, config=config)
@@ -276,16 +277,16 @@ class LLMMiddleware:
             return self._client.total_usage_summary
 
     @staticmethod
-    def _normalize_name(name):
+    def _normalize_name(name: str) -> str:
         """
         LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
 
-        Prefer _assert_valid_name for validating user configuration or input
+        Prefer _ensure_valid_name for validating user configuration or input
         """
         return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
 
     @staticmethod
-    def _assert_valid_name(name):
+    def _ensure_valid_name(name: str) -> None:
         """
         Ensure that configured names are valid, raises ValueError if not.
 
@@ -295,4 +296,3 @@ class LLMMiddleware:
             raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
         if len(name) > 64:
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
-        return name
