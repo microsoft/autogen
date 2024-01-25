@@ -12,7 +12,7 @@ else:
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_custom_client():
+def test_custom_model_client():
     TEST_COST = 20000000
     TEST_CUSTOM_RESPONSE = "This is a custom response."
     TEST_DEVICE = "cpu"
@@ -20,7 +20,7 @@ def test_custom_client():
     TEST_OTHER_PARAMS_VAL = "other_params"
     TEST_MAX_LENGTH = 1000
 
-    class CustomClient:
+    class CustomModel:
         def __init__(self, config: Dict, test_hook):
             self.test_hook = test_hook
             self.device = config["device"]
@@ -63,8 +63,8 @@ def test_custom_client():
     config_list = [
         {
             "model": TEST_LOCAL_MODEL_NAME,
+            "api_type": "custom",
             "device": TEST_DEVICE,
-            "api_type": "CustomClient",
             "params": {
                 "max_length": TEST_MAX_LENGTH,
                 "other_params": TEST_OTHER_PARAMS_VAL,
@@ -75,7 +75,7 @@ def test_custom_client():
     test_hook = {"called": False}
 
     client = OpenAIWrapper(config_list=config_list)
-    client.register_client(model=TEST_LOCAL_MODEL_NAME, client_cls=CustomClient, test_hook=test_hook)
+    client.register_model_client(model=TEST_LOCAL_MODEL_NAME, model_client_cls=CustomModel, test_hook=test_hook)
 
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     assert response.choices[0].message.content == TEST_CUSTOM_RESPONSE
@@ -89,31 +89,9 @@ def test_custom_client():
     assert test_hook["max_length"] == TEST_MAX_LENGTH
 
 
-def test_registering_with_wrong_cls_name_raises_error():
-    class CustomClient:
-        def __init__(self, config: Dict):
-            pass
-
-        def create(self, params):
-            return None
-
-        def cost(self, response) -> float:
-            return 0
-
-    config_list = [
-        {
-            "model": "local_model_name",
-            "api_type": "CustomClientButWrongName",
-        },
-    ]
-    client = OpenAIWrapper(config_list=config_list)
-
-    with pytest.raises(ValueError):
-        client.register_client(model="local_model_name", client_cls=CustomClient)
-
-
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_registering_with_wrong_model_name_raises_error():
-    class CustomClient:
+    class CustomModel:
         def __init__(self, config: Dict):
             pass
 
@@ -130,21 +108,22 @@ def test_registering_with_wrong_model_name_raises_error():
     config_list = [
         {
             "model": "local_model_name_but_wrong_name",
-            "api_type": "CustomClient",
+            "api_type": "custom",
         },
     ]
     client = OpenAIWrapper(config_list=config_list)
 
     with pytest.raises(ValueError):
-        client.register_client(model="local_model_name", client_cls=CustomClient)
+        client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
 
 
-def test_custom_client_not_registered_raises_error():
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_no_client_registered_raises_error():
     config_list = [
         {
             "model": "local_model_name",
+            "api_type": "custom",
             "device": "cpu",
-            "api_type": "CustomClient",
             "params": {
                 "max_length": 1000,
                 "other_params": "other_params",
@@ -156,3 +135,84 @@ def test_custom_client_not_registered_raises_error():
 
     with pytest.raises(RuntimeError):
         client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_not_all_clients_registered_raises_error():
+    class CustomModel:
+        def __init__(self, config: Dict):
+            pass
+
+        def create(self, params):
+            return None
+
+        def cost(self, response) -> float:
+            return 0
+
+        @staticmethod
+        def get_usage(response) -> Dict:
+            return {}
+
+    config_list = [
+        {
+            "model": "local_model_name",
+            "api_type": "custom",
+            "device": "cpu",
+            "params": {
+                "max_length": 1000,
+                "other_params": "other_params",
+            },
+        },
+        {
+            "model": "local_model_name_2",
+            "api_type": "custom",
+            "device": "cpu",
+            "params": {
+                "max_length": 1000,
+                "other_params": "other_params",
+            },
+        },
+    ]
+
+    client = OpenAIWrapper(config_list=config_list)
+
+    client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
+
+    with pytest.raises(RuntimeError):
+        client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_registering_same_client_twice_raises_error():
+    class CustomModel:
+        def __init__(self, config: Dict):
+            pass
+
+        def create(self, params):
+            return None
+
+        def cost(self, response) -> float:
+            return 0
+
+        @staticmethod
+        def get_usage(response) -> Dict:
+            return {}
+
+    config_list = [
+        {
+            "model": "local_model_name",
+            "api_type": "custom",
+            "device": "cpu",
+            "params": {
+                "max_length": 1000,
+                "other_params": "other_params",
+            },
+        },
+    ]
+
+    client = OpenAIWrapper(config_list=config_list)
+
+    client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
+
+    with pytest.raises(ValueError):
+        client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
