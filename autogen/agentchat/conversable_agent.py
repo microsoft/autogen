@@ -804,6 +804,10 @@ class ConversableAgent(Agent):
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
 
+        # issues with Azure API returning None in content
+        if extracted_response is None:
+            return True, ""
+
         # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str):
             extracted_response = model_dump(extracted_response)
