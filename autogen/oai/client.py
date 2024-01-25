@@ -108,6 +108,7 @@ class OpenAIWrapper:
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
+        autogen.telemetry.log_new_wrapper(self, locals())
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
@@ -154,8 +155,10 @@ class OpenAIWrapper:
                 openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
             openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
             client = AzureOpenAI(**openai_config)
+            autogen.telemetry.log_new_client(client, self, openai_config)
         else:
             client = OpenAI(**openai_config)
+            autogen.telemetry.log_new_client(client, self, openai_config)
         return client
 
     @classmethod
@@ -287,7 +290,6 @@ class OpenAIWrapper:
                             request=params,
                             response=response,
                             is_cached=1,
-                            client_config=self._config_list[i],
                             cost=response.cost,
                             start_time=request_ts,
                         )
@@ -312,7 +314,6 @@ class OpenAIWrapper:
                     request=params,
                     response=f"error_code:{error_code}, config {i} failed",
                     is_cached=0,
-                    client_config=self._config_list[i],
                     cost=0,
                     start_time=request_ts,
                 )
@@ -340,7 +341,6 @@ class OpenAIWrapper:
                     request=params,
                     response=response,
                     is_cached=0,
-                    client_config=self._config_list[i],
                     cost=response.cost,
                     start_time=request_ts,
                 )
