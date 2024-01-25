@@ -695,6 +695,7 @@ class ConversableAgent(Agent):
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
+
         self.send(self.generate_init_message(**context), recipient, silent=silent)
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
@@ -754,13 +755,11 @@ class ConversableAgent(Agent):
                 takeaway = agent.last_message(self)["content"]
                 takeaway = takeaway.replace("TERMINATE", "")
             except (IndexError, AttributeError):
-                warnings.warn("No takeaway found for agent: " + agent.name, UserWarning)
+                warnings.warn("Cannot extract takeaway from last message.", UserWarning)
         elif takeaway_method == "llm":
             takeaway = self._lmm_response_preparer(extraction_prompt, agent._oai_messages[self], target_agent)
         else:
-            warnings.warn(
-                "No takeaway is extracted as takeaway method is not supported: " + takeaway_method, UserWarning
-            )
+            warnings.warn("No takeaway_method provided or takeaway_method is not supported: ", UserWarning)
         return takeaway
 
     def _lmm_response_preparer(self, prompt, messages, llm_agent=None):
@@ -840,12 +839,14 @@ class ConversableAgent(Agent):
                     UserWarning,
                 )
                 chat_info["message"] = self.generate_init_message()
-
+            original_init_message = chat_info["message"]
             if carryover_previous_takeaway:
                 chat_info["message"] = self.prompt_takeaways(
                     chat_info.get("message", ""), takeaways=list(self._finished_chats.values())
                 )
             current_agent = chat_info["recipient"]
+            print(colored("Working on the following task: \n" + original_init_message, "blue"), flush=True)
+            print("\n", "*" * 80, flush=True, sep="")
             takeaway = self.initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
