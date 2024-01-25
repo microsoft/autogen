@@ -16,7 +16,12 @@ on:
   workflow_dispatch:
   merge_group:
     types: [checks_requested]
-
+permissions:
+  pages: write
+    # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 jobs:
   checks:
     if: github.event_name != 'push'
