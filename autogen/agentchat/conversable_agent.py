@@ -708,10 +708,10 @@ class ConversableAgent(Agent):
                 takeaway = self._get_chat_takeaway_from_agent(recipient)
             elif takeaway_method == "llm_summary":
                 # TODO use LLM to summarize the chat by sending another message
-                self.send(recipient, message="Summarize the chat" + self.chat_history, silent=silent)
+                # self.send(recipient, message="Summarize the chat" + self._oai_messages, silent=silent)
                 takeaway = "Placeholder for LLM summary"
             elif context["takeaway"] is callable:
-                takeaway = takeaway_method(self.chat_history)
+                takeaway = takeaway_method(self._oai_messages)
         return takeaway
 
     async def a_initiate_chat(
@@ -764,14 +764,13 @@ class ConversableAgent(Agent):
         takeaway = takeaway.replace("TERMINATE", "")
         return takeaway
 
-    def prompt_takeaways(self, takeaways: List[str]):
+    def prompt_takeaways(self, new_message: str, takeaways: List[str] = []):
         """Prompt the user to select a takeaway from a list of takeaways.
         Could be overridden by the agent to provide a custom prompt.
         """
         if takeaways:
-            return "\nContext: \n" + ("\n").join([t for t in takeaways])
-        else:
-            return ""
+            return new_message + "\nContext: \n" + ("\n").join([t for t in takeaways])
+        return new_message
 
     def initiate_chats(self, chats_info: List[Dict], carryover_previous_takeaway: bool = True):
         """Initiate chats with multiple agents.
@@ -804,8 +803,8 @@ class ConversableAgent(Agent):
                 chat_info["message"] = self.generate_init_message()
 
             if carryover_previous_takeaway:
-                chat_info["message"] = chat_info.get("message", "") + self.prompt_takeaways(
-                    list(self._finished_chats.values())
+                chat_info["message"] = self.prompt_takeaways(
+                    chat_info.get("message", ""), takeaways=list(self._finished_chats.values())
                 )
             current_agent = chat_info["recipient"]
             takeaway = self.initiate_chat(**chat_info)
@@ -844,8 +843,7 @@ class ConversableAgent(Agent):
                     list(self._finished_chats.values())
                 )
             current_agent = chat_info["recipient"]
-            await self.a_initiate_chat(**chat_info)
-            takeaway = self._get_chat_takeaway_from_agent(current_agent)
+            takeaway = await self.a_initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
     def add_chat_info(self, chat_info: Dict):

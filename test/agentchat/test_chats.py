@@ -115,6 +115,7 @@ def test_chats():
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a financial research assistant.
             Reply "TERMINATE" in the end when everything is done.
@@ -123,6 +124,7 @@ def test_chats():
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
         llm_config={"config_list": config_list},
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
         You are a financial research assistant. You research about the business and financial status of companies.
         Reply "TERMINATE" in the end when everything is done.
@@ -131,6 +133,7 @@ def test_chats():
     writer = AssistantAgent(
         name="Writer",
         llm_config={"config_list": config_list},
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a professional writer, known for
             your insightful and engaging articles.
@@ -142,7 +145,7 @@ def test_chats():
     user = UserProxyAgent(
         name="User",
         human_input_mode="NEVER",
-        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         code_execution_config={
             "last_n_messages": 1,
             "work_dir": "tasks",
