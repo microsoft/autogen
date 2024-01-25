@@ -280,14 +280,22 @@ def check_can_use_docker_or_throw(use_docker) -> None:
     if use_docker is not None:
         inside_docker = in_docker_container()
         docker_installed_and_running = is_docker_running()
-        if use_docker and not inside_docker and not docker_installed_and_running:
-            raise RuntimeError(
-                "Code execution is set to be run in docker (default behaviour) but docker is not running.\n"
-                "The options available are:\n"
-                "- Make sure docker is running (advised approach for code execution)\n"
-                '- Set "use_docker": False in code_execution_config\n'
-                '- Set AUTOGEN_USE_DOCKER to "0/False/no" in your environment variables'
-            )
+        if use_docker:
+            if inside_docker:
+                raise RuntimeError(
+                    "Code execution is set to be run in docker (default behaviour) but the code is already running in a docker container.\n"
+                    "The options available are:\n"
+                    '- Set "use_docker": False in code_execution_config\n'
+                    '- Set AUTOGEN_USE_DOCKER to "0/False/no" in your environment variables'
+                )
+            if not docker_installed_and_running:
+                raise RuntimeError(
+                    "Code execution is set to be run in docker (default behaviour) but docker is not running.\n"
+                    "The options available are:\n"
+                    "- Make sure docker is running (advised approach for code execution)\n"
+                    '- Set "use_docker": False in code_execution_config\n'
+                    '- Set AUTOGEN_USE_DOCKER to "0/False/no" in your environment variables'
+                )
 
 
 def _sanitize_filename_for_docker_tag(filename: str) -> str:

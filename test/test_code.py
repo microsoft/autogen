@@ -2,6 +2,7 @@ import importlib.metadata
 import os
 import sys
 import unittest
+import unittest.mock
 
 import pytest
 
@@ -315,7 +316,7 @@ def scrape(url):
 
 # skip if os is windows
 @pytest.mark.skipif(
-    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()), reason="docker is not running"
+    sys.platform in ["win32"] or (not is_docker_running()) or (in_docker_container()), reason="docker is not running"
 )
 def test_execute_code(use_docker=None):
     try:
@@ -470,12 +471,32 @@ def test_decide_use_docker_with_env_var_and_argument():
     restore_autogen_env_var(current_env_value)
 
 
-def test_can_use_docker_or_throw():
-    check_can_use_docker_or_throw(None)
-    if not is_docker_running() and not in_docker_container():
+@pytest.mark.parametrize("is_docker_running", [True, False])
+@pytest.mark.parametrize("in_docker_container", [True, False])
+def test_can_use_docker_or_throw(is_docker_running: bool, in_docker_container: bool) -> None:
+    # things get interesting if use_docker is set to True
+    with unittest.mock.patch(
+        "autogen.code_utils.is_docker_running", return_value=is_docker_running
+    ), unittest.mock.patch("autogen.code_utils.in_docker_container", return_value=in_docker_container):
+        # if use_docker is set to None, then no exception will be raised no matter what
+        check_can_use_docker_or_throw(None)
         check_can_use_docker_or_throw(False)
-    if not is_docker_running() and not in_docker_container():
-        with pytest.raises(RuntimeError):
+
+        if in_docker_container:
+            with pytest.raises(RuntimeError) as e:
+                check_can_use_docker_or_throw(True)
+            assert (
+                "Code execution is set to be run in docker (default behaviour) but the code is already running in a docker container."
+                in str(e.value)
+            )
+        elif not is_docker_running:
+            with pytest.raises(RuntimeError) as e:
+                check_can_use_docker_or_throw(True)
+            assert "Code execution is set to be run in docker (default behaviour) but docker is not running." in str(
+                e.value
+            )
+        else:
+            # no exception is raised if docker is running and we are not in a docker container
             check_can_use_docker_or_throw(True)
 
 
