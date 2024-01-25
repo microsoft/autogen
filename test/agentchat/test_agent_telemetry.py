@@ -69,7 +69,9 @@ def test_agent_telemetry():
     cur = con.cursor()
 
     # Test completions table
-    cur.execute("SELECT * FROM chat_completions;")
+    cur.execute(
+        "SELECT id, invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time FROM chat_completions;"
+    )
     rows = cur.fetchall()
 
     assert len(rows) == 3
@@ -97,37 +99,34 @@ def test_agent_telemetry():
         response = json.loads(row[6])
         assert "choices" in response and len(response["choices"]) > 0
 
-        client_config = json.loads(row[8])
-        assert "model" in client_config and "api_type" in client_config
-
-        assert row[9] > 0  # cost
-        assert row[10], "start timestamp is empty"
-        assert row[11], "end timestamp is empty"
+        assert row[8] > 0  # cost
+        assert row[9], "start timestamp is empty"
+        assert row[10], "end timestamp is empty"
 
     # Test agents table
-    cur.execute("SELECT * FROM agents")
+    cur.execute("SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents")
     rows = cur.fetchall()
 
     assert len(rows) == 2
 
-    session_id = rows[0][2]
+    session_id = rows[0][3]
 
     for idx, row in enumerate(rows):
-        assert row[1], "wrapper id is empty"
-        assert row[2] and row[2] == session_id
+        assert row[2], "wrapper id is empty"
+        assert row[3] and row[3] == session_id
 
-        agent = json.loads(row[3])
+        agent = json.loads(row[6])
         if idx == 0:
+            assert row[4] == "teacher"
             assert agent["name"] == "teacher"
             agent["system_message"] == teacher_message
         elif idx == 1:
+            assert row[4] == "student"
             assert agent["name"] == "student"
             agent["system_message"] = student_message
 
-        agent_config = agent["llm_config"]["config_list"][0]
-        assert "api_key" not in agent_config
-        assert "api-key" not in agent_config
-        assert "api_version" in agent_config
+        assert "api_key" not in row[6]
+        assert "api-key" not in row[6]
 
-        assert row[4], "timestamp is empty"
+        assert row[7], "timestamp is empty"
     autogen.telemetry.stop_logging()
