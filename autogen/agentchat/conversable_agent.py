@@ -756,12 +756,12 @@ class ConversableAgent(Agent):
             except (IndexError, AttributeError):
                 warnings.warn("Cannot extract takeaway from last message.", UserWarning)
         elif takeaway_method == "llm":
-            takeaway = self._lmm_response_preparer(extraction_prompt, agent._oai_messages[self], target_agent)
+            takeaway = self._llm_response_preparer(extraction_prompt, agent._oai_messages[self], target_agent)
         else:
             warnings.warn("No takeaway_method provided or takeaway_method is not supported: ", UserWarning)
         return takeaway
 
-    def _lmm_response_preparer(self, prompt, messages, llm_agent=None):
+    def _llm_response_preparer(self, prompt, messages, llm_agent=None):
         """Default takeaway preparer with llm
 
         Args:
