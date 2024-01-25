@@ -4,6 +4,7 @@ import autogen.telemetry
 import json
 import sys
 import uuid
+import sqlite3
 
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
@@ -25,6 +26,101 @@ if not skip:
     )
 
 ###############################################################
+
+def verify_log_completions_table(cur, teacher_message, student_message):
+    cur.execute(
+        """SELECT id, invocation_id, client_id, wrapper_id, session_id,
+            request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
+    )
+    rows = cur.fetchall()
+
+    assert len(rows) == 3
+
+    session_id = rows[0]["session_id"]
+
+    for idx, row in enumerate(rows):
+        assert row["invocation_id"] and str(uuid.UUID(row["invocation_id"], version=4)) == row["invocation_id"], "invocation id is not valid uuid"
+        assert row["client_id"], "client id is empty"
+        assert row["wrapper_id"], "wrapper id is empty"
+        assert row["session_id"] and row["session_id"] == session_id
+
+        request = json.loads(row["request"])
+        first_request_message = request["messages"][0]["content"]
+        first_request_role = request["messages"][0]["role"]
+
+        if idx == 0 or idx == 2:
+            assert first_request_message == teacher_message
+        elif idx == 1:
+            assert first_request_message == student_message
+        assert first_request_role == "system"
+
+        response = json.loads(row["response"])
+        assert "choices" in response and len(response["choices"]) > 0
+
+        assert row["cost"] > 0
+        assert row["start_time"], "start timestamp is empty"
+        assert row["end_time"], "end timestamp is empty"
+
+
+def verify_agents_table(cur, teacher_message, student_message):
+    cur.execute("SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents")
+    rows = cur.fetchall()
+
+    assert len(rows) == 2
+
+    session_id = rows[0]["session_id"]
+
+    for idx, row in enumerate(rows):
+        assert row["wrapper_id"], "wrapper id is empty"
+        assert row["session_id"] and row["session_id"] == session_id
+
+        agent = json.loads(row["init_args"])
+        if idx == 0:
+            assert row["name"] == "teacher"
+            assert agent["name"] == "teacher"
+            agent["system_message"] == teacher_message
+        elif idx == 1:
+            assert row["name"] == "student"
+            assert agent["name"] == "student"
+            agent["system_message"] = student_message
+
+        assert "api_key" not in row["init_args"]
+        assert "api-key" not in row["init_args"]
+
+        assert row["timestamp"], "timestamp is empty"
+
+
+def verify_oai_client_table(cur):
+    cur.execute("SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients")
+    rows = cur.fetchall()
+
+    assert len(rows) == 2
+    session_id = rows[0]["session_id"]
+
+    for row in rows:
+        assert row["client_id"], "client id is empty"
+        assert row["wrapper_id"], "wrapper id is empty"
+        assert row["session_id"] and row["session_id"] == session_id
+        assert row["class"] in ["AzureOpenAI", "OpenAI"]
+        init_args = json.loads(row["init_args"])
+        assert "api_version" in init_args
+        assert row["timestamp"], "timestamp is empty"
+
+
+def verify_oai_wrapper_table(cur):
+    cur.execute("SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers")
+    rows = cur.fetchall()
+
+    assert len(rows) == 2
+    session_id = rows[0]["session_id"]
+
+    for row in rows:
+        assert row["wrapper_id"], "wrapper id is empty"
+        assert row["session_id"] and row["session_id"] == session_id
+        init_args = json.loads(row["init_args"])
+        assert "config_list" in init_args
+        assert len(init_args["config_list"]) > 0
+        assert row["timestamp"], "timestamp is empty"
 
 
 @pytest.mark.skipif(
@@ -66,67 +162,15 @@ def test_agent_telemetry():
     )
 
     con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
+
     cur = con.cursor()
 
-    # Test completions table
-    cur.execute(
-        "SELECT id, invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time FROM chat_completions;"
-    )
-    rows = cur.fetchall()
+    verify_log_completions_table(cur, teacher_message, student_message)
+    verify_agents_table(cur, teacher_message, student_message)
+    verify_oai_client_table(cur)
+    verify_oai_wrapper_table(cur)
 
-    assert len(rows) == 3
+    # TODO: add a test for selecting with foreign key
 
-    # verify session id
-    session_id = rows[0][4]
-    assert all(row[4] == session_id for row in rows)
-
-    for idx, row in enumerate(rows):
-        assert row[1] and str(uuid.UUID(row[1], version=4)) == row[1], "invocation id is not valid uuid"
-        assert row[2], "client id is empty"
-        assert row[3], "wrapper id is empty"
-        assert row[4] and row[4] == session_id
-
-        request = json.loads(row[5])
-        first_request_message = request["messages"][0]["content"]
-        first_request_role = request["messages"][0]["role"]
-
-        if idx == 0 or idx == 2:
-            assert first_request_message == teacher_message
-        elif idx == 1:
-            assert first_request_message == student_message
-        assert first_request_role == "system"
-
-        response = json.loads(row[6])
-        assert "choices" in response and len(response["choices"]) > 0
-
-        assert row[8] > 0  # cost
-        assert row[9], "start timestamp is empty"
-        assert row[10], "end timestamp is empty"
-
-    # Test agents table
-    cur.execute("SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents")
-    rows = cur.fetchall()
-
-    assert len(rows) == 2
-
-    session_id = rows[0][3]
-
-    for idx, row in enumerate(rows):
-        assert row[2], "wrapper id is empty"
-        assert row[3] and row[3] == session_id
-
-        agent = json.loads(row[6])
-        if idx == 0:
-            assert row[4] == "teacher"
-            assert agent["name"] == "teacher"
-            agent["system_message"] == teacher_message
-        elif idx == 1:
-            assert row[4] == "student"
-            assert agent["name"] == "student"
-            agent["system_message"] = student_message
-
-        assert "api_key" not in row[6]
-        assert "api-key" not in row[6]
-
-        assert row[7], "timestamp is empty"
     autogen.telemetry.stop_logging()

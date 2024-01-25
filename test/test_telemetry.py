@@ -1,11 +1,9 @@
-import pytest
 import autogen
 import autogen.telemetry
 import uuid
-import sys
-import os
 import json
 from unittest.mock import Mock
+import sqlite3
 
 WRAPPER_ID = 140610167717744
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -111,12 +109,13 @@ def test_log_completion():
     autogen.telemetry.log_chat_completion(**SAMPLE_LOG_CHAT_COMPLETION_ARGS)
 
     con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
 
     for row in cur.execute(COMPLETION_QUERY):
-        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
-            # request, response
-            if idx == 3 or idx == 4:
+        for key, arg in zip(row.keys(), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
+            val = row[key]
+            if key == "request" or key == "response":
                 val = json.loads(val)
             assert val == arg
     autogen.telemetry.stop_logging()
@@ -129,14 +128,16 @@ def test_log_completion_with_none_response():
     autogen.telemetry.log_chat_completion(**SAMPLE_LOG_CHAT_COMPLETION_ARGS)
 
     con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
     cur = con.cursor()
 
     for row in cur.execute(COMPLETION_QUERY):
-        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
-            if idx == 4:  # response
+        for key, arg in zip(row.keys(), SAMPLE_LOG_CHAT_COMPLETION_ARGS.values()):
+            val = row[key]
+            if key == "response":
                 assert val == ""
                 continue
-            elif idx == 3:  # request
+            elif key == "request":
                 val = json.loads(val)
             assert val == arg
     autogen.telemetry.stop_logging()

@@ -286,7 +286,7 @@ class OpenAIWrapper:
                         autogen.telemetry.log_chat_completion(
                             invocation_id=invocation_id,
                             client_id=id(client),
-                            wrapper_id=self.wrapper_id,
+                            wrapper_id=id(self),
                             request=params,
                             response=response,
                             is_cached=1,
@@ -310,7 +310,7 @@ class OpenAIWrapper:
                 autogen.telemetry.log_chat_completion(
                     invocation_id=invocation_id,
                     client_id=id(client),
-                    wrapper_id=self.wrapper_id,
+                    wrapper_id=id(self),
                     request=params,
                     response=f"error_code:{error_code}, config {i} failed",
                     is_cached=0,
@@ -337,7 +337,7 @@ class OpenAIWrapper:
                 autogen.telemetry.log_chat_completion(
                     invocation_id=invocation_id,
                     client_id=id(client),
-                    wrapper_id=self.wrapper_id,
+                    wrapper_id=id(self),
                     request=params,
                     response=response,
                     is_cached=0,
