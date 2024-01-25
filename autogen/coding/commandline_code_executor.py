@@ -62,13 +62,15 @@ If you want the user to save the code in a file before executing it, put # filen
         for key in list(args.keys()):
             if key not in execute_code.__code__.co_varnames:
                 args.pop(key)
-        args.pop("lang")
+        # Remove lang argument as we are getting it from code_block.
+        args.pop("lang", None)
+        # Execute code and obtain a docker image name if created.
         exit_code, output, docker_image_name = execute_code(code_block.code, lang=code_block.language, **args)
         if docker_image_name is not None:
-            self._code_execution_config["image"] = docker_image_name
+            self._code_execution_config["use_docker"] = docker_image_name
         return CodeResult(exit_code=exit_code, output=output, docker_image_name=docker_image_name)
 
     def reset(self) -> None:
         """Reset the code executor."""
         # Reset the image to None so that the next execution will use a new image.
-        self._code_execution_config["image"] = None
+        self._code_execution_config["use_docker"] = None

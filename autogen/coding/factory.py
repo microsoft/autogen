@@ -9,12 +9,12 @@ class CodeExecutorFactory:
     @staticmethod
     def create(code_execution_config: Dict) -> CodeExecutor:
         """Get a code executor based on the code execution config."""
-        backend = code_execution_config.get("backend", "commandline")
+        backend = code_execution_config.get("backend")
         if backend == "ipython":
             from autogen.coding.ipython_code_executor import IPythonCodeExecutor
 
             return IPythonCodeExecutor(code_execution_config)
-        elif backend == "commandline":
+        elif backend == "commandline" or backend is None:
             # Default to command line code executor.
             from autogen.coding.commandline_code_executor import CommandlineCodeExecutor
 
