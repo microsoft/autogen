@@ -695,8 +695,10 @@ class ConversableAgent(Agent):
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
-
-        self.send(self.generate_init_message(**context), recipient, silent=silent)
+        message = self.generate_init_message(**context)
+        print(colored("Working on the following task: \n" + message, "blue"), flush=True)
+        print("\n", "*" * 80, flush=True, sep="")
+        self.send(message, recipient, silent=silent)
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
@@ -845,8 +847,8 @@ class ConversableAgent(Agent):
                     chat_info.get("message", ""), takeaways=list(self._finished_chats.values())
                 )
             current_agent = chat_info["recipient"]
-            print(colored("Working on the following task: \n" + original_init_message, "blue"), flush=True)
-            print("\n", "*" * 80, flush=True, sep="")
+            # print(colored("Working on the following task: \n" + original_init_message, "blue"), flush=True)
+            # print("\n", "*" * 80, flush=True, sep="")
             takeaway = self.initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
