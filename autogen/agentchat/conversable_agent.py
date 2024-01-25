@@ -797,7 +797,7 @@ class ConversableAgent(Agent):
 
         response = llm_client.create(context=None, messages=_messages, cache=self.client_cache)
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
-        if not isinstance(extracted_response, str):
+        if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             return str(extracted_response.model_dump(mode="dict"))
         else:
             return extracted_response
@@ -975,8 +975,11 @@ class ConversableAgent(Agent):
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
 
+        if extracted_response is None:
+            warnings.warn("Extracted_response is None.", UserWarning)
+            return False, None
         # ensure function and tool calls will be accepted when sent back to the LLM
-        if not isinstance(extracted_response, str):
+        if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             extracted_response = model_dump(extracted_response)
         if isinstance(extracted_response, dict):
             if extracted_response.get("function_call"):

@@ -1,40 +1,46 @@
-from typing import Any, Dict, Optional, Tuple, Type, Union, get_args, Callable, List, Literal
-from autogen import AssistantAgent, ConversableAgent, UserProxyAgent, config_list_from_json
+from autogen import AssistantAgent, UserProxyAgent
 from autogen import GroupChat, GroupChatManager
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+import pytest
+from conftest import skip_openai
+import autogen
+
+try:
+    import openai
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
-def test_groupchat():
-    config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
-
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+def test_chats_group():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
     financial_tasks = [
-        """What are the full names of NVDA and TESLA, and what do they do for business.""",
-        """Research the financial status of the companies I'm interested in.""",
+        """What are the full names of NVDA and TESLA.""",
+        """Pros and cons of the companies I'm interested in. Keep it short.""",
     ]
 
-    writing_tasks = [
-        """Develop an engaging blog
-            post using any information provided."""
-    ]
+    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
 
     user_proxy = UserProxyAgent(
         name="User_proxy",
         system_message="A human admin.",
-        # code_execution_config={"last_n_messages": 3, "work_dir": "groupchat"},
         human_input_mode="NEVER",
         code_execution_config={
             "last_n_messages": 1,
             "work_dir": "groupchat",
             "use_docker": False,
         },
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
     )
 
     financial_assistant = AssistantAgent(
         name="Financial_assistant",
         llm_config={"config_list": config_list},
-        system_message="""
-            You are a financial assistant. You are an expert in finance and investment.
-            Reply "TERMINATE" in the end when everything is done.
-            """,
     )
 
     writer = AssistantAgent(
@@ -69,6 +75,7 @@ def test_groupchat():
             "work_dir": "groupchat",
             "use_docker": False,
         },
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
     )
     manager_2 = GroupChatManager(
         groupchat=groupchat_2,
@@ -79,6 +86,7 @@ def test_groupchat():
             "work_dir": "groupchat",
             "use_docker": False,
         },
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
     )
 
     user = UserProxyAgent(
@@ -93,42 +101,42 @@ def test_groupchat():
     )
     user.initiate_chats(
         [
-            {"recipient": manager_1, "message": financial_tasks[0]},
+            {
+                "recipient": financial_assistant,
+                "message": financial_tasks[0],
+                "takeaway_method": "last_msg",
+            },
+            {
+                "recipient": manager_1,
+                "message": financial_tasks[1],
+                "takeaway_method": "llm",
+            },
             {"recipient": manager_2, "message": writing_tasks[0]},
         ]
     )
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_chats():
-    config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
 
     financial_tasks = [
-        """What are the full names of NVDA and TESLA, and what do they do for business.""",
-        """Research the financial status of the companies I'm interested in.""",
+        """What are the full names of NVDA and TESLA.""",
+        """Pros and cons of the companies I'm interested in. Keep it short.""",
     ]
 
-    writing_tasks = [
-        """Develop an engaging blog
-            post using any information provided."""
-    ]
+    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
 
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
-        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
-        system_message="""
-            You are a financial research assistant.
-            Reply "TERMINATE" in the end when everything is done.
-            """,
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
         llm_config={"config_list": config_list},
-        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
-        system_message="""
-        You are a financial research assistant. You research about the business and financial status of companies.
-        Reply "TERMINATE" in the end when everything is done.
-        """,
     )
     writer = AssistantAgent(
         name="Writer",
@@ -160,17 +168,16 @@ def test_chats():
                 "message": financial_tasks[0],
                 "clear_history": True,
                 "silent": False,
-                "get_takeaway": "last_msg",
+                "takeaway_method": "last_msg",
             },
             {
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
-                "get_takeaway": "last_msg",
+                "takeaway_method": "llm",
             },
             {
                 "recipient": writer,
                 "message": writing_tasks[0],
-                "get_takeaway": "last_msg",
             },
         ]
     )
@@ -178,4 +185,4 @@ def test_chats():
 
 if __name__ == "__main__":
     test_chats()
-    test_groupchat()
+    test_chats_group()
