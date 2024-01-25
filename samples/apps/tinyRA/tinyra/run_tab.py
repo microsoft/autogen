@@ -36,8 +36,24 @@ def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
     return False, None
 
 
+def summarize(text):
+    if len(text) > 100:
+        return text[:100] + "..."
+    return text
+
+
 def post_update_to_main(recipient, messages, sender, **kwargs):
+    last_assistant_message = None
+    for msg in reversed(messages):
+        if msg["role"] == "assistant":
+            last_assistant_message = msg
+            break
+
     update_message = f"Computing response... ({len(messages)}/)"
+    if last_assistant_message:
+        summary = summarize(last_assistant_message["content"])
+        update_message = f"{summary}..."
+
     tui.insert_chat_message("info", update_message, msgid + 1)
     return False, None
 

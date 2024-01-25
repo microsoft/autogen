@@ -600,13 +600,18 @@ def message2markdown(message: Dict[str, str]) -> str:
     """
     role = message["role"]
     if role == "user":
-        role = USER_NAME
+        display_name = USER_NAME
     else:
-        role = "TinyRA"
-    # role = role.capitalize()
+        display_name = "TinyRA"
+
+    if role == "info":
+        display_id = "\U0001F4AD" * 3
+    else:
+        display_id = message["id"]
+
     content = message["content"]
-    id = message["id"]
-    return f"[{id}] {role}: {content}"
+
+    return f"[{display_id}] {display_name}: {content}"
 
 
 class ReactiveAssistantMessage(Markdown):
