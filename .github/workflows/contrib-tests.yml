@@ -5,17 +5,21 @@ name: ContribTests
 
 on:
   pull_request:
-    branches: ['main', 'dev/v0.2']
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/agentchat/contrib/**'
-      - '.github/workflows/contrib-tests.yml'
-      - 'setup.py'
+      - "autogen/**"
+      - "test/agentchat/contrib/**"
+      - ".github/workflows/contrib-tests.yml"
+      - "setup.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
+permissions: {}
+    # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 jobs:
   RetrieveChatTest:
     runs-on: ${{ matrix.os }}
@@ -45,6 +49,12 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test RetrieveChat
         run: |
           pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
@@ -67,7 +77,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -81,8 +91,14 @@ jobs:
       - name: Install packages and dependencies for Compression
         run: |
           pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test Compression
-        if: matrix.python-version != '3.10'   # diversify the python versions
+        if: matrix.python-version != '3.10' # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_compressible_agent.py  --skip-openai
       - name: Coverage
@@ -104,7 +120,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -118,8 +134,14 @@ jobs:
       - name: Install packages and dependencies for GPTAssistantAgent
         run: |
           pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test GPTAssistantAgent
-        if: matrix.python-version != '3.11'  # diversify the python versions
+        if: matrix.python-version != '3.11' # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
       - name: Coverage
@@ -155,8 +177,14 @@ jobs:
       - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test TeachableAgent
-        if: matrix.python-version != '3.9'  # diversify the python versions
+        if: matrix.python-version != '3.9' # diversify the python versions
         run: |
           pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
       - name: Coverage
@@ -172,7 +200,7 @@ jobs:
           file: ./coverage.xml
           flags: unittests
 
-  LMMTest:
+  WebSurfer:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -189,9 +217,58 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
+      - name: Install packages and dependencies for WebSurfer
+        run: |
+          pip install -e .[websurfer]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Test WebSurfer
+        if: matrix.python-version != '3.10'  # diversify the python versions
+        run: |
+          pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
+      - name: Coverage
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
+          coverage xml
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.10'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  LMMTest:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
       - name: Install packages and dependencies for LMM
         run: |
           pip install -e .[lmm]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test LMM and LLaVA
         run: |
           pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai

@@ -9,7 +9,19 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
-from ..code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
+from ..cache.cache import Cache
+from ..code_utils import (
+    DEFAULT_MODEL,
+    UNKNOWN,
+    content_str,
+    check_can_use_docker_or_throw,
+    decide_use_docker,
+    execute_code,
+    extract_code,
+    infer_lang,
+)
+
+
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
@@ -89,14 +101,13 @@ class ConversableAgent(Agent):
                     The default working directory is the "extensions" directory under
                     "path_to_autogen".
                 - use_docker (Optional, list, str or bool): The docker image to use for code execution.
+                    Default is True, which means the code will be executed in a docker container. A default list of images will be used.
                     If a list or a str of image name(s) is provided, the code will be executed in a docker container
                     with the first image successfully pulled.
-                    If None, False or empty, the code will be executed in the current environment.
-                    Default is True when the docker python package is installed.
-                    When set to True, a default list will be used.
+                    If False, the code will be executed in the current environment.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. Default to 1. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke (typically this is the last time execution was attempted).
+                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
             llm_config (dict or False): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
@@ -125,9 +136,19 @@ class ConversableAgent(Agent):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
 
+        # Initialize standalone client cache object.
+        self.client_cache = None
+
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
         )
+
+        if isinstance(self._code_execution_config, dict):
+            use_docker = self._code_execution_config.get("use_docker", None)
+            use_docker = decide_use_docker(use_docker)
+            check_can_use_docker_or_throw(use_docker)
+            self._code_execution_config["use_docker"] = use_docker
+
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
@@ -616,13 +637,13 @@ class ConversableAgent(Agent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient, clear_history):
+    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
-        recipient.reset_consecutive_auto_reply_counter(self)
-        self.reply_at_receive[recipient] = recipient.reply_at_receive[self] = True
+        self.reply_at_receive[recipient] = True
         if clear_history:
             self.clear_history(recipient)
-            recipient.clear_history(self)
+        if prepare_recipient:
+            recipient._prepare_chat(self, clear_history, False)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -648,6 +669,7 @@ class ConversableAgent(Agent):
         recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
+        cache: Optional[Cache] = None,
         **context,
     ):
         """Initiate a chat with the recipient agent.
@@ -660,22 +682,30 @@ class ConversableAgent(Agent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
+            cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
+                          Otherwise, input() will be called to get the initial message.
 
         Raises:
             RuntimeError: if any async reply functions are registered and not ignored in sync chat.
         """
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
+            agent.previous_cache = agent.client_cache
+            agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
+        for agent in [self, recipient]:
+            agent.client_cache = agent.previous_cache
+            agent.previous_cache = None
 
     async def a_initiate_chat(
         self,
         recipient: "ConversableAgent",
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
+        cache: Optional[Cache] = None,
         **context,
     ):
         """(async) Initiate a chat with the recipient agent.
@@ -688,17 +718,27 @@ class ConversableAgent(Agent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
+            cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
+                          Otherwise, input() will be called to get the initial message.
         """
         self._prepare_chat(recipient, clear_history)
-        await self.a_send(self.generate_init_message(**context), recipient, silent=silent)
+        for agent in [self, recipient]:
+            agent.previous_cache = agent.client_cache
+            agent.client_cache = cache
+        await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        for agent in [self, recipient]:
+            agent.client_cache = agent.previous_cache
+            agent.previous_cache = None
 
     def reset(self):
         """Reset the agent."""
         self.clear_history()
         self.reset_consecutive_auto_reply_counter()
         self.stop_reply_at_receive()
+        if self.client is not None:
+            self.client.clear_usage_summary()
         for reply_func_tuple in self._reply_func_list:
             if reply_func_tuple["reset_config"] is not None:
                 reply_func_tuple["reset_config"](reply_func_tuple["config"])
@@ -757,7 +797,9 @@ class ConversableAgent(Agent):
 
         # TODO: #1143 handle token limit exceeded error
         response = client.create(
-            context=messages[-1].pop("context", None), messages=self._oai_system_message + all_messages
+            context=messages[-1].pop("context", None),
+            messages=self._oai_system_message + all_messages,
+            cache=self.client_cache,
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
@@ -797,7 +839,10 @@ class ConversableAgent(Agent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
-        last_n_messages = code_execution_config.pop("last_n_messages", 1)
+        last_n_messages = code_execution_config.pop("last_n_messages", "auto")
+
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
 
         messages_to_scan = last_n_messages
         if last_n_messages == "auto":
@@ -1564,7 +1609,24 @@ class ConversableAgent(Agent):
 
         Args:
             **context: any context information, and "message" parameter needs to be provided.
+                       If message is not given, prompt for it via input()
         """
+        if "message" not in context:
+            context["message"] = self.get_human_input(">")
+        return context["message"]
+
+    async def a_generate_init_message(self, **context) -> Union[str, Dict]:
+        """Generate the initial message for the agent.
+
+        Override this function to customize the initial message based on user's request.
+        If not overridden, "message" needs to be provided in the context.
+
+        Args:
+            **context: any context information, and "message" parameter needs to be provided.
+                       If message is not given, prompt for it via input()
+        """
+        if "message" not in context:
+            context["message"] = await self.a_get_human_input(">")
         return context["message"]
 
     def register_function(self, function_map: Dict[str, Callable]):
@@ -1890,3 +1952,25 @@ class ConversableAgent(Agent):
         messages = messages.copy()
         messages[-1]["content"] = processed_user_text
         return messages
+
+    def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
+        """Print the usage summary."""
+        if self.client is None:
+            print(f"No cost incurred from agent '{self.name}'.")
+        else:
+            print(f"Agent '{self.name}':")
+            self.client.print_usage_summary(mode)
+
+    def get_actual_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the actual usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.actual_usage_summary
+
+    def get_total_usage(self) -> Union[None, Dict[str, int]]:
+        """Get the total usage summary."""
+        if self.client is None:
+            return None
+        else:
+            return self.client.total_usage_summary

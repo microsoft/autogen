@@ -286,7 +286,9 @@ def test_chat_tools_stream() -> None:
 def test_completion_stream() -> None:
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
-    response = client.create(prompt="1+1=", model="gpt-3.5-turbo-instruct", stream=True)
+    # Azure can't have dot in model/deployment name
+    model = "gpt-35-turbo-instruct" if config_list[0].get("api_type") == "azure" else "gpt-3.5-turbo-instruct"
+    response = client.create(prompt="1+1=", model=model, stream=True)
     print(response)
     print(client.extract_text_or_completion_object(response))
 

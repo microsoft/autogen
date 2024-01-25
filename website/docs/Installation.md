@@ -4,9 +4,9 @@ AutoGen is a versatile tool that can be installed and run in Docker or locally u
 
 ## Option 1: Install and Run AutoGen in Docker
 
-Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/samples/dockers](https://github.com/microsoft/autogen/tree/main/samples/dockers).
+Docker, an indispensable tool in modern software development, offers a compelling solution for AutoGen's setup. Docker allows you to create consistent environments that are portable and isolated from the host OS. With Docker, everything AutoGen needs to run, from the operating system to specific libraries, is encapsulated in a container, ensuring uniform functionality across different systems. The Dockerfiles necessary for AutoGen are conveniently located in the project's GitHub repository at [https://github.com/microsoft/autogen/tree/main/.devcontainer](https://github.com/microsoft/autogen/tree/main/.devcontainer).
 
-**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/samples/dockers
+**Pre-configured DockerFiles**: The AutoGen Project offers pre-configured Dockerfiles for your use. These Dockerfiles will run as is, however they can be modified to suit your development needs. Please see the README.md file in autogen/.devcontainer
 
 - **autogen_base_img**: For a basic setup, you can use the `autogen_base_img` to run simple scripts or applications. This is ideal for general users or those new to AutoGen.
 - **autogen_full_img**: Advanced users or those requiring more features can use `autogen_full_img`. Be aware that this version loads ALL THE THINGS and thus is very large. Take this into consideration if you build your application off of it.
@@ -21,16 +21,16 @@ Docker, an indispensable tool in modern software development, offers a compellin
 
 AutoGen now provides updated Dockerfiles tailored for different needs. Building a Docker image is akin to setting the foundation for your project's environment:
 
-- **Autogen Basic (dockerfile.base)**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
+- **Autogen Basic**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
 
   ```bash
-  docker build -f samples/dockers/Dockerfile.base -t autogen_base_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/base/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git
   ```
 
-- **Autogen Advanced (dockerfile.full)**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
+- **Autogen Advanced**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
    ```bash
-   docker build -f samples/dockers/Dockerfile.full -t autogen_full_img https://github.com/microsoft/autogen.git
+   docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git
    ```
 
 ### Step 3: Run AutoGen Applications from Docker Image
@@ -86,15 +86,19 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 #### Additional Resources
 
+- Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
+
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
 
-- Details on how to use the Dockerfile.dev version can be found on the [Contributing](Contribute.md#docker)
+- Details on how to use the Dockerfile dev version can be found on the [Contributing](Contribute.md#docker)
 
 ## Option 2: Install AutoGen Locally Using Virtual Environment
 
 When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
 
-### Option a: venv
+### Setup a virtual environment
+
+#### Option a: venv
 
 You can create a virtual environment with `venv` as below:
 
@@ -109,7 +113,7 @@ The following command will deactivate the current `venv` environment:
 deactivate
 ```
 
-### Option b: conda
+#### Option b: conda
 
 Another option is with `Conda`. You can install it by following [this doc](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html),
 and then create a virtual environment as below:
@@ -125,7 +129,7 @@ The following command will deactivate the current `conda` environment:
 conda deactivate
 ```
 
-### Option c: poetry
+#### Option c: poetry
 
 Another option is with `poetry`, which is a dependency manager for Python.
 
@@ -149,9 +153,9 @@ exit
 
 Now, you're ready to install AutoGen in the virtual environment you've just created.
 
-## Python
+### Python requirements
 
-AutoGen requires **Python version >= 3.8, < 3.12**. It can be installed from pip:
+AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
 
 ```bash
 pip install pyautogen
@@ -159,11 +163,37 @@ pip install pyautogen
 
 `pyautogen<0.2` requires `openai<1`. Starting from pyautogen v0.2, `openai>=1` is required.
 
-<!--
-or conda:
+### Code execution with Docker (default)
+
+Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#code-execution).
+
+The default behaviour for code-execution agents is for code execution to be performed in a docker container.
+
+**To turn this off**: if you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
+    llm_config=llm_config,
+    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
+Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
 ```
-conda install pyautogen -c conda-forge
-``` -->
+
+**Turn off code execution entirely**: if you want to turn off code execution entirely, set `code_execution_config` to `False`. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    llm_config=llm_config,
+    code_execution_config=False,
+)
+```
 
 ### Migration guide to v0.2
 
@@ -187,31 +217,20 @@ Inference parameter tuning can be done via [`flaml.tune`](https://microsoft.gith
   - autogen uses local disk cache to guarantee the exactly same output is produced for the same input and when cache is hit, no openai api call will be made.
   - openai's `seed` is a best-effort deterministic sampling with no guarantee of determinism. When using openai's `seed` with `cache_seed` set to None, even for the same input, an openai api call will be made and there is no guarantee for getting exactly the same output.
 
+## Other Installation Options
+
 ### Optional Dependencies
 
-- #### Docker
+- #### LLM Caching
 
-Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
-
-To use docker for code execution, you also need to install the python package `docker`:
+To use LLM caching with Redis, you need to install the Python package with
+the option `redis`:
 
 ```bash
-pip install docker
+pip install "pyautogen[redis]"
 ```
 
-You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
-
-```python
-user_proxy = autogen.UserProxyAgent(
-    name="agent",
-    human_input_mode="TERMINATE",
-    max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
-    llm_config=llm_config,
-    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
-Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
-)
-```
+See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
 
 - #### blendsearch
 
