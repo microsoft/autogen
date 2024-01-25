@@ -58,7 +58,7 @@
   },
   "devDependencies": {
     "@types/node": "^18.7.13",
-    "@types/react": "^18.2.37",
+    "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.15",
     "@types/react-inner-image-zoom": "^3.0.0",
     "@types/react-resizable": "^3.0.2",
