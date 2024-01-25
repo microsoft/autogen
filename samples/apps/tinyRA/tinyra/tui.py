@@ -818,7 +818,7 @@ class TinyRA(App):
                 os.system(f"code {event.path}")
             else:
                 # open the file using the default app
-                os.system(f"open {event.path}")
+                os.system(f"open '{event.path}'")
         except Exception:
             # TODO: Not implemented
             pass
