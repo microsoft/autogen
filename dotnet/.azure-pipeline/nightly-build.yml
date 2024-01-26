@@ -6,6 +6,10 @@ trigger:
     - dotnet
 
 variables:
+- name: TeamName
+  value: machinelearning-tools
+- name: SignType
+  value: Test
   solution: 'dotnet/AutoGen.sln'
   buildConfiguration: 'Release'
 
@@ -32,6 +36,14 @@ stages:
         packageType: 'sdk'
         useGlobalJson: true
         workingDirectory: 'dotnet'
+
+    - task: MicroBuildSigningPlugin@4
+      displayName: 'Install Signing Plugin'
+      inputs:
+        signType: $(SignType)
+        esrpSigning: true
+        zipSources: false
+        feedSource: 'https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
     
     - task: NuGetToolInstaller@1
       displayName: 'NuGet tool installer'
@@ -42,19 +54,19 @@ stages:
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
         dotnet restore --verbosity Detailed
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
-      displayName: 'dotnet restore'
+      displayName: 'dotnet restore /p:SignType=$(SignType)'
 
     - powershell: |
         echo "Build AutoGen"
-        dotnet build -c $(buildConfiguration) --no-restore --verbosity Detailed /p:SignAssembly=true /p:DelaySign=true
+        dotnet build -c $(buildConfiguration) --no-restore --verbosity Detailed /p:SignAssembly=true /p:SignType=$(SignType)
       displayName: build
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
     
     - powershell:  |
         echo "Create nightly build package"
-        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed
+        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed /p:SignType=$(SignType)
         echo "Create release package"
-        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed
+        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed /p:SignType=$(SignType)
         echo "Contents of Build.ArtifactStagingDirectory..."
         ls -R $(Build.ArtifactStagingDirectory)
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'

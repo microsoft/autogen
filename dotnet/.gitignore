@@ -23,3 +23,5 @@ Properties/
 
 artifacts/
 output/
+
+*.binlog
