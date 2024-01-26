@@ -411,17 +411,21 @@ def test_generate_oai_reply_mocked_openai(
     expected_final: bool,
     expected_retval: str,
 ) -> None:
-    md = LLMMiddleware(name="agent1", llm_config=llm_config)
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        md = LLMMiddleware(name="agent1", llm_config=llm_config)
 
-    with unittest.mock.patch("autogen.oai.client.OpenAIWrapper.create") as client_create_mock:
-        choices = [CompletionChoice(text=mock_response, index=0, finish_reason="stop")]  # type: ignore[call-arg]
-        completion = Completion(choices=choices, id="completion_id", created=0, model="model", object="text_completion")
-        client_create_mock.return_value = completion
-        final, retval = md._generate_oai_reply(messages, config)
-        assert final == expected_final
-        if isinstance(retval, str):
-            assert expected_retval in retval
-        else:
-            assert retval == expected_retval  # type: ignore[comparison-overlap]
-        if llm_config is not False:
-            client_create_mock.assert_called_once()
+        with unittest.mock.patch("autogen.oai.client.OpenAIWrapper.create") as client_create_mock:
+            choices = [CompletionChoice(text=mock_response, index=0, finish_reason="stop")]  # type: ignore[call-arg]
+            completion = Completion(
+                choices=choices, id="completion_id", created=0, model="model", object="text_completion"
+            )
+            client_create_mock.return_value = completion
+            final, retval = md._generate_oai_reply(messages, config)
+            assert final == expected_final
+            if isinstance(retval, str):
+                assert expected_retval in retval
+            else:
+                assert retval == expected_retval  # type: ignore[comparison-overlap]
+            if llm_config is not False:
+                client_create_mock.assert_called_once()
