@@ -139,7 +139,7 @@ def test_usage_summary():
     client.print_usage_summary()
 
     # check update
-    client._update_usage_summary(response, use_cache=True)
+    response = client.create(prompt="1+3=", model=model, cache_seed=None)
     assert (
         client.total_usage_summary["total_cost"] == response.cost * 2
     ), "total_cost should be equal to response.cost * 2"
