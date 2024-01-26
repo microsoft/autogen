@@ -126,11 +126,7 @@ def test_cost(cache_seed):
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo-instruct"]},
-    )
+    config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
     model = "gpt-3.5-turbo-instruct"
     response = client.create(prompt="1+3=", model=model, cache_seed=None)
