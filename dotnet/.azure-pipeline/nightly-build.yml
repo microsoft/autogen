@@ -38,7 +38,11 @@ stages:
         packageType: 'sdk'
         useGlobalJson: true
         workingDirectory: 'dotnet'
-
+    - task: NuGetToolInstaller@1
+      displayName: 'NuGet tool installer'
+    - task: NuGetAuthenticate@1
+      inputs:
+        forceReinstallCredentialProvider: true
     - task: MicroBuildSigningPlugin@4
       displayName: 'Install Signing Plugin'
       inputs:
@@ -46,10 +50,6 @@ stages:
         esrpSigning: true
         zipSources: false
         feedSource: 'https://devdiv.pkgs.visualstudio.com/DefaultCollection/_packaging/MicroBuildToolset/nuget/v3/index.json'
-    
-    - task: NuGetToolInstaller@1
-      displayName: 'NuGet tool installer'
-
     - powershell: |
         echo "Restore packages"
         echo "add dotnet-tool feed"
