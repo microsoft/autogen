@@ -9,7 +9,7 @@ variables:
 - name: TeamName
   value: machinelearning-tools
 - name: SignType
-  value: Test
+  value: Real
 - name: buildConfiguration
   value: Release
 - name: solution
@@ -54,21 +54,21 @@ stages:
         echo "Restore packages"
         echo "add dotnet-tool feed"
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
-        dotnet restore --verbosity Detailed
+        dotnet restore -bl
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
       displayName: 'dotnet restore /p:SignType=$(SignType)'
 
     - powershell: |
         echo "Build AutoGen"
-        dotnet build -c $(buildConfiguration) --no-restore --verbosity Detailed /p:SignAssembly=true /p:SignType=$(SignType)
+        dotnet build -c $(buildConfiguration) --no-restore -bl /p:SignAssembly=true /p:SignType=$(SignType)
       displayName: build
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
     
     - powershell:  |
         echo "Create nightly build package"
-        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build --verbosity Detailed /p:SignType=$(SignType)
+        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build -bl /p:SignType=$(SignType)
         echo "Create release package"
-        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build --verbosity Detailed /p:SignType=$(SignType)
+        dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build -bl /p:SignType=$(SignType)
         echo "Contents of Build.ArtifactStagingDirectory..."
         ls -R $(Build.ArtifactStagingDirectory)
       workingDirectory: '$(Build.SourcesDirectory)/dotnet'
@@ -86,5 +86,12 @@ stages:
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)'
         artifact: 'release'
+        publishLocation: 'pipeline'
+
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish build log to buildlog folder'
+      inputs:
+        targetPath: '$(Build.SourcesDirectory)/dotnet/bin/$(buildConfiguration)/*.binlog'
+        artifact: 'buildlog'
         publishLocation: 'pipeline'
         
