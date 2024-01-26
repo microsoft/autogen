@@ -120,11 +120,14 @@ def test_init_system_message(system_message: Optional[Union[str, List[Dict[str, 
         assert "llm_config must be a dict or False, but got" in str(e.value)
 
 
-_config_list = autogen.config_list_from_json(
-    env_or_file=OAI_CONFIG_LIST,
-    file_location=KEY_LOC,
-    filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
-)
+if skip:  # pragma: no cover
+    _config_list = []
+else:  # pragma: no cover
+    _config_list = autogen.config_list_from_json(  # pragma: no cover
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+    )
 
 
 @pytest.mark.skipif(skip, reason="openai not installed or requested to skip")
@@ -371,38 +374,54 @@ _tool_response = {
 
 
 @pytest.mark.parametrize(
-    "llm_config, messages, config, expected_final, expected_retval",
+    "llm_config, messages, config, mock_response, expected_final, expected_retval",
     [
-        (False, [], None, False, None),
-        ({"cache_seed": None, "config_list": _config_list}, [{"role": "user", "content": "1+1="}], None, True, "2"),
-        ({"cache_seed": None, "config_list": _config_list}, [_tool_response], None, True, "Good job with tool!"),
-        ({"cache_seed": None, "config_list": _config_list}, [_tool_response], None, True, "Good job with tool!"),
+        (False, [], None, "", False, None),
+        (
+            {"cache_seed": None, "config_list": _config_list},
+            [{"role": "user", "content": "1+1="}],
+            None,
+            "1+1=2",
+            True,
+            "2",
+        ),
+        (
+            {"cache_seed": None, "config_list": _config_list},
+            [_tool_response],
+            None,
+            "Good job with tool!",
+            True,
+            "Good job with tool!",
+        ),
+        (
+            {"cache_seed": None, "config_list": _config_list},
+            [_tool_response],
+            None,
+            "Good job with tool!",
+            True,
+            "Good job with tool!",
+        ),
     ],
 )
 def test_generate_oai_reply_mocked_openai(
     llm_config: Dict[str, Any],
     messages: List[Dict[str, Any]],
     config: Optional[OpenAIWrapper],
+    mock_response: str,
     expected_final: bool,
     expected_retval: str,
 ) -> None:
     md = LLMMiddleware(name="agent1", llm_config=llm_config)
-    if len(messages) and ("tool_responses" in messages[-1]):
-        with unittest.mock.patch("autogen.oai.client.OpenAIWrapper.create") as client_create_mock:
-            choices = [CompletionChoice(text="Good job with tool!", index=0, finish_reason="stop")]  # type: ignore[call-arg]
-            completion = Completion(
-                choices=choices, id="completion_id", created=0, model="model", object="text_completion"
-            )
-            client_create_mock.return_value = completion
-            final, retval = md._generate_oai_reply(messages, config)
-            assert final == expected_final
-            assert retval == expected_retval
-            client_create_mock.assert_called_once()
-        pass
-    else:
+
+    with unittest.mock.patch("autogen.oai.client.OpenAIWrapper.create") as client_create_mock:
+        choices = [CompletionChoice(text=mock_response, index=0, finish_reason="stop")]  # type: ignore[call-arg]
+        completion = Completion(choices=choices, id="completion_id", created=0, model="model", object="text_completion")
+        client_create_mock.return_value = completion
         final, retval = md._generate_oai_reply(messages, config)
         assert final == expected_final
         if isinstance(retval, str):
             assert expected_retval in retval
         else:
             assert retval == expected_retval  # type: ignore[comparison-overlap]
+        if llm_config is not False:
+            client_create_mock.assert_called_once()
