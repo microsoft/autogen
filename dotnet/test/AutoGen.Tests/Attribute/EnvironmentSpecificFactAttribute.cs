@@ -23,7 +23,7 @@ namespace AutoGen.Tests
             _skipMessage = skipMessage ?? throw new ArgumentNullException(nameof(skipMessage));
         }
 
-        public sealed override string Skip => IsEnvironmentSupported() ? null : _skipMessage;
+        public sealed override string Skip => IsEnvironmentSupported() ? string.Empty : _skipMessage;
 
         /// <summary>
         /// A method used to evaluate whether to skip a test marked with this attribute. Skips iff this method evaluates to false.

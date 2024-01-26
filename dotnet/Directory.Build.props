@@ -2,14 +2,17 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="./eng/Version.props" />
   <Import Project="./eng/MetaInfo.props" />
+  <Import Project="./eng/Sign.props" />
   <PropertyGroup>
     <TestTargetFramework>net7.0</TestTargetFramework>
     <LangVersion>preview</LangVersion>
 	  <Nullable>enable</Nullable>
     <SignAssembly>True</SignAssembly>
-    <DelaySign>false</DelaySign>
+    <DelaySign>True</DelaySign>
     <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>
-    <NoWarn>$(NoWarn);NU5104;CS1591</NoWarn>
+    <CSNoWarn>CS1998;CS1591</CSNoWarn>
+    <NoWarn>$(NoWarn);$(CSNoWarn);NU5104</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

@@ -185,7 +185,7 @@ sorry, the answer should be 2, not 3
             return student;
         }
 
-        public async Task RunMathChatAsync(IAgent teacher, IAgent student, IAgent admin)
+        private async Task RunMathChatAsync(IAgent teacher, IAgent student, IAgent admin)
         {
             var group = new GroupChat(
                 admin,

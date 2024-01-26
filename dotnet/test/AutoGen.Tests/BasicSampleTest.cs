@@ -63,7 +63,7 @@ namespace AutoGen.Tests
                 this.output = output;
             }
 
-            public override void WriteLine(string m)
+            public override void WriteLine(string? m)
             {
                 output.WriteLine(m);
             }

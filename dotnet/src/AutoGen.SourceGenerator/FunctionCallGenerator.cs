@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // FunctionCallGenerator.cs
 
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -35,7 +36,7 @@ namespace AutoGen.SourceGenerator
             // step 1
             // filter syntax tree and search syntax node that satisfied the following conditions
             // - is partial class
-            var partialClassSyntaxProvider = context.SyntaxProvider.CreateSyntaxProvider(
+            var partialClassSyntaxProvider = context.SyntaxProvider.CreateSyntaxProvider<PartialClassOutput?>(
                 (node, ct) =>
                 {
                     return node is ClassDeclarationSyntax classDeclarationSyntax && classDeclarationSyntax.Modifiers.Any(SyntaxKind.PartialKeyword);
@@ -53,7 +54,7 @@ namespace AutoGen.SourceGenerator
                     var fullClassName = $"{nameSpace?.Name}.{classDeclarationSyntax!.Identifier}";
                     if (classDeclarationSyntax == null)
                     {
-                        return (null, null, null);
+                        return null;
                     }
 
                     if (!classDeclarationSyntax.Members.Any(member => member.AttributeLists.Any(attributeList => attributeList.Attributes.Any(attribute =>
@@ -61,7 +62,7 @@ namespace AutoGen.SourceGenerator
                         return ctx.SemanticModel.GetSymbolInfo(attribute).Symbol is IMethodSymbol methodSymbol && methodSymbol.ContainingType.ToDisplayString() == FUNCTION_CALL_ATTRIBUTION;
                     }))))
                     {
-                        return (null, null, null);
+                        return null;
                     }
 
                     // collect methods that has FunctionAttribution attribute
@@ -74,9 +75,9 @@ namespace AutoGen.SourceGenerator
 
                     var functionContracts = methodDeclarationSyntaxes.Select(method => CreateFunctionContract(method!));
 
-                    return (fullClassName, classDeclarationSyntax, functionContracts);
+                    return new PartialClassOutput(fullClassName, classDeclarationSyntax, functionContracts);
                 })
-                .Where(node => node.functionContracts != null)
+                .Where(node => node != null)
                 .Collect();
 
             var aggregateProvider = optionProvider.Combine(partialClassSyntaxProvider);
@@ -84,12 +85,12 @@ namespace AutoGen.SourceGenerator
             context.RegisterSourceOutput(aggregateProvider,
                 (ctx, source) =>
                 {
-                    var groups = source.Right.GroupBy(item => item.fullClassName);
+                    var groups = source.Right.GroupBy(item => item!.FullClassName);
                     foreach (var group in groups)
                     {
-                        var functionContracts = group.SelectMany(item => item.functionContracts!).ToArray();
-                        var className = group.First().classDeclarationSyntax!.Identifier.ToString();
-                        var namespaceName = group.First().classDeclarationSyntax!.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString() : string.Empty;
+                        var functionContracts = group.SelectMany(item => item!.FunctionContracts).ToArray();
+                        var className = group.First()!.ClassDeclarationSyntax.Identifier.ToString();
+                        var namespaceName = group.First()!.ClassDeclarationSyntax.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString() : string.Empty;
 
                         var functionTT = new FunctionCallTemplate
                         {
@@ -107,7 +108,7 @@ namespace AutoGen.SourceGenerator
 
                     if (source.Left)
                     {
-                        var overallFunctionDefinition = source.Right.SelectMany(x => x.functionContracts.Select(y => new { fullClassName = x.fullClassName, y = y }));
+                        var overallFunctionDefinition = source.Right.SelectMany(x => x!.FunctionContracts.Select(y => new { fullClassName = x.FullClassName, y = y }));
                         var overallFunctionDefinitionObject = overallFunctionDefinition.Select(
                             x => new
                             {
@@ -138,6 +139,22 @@ namespace AutoGen.SourceGenerator
                         ctx.AddSource("FunctionDefinition.json", SourceText.From(json, System.Text.Encoding.UTF8));
                     }
                 });
+        }
+
+        private class PartialClassOutput
+        {
+            public PartialClassOutput(string fullClassName, ClassDeclarationSyntax classDeclarationSyntax, IEnumerable<FunctionContract> functionContracts)
+            {
+                FullClassName = fullClassName;
+                ClassDeclarationSyntax = classDeclarationSyntax;
+                FunctionContracts = functionContracts;
+            }
+
+            public string FullClassName { get; }
+
+            public ClassDeclarationSyntax ClassDeclarationSyntax { get; }
+
+            public IEnumerable<FunctionContract> FunctionContracts { get; }
         }
 
         private FunctionContract CreateFunctionContract(MethodDeclarationSyntax method)
