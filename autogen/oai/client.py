@@ -177,7 +177,7 @@ class OpenAIClient:
                         if function_call_chunk:
                             # Handle function call
                             if function_call_chunk:
-                                full_function_call, completion_tokens = self._update_function_call_from_chunk(
+                                full_function_call, completion_tokens = OpenAIWrapper._update_function_call_from_chunk(
                                     function_call_chunk, full_function_call, completion_tokens
                                 )
                             if not content:
@@ -195,7 +195,7 @@ class OpenAIClient:
                                     # in case ix is not sequential
                                     full_tool_calls = full_tool_calls + [None] * (ix - len(full_tool_calls) + 1)
 
-                                full_tool_calls[ix], completion_tokens = self._update_tool_calls_from_chunk(
+                                full_tool_calls[ix], completion_tokens = OpenAIWrapper._update_tool_calls_from_chunk(
                                     tool_calls_chunk, full_tool_calls[ix], completion_tokens
                                 )
                                 if not content:
