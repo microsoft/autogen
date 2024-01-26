@@ -7,12 +7,12 @@ on:
   pull_request:
     types:
       - ready_for_review
-    # branches: ["main"]
-    # paths:
-    #   - "autogen/**"
-    #   - "test/agentchat/contrib/**"
-    #   - ".github/workflows/contrib-openai.yml"
-    #   - "setup.py"
+    branches: ["main"]
+    paths:
+      - "autogen/**"
+      - "test/agentchat/contrib/**"
+      - ".github/workflows/contrib-openai.yml"
+      - "setup.py"
 permissions: {}
 jobs:
   RetrieveChatTest:
