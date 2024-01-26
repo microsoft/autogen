@@ -1,6 +1,6 @@
 # AutoGenBench
 
-AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `autogenbench tabulate`) By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
+AutoGenBench is a tool for repeatedly running a set of pre-defined AutoGen tasks in a setting with tightly-controlled initial conditions. With each run, AutoGenBench will start from a blank slate. The agents being evaluated will need to work out what code needs to be written, and what libraries or dependencies to install, to solve tasks. The results of each run are logged, and can be ingested by analysis or metrics scripts (such as `autogenbench tabulate`). By default, all runs are conducted in freshly-initialized docker containers, providing the recommended level of consistency and safety.
 
 AutoGenBench works with all AutoGen 0.1.*, and 0.2.* versions.
 
@@ -163,9 +163,9 @@ This folder holds the results for the ``two_agent_stocks`` task of the ``default
 Within each folder, you will find the following files:
 
 - *timestamp.txt*: records the date and time of the run, along with the version of the pyautogen library installed
-- *console_log.txt*: all console output produced by Docker when running autogen. Read this like you would a regular console.
+- *console_log.txt*: all console output produced by Docker when running AutoGen. Read this like you would a regular console.
 - *[agent]_messages.json*: for each Agent, a log of their messages dictionaries
-- *./coding*: A directory containing all code written by Autogen, and all artifacts produced by that code.
+- *./coding*: A directory containing all code written by AutoGen, and all artifacts produced by that code.
 
 ## Contributing or Defining New Tasks or Benchmarks
 
