@@ -1,10 +1,11 @@
 import {
+  ChatBubbleLeftRightIcon,
   GlobeAltIcon,
   PlusIcon,
   Square3Stack3DIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Modal, message } from "antd";
+import { Button, Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IChatSession, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -196,6 +197,36 @@ const SessionsView = ({}: any) => {
   }, []);
 
   const sessionRows = sessions.map((data: IChatSession, index: number) => {
+    let items: MenuProps["items"] = [];
+
+    items.push({
+      label: (
+        <div
+          onClick={() => {
+            console.log("deleting session");
+          }}
+        >
+          <TrashIcon
+            role={"button"}
+            title={"Delete"}
+            className="h-4 w-4 mr-1 inline-block"
+          />
+          Delete
+        </div>
+      ),
+      key: "delete",
+    });
+    const menu = (
+      <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
+        <div
+          role="button"
+          className="float-right ml-2 duration-100 hover:bg-secondary font-semibold px-2 pb-1  rounded"
+        >
+          <span className="block -mt-2  "> ...</span>
+        </div>
+      </Dropdown>
+    );
+
     const isSelected = session?.id === data.id;
     const rowClass = isSelected
       ? "bg-accent text-white"
@@ -203,8 +234,13 @@ const SessionsView = ({}: any) => {
     return (
       <div
         key={"sessionsrow" + index}
-        className="  mb-2 pb-1  border-b border-dashed "
+        className="group relative  mb-2 pb-1  border-b border-dashed "
       >
+        {items.length > 0 && (
+          <div className="  absolute right-2 top-2 group-hover:opacity-100 opacity-0 ">
+            {menu}
+          </div>
+        )}
         <div
           className={`rounded p-2 cursor-pointer ${rowClass}`}
           role="button"
@@ -213,11 +249,14 @@ const SessionsView = ({}: any) => {
             setWorkflowConfig(data.flow_config);
           }}
         >
-          <div className="text-xs">{truncateText(data.id, 27)}</div>
-          <div className="text-xs">{data.flow_config.name}</div>
+          <div className="text-xs">{truncateText(data.id, 20)}</div>
+          <div className="text-xs">
+            <Square3Stack3DIcon className="h-4 w-4 inline-block mr-1" />
+            {data.flow_config.name}
+          </div>
           <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
-        <div className="flex mt-2 text-secondary">
+        <div className="hidden flex mt-2 text-secondary">
           <div className="flex-1"></div>
           <div
             role="button"
@@ -289,11 +328,11 @@ const SessionsView = ({}: any) => {
       <div className="mb-2 relative">
         <div className="">
           <div className="font-semibold mb-2 pb-1 border-b">
-            <Square3Stack3DIcon className="h-5 w-5 inline-block mr-1" />
+            <ChatBubbleLeftRightIcon className="h-5 w-5 inline-block mr-1" />
             Sessions{" "}
           </div>
           {sessions && sessions.length > 0 && (
-            <div className="text-xs mb-2 pb-1  ">
+            <div className="text-xs  hidden mb-2 pb-1  ">
               {" "}
               Create a new session or select an existing session to view chat.
             </div>
