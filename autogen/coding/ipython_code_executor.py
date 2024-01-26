@@ -15,7 +15,6 @@ except ImportError:
         return x
 
 
-from nbformat.v4 import new_output
 from jupyter_client import KernelManager
 
 
@@ -51,6 +50,7 @@ You can use variables created earlier in the subsequent code blocks.
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._kernel_manager = KernelManager()
+        self._kernel_manager.start_kernel()
         self._kernel_client = self._kernel_manager.client()
         self._kernel_client.start_channels()
         self._timeout = self.timeout
@@ -75,25 +75,22 @@ You can use variables created earlier in the subsequent code blocks.
         return code_blocks
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        self._kernel_client.wait_for_ready(timeout=self._timeout)
         outputs = []
         for code_block in code_blocks:
             self._kernel_client.execute(code_block.code, store_history=True)
             while True:
                 try:
-                    msg = self.kernel_client.get_iopub_msg(timeout=self._timeout)
+                    msg = self._kernel_client.get_iopub_msg(timeout=self._timeout)
                     msg_type = msg["msg_type"]
                     content = msg["content"]
                     if msg_type in ["execute_result", "display_data"]:
-                        # Check if the output is an image
-                        if "image/png" in content["data"]:
-                            # Replace image with a note
-                            note = "Image output has been replaced with this note."
-                            outputs.append(new_output(msg_type, data={"text/plain": note}))
-                        else:
-                            outputs.append(new_output(msg_type, data=content["data"]))
+                        outputs.append(content["data"])
                     elif msg_type == "stream":
-                        outputs.append(new_output(msg_type, name=content["name"], text=content["text"]))
+                        # Output is a text.
+                        outputs.append(content["text"])
                     elif msg_type == "error":
+                        # Output is an error.
                         return CodeResult(
                             exit_code=1,
                             output=f"ERROR: {content['ename']}: {content['evalue']}\n{content['traceback']}",
@@ -106,6 +103,8 @@ You can use variables created earlier in the subsequent code blocks.
                         exit_code=1,
                         output=f"ERROR: Timeout waiting for output from code block: {code_block.code}",
                     )
+                except Exception as e:
+                    return CodeResult(exit_code=1, output=f"ERROR: {e}")
         # We return the full output.
         return CodeResult(exit_code=0, output="".join([str(output) for output in outputs]))
 
