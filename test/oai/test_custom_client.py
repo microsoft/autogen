@@ -35,21 +35,20 @@ def test_custom_model_client():
             self.test_hook["max_length"] = self.max_length
 
         def create(self, params):
-            if params.get("stream", False) and "messages" in params and "functions" not in params:
-                raise NotImplementedError("Custom Client does not support streaming or functions")
-            else:
-                from types import SimpleNamespace
+            from types import SimpleNamespace
 
-                response = SimpleNamespace()
-                # need to follow Client.ClientResponseProtocol
-                response.choices = []
-                choice = SimpleNamespace()
-                choice.message = SimpleNamespace()
-                choice.message.content = TEST_CUSTOM_RESPONSE
-                choice.message.function_call = None
-                response.choices.append(choice)
-                response.model = self.model
-                return response
+            response = SimpleNamespace()
+            # need to follow Client.ClientResponseProtocol
+            response.choices = []
+            choice = SimpleNamespace()
+            choice.message = SimpleNamespace()
+            choice.message.content = TEST_CUSTOM_RESPONSE
+            response.choices.append(choice)
+            response.model = self.model
+            return response
+
+        def message_retrieval(self, response):
+            return [response.choices[0].message.content]
 
         def cost(self, response) -> float:
             """Calculate the cost of the response."""
@@ -79,7 +78,6 @@ def test_custom_model_client():
 
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     assert response.choices[0].message.content == TEST_CUSTOM_RESPONSE
-    assert response.choices[0].message.function_call is None
     assert response.cost == TEST_COST
 
     assert test_hook["called"]
@@ -97,6 +95,9 @@ def test_registering_with_wrong_model_name_raises_error():
 
         def create(self, params):
             return None
+
+        def message_retrieval(self, response):
+            return []
 
         def cost(self, response) -> float:
             return 0
@@ -146,6 +147,9 @@ def test_not_all_clients_registered_raises_error():
         def create(self, params):
             return None
 
+        def message_retrieval(self, response):
+            return []
+
         def cost(self, response) -> float:
             return 0
 
@@ -190,6 +194,9 @@ def test_registering_same_client_twice_raises_error():
 
         def create(self, params):
             return None
+
+        def message_retrieval(self, response):
+            return []
 
         def cost(self, response) -> float:
             return 0

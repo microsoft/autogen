@@ -66,7 +66,8 @@ class Client(Protocol):
         - model
 
     This class is used to create a client that can be used by OpenAIWrapper.
-    It mimics the OpenAI class, but allows for custom clients to be used.
+    The response returned from create must adhere to the ClientResponseProtocol but can be extended however needed.
+    The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
 
     RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
@@ -75,15 +76,22 @@ class Client(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
                 content: str | None
-                function_call: str | None
 
         choices: List[Choice]
-        config_id: int
-        cost: float
-        pass_filter: bool
         model: str
 
     def create(self, params) -> ClientResponseProtocol:
+        ...  # pragma: no cover
+
+    def message_retrieval(
+        self, response: ClientResponseProtocol
+    ) -> Union[List[str], List[Client.ClientResponseProtocol.Choice.Message]]:
+        """
+        Retrieve and return a list of strings or a list of Choice.Message from the response.
+
+        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of OpenAI's ChatCompletion Message object,
+        since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
+        """
         ...  # pragma: no cover
 
     def cost(self, response: ClientResponseProtocol) -> float:
@@ -100,6 +108,27 @@ class OpenAIClient:
 
     def __init__(self, client):
         self._oai_client = client
+
+    def message_retrieval(
+        self, response: Union[ChatCompletion, Completion]
+    ) -> Union[List[str], List[ChatCompletionMessage]]:
+        """Retrieve the messages from the response."""
+        choices = response.choices
+        if isinstance(response, Completion):
+            return [choice.text for choice in choices]  # type: ignore [union-attr]
+
+        if TOOL_ENABLED:
+            return [  # type: ignore [return-value]
+                choice.message  # type: ignore [union-attr]
+                if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
+                else choice.message.content  # type: ignore [union-attr]
+                for choice in choices
+            ]
+        else:
+            return [  # type: ignore [return-value]
+                choice.message if choice.message.function_call is not None else choice.message.content  # type: ignore [union-attr]
+                for choice in choices
+            ]
 
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config using openai's client.
@@ -454,9 +483,9 @@ class OpenAIWrapper:
             ]
         return params
 
-    def create(self, **config: Any) -> ChatCompletion:
-        """Make a completion for a given config using openai's clients.
-        Besides the kwargs allowed in openai's client, we allow the following additional kwargs.
+    def create(self, **config: Any) -> Client.ClientResponseProtocol:
+        """Make a completion for a given config using available clients.
+        Besides the kwargs allowed in openai's [or other] client, we allow the following additional kwargs.
         The config in each client will be overridden by the config.
 
         Args:
@@ -533,7 +562,7 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
-                    response: ChatCompletion = cache.get(key, None)
+                    response: Client.ClientResponseProtocol = cache.get(key, None)
 
                     if response is not None:
                         try:
@@ -563,6 +592,7 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
+                response.message_retrieval_function = client.message_retrieval
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = client.cost(response)
                 actual_usage = client.get_usage(response)
@@ -783,8 +813,8 @@ class OpenAIWrapper:
 
     @classmethod
     def extract_text_or_completion_object(
-        cls, response: Union[ChatCompletion, Completion]
-    ) -> Union[List[str], List[ChatCompletionMessage]]:
+        cls, response: Client.ClientResponseProtocol
+    ) -> Union[List[str], List[Client.ClientResponseProtocol.Choice.Message]]:
         """Extract the text or ChatCompletion objects from a completion or chat response.
 
         Args:
@@ -793,28 +823,7 @@ class OpenAIWrapper:
         Returns:
             A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
-        choices = response.choices
-        if isinstance(response, Completion):
-            return [choice.text for choice in choices]  # type: ignore [union-attr]
-
-        if not isinstance(response, ChatCompletion) and not isinstance(response, Completion):
-            return [
-                choice.message if choice.message.function_call is not None else choice.message.content
-                for choice in choices
-            ]
-
-        if TOOL_ENABLED:
-            return [  # type: ignore [return-value]
-                choice.message  # type: ignore [union-attr]
-                if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
-                else choice.message.content  # type: ignore [union-attr]
-                for choice in choices
-            ]
-        else:
-            return [  # type: ignore [return-value]
-                choice.message if choice.message.function_call is not None else choice.message.content  # type: ignore [union-attr]
-                for choice in choices
-            ]
+        return response.message_retrieval_function(response)
 
 
 # TODO: logging
