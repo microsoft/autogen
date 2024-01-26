@@ -5,7 +5,8 @@ name: OpenAI4ContribTests
 
 on:
   pull_request_target:
-    types: [ready_for_review]
+    types:
+      - ready_for_review
     branches: ["main"]
     paths:
       - "autogen/**"
