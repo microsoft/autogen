@@ -5,16 +5,16 @@ name: OpenAI
 
 on:
   workflow_dispatch:
-#   pull_request_target:
-#     types:
-#       - ready_for_review
-#     branches: ["main"]
-#     paths:
-#       - "autogen/**"
-#       - "test/**"
-#       - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
-#       - "notebook/agentchat_function_call.ipynb"
-#       - ".github/workflows/openai.yml"
+  pull_request_target:
+    types:
+      - ready_for_review
+    # branches: ["main"]
+    # paths:
+    #   - "autogen/**"
+    #   - "test/**"
+    #   - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
+    #   - "notebook/agentchat_function_call.ipynb"
+    #   - ".github/workflows/openai.yml"
 permissions: {}
 
 jobs:
