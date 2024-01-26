@@ -53,10 +53,10 @@ LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
 
 
-class Client(Protocol):
+class ModelClient(Protocol):
     """
     A client class must implement the following methods:
-    - create must return a response object that implements the ClientResponseProtocol
+    - create must return a response object that implements the ModelClientResponseProtocol
     - cost must return the cost of the response
     - get_usage must return a dict with the following keys:
         - prompt_tokens
@@ -66,13 +66,13 @@ class Client(Protocol):
         - model
 
     This class is used to create a client that can be used by OpenAIWrapper.
-    The response returned from create must adhere to the ClientResponseProtocol but can be extended however needed.
+    The response returned from create must adhere to the ModelClientResponseProtocol but can be extended however needed.
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
 
     RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
 
-    class ClientResponseProtocol(Protocol):
+    class ModelClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
                 content: str | None
@@ -80,12 +80,12 @@ class Client(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, params) -> ClientResponseProtocol:
+    def create(self, params) -> ModelClientResponseProtocol:
         ...  # pragma: no cover
 
     def message_retrieval(
-        self, response: ClientResponseProtocol
-    ) -> Union[List[str], List[Client.ClientResponseProtocol.Choice.Message]]:
+        self, response: ModelClientResponseProtocol
+    ) -> Union[List[str], List[ModelClient.ModelClientResponseProtocol.Choice.Message]]:
         """
         Retrieve and return a list of strings or a list of Choice.Message from the response.
 
@@ -94,11 +94,11 @@ class Client(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ClientResponseProtocol) -> float:
+    def cost(self, response: ModelClientResponseProtocol) -> float:
         ...  # pragma: no cover
 
     @staticmethod
-    def get_usage(response: ClientResponseProtocol) -> Dict:
+    def get_usage(response: ModelClientResponseProtocol) -> Dict:
         """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
         ...  # pragma: no cover
 
@@ -349,7 +349,7 @@ class OpenAIWrapper:
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
 
-        self._clients: List[Client] = []
+        self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
 
         if config_list:
@@ -410,11 +410,11 @@ class OpenAIWrapper:
                 else:
                     raise ValueError(f"api_type {api_type} is not supported.")
 
-    def register_model_client(self, model_client_cls: Client, **kwargs):
+    def register_model_client(self, model_client_cls: ModelClient, **kwargs):
         """Register a model client.
 
         Args:
-            model_client_cls: A custom client class that follows the Client interface
+            model_client_cls: A custom client class that follows the ModelClient interface
             **kwargs: The kwargs for the custom client class to be initialized with
         """
         existing_client_class = False
@@ -483,7 +483,7 @@ class OpenAIWrapper:
             ]
         return params
 
-    def create(self, **config: Any) -> Client.ClientResponseProtocol:
+    def create(self, **config: Any) -> ModelClient.ModelClientResponseProtocol:
         """Make a completion for a given config using available clients.
         Besides the kwargs allowed in openai's [or other] client, we allow the following additional kwargs.
         The config in each client will be overridden by the config.
@@ -558,7 +558,7 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
-                    response: Client.ClientResponseProtocol = cache.get(key, None)
+                    response: ModelClient.ModelClientResponseProtocol = cache.get(key, None)
 
                     if response is not None:
                         response.message_retrieval_function = client.message_retrieval
@@ -723,7 +723,7 @@ class OpenAIWrapper:
     def _update_usage(self, actual_usage, total_usage):
         def update_usage(usage_summary, response_usage):
             # go through RESPONSE_USAGE_KEYS and check that they are in response_usage and if not just return usage_summary
-            for key in Client.RESPONSE_USAGE_KEYS:
+            for key in ModelClient.RESPONSE_USAGE_KEYS:
                 if key not in response_usage:
                     return usage_summary
 
@@ -810,8 +810,8 @@ class OpenAIWrapper:
 
     @classmethod
     def extract_text_or_completion_object(
-        cls, response: Client.ClientResponseProtocol
-    ) -> Union[List[str], List[Client.ClientResponseProtocol.Choice.Message]]:
+        cls, response: ModelClient.ModelClientResponseProtocol
+    ) -> Union[List[str], List[ModelClient.ModelClientResponseProtocol.Choice.Message]]:
         """Extract the text or ChatCompletion objects from a completion or chat response.
 
         Args:
