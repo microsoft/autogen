@@ -9,6 +9,16 @@ from autogen.agentchat.agent import Agent
 from autogen.cache.cache import Cache
 from autogen.oai.client import OpenAIWrapper
 
+try:
+    import openai
+except ImportError:  # pragma: no cover
+    ERROR: Optional[ImportError] = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
+    ChatCompletionMessage = object
+else:  # pragma: no cover
+    # raises exception if openai>=1 is installed and something is wrong with imports
+    from openai.types.chat.chat_completion import ChatCompletionMessage  # type: ignore [attr-defined,assignment]
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,27 +40,22 @@ class LLMMiddleware:
         system_message: Union[str, List[Dict[str, str]]] = "You are a helpful AI Assistant.",
         cache: Optional[Cache] = None,
     ) -> None:
-        if isinstance(system_message, str):
-            self._oai_system_messages: List[Dict[str, str]] = [{"content": system_message, "role": "system"}]
-        elif isinstance(system_message, list):
-            self._oai_system_messages = system_message
-        else:
-            raise ValueError(f"system_message must be a string or a list of messages, but got {system_message}")
+        self.system_messages = system_message  # type: ignore[assignment]
         if llm_config is None:
             raise ValueError("llm_config must be provided")
-        if not (isinstance(llm_config, dict) or isinstance(llm_config, bool)):
-            raise ValueError(f"llm_config must be a dict or bool, but got {llm_config}")
+        if not (isinstance(llm_config, dict)) and llm_config is not False:
+            raise ValueError(f"llm_config must be a dict or False, but got {llm_config}")
         self._name = name
         self._llm_config = llm_config
-        self._client = OpenAIWrapper(**self._llm_config) if llm_config else None  # type: ignore[arg-type]
-        self._client_cache = cache
+        self.client = OpenAIWrapper(**self._llm_config) if llm_config else None  # type: ignore[arg-type]
+        self.client_cache = cache
 
     @property
     def system_messages(self) -> List[Dict[str, str]]:
         return self._oai_system_messages
 
     @system_messages.setter
-    def system_messages(self, system_message: List[Dict[str, str]]) -> None:
+    def system_messages(self, system_message: Union[str, List[Dict[str, str]]]) -> None:
         if isinstance(system_message, str):
             self._oai_system_messages = [{"content": system_message, "role": "system"}]
         elif isinstance(system_message, list):
@@ -97,7 +102,7 @@ class LLMMiddleware:
             if final:
                 return reply
             else:
-                return next(messages, sender)  # type: ignore[no-any-return, misc]
+                return next(messages, sender)  # type: ignore[no-any-return, misc]  # pragma: no cover
 
     async def a_call(
         self,
@@ -122,9 +127,9 @@ class LLMMiddleware:
             if final:
                 return reply
             else:
-                return await next(messages, sender)  # type: ignore[no-any-return, misc]
+                return await next(messages, sender)  # type: ignore[no-any-return, misc]  # pragma: no cover
 
-    def update_function_signature(self, func_sig: Union[str, Dict[str, Any]], is_remove: None) -> None:
+    def update_function_signature(self, func_sig: Union[str, Dict[str, Any]], is_remove: bool) -> None:
         """update a function_signature in the LLM configuration for function_call.
 
         Args:
@@ -138,13 +143,13 @@ class LLMMiddleware:
         if not isinstance(self._llm_config, dict):
             error_msg = "To update a function signature, agent must have an llm_config"
             logger.error(error_msg)
-            raise AssertionError(error_msg)
+            raise ValueError(error_msg)
 
         if is_remove:
             if "functions" not in self._llm_config.keys():
                 error_msg = "The agent config doesn't have function {name}.".format(name=func_sig)
                 logger.error(error_msg)
-                raise AssertionError(error_msg)
+                raise ValueError(error_msg)
             else:
                 self._llm_config["functions"] = [
                     func for func in self._llm_config["functions"] if func["name"] != func_sig
@@ -171,16 +176,16 @@ class LLMMiddleware:
             is_remove: whether removing the tool from llm_config with name 'tool_sig'
         """
 
-        if not self._llm_config:
+        if not isinstance(self._llm_config, dict):
             error_msg = "To update a tool signature, agent must have an llm_config"
             logger.error(error_msg)
-            raise AssertionError(error_msg)
+            raise ValueError(error_msg)
 
         if is_remove:
             if "tools" not in self._llm_config.keys():
                 error_msg = "The agent config doesn't have tool {name}.".format(name=tool_sig)
                 logger.error(error_msg)
-                raise AssertionError(error_msg)
+                raise ValueError(error_msg)
             else:
                 self._llm_config["tools"] = [
                     tool for tool in self._llm_config["tools"] if tool["function"]["name"] != tool_sig
@@ -201,17 +206,9 @@ class LLMMiddleware:
 
         self._client = OpenAIWrapper(**self._llm_config)
 
-    def _generate_oai_reply(
-        self,
-        messages: List[Dict[str, Any]],
-        config: Optional[OpenAIWrapper] = None,
-    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
-        """Generate a reply using autogen.oai."""
-        client = self._client if config is None else config
-        if client is None:
-            return False, None
-
-        # unroll tool_responses
+    @staticmethod
+    def _unroll_tool_responses(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Unroll tool_responses in messages."""
         all_messages = []
         for message in messages:
             tool_responses = message.get("tool_responses", [])
@@ -219,30 +216,57 @@ class LLMMiddleware:
                 all_messages += tool_responses
                 # tool role on the parent message means the content is just concatenation of all of the tool_responses
                 if message.get("role") != "tool":
+                    # todo: test this line, it is not covered by any tests
                     all_messages.append({key: message[key] for key in message if key != "tool_responses"})
             else:
                 all_messages.append(message)
+        return all_messages
+
+    @staticmethod
+    def _ensure_function_n_tool_calls_are_valid(
+        extracted_response: Union[str, ChatCompletionMessage]
+    ) -> Union[str, Dict[str, Any], ChatCompletionMessage]:
+        # get dictionary
+        extracted_response = extracted_response if isinstance(extracted_response, str) else model_dump(extracted_response)  # type: ignore[arg-type]
+
+        if isinstance(extracted_response, dict):
+            # todo: this is not covered by any tests
+            extracted_response = extracted_response
+            if extracted_response.get("function_call"):
+                extracted_response["function_call"]["name"] = LLMMiddleware._normalize_name(
+                    extracted_response["function_call"]["name"]
+                )
+            for tool_call in extracted_response.get("tool_calls") or []:
+                tool_call["function"]["name"] = LLMMiddleware._normalize_name(tool_call["function"]["name"])
+
+        return extracted_response
+
+    def _generate_oai_reply(
+        self,
+        messages: List[Dict[str, Any]],
+        config: Optional[OpenAIWrapper] = None,
+    ) -> Tuple[bool, Optional[Union[str, Dict[str, Any]]]]:
+        """Generate a reply using autogen.oai."""
+        client = self.client if config is None else config
+        if client is None:
+            return False, None
+
+        all_messages = LLMMiddleware._unroll_tool_responses(messages)
 
         # TODO: #1143 handle token limit exceeded error
         response = client.create(
             context=messages[-1].pop("context", None),
             messages=self._oai_system_messages + all_messages,
-            cache=self._client_cache,
+            cache=self.client_cache,
         )
 
         extracted_response = client.extract_text_or_completion_object(response)[0]
 
-        # ensure function and tool calls will be accepted when sent back to the LLM
-        if not isinstance(extracted_response, str):
-            extracted_response = model_dump(extracted_response)  # type: ignore[assignment]
-        if isinstance(extracted_response, dict):
-            if extracted_response.get("function_call"):
-                extracted_response["function_call"]["name"] = self._normalize_name(
-                    extracted_response["function_call"]["name"]
-                )
-            for tool_call in extracted_response.get("tool_calls") or []:
-                tool_call["function"]["name"] = self._normalize_name(tool_call["function"]["name"])
-        return True, extracted_response  # type: ignore[return-value]
+        extracted_response_valid: Union[
+            str, Dict[str, Any], ChatCompletionMessage
+        ] = LLMMiddleware._ensure_function_n_tool_calls_are_valid(extracted_response)
+
+        return True, extracted_response_valid  # type: ignore[return-value]
 
     async def _a_generate_oai_reply(
         self,
@@ -256,25 +280,19 @@ class LLMMiddleware:
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
-        if self._client is None:
+        if self.client is None:
             print(f"No cost incurred from agent '{self._name}'.")
         else:
             print(f"Agent '{self._name}':")
-            self._client.print_usage_summary(mode)
+            self.client.print_usage_summary(mode)
 
-    def get_actual_usage(self) -> Union[None, Dict[str, int]]:
+    def get_actual_usage(self) -> Optional[Dict[str, int]]:
         """Get the actual usage summary."""
-        if self._client is None:
-            return None
-        else:
-            return self._client.actual_usage_summary
+        return self.client if self.client is None else self._client.actual_usage_summary  # type: ignore[union-attr]
 
-    def get_total_usage(self) -> Union[None, Dict[str, int]]:
+    def get_total_usage(self) -> Optional[Dict[str, int]]:
         """Get the total usage summary."""
-        if self._client is None:
-            return None
-        else:
-            return self._client.total_usage_summary
+        return self.client if self.client is None else self.client.total_usage_summary
 
     @staticmethod
     def _normalize_name(name: str) -> str:
