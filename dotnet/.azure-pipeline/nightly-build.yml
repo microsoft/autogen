@@ -10,8 +10,10 @@ variables:
   value: machinelearning-tools
 - name: SignType
   value: Test
-  solution: 'dotnet/AutoGen.sln'
-  buildConfiguration: 'Release'
+- name: buildConfiguration
+  value: Release
+- name: solution
+  value: 'dotnet/AutoGen.sln'
 
 stages:
 #####################################
