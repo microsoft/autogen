@@ -412,7 +412,7 @@ class OpenAIWrapper:
         return activated
 
     def register_model_client(self, model: str, model_client_cls: Client, **kwargs):
-        """Register a model client client.
+        """Register a model client.
 
         Args:
             model: The model name, as specified in the config list
