@@ -427,7 +427,7 @@ class OpenAIWrapper:
 
         if existing_client_class:
             logger.warn(
-                f"Model client {model_client_cls.__name__} is already registered. Add more entires in the config_list to use multiple model clients."
+                f"Model client {model_client_cls.__name__} is already registered. Add more entries in the config_list to use multiple model clients."
             )
         else:
             raise ValueError(
