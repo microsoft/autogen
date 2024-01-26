@@ -189,7 +189,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
 
   const messages = (metadata.messages || []).map((message: any, i: number) => {
     return (
-      <div className="borpder-b mb-2 border-dashed" key={"messagerow" + i}>
+      <div className=" mb-2 border-dashed" key={"messagerow" + i}>
         <GroupView
           title={
             <div className="rounded p-1 px-2 inline-block text-xs bg-secondary">
@@ -211,7 +211,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
   return (
     <div>
       {hasMessages && (
-        <div className="rounded bg-primary p-2">
+        <div className="rounded   bg-primary  ">
           <CollapseBox
             open={false}
             title={`Agent Messages (${messages.length} message${

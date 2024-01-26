@@ -197,40 +197,66 @@ const SessionsView = ({}: any) => {
   }, []);
 
   const sessionRows = sessions.map((data: IChatSession, index: number) => {
-    let items: MenuProps["items"] = [];
-
-    items.push({
-      label: (
-        <div
-          onClick={() => {
-            console.log("deleting session");
-          }}
-        >
-          <TrashIcon
-            role={"button"}
-            title={"Delete"}
-            className="h-4 w-4 mr-1 inline-block"
-          />
-          Delete
-        </div>
-      ),
-      key: "delete",
-    });
-    const menu = (
-      <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
-        <div
-          role="button"
-          className="float-right ml-2 duration-100 hover:bg-secondary font-semibold px-2 pb-1  rounded"
-        >
-          <span className="block -mt-2  "> ...</span>
-        </div>
-      </Dropdown>
-    );
-
     const isSelected = session?.id === data.id;
     const rowClass = isSelected
       ? "bg-accent text-white"
       : "bg-secondary text-primary";
+    let items: MenuProps["items"] = [
+      {
+        label: (
+          <div
+            onClick={() => {
+              console.log("deleting session");
+              deleteSession(data);
+            }}
+          >
+            <TrashIcon
+              role={"button"}
+              title={"Delete"}
+              className="h-4 w-4 mr-1 inline-block"
+            />
+            Delete
+          </div>
+        ),
+        key: "delete",
+      },
+      {
+        label: (
+          <div
+            onClick={() => {
+              console.log("publishing session");
+              publishSession();
+            }}
+          >
+            <GlobeAltIcon
+              role={"button"}
+              title={"Publish"}
+              className="h-4 w-4 mr-1 inline-block"
+            />
+            Publish
+          </div>
+        ),
+        key: "publish",
+      },
+    ];
+
+    items.push();
+    const menu = (
+      <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
+        <div
+          role="button"
+          className={`float-right ml-2 duration-100 hover:bg-secondary font-semibold px-2 pb-1  rounded ${
+            isSelected ? "hover:text-accent" : ""
+          }`}
+        >
+          <span className={`block -mt-2 ${isSelected ? "text-white" : ""}`}>
+            {" "}
+            ...
+          </span>
+        </div>
+      </Dropdown>
+    );
+
     return (
       <div
         key={"sessionsrow" + index}
@@ -250,37 +276,12 @@ const SessionsView = ({}: any) => {
           }}
         >
           <div className="text-xs">{truncateText(data.id, 20)}</div>
-          <div className="text-xs">
+          <div className="text-xs mt-1">
             <Square3Stack3DIcon className="h-4 w-4 inline-block mr-1" />
             {data.flow_config.name}
           </div>
           <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
-        <div className="hidden flex mt-2 text-secondary">
-          <div className="flex-1"></div>
-          <div
-            role="button"
-            onClick={() => {
-              deleteSession(data);
-            }}
-            className="text-xs px-2  hover:text-accent cursor-pointer"
-          >
-            <TrashIcon className="w-4 h-4 inline-block mr-1 " />
-            delete{" "}
-          </div>
-
-          <div
-            role="button"
-            onClick={() => {
-              publishSession();
-            }}
-            className="text-xs px-2  hover:text-accent cursor-pointer"
-          >
-            <GlobeAltIcon className="w-4 h-4 inline-block mr-1 " />
-            publish{" "}
-          </div>
-        </div>
-        {/* <div className="border-b border-dashed mx-2 mt-1"></div> */}
       </div>
     );
   });
@@ -339,9 +340,9 @@ const SessionsView = ({}: any) => {
           )}
           <div
             style={{
-              maxHeight: "300px",
+              maxHeight: skillsMaxHeight,
             }}
-            className="mb-4 overflow-y-scroll scroll rounded relative "
+            className="mb-4 overflow-y-auto scroll rounded relative "
           >
             <LoadingOverlay loading={loading} />
             {sessionRows}

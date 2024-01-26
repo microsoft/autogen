@@ -208,7 +208,7 @@ export const CollapseBox = ({
       </div>
 
       {isOpen && (
-        <div className={`${className} bg-light  rounded rounded-t-none`}>
+        <div className={`${className} bg-tertiary  rounded rounded-t-none`}>
           {children}
         </div>
       )}
@@ -299,7 +299,7 @@ export const GroupView = ({
   return (
     <div className={`rounded mt-4  border-secondary   ${className}`}>
       <div className="mt-4 p-2 rounded border relative">
-        <div className={`absolute  -top-5  p-2 inline-block ${className}`}>
+        <div className={`absolute  -top-3 inline-block ${className}`}>
           {title}
         </div>
         <div className="mt-2"> {children}</div>
