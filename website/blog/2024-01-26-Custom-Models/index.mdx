@@ -17,9 +17,9 @@ An interactive and easy way to get started is by following the notebook [here](h
 
 ### Step 1: Create the custom model client class
 
-To get started with using custom models in AutoGen, you need to create a model client class that adheres to the `Client` protocol defined in `client.py`. The `Client` class should implement these methods:
+To get started with using custom models in AutoGen, you need to create a model client class that adheres to the `ModelClient` protocol defined in `client.py`. The new model client class should implement these methods:
 
-- `create()`: Returns a response object that implements the `ClientResponseProtocol` (more details in the Protocol section).
+- `create()`: Returns a response object that implements the `ModelClientResponseProtocol` (more details in the Protocol section).
 - `message_retrieval()`: Processes the response object and returns a list of strings or a list of message objects (more details in the Protocol section).
 - `cost()`: Returns the cost of the response.
 - `get_usage()`: Returns a dictionary with keys from `RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]`.
@@ -36,7 +36,7 @@ class CustomModelClient:
 
         # can create my own data response class
         # here using SimpleNamespace for simplicity
-        # as long as it adheres to the ClientResponseProtocol
+        # as long as it adheres to the ModelClientResponseProtocol
 
         response = SimpleNamespace()
         response.choices = []
@@ -88,22 +88,22 @@ If a configuration with the field `"model_client_cls":"<class name>"` has been a
 my_agent.register_model_client(model_client_cls=CustomModelClient, [other args that will be forwarded to CustomModelClient constructor])
 ```
 
-`model_client_cls=CustomModelClient` arg matches the one specified in the `OAI_CONFIG_LIST` and `CustomModelClient` is the class that adheres to the `Client` protocol (more details on the protocol below).
+`model_client_cls=CustomModelClient` arg matches the one specified in the `OAI_CONFIG_LIST` and `CustomModelClient` is the class that adheres to the `ModelClient` protocol (more details on the protocol below).
 
 If the new model client is in the config list but not registered by the time the chat is initialized, then an error will be raised.
 
 ## Protocol details
 
-A custom model class can be created in many ways, but needs to adhere to the `Client` protocol and response structure which is defined in `client.py` and shown below.
+A custom model class can be created in many ways, but needs to adhere to the `ModelClient` protocol and response structure which is defined in `client.py` and shown below.
 
 The response protocol is currently using the minimum required fields from the autogen codebase that match the OpenAI response structure. Any response protocol that matches the OpenAI response structure will probably be more resilient to future changes, but we are starting off with minimum requirements to make adpotion of this feature easier.
 
 ```python
 
-class Client(Protocol):
+class ModelClient(Protocol):
     """
     A client class must implement the following methods:
-    - create must return a response object that implements the ClientResponseProtocol
+    - create must return a response object that implements the ModelClientResponseProtocol
     - cost must return the cost of the response
     - get_usage must return a dict with the following keys:
         - prompt_tokens
@@ -113,13 +113,13 @@ class Client(Protocol):
         - model
 
     This class is used to create a client that can be used by OpenAIWrapper.
-    The response returned from create must adhere to the ClientResponseProtocol but can be extended however needed.
+    The response returned from create must adhere to the ModelClientResponseProtocol but can be extended however needed.
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
 
     RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
 
-    class ClientResponseProtocol(Protocol):
+    class ModelClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
                 content: str | None
@@ -127,12 +127,12 @@ class Client(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, params) -> ClientResponseProtocol:
+    def create(self, params) -> ModelClientResponseProtocol:
         ...
 
     def message_retrieval(
-        self, response: ClientResponseProtocol
-    ) -> Union[List[str], List[Client.ClientResponseProtocol.Choice.Message]]:
+        self, response: ModelClientResponseProtocol
+    ) -> Union[List[str], List[ModelClient.ModelClientResponseProtocol.Choice.Message]]:
         """
         Retrieve and return a list of strings or a list of Choice.Message from the response.
 
@@ -141,11 +141,11 @@ class Client(Protocol):
         """
         ...
 
-    def cost(self, response: ClientResponseProtocol) -> float:
+    def cost(self, response: ModelClientResponseProtocol) -> float:
         ...
 
     @staticmethod
-    def get_usage(response: ClientResponseProtocol) -> Dict:
+    def get_usage(response: ModelClientResponseProtocol) -> Dict:
         """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
         ...
 
@@ -156,7 +156,7 @@ class Client(Protocol):
 If something doesn't work then run through the checklist:
 
 - Make sure you have followed the client protocol and client response protocol when creating the custom model class
-  - `create()` method: `ClientResponseProtocol` must be followed when returning an inference response during `create` call.
+  - `create()` method: `ModelClientResponseProtocol` must be followed when returning an inference response during `create` call.
   - `message_retrieval()` method: returns a list of strings or a list of message objects. If a list of message objects is returned, they currently must contain the fields of OpenAI's ChatCompletion Message object, since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
   - `cost()`method: returns an integer, and if you don't care about cost tracking you can just return `0`.
   - `get_usage()`: returns a dictionary, and if you don't care about usage tracking you can just return an empty dictionary `{}`.

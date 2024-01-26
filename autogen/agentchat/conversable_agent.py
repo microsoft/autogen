@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
-from .. import OpenAIWrapper, Client
+from .. import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -1937,7 +1937,7 @@ class ConversableAgent(Agent):
 
         return _decorator
 
-    def register_model_client(self, model_client_cls: Client, **kwargs):
+    def register_model_client(self, model_client_cls: ModelClient, **kwargs):
         """Register a model client.
 
         Args:

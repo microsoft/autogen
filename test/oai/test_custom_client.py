@@ -1,6 +1,6 @@
 import pytest
 from autogen import OpenAIWrapper
-from autogen.oai import Client
+from autogen.oai import ModelClient
 from typing import Dict
 
 try:
