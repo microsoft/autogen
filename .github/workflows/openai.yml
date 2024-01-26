@@ -4,8 +4,7 @@
 name: OpenAI
 
 on:
-  workflow_dispatch:
-  pull_request_target:
+  pull_request:
     types:
       - ready_for_review
     # branches: ["main"]
