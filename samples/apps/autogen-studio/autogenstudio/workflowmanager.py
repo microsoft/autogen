@@ -127,8 +127,10 @@ class AutoGenWorkFlowManager:
                 valid_keys = ["model", "base_url",
                               "api_key", "api_type", "api_version"]
                 # only add key if value is not None
-                config_list.append(
-                    {k: v for k, v in llm.items() if v is not None and k in valid_keys})
+                sanitized_llm = {k: v for k, v in llm.items() if (
+                    v is not None and v != "") and k in valid_keys}
+                config_list.append(sanitized_llm)
+                print(" >> llm config", sanitized_llm)
             agent_spec.config.llm_config.config_list = config_list
         if agent_spec.config.code_execution_config is not False:
             code_execution_config = agent_spec.config.code_execution_config or {}
