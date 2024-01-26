@@ -67,7 +67,7 @@ stages:
     
     - powershell:  |
         echo "Create nightly build package"
-        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build -bl /p:SignType=$(SignType)
+        dotnet pack -c $(buildConfiguration) --output '$(Build.ArtifactStagingDirectory)/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) --no-restore --no-build -bl /p:SignType=Test
         echo "Create release package"
         dotnet pack -c $(buildConfiguration) --output $(Build.ArtifactStagingDirectory) --no-restore --no-build -bl /p:SignType=$(SignType)
         echo "Contents of Build.ArtifactStagingDirectory..."
