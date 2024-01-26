@@ -3,16 +3,16 @@ name: docs
 on:
   pull_request:
     branches: [main]
-    path:
-      - 'autogen/*'
-      - 'website/*'
-      - '.github/workflows/deploy-website.yml'
+    paths:
+      - "autogen/*"
+      - "website/*"
+      - ".github/workflows/deploy-website.yml"
   push:
     branches: [main]
-    path:
-      - 'autogen/*'
-      - 'website/*'
-      - '.github/workflows/deploy-website.yml'
+    paths:
+      - "autogen/*"
+      - "website/*"
+      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
   merge_group:
     types: [checks_requested]

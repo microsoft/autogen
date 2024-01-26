@@ -1,7 +1,7 @@
 name: Code formatting
 
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on pull request or merge
+on: # Trigger the workflow on pull request or merge
   pull_request:
   merge_group:
     types: [checks_requested]
@@ -10,12 +10,7 @@ defaults:
   run:
     shell: bash
 permissions: {}
-    # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
 jobs:
-
   pre-commit-check:
     runs-on: ubuntu-latest
     steps:

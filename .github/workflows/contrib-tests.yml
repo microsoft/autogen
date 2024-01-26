@@ -16,10 +16,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 permissions: {}
-    # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
 jobs:
   RetrieveChatTest:
     runs-on: ${{ matrix.os }}
@@ -227,7 +223,7 @@ jobs:
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
       - name: Test WebSurfer
-        if: matrix.python-version != '3.10'  # diversify the python versions
+        if: matrix.python-version != '3.10' # diversify the python versions
         run: |
           pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
       - name: Coverage

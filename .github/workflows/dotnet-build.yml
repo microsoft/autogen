@@ -5,9 +5,9 @@ name: dotnet-ci
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
-      - 'dotnet/**'
+      - "dotnet/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -24,14 +24,14 @@ jobs:
       run:
         working-directory: dotnet
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        global-json-file: global.json
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Unit Test
-      run: dotnet test --no-build --verbosity normal
+      - uses: actions/checkout@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          global-json-file: global.json
+      - name: Restore dependencies
+        run: dotnet restore
+      - name: Build
+        run: dotnet build --no-restore
+      - name: Unit Test
+        run: dotnet test --no-build --verbosity normal
