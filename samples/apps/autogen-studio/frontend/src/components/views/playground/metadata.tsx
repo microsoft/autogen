@@ -94,7 +94,9 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_csv) {
       fileView = (
         <div className="h">
-          <a href={`${serverUrl}/${file_path}`}><div className="mb-4">{fileTitle}</div></a>
+          <a href={`${serverUrl}/${file_path}`}>
+            <div className="mb-4">{fileTitle}</div>
+          </a>
           <CsvLoader
             csvUrl={`${serverUrl}/${file_path}`}
             className="w-full rounded"
@@ -117,7 +119,9 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_code) {
       fileView = (
         <div className="h">
-          <a href={`${serverUrl}/${file_path}`} target="_blank"><div className="mb-4">{fileTitle}</div></a>
+          <a href={`${serverUrl}/${file_path}`} target="_blank">
+            <div className="mb-4">{fileTitle}</div>
+          </a>
           <CodeLoader
             url={`${serverUrl}/${file_path}`}
             className="w-full rounded"
@@ -140,7 +144,11 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_pdf) {
       fileView = (
         <div className="h-full">
-          <div className="mb-4"><a href={`${serverUrl}/${file_path}`} target="_blank">{fileTitle}</a></div>
+          <div className="mb-4">
+            <a href={`${serverUrl}/${file_path}`} target="_blank">
+              {fileTitle}
+            </a>
+          </div>
           <PdfViewer url={`${serverUrl}/${file_path}`} />
         </div>
       );
