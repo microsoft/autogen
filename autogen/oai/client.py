@@ -392,19 +392,23 @@ class OpenAIWrapper:
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         api_type = config.get("api_type")
-        if api_type is None:
-            self._clients.append(OpenAIClient(OpenAI(**openai_config)))
+        model_client_cls_name = config.get("model_client_cls")
+        if model_client_cls_name is not None:
+            # a config for a custom client is set
+            # adding placeholder until the register_model_client is called with the appropriate class
+            self._clients.append(PlaceHolderClient(config))
+            logger.info(
+                f"Detected custom model client in config: {model_client_cls_name}, model client can not be used until register_model_client is called."
+            )
         else:
-            if api_type.startswith("azure"):
-                self._configure_azure_openai(config, openai_config)
-                self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
+            if api_type is None:
+                self._clients.append(OpenAIClient(OpenAI(**openai_config)))
             else:
-                # else a config for a custom client is set
-                # skipping until the register_model_client is called with the appropriate class
-                self._clients.append(PlaceHolderClient(config))
-                logger.info(
-                    f"Detected custom model client in config: {api_type}, skipping registration until register_model_client is called."
-                )
+                if api_type.startswith("azure"):
+                    self._configure_azure_openai(config, openai_config)
+                    self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
+                else:
+                    raise ValueError(f"api_type {api_type} is not supported.")
 
     def register_model_client(self, model_client_cls: Client, **kwargs):
         """Register a model client.
@@ -419,7 +423,7 @@ class OpenAIWrapper:
                 placeholder_config = client.config
 
                 if placeholder_config in self._config_list:
-                    if placeholder_config.get("api_type") == model_client_cls.__name__:
+                    if placeholder_config.get("model_client_cls") == model_client_cls.__name__:
                         self._clients[i] = model_client_cls(placeholder_config, **kwargs)
                         return
             elif isinstance(client, model_client_cls):
@@ -432,7 +436,7 @@ class OpenAIWrapper:
         else:
             raise ValueError(
                 f'Model client "{model_client_cls.__name__}" is being registered but was not found in the config_list. '
-                f'Please make sure to include an entry in the config_list with "api_type": "{model_client_cls.__name__}"'
+                f'Please make sure to include an entry in the config_list with "model_client_cls": "{model_client_cls.__name__}"'
             )
 
     @classmethod
@@ -520,7 +524,9 @@ class OpenAIWrapper:
                 "No model client is active. Please populate the config list or register any custom model clients."
             )
         # Check if all configs in config list are activated
-        non_activated = [client.config["api_type"] for client in self._clients if isinstance(client, PlaceHolderClient)]
+        non_activated = [
+            client.config["model_client_cls"] for client in self._clients if isinstance(client, PlaceHolderClient)
+        ]
         if non_activated:
             raise RuntimeError(
                 f"Model client(s) {non_activated} are not activated. Please register the custom model clients using `register_model_client` or filter them out form the config list."

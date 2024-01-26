@@ -62,7 +62,7 @@ def test_custom_model_client():
     config_list = [
         {
             "model": TEST_LOCAL_MODEL_NAME,
-            "api_type": "CustomModel",
+            "model_client_cls": "CustomModel",
             "device": TEST_DEVICE,
             "params": {
                 "max_length": TEST_MAX_LENGTH,
@@ -109,7 +109,7 @@ def test_registering_with_wrong_class_name_raises_error():
     config_list = [
         {
             "model": "local_model_name",
-            "api_type": "CustomModelWrongName",
+            "model_client_cls": "CustomModelWrongName",
         },
     ]
     client = OpenAIWrapper(config_list=config_list)
@@ -123,7 +123,7 @@ def test_no_client_registered_raises_error():
     config_list = [
         {
             "model": "local_model_name",
-            "api_type": "CustomModel",
+            "model_client_cls": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
@@ -160,7 +160,7 @@ def test_not_all_clients_registered_raises_error():
     config_list = [
         {
             "model": "local_model_name",
-            "api_type": "CustomModel",
+            "model_client_cls": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
@@ -169,7 +169,7 @@ def test_not_all_clients_registered_raises_error():
         },
         {
             "model": "local_model_name_2",
-            "api_type": "CustomModel",
+            "model_client_cls": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
