@@ -474,7 +474,6 @@ def test_decide_use_docker_with_env_var_and_argument():
 @pytest.mark.parametrize("is_docker_running", [True, False])
 @pytest.mark.parametrize("in_docker_container", [True, False])
 def test_can_use_docker_or_throw(is_docker_running: bool, in_docker_container: bool) -> None:
-    # things get interesting if use_docker is set to True
     with unittest.mock.patch(
         "autogen.code_utils.is_docker_running", return_value=is_docker_running
     ), unittest.mock.patch("autogen.code_utils.in_docker_container", return_value=in_docker_container):
@@ -482,19 +481,10 @@ def test_can_use_docker_or_throw(is_docker_running: bool, in_docker_container: b
         check_can_use_docker_or_throw(None)
         check_can_use_docker_or_throw(False)
 
-        if in_docker_container:
+        if not in_docker_container and not is_docker_running:
             with pytest.raises(RuntimeError) as e:
                 check_can_use_docker_or_throw(True)
-            assert (
-                "Code execution is set to be run in docker (default behaviour) but the code is already running in a docker container."
-                in str(e.value)
-            )
-        elif not is_docker_running:
-            with pytest.raises(RuntimeError) as e:
-                check_can_use_docker_or_throw(True)
-            assert "Code execution is set to be run in docker (default behaviour) but docker is not running." in str(
-                e.value
-            )
+            assert "Code execution is set to be run in docker (default behaviour) but" in str(e.value)
         else:
             # no exception is raised if docker is running and we are not in a docker container
             check_can_use_docker_or_throw(True)

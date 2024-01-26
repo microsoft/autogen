@@ -768,7 +768,7 @@ class ConversableAgent(Agent):
         """Generate a reply using code execution."""
         if messages is None:
             messages = self.chat_messages[sender]
-        return self._code_execution._generate_code_execution_reply(messages, config)
+        return self._code_execution.call(messages, sender, config=config)
 
     def generate_function_call_reply(
         self,

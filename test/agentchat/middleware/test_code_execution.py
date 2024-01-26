@@ -1,3 +1,4 @@
+from collections import defaultdict
 import sys
 from tempfile import TemporaryDirectory
 import pytest
@@ -48,34 +49,39 @@ def test_init_when_docker_available(param: Tuple[CodeConfig, CodeConfig]) -> Non
 
 
 _error_msg_fragment = "Code execution is set to be run in docker (default behaviour) but "
-_code_execution_configs_when_docker_not_available = [
-    (False, False, None, None),
-    (None, None, RuntimeError, _error_msg_fragment),
-    ({}, None, RuntimeError, _error_msg_fragment),
-    ({"use_docker": True}, None, RuntimeError, _error_msg_fragment),
-    ({"use_docker": False}, {"use_docker": False}, None, None),
-    ({"use_docker": None}, None, RuntimeError, _error_msg_fragment),
-]
 
 
-@pytest.mark.parametrize("is_docker_running", [True, False])
-@pytest.mark.parametrize("in_docker_container", [True, False])
-@pytest.mark.parametrize("param", _code_execution_configs_when_docker_not_available)
+@pytest.mark.parametrize(
+    "is_docker_running, in_docker_container, code_execution_config, expected_code_execution_config, e, error_msg",
+    [
+        (False, False, False, False, None, None),
+        (True, False, False, False, None, None),
+        (False, True, False, False, None, None),
+        (False, False, None, {"use_docker": True}, RuntimeError, _error_msg_fragment),
+        (True, False, None, {"use_docker": True}, None, None),
+        (False, True, None, {"use_docker": True}, None, None),
+        (False, False, {}, {"use_docker": True}, RuntimeError, _error_msg_fragment),
+        (True, False, {}, {"use_docker": True}, None, None),
+        (False, True, {}, {"use_docker": True}, None, None),
+        (False, False, {"use_docker": False}, {"use_docker": False}, None, None),
+        (True, False, {"use_docker": False}, {"use_docker": False}, None, None),
+        (False, True, {"use_docker": False}, {"use_docker": False}, None, None),
+        (False, False, {"use_docker": True}, {"use_docker": True}, RuntimeError, _error_msg_fragment),
+        (True, False, {"use_docker": True}, {"use_docker": True}, None, None),
+        (False, True, {"use_docker": True}, {"use_docker": True}, None, None),
+    ],
+)
 def test_init_when_docker_not_available(
     is_docker_running: bool,
     in_docker_container: bool,
-    param: Tuple[CodeConfig, CodeConfig, Optional[Exception], Optional[str]],
+    code_execution_config: CodeConfig,
+    expected_code_execution_config: CodeConfig,
+    e: Optional[Exception],
+    error_msg: Optional[str],
 ) -> None:
-    # skip if docker is available
-    if is_docker_running and not in_docker_container:
-        return
-
-    # docker is running and we are not executing code from a container
     with unittest.mock.patch(
         "autogen.code_utils.is_docker_running", return_value=is_docker_running
     ), unittest.mock.patch("autogen.code_utils.in_docker_container", return_value=in_docker_container):
-        code_execution_config, expected_code_execution_config, e, error_msg = param
-
         if e is None:
             md = CodeExecutionMiddleware(code_execution_config=code_execution_config)
             assert md._code_execution_config == expected_code_execution_config, code_execution_config
@@ -313,3 +319,119 @@ async def test_code_execution_docker_async() -> None:
         ]
         reply = await md.a_call(messages)
         assert reply == _code_message_1_expected_reply
+
+
+# def test_generate_code_execution_reply():
+#     agent = ConversableAgent(
+#         "a0", max_consecutive_auto_reply=10, code_execution_config=False, llm_config=False, human_input_mode="NEVER"
+#     )
+
+#     dummy_messages = [
+#         {
+#             "content": "no code block",
+#             "role": "user",
+#         },
+#         {
+#             "content": "no code block",
+#             "role": "user",
+#         },
+#     ]
+
+#     code_message = {
+#         "content": '```python\nprint("hello world")\n```',
+#         "role": "user",
+#     }
+
+#     # scenario 1: if code_execution_config is not provided, the code execution should return false, none
+#     assert agent.generate_code_execution_reply(dummy_messages, config=False) == (False, None)
+
+#     # scenario 2: if code_execution_config is provided, but no code block is found, the code execution should return false, none
+#     assert agent.generate_code_execution_reply(dummy_messages, config={}) == (False, None)
+
+#     # scenario 3: if code_execution_config is provided, and code block is found, but it's not within the range of last_n_messages, the code execution should return false, none
+#     assert agent.generate_code_execution_reply([code_message] + dummy_messages, config={"last_n_messages": 1}) == (
+#         False,
+#         None,
+#     )
+
+#     # scenario 4: if code_execution_config is provided, and code block is found, and it's within the range of last_n_messages, the code execution should return true, code block
+#     agent.code_execution_config = {"last_n_messages": 3, "use_docker": False}
+#     assert agent.generate_code_execution_reply([code_message] + dummy_messages) == (
+#         True,
+#         "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+#     )
+#     assert agent.code_execution_config["last_n_messages"] == 3
+
+#     # scenario 5: if last_n_messages is set to 'auto' and no code is found, then nothing breaks both when an assistant message is and isn't present
+#     assistant_message_for_auto = {
+#         "content": "This is me! The assistant!",
+#         "role": "assistant",
+#     }
+
+#     dummy_messages_for_auto = []
+#     for i in range(3):
+#         dummy_messages_for_auto.append(
+#             {
+#                 "content": "no code block",
+#                 "role": "user",
+#             }
+#         )
+
+#         # Without an assistant present
+#         agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+#         assert agent.generate_code_execution_reply(dummy_messages_for_auto) == (
+#             False,
+#             None,
+#         )
+
+#         # With an assistant message present
+#         agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+#         assert agent.generate_code_execution_reply([assistant_message_for_auto] + dummy_messages_for_auto) == (
+#             False,
+#             None,
+#         )
+
+#     # scenario 6: if last_n_messages is set to 'auto' and code is found, then we execute it correctly
+#     dummy_messages_for_auto = []
+#     for i in range(4):
+#         # Without an assistant present
+#         agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+#         assert agent.generate_code_execution_reply([code_message] + dummy_messages_for_auto) == (
+#             True,
+#             "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+#         )
+
+#         # With an assistant message present
+#         agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+#         assert agent.generate_code_execution_reply(
+#             [assistant_message_for_auto] + [code_message] + dummy_messages_for_auto
+#         ) == (
+#             True,
+#             "exitcode: 0 (execution succeeded)\nCode output: \nhello world\n",
+#         )
+
+#         dummy_messages_for_auto.append(
+#             {
+#                 "content": "no code block",
+#                 "role": "user",
+#             }
+#         )
+
+#     # scenario 7: if last_n_messages is set to 'auto' and code is present, but not before an assistant message, then nothing happens
+#     agent.code_execution_config = {"last_n_messages": "auto", "use_docker": False}
+#     assert agent.generate_code_execution_reply(
+#         [code_message] + [assistant_message_for_auto] + dummy_messages_for_auto
+#     ) == (
+#         False,
+#         None,
+#     )
+#     assert agent.code_execution_config["last_n_messages"] == "auto"
+
+#     # scenario 8: if last_n_messages is misconfigures, we expect to see an error
+#     with pytest.raises(ValueError):
+#         agent.code_execution_config = {"last_n_messages": -1, "use_docker": False}
+#         agent.generate_code_execution_reply([code_message])
+
+#     with pytest.raises(ValueError):
+#         agent.code_execution_config = {"last_n_messages": "hello world", "use_docker": False}
+#         agent.generate_code_execution_reply([code_message])

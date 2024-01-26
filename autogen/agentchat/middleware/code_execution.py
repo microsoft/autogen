@@ -59,6 +59,7 @@ class CodeExecutionMiddleware:
         messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
+        config: Optional[CodeConfig] = None,
     ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
@@ -70,35 +71,18 @@ class CodeExecutionMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        code_execution_config = self._code_execution_config
-
-        if code_execution_config is False:
+        final, reply = self._generate_code_execution_reply(messages)
+        if final:
+            return reply
+        else:
             return next(messages, sender)  # type: ignore[no-any-return, misc]
-
-        last_n_messages = self._get_last_n_messages(code_execution_config)
-
-        no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
-
-        messages_to_scan = messages[-no_messages_to_scan:][::-1]
-        code_blocks = self._get_code_blocks(messages_to_scan)
-        if code_blocks is not None:
-            # found code blocks, execute code and push "last_n_messages" back
-            exitcode, logs = self._execute_code_blocks(code_blocks)
-
-            code_execution_config["last_n_messages"] = last_n_messages
-            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            return f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
-
-        # no code blocks are found, push last_n_messages back and return.
-        code_execution_config["last_n_messages"] = last_n_messages
-
-        return next(messages, sender)  # type: ignore[no-any-return, misc]
 
     async def a_call(
         self,
         messages: List[Dict[str, Any]],
         sender: Optional[Agent] = None,
         next: Optional[Callable[..., Any]] = None,
+        config: Optional[CodeConfig] = None,
     ) -> Optional[Union[str, Dict[str, Any]]]:
         """Call the middleware.
 
@@ -110,29 +94,11 @@ class CodeExecutionMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        code_execution_config = self._code_execution_config
-
-        if code_execution_config is False:
+        final, reply = await self._a_generate_code_execution_reply(messages)
+        if final:
+            return reply
+        else:
             return await next(messages, sender)  # type: ignore[no-any-return, misc]
-
-        last_n_messages = self._get_last_n_messages(code_execution_config)
-
-        no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
-
-        messages_to_scan = messages[-no_messages_to_scan:][::-1]
-        code_blocks = self._get_code_blocks(messages_to_scan)
-        if code_blocks is not None:
-            # found code blocks, execute code and push "last_n_messages" back
-            exitcode, logs = await sync_to_async()(self._execute_code_blocks)(code_blocks)  # type: ignore[misc]
-
-            code_execution_config["last_n_messages"] = last_n_messages
-            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            return f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
-
-        # no code blocks are found, push last_n_messages back and return.
-        code_execution_config["last_n_messages"] = last_n_messages
-
-        return await next(messages, sender)  # type: ignore[no-any-return, misc]
 
     @property
     def use_docker(self) -> Union[bool, str, None]:
@@ -234,3 +200,52 @@ class CodeExecutionMiddleware:
                 break  # pragma: no cover
 
         return exitcode, logs_all
+
+    def _generate_code_execution_reply(
+        self, messages: List[Dict[str, Any]], config: Optional[CodeConfig] = None
+    ) -> Tuple[bool, Optional[str]]:
+        code_execution_config = self._code_execution_config if config is None else config
+
+        if code_execution_config is not False:
+            last_n_messages = self._get_last_n_messages(code_execution_config)
+
+            no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
+
+            messages_to_scan = messages[-no_messages_to_scan:][::-1]
+            code_blocks = self._get_code_blocks(messages_to_scan)
+            if code_blocks is not None:
+                # found code blocks, execute code and push "last_n_messages" back
+                exitcode, logs = self._execute_code_blocks(code_blocks)
+
+                code_execution_config["last_n_messages"] = last_n_messages
+                exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+                return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+            # no code blocks are found, push last_n_messages back and return.
+            code_execution_config["last_n_messages"] = last_n_messages
+
+        return False, None
+
+    async def _a_generate_code_execution_reply(
+        self, messages: List[Dict[str, Any]], config: Optional[CodeConfig] = None
+    ) -> Tuple[bool, Optional[str]]:
+        code_execution_config = self._code_execution_config if config is None else config
+
+        if code_execution_config is not False:
+            last_n_messages = self._get_last_n_messages(code_execution_config)
+
+            no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
+
+            messages_to_scan = messages[-no_messages_to_scan:][::-1]
+            code_blocks = self._get_code_blocks(messages_to_scan)
+            if code_blocks is not None:
+                # found code blocks, execute code and push "last_n_messages" back
+                exitcode, logs = await sync_to_async()(self._execute_code_blocks)(code_blocks)  # type: ignore[misc]
+                code_execution_config["last_n_messages"] = last_n_messages
+                exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+                return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+            # no code blocks are found, push last_n_messages back and return.
+            code_execution_config["last_n_messages"] = last_n_messages
+
+        return False, None
