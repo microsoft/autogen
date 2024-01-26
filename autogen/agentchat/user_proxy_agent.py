@@ -30,6 +30,7 @@ class UserProxyAgent(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
+        skill_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
@@ -55,6 +56,7 @@ class UserProxyAgent(ConversableAgent):
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions.
+            skill_map (dict[str, callable]): Mapping skill names to callable functions.
             code_execution_config (dict or False): config for the code execution.
                 To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
                 - work_dir (Optional, str): The working directory for the code execution.
@@ -86,6 +88,7 @@ class UserProxyAgent(ConversableAgent):
             max_consecutive_auto_reply=max_consecutive_auto_reply,
             human_input_mode=human_input_mode,
             function_map=function_map,
+            skill_map=skill_map,
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,

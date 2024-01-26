@@ -1,3 +1,4 @@
+import os
 import asyncio
 import copy
 import functools
@@ -21,7 +22,7 @@ from ..code_utils import (
     infer_lang,
 )
 
-
+from ..skill_utils import skills_to_prompt, function_to_skill, skills_to_module
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent
 from .._pydantic import model_dump
@@ -69,6 +70,7 @@ class ConversableAgent(Agent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
+        skill_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
@@ -94,6 +96,7 @@ class ConversableAgent(Agent):
                 (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             function_map (dict[str, callable]): Mapping function names (passed to openai) to callable functions, also used for tool calls.
+            skill_map (dict[str, callable]): Mapping skill names to callable functions.
             code_execution_config (dict or False): config for the code execution.
                 To disable code execution, set to False. Otherwise, set to a dictionary with the following keys:
                 - work_dir (Optional, str): The working directory for the code execution.
@@ -160,6 +163,16 @@ class ConversableAgent(Agent):
             if function_map is None
             else {name: callable for name, callable in function_map.items() if self._assert_valid_name(name)}
         )
+        self._skill_map = (
+            {}
+            if skill_map is None
+            else {
+                name: function_to_skill(callable)
+                for name, callable in skill_map.items()
+                if self._assert_valid_name(name)
+            }
+        )
+        self._register_skills()
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self._ignore_async_func_in_sync_chat_list = []
@@ -355,6 +368,27 @@ class ConversableAgent(Agent):
         if len(name) > 64:
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
         return name
+
+    def _register_skills(self):
+        """Update the system message and the working directory with the registered skills."""
+        self._update_oai_system_message_with_skills()
+        self._update_work_dir_with_skills()
+
+    def _update_oai_system_message_with_skills(self):
+        """Update the system message with the registered skills."""
+        if self._skill_map:
+            skills_prompt = skills_to_prompt(self._skill_map.values())
+            self._oai_system_message[0]["content"] += skills_prompt
+
+    def _update_work_dir_with_skills(self, skills_module="skills.py"):
+        """Update the working directory with a python file/module containing the registered skills."""
+        if not self._code_execution_config:
+            return
+
+        work_dir = self._code_execution_config.get("work_dir", None)
+        if self._skill_map and work_dir is not None:
+            filename = os.path.join(work_dir, skills_module)
+            skills_to_module(self._skill_map.values(), filename)
 
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
