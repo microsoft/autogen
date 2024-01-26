@@ -686,6 +686,14 @@ class ConversableAgent(Agent):
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
+                "takeaway_method" can be used to specify the method to extract the takeaway from the chat.
+                    Supported methods are "last_msg" and "llm".
+                    when set "last_msg", it returns the last message of the dialog as the takeaway.
+                    when set "llm", it returns the takeaway extracted using an llm client.
+                    "llm" requires the llm_config to be set in either the sender or the recipient.
+                "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "llm".
+                    Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                    "Identify and extract the final solution to the originally asked question based on the conversation."
 
         Raises:
             RuntimeError: if any async reply functions are registered and not ignored in sync chat.
@@ -699,7 +707,7 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        return self.get_chat_takeaway(context.get("takeaway_method"), recipient)
+        return self.get_chat_takeaway(context.get("takeaway_method"), recipient, prompt=context.get("takeaway_prompt"))
 
     async def a_initiate_chat(
         self,
@@ -732,16 +740,16 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        return self.get_chat_takeaway(context.get("takeaway_method"), recipient)
+        return self.get_chat_takeaway(
+            context.get("takeaway_method"), recipient, takeaway_prompt=context.get("takeaway_prompt")
+        )
 
-    def get_chat_takeaway(
-        self, takeaway_method, target_agent: Optional[Agent] = None, prompt: Optional[str] = None
-    ) -> str:
+    def get_chat_takeaway(self, method, target_agent: Optional[Agent] = None, prompt: Optional[str] = None) -> str:
         """Get the chat takeaway from an agent participating in a chat.
         Could be overridden by the agent to provide a custom chat takeaway.
 
         Args:
-            takeaway_method (str): the method to extract the takeaway.
+            method (str): the method to extract the takeaway.
             agent: the participating agent in a chat.
             prompt (str): the prompt used to extract the takeaway when takeaway_method is "llm".
             Default is None and the following default prompt will be used:
@@ -752,13 +760,13 @@ class ConversableAgent(Agent):
         """
         agent = target_agent if target_agent is not None else self
         takeaway = ""
-        if takeaway_method == "last_msg":
+        if method == "last_msg":
             try:
                 takeaway = agent.last_message(self)["content"]
                 takeaway = takeaway.replace("TERMINATE", "")
             except (IndexError, AttributeError):
                 warnings.warn("Cannot extract takeaway from last message.", UserWarning)
-        elif takeaway_method == "llm":
+        elif method == "llm":
             prompt = (
                 "Identify and extract the final solution to the originally asked question based on the conversation."
                 if prompt is None
