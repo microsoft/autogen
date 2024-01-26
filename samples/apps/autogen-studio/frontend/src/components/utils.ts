@@ -197,6 +197,25 @@ export const guid = () => {
 };
 
 /**
+ * Takes a string and returns the first n characters followed by asterisks.
+ * @param {string} str - The string to obscure
+ * @param {number} n - Number of characters to show before obscuring
+ * @returns {string} The obscured string with first n characters in clear text
+ */
+export const obscureString = (str: string, n: number = 3) => {
+  if (n < 0 || n > str.length) {
+    console.log("n cannot be less than 0 or greater than the string length.");
+    return str;
+  }
+  // First n characters in clear text
+  var clearText = str.substring(0, n);
+  // Remaining characters replaced with asterisks
+  var obscured = clearText + "*".repeat(str.length - n);
+
+  return obscured;
+};
+
+/**
  * Converts a number of seconds into a human-readable string representing the duration in days, hours, minutes, and seconds.
  * @param {number} seconds - The number of seconds to convert.
  * @returns {string} A well-formatted duration string.

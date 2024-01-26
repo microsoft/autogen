@@ -31,7 +31,7 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { fetchJSON, getServerUrl, truncateText } from "./utils";
+import { fetchJSON, getServerUrl, obscureString, truncateText } from "./utils";
 import {
   IAgentFlowSpec,
   IFlowConfig,
@@ -801,6 +801,7 @@ export const ModelSelector = ({
       <>
         <div>{config.model}</div>
         {config.base_url && <div>{config.base_url}</div>}
+        {config.api_key && <div>{obscureString(config.api_key, 3)}</div>}
         <div className="text-xs text-accent">
           {truncateText(config.description || "", 90)}
         </div>

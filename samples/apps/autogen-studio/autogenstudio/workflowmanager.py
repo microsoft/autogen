@@ -1,3 +1,4 @@
+import os
 from typing import List, Optional
 from dataclasses import asdict
 import autogen
@@ -119,6 +120,10 @@ class AutoGenWorkFlowManager:
             config_list = []
             for llm in agent_spec.config.llm_config.config_list:
                 print(" >> llm config", llm)
+                # check if api_key is present either in llm or env variable
+                if "api_key" not in llm and "OPENAI_API_KEY" not in os.environ:
+                    error_message = f"api_key is not present in llm_config or OPENAI_API_KEY env variable for agent ** {agent_spec.name}**. Update your workflow to provide an api_key to use the LLM."
+                    raise ValueError(error_message)
                 valid_keys = ["model", "base_url",
                               "api_key", "api_type", "api_version"]
                 # only add key if value is not None
