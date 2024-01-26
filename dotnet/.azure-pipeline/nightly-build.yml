@@ -26,7 +26,7 @@ stages:
   - job: Build
     displayName: Build
     pool:
-      vmImage: 'ubuntu-latest'
+      name: VSEngSS-MicroBuild2022-1ES
     workspace:
       clean: all
 
