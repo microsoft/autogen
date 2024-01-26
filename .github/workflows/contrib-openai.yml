@@ -5,17 +5,14 @@ name: OpenAI4ContribTests
 
 on:
   pull_request_target:
-    branches: ['main']
+    types: [ready_for_review]
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/agentchat/contrib/**'
-      - '.github/workflows/contrib-openai.yml'
-      - 'setup.py'
+      - "autogen/**"
+      - "test/agentchat/contrib/**"
+      - ".github/workflows/contrib-openai.yml"
+      - "setup.py"
 permissions: {}
-    # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
 jobs:
   RetrieveChatTest:
     strategy:
@@ -183,8 +180,8 @@ jobs:
   AgentBuilder:
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        python-version: [ "3.11" ]
+        os: [ubuntu-latest]
+        python-version: ["3.11"]
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
