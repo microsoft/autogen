@@ -734,21 +734,24 @@ class ConversableAgent(Agent):
             agent.previous_cache = None
         return self.get_chat_takeaway(context.get("takeaway_method"), recipient)
 
-    def get_chat_takeaway(self, takeaway_method, target_agent=None) -> str:
+    def get_chat_takeaway(
+        self, takeaway_method, target_agent: Optional[Agent] = None, prompt: Optional[str] = None
+    ) -> str:
         """Get the chat takeaway from an agent participating in a chat.
         Could be overridden by the agent to provide a custom chat takeaway.
 
         Args:
+            takeaway_method (str): the method to extract the takeaway.
             agent: the participating agent in a chat.
+            prompt (str): the prompt used to extract the takeaway when takeaway_method is "llm".
+            Default is None and the following default prompt will be used:
+                "Identify and extract the final solution to the originally asked question based on the conversation."
 
         Returns:
             str: the chat takeaway from the agent.
         """
         agent = target_agent if target_agent is not None else self
         takeaway = ""
-        extraction_prompt = (
-            "Identify and extract the final solution to the originally asked question based on the conversation."
-        )
         if takeaway_method == "last_msg":
             try:
                 takeaway = agent.last_message(self)["content"]
@@ -756,12 +759,17 @@ class ConversableAgent(Agent):
             except (IndexError, AttributeError):
                 warnings.warn("Cannot extract takeaway from last message.", UserWarning)
         elif takeaway_method == "llm":
-            takeaway = self._llm_response_preparer(extraction_prompt, agent._oai_messages[self], target_agent)
+            prompt = (
+                "Identify and extract the final solution to the originally asked question based on the conversation."
+                if prompt is None
+                else prompt
+            )
+            takeaway = self._llm_response_preparer(prompt, agent._oai_messages[self], target_agent)
         else:
-            warnings.warn("No takeaway_method provided or takeaway_method is not supported: ", UserWarning)
+            warnings.warn("No takeaway_method provided or takeaway_method is not supported: ")
         return takeaway
 
-    def _llm_response_preparer(self, prompt, messages, llm_agent=None):
+    def _llm_response_preparer(self, prompt, messages, llm_agent: Optional[Agent] = None) -> str:
         """Default takeaway preparer with llm
 
         Args:
