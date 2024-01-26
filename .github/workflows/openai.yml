@@ -17,6 +17,13 @@ on:
 permissions: {}
 
 jobs:
+  check_event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Event
+        run: |
+          echo "Event Name: $GITHUB_EVENT_NAME"
+          echo "Event Path: $GITHUB_EVENT_PATH"
   test:
     strategy:
       matrix:
