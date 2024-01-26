@@ -126,7 +126,11 @@ def test_cost(cache_seed):
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_usage_summary():
-    config_list = config_list_openai_aoai(KEY_LOC)
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo-instruct"]},
+    )
     client = OpenAIWrapper(config_list=config_list)
     model = "gpt-3.5-turbo-instruct"
     response = client.create(prompt="1+3=", model=model, cache_seed=None)
@@ -138,12 +142,6 @@ def test_usage_summary():
     # check print
     client.print_usage_summary()
 
-    # check update
-    response = client.create(prompt="1+3=", model=model, cache_seed=None)
-    assert (
-        client.total_usage_summary["total_cost"] == response.cost * 2
-    ), "total_cost should be equal to response.cost * 2"
-
     # check clear
     client.clear_usage_summary()
     assert client.actual_usage_summary is None, "actual_usage_summary should be None"
@@ -152,7 +150,15 @@ def test_usage_summary():
     # actual usage and all usage should be different
     response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    client.clear_usage_summary()
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
+
+    # check update
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    assert (
+        client.total_usage_summary["total_cost"] == response.cost * 2
+    ), "total_cost should be equal to response.cost * 2"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
