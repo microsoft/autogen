@@ -172,6 +172,9 @@ test/my_tmp/*
 # Storage for the AgentEval output
 test/test_files/agenteval-in-out/out/
 
+# backup files
+*.bak
+
 # Files created by tests
 *tmp_code_*
 test/agentchat/test_agent_scripts/*

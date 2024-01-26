@@ -238,7 +238,8 @@ def is_docker_running() -> bool:
         client = docker.from_env()
         client.ping()
         return True
-    except docker.errors.DockerException:
+    except docker.errors.DockerException as e:
+        logger.warning(f"Failed to check if docker is running: {e}")
         return False
 
 

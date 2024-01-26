@@ -68,7 +68,10 @@ def test_agent_setup_with_env_variable_false_and_docker_running():
     restore_autogen_env_var(current_env_value)
 
 
-@pytest.mark.skipif(skip or (not docker_running()), reason="openai not installed OR docker not running")
+@pytest.mark.skipif(
+    skip or (not docker_running() or in_docker_container),
+    reason="openai not installed OR docker not running OR in docker container",
+)
 def test_agent_setup_with_default_and_docker_running():
     user_proxy = UserProxyAgent(
         name="test_agent",
@@ -102,7 +105,10 @@ def test_raises_error_agent_setup_with_env_variable_true_and_docker_not_running(
     restore_autogen_env_var(current_env_value)
 
 
-@pytest.mark.skipif(skip or (not docker_running()), reason="openai not installed OR docker not running")
+@pytest.mark.skipif(
+    skip or (not docker_running() or in_docker_container()),
+    reason="openai not installed OR docker not running OR in docker container",
+)
 def test_agent_setup_with_env_variable_true_and_docker_running():
     current_env_value = get_current_autogen_env_var()
 

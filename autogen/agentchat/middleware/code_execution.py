@@ -1,4 +1,7 @@
+import logging
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
+from ...asyncio_utils import sync_to_async
 
 from ...code_utils import (
     UNKNOWN,
@@ -10,6 +13,12 @@ from ...code_utils import (
 )
 from ...tty_utils import colored
 from ..agent import Agent
+
+__all__ = ["CodeConfig", "CodeExecutionMiddleware"]
+
+CodeConfig = Union[Dict[str, Any], Literal[False]]
+
+logger = logging.getLogger(__name__)
 
 
 class CodeExecutionMiddleware:
@@ -36,11 +45,9 @@ class CodeExecutionMiddleware:
 
     def __init__(
         self,
-        code_execution_config: Optional[Union[Dict[str, Any], Literal[False]]] = None,
+        code_execution_config: Optional[CodeConfig] = None,
     ):
-        self._code_execution_config: Union[Dict[str, Any], Literal[False]] = (
-            {} if code_execution_config is None else code_execution_config
-        )
+        self._code_execution_config: CodeConfig = {} if code_execution_config is None else code_execution_config
         if isinstance(self._code_execution_config, dict):
             use_docker = self._code_execution_config.get("use_docker", None)
             use_docker = decide_use_docker(use_docker)
@@ -63,8 +70,69 @@ class CodeExecutionMiddleware:
         Returns:
             Union[str, Dict, None]: the reply message.
         """
-        final, reply = self._generate_code_execution_reply(messages)
-        return reply if final else next(messages, sender)  # type: ignore[no-any-return, misc]
+        code_execution_config = self._code_execution_config
+
+        if code_execution_config is False:
+            return next(messages, sender)  # type: ignore[no-any-return, misc]
+
+        last_n_messages = self._get_last_n_messages(code_execution_config)
+
+        no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
+
+        messages_to_scan = messages[-no_messages_to_scan:][::-1]
+        code_blocks = self._get_code_blocks(messages_to_scan)
+        if code_blocks is not None:
+            # found code blocks, execute code and push "last_n_messages" back
+            exitcode, logs = self._execute_code_blocks(code_blocks)
+
+            code_execution_config["last_n_messages"] = last_n_messages
+            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+            return f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
+        code_execution_config["last_n_messages"] = last_n_messages
+
+        return next(messages, sender)  # type: ignore[no-any-return, misc]
+
+    async def a_call(
+        self,
+        messages: List[Dict[str, Any]],
+        sender: Optional[Agent] = None,
+        next: Optional[Callable[..., Any]] = None,
+    ) -> Optional[Union[str, Dict[str, Any]]]:
+        """Call the middleware.
+
+        Args:
+            messages (List[Dict]): the messages to be processed.
+            sender (Optional[Agent]): the sender of the messages.
+            next (Optional[Callable[..., Any]]): the next middleware to be called.
+
+        Returns:
+            Union[str, Dict, None]: the reply message.
+        """
+        code_execution_config = self._code_execution_config
+
+        if code_execution_config is False:
+            return await next(messages, sender)  # type: ignore[no-any-return, misc]
+
+        last_n_messages = self._get_last_n_messages(code_execution_config)
+
+        no_messages_to_scan = self._get_messages_to_scan(messages, last_n_messages)
+
+        messages_to_scan = messages[-no_messages_to_scan:][::-1]
+        code_blocks = self._get_code_blocks(messages_to_scan)
+        if code_blocks is not None:
+            # found code blocks, execute code and push "last_n_messages" back
+            exitcode, logs = await sync_to_async()(self._execute_code_blocks)(code_blocks)  # type: ignore[misc]
+
+            code_execution_config["last_n_messages"] = last_n_messages
+            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+            return f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
+        code_execution_config["last_n_messages"] = last_n_messages
+
+        return await next(messages, sender)  # type: ignore[no-any-return, misc]
 
     @property
     def use_docker(self) -> Union[bool, str, None]:
@@ -73,24 +141,22 @@ class CodeExecutionMiddleware:
         """
         return None if self._code_execution_config is False else self._code_execution_config.get("use_docker")
 
-    def _generate_code_execution_reply(
-        self, messages: List[Dict[str, Any]], config: Optional[Union[Dict[str, Any], Literal[False]]] = None
-    ) -> Tuple[bool, Optional[str]]:
-        """Generate a reply using code execution."""
-
-        code_execution_config = config if config is not None else self._code_execution_config
-        if code_execution_config is False:
-            return False, None
-        last_n_messages = code_execution_config.pop("last_n_messages", 1)
+    @staticmethod
+    def _get_last_n_messages(code_execution_config: Optional[CodeConfig]) -> Union[int, Literal["auto"]]:
+        last_n_messages = code_execution_config.pop("last_n_messages", 1)  # type: ignore[union-attr]
 
         if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
             raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
 
+        return last_n_messages  # type: ignore[no-any-return]
+
+    @staticmethod
+    def _get_messages_to_scan(messages: List[Dict[str, Any]], last_n_messages: Union[int, Literal["auto"]]) -> int:
         messages_to_scan = last_n_messages
         if last_n_messages == "auto":
             # Find when the agent last spoke
             messages_to_scan = 0
-            for i in range(len(messages)):
+            for i in range(len(messages)):  # pragma: no cover
                 message = messages[-(i + 1)]
                 if "role" not in message:
                     break
@@ -99,84 +165,72 @@ class CodeExecutionMiddleware:
                 else:
                     messages_to_scan += 1
 
-        # iterate through the last n messages in reverse
-        # if code blocks are found, execute the code blocks and return the output
-        # if no code blocks are found, continue
-        for i in range(min(len(messages), messages_to_scan)):
-            message = messages[-(i + 1)]
-            if "content" not in message:
-                continue
-            if not message["content"]:
-                continue
-            code_blocks = extract_code(message["content"])
-            if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
-                continue
+        return messages_to_scan  # type: ignore[return-value]
 
-            # found code blocks, execute code and push "last_n_messages" back
-            exitcode, logs = self._execute_code_blocks(code_blocks)
-            code_execution_config["last_n_messages"] = last_n_messages
-            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
-            return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+    @staticmethod
+    def _get_code_blocks_from_message(message: Dict[str, Any]) -> Optional[List[Tuple[str, str]]]:
+        if "content" not in message:
+            return None
+        if not message["content"]:
+            return None  # pragma: no cover
+        code_blocks = extract_code(message["content"])
+        if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
+            return None
 
-        # no code blocks are found, push last_n_messages back and return.
-        code_execution_config["last_n_messages"] = last_n_messages
+        return code_blocks
 
-        return False, None
+    @staticmethod
+    def _get_code_blocks(messages: List[Dict[str, Any]]) -> Optional[List[Tuple[str, str]]]:
+        for message in messages:
+            code_blocks = CodeExecutionMiddleware._get_code_blocks_from_message(message)
+            if code_blocks is not None:
+                return code_blocks
+        return None
+
+    def _execute_code_block(self, code_block: Tuple[Optional[str], str], i: int, logs_all: str) -> Tuple[int, str]:
+        """Execute the code blocks and return the result."""
+        lang, code = code_block
+        if not lang:
+            lang = infer_lang(code)
+        print(
+            colored(
+                f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
+                "red",
+            ),
+            flush=True,
+        )
+        if lang in ["bash", "shell", "sh"]:
+            exitcode, logs, image = execute_code(code, lang=lang, **self._code_execution_config)  # type: ignore[arg-type]
+        elif lang in ["python", "Python"]:
+            if code.startswith("# filename: "):
+                filename = code[11 : code.find("\n")].strip()
+            else:
+                filename = None
+            exitcode, logs, image = execute_code(  # type: ignore[arg-type]
+                code,
+                lang="python",
+                filename=filename,
+                **self._code_execution_config,
+            )
+        else:
+            # In case the language is not supported, we return an error message.
+            exitcode, logs, image = (
+                1,
+                f"unknown language {lang}",
+                None,
+            )
+        if image is not None:
+            self._code_execution_config["use_docker"] = image  # type: ignore[index]  # pragma: no cover
+        logs_all += "\n" + logs
+
+        return exitcode, logs_all
 
     def _execute_code_blocks(self, code_blocks: List[Tuple[str, str]]) -> Tuple[int, str]:
         """Execute the code blocks and return the result."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
-            lang, code = code_block
-            if not lang:
-                lang = infer_lang(code)
-            print(
-                colored(
-                    f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
-                    "red",
-                ),
-                flush=True,
-            )
-            if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = self._run_code(code, lang=lang, **self._code_execution_config)  # type: ignore[arg-type]
-            elif lang in ["python", "Python"]:
-                if code.startswith("# filename: "):
-                    filename = code[11 : code.find("\n")].strip()
-                else:
-                    filename = None
-                exitcode, logs, image = self._run_code(  # type: ignore[arg-type]
-                    code,
-                    lang="python",
-                    filename=filename,
-                    **self._code_execution_config,
-                )
-            else:
-                # In case the language is not supported, we return an error message.
-                exitcode, logs, image = (
-                    1,
-                    f"unknown language {lang}",
-                    None,
-                )
-                # raise NotImplementedError
-            if image is not None:
-                self._code_execution_config["use_docker"] = image  # type: ignore[index]
-            logs_all += "\n" + logs
+            exitcode, logs_all = self._execute_code_block(code_block, i, logs_all)
             if exitcode != 0:
-                return exitcode, logs_all
+                break  # pragma: no cover
+
         return exitcode, logs_all
-
-    def _run_code(self, code: Optional[str], **kwargs: Any) -> Tuple[int, str, Optional[str]]:
-        """Run the code and return the result.
-
-        Override this function to modify the way to run the code.
-        Args:
-            code (str): the code to be executed.
-            **kwargs: other keyword arguments.
-
-        Returns:
-            A tuple of (exitcode, logs, image).
-            exitcode (int): the exit code of the code execution.
-            logs (str): the logs of the code execution.
-            image (str or None): the docker image used for the code execution.
-        """
-        return execute_code(code, **kwargs)
