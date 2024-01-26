@@ -119,26 +119,6 @@ def test_registering_with_wrong_class_name_raises_error():
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_no_client_registered_raises_error():
-    config_list = [
-        {
-            "model": "local_model_name",
-            "model_client_cls": "CustomModel",
-            "device": "cpu",
-            "params": {
-                "max_length": 1000,
-                "other_params": "other_params",
-            },
-        },
-    ]
-
-    client = OpenAIWrapper(config_list=config_list)
-
-    with pytest.raises(RuntimeError):
-        client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
-
-
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_not_all_clients_registered_raises_error():
     class CustomModel:
         def __init__(self, config: Dict):

@@ -519,10 +519,6 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
-        if len(self._clients) == 0:
-            raise RuntimeError(
-                "No model client is active. Please populate the config list or register any custom model clients."
-            )
         # Check if all configs in config list are activated
         non_activated = [
             client.config["model_client_cls"] for client in self._clients if isinstance(client, PlaceHolderClient)
