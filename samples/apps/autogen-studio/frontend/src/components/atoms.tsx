@@ -1879,15 +1879,13 @@ export const FlowConfigViewer = ({
     }
   };
 
-  const updateFlowConfigName = (newName: string) => {
-    const updatedFlowConfig = { ...localFlowConfig, name: newName };
+  const updateFlowConfig = (key: string, value: string) => {
+    // When an updatedFlowConfig is created using localFlowConfig, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localFlowConfig->flowConfig. Fixed a bug.
+    const updatedFlowConfig = { ...flowConfig, [key]: value };
+    console.log("updatedFlowConfig: ", updatedFlowConfig);
     setLocalFlowConfig(updatedFlowConfig);
     setFlowConfig(updatedFlowConfig);
   };
-
-  // React.useEffect(() => {
-  //   setLocalFlowConfig(flowConfig);
-  // }, [flowConfig]);
 
   return (
     <>
@@ -1901,7 +1899,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.name}
-            onChange={(e) => updateFlowConfigName(e.target.value)}
+            onChange={(e) => updateFlowConfig("name", e.target.value)}
           />
         }
       />
@@ -1915,14 +1913,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.description}
-            onChange={(e) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                description: e.target.value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(e) => updateFlowConfig("description", e.target.value)}
           />
         }
       />
@@ -1935,14 +1926,7 @@ export const FlowConfigViewer = ({
           <Select
             className="mt-2 w-full"
             defaultValue={localFlowConfig.summary_method || "last"}
-            onChange={(value: any) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                summary_method: value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(value: any) => updateFlowConfig("summary_method", value)}
             options={
               [
                 { label: "last", value: "last" },
