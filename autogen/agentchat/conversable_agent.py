@@ -597,7 +597,7 @@ class ConversableAgent(Agent):
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
         reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
-        if reply is not None:
+        if reply is not None and reply:
             self.send(reply, sender, silent=silent)
 
     async def a_receive(
@@ -772,7 +772,8 @@ class ConversableAgent(Agent):
                 if prompt is None
                 else prompt
             )
-            takeaway = self._llm_response_preparer(prompt, agent._oai_messages[self], target_agent)
+            msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
+            takeaway = self._llm_response_preparer(prompt, msg_list, target_agent)
         else:
             warnings.warn("No takeaway_method provided or takeaway_method is not supported: ")
         return takeaway
