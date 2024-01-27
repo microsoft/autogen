@@ -101,9 +101,8 @@ export const IconButton = ({
     <span
       role={"button"}
       onClick={onClick}
-      className={`inline-block mr-2 hover:text-accent transition duration-300 ${className} ${
-        active ? "border-accent border rounded text-accent" : ""
-      }`}
+      className={`inline-block mr-2 hover:text-accent transition duration-300 ${className} ${active ? "border-accent border rounded text-accent" : ""
+        }`}
     >
       {icon}
     </span>
@@ -194,9 +193,8 @@ export const CollapseBox = ({
         onClick={() => {
           setIsOpen(!isOpen);
         }}
-        className={`cursor-pointer bg-secondary p-2 rounded ${
-          isOpen ? "rounded-b-none " : " "
-        }"}`}
+        className={`cursor-pointer bg-secondary p-2 rounded ${isOpen ? "rounded-b-none " : " "
+          }"}`}
       >
         {isOpen && <ChevronUpIcon className={chevronClass} />}
         {!isOpen && <ChevronDownIcon className={chevronClass} />}
@@ -686,24 +684,24 @@ export const ModelSelector = ({
   const modelItems: MenuProps["items"] =
     models.length > 0
       ? models.map((model: IModelConfig, index: number) => ({
-          key: index,
-          label: (
-            <>
-              <div>{model.model}</div>
-              <div className="text-xs text-accent">
-                {truncateText(model.description || "", 20)}
-              </div>
-            </>
-          ),
-          value: index,
-        }))
+        key: index,
+        label: (
+          <>
+            <div>{model.model}</div>
+            <div className="text-xs text-accent">
+              {truncateText(model.description || "", 20)}
+            </div>
+          </>
+        ),
+        value: index,
+      }))
       : [
-          {
-            key: -1,
-            label: <>No models found</>,
-            value: 0,
-          },
-        ];
+        {
+          key: -1,
+          label: <>No models found</>,
+          value: 0,
+        },
+      ];
 
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
@@ -814,7 +812,7 @@ export const ModelSelector = ({
         key={"modelrow_" + i}
         // role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
-        // onClick={() => showModal(config, i)}
+      // onClick={() => showModal(config, i)}
       >
         <div className="inline-flex">
           {" "}
@@ -930,9 +928,8 @@ export const ImageLoader = ({
       <img
         alt="Dynamic content"
         src={src}
-        className={`w-full rounded ${
-          isLoading ? "opacity-0" : "opacity-100"
-        } ${className}`}
+        className={`w-full rounded ${isLoading ? "opacity-0" : "opacity-100"
+          } ${className}`}
         onLoad={() => setIsLoading(false)}
       />
     </div>
@@ -1079,6 +1076,12 @@ export const AgentFlowSpecView = ({
   // Local state for the FlowView component
   const [localFlowSpec, setLocalFlowSpec] =
     React.useState<IAgentFlowSpec>(flowSpec);
+
+  // Required to monitor localAgent updates that occur in GroupChatFlowSpecView and reflect updates.
+  useEffect(() => {
+    console.log("AgentFlowSpecView useEffect => flowSpec", flowSpec)
+    setLocalFlowSpec(flowSpec);
+  }, [flowSpec]);
 
   // Event handlers for updating local state and propagating changes
 
@@ -1687,6 +1690,11 @@ const AgentModal = ({
     fetchAgents();
   }, []);
 
+  // Required to synchronize localAgent changes between GroupChatFlowSpecView and AgentFlowSpecView
+  useEffect(() => {
+    setLocalAgent(localAgent);
+  }, [localAgent]);
+
   const fetchAgents = () => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
@@ -1728,6 +1736,10 @@ const AgentModal = ({
       }}
       onCancel={() => {
         setShowAgentModal(false);
+      }}
+      afterClose={() => {
+        // If the modal is closed other than onOk, the agent is reset to before the update; if it is closed onOk, the agent is updated again with the localAgent passed to the handler.
+        setLocalAgent(agent);
       }}
     >
       {agent && (
@@ -1867,15 +1879,13 @@ export const FlowConfigViewer = ({
     }
   };
 
-  const updateFlowConfigName = (newName: string) => {
-    const updatedFlowConfig = { ...localFlowConfig, name: newName };
+  const updateFlowConfig = (key: string, value: string) => {
+    // When an updatedFlowConfig is created using localFlowConfig, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localFlowConfig->flowConfig. Fixed a bug.
+    const updatedFlowConfig = { ...flowConfig, [key]: value };
+    console.log("updatedFlowConfig: ", updatedFlowConfig);
     setLocalFlowConfig(updatedFlowConfig);
     setFlowConfig(updatedFlowConfig);
   };
-
-  // React.useEffect(() => {
-  //   setLocalFlowConfig(flowConfig);
-  // }, [flowConfig]);
 
   return (
     <>
@@ -1889,7 +1899,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.name}
-            onChange={(e) => updateFlowConfigName(e.target.value)}
+            onChange={(e) => updateFlowConfig("name", e.target.value)}
           />
         }
       />
@@ -1903,14 +1913,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.description}
-            onChange={(e) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                description: e.target.value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(e) => updateFlowConfig("description", e.target.value)}
           />
         }
       />
@@ -1923,14 +1926,7 @@ export const FlowConfigViewer = ({
           <Select
             className="mt-2 w-full"
             defaultValue={localFlowConfig.summary_method || "last"}
-            onChange={(value: any) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                summary_method: value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(value: any) => updateFlowConfig("summary_method", value)}
             options={
               [
                 { label: "last", value: "last" },
