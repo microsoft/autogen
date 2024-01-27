@@ -1,4 +1,5 @@
 from typing import List, Optional, Union
+import warnings
 
 from pydantic import BaseModel, Field
 
@@ -118,7 +119,6 @@ If you want the user to save the code in a file before executing it, put # filen
                 break
         return CodeResult(exit_code=exitcode, output=logs_all)
 
-    def reset(self) -> None:
-        """Reset the code executor."""
-        # Reset the image to None so that the next execution will use a new image.
-        self.docker_image_name = None
+    def restart(self) -> None:
+        """Restart the code executor."""
+        warnings.warn("Restarting command line code executor is not supported. No action is taken.")

@@ -204,6 +204,13 @@ class ConversableAgent(Agent):
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
 
+    @property
+    def code_executor(self) -> CodeExecutor | None:
+        """The code executor used by this agent. None if code execution is disabled."""
+        if not hasattr(self, "_code_executor"):
+            return None
+        return self._code_executor
+
     def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],

@@ -77,6 +77,13 @@ def _test_execute_code(config: Dict):
     assert code_result.exit_code and "Timeout" in code_result.output or WIN32
 
 
+def test_restart():
+    executor = CommandlineCodeExecutor(use_docker=True)
+    # Check warning.
+    with pytest.warns(UserWarning, match="Restarting command line code executor is not supported. No action is taken."):
+        executor.restart()
+
+
 @pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
 def test_conversable_agent_capability():
     KEY_LOC = "notebook"

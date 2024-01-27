@@ -83,8 +83,8 @@ class CodeExecutor(Protocol):
         """
         ...  # pragma: no cover
 
-    def reset(self) -> None:
-        """Reset the code executor.
+    def restart(self) -> None:
+        """Restart the code executor.
 
         This method should be implemented by the code executor.
 

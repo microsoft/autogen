@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 import pytest
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
@@ -69,6 +70,30 @@ def test_timeout():
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code and "Timeout" in code_result.output
+
+
+def test_silent_pip_install():
+    executor = IPythonCodeExecutor()
+    code_blocks = [CodeBlock(code="!pip install matplotlib numpy", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    none_existing_package = uuid.uuid4().hex
+    code_blocks = [CodeBlock(code=f"!pip install matplotlib_{none_existing_package}", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "ERROR: " in code_result.output
+
+
+def test_restart():
+    executor = IPythonCodeExecutor()
+    code_blocks = [CodeBlock(code="x = 123", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    executor.restart()
+    code_blocks = [CodeBlock(code="print(x)", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code and "NameError" in code_result.output
 
 
 @pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
