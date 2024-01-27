@@ -1,5 +1,4 @@
-from __future__ import annotations
-from typing import Dict, List, Optional, Protocol, Tuple, runtime_checkable
+from typing import List, Protocol
 
 from pydantic import BaseModel
 
@@ -24,7 +23,24 @@ class CodeResult(BaseModel):
     output: str
 
 
+class CodeExtractor(Protocol):
+    """A code extractor class that extracts code blocks from a message."""
+
+    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+        """Extract code blocks from a message.
+
+        Args:
+            message (str): The message to extract code blocks from.
+
+        Returns:
+            List[CodeBlock]: The extracted code blocks.
+        """
+        ...  # pragma: no cover
+
+
 class CodeExecutor(Protocol):
+    """A code executor class that executes code blocks and returns the result."""
+
     class UserCapability(Protocol):
         """An AgentCapability class that gives agent ability use this code executor."""
 
@@ -32,7 +48,7 @@ class CodeExecutor(Protocol):
             ...  # pragma: no cover
 
     @property
-    def user_capability(self) -> CodeExecutor.UserCapability:
+    def user_capability(self) -> "CodeExecutor.UserCapability":
         """Capability to use this code executor.
 
         The exported capability can be added to an agent to allow it to use this
@@ -49,17 +65,9 @@ class CodeExecutor(Protocol):
         """
         ...  # pragma: no cover
 
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
-        """Extract code blocks from a message.
-
-        This method should be implemented by the code executor.
-
-        Args:
-            message (str): The message to extract code blocks from.
-
-        Returns:
-            List[CodeBlock]: The extracted code blocks.
-        """
+    @property
+    def code_extractor(self) -> CodeExtractor:
+        """The code extractor used by this code executor."""
         ...  # pragma: no cover
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
@@ -82,4 +90,4 @@ class CodeExecutor(Protocol):
 
         This method is called when the agent is reset.
         """
-        ...
+        ...  # pragma: no cover

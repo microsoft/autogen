@@ -1,10 +1,9 @@
-from __future__ import annotations
-from typing import Dict, List, Optional, Tuple, Union
-import warnings
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from autogen.coding.base import CodeBlock, CodeResult
+from autogen.coding.base import CodeBlock, CodeExtractor, CodeResult
+from autogen.coding.markdown_code_extractor import MarkdownCodeExtractor
 
 try:
     from termcolor import colored
@@ -14,7 +13,7 @@ except ImportError:
         return x
 
 
-from autogen.code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code, extract_code, infer_lang
+from autogen.code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code
 
 
 class CommandlineCodeExecutor(BaseModel):
@@ -60,27 +59,14 @@ If you want the user to save the code in a file before executing it, put # filen
         return self.use_docker
 
     @property
-    def user_capability(self) -> CommandlineCodeExecutor.UserCapability:
+    def user_capability(self) -> "CommandlineCodeExecutor.UserCapability":
         """Export a user capability that can be added to an agent."""
         return CommandlineCodeExecutor.UserCapability()
 
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
-        """Extract code blocks from a message.
-
-        This method should be implemented by the code executor.
-
-        Args:
-            message: The message to extract code blocks from.
-
-        Returns:
-            A list of code blocks.
-        """
-        code_blocks = []
-        for lang, code in extract_code(message):
-            if not lang:
-                lang = infer_lang(code)
-            code_blocks.append(CodeBlock(code=code, language=lang))
-        return code_blocks
+    @property
+    def code_extractor(self) -> CodeExtractor:
+        """Export a code extractor that can be used by an agent."""
+        return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
         """Execute the code blocks and return the result."""

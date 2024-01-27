@@ -886,11 +886,10 @@ class ConversableAgent(Agent):
             message = messages[-(i + 1)]
             if not message["content"]:
                 continue
-            code_blocks = self._code_executor.extract_code_blocks(message["content"])
-            if len(code_blocks) == 1 and code_blocks[0].language == UNKNOWN:
+            code_blocks = self._code_executor.code_extractor.extract_code_blocks(message["content"])
+            if len(code_blocks) == 0:
                 continue
-
-            # found code blocks, execute code and push "last_n_messages" back
+            # found code blocks, execute code.
             code_result = self._code_executor.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
             return True, f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"

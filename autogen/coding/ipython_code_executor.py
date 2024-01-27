@@ -1,21 +1,12 @@
-from __future__ import annotations
+import json
 from queue import Empty
 from typing import List
 
-from pydantic import BaseModel, Field
-from autogen.code_utils import DEFAULT_TIMEOUT, extract_code
-
-from autogen.coding.base import CodeBlock, CodeResult
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
 from jupyter_client import KernelManager
+from pydantic import BaseModel, Field
+from autogen.code_utils import DEFAULT_TIMEOUT
+from autogen.coding.base import CodeBlock, CodeExtractor, CodeResult
+from autogen.coding.markdown_code_extractor import MarkdownCodeExtractor
 
 
 class IPythonCodeExecutor(BaseModel):
@@ -31,14 +22,20 @@ class IPythonCodeExecutor(BaseModel):
 
         DEFAULT_SYSTEM_MESSAGE_UPDATE = """You have been given coding capability
 to solve tasks using Python code in a stateful IPython kernel.
-When you write Python code, put the code in a block with the language set to Python.
+When you write Python code, put the code in a markdown code block with the language set to Python.
 For example:
 ```python
 x = 3
+```
+You can use the variable `x` in subsequent code blocks.
+```python
 print(x)
 ```
-The code will be executed in a IPython kernel, and the output will be returned to you.
-You can use variables created earlier in the subsequent code blocks.
+The output may be text, a table, or an image.
+When you suggest code, always write incrementally rather than all at once.
+For example, if you want to import a library, do it in a separate code block.
+If you want to define a function or a class, do it in a separate code block.
+Leverage the statefulness of the kernel to avoid repeating code.
 """
 
         def add_to_agent(self, agent):
@@ -56,23 +53,14 @@ You can use variables created earlier in the subsequent code blocks.
         self._timeout = self.timeout
 
     @property
-    def user_capability(self) -> IPythonCodeExecutor.UserCapability:
+    def user_capability(self) -> "IPythonCodeExecutor.UserCapability":
         """Export a user capability that can be added to an agent."""
         return IPythonCodeExecutor.UserCapability()
 
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
-        """Extract IPython code blocks from a message.
-
-        Args:
-            message (str): The message to extract code blocks from.
-
-        Returns:
-            List[CodeBlock]: The extracted code blocks.
-        """
-        code_blocks = []
-        for lang, code in extract_code(message):
-            code_blocks.append(CodeBlock(code=code, language=lang))
-        return code_blocks
+    @property
+    def code_extractor(self) -> CodeExtractor:
+        """Export a code extractor that can be used by an agent."""
+        return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
         self._kernel_client.wait_for_ready(timeout=self._timeout)
@@ -85,7 +73,8 @@ You can use variables created earlier in the subsequent code blocks.
                     msg_type = msg["msg_type"]
                     content = msg["content"]
                     if msg_type in ["execute_result", "display_data"]:
-                        outputs.append(content["data"])
+                        # Output is data.
+                        outputs.append(json.dumps(content["data"]))
                     elif msg_type == "stream":
                         # Output is a text.
                         outputs.append(content["text"])
@@ -103,8 +92,6 @@ You can use variables created earlier in the subsequent code blocks.
                         exit_code=1,
                         output=f"ERROR: Timeout waiting for output from code block: {code_block.code}",
                     )
-                except Exception as e:
-                    return CodeResult(exit_code=1, output=f"ERROR: {e}")
         # We return the full output.
         return CodeResult(exit_code=0, output="".join([str(output) for output in outputs]))
 
