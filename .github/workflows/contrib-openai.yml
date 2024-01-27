@@ -37,6 +37,7 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
+          python -m ipykernel install --user --name python3
       - name: Install packages for test when needed
         run: |
           pip install docker

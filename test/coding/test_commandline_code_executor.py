@@ -137,6 +137,7 @@ def _test_conversable_agent_code_execution(config):
             "executor": "commandline",
             "commandline": config,
         },
+        llm_config=False,
     )
 
     message = """

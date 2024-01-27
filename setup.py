@@ -23,6 +23,7 @@ install_requires = [
     "pydantic>=1.10,<3",  # could be both V1 and V2
     "docker",
     "jupyter-client",
+    "ipykernel",
 ]
 
 setuptools.setup(

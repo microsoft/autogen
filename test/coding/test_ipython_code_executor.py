@@ -112,7 +112,7 @@ def test_conversable_agent_capability():
 
 
 def test_conversable_agent_code_execution():
-    agent = ConversableAgent("user_proxy", code_execution_config={"executor": "ipython"})
+    agent = ConversableAgent("user_proxy", llm_config=False, code_execution_config={"executor": "ipython"})
     msg = """
 Run this code:
 ```python

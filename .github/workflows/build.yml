@@ -19,8 +19,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-permissions: {}
-    # actions: read
+permissions:
+  {}
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read
@@ -44,6 +45,7 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
+          python -m ipykernel install --user --name python3
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |

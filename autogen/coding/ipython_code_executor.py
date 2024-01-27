@@ -3,6 +3,7 @@ from queue import Empty
 from typing import List
 
 from jupyter_client import KernelManager
+from jupyter_client.kernelspec import NoSuchKernel, KernelSpecManager
 from pydantic import BaseModel, Field
 from autogen.code_utils import DEFAULT_TIMEOUT
 from autogen.coding.base import CodeBlock, CodeExtractor, CodeResult
@@ -43,9 +44,17 @@ Leverage the statefulness of the kernel to avoid repeating code.
             agent.update_system_message(agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE)
 
     timeout: int = Field(default=DEFAULT_TIMEOUT, ge=1)
+    kernel: str = "python3"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # Check if the kernel is installed.
+        if self.kernel not in KernelSpecManager().find_kernel_specs():
+            raise ValueError(
+                f"Kernel {self.kernel} is not installed. "
+                "Please first install it with "
+                f"`python -m ipykernel install --user --name {self.kernel}`."
+            )
         self._kernel_manager = KernelManager()
         self._kernel_manager.start_kernel()
         self._kernel_client = self._kernel_manager.client()
