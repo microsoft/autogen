@@ -202,7 +202,7 @@
                 },
                 "human_input_mode": "NEVER",
                 "max_consecutive_auto_reply": 8,
-                "system_message": "You are a helpful assistant that can suggest a travel itinerary for a user. You are the primary cordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN that ends with the word TERMINATE. "
+                "system_message": "You are a helpful assistant that can suggest a travel itinerary for a user. You are the primary coordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN that ends with the word TERMINATE. "
               }
             },
             {
