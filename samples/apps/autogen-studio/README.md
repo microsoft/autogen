@@ -68,6 +68,22 @@ For Windows users, to build the frontend, you may need alternative commands to b
 
 ```
 
+### Enable Postgres database
+
+To use a postgres database connection add the following env vars:
+
+
+POSTGRES_USER
+POSTGRES_PASSWORD!
+POSTGRES_DATABASE_NAME
+POSTGRES_HOST
+POSTGRES_PORT=5432
+USE_POSTGRES=true
+
+
+If USE_POSTGRES is not true then sqlite will be used
+
+
 ### Running the Application
 
 Once installed, run the web UI by entering the following in your terminal:
