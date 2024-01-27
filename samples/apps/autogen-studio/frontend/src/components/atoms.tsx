@@ -8,6 +8,7 @@ import {
   UserGroupIcon,
   UsersIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
@@ -372,7 +373,7 @@ export const LoadingOverlay = ({ children, loading }: IProps) => {
       {loading && (
         <>
           <div
-            className="absolute inset-0 bg-secondary flex"
+            className="absolute inset-0 bg-secondary flex  pointer-events-none"
             style={{ opacity: 0.5 }}
           >
             {/* Overlay background */}
@@ -594,12 +595,13 @@ export const ControlRowView = ({
         <span className="text-primary inline-block">{title} </span>
         <span className="text-xs ml-1 text-accent -mt-2 inline-block">
           {truncateText(value + "", 20)}
-        </span>
+        </span>{" "}
+        <Tooltip title={description}>
+          <InformationCircleIcon className="text-gray-400 inline-block w-4 h-4" />
+        </Tooltip>
       </div>
-      <div className="text-secondary text-xs"> {description} </div>
       {control}
-
-      <div className="border-b border-dashed mt-2 mx-2"></div>
+      <div className="bordper-b  border-secondary border-dashed pb-2 mxp-2"></div>
     </div>
   );
 };
@@ -1100,7 +1102,10 @@ export const AgentFlowSpecView = ({
   return (
     <>
       <div className="text-accent ">{title}</div>
-      <GroupView title={flowSpec.config.name} className="mb-4 bg-primary  ">
+      <GroupView
+        title=<div className="px-2">{flowSpec.config.name}</div>
+        className="mb-4 bg-primary  "
+      >
         <ControlRowView
           title="Agent Name"
           className="mt-4"
@@ -1614,12 +1619,45 @@ const GroupChatFlowSpecView = ({
             }}
           />
         )}
-      <GroupView title="Group Chat Agents">
+      <GroupView title=<div className="px-2">Group Chat Agents</div>>
         <div className="flex flex-wrap mt-3">
           {agentsView}
           <AgentDropDown />
         </div>
       </GroupView>
+
+      <ControlRowView
+        title="Speaker Selection Method"
+        description="How the next speaker is selected"
+        className="mt-4"
+        value={flowSpec?.groupchat_config?.speaker_selection_method || "auto"}
+        control={
+          <Select
+            className="mt-2 w-full"
+            defaultValue={
+              flowSpec?.groupchat_config?.speaker_selection_method || "auto"
+            }
+            onChange={(value: any) => {
+              if (flowSpec?.groupchat_config) {
+                setFlowSpec({
+                  ...flowSpec,
+                  groupchat_config: {
+                    ...flowSpec?.groupchat_config,
+                    speaker_selection_method: value,
+                  },
+                });
+              }
+            }}
+            options={
+              [
+                { label: "Auto", value: "auto" },
+                { label: "Round Robin", value: "round_robin" },
+                { label: "Random", value: "random" },
+              ] as any
+            }
+          />
+        }
+      />
     </div>
   );
 };
@@ -1700,8 +1738,6 @@ const AgentModal = ({
           </div>
           {localAgent && localAgent.type === "groupchat" && (
             <div>
-              {" "}
-              Group Chat
               <GroupChatFlowSpecView
                 flowSpec={localAgent as IGroupChatFlowSpec}
                 setFlowSpec={setLocalAgent}

@@ -4,8 +4,6 @@ import AgentsView from "./agents";
 import WorkflowView from "./workflow";
 import { Tabs } from "antd";
 import {
-  ArrowPathIcon,
-  ArrowPathRoundedSquareIcon,
   BugAntIcon,
   CpuChipIcon,
   Square2StackIcon,
