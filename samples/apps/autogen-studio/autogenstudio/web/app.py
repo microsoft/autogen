@@ -16,9 +16,12 @@ from ..datamodel import (
 )
 from ..utils import md5_hash, init_webserver_folders
 from ..utils.dbmanager import SqliteDBManager
+from ..utils.dbmanager import PostgresDBManager
 
 from ..chatmanager import AutoGenChatManager
 
+from dotenv import load_dotenv
+load_dotenv()
 
 app = FastAPI()
 
@@ -50,10 +53,22 @@ app.mount("/api", api)
 app.mount("/", StaticFiles(directory=ui_folder_path, html=True), name="ui")
 api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
+use_postgres = os.environ.get("USE_POSTGRES", "False").lower() == "true"
 
-db_path = os.path.join(root_file_path, "database.sqlite")
-dbmanager = SqliteDBManager()  # manage database operations
-dbmanager.init_db(path=db_path)  # initialize database
+if (use_postgres):
+    dbmanager = PostgresDBManager() 
+    user = os.environ.get("POSTGRES_USER", "postgres")
+    password = os.environ.get("POSTGRES_PASSWORD", "mysecretpassword")
+    dbname = os.environ.get("POSTGRES_DATABASE_NAME", "postgres")
+    host = os.environ.get("POSTGRES_HOST", "localhost")
+    port = os.environ.get("POSTGRES_PORT", "5432")
+    dbmanager.init_db(dbname=dbname,user=user,password=password, host=host, port=port) # initialize database
+else:
+    # default to sqlite
+    db_path = os.path.join(root_file_path, "database.sqlite")
+    dbmanager = SqliteDBManager()  # manage database operations
+    dbmanager.init_db(path=db_path)  # initialize database
+
 chatmanager = AutoGenChatManager()  # manage calls to autogen
 
 
