@@ -192,7 +192,7 @@ def test_get_assistant_files():
     and assert that the retrieved instructions match the set instructions.
     """
     current_file_path = os.path.abspath(__file__)
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = "For test_get_assistant_files"
 
@@ -238,7 +238,7 @@ def test_assistant_retrieval():
         "description": "This is a test function 2",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
@@ -312,7 +312,7 @@ def test_assistant_mismatch_retrieval():
         "description": "This is a test function 3",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
