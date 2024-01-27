@@ -75,12 +75,12 @@ class ModelClient(Protocol):
     class ModelClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
-                content: str | None
+                content: Optional[str]
 
         choices: List[Choice]
         model: str
 
-    def create(self, params) -> ModelClientResponseProtocol:
+    def create(self, **params: Any) -> ModelClientResponseProtocol:
         ...  # pragma: no cover
 
     def message_retrieval(
@@ -111,7 +111,7 @@ class PlaceHolderClient:
 class OpenAIClient:
     """Follows the Client protocol and wraps the OpenAI client."""
 
-    def __init__(self, client):
+    def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
 
     def message_retrieval(
@@ -515,6 +515,9 @@ class OpenAIWrapper:
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
             - api_version (str | None): The api version. Default to None. E.g., "2023-08-01-preview".
+        Raises:
+            - RuntimeError: If all declared custom model clients are not registered
+            - APIError: If any model client create call raises an APIError
         """
         if ERROR:
             raise ERROR
