@@ -66,7 +66,7 @@ class SocietyOfMindAgent(ConversableAgent):
 
         # Create the response_preparer callable, if given only a prompt string
         if isinstance(response_preparer, str):
-            self.response_preparer = lambda agent, messages: agent._lmm_response_preparer(response_preparer, messages)
+            self.response_preparer = lambda agent, messages: agent._llm_response_preparer(response_preparer, messages)
         else:
             self.response_preparer = response_preparer
 
@@ -77,7 +77,7 @@ class SocietyOfMindAgent(ConversableAgent):
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
-    def _lmm_response_preparer(self, prompt, messages):
+    def _llm_response_preparer(self, prompt, messages):
         """Default response_preparer when provided with a string prompt, rather than a callable.
 
         Args:
