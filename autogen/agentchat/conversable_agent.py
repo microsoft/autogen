@@ -205,10 +205,13 @@ class ConversableAgent(Agent):
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
 
     @property
-    def code_executor(self) -> CodeExecutor | None:
-        """The code executor used by this agent. None if code execution is disabled."""
+    def code_executor(self) -> CodeExecutor:
+        """The code executor used by this agent. Raise if code execution is disabled."""
         if not hasattr(self, "_code_executor"):
-            return None
+            raise ValueError(
+                "No code executor as code execution is disabled. "
+                "To enable code execution, set code_execution_config."
+            )
         return self._code_executor
 
     def register_reply(
