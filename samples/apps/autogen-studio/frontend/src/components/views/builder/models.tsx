@@ -4,7 +4,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Input, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import * as React from "react";
 import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -24,6 +24,13 @@ const ModelsView = ({}: any) => {
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
   const saveModelsUrl = `${serverUrl}/models`;
   const deleteModelUrl = `${serverUrl}/models/delete`;
+  const testModelUrl = `${serverUrl}/models/test`;
+  const [modelStatus, setModelStatus] = React.useState<IStatus | null>({
+    status: true,
+    message: "All good",
+  });
+
+  const [loadingModelTest, setLoadingModelTest] = React.useState(false);
 
   const defaultModel: IModelConfig = {
     model: "gpt-4-1106-preview",
@@ -42,6 +49,37 @@ const ModelsView = ({}: any) => {
   const [showNewModelModal, setShowNewModelModal] = React.useState(false);
 
   const [showModelModal, setShowModelModal] = React.useState(false);
+
+  const testModel = (model: IModelConfig) => {
+    // setError(null);
+    setLoadingModelTest(true);
+    const payLoad = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id: user?.email,
+        model: model,
+      }),
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        setModelStatus(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoadingModelTest(false);
+    };
+    const onError = (err: any) => {
+      // setError(err);
+      message.error(err.message);
+      setLoadingModelTest(false);
+    };
+    fetchJSON(testModelUrl, payLoad, onSuccess, onError);
+  };
 
   const deleteModel = (model: IModelConfig) => {
     setError(null);
@@ -213,6 +251,44 @@ const ModelsView = ({}: any) => {
         }
         width={800}
         open={showModelModal}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setModel(null);
+              setShowModelModal(false);
+            }}
+          >
+            Close
+          </Button>,
+          <Button
+            key="test"
+            type="primary"
+            loading={loadingModelTest}
+            onClick={() => {
+              if (localModel) {
+                testModel(localModel);
+              }
+            }}
+          >
+            Test Model
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={() => {
+              setModel(null);
+              setShowModelModal(false);
+              if (handler) {
+                if (localModel) {
+                  handler(localModel);
+                }
+              }
+            }}
+          >
+            Save
+          </Button>,
+        ]}
         onOk={() => {
           setModel(null);
           setShowModelModal(false);
@@ -344,12 +420,14 @@ const ModelsView = ({}: any) => {
             {" "}
             Create model configurations that can be reused in your agents and
             workflows. {selectedModel?.model}
-            <span className="block my-2 border rounded border-secondary p-2">
-              <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
-              Note: When you reuse a model in your agent/workflow, a{" "}
-              <span className="font-semibold underline">copy</span> of the model
-              details is added to the agent/workflow.
-            </span>
+            {models && models.length > 0 && (
+              <span className="block my-2 border rounded border-secondary p-2">
+                <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
+                Note: When you reuse a model in your agent/workflow, a{" "}
+                <span className="font-semibold underline">copy</span> of the
+                model details is added to the agent/workflow.
+              </span>
+            )}
           </div>
           {models && models.length > 0 && (
             <div className="w-full  relative">

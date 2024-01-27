@@ -7,7 +7,8 @@ import shutil
 from pathlib import Path
 import re
 import autogen
-from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
+from autogen.oai.client import OpenAIWrapper
+from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
 
 
 def md5_hash(text: str) -> str:
@@ -220,6 +221,9 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
+
+    if not os.path.exists(root_file_path):
+        os.makedirs(root_file_path, exist_ok=True)
     files_static_root = os.path.join(root_file_path, "files/")
     static_folder_root = os.path.join(root_file_path, "ui")
 
@@ -381,3 +385,24 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)
 
     return successful_code_blocks
+
+
+def sanitize_model(model: Model):
+    if isinstance(model, Model):
+        model = model.dict()
+    valid_keys = ["model", "base_url",
+                  "api_key", "api_type", "api_version"]
+    # only add key if value is not None
+    sanitized_model = {k: v for k, v in model.items() if (
+        v is not None and v != "") and k in valid_keys}
+    return sanitized_model
+
+
+def test_model(model: Model):
+    sanitized_model = sanitize_model(model)
+    print(sanitized_model)
+    client = OpenAIWrapper(config_list=[sanitized_model])
+    response = client.create(
+        messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    print(response)
+    return response

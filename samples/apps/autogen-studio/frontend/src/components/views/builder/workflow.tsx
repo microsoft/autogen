@@ -1,4 +1,6 @@
 import {
+  ArrowDownTrayIcon,
+  DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
@@ -6,7 +8,7 @@ import {
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Modal, message } from "antd";
+import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
 import * as React from "react";
 import { IFlowConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -188,7 +190,46 @@ const WorkflowView = ({}: any) => {
                 }}
                 className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
               >
-                {" "}
+                <div
+                  role="button"
+                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // download workflow as workflow.name.json
+                    const element = document.createElement("a");
+                    const file = new Blob([JSON.stringify(workflow)], {
+                      type: "application/json",
+                    });
+                    element.href = URL.createObjectURL(file);
+                    element.download = `${workflow.name}.json`;
+                    document.body.appendChild(element); // Required for this to work in FireFox
+                    element.click();
+
+                    // window.op
+                  }}
+                >
+                  <Tooltip title="Download">
+                    <ArrowDownTrayIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
+                </div>
+                <div
+                  role="button"
+                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    let newWorkflow = { ...workflow };
+                    newWorkflow.name = `${workflow.name} Copy`;
+                    newWorkflow.user_id = user?.email;
+                    newWorkflow.timestamp = new Date().toISOString();
+                    delete newWorkflow.id;
+                    setNewWorkflow(newWorkflow);
+                    setShowNewWorkflowModal(true);
+                  }}
+                >
+                  <Tooltip title="Make a Copy">
+                    <DocumentDuplicateIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
+                </div>
                 <div
                   role="button"
                   className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
@@ -197,8 +238,9 @@ const WorkflowView = ({}: any) => {
                     deleteWorkFlow(workflow);
                   }}
                 >
-                  <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  <span className="text-xs hidden"> delete</span>
+                  <Tooltip title="Delete">
+                    <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
                 </div>
               </div>
             </Card>

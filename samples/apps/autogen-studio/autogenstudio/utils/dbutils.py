@@ -5,7 +5,16 @@ import threading
 import os
 from typing import Any, List, Dict, Optional, Tuple
 from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Model, Session, Skill
+from ..version import __version__ as __db_version__
 
+
+VERSION_TABLE_SQL = """
+            CREATE TABLE IF NOT EXISTS version (
+                
+                version TEXT NOT NULL,
+                UNIQUE (version)
+            )
+            """
 
 MODELS_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS models (
@@ -21,6 +30,7 @@ MODELS_TABLE_SQL = """
                 UNIQUE (id, user_id)
             )
             """
+
 
 
 MESSAGES_TABLE_SQL = """
@@ -139,6 +149,17 @@ class DBManager:
         if os.path.exists(self.path):
             os.remove(self.path)
         self.init_db(path=self.path)
+    
+    def run_migrations(self):
+        """
+        Run migrations to update the database schema.
+        """
+
+        pass
+        
+
+
+
 
     def init_db(self, path: str = "database.sqlite", **kwargs: Any) -> None:
         """
@@ -151,6 +172,10 @@ class DBManager:
         # Connect to the database (or create a new one if it doesn't exist)
         self.conn = sqlite3.connect(path, check_same_thread=False, **kwargs)
         self.cursor = self.conn.cursor()
+
+        # Create the version table
+        self.cursor.execute(VERSION_TABLE_SQL)
+        self.cursor.execute("INSERT INTO version (version) VALUES (?)", (__db_version__,))
 
         # Create the models table
         self.cursor.execute(MODELS_TABLE_SQL)
