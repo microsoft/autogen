@@ -1737,6 +1737,10 @@ const AgentModal = ({
       onCancel={() => {
         setShowAgentModal(false);
       }}
+      afterClose={() => {
+        // If the modal is closed other than onOk, the agent is reset to before the update; if it is closed onOk, the agent is updated again with the localAgent passed to the handler.
+        setLocalAgent(agent);
+      }}
     >
       {agent && (
         <>
