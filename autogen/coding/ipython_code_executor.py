@@ -32,10 +32,12 @@ You can use the variable `x` in subsequent code blocks.
 ```python
 print(x)
 ```
-The output may be text, a table, or an image.
-When you suggest code, always write incrementally rather than all at once.
-For example, if you want to import a library, do it in a separate code block.
+Each output may be text, a table, or an image.
+If you want to create an image (e.g., a plot), always make sure to minimize image size.
+When you suggest code, always do it incrementally rather than all at once:
+If you want to import a library, do it in a separate code block.
 If you want to define a function or a class, do it in a separate code block.
+If you want to run a function that produces output, do it in a separate code block.
 Leverage the statefulness of the kernel to avoid repeating code.
 """
 
