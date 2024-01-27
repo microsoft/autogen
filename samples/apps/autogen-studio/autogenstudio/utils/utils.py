@@ -4,6 +4,7 @@ import hashlib
 from typing import List, Dict, Tuple, Union
 import os
 import shutil
+from pathlib import Path
 import re
 import autogen
 from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
@@ -25,6 +26,9 @@ def clear_folder(folder_path: str) -> None:
 
     :param folder_path: The path to the folder to clear.
     """
+    # exit if the folder does not exist
+    if not os.path.exists(folder_path):
+        return
     for file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file)
         if os.path.isfile(file_path):
@@ -181,7 +185,10 @@ def get_modified_files(
                 shutil.copy2(file_path, dest_file_path)
 
                 # Extract user id from the dest_dir and file path
-                uid = dest_dir.split("/")[-1]
+
+                dest_dir_as_path = Path(dest_dir)
+                uid = dest_dir_as_path.name
+
                 relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
@@ -253,14 +260,9 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
-    # check if skills.py exist. if exists, append to the file, else create a new file and write to it
-
-    if os.path.exists(os.path.join(work_dir, "skills.py")):
-        with open(os.path.join(work_dir, "skills.py"), "a", encoding="utf-8") as f:
-            f.write(prompt)
-    else:
-        with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-            f.write(prompt)
+    # overwrite skills.py in work_dir
+    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+        f.write(prompt)
 
     return instruction + prompt
 
