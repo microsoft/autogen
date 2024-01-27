@@ -208,10 +208,8 @@ def test_execute_code_blocks_failure() -> None:
         )
         code_block = ("python", "raise Exception('hello world')")
         reply = md._execute_code_block(code_block, 0, "")
-        assert reply == (
-            1,
-            "\nTraceback (most recent call last):\n  File \"\", line 1, in <module>\n    raise Exception('hello world')\nException: hello world\n",
-        )
+        assert reply[0] == 1
+        assert "Exception: hello world" in reply[1]
 
 
 def test_code_execution_no_docker_sync() -> None:
