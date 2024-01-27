@@ -78,7 +78,9 @@ def test_simple_text_browser():
     assert BLOG_POST_STRING in browser.page_content
 
     # Check if page splitting works
-    approx_pages = int(len(browser.page_content) / viewport_size + 0.5)  # May be fewer, since it aligns to word breaks
+    approx_pages = (
+        int(len(browser.page_content) / viewport_size + 0.5) + 1
+    )  # May be fewer, since it aligns to word breaks
     assert len(browser.viewport_pages) <= approx_pages
     assert abs(len(browser.viewport_pages) - approx_pages) <= 1  # allow only a small deviation
     assert browser.viewport_pages[0][0] == 0

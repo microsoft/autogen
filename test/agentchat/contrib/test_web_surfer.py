@@ -99,10 +99,10 @@ def test_web_surfer():
 def test_web_surfer_oai():
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": None}
 
+    model = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    model = model + [m.replace(".", "") for m in model]
     summarizer_llm_config = {
-        "config_list": filter_config(
-            config_list, {"model": ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]}
-        ),
+        "config_list": filter_config(config_list, {"model": model}),
         "timeout": 180,
         "cache_seed": None,
     }
