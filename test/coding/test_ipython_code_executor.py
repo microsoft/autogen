@@ -56,12 +56,12 @@ def test_saving_to_file():
     executor = IPythonCodeExecutor()
     with tempfile.TemporaryDirectory() as tmpdirname:
         code = f"""
-with open('{tmpdirname}/test_file_name', 'w') as f:
+with open('{os.path.join(tmpdirname, "test_file_name")}', 'w') as f:
     f.write('test saving file')
 """
         code_blocks = [CodeBlock(code=code, language="python")]
         code_result = executor.execute_code_blocks(code_blocks)
-        assert code_result.exit_code == 0 and os.path.exists(f"{tmpdirname}/test_file_name")
+        assert code_result.exit_code == 0 and os.path.exists(os.path.join(tmpdirname, "test_file_name"))
 
 
 def test_timeout():

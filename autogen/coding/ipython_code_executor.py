@@ -72,7 +72,7 @@ Leverage the statefulness of the kernel to avoid repeating code.
         return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
-        self._kernel_client.wait_for_ready(timeout=self._timeout)
+        self._kernel_client.wait_for_ready()
         outputs = []
         for code_block in code_blocks:
             self._kernel_client.execute(code_block.code, store_history=True)
