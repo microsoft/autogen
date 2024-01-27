@@ -162,4 +162,4 @@ def _test_conversable_agent_code_execution(config):
 def test_conversable_agent_warning_legacy_code_executor():
     # Test warning message.
     with pytest.warns(DeprecationWarning, match="legacy code executor"):
-        ConversableAgent("user_proxy", code_execution_config=True)
+        ConversableAgent("user_proxy", llm_config=False, code_execution_config=True)
