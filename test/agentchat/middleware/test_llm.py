@@ -1,5 +1,5 @@
 import inspect
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 import unittest
 from unittest.mock import AsyncMock, MagicMock
 from openai import completions
@@ -404,7 +404,7 @@ _tool_response = {
     ],
 )
 def test_generate_oai_reply_mocked_openai(
-    llm_config: Dict[str, Any],
+    llm_config: Union[Dict[str, Any], Literal[False]],
     messages: List[Dict[str, Any]],
     config: Optional[OpenAIWrapper],
     mock_response: str,

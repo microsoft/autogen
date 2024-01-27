@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 import sys
 from tempfile import TemporaryDirectory
@@ -31,21 +32,37 @@ _code_execution_configs_when_docker_available = [
 ]
 
 
-@pytest.mark.parametrize("param", _code_execution_configs_when_docker_available)
-def test_init_when_docker_available(param: Tuple[CodeConfig, CodeConfig]) -> None:
+@pytest.mark.parametrize(
+    "code_execution_config, expected_code_execution_config",
+    [
+        (False, {True: False, False: False}),
+        (None, {True: {"use_docker": True}, False: {"use_docker": False}}),
+        ({}, {True: {"use_docker": True}, False: {"use_docker": True}}),
+        ({"use_docker": True}, {True: {"use_docker": True}, False: {"use_docker": True}}),
+        ({"use_docker": False}, {True: {"use_docker": False}, False: {"use_docker": False}}),
+        ({"use_docker": None}, {True: {"use_docker": True}, False: {"use_docker": True}}),
+    ],
+)
+def test_init_when_docker_available(
+    code_execution_config: CodeConfig,
+    expected_code_execution_config: Dict[bool, CodeConfig],
+) -> None:
     # docker is running and we are not executing code from a container
     with unittest.mock.patch("autogen.code_utils.is_docker_running", return_value=True), unittest.mock.patch(
         "autogen.code_utils.in_docker_container", return_value=False
     ):
-        code_execution_config, expected_code_execution_config = param
-        md = CodeExecutionMiddleware(code_execution_config=code_execution_config)
+        for env_var_use_docker in True, False:
+            with unittest.mock.patch.dict(os.environ, {"AUTOGEN_USE_DOCKER": str(env_var_use_docker)}):
+                md = CodeExecutionMiddleware(code_execution_config=code_execution_config)
 
-        assert md._code_execution_config == expected_code_execution_config, code_execution_config
+                assert (
+                    md._code_execution_config == expected_code_execution_config[env_var_use_docker]
+                ), code_execution_config
 
-        if expected_code_execution_config is False:
-            assert md.use_docker is None
-        else:
-            assert md.use_docker is expected_code_execution_config["use_docker"]
+                if expected_code_execution_config[env_var_use_docker] is False:
+                    assert md.use_docker is None
+                else:
+                    assert md.use_docker is expected_code_execution_config[env_var_use_docker]["use_docker"]  # type: ignore[index]
 
 
 _error_msg_fragment = "Code execution is set to be run in docker (default behaviour) but "
@@ -81,7 +98,11 @@ def test_init_when_docker_not_available(
 ) -> None:
     with unittest.mock.patch(
         "autogen.code_utils.is_docker_running", return_value=is_docker_running
-    ), unittest.mock.patch("autogen.code_utils.in_docker_container", return_value=in_docker_container):
+    ), unittest.mock.patch(
+        "autogen.code_utils.in_docker_container", return_value=in_docker_container
+    ), unittest.mock.patch.dict(
+        os.environ, {"AUTOGEN_USE_DOCKER": "True"}
+    ):
         if e is None:
             md = CodeExecutionMiddleware(code_execution_config=code_execution_config)
             assert md._code_execution_config == expected_code_execution_config, code_execution_config
