@@ -89,7 +89,7 @@ The `AssistantAgent` doesn't save all the code by default, because there are cas
 
 We strongly recommend using docker to execute code. There are two ways to use docker:
 
-1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](Installation.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
+1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
 2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, make sure docker is up and running. If you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
 
 ### Enable Python 3 docker image
