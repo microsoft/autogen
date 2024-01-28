@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
+from openai import OpenAIError
 from ..version import VERSION
 
 from ..datamodel import (
@@ -403,13 +404,18 @@ async def test_user_models(req: DBWebRequestModel):
 
     try:
         response = test_model(model=req.model)
-
         return {
             "status": True,
             "message": "Model tested successfully",
             "data": response,
         }
 
+    except OpenAIError as oai_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while testing model: " + str(oai_error),
+        }
     except Exception as ex_error:
         print(traceback.format_exc())
         return {

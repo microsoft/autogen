@@ -1576,7 +1576,6 @@ const GroupChatFlowSpecView = ({
           role="button"
           onClick={() => {
             setSelectedAgent(index);
-            // setShowAgentModal(true);
           }}
         >
           <div className="inline-flex">

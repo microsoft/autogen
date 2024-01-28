@@ -388,6 +388,10 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
 
 
 def sanitize_model(model: Model):
+    """
+    Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
+    """
+    print("sanitizing model")
     if isinstance(model, Model):
         model = model.dict()
     valid_keys = ["model", "base_url",
@@ -400,9 +404,7 @@ def sanitize_model(model: Model):
 
 def test_model(model: Model):
     sanitized_model = sanitize_model(model)
-    print(sanitized_model)
     client = OpenAIWrapper(config_list=[sanitized_model])
     response = client.create(
         messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
-    print(response)
     return response

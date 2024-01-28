@@ -1,9 +1,8 @@
 import os
 from typing import List, Optional
-from dataclasses import asdict
 import autogen
-from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, GroupChatConfig, Message
-from .utils import get_skills_from_prompt, clear_folder
+from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, Message
+from .utils import get_skills_from_prompt, clear_folder, sanitize_model
 from datetime import datetime
 
 
@@ -124,11 +123,9 @@ class AutoGenWorkFlowManager:
                 if "api_key" not in llm and "OPENAI_API_KEY" not in os.environ:
                     error_message = f"api_key is not present in llm_config or OPENAI_API_KEY env variable for agent ** {agent_spec.name}**. Update your workflow to provide an api_key to use the LLM."
                     raise ValueError(error_message)
-                valid_keys = ["model", "base_url",
-                              "api_key", "api_type", "api_version"]
+
                 # only add key if value is not None
-                sanitized_llm = {k: v for k, v in llm.items() if (
-                    v is not None and v != "") and k in valid_keys}
+                sanitized_llm = sanitize_model(llm)
                 config_list.append(sanitized_llm)
                 print(" >> llm config", sanitized_llm)
             agent_spec.config.llm_config.config_list = config_list
