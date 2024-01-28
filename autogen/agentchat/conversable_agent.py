@@ -737,9 +737,7 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        return self.get_chat_takeaway(
-            context.get("takeaway_method"), recipient, takeaway_prompt=context.get("takeaway_prompt")
-        )
+        return self.get_chat_takeaway(context.get("takeaway_method"), recipient, prompt=context.get("takeaway_prompt"))
 
     def get_chat_takeaway(self, method, target_agent: Optional[Agent] = None, prompt: Optional[str] = None) -> str:
         """Get the chat takeaway from an agent participating in a chat.
