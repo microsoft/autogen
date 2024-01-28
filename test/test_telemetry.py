@@ -137,13 +137,7 @@ def test_log_new_agent():
     config_list = [{"model": "gpt-4", "api_key": "some_key"}]
 
     agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
-    init_args = {
-        "foo": "bar",
-        "baz": {
-            "other_key": "other_val"
-        },
-        "a": None
-    }
+    init_args = {"foo": "bar", "baz": {"other_key": "other_val"}, "a": None}
 
     autogen.telemetry.log_new_agent(agent, init_args)
     con = autogen.telemetry.get_connection()
@@ -155,7 +149,9 @@ def test_log_new_agent():
     """
 
     for row in cur.execute(query):
-        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        assert (
+            row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"]
+        ), "session id is not valid uuid"
         assert row["name"] == agent_name
         assert row["class"] == "AssistantAgent"
         assert row["init_args"] == json.dumps(init_args)
@@ -167,13 +163,8 @@ def test_log_oai_wrapper():
 
     autogen.telemetry.start_logging(dbname=":memory:")
 
-    llm_config = {
-        "config_list": [{"model": "gpt-4", "api_key": "some_key"}]
-    }
-    init_args = {
-        'llm_config': llm_config,
-        'base_config': {}
-    }
+    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key"}]}
+    init_args = {"llm_config": llm_config, "base_config": {}}
     wrapper = OpenAIWrapper(**llm_config)
 
     autogen.telemetry.log_new_wrapper(wrapper, init_args)
@@ -186,11 +177,13 @@ def test_log_oai_wrapper():
     """
 
     for row in cur.execute(query):
-        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        assert (
+            row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"]
+        ), "session id is not valid uuid"
         saved_init_args = json.loads(row["init_args"])
-        assert 'config_list' in saved_init_args
-        assert 'api_key' not in saved_init_args["config_list"][0]
-        assert 'base_config' in saved_init_args
+        assert "config_list" in saved_init_args
+        assert "api_key" not in saved_init_args["config_list"][0]
+        assert "base_config" in saved_init_args
     autogen.telemetry.stop_logging()
 
 
@@ -199,10 +192,10 @@ def test_log_oai_client():
     autogen.telemetry.start_logging(dbname="foo.db")
 
     openai_config = {
-        'api_key': 'some_key',
-        'api_version': '2023-12-01-preview',
-        'azure_deployment': 'gpt-4',
-        'azure_endpoint': 'https://foobar.openai.azure.com/'
+        "api_key": "some_key",
+        "api_version": "2023-12-01-preview",
+        "azure_deployment": "gpt-4",
+        "azure_endpoint": "https://foobar.openai.azure.com/",
     }
     client = AzureOpenAI(**openai_config)
 
@@ -217,9 +210,11 @@ def test_log_oai_client():
     """
 
     for row in cur.execute(query):
-        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        assert (
+            row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"]
+        ), "session id is not valid uuid"
         assert row["class"] == "AzureOpenAI"
         saved_init_args = json.loads(row["init_args"])
-        assert 'api_version' in saved_init_args
-        assert 'api_key' not in saved_init_args
+        assert "api_version" in saved_init_args
+        assert "api_key" not in saved_init_args
     autogen.telemetry.stop_logging()

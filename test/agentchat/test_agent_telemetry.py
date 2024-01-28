@@ -27,6 +27,7 @@ if not skip:
 
 ###############################################################
 
+
 def verify_log_completions_table(cur, teacher_message, student_message):
     cur.execute(
         """SELECT id, invocation_id, client_id, wrapper_id, session_id,
@@ -39,7 +40,9 @@ def verify_log_completions_table(cur, teacher_message, student_message):
     session_id = rows[0]["session_id"]
 
     for idx, row in enumerate(rows):
-        assert row["invocation_id"] and str(uuid.UUID(row["invocation_id"], version=4)) == row["invocation_id"], "invocation id is not valid uuid"
+        assert (
+            row["invocation_id"] and str(uuid.UUID(row["invocation_id"], version=4)) == row["invocation_id"]
+        ), "invocation id is not valid uuid"
         assert row["client_id"], "client id is empty"
         assert row["wrapper_id"], "wrapper id is empty"
         assert row["session_id"] and row["session_id"] == session_id
@@ -136,7 +139,7 @@ def verify_keys_are_matching(cur):
     """
     cur.execute(query)
     rows = cur.fetchall()
-    assert (len(rows) == 3)
+    assert len(rows) == 3
 
 
 @pytest.mark.skipif(
