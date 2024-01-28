@@ -4,7 +4,7 @@ import subprocess as sp
 import socket
 import json
 import hashlib
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Type, TypeVar
 
 
 def _config_check(config: Dict):
@@ -32,6 +32,12 @@ class AgentBuilder:
     """
 
     online_server_name = "online"
+
+    DEFAULT_PROXY_DESCRIPTION = """A user console with a code interpreter interface.
+It can provide the code execution results. Select this player when other players provide some code that needs to be executed.
+DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."""
+
+    DEFAULT_PROXY_SYS_MESSAGE = "User console with a python code interpreter interface."
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
     or coding may help the following task become easier?
@@ -341,6 +347,7 @@ output after executing the code) and provide a corrected answer or code.
         coding: Optional[bool] = None,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
+        user_proxy: Optional[autogen.ConversableAgent] = None,
         **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
@@ -352,6 +359,7 @@ output after executing the code) and provide a corrected answer or code.
             code_execution_config: specific configs for user proxy (e.g., last_n_messages, work_dir, ...).
             default_llm_config: specific configs for LLM (e.g., config_list, seed, temperature, ...).
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+            user_proxy: user proxy's class that can be used to replace the default user proxy.
 
         Returns:
             agent_list: a list of agents.
@@ -461,17 +469,18 @@ output after executing the code) and provide a corrected answer or code.
             }
         )
 
-        return self._build_agents(use_oai_assistant, **kwargs)
+        return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
 
     def build_from_library(
         self,
         building_task: str,
         library_path_or_json: str,
         default_llm_config: Dict,
-        coding: Optional[bool] = True,
+        coding: Optional[bool] = None,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
         embedding_model: Optional[str] = None,
+        user_proxy: Optional[autogen.ConversableAgent] = None,
         **kwargs,
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
@@ -489,6 +498,7 @@ output after executing the code) and provide a corrected answer or code.
             embedding_model: a Sentence-Transformers model use for embedding similarity to select agents from library.
                 if None, an openai model will be prompted to select agents. As reference, chromadb use "all-mpnet-base-
                 v2" as default.
+            user_proxy: user proxy's class that can be used to replace the default user proxy.
 
         Returns:
             agent_list: a list of agents.
@@ -628,16 +638,20 @@ output after executing the code) and provide a corrected answer or code.
             }
         )
 
-        return self._build_agents(use_oai_assistant, **kwargs)
+        return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
 
     def _build_agents(
-        self, use_oai_assistant: Optional[bool] = False, **kwargs
+        self,
+        use_oai_assistant: Optional[bool] = False,
+        user_proxy: Optional[autogen.ConversableAgent] = None,
+        **kwargs
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
 
         Args:
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
+            user_proxy: user proxy's class that can be used to replace the default user proxy.
 
         Returns:
             agent_list: a list of agents.
@@ -664,21 +678,16 @@ output after executing the code) and provide a corrected answer or code.
 
         if coding is True:
             print("Adding user console proxy...")
-            agent_list = (
-                [
-                    autogen.UserProxyAgent(
+            if user_proxy is None:
+                user_proxy = autogen.UserProxyAgent(
                         name="User_console_and_code_interpreter",
                         is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
-                        system_message="User console with a python code interpreter interface.",
-                        description="""A user console with a code interpreter interface.
-It can provide the code execution results. Select this player when other players provide some code that needs to be executed.
-DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING.""",
+                        system_message=self.DEFAULT_PROXY_SYS_MESSAGE,
+                        description=self.DEFAULT_PROXY_DESCRIPTION,
                         code_execution_config=code_execution_config,
                         human_input_mode="NEVER",
                     )
-                ]
-                + agent_list
-            )
+            agent_list = [user_proxy] + agent_list
 
         return agent_list, self.cached_configs.copy()
 
