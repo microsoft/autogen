@@ -123,7 +123,7 @@ class GroupChat:
             # Process based on is_allowed_graph
             if self.speaker_order_type == "allowed":
                 self.allowed_speaker_order_dict = self.allowed_or_disallowed_speaker_order
-            elif self.speaker_order_type == "disallowed":
+            else:
                 # Logic for processing disallowed allowed_or_disallowed_speaker_order to allowed_speaker_order_dict
                 self.allowed_speaker_order_dict = invert_disallowed_to_allowed(
                     self.allowed_or_disallowed_speaker_order, self.agents
