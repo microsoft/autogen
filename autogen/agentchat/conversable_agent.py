@@ -877,63 +877,6 @@ class ConversableAgent(Agent):
             takeaway = self.initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
-    async def a_initiate_chats(self, chats_info: List[Dict]):
-        """(async) Initiate chats with multiple agents.
-
-        Args: Please refer to `initiate_chats`.
-        """
-        receipts_set = set()
-        for chat_info in chats_info:
-            assert "recipient" in chat_info, "recipient must be provided."
-            receipts_set.add(chat_info["recipient"])
-        assert len(receipts_set) == len(chats_info), "recipients must be different."
-
-        self._chat_queue = chats_info
-        self._finished_chats = {}
-        while self._chat_queue:
-            chat_info = self._chat_queue.pop(0)
-            chat_info["carryover"] = list(self._finished_chats.values())
-            if "message" not in chat_info:
-                warnings.warn(
-                    "message is not provided in chat_info. input() will be called to get the initial message.",
-                    UserWarning,
-                )
-            current_agent = chat_info["recipient"]
-            print_carryover = (
-                ("\n").join([t for t in chat_info["carryover"]])
-                if isinstance(chat_info["carryover"], list)
-                else chat_info["carryover"]
-            )
-            print(
-                colored(
-                    "Start work on the following task: \n"
-                    + chat_info.get("message")
-                    + "\n With the following carryover from previous tasks: \n"
-                    + print_carryover,
-                    "blue",
-                ),
-                flush=True,
-            )
-            print("\n", "*" * 80, flush=True, sep="")
-            takeaway = await self.a_initiate_chat(**chat_info)
-            self._finished_chats[current_agent] = takeaway
-
-    def add_chat(self, chat_info: Dict, chat_index: int = -1):
-        """Add a chat to the chat queue.
-
-        Args:
-            chat_info (Dict): a dictionary containing the information of the chat.
-            The dictionary should contain the same fields as the argument of `initiate_chat`.
-        """
-        if chat_index < 0 or chat_index >= len(self._chat_queue):
-            self._chat_queue.append(chat_info)
-        else:
-            self._chat_queue.insert(chat_index, chat_info)
-
-    def remove_chat(self, chat_index: int = -1):
-        """Remove the chat_index-th chat from the chat queue."""
-        self._chat_queue.pop(chat_index)
-
     def reset(self):
         """Reset the agent."""
         self.clear_history()
