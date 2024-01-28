@@ -119,7 +119,7 @@ class GroupChat:
                     self.allowed_speaker_order_dict[agent.name].append(agent)
 
         # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is not None, using allowed_or_disallowed_speaker_order
-        elif self.allowed_or_disallowed_speaker_order is not None:
+        else:
             # Process based on is_allowed_graph
             if self.speaker_order_type == "allowed":
                 self.allowed_speaker_order_dict = self.allowed_or_disallowed_speaker_order
