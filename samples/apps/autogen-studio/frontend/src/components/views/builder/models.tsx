@@ -30,11 +30,9 @@ const ModelsView = ({}: any) => {
     message: "All good",
   });
 
-  const [loadingModelTest, setLoadingModelTest] = React.useState(false);
-
   const defaultModel: IModelConfig = {
     model: "gpt-4-1106-preview",
-    description: "Sample model",
+    description: "Sample OpenAI GPT-4 model",
     user_id: user?.email,
   };
 
@@ -49,37 +47,6 @@ const ModelsView = ({}: any) => {
   const [showNewModelModal, setShowNewModelModal] = React.useState(false);
 
   const [showModelModal, setShowModelModal] = React.useState(false);
-
-  const testModel = (model: IModelConfig) => {
-    // setError(null);
-    setLoadingModelTest(true);
-    const payLoad = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        model: model,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        setModelStatus(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoadingModelTest(false);
-    };
-    const onError = (err: any) => {
-      // setError(err);
-      message.error(err.message);
-      setLoadingModelTest(false);
-    };
-    fetchJSON(testModelUrl, payLoad, onSuccess, onError);
-  };
 
   const deleteModel = (model: IModelConfig) => {
     setError(null);
@@ -237,9 +204,42 @@ const ModelsView = ({}: any) => {
     setShowModelModal: (show: boolean) => void;
     handler?: (agent: IModelConfig) => void;
   }) => {
+    const [loadingModelTest, setLoadingModelTest] = React.useState(false);
+    const [modelStatus, setModelStatus] = React.useState<IStatus | null>(null);
+
     const [localModel, setLocalModel] = React.useState<IModelConfig | null>(
       model
     );
+    const testModel = (model: IModelConfig) => {
+      setModelStatus(null);
+      setLoadingModelTest(true);
+      const payLoad = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user?.email,
+          model: model,
+        }),
+      };
+
+      const onSuccess = (data: any) => {
+        if (data && data.status) {
+          message.success(data.message);
+          setModelStatus(data.data);
+        } else {
+          message.error(data.message);
+        }
+        setLoadingModelTest(false);
+        setModelStatus(data);
+      };
+      const onError = (err: any) => {
+        message.error(err.message);
+        setLoadingModelTest(false);
+      };
+      fetchJSON(testModelUrl, payLoad, onSuccess, onError);
+    };
 
     return (
       <Modal
@@ -303,70 +303,85 @@ const ModelsView = ({}: any) => {
           setShowModelModal(false);
         }}
       >
-        <div className="text-sm my-2">Enter parameters for your model.</div>
-        <Input
-          placeholder="Model Name"
-          value={localModel?.model}
-          onChange={(e) => {
-            setLocalModel({ ...localModel, model: e.target.value });
-          }}
-        />
-        <Input.Password
-          className="mt-2"
-          placeholder="API Key"
-          value={localModel?.api_key}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_key: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="Base URL"
-          value={localModel?.base_url}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, base_url: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="API Type (e.g. azure)"
-          value={localModel?.api_type}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_type: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="API Version (optional)"
-          value={localModel?.api_version}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_version: e.target.value });
-            }
-          }}
-        />
-        <TextArea
-          className="mt-2"
-          placeholder="Description"
-          value={localModel?.description}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, description: e.target.value });
-            }
-          }}
-        />
+        <div className="relative ">
+          <div className="text-sm my-2">Enter parameters for your model.</div>
+          <Input
+            placeholder="Model Name"
+            value={localModel?.model}
+            onChange={(e) => {
+              setLocalModel({ ...localModel, model: e.target.value });
+            }}
+          />
+          <Input.Password
+            className="mt-2"
+            placeholder="API Key"
+            value={localModel?.api_key}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_key: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="Base URL"
+            value={localModel?.base_url}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, base_url: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="API Type (e.g. azure)"
+            value={localModel?.api_type}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_type: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="API Version (optional)"
+            value={localModel?.api_version}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_version: e.target.value });
+              }
+            }}
+          />
+          <TextArea
+            className="mt-2"
+            placeholder="Description"
+            value={localModel?.description}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, description: e.target.value });
+              }
+            }}
+          />
 
-        {localModel?.api_type === "azure" && (
-          <div className="mt-4 text-xs">
-            Note: For Azure OAI models, you will need to specify all fields.
-          </div>
-        )}
+          {localModel?.api_type === "azure" && (
+            <div className="mt-4 text-xs">
+              Note: For Azure OAI models, you will need to specify all fields.
+            </div>
+          )}
+
+          {modelStatus && (
+            <div
+              className={`text-sm border mt-4 rounded text-secondary p-2 ${
+                modelStatus.status ? "border-accent" : " border-red-500 "
+              }`}
+            >
+              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              {modelStatus.message}
+
+              {/* <span className="block"> Note </span> */}
+            </div>
+          )}
+        </div>
       </Modal>
     );
   };

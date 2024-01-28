@@ -101,8 +101,9 @@ export const IconButton = ({
     <span
       role={"button"}
       onClick={onClick}
-      className={`inline-block mr-2 hover:text-accent transition duration-300 ${className} ${active ? "border-accent border rounded text-accent" : ""
-        }`}
+      className={`inline-block mr-2 hover:text-accent transition duration-300 ${className} ${
+        active ? "border-accent border rounded text-accent" : ""
+      }`}
     >
       {icon}
     </span>
@@ -193,8 +194,9 @@ export const CollapseBox = ({
         onClick={() => {
           setIsOpen(!isOpen);
         }}
-        className={`cursor-pointer bg-secondary p-2 rounded ${isOpen ? "rounded-b-none " : " "
-          }"}`}
+        className={`cursor-pointer bg-secondary p-2 rounded ${
+          isOpen ? "rounded-b-none " : " "
+        }"}`}
       >
         {isOpen && <ChevronUpIcon className={chevronClass} />}
         {!isOpen && <ChevronDownIcon className={chevronClass} />}
@@ -684,24 +686,24 @@ export const ModelSelector = ({
   const modelItems: MenuProps["items"] =
     models.length > 0
       ? models.map((model: IModelConfig, index: number) => ({
-        key: index,
-        label: (
-          <>
-            <div>{model.model}</div>
-            <div className="text-xs text-accent">
-              {truncateText(model.description || "", 20)}
-            </div>
-          </>
-        ),
-        value: index,
-      }))
+          key: index,
+          label: (
+            <>
+              <div>{model.model}</div>
+              <div className="text-xs text-accent">
+                {truncateText(model.description || "", 20)}
+              </div>
+            </>
+          ),
+          value: index,
+        }))
       : [
-        {
-          key: -1,
-          label: <>No models found</>,
-          value: 0,
-        },
-      ];
+          {
+            key: -1,
+            label: <>No models found</>,
+            value: 0,
+          },
+        ];
 
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
@@ -812,7 +814,7 @@ export const ModelSelector = ({
         key={"modelrow_" + i}
         // role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
-      // onClick={() => showModal(config, i)}
+        // onClick={() => showModal(config, i)}
       >
         <div className="inline-flex">
           {" "}
@@ -928,8 +930,9 @@ export const ImageLoader = ({
       <img
         alt="Dynamic content"
         src={src}
-        className={`w-full rounded ${isLoading ? "opacity-0" : "opacity-100"
-          } ${className}`}
+        className={`w-full rounded ${
+          isLoading ? "opacity-0" : "opacity-100"
+        } ${className}`}
         onLoad={() => setIsLoading(false)}
       />
     </div>
@@ -1079,7 +1082,7 @@ export const AgentFlowSpecView = ({
 
   // Required to monitor localAgent updates that occur in GroupChatFlowSpecView and reflect updates.
   useEffect(() => {
-    console.log("AgentFlowSpecView useEffect => flowSpec", flowSpec)
+    console.log("AgentFlowSpecView useEffect => flowSpec", flowSpec);
     setLocalFlowSpec(flowSpec);
   }, [flowSpec]);
 
