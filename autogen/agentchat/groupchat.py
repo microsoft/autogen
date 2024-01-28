@@ -85,7 +85,7 @@ class GroupChat:
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451266661
         if self.allowed_or_disallowed_speaker_order is not None and self.allow_repeat_speaker is not None:
             raise ValueError(
-                "GroupChat allowed_or_disallowed_speaker_order and allow_repeat_speaker cannot both be not None. "
+                "Don't provide both allowed_or_disallowed_speaker_order and allow_repeat_speaker in group chat. "
                 "Please set one of them to None."
             )
 
