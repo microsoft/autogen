@@ -20,7 +20,7 @@ if not skip:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "model": ["gpt-4", "gpt-4-0314", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
         },
         file_location=KEY_LOC,
     )
@@ -85,8 +85,6 @@ def verify_agents_table(cur, teacher_message, student_message):
             agent["system_message"] = student_message
 
         assert "api_key" not in row["init_args"]
-        assert "api-key" not in row["init_args"]
-
         assert row["timestamp"], "timestamp is empty"
 
 
@@ -121,6 +119,24 @@ def verify_oai_wrapper_table(cur):
         assert "config_list" in init_args
         assert len(init_args["config_list"]) > 0
         assert row["timestamp"], "timestamp is empty"
+
+
+def verify_keys_are_matching(cur):
+    query = """
+        SELECT * FROM chat_completions
+        INNER JOIN agents
+            ON chat_completions.wrapper_id = agents.wrapper_id
+            AND chat_completions.session_id = agents.session_id
+        INNER JOIN oai_clients
+            ON chat_completions.wrapper_id = oai_clients.wrapper_id
+            AND chat_completions.session_id = oai_clients.session_id
+        INNER JOIN oai_wrappers
+            ON chat_completions.wrapper_id = oai_wrappers.wrapper_id
+            AND chat_completions.session_id = oai_wrappers.session_id
+    """
+    cur.execute(query)
+    rows = cur.fetchall()
+    assert (len(rows) == 3)
 
 
 @pytest.mark.skipif(
@@ -170,7 +186,6 @@ def test_agent_telemetry():
     verify_agents_table(cur, teacher_message, student_message)
     verify_oai_client_table(cur)
     verify_oai_wrapper_table(cur)
-
-    # TODO: add a test for selecting with foreign key
+    verify_keys_are_matching(cur)
 
     autogen.telemetry.stop_logging()

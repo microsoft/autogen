@@ -6,7 +6,6 @@ from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
 import inspect
 import uuid
-import copy
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
@@ -539,7 +538,6 @@ class OpenAIWrapper:
                             response_contents[choice.index] += content
                             completion_tokens += 1
                         else:
-                            # print()
                             pass
 
             # Reset the terminal text color

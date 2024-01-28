@@ -190,6 +190,7 @@ def log_new_agent(agent, init_args):
         init_args = excluded.init_args,
         timestamp = excluded.timestamp
     """
+
     this._cur.execute(
         query,
         (
@@ -202,6 +203,7 @@ def log_new_agent(agent, init_args):
             get_current_ts(),
         ),
     )
+    this._con.commit()
 
 
 def log_new_wrapper(wrapper, init_args):
@@ -234,6 +236,7 @@ def log_new_wrapper(wrapper, init_args):
             get_current_ts(),
         ),
     )
+    this._con.commit()
 
 
 def log_new_client(client, wrapper, init_args):
@@ -269,6 +272,7 @@ def log_new_client(client, wrapper, init_args):
             get_current_ts(),
         ),
     )
+    this._con.commit()
 
 
 def get_current_ts():

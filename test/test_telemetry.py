@@ -2,10 +2,21 @@ import autogen
 import autogen.telemetry
 import uuid
 import json
-from unittest.mock import Mock
+import pytest
 import sqlite3
+from conftest import skip_openai
+from unittest.mock import Mock
 
-WRAPPER_ID = 140610167717744
+try:
+    import openai
+except ImportError:
+    skip = True
+    AzureOpenAI = object
+else:
+    skip = False or skip_openai
+    from openai import AzureOpenAI
+
+
 SAMPLE_CHAT_REQUEST = json.loads(
     """
 {
@@ -61,7 +72,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 SAMPLE_LOG_CHAT_COMPLETION_ARGS = {
     "invocation_id": str(uuid.uuid4()),
     "client_id": 140609438577184,
-    "wrapper_id": WRAPPER_ID,
+    "wrapper_id": 140610167717744,
     "request": SAMPLE_CHAT_REQUEST,
     "response": SAMPLE_CHAT_RESPONSE,
     "is_cached": 0,
@@ -69,36 +80,11 @@ SAMPLE_LOG_CHAT_COMPLETION_ARGS = {
     "start_time": autogen.telemetry.get_current_ts(),
 }
 
-SAMPLE_AGENT_INIT_ARGS = {
-    "name": "teacher",
-    "system_message": "some system message",
-    "is_termination_msg": None,
-    "max_consecutive_auto_reply": 2,
-    "human_input_mode": "NEVER",
-    "function_map": None,
-    "code_execution_config": False,
-    "llm_config": {
-        "config_list": [
-            {"model": "gpt-4", "base_url": "some base url", "api_type": "azure", "api_version": "2023-12-01-preview"}
-        ]
-    },
-    "default_auto_reply": "",
-    "description": None,
-}
-
-SAMPLE_LOG_NEW_AGENT_ARGS = {
-    "wrapper_id": WRAPPER_ID,
-    "agent": SAMPLE_AGENT_INIT_ARGS,
-}
 
 # skip id, session_id
 COMPLETION_QUERY = """
     SELECT invocation_id, client_id, wrapper_id, request, response, is_cached,
         cost, start_time, end_time FROM chat_completions
-"""
-
-AGENT_QUERY = """
-    SELECT agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents
 """
 
 ###############################################################
@@ -143,23 +129,97 @@ def test_log_completion_with_none_response():
     autogen.telemetry.stop_logging()
 
 
-# Adam: I need to think about this more. I am not super familiar with mock
-#
-# def test_log_new_agent():
-#    autogen.telemetry.start_logging(dbname=":memory:")
-#
-#    mock_agent = Mock()
-#    mock_agent.client = Mock()
-#    mock_agent.client.wrapper_id = WRAPPER_ID
-#    autogen.telemetry.log_new_agent(mock_agent, SAMPLE_AGENT_INIT_ARGS)
-#
-#    con = autogen.telemetry.get_connection()
-#    cur = con.cursor()
-#
-#    for row in cur.execute(AGENT_QUERY):
-#        for (idx, val), arg in zip(enumerate(row), SAMPLE_LOG_NEW_AGENT_ARGS.values()):
-#            if idx == 1:  # agent
-#                val = json.loads(val)
-#            assert val == arg
-#
-#    autogen.telemetry.stop_logging()
+def test_log_new_agent():
+    from autogen import AssistantAgent
+
+    autogen.telemetry.start_logging(dbname=":memory:")
+    agent_name = "some_assistant"
+    config_list = [{"model": "gpt-4", "api_key": "some_key"}]
+
+    agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
+    init_args = {
+        "foo": "bar",
+        "baz": {
+            "other_key": "other_val"
+        },
+        "a": None
+    }
+
+    autogen.telemetry.log_new_agent(agent, init_args)
+    con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    query = """
+        SELECT session_id, name, class, init_args FROM agents
+    """
+
+    for row in cur.execute(query):
+        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        assert row["name"] == agent_name
+        assert row["class"] == "AssistantAgent"
+        assert row["init_args"] == json.dumps(init_args)
+    autogen.telemetry.stop_logging()
+
+
+def test_log_oai_wrapper():
+    from autogen import OpenAIWrapper
+
+    autogen.telemetry.start_logging(dbname=":memory:")
+
+    llm_config = {
+        "config_list": [{"model": "gpt-4", "api_key": "some_key"}]
+    }
+    init_args = {
+        'llm_config': llm_config,
+        'base_config': {}
+    }
+    wrapper = OpenAIWrapper(**llm_config)
+
+    autogen.telemetry.log_new_wrapper(wrapper, init_args)
+    con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    query = """
+        SELECT session_id, init_args FROM oai_wrappers
+    """
+
+    for row in cur.execute(query):
+        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        saved_init_args = json.loads(row["init_args"])
+        assert 'config_list' in saved_init_args
+        assert 'api_key' not in saved_init_args["config_list"][0]
+        assert 'base_config' in saved_init_args
+    autogen.telemetry.stop_logging()
+
+
+@pytest.mark.skipif(skip, reason="openai not installed")
+def test_log_oai_client():
+    autogen.telemetry.start_logging(dbname="foo.db")
+
+    openai_config = {
+        'api_key': 'some_key',
+        'api_version': '2023-12-01-preview',
+        'azure_deployment': 'gpt-4',
+        'azure_endpoint': 'https://foobar.openai.azure.com/'
+    }
+    client = AzureOpenAI(**openai_config)
+
+    autogen.telemetry.log_new_client(client, Mock(), openai_config)
+
+    con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    query = """
+        SELECT session_id, init_args, class FROM oai_clients
+    """
+
+    for row in cur.execute(query):
+        assert row["session_id"] and str(uuid.UUID(row["session_id"], version=4)) == row["session_id"], "session id is not valid uuid"
+        assert row["class"] == "AzureOpenAI"
+        saved_init_args = json.loads(row["init_args"])
+        assert 'api_version' in saved_init_args
+        assert 'api_key' not in saved_init_args
+    autogen.telemetry.stop_logging()
