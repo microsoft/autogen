@@ -918,20 +918,19 @@ class ConversableAgent(Agent):
             takeaway = await self.a_initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
-    def add_chat_info(self, chat_info: Dict):
+    def add_chat(self, chat_info: Dict, chat_index: int = -1):
         """Add a chat to the chat queue.
 
         Args:
             chat_info (Dict): a dictionary containing the information of the chat.
-                The dictionary should contain the following fields:
-                - "recipient": the recipient agent.
-                - "context": any context information.
-                    "message" needs to be provided if the `generate_init_message` method is not overridden.
-                              Otherwise, input() will be called to get the initial message.
+            The dictionary should contain the same fields as the argument of `initiate_chat`.
         """
-        self._chat_queue.append(chat_info)
+        if chat_index < 0 or chat_index >= len(self._chat_queue):
+            self._chat_queue.append(chat_info)
+        else:
+            self._chat_queue.insert(chat_index, chat_info)
 
-    def remove_task(self, chat_index: int = -1):
+    def remove_chat(self, chat_index: int = -1):
         """Remove the chat_index-th chat from the chat queue."""
         self._chat_queue.pop(chat_index)
 
