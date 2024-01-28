@@ -91,7 +91,7 @@ class GroupChat:
 
         # Asks the user to specify whether the speaker_order_type is allowed or disallowed if speaker_order_type is supplied
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451259524
-        if self.allowed_or_disallowed_speaker_order is not None and self.allowed_or_disallowed_speaker_order is None:
+        if self.allowed_or_disallowed_speaker_order is not None and self.speaker_order_type is None:
             raise ValueError(
                 "GroupChat allowed_or_disallowed_speaker_order is not None, but speaker_order_type is None. "
                 "Please set speaker_order_type to either 'allowed' or 'disallowed'."
