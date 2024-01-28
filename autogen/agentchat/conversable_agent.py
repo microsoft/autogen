@@ -694,6 +694,10 @@ class ConversableAgent(Agent):
                 "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "llm".
                     Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
                     "Identify and extract the final solution to the originally asked question based on the conversation."
+                "carryover" can be used to specify the carryover information to be passed to this chat.
+                    If provided, we will combine this carryover with the "message" content when generating the initial chat
+                    message in `generate_init_message`. Please override the `generate_init_message` if you want to customize
+                    how to use the carryover information shall be used.
 
         Raises:
             RuntimeError: if any async reply functions are registered and not ignored in sync chat.
@@ -723,14 +727,7 @@ class ConversableAgent(Agent):
         If `clear_history` is True, the chat history with the recipient agent will be cleared.
         `generate_init_message` is called to generate the initial message for the agent.
 
-        Args:
-            recipient: the recipient agent.
-            clear_history (bool): whether to clear the chat history with the agent.
-            silent (bool or None): (Experimental) whether to print the messages for this conversation.
-            cache (Cache or None): the cache client to be used for this conversation.
-            **context: any context information.
-                "message" needs to be provided if the `generate_init_message` method is not overridden.
-                          Otherwise, input() will be called to get the initial message.
+        Args: Please refer to `initiate_chat`.
         """
         self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
@@ -818,15 +815,7 @@ class ConversableAgent(Agent):
         else:
             return extracted_response
 
-    def prompt_takeaways(self, new_message: str, takeaways: List[str] = []):
-        """Prompt the user to select a takeaway from a list of takeaways.
-        Could be overridden by the agent to provide a custom prompt.
-        """
-        if takeaways:
-            return new_message + "\nContext: \n" + ("\n").join([t for t in takeaways])
-        return new_message
-
-    def initiate_chats(self, chats_info: List[Dict], carryover_previous_takeaway: bool = True):
+    def initiate_chats(self, chats_info: List[Dict]):
         """Initiate chats with multiple agents.
 
         Args:
@@ -835,8 +824,20 @@ class ConversableAgent(Agent):
                 - "recipient": the recipient agent.
                 - "context": any context information.
                     "message" needs to be provided if the `generate_init_message` method is not overridden.
-                              Otherwise, input() will be called to get the initial message.
-            carryover_previous_takeaway (bool): whether to append the takeaway from the previous task to the current task.
+                          Otherwise, input() will be called to get the initial message.
+                    "takeaway_method" can be used to specify the method to extract the takeaway from the chat.
+                        Supported methods are "last_msg" and "llm".
+                        when set "last_msg", it returns the last message of the dialog as the takeaway.
+                        when set "llm", it returns the takeaway extracted using an llm client.
+                        "llm" requires the llm_config to be set in either the sender or the recipient.
+                    "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "llm".
+                        Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                        "Identify and extract the final solution to the originally asked question based on the conversation."
+                    "carryover" can be used to specify the carryover information to be passed to this chat.
+                        If provided, we will combine this carryover with the "message" content when generating the initial chat
+                        message in `generate_init_message`. Please override the `generate_init_message` if you want to customize
+                        how to use the carryover information shall be used.
+
         """
         receipts_set = set()
         for chat_info in chats_info:
@@ -849,34 +850,37 @@ class ConversableAgent(Agent):
         takeaway = []
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
+            chat_info["carryover"] = list(self._finished_chats.values())
             if "message" not in chat_info:
                 warnings.warn(
                     "message is not provided in chat_info. input() will be called to get the initial message.",
                     UserWarning,
                 )
-                chat_info["message"] = self.generate_init_message()
-            original_init_message = chat_info["message"]
-            if carryover_previous_takeaway:
-                chat_info["message"] = self.prompt_takeaways(
-                    chat_info.get("message", ""), takeaways=list(self._finished_chats.values())
-                )
             current_agent = chat_info["recipient"]
-            print(colored("Working on the following task: \n" + original_init_message, "blue"), flush=True)
-            print("\n", "*" * 80, flush=True, sep="")
+            print_carryover = (
+                ("\n").join([t for t in chat_info["carryover"]])
+                if isinstance(chat_info["carryover"], list)
+                else chat_info["carryover"]
+            )
+            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+            print(
+                colored(
+                    "Start work on the following task: \n"
+                    + chat_info.get("message")
+                    + "\n\nWith the following carryover from previous tasks: \n"
+                    + print_carryover,
+                    "blue",
+                ),
+                flush=True,
+            )
+            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
             takeaway = self.initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
-    async def a_initiate_chats(self, chats_info: List[Dict], carryover_previous_takeaway: bool = True):
+    async def a_initiate_chats(self, chats_info: List[Dict]):
         """(async) Initiate chats with multiple agents.
 
-        Args:
-            chats_info (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the following fields:
-                - "recipient": the recipient agent.
-                - "context": any context information.
-                    "message" needs to be provided if the `generate_init_message` method is not overridden.
-                              Otherwise, input() will be called to get the initial message.
-            carryover_previous_takeaway (bool): whether to append the takeaway from the previous task to the current task.
+        Args: Please refer to `initiate_chats`.
         """
         receipts_set = set()
         for chat_info in chats_info:
@@ -888,17 +892,29 @@ class ConversableAgent(Agent):
         self._finished_chats = {}
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
+            chat_info["carryover"] = list(self._finished_chats.values())
             if "message" not in chat_info:
                 warnings.warn(
                     "message is not provided in chat_info. input() will be called to get the initial message.",
                     UserWarning,
                 )
-                chat_info["message"] = self.generate_init_message()
-            if carryover_previous_takeaway:
-                chat_info["message"] = chat_info.get("message", "") + self.prompt_takeaways(
-                    list(self._finished_chats.values())
-                )
             current_agent = chat_info["recipient"]
+            print_carryover = (
+                ("\n").join([t for t in chat_info["carryover"]])
+                if isinstance(chat_info["carryover"], list)
+                else chat_info["carryover"]
+            )
+            print(
+                colored(
+                    "Start work on the following task: \n"
+                    + chat_info.get("message")
+                    + "\n With the following carryover from previous tasks: \n"
+                    + print_carryover,
+                    "blue",
+                ),
+                flush=True,
+            )
+            print("\n", "*" * 80, flush=True, sep="")
             takeaway = await self.a_initiate_chat(**chat_info)
             self._finished_chats[current_agent] = takeaway
 
@@ -1817,6 +1833,17 @@ class ConversableAgent(Agent):
         """
         if "message" not in context:
             context["message"] = self.get_human_input(">")
+        carryover = context.get("carryover", "")
+        if carryover:
+            # if carryover is string
+            if isinstance(carryover, str):
+                context["message"] = context["message"] + "\nContext: \n" + carryover
+            elif isinstance(carryover, list):
+                context["message"] = context["message"] + "\nContext: \n" + ("\n").join([t for t in carryover])
+            else:
+                raise warnings.warn(
+                    "Carryover should be a string or a list of strings Not adding carryover to the message."
+                )
         return context["message"]
 
     async def a_generate_init_message(self, **context) -> Union[str, Dict]:
