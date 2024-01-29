@@ -1,4 +1,4 @@
-from typing import List, Protocol
+from typing import List, Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
@@ -38,6 +38,7 @@ class CodeExtractor(Protocol):
         ...  # pragma: no cover
 
 
+@runtime_checkable
 class CodeExecutor(Protocol):
     """A code executor class that executes code blocks and returns the result."""
 
