@@ -48,7 +48,7 @@ jobs:
           echo "$(pwd)/quarto-1.4.549/bin/" >> $GITHUB_PATH
       - name: quarto run
         run: |
-          quarto render ./website/docs
+          quarto render .
       - name: Test Build
         run: |
           if [ -e yarn.lock ]; then
@@ -90,7 +90,7 @@ jobs:
           echo "$(pwd)/quarto-1.4.549/bin/" >> $GITHUB_PATH
       - name: quarto run
         run: |
-          quarto render ./website/docs
+          quarto render .
       - name: Build website
         run: |
           if [ -e yarn.lock ]; then
