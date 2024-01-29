@@ -92,7 +92,7 @@ const GalleryPage = () => {
             >
               <Card
                 hoverable
-                bordered={false}
+                bordered
                 style={{ height: 370, paddingTop: 15 }}
                 cover={
                   <img
@@ -108,6 +108,7 @@ const GalleryPage = () => {
                       height: 150,
                       width: "fit-content",
                       margin: "auto",
+                      padding: 2,
                     }}
                   />
                 }
