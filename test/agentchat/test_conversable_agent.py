@@ -835,7 +835,7 @@ def test_register_functions():
 
         register_function(
             exec_python,
-            agent=agent,
+            caller=agent,
             executor=user_proxy,
             description="run cell in ipython and return the execution result.",
         )
@@ -927,7 +927,7 @@ def test_function_registration_e2e_sync() -> None:
         stopwatch_mock(num_seconds=num_seconds)
         return "Stopwatch is done!"
 
-    register_function(stopwatch, agent=coder, executor=user_proxy, description="create a stopwatch for N seconds")
+    register_function(stopwatch, caller=coder, executor=user_proxy, description="create a stopwatch for N seconds")
 
     # start the conversation
     # 'await' is used to pause and resume code execution for async IO operations.
@@ -991,7 +991,7 @@ async def test_function_registration_e2e_async() -> None:
         timer_mock(num_seconds=num_seconds)
         return "Timer is done!"
 
-    register_function(timer, agent=coder, executor=user_proxy, description="create a timer for N seconds")
+    register_function(timer, caller=coder, executor=user_proxy, description="create a timer for N seconds")
 
     # An example sync function registered using decorators
     @user_proxy.register_for_execution()

@@ -224,10 +224,11 @@ def test_generate_function_call_reply_on_function_call_message(is_function_async
     # function map set
     agent._function_map = _get_function_map(is_function_async)
 
-    # correct function call
-    messages = [_function_use_message_1]
-    finished, retval = agent.generate_function_call_reply(messages)
-    assert (finished, retval) == (True, _function_use_message_1_expected_reply)
+    # correct function call, multiple times to make sure cleanups are done properly
+    for _ in range(3):
+        messages = [_function_use_message_1]
+        finished, retval = agent.generate_function_call_reply(messages)
+        assert (finished, retval) == (True, _function_use_message_1_expected_reply)
 
     # bad JSON
     messages = [_function_use_message_1_bad_json]
@@ -265,10 +266,11 @@ async def test_a_generate_function_call_reply_on_function_call_message(is_functi
     # function map set
     agent._function_map = _get_function_map(is_function_async)
 
-    # correct function call
-    messages = [_function_use_message_1]
-    finished, retval = await agent.a_generate_function_call_reply(messages)
-    assert (finished, retval) == (True, _function_use_message_1_expected_reply)
+    # correct function call, multiple times to make sure cleanups are done properly
+    for _ in range(3):
+        messages = [_function_use_message_1]
+        finished, retval = await agent.a_generate_function_call_reply(messages)
+        assert (finished, retval) == (True, _function_use_message_1_expected_reply)
 
     # bad JSON
     messages = [_function_use_message_1_bad_json]
@@ -305,10 +307,11 @@ def test_generate_tool_calls_reply_on_function_call_message(is_function_async: b
     # function map set
     agent._function_map = _get_function_map(is_function_async)
 
-    # correct tool call
-    messages = [_tool_use_message_1]
-    finished, retval = agent.generate_tool_calls_reply(messages)
-    assert (finished, retval) == (True, _tool_use_message_1_expected_reply)
+    # correct function call, multiple times to make sure cleanups are done properly
+    for _ in range(3):
+        messages = [_tool_use_message_1]
+        finished, retval = agent.generate_tool_calls_reply(messages)
+        assert (finished, retval) == (True, _tool_use_message_1_expected_reply)
 
     # bad JSON
     messages = [_tool_use_message_1_bad_json]
@@ -346,10 +349,11 @@ async def test_a_generate_tool_calls_reply_on_function_call_message(is_function_
     # function map set
     agent._function_map = _get_function_map(is_function_async)
 
-    # correct tool call
-    messages = [_tool_use_message_1]
-    finished, retval = await agent.a_generate_tool_calls_reply(messages)
-    assert (finished, retval) == (True, _tool_use_message_1_expected_reply)
+    # correct function call, multiple times to make sure cleanups are done properly
+    for _ in range(3):
+        messages = [_tool_use_message_1]
+        finished, retval = await agent.a_generate_tool_calls_reply(messages)
+        assert (finished, retval) == (True, _tool_use_message_1_expected_reply)
 
     # bad JSON
     messages = [_tool_use_message_1_bad_json]

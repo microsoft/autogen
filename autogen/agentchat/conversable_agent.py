@@ -917,11 +917,15 @@ class ConversableAgent(Agent):
                 try:
                     # get the running loop if it was already created
                     loop = asyncio.get_running_loop()
+                    close_loop = False
                 except RuntimeError:
                     # create a loop if there is no running loop
                     loop = asyncio.new_event_loop()
+                    close_loop = True
 
                 _, func_return = loop.run_until_complete(self.a_execute_function(func_call))
+                if close_loop:
+                    loop.close()
             else:
                 _, func_return = self.execute_function(message["function_call"])
             return True, func_return
@@ -982,11 +986,15 @@ class ConversableAgent(Agent):
                 try:
                     # get the running loop if it was already created
                     loop = asyncio.get_running_loop()
+                    close_loop = False
                 except RuntimeError:
                     # create a loop if there is no running loop
                     loop = asyncio.new_event_loop()
+                    close_loop = True
 
                 _, func_return = loop.run_until_complete(self.a_execute_function(function_call))
+                if close_loop:
+                    loop.close()
             else:
                 _, func_return = self.execute_function(function_call)
             tool_returns.append(
@@ -2010,7 +2018,7 @@ class ConversableAgent(Agent):
 def register_function(
     f: Callable[..., Any],
     *,
-    agent: ConversableAgent,
+    caller: ConversableAgent,
     executor: ConversableAgent,
     name: Optional[str] = None,
     description: str,
@@ -2022,11 +2030,13 @@ def register_function(
 
     Args:
         f: the function to be registered.
-        agent: the agent proposing the function.
+        caller: the agent calling the function, typically an instance of ConversableAgent.
         executor: the agent executing the function, typically an instance of UserProxy.
         name: name of the function. If None, the function name will be used (default: None).
-        description: description of the function.
+        description: description of the function. The description is used by LLM to decode whether the function
+            is called. Make sure the description is properly describing what the function does or it might not be
+            called by LLM when needed.
 
     """
-    f = agent.register_for_llm(name=name, description=description)(f)
+    f = caller.register_for_llm(name=name, description=description)(f)
     executor.register_for_execution(name=name)(f)
