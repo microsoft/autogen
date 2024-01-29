@@ -1,17 +1,28 @@
-import sqlite3
+from __future__ import annotations
+
 import datetime
+import inspect
 import json
-import uuid
+import sqlite3
 import sys
-import copy
+import uuid
+
+from typing import TYPE_CHECKING, Any, Dict, List, Union, Tuple
+
+if TYPE_CHECKING:
+    from autogen import ConversableAgent, OpenAIWrapper
 
 try:
     import openai
+except ImportError:
+    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
+    OpenAI = object
+    AzureOpenAI = object
+else:
+    from openai import OpenAI, AzureOpenAI
     from openai.types.chat import ChatCompletion
 
     ERROR = None
-except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
@@ -20,7 +31,7 @@ this._con = None
 this._cur = None
 
 
-def start_logging(dbname="telemetry.db"):
+def start_logging(dbname: str = "telemetry.db") -> None:
     """
     Open a connection to the telemetry logging database, and start recording.
     """
@@ -41,6 +52,7 @@ def start_logging(dbname="telemetry.db"):
             end_time DATETIME DEFAULT CURRENT_TIMESTAMP)
     """
     this._cur.execute(query)
+    this._con.commit()
 
     query = """
         CREATE TABLE IF NOT EXISTS agents (
@@ -91,9 +103,13 @@ def get_connection():
     return this._con
 
 
-def _to_dict(obj, exclude=[]):
+def _to_dict(
+    obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any], exclude: List[str] = []
+) -> Any:
     if isinstance(obj, (int, float, str, bool)):
         return obj
+    elif callable(obj):
+        return inspect.getsource(obj).strip()
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
@@ -104,7 +120,16 @@ def _to_dict(obj, exclude=[]):
         return obj
 
 
-def log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time):
+def log_chat_completion(
+    invocation_id: uuid.UUID,
+    client_id: int,
+    wrapper_id: int,
+    request: Dict,
+    response: Union[str, ChatCompletion],
+    is_cached: int,
+    cost: float,
+    start_time: str,
+) -> None:
     """
     Log a chat completion to the telemetry database.
 
@@ -136,12 +161,10 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
         response_messages = json.dumps(_to_dict(response), indent=4)
     elif isinstance(response, dict):
         response_messages = json.dumps(response, indent=4)
-    elif isinstance(response, str):
-        response_messages = json.dumps({"error": response})
-    elif response is None:
-        response_messages = ""
+    elif response is None or isinstance(response, str):
+        response_messages = json.dumps({"response": response})
     else:
-        raise "invalid type of response"
+        raise TypeError("invalid type of response")
 
     query = """INSERT INTO chat_completions (
         invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
@@ -163,7 +186,7 @@ def log_chat_completion(invocation_id, client_id, wrapper_id, request, response,
     this._con.commit()
 
 
-def log_new_agent(agent, init_args):
+def log_new_agent(agent: ConversableAgent, init_args: Dict):
     """
     Log the birth of a new agent.
 
@@ -206,7 +229,7 @@ def log_new_agent(agent, init_args):
     this._con.commit()
 
 
-def log_new_wrapper(wrapper, init_args):
+def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     """
     Log the birth of a new OpenAIWrapper.
 
@@ -239,7 +262,7 @@ def log_new_wrapper(wrapper, init_args):
     this._con.commit()
 
 
-def log_new_client(client, wrapper, init_args):
+def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict):
     """
     Log the birth of a new OpenAIWrapper.
 

@@ -729,6 +729,3 @@ class OpenAIWrapper:
                 choice.message if choice.message.function_call is not None else choice.message.content  # type: ignore [union-attr]
                 for choice in choices
             ]
-
-
-# TODO: logging
