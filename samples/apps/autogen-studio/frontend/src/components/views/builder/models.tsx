@@ -438,9 +438,12 @@ const ModelsView = ({}: any) => {
             {models && models.length > 0 && (
               <span className="block my-2 border rounded border-secondary p-2">
                 <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
-                Note: When you reuse a model in your agent/workflow, a{" "}
-                <span className="font-semibold underline">copy</span> of the
-                model details is added to the agent/workflow.
+                Note: Changes made to your model do not automatically get
+                updated in your workflow. After creating or editing your model,{" "}
+                <span className="font-semibold underline">
+                  you must also (re-)add
+                </span>{" "}
+                it to your workflow.
               </span>
             )}
           </div>
