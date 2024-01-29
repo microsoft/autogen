@@ -21,7 +21,7 @@ yarn install
 
 ### Install Quarto
 
-`quarto` is used to render notebooks. 
+`quarto` is used to render notebooks.
 
 Install it [here](https://quarto.org/docs/get-started/).
 
