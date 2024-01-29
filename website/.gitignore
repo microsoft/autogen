@@ -12,10 +12,6 @@ docs/reference
 
 docs/llm_endpoint_configuration.mdx
 
-docs/examples/**/*.png
-docs/examples/**/*.mdx
-docs/examples/**/*.svg
-
 # Misc
 .DS_Store
 .env.local
