@@ -504,6 +504,95 @@ def test_selection_helpers():
         groupchat.manual_select_speaker()
 
 
+def test_clear_agents_history():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    agent3 = autogen.ConversableAgent(
+        "sam",
+        max_consecutive_auto_reply=10,
+        human_input_mode="ALWAYS",
+        llm_config=False,
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=3, enable_clear_history=True)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    # testing pure "clear history" statement
+    with mock.patch.object(builtins, "input", lambda _: "clear history. How you doing?"):
+        agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    agent2_history = list(agent2._oai_messages.values())[0]
+    assert agent1_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    assert groupchat.messages == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+
+    # testing clear history for defined agent
+    with mock.patch.object(builtins, "input", lambda _: "clear history bob. How you doing?"):
+        agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    agent2_history = list(agent2._oai_messages.values())[0]
+    assert agent1_history == [
+        {"content": "hello", "role": "assistant"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    assert groupchat.messages == [
+        {"content": "hello", "role": "user", "name": "alice"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+
+    # testing clear history with defined nr of messages to preserve
+    with mock.patch.object(builtins, "input", lambda _: "clear history 1. How you doing?"):
+        agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    agent2_history = list(agent2._oai_messages.values())[0]
+    assert agent1_history == [
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert agent2_history == [
+        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert groupchat.messages == [
+        {"content": "This is bob speaking.", "role": "user", "name": "bob"},
+        {"content": "How you doing?", "role": "user", "name": "sam"},
+    ]
+
+    # testing clear history with defined agent and nr of messages to preserve
+    with mock.patch.object(builtins, "input", lambda _: "clear history bob 1. How you doing?"):
+        agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    agent2_history = list(agent2._oai_messages.values())[0]
+    assert agent1_history == [
+        {"content": "hello", "role": "assistant"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert agent2_history == [
+        {"content": "This is bob speaking.", "role": "assistant"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+    assert groupchat.messages == [
+        {"content": "hello", "name": "alice", "role": "user"},
+        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
+        {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -514,4 +603,5 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    test_invalid_allow_repeat_speaker()
+    # test_invalid_allow_repeat_speaker()
+    test_clear_agents_history()
