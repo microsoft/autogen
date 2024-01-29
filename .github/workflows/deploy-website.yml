@@ -42,6 +42,7 @@ jobs:
         run: |
           pydoc-markdown
       - name: quarto install
+        working-directory: ${{ runner.temp }}
         run: |
           wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.549/quarto-1.4.549-linux-amd64.tar.gz
           tar -xzf quarto-1.4.549-linux-amd64.tar.gz
@@ -84,6 +85,7 @@ jobs:
         run: |
           pydoc-markdown
       - name: quarto install
+        working-directory: ${{ runner.temp }}
         run: |
           wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.549/quarto-1.4.549-linux-amd64.tar.gz
           tar -xzf quarto-1.4.549-linux-amd64.tar.gz
