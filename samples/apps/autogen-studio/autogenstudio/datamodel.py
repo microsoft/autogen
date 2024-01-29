@@ -33,8 +33,8 @@ class Message(object):
 @dataclass
 class Skill(object):
     title: str
-    file_name: str
     content: str
+    file_name: Optional[str] = None
     id: Optional[str] = None
     description: Optional[str] = None
     timestamp: Optional[str] = None
