@@ -4,6 +4,7 @@ import re
 import pytest
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import skip_openai  # noqa: E402
@@ -109,9 +110,8 @@ def test_web_surfer_oai() -> None:
     model += [m.replace(".", "") for m in model]
 
     summarizer_llm_config = {
-        "config_list": filter_config(config_list, {}),  # type: ignore[no-untyped-call]
+        "config_list": filter_config(config_list, dict(model=model)),  # type: ignore[no-untyped-call]
         "timeout": 180,
-        "cache_seed": None,
     }
 
     assert len(llm_config["config_list"]) > 0  # type: ignore[arg-type]
@@ -133,16 +133,17 @@ def test_web_surfer_oai() -> None:
         is_termination_msg=lambda x: True,
     )
 
-    # Make some requests that should test function calling
-    user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
+    with Cache.disk():
+        # Make some requests that should test function calling
+        user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
 
-    user_proxy.initiate_chat(web_surfer, message="When was it founded?")
+        user_proxy.initiate_chat(web_surfer, message="When was it founded?")
 
-    user_proxy.initiate_chat(web_surfer, message="What's this page about?")
+        user_proxy.initiate_chat(web_surfer, message="What's this page about?")
 
 
 @pytest.mark.skipif(
