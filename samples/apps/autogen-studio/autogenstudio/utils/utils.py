@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple, Union
 import os
 import shutil
 from pathlib import Path
+from pathlib import Path
 import re
 import autogen
 from autogen.oai.client import OpenAIWrapper
@@ -27,6 +28,9 @@ def clear_folder(folder_path: str) -> None:
 
     :param folder_path: The path to the folder to clear.
     """
+    # exit if the folder does not exist
+    if not os.path.exists(folder_path):
+        return
     # exit if the folder does not exist
     if not os.path.exists(folder_path):
         return
@@ -269,6 +273,9 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
+    # overwrite skills.py in work_dir
+    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+        f.write(prompt)
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
         f.write(prompt)

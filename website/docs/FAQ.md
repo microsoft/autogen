@@ -89,7 +89,7 @@ The `AssistantAgent` doesn't save all the code by default, because there are cas
 
 We strongly recommend using docker to execute code. There are two ways to use docker:
 
-1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](Installation.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
+1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
 2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, make sure docker is up and running. If you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
 
 ### Enable Python 3 docker image
@@ -222,8 +222,32 @@ You can also disable the cache. See [here](./Use-Cases/agent_chat.md#llm-caching
 
 ## Agents are throwing due to docker not running, how can I resolve this?
 
-If running AutoGen locally the default for agents who execute code is for them to try and perform code execution within a docker container. If docker is not running, this will cause the agent to throw an error. To resolve this you have the below options:
+If running AutoGen locally the default for agents who execute code is for them to try and perform code execution within a docker container. If docker is not running, this will cause the agent to throw an error. To resolve this you have some options.
+
+### If you want to disable code execution entirely
+
+- Set `code_execution_config` to `False` for each code-execution agent. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    llm_config=llm_config,
+    code_execution_config=False)
+```
+
+### If you want to run code execution in docker
 
 - **Recommended**: Make sure docker is up and running.
-- If you want to run the code locally then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent.
-- If you want to run the code locally for all code-execution agents: set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+### If you want to run code execution locally
+
+- `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent.
+- To set it for all code-execution agents at once: set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent", llm_config=llm_config,
+    code_execution_config={"work_dir":"coding", "use_docker":False})
+```

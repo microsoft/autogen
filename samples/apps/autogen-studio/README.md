@@ -34,6 +34,8 @@ Project Structure:
 
 There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
 
+There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
+
 1.  **Install from PyPi**
 
     We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
@@ -114,6 +116,18 @@ The agent workflow responds by _writing and executing code_ to create a python p
 > Note: You can also view the debug console that generates useful information to see how the agents are interacting in the background.
 
 <!-- ![ARA](./docs/ara_console.png) -->
+
+## Contribution Guide
+
+We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
+
+- Review the overall AutoGen project [contribution guide](https://github.com/microsoft/autogen?tab=readme-ov-file#contributing)
+- Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/737) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
+- Please initiate a discussion on the roadmap issue or a new issue to discuss your proposed contribution.
+- Please review the autogenstudio dev branch here [dev branch](https://github.com/microsoft/autogen/tree/autogenstudio) and use as a base for your contribution. This way, your contribution will be aligned with the latest changes in the AutoGen Studio project.
+- Submit a pull request with your contribution!
+- If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
+- Please use the tag `studio` for any issues, questions, and PRs related to Studio
 
 ## Contribution Guide
 

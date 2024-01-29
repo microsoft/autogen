@@ -77,8 +77,12 @@ export interface IFlowConfig {
   sender: IAgentFlowSpec;
   receiver: IAgentFlowSpec | IGroupChatFlowSpec;
   type: "twoagents" | "groupchat";
+  receiver: IAgentFlowSpec | IGroupChatFlowSpec;
+  type: "twoagents" | "groupchat";
   timestamp?: string;
   summary_method?: "none" | "last" | "llm";
+  id?: string;
+  user_id?: string;
   id?: string;
   user_id?: string;
 }
@@ -89,6 +93,9 @@ export interface IModelConfig {
   api_version?: string;
   base_url?: string;
   api_type?: string;
+  user_id?: string;
+  timestamp?: string;
+  description?: string;
   user_id?: string;
   timestamp?: string;
   description?: string;

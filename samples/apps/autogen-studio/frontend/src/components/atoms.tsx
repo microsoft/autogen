@@ -37,12 +37,14 @@ import {
   IAgentFlowSpec,
   IFlowConfig,
   IGroupChatFlowSpec,
+  IGroupChatFlowSpec,
   IModelConfig,
   ISkill,
   IStatus,
 } from "./types";
 import TextArea from "antd/es/input/TextArea";
 import { appContext } from "../hooks/provider";
+import Item from "antd/es/list/Item";
 
 const { useToken } = theme;
 interface CodeProps {
@@ -642,6 +644,7 @@ export const ModelSelector = ({
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
 
+
     setConfigs(updatedConfigs);
   };
 
@@ -840,6 +843,7 @@ export const ModelSelector = ({
     <div className={`${className}`}>
       <div className="flex flex-wrap">
         {modelButtons}
+        <AddModelsDropDown />
         <AddModelsDropDown />
       </div>
       <Modal
@@ -1094,10 +1098,16 @@ export const AgentFlowSpecView = ({
         value = false;
       }
     }
+    if (key === "llm_config") {
+      if (value.config_list.length === 0) {
+        value = false;
+      }
+    }
     const updatedFlowSpec = {
       ...localFlowSpec,
       config: { ...localFlowSpec.config, [key]: value },
     };
+    console.log(updatedFlowSpec.config.llm_config);
     console.log(updatedFlowSpec.config.llm_config);
     setLocalFlowSpec(updatedFlowSpec);
     setFlowSpec(updatedFlowSpec);
@@ -1163,6 +1173,7 @@ export const AgentFlowSpecView = ({
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
               onChange={(value: any) => {
+              onChange={(value: any) => {
                 onControlChange(value, "max_consecutive_auto_reply");
               }}
             />
@@ -1185,6 +1196,8 @@ export const AgentFlowSpecView = ({
                   { label: "NEVER", value: "NEVER" },
                   // { label: "TERMINATE", value: "TERMINATE" },
                   // { label: "ALWAYS", value: "ALWAYS" },
+                  // { label: "TERMINATE", value: "TERMINATE" },
+                  // { label: "ALWAYS", value: "ALWAYS" },
                 ] as any
               }
             />
@@ -1203,6 +1216,8 @@ export const AgentFlowSpecView = ({
                 value={flowSpec.config.system_message}
                 rows={3}
                 onChange={(e) => {
+                  // onDebouncedControlChange(e.target.value, "system_message");
+                  onControlChange(e.target.value, "system_message");
                   // onDebouncedControlChange(e.target.value, "system_message");
                   onControlChange(e.target.value, "system_message");
                 }}
@@ -1859,23 +1874,34 @@ export const FlowConfigViewer = ({
   // Local state for sender and receiver FlowSpecs
   const [senderFlowSpec, setSenderFlowSpec] =
     React.useState<IAgentFlowSpec | null>(flowConfig.sender);
+  const [senderFlowSpec, setSenderFlowSpec] =
+    React.useState<IAgentFlowSpec | null>(flowConfig.sender);
 
   const [localFlowConfig, setLocalFlowConfig] =
     React.useState<IFlowConfig>(flowConfig);
 
   const [receiverFlowSpec, setReceiverFlowSpec] =
     React.useState<IAgentFlowSpec | null>(flowConfig.receiver);
+    React.useState<IAgentFlowSpec | null>(flowConfig.receiver);
 
   // Update the local state and propagate changes to the parent component
   const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
+  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setSenderFlowSpec(newFlowSpec);
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+    }
     if (newFlowSpec) {
       setFlowConfig({ ...flowConfig, sender: newFlowSpec });
     }
   };
 
   const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
+  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setReceiverFlowSpec(newFlowSpec);
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+    }
     if (newFlowSpec) {
       setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
     }
@@ -1946,8 +1972,17 @@ export const FlowConfigViewer = ({
             flowSpec={senderFlowSpec}
             setFlowSpec={updateSenderFlowSpec}
           />
+      <div className="flex gap-3 mt-4">
+        <div className="w-1/2 ">
+          <div className="mb-2  ">Sender</div>
+          <AgentSelector
+            flowSpec={senderFlowSpec}
+            setFlowSpec={updateSenderFlowSpec}
+          />
         </div>
         <div className="w-1/2">
+          <div className="mb-2">Receiver</div>
+          <AgentSelector
           <div className="mb-2">Receiver</div>
           <AgentSelector
             flowSpec={receiverFlowSpec}

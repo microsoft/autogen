@@ -43,6 +43,7 @@ root_file_path = os.environ.get(
 # init folders skills, workdir, static, files etc
 folders = init_webserver_folders(root_file_path)
 ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
+ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
@@ -501,6 +502,16 @@ async def delete_user_workflow(req: DBWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while deleting workflow: " + str(ex_error),
+        }
+
+
+@api.get("/version")
+async def get_version():
+    return {
+        "status": True,
+        "message": "Version retrieved successfully",
+        "data": {"version": VERSION},
+    }
         }
 
 

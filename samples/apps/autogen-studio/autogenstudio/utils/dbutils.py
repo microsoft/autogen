@@ -219,6 +219,24 @@ class DBManager:
                     ),
                 )
 
+            models = data["models"]
+            for model in models:
+                model = Model(**model)
+                self.cursor.execute(
+                    "INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        model.id,
+                        "default",
+                        model.timestamp,
+                        model.model,
+                        model.api_key,
+                        model.base_url,
+                        model.api_type,
+                        model.api_version,
+                        model.description,
+                    ),
+                )
+
             for skill in skills:
                 skill = Skill(**skill)
 
@@ -293,6 +311,7 @@ class DBManager:
     def commit(self) -> None:
         """
         Commits the current transaction Modelto the database.
+        Commits the current transaction Modelto the database.
         """
         self.conn.commit()
 
@@ -301,6 +320,96 @@ class DBManager:
         Closes the database connection.
         """
         self.conn.close()
+
+
+def get_models(user_id: str, dbmanager: DBManager) -> List[dict]:
+    """
+    Get all models for a given user from the database.
+
+    Args:
+        user_id: The user id to get models for
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+    query = "SELECT * FROM models WHERE user_id = ? OR user_id = ?"
+    args = (user_id, "default")
+    results = dbmanager.query(query, args, return_json=True)
+    return results
+
+
+def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
+    """
+    Insert or update a model configuration in the database.
+
+    Args:
+        model: The Model object containing model configuration data
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+
+    # Check if the model config with the provided id already exists in the database
+    existing_model = get_item_by_field("models", "id", model.id, dbmanager)
+
+    if existing_model:
+        # If the model config exists, update it with the new data
+        updated_data = {
+            "model": model.model,
+            "api_key": model.api_key,
+            "base_url": model.base_url,
+            "api_type": model.api_type,
+            "api_version": model.api_version,
+            "user_id": model.user_id,
+            "timestamp": model.timestamp,
+            "description": model.description,
+        }
+        update_item("models", model.id, updated_data, dbmanager)
+    else:
+        # If the model config does not exist, insert a new one
+        query = """
+            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        args = (
+            model.id,
+            model.user_id,
+            model.timestamp,
+            model.model,
+            model.api_key,
+            model.base_url,
+            model.api_type,
+            model.api_version,
+            model.description,
+        )
+        dbmanager.query(query=query, args=args)
+
+    # Return the inserted or updated model config
+    models = get_models(model.user_id, dbmanager)
+    return models
+
+
+def delete_model(model: Model, dbmanager: DBManager) -> List[dict]:
+    """
+    Delete a model configuration from the database where id = model.id and user_id = model.user_id.
+
+    Args:
+        model: The Model object containing model configuration data
+        dbmanager: The DBManager instance to interact with the database
+
+    Returns:
+        A list  of model configurations
+    """
+
+    query = "DELETE FROM models WHERE id = ? AND user_id = ?"
+    args = (model.id, model.user_id)
+    dbmanager.query(query=query, args=args)
+
+    # Return the remaining model configs
+    models = get_models(model.user_id, dbmanager)
+    return models
 
 
 def get_models(user_id: str, dbmanager: DBManager) -> List[dict]:

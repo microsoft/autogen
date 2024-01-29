@@ -21,6 +21,13 @@ import {
   LaunchButton,
   LoadingOverlay,
 } from "../../atoms";
+import {
+  BounceLoader,
+  Card,
+  CodeBlock,
+  LaunchButton,
+  LoadingOverlay,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
@@ -93,6 +100,7 @@ const SkillsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
+        // message.success(data.message);
         // message.success(data.message);
         // console.log("skills", data.data);
         setSkills(data.data);
@@ -211,6 +219,7 @@ const SkillsView = ({}: any) => {
 
   return (
     <div className=" text-primary ">
+    <div className=" text-primary ">
       <Modal
         title={selectedSkill?.name}
         width={800}
@@ -224,6 +233,7 @@ const SkillsView = ({}: any) => {
       >
         {selectedSkill && (
           <div>
+            <div className="mb-2">{selectedSkill.title}</div>
             <div className="mb-2">{selectedSkill.title}</div>
 
             <CodeBlock code={selectedSkill?.content} language="python" />
@@ -301,9 +311,17 @@ const SkillsView = ({}: any) => {
           )}
 
           {skills && skills.length === 0 && !loading && (
+          {skills && skills.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No skills found. Please create a new skill.
+            </div>
+          )}
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
           {loading && (

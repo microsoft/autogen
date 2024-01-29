@@ -334,6 +334,13 @@ const ChatBox = ({
         <div className="text-xs"> {session?.flow_config.name}</div>
       </div>
       <div
+        style={{ zIndex: 100 }}
+        className=" absolute right-0  text-secondary -top-8 rounded p-2"
+      >
+        {" "}
+        <div className="text-xs"> {session?.flow_config.name}</div>
+      </div>
+      <div
         ref={messageBoxInputRef}
         className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
