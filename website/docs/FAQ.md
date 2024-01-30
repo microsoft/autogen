@@ -78,7 +78,7 @@ assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...}
 
 ### How does an agent decide which model to pick out of the list?
 
-An agent uses the very first model available in the "config_list" and makes LLM calls against this model. If the model fail (e.g. API throtling) the agent will retry the request against the 2nd model and so on until  prompt completion is received (or throws an error if none of the models successfully completes the request). There's no implicit/hidden logic inside agents that is used to pick "the best model for the task". It is developers responsibility to pick the right models and use them with agents.
+An agent uses the very first model available in the "config_list" and makes LLM calls against this model. If the model fail (e.g. API throttling) the agent will retry the request against the 2nd model and so on until  prompt completion is received (or throws an error if none of the models successfully completes the request). There's no implicit/hidden logic inside agents that is used to pick "the best model for the task". It is developers responsibility to pick the right models and use them with agents.
 
 Besides throtling/rotating models the 'config_list' can be useful for:
 - Having a single global list of models and [filtering it](/docs/reference/oai/openai_utils#filter_config) based on certain keys (e.g. name, tag) in order to pass select models into a certain agent (e.g. use cheaper GPT 3.5 for agents solving easier tasks)
