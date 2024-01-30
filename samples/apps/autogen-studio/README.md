@@ -70,7 +70,7 @@ For Windows users, to build the frontend, you may need alternative commands to b
 
 ```bash
 
-  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui && (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
 
 ```
 
