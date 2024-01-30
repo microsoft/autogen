@@ -565,6 +565,7 @@ class OpenAIWrapper:
                     response: Client.ClientResponseProtocol = cache.get(key, None)
 
                     if response is not None:
+                        response.message_retrieval_function = client.message_retrieval
                         try:
                             response.cost  # type: ignore [attr-defined]
                         except AttributeError:
@@ -592,7 +593,6 @@ class OpenAIWrapper:
                 if i == last:
                     raise
             else:
-                response.message_retrieval_function = client.message_retrieval
                 # add cost calculation before caching no matter filter is passed or not
                 response.cost = client.cost(response)
                 actual_usage = client.get_usage(response)
@@ -603,6 +603,7 @@ class OpenAIWrapper:
                     with cache_client as cache:
                         cache.set(key, response)
 
+                response.message_retrieval_function = client.message_retrieval
                 # check the filter
                 pass_filter = filter_func is None or filter_func(context=context, response=response)
                 if pass_filter or i == last:
