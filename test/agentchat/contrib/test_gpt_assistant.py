@@ -499,7 +499,7 @@ def test_gpt_assistant_tools_overwrite():
     )
 
     # Add logic to retrieve the tools from the assistant and assert
-    retrieved_tools = assistant.get_assistant_tools()  # Implement this method or similar
+    retrieved_tools = assistant.llm_config.get('tools', [])
     assistant.delete_assistant()
 
     assert retrieved_tools == new_tools
