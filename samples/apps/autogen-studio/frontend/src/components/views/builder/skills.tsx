@@ -275,7 +275,7 @@ const SkillsView = ({}: any) => {
               />
             </div> */}
 
-            <div style={{ height: "70vh" }} className="h-full border rounded">
+            <div style={{ height: "70vh" }} className="h-full  mt-2 rounded">
               <MonacoEditor
                 value={localSkill?.content}
                 language="python"
