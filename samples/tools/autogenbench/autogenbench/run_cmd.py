@@ -11,6 +11,7 @@ import docker
 import random
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from .version import __version__
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -138,7 +139,9 @@ def run_scenarios(
                 print(f"Running scenario {results_repetition}")
 
                 # Expand the scenario
-                expand_scenario(scenario_dir, instance, results_repetition, requirements)
+                expand_scenario(
+                    scenario_dir, instance, results_repetition, requirements
+                )
 
                 # Prepare the environment (keys/values that need to be added)
                 env = get_scenario_env(config_list)
@@ -168,10 +171,14 @@ def expand_scenario(scenario_dir, scenario, output_dir, requirements):
     template = scenario["template"]
 
     # Either key works for finding the substiturions list. "values" may be deprecated in the future
-    substitutions = scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
+    substitutions = (
+        scenario["substitutions"] if "substitutions" in scenario else scenario["values"]
+    )
 
     # Older versions are only one-level deep. Convert them,
-    if len(substitutions) > 0 and isinstance(substitutions[next(iter(substitutions))], str):
+    if len(substitutions) > 0 and isinstance(
+        substitutions[next(iter(substitutions))], str
+    ):
         substitutions = {"scenario.py": substitutions}
 
     copy_operations = []
@@ -210,14 +217,18 @@ def expand_scenario(scenario_dir, scenario, output_dir, requirements):
         else:
             if os.path.isdir(dest_path):
                 # If the destination is a directory, use the same filename
-                shutil.copyfile(src_path, os.path.join(dest_path, os.path.basename(src_path)))
+                shutil.copyfile(
+                    src_path, os.path.join(dest_path, os.path.basename(src_path))
+                )
             else:
                 # Otherwuse use the filename provided
                 shutil.copyfile(src_path, dest_path)
 
     # Copy the requirements file if specified
     if requirements is not None:
-        shutil.copyfile(requirements, pathlib.Path(os.path.join(output_dir, "requirements.txt")))
+        shutil.copyfile(
+            requirements, pathlib.Path(os.path.join(output_dir, "requirements.txt"))
+        )
 
     # Expand templated files
     for templated_file in substitutions.keys():  # Keys are relative file paths
@@ -278,7 +289,11 @@ def run_scenario_natively(work_dir, env, timeout=TASK_TIMEOUT):
 
     # Navigate to the scenario
     os.chdir(work_dir)
-    print("\n\n" + os.getcwd() + "\n===================================================================")
+    print(
+        "\n\n"
+        + os.getcwd()
+        + "\n==================================================================="
+    )
 
     # Prepare the run script
     with open(os.path.join("run.sh"), "wt") as f:
@@ -286,6 +301,7 @@ def run_scenario_natively(work_dir, env, timeout=TASK_TIMEOUT):
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Native"
+echo "autogenbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -362,7 +378,9 @@ def run_scenario_in_docker(work_dir, env, timeout=TASK_TIMEOUT, docker_image=Non
         try:
             image = client.images.get(DEFAULT_DOCKER_IMAGE_TAG)
         except docker.errors.ImageNotFound:
-            print(f"Building default Docker image '{DEFAULT_DOCKER_IMAGE_TAG}'. This may take a few minutes...")
+            print(
+                f"Building default Docker image '{DEFAULT_DOCKER_IMAGE_TAG}'. This may take a few minutes..."
+            )
             try:
                 build_default_docker_image(client, DEFAULT_DOCKER_IMAGE_TAG)
                 image = client.images.get(DEFAULT_DOCKER_IMAGE_TAG)
@@ -387,7 +405,9 @@ def run_scenario_in_docker(work_dir, env, timeout=TASK_TIMEOUT, docker_image=Non
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Docker"
+
 umask 000
+echo "autogenbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -429,7 +449,11 @@ echo RUN.SH COMPLETE !#!#
 """
         )
 
-    print("\n\n" + work_dir + "\n===================================================================")
+    print(
+        "\n\n"
+        + work_dir
+        + "\n==================================================================="
+    )
 
     # Create and run the container
     abs_path = str(pathlib.Path(work_dir).absolute())
@@ -444,7 +468,9 @@ echo RUN.SH COMPLETE !#!#
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
-    docker_timeout = timeout + 60  # One full minute after the bash timeout command should have already triggered
+    docker_timeout = (
+        timeout + 60
+    )  # One full minute after the bash timeout command should have already triggered
     start_time = time.time()
     logs = container.logs(stream=True)
     log_file = open(os.path.join(work_dir, "console_log.txt"), "wt")
@@ -466,7 +492,9 @@ echo RUN.SH COMPLETE !#!#
             # but remember how we got here.
             stopping = True
 
-    if stopping:  # By this line we've exited the loop, and the container has actually stopped.
+    if (
+        stopping
+    ):  # By this line we've exited the loop, and the container has actually stopped.
         log_file.write("\nDocker timed out.\n")
         log_file.flush()
         sys.stdout.write("\nDocker timed out.\n")
@@ -571,12 +599,16 @@ def run_cli(args):
 
     # Don't allow both --docker-image and --native on the same command
     if parsed_args.docker_image is not None and parsed_args.native:
-        sys.exit("The options --native and --docker-image can not be used together. Exiting.")
+        sys.exit(
+            "The options --native and --docker-image can not be used together. Exiting."
+        )
 
     # Warn if running natively
     if parsed_args.native:
         if IS_WIN32:
-            sys.exit("Running scenarios with --native is not supported in Windows. Exiting.")
+            sys.exit(
+                "Running scenarios with --native is not supported in Windows. Exiting."
+            )
 
         if parsed_args.requirements is not None:
             sys.exit("--requirements is not compatible with --native. Exiting.")
