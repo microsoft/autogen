@@ -24,6 +24,17 @@ class Agent:
         """Get the name of the agent."""
         return self._name
 
+    @property
+    def system_message(self) -> Union[str, List]:
+        """(Abstract method) Return the system message."""
+
+    def update_system_message(self, system_message: Union[str, List]):
+        """(Abstract method) Update the system message.
+
+        Args:
+            system_message (str or List): system message for the ChatCompletion inference.
+        """
+
     def send(self, message: Union[Dict, str], recipient: "Agent", request_reply: Optional[bool] = None):
         """(Abstract method) Send a message to another agent."""
 

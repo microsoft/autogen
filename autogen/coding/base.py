@@ -1,6 +1,10 @@
-from typing import List, Protocol, runtime_checkable
+from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
 from pydantic import BaseModel
+
+from ..agentchat.agent import Agent
+
+__all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor")
 
 
 class CodeBlock(BaseModel):
@@ -26,7 +30,7 @@ class CodeResult(BaseModel):
 class CodeExtractor(Protocol):
     """A code extractor class that extracts code blocks from a message."""
 
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+    def extract_code_blocks(self, message: Union[str, List[Dict[str, Any]], None]) -> List[CodeBlock]:
         """Extract code blocks from a message.
 
         Args:
@@ -45,7 +49,7 @@ class CodeExecutor(Protocol):
     class UserCapability(Protocol):
         """An AgentCapability class that gives agent ability use this code executor."""
 
-        def add_to_agent(self, agent):
+        def add_to_agent(self, agent: Agent) -> None:
             ...  # pragma: no cover
 
     @property

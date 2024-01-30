@@ -1,5 +1,5 @@
 import sys
-from typing import Dict
+from typing import Any, Dict
 import pytest
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
@@ -21,16 +21,16 @@ else:
     sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()),
     reason="docker is not running",
 )
-def test_execute_code_docker():
+def test_execute_code_docker() -> None:
     _test_execute_code({"use_docker": True})
 
 
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_execute_code_local():
+def test_execute_code_local() -> None:
     _test_execute_code({"use_docker": False})
 
 
-def _test_execute_code(config: Dict):
+def _test_execute_code(config: Dict[str, Any]) -> None:
     executor = CommandlineCodeExecutor(**config)
 
     # Test single code block.
@@ -77,7 +77,7 @@ def _test_execute_code(config: Dict):
     assert code_result.exit_code and "Timeout" in code_result.output or WIN32
 
 
-def test_restart():
+def test_restart() -> None:
     executor = CommandlineCodeExecutor(use_docker=True)
     # Check warning.
     with pytest.warns(UserWarning, match="Restarting command line code executor is not supported. No action is taken."):
@@ -85,7 +85,7 @@ def test_restart():
 
 
 @pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
-def test_conversable_agent_capability():
+def test_conversable_agent_capability() -> None:
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
     config_list = config_list_from_json(
@@ -116,7 +116,7 @@ def test_conversable_agent_capability():
     )
 
     # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)
+    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
     assert len(code_blocks) == 1 and code_blocks[0].language == "python"
 
     # Test code execution.
@@ -125,7 +125,7 @@ def test_conversable_agent_capability():
 
 
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_coversable_agent_code_execution_no_docker():
+def test_coversable_agent_code_execution_no_docker() -> None:
     _test_conversable_agent_code_execution({"use_docker": False})
 
 
@@ -133,11 +133,11 @@ def test_coversable_agent_code_execution_no_docker():
     sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()),
     reason="docker is not running",
 )
-def test_conversable_agent_code_execution_docker():
+def test_conversable_agent_code_execution_docker() -> None:
     _test_conversable_agent_code_execution({"use_docker": True})
 
 
-def _test_conversable_agent_code_execution(config):
+def _test_conversable_agent_code_execution(config: Dict[str, Any]) -> None:
     agent = ConversableAgent(
         "user_proxy",
         code_execution_config={
@@ -146,6 +146,9 @@ def _test_conversable_agent_code_execution(config):
         },
         llm_config=False,
     )
+
+    isinstance(agent._code_executor, CommandlineCodeExecutor)
+    code_executor: CommandlineCodeExecutor = agent._code_executor  # type: ignore[assignment]
 
     message = """
     Example:
@@ -158,15 +161,13 @@ def _test_conversable_agent_code_execution(config):
         [{"role": "user", "content": message}],
         sender=Agent("user"),
     )
-    assert "hello extract code" in reply
+    assert "hello extract code" in reply  # type: ignore[operator]
     if config["use_docker"] is not False:
         # Check if the docker image is set.
-        assert (
-            isinstance(agent._code_executor.docker_image_name, str) and len(agent._code_executor.docker_image_name) > 0
-        )
+        assert isinstance(code_executor.docker_image_name, str) and len(code_executor.docker_image_name) > 0
 
 
-def test_conversable_agent_warning_legacy_code_executor():
+def test_conversable_agent_warning_legacy_code_executor() -> None:
     # Test warning message.
     with pytest.warns(DeprecationWarning, match="legacy code executor"):
-        ConversableAgent("user_proxy", llm_config=False, code_execution_config=True)
+        ConversableAgent("user_proxy", llm_config=False, code_execution_config=True)  # type: ignore[arg-type]

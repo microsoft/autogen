@@ -8,9 +8,8 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
-from autogen.coding.base import CodeExecutor
-
-from autogen.coding.factory import CodeExecutorFactory
+from ..coding.base import CodeExecutor
+from ..coding.factory import CodeExecutorFactory
 
 from .. import OpenAIWrapper
 from ..cache.cache import Cache

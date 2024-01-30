@@ -1,13 +1,15 @@
-from typing import Dict
+from typing import Any, Dict
 
-from autogen.coding.base import CodeExecutor
+from .base import CodeExecutor
+
+__all__ = ("CodeExecutorFactory",)
 
 
 class CodeExecutorFactory:
     """A factory class for creating code executors."""
 
     @staticmethod
-    def create(code_execution_config: Dict) -> CodeExecutor:
+    def create(code_execution_config: Dict[str, Any]) -> CodeExecutor:
         """Get a code executor based on the code execution config.
 
         Args:
@@ -28,11 +30,11 @@ class CodeExecutorFactory:
             # If the executor is already an instance of CodeExecutor, return it.
             return executor
         if executor == "ipython":
-            from autogen.coding.ipython_code_executor import IPythonCodeExecutor
+            from .ipython_code_executor import IPythonCodeExecutor
 
             return IPythonCodeExecutor(**code_execution_config.get("ipython", {}))
         elif executor == "commandline":
-            from autogen.coding.commandline_code_executor import CommandlineCodeExecutor
+            from .commandline_code_executor import CommandlineCodeExecutor
 
             return CommandlineCodeExecutor(**code_execution_config.get("commandline", {}))
         else:

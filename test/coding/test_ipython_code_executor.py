@@ -17,14 +17,14 @@ else:
     skip_openai_tests = False or skip_openai
 
 
-def test_execute_code_single_code_block():
+def test_execute_code_single_code_block() -> None:
     executor = IPythonCodeExecutor()
     code_blocks = [CodeBlock(code="import sys\nprint('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
-def test_execute_code_multiple_code_blocks():
+def test_execute_code_multiple_code_blocks() -> None:
     executor = IPythonCodeExecutor()
     code_blocks = [
         CodeBlock(code="import sys\na = 123 + 123\n", language="python"),
@@ -45,7 +45,7 @@ def test_function(a, b):
     assert code_result.exit_code == 0 and "854" in code_result.output
 
 
-def test_execute_code_bash_script():
+def test_execute_code_bash_script() -> None:
     executor = IPythonCodeExecutor()
     # Test bash script.
     code_blocks = [CodeBlock(code='!echo "hello world!"', language="bash")]
@@ -53,7 +53,7 @@ def test_execute_code_bash_script():
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
-def test_saving_to_file():
+def test_saving_to_file() -> None:
     executor = IPythonCodeExecutor()
     with tempfile.TemporaryDirectory() as tmpdirname:
         code = f"""
@@ -65,14 +65,14 @@ with open('{os.path.join(tmpdirname, "test_file_name")}', 'w') as f:
         assert code_result.exit_code == 0 and os.path.exists(os.path.join(tmpdirname, "test_file_name"))
 
 
-def test_timeout():
+def test_timeout() -> None:
     executor = IPythonCodeExecutor(timeout=1)
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code and "Timeout" in code_result.output
 
 
-def test_silent_pip_install():
+def test_silent_pip_install() -> None:
     executor = IPythonCodeExecutor()
     code_blocks = [CodeBlock(code="!pip install matplotlib numpy", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
@@ -84,7 +84,7 @@ def test_silent_pip_install():
     assert code_result.exit_code == 0 and "ERROR: " in code_result.output
 
 
-def test_restart():
+def test_restart() -> None:
     executor = IPythonCodeExecutor()
     code_blocks = [CodeBlock(code="x = 123", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
@@ -97,7 +97,7 @@ def test_restart():
 
 
 @pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
-def test_conversable_agent_capability():
+def test_conversable_agent_capability() -> None:
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
     config_list = config_list_from_json(
@@ -128,7 +128,7 @@ def test_conversable_agent_capability():
     )
 
     # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)
+    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
     assert len(code_blocks) == 1 and code_blocks[0].language == "python"
 
     # Test code execution.
@@ -136,7 +136,7 @@ def test_conversable_agent_capability():
     assert code_result.exit_code == 0 and "hello world" in code_result.output.lower()
 
 
-def test_conversable_agent_code_execution():
+def test_conversable_agent_code_execution() -> None:
     agent = ConversableAgent("user_proxy", llm_config=False, code_execution_config={"executor": "ipython"})
     msg = """
 Run this code:
@@ -150,4 +150,4 @@ print(test_function(123, 4))
 ```
 """
     reply = agent.generate_reply([{"role": "user", "content": msg}], sender=Agent("user"))
-    assert "492" in reply
+    assert "492" in reply  # type: ignore[operator]

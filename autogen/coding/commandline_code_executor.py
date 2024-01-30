@@ -1,20 +1,22 @@
-from typing import List, Optional, Union
 import warnings
+from typing import Any, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 
-from autogen.coding.base import CodeBlock, CodeExtractor, CodeResult
-from autogen.coding.markdown_code_extractor import MarkdownCodeExtractor
+from ..agentchat.agent import Agent
+from ..code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code
+from .base import CodeBlock, CodeExtractor, CodeResult
+from .markdown_code_extractor import MarkdownCodeExtractor
 
 try:
     from termcolor import colored
 except ImportError:
 
-    def colored(x, *args, **kwargs):
-        return x
+    def colored(x: Any, *args: Any, **kwargs: Any) -> str:  # type: ignore[misc]
+        return x  # type: ignore[no-any-return]
 
 
-from autogen.code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code
+__all__ = ("CommandlineCodeExecutor",)
 
 
 class CommandlineCodeExecutor(BaseModel):
@@ -40,9 +42,16 @@ When using code, you must indicate the script type in the code block. The user c
 If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
 """
 
-        def add_to_agent(self, agent):
+        def add_to_agent(self, agent: Agent) -> None:
             """Add this capability to an agent."""
-            agent.update_system_message(agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE)
+            # system message is a string or a list of strings
+            if isinstance(agent.system_message, str):
+                system_message_str = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+                agent.update_system_message(system_message_str)
+            else:
+                system_message_list = agent.system_message.copy()
+                system_message_list[0] = system_message_list[0] + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+                agent.update_system_message(system_message_list)
 
     timeout: Optional[int] = Field(default=DEFAULT_TIMEOUT, ge=1)
     filename: Optional[str] = None
@@ -50,7 +59,7 @@ If you want the user to save the code in a file before executing it, put # filen
     use_docker: Optional[Union[List[str], str, bool]] = None
     docker_image_name: Optional[str] = None
 
-    def _get_use_docker_for_code_utils(self):
+    def _get_use_docker_for_code_utils(self) -> Optional[Union[List[str], str, bool]]:
         if self.use_docker is False:
             return False
         if self.docker_image_name is not None:
@@ -69,6 +78,30 @@ If you want the user to save the code in a file before executing it, put # filen
         """Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
+    def _execute_code(self, code: str, lang: str, filename: Optional[str] = None) -> Tuple[int, str, Optional[str]]:
+        use_docker = self._get_use_docker_for_code_utils()
+        filename = self.filename if filename is None else filename
+        # execute_code cannot handle None for use_docker
+        if use_docker is None:
+            return execute_code(
+                code=code,
+                lang=lang,
+                filename=filename,
+                timeout=self.timeout,
+                work_dir=self.work_dir,
+            )
+        else:
+            exitcode, logs, image = execute_code(
+                code=code,
+                lang=lang,
+                filename=filename,
+                timeout=self.timeout,
+                work_dir=self.work_dir,
+                use_docker=use_docker,
+            )
+
+        return exitcode, logs, image
+
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
         """Execute the code blocks and return the result."""
         logs_all = ""
@@ -82,34 +115,24 @@ If you want the user to save the code in a file before executing it, put # filen
                 flush=True,
             )
             if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = execute_code(
-                    code=code,
-                    lang=lang,
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
-                    filename=self.filename,
-                    use_docker=self._get_use_docker_for_code_utils(),
-                )
+                exitcode, logs, image = self._execute_code(code, lang)
+                # exitcode, logs, image = execute_code(
+                #     code=code,
+                #     lang=lang,
+                #     timeout=self.timeout,
+                #     work_dir=self.work_dir,
+                #     filename=self.filename,
+                #     use_docker=self._get_use_docker_for_code_utils(),
+                # )
             elif lang in ["python", "Python"]:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
                     filename = None
-                exitcode, logs, image = execute_code(
-                    code,
-                    lang="python",
-                    filename=filename,
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
-                    use_docker=self._get_use_docker_for_code_utils(),
-                )
+                exitcode, logs, image = self._execute_code(code, "python", filename=filename)
             else:
                 # In case the language is not supported, we return an error message.
-                exitcode, logs, image = (
-                    1,
-                    f"unknown language {lang}",
-                    None,
-                )
+                exitcode, logs, image = (1, f"unknown language {lang}", None)
                 # raise NotImplementedError
             if image is not None:
                 # Update the image to use for the next execution.

@@ -1,11 +1,13 @@
+from typing import Dict, Union
 import pytest
+from autogen.coding.base import CodeExecutor
 from autogen.coding.commandline_code_executor import CommandlineCodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.ipython_code_executor import IPythonCodeExecutor
 
 
-def test_create():
-    config = {"executor": "ipython"}
+def test_create() -> None:
+    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython"}
     executor = CodeExecutorFactory.create(config)
     assert isinstance(executor, IPythonCodeExecutor)
 

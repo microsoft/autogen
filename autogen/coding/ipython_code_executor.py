@@ -1,17 +1,21 @@
 import base64
 import json
 import os
-from queue import Empty
 import re
-from typing import List
 import uuid
+from queue import Empty
+from typing import Any, List
 
-from jupyter_client import KernelManager
-from jupyter_client.kernelspec import NoSuchKernel, KernelSpecManager
+from jupyter_client import KernelManager  # type: ignore[attr-defined]
+from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
 from pydantic import BaseModel, Field
-from autogen.code_utils import DEFAULT_TIMEOUT
-from autogen.coding.base import CodeBlock, CodeExtractor, CodeResult
-from autogen.coding.markdown_code_extractor import MarkdownCodeExtractor
+
+from ..agentchat.agent import Agent
+from ..code_utils import DEFAULT_TIMEOUT
+from .base import CodeBlock, CodeExtractor, CodeResult
+from .markdown_code_extractor import MarkdownCodeExtractor
+
+__all__ = ("IPythonCodeExecutor",)
 
 
 class IPythonCodeExecutor(BaseModel):
@@ -50,15 +54,22 @@ Because you have limited conversation memory, if your code creates an image,
 the output will be a path to the image instead of the image itself.
 """
 
-        def add_to_agent(self, agent):
+        def add_to_agent(self, agent: Agent) -> None:
             """Add this capability to an agent."""
-            agent.update_system_message(agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE)
+            # system message is a string or a list of strings
+            if isinstance(agent.system_message, str):
+                system_message_str = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+                agent.update_system_message(system_message_str)
+            else:
+                system_message_list = agent.system_message.copy()
+                system_message_list[-1] = system_message_list[-1] + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+                agent.update_system_message(system_message_list)
 
     timeout: int = Field(default=DEFAULT_TIMEOUT, ge=1, description="The timeout for code execution.")
     kernel: str = Field(default="python3", description="The kernel to use.")
     output_dir: str = Field(default=".", description="The directory to save output files.")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         # Check if the kernel is installed.
         if self.kernel not in KernelSpecManager().find_kernel_specs():

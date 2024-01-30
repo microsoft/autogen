@@ -1,13 +1,16 @@
 import re
-from typing import List
-from autogen.code_utils import CODE_BLOCK_PATTERN, UNKNOWN, content_str, infer_lang
-from autogen.coding.base import CodeBlock
+from typing import Any, Dict, List, Optional, Union
+
+from ..code_utils import CODE_BLOCK_PATTERN, UNKNOWN, content_str, infer_lang
+from .base import CodeBlock
+
+__all__ = ("MarkdownCodeExtractor",)
 
 
 class MarkdownCodeExtractor:
     """A class that extracts code blocks from a message using Markdown syntax."""
 
-    def extract_code_blocks(self, message: str) -> List[CodeBlock]:
+    def extract_code_blocks(self, message: Union[str, List[Dict[str, Any]], None]) -> List[CodeBlock]:
         """Extract code blocks from a message. If no code blocks are found,
         return an empty list.
 
