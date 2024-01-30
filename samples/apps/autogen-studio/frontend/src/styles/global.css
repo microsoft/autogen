@@ -330,6 +330,10 @@ iiz__zoom-img {
   margin: 0px !important;
 }
 
+.monaco-editor {
+  @apply rounded !important;
+}
+
 /* div.chatbox > ul {
   list-style: disc !important;
 }

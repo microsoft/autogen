@@ -3,7 +3,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Input, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -20,15 +20,8 @@ import {
   CodeBlock,
   LaunchButton,
   LoadingOverlay,
+  MonacoEditor,
 } from "../../atoms";
-import {
-  BounceLoader,
-  Card,
-  CodeBlock,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
-import { useConfigStore } from "../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
 const SkillsView = ({}: any) => {
@@ -50,10 +43,8 @@ const SkillsView = ({}: any) => {
   const [showSkillModal, setShowSkillModal] = React.useState(false);
   const [showNewSkillModal, setShowNewSkillModal] = React.useState(false);
 
-  const [newSkillTitle, setNewSkillTitle] = React.useState("");
-
   const sampleSkill = getSampleSkill();
-  const [skillCode, setSkillCode] = React.useState(sampleSkill);
+  const [newSkill, setNewSkill] = React.useState<ISkill | null>(sampleSkill);
 
   const deleteSkill = (skill: ISkill) => {
     setError(null);
@@ -101,7 +92,6 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         // message.success(data.message);
-        // message.success(data.message);
         // console.log("skills", data.data);
         setSkills(data.data);
       } else {
@@ -117,21 +107,7 @@ const SkillsView = ({}: any) => {
     fetchJSON(listSkillsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveSkill = () => {
-    // check if skillTextAreaRef.current is not null or ""
-
-    if (!skillCode || skillCode == "" || skillCode == sampleSkill) {
-      message.error("Please provide code for the skill");
-      return;
-    }
-
-    const skill: ISkill = {
-      title: newSkillTitle,
-      file_name: "skill.py",
-      content: skillCode,
-      user_id: user?.email,
-    };
-
+  const saveSkill = (skill: ISkill) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -156,7 +132,6 @@ const SkillsView = ({}: any) => {
         message.error(data.message);
       }
       setLoading(false);
-      setSkillCode("");
     };
     const onError = (err: any) => {
       setError(err);
@@ -217,31 +192,105 @@ const SkillsView = ({}: any) => {
     );
   });
 
-  return (
-    <div className=" text-primary ">
-    <div className=" text-primary ">
+  const SkillModal = ({
+    skill,
+    setSkill,
+    showSkillModal,
+    setShowSkillModal,
+    handler,
+  }: {
+    skill: ISkill | null;
+    setSkill: any;
+    showSkillModal: boolean;
+    setShowSkillModal: any;
+    handler: any;
+  }) => {
+    const editorRef = React.useRef<any | null>(null);
+    const [localSkill, setLocalSkill] = React.useState<ISkill | null>(skill);
+    return (
       <Modal
-        title={selectedSkill?.name}
+        title={
+          <>
+            Skill Specification{" "}
+            <span className="text-accent font-normal">{localSkill?.title}</span>{" "}
+          </>
+        }
         width={800}
         open={showSkillModal}
-        onOk={() => {
-          setShowSkillModal(false);
-        }}
         onCancel={() => {
           setShowSkillModal(false);
         }}
+        footer={[
+          <Button
+            key="back"
+            onClick={() => {
+              setShowSkillModal(false);
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={() => {
+              setShowSkillModal(false);
+              if (editorRef.current) {
+                const value = editorRef.current.getValue();
+                const updatedSkill = { ...localSkill, content: value };
+                setSkill(updatedSkill);
+                handler(updatedSkill);
+              }
+            }}
+          >
+            Save
+          </Button>,
+        ]}
       >
-        {selectedSkill && (
-          <div>
-            <div className="mb-2">{selectedSkill.title}</div>
-            <div className="mb-2">{selectedSkill.title}</div>
+        {localSkill && (
+          <div style={{ minHeight: "70vh" }}>
+            <div className="mb-2">
+              <Input
+                placeholder="Skill Title"
+                value={localSkill.title}
+                onChange={(e) => {
+                  const updatedSkill = { ...localSkill, title: e.target.value };
+                  setLocalSkill(updatedSkill);
+                }}
+              />
+            </div>
 
-            <CodeBlock code={selectedSkill?.content} language="python" />
+            {/* <div className="mb-2">
+              <div className="inline-block  "> Skill Description </div>
+              <TextArea
+                placeholder="Skill Description"
+                value={localSkill.description}
+                onChange={(e) => {
+                  const updatedSkill = {
+                    ...localSkill,
+                    description: e.target.value,
+                  };
+                  setLocalSkill(updatedSkill);
+                }}
+              />
+            </div> */}
+
+            <div style={{ height: "70vh" }} className="h-full border rounded">
+              <MonacoEditor
+                value={localSkill?.content}
+                language="python"
+                editorRef={editorRef}
+              />
+            </div>
           </div>
         )}
       </Modal>
+    );
+  };
 
-      <Modal
+  return (
+    <div className=" text-primary ">
+      {/* <Modal
         title={
           <div>
             <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
@@ -276,7 +325,27 @@ const SkillsView = ({}: any) => {
             rows={10}
           />
         </>
-      </Modal>
+      </Modal> */}
+
+      <SkillModal
+        skill={selectedSkill}
+        setSkill={setSelectedSkill}
+        showSkillModal={showSkillModal}
+        setShowSkillModal={setShowSkillModal}
+        handler={(skill: ISkill) => {
+          saveSkill(skill);
+        }}
+      />
+
+      <SkillModal
+        skill={newSkill}
+        setSkill={setNewSkill}
+        showSkillModal={showNewSkillModal}
+        setShowSkillModal={setShowNewSkillModal}
+        handler={(skill: ISkill) => {
+          saveSkill(skill);
+        }}
+      />
 
       <div className="mb-2   relative">
         <div className="">
@@ -311,17 +380,9 @@ const SkillsView = ({}: any) => {
           )}
 
           {skills && skills.length === 0 && !loading && (
-          {skills && skills.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No skills found. Please create a new skill.
-            </div>
-          )}
-          {loading && (
-            <div className="  w-full text-center">
-              {" "}
-              <BounceLoader />{" "}
-              <span className="inline-block"> loading .. </span>
             </div>
           )}
           {loading && (

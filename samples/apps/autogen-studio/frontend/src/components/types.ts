@@ -119,7 +119,7 @@ export interface IGalleryItem {
 
 export interface ISkill {
   title: string;
-  file_name: string;
+  file_name?: string;
   content: string;
   id?: string;
   timestamp?: string;

@@ -262,7 +262,6 @@ async def get_user_skills(user_id: str):
 async def create_user_skills(req: DBWebRequestModel):
     try:
         skills = dbutils.upsert_skill(skill=req.skill, dbmanager=dbmanager)
-
         return {
             "status": True,
             "message": "Skills retrieved successfully",
