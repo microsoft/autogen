@@ -394,29 +394,20 @@ def execute_code(
             sys.executable if lang.startswith("python") else _cmd(lang),
             f".\\{filename}" if WIN32 else filename,
         ]
-        if WIN32:
-            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
-            result = subprocess.run(
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                subprocess.run,
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
                 text=True,
             )
-        else:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    subprocess.run,
-                    cmd,
-                    cwd=work_dir,
-                    capture_output=True,
-                    text=True,
-                )
-                try:
-                    result = future.result(timeout=timeout)
-                except TimeoutError:
-                    if original_filename is None:
-                        os.remove(filepath)
-                    return 1, TIMEOUT_MSG, None
+            try:
+                result = future.result(timeout=timeout)
+            except TimeoutError:
+                if original_filename is None:
+                    os.remove(filepath)
+                return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
         if result.returncode:
