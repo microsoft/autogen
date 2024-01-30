@@ -2,8 +2,6 @@ import * as React from "react";
 import Icon from "./icons";
 import { useConfigStore } from "../hooks/store";
 import { fetchVersion } from "./utils";
-import { useConfigStore } from "../hooks/store";
-import { fetchVersion } from "./utils";
 
 const Footer = () => {
   const version = useConfigStore((state) => state.version);
@@ -21,8 +19,6 @@ const Footer = () => {
   return (
     <div className=" mt-4 text-primary p-3  border-t border-secondary flex ">
       <div className="text-xs flex-1">
-    <div className=" mt-4 text-primary p-3  border-t border-secondary flex ">
-      <div className="text-xs flex-1">
         Maintained by the AutoGen{" "}
         <a
           target={"_blank"}
@@ -34,9 +30,6 @@ const Footer = () => {
           Team.
         </a>
       </div>
-      {version && (
-        <div className="text-xs ml-2 text-secondary"> v{version}</div>
-      )}
       {version && (
         <div className="text-xs ml-2 text-secondary"> v{version}</div>
       )}

@@ -3,7 +3,6 @@ import {
   IAgentFlowSpec,
   IFlowConfig,
   IGroupChatFlowSpec,
-  IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
   IStatus,
@@ -244,7 +243,6 @@ export const formatDuration = (seconds: number) => {
 };
 
 export const sampleWorkflowConfig = (type = "twoagents") => {
-export const sampleWorkflowConfig = (type = "twoagents") => {
   const llm_model_config: IModelConfig[] = [
     {
       model: "gpt-4-1106-preview",
@@ -438,7 +436,6 @@ export const examplePrompts = [
     title: "Stock Price",
     prompt:
       "Plot a chart of NVDA and TESLA stock price for 2023. Save the result to a file named nvda_tesla.png",
-      "Plot a chart of NVDA and TESLA stock price for 2023. Save the result to a file named nvda_tesla.png",
   },
   {
     title: "Sine Wave",
@@ -456,19 +453,6 @@ export const examplePrompts = [
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
 ];
-
-export const fetchVersion = () => {
-  const versionUrl = getServerUrl() + "/version";
-  return fetch(versionUrl)
-    .then((response) => response.json())
-    .then((data) => {
-      return data;
-    })
-    .catch((error) => {
-      console.error("Error:", error);
-      return null;
-    });
-};
 
 export const fetchVersion = () => {
   const versionUrl = getServerUrl() + "/version";

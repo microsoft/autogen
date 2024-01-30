@@ -59,7 +59,6 @@ class Skill(object):
 # autogenflow data models
 @dataclass
 class Model:
-class Model:
     """Data model for Model Config item in LLMConfig for AutoGen"""
 
     model: str
@@ -83,22 +82,6 @@ class Model:
             self.timestamp = datetime.now().isoformat()
         if self.user_id is None:
             self.user_id = "default"
-    id: Optional[str] = None
-    timestamp: Optional[str] = None
-    user_id: Optional[str] = None
-    description: Optional[str] = None
-
-    def dict(self):
-        result = asdict(self)
-        return result
-
-    def __post_init__(self):
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        if self.timestamp is None:
-            self.timestamp = datetime.now().isoformat()
-        if self.user_id is None:
-            self.user_id = "default"
 
 
 @dataclass
@@ -106,15 +89,9 @@ class LLMConfig:
     """Data model for LLM Config for AutoGen"""
 
     config_list: List[Any] = field(default_factory=list)
-    config_list: List[Any] = field(default_factory=list)
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
-
-    def dict(self):
-        result = asdict(self)
-        result["config_list"] = [c.dict() for c in self.config_list]
-        return result
 
     def dict(self):
         result = asdict(self)
@@ -145,8 +122,6 @@ class AgentConfig:
 class AgentFlowSpec:
     """Data model to help flow load agents from config"""
 
-    type: Literal["assistant", "userproxy"]
-    config: AgentConfig
     type: Literal["assistant", "userproxy"]
     config: AgentConfig
     id: Optional[str] = None
@@ -224,8 +199,6 @@ class AgentWorkFlowConfig:
     sender: AgentFlowSpec
     receiver: Union[AgentFlowSpec, GroupChatFlowSpec]
     type: Literal["twoagents", "groupchat"] = "twoagents"
-    receiver: Union[AgentFlowSpec, GroupChatFlowSpec]
-    type: Literal["twoagents", "groupchat"] = "twoagents"
     id: Optional[str] = None
     user_id: Optional[str] = None
     timestamp: Optional[str] = None
@@ -241,20 +214,9 @@ class AgentWorkFlowConfig:
         else:
             return AgentFlowSpec(**spec)
 
-    def init_spec(self, spec: Dict):
-        """initialize the agent spec"""
-        if not isinstance(spec, dict):
-            spec = spec.dict()
-        if spec["type"] == "groupchat":
-            return GroupChatFlowSpec(**spec)
-        else:
-            return AgentFlowSpec(**spec)
-
     def __post_init__(self):
         if self.id is None:
             self.id = str(uuid.uuid4())
-        self.sender = self.init_spec(self.sender)
-        self.receiver = self.init_spec(self.receiver)
         self.sender = self.init_spec(self.sender)
         self.receiver = self.init_spec(self.receiver)
         if self.user_id is None:
@@ -265,7 +227,6 @@ class AgentWorkFlowConfig:
     def dict(self):
         result = asdict(self)
         result["sender"] = self.sender.dict()
-        result["receiver"] = self.receiver.dict()
         result["receiver"] = self.receiver.dict()
         return result
 
@@ -338,5 +299,4 @@ class DBWebRequestModel(object):
     tags: Optional[List[str]] = None
     agent: Optional[AgentFlowSpec] = None
     workflow: Optional[AgentWorkFlowConfig] = None
-    model: Optional[Model] = None
     model: Optional[Model] = None

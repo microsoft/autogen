@@ -32,9 +32,7 @@ class AutoGenWorkFlowManager:
             clear_folder(self.work_dir)
 
         # given the config, return an AutoGen agent object
-        # given the config, return an AutoGen agent object
         self.sender = self.load(config.sender)
-        # given the config, return an AutoGen agent object
         # given the config, return an AutoGen agent object
         self.receiver = self.load(config.receiver)
         self.agent_history = []
@@ -53,17 +51,7 @@ class AutoGenWorkFlowManager:
         if "name" in last_message:
             sender = last_message["name"]
 
-        last_message = messages[-1]
-
-        sender = sender.name
-        recipient = recipient.name
-        if "name" in last_message:
-            sender = last_message["name"]
-
         iteration = {
-            "recipient": recipient,
-            "sender": sender,
-            "message": last_message,
             "recipient": recipient,
             "sender": sender,
             "message": last_message,
@@ -211,7 +199,6 @@ class AutoGenWorkFlowManager:
             agent.register_reply(
                 [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         else:
-            raise ValueError(f"Unknown agent type: {agent_type}")
             raise ValueError(f"Unknown agent type: {agent_type}")
         return agent
 

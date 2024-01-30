@@ -7,8 +7,6 @@ import {
   TrashIcon,
   UserGroupIcon,
   UsersIcon,
-  UserGroupIcon,
-  UsersIcon,
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
 import * as React from "react";
@@ -22,7 +20,6 @@ import {
   truncateText,
 } from "../../utils";
 import {
-  BounceLoader,
   BounceLoader,
   Card,
   FlowConfigViewer,
@@ -50,9 +47,6 @@ const WorkflowView = ({}: any) => {
   const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
     defaultConfig
   );
-  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
-    defaultConfig
-  );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
   const [showNewWorkflowModal, setShowNewWorkflowModal] = React.useState(false);
@@ -70,8 +64,6 @@ const WorkflowView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         // message.success(data.message);
 
         setWorkflows(data.data);
@@ -176,18 +168,8 @@ const WorkflowView = ({}: any) => {
           style={{ width: "200px" }}
         >
           <div className="  block">
-        <div
-          key={"workflowrow" + i}
-          className="block   h-full"
-          style={{ width: "200px" }}
-        >
-          <div className="  block">
             {" "}
             <Card
-              className="  block p-2 cursor-pointer"
-              title={
-                <div className="  ">{truncateText(workflow.name, 25)}</div>
-              }
               className="  block p-2 cursor-pointer"
               title={
                 <div className="  ">{truncateText(workflow.name, 25)}</div>
@@ -346,37 +328,7 @@ const WorkflowView = ({}: any) => {
     setShowNewWorkflowModal(true);
   };
 
-  const workflowTypes: MenuProps["items"] = [
-    {
-      key: "twoagents",
-      label: (
-        <div>
-          {" "}
-          <UsersIcon className="w-5 h-5 inline-block mr-2" />
-          Two Agents
-        </div>
-      ),
-    },
-    {
-      key: "groupchat",
-      label: (
-        <div>
-          <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
-          Group Chat
-        </div>
-      ),
-    },
-  ];
-
-  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    const newConfig = sampleWorkflowConfig(key);
-
-    setNewWorkflow(newConfig);
-    setShowNewWorkflowModal(true);
-  };
-
   return (
-    <div className=" text-primary ">
     <div className=" text-primary ">
       <WorkflowModal
         workflow={selectedWorkflow}
@@ -403,32 +355,9 @@ const WorkflowView = ({}: any) => {
         <div className="     rounded  ">
           <div className="flex mt-2 pb-2 mb-2 border-b">
             <div className="flex-1 font-semibold  mb-2 ">
-            <div className="flex-1 font-semibold  mb-2 ">
               {" "}
               Workflows ({workflowRows.length}){" "}
             </div>
-            <div className=" ">
-              <Dropdown
-                menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
-                placement="bottomRight"
-                trigger={["click"]}
-              >
-                <div
-                  className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
-                  role="button"
-                  onClick={(e) => {
-                    // add agent to flowSpec?.groupchat_config.agents
-                  }}
-                >
-                  <LaunchButton className=" text-sm p-2 px-3">
-                    {" "}
-                    <PlusIcon className="w-5 h-5 inline-block mr-1" />
-                    New Workflow
-                  </LaunchButton>
-                </div>
-              </Dropdown>
-            </div>
-          </div>
             <div className=" ">
               <Dropdown
                 menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
@@ -465,17 +394,9 @@ const WorkflowView = ({}: any) => {
             </div>
           )}
           {workflows && workflows.length === 0 && !loading && (
-          {workflows && workflows.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No workflows found. Please create a new workflow.
-            </div>
-          )}
-          {loading && (
-            <div className="  w-full text-center">
-              {" "}
-              <BounceLoader />{" "}
-              <span className="inline-block"> loading .. </span>
             </div>
           )}
           {loading && (
