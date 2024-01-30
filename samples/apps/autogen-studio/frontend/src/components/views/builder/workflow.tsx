@@ -16,6 +16,7 @@ import {
   fetchJSON,
   getServerUrl,
   sampleWorkflowConfig,
+  sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
@@ -197,7 +198,8 @@ const WorkflowView = ({}: any) => {
                     e.stopPropagation();
                     // download workflow as workflow.name.json
                     const element = document.createElement("a");
-                    const file = new Blob([JSON.stringify(workflow)], {
+                    const sanitizedWorkflow = sanitizeConfig(workflow);
+                    const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
                       type: "application/json",
                     });
                     element.href = URL.createObjectURL(file);

@@ -5,6 +5,7 @@ import {
   IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
+  ISkill,
   IStatus,
 } from "./types";
 
@@ -346,8 +347,13 @@ export const getModels = () => {
 };
 
 export const getSampleSkill = () => {
-  const catSkill = `
-  # this is a sample skill. Replace with your own skill function
+  const content = `
+  ## This is a sample skill. Replace with your own skill function
+  ## In general, a good skill must have 3 sections:
+  ## 1. Imports (import libraries needed for your skill)
+  ## 2. Function definition  AND docstrings (this helps the LLM understand what the function does and how to use it)
+  ## 3. Function body (the actual code that implements the function)
+
   import numpy as np
   import matplotlib.pyplot as plt
   from matplotlib import font_manager as fm
@@ -386,7 +392,14 @@ export const getSampleSkill = () => {
       # Save figure to file
       plt.savefig(filename, dpi=120, bbox_inches='tight', pad_inches=0.1)
       plt.close(fig)`;
-  return catSkill;
+
+  const skill: ISkill = {
+    title: "save_cat_ascii_art_to_png",
+    description: "save cat ascii art to png",
+    content: content,
+  };
+
+  return skill;
 };
 
 export const timeAgo = (dateString: string): string => {
@@ -465,4 +478,30 @@ export const fetchVersion = () => {
       console.error("Error:", error);
       return null;
     });
+};
+
+/**
+ * Recursively sanitizes JSON objects by replacing specific keys with a given value.
+ * @param {JsonValue} data - The JSON data to be sanitized.
+ * @param {string[]} keys - An array of keys to be replaced in the JSON object.
+ * @param {string} replacement - The value to use as replacement for the specified keys.
+ * @returns {JsonValue} - The sanitized JSON data.
+ */
+export const sanitizeConfig = (
+  data: any,
+  keys: string[] = ["api_key"],
+  replacement: string = "********"
+): any => {
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeConfig(item, keys, replacement));
+  } else if (typeof data === "object" && data !== null) {
+    Object.keys(data).forEach((key) => {
+      if (keys.includes(key)) {
+        data[key] = replacement;
+      } else {
+        data[key] = sanitizeConfig(data[key], keys, replacement);
+      }
+    });
+  }
+  return data;
 };
