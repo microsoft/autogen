@@ -85,7 +85,7 @@ If you are asked for a comma separated list, apply the above rules depending of 
 
     limit = 4096
     try:
-        limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])
+        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
     except ValueError:
         pass  # limit is unknown
     except TypeError:
