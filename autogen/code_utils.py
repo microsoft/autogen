@@ -453,6 +453,8 @@ def execute_code(
     # get a randomized str based on current time to wrap the exit code
     exit_code_str = f"exitcode{time.time()}"
     abs_path = pathlib.Path(work_dir).absolute()
+    if WIN32:
+        abs_path = str(abs_path).replace("\\", "/").replace("C:", "/c").replace("D:", "/d")
     cmd = [
         "sh",
         "-c",
