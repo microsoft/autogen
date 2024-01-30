@@ -41,6 +41,15 @@ jobs:
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
+      - name: quarto install
+        working-directory: ${{ runner.temp }}
+        run: |
+          wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.549/quarto-1.4.549-linux-amd64.tar.gz
+          tar -xzf quarto-1.4.549-linux-amd64.tar.gz
+          echo "$(pwd)/quarto-1.4.549/bin/" >> $GITHUB_PATH
+      - name: quarto run
+        run: |
+          quarto render .
       - name: Test Build
         run: |
           if [ -e yarn.lock ]; then
@@ -75,6 +84,15 @@ jobs:
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
+      - name: quarto install
+        working-directory: ${{ runner.temp }}
+        run: |
+          wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.549/quarto-1.4.549-linux-amd64.tar.gz
+          tar -xzf quarto-1.4.549-linux-amd64.tar.gz
+          echo "$(pwd)/quarto-1.4.549/bin/" >> $GITHUB_PATH
+      - name: quarto run
+        run: |
+          quarto render .
       - name: Build website
         run: |
           if [ -e yarn.lock ]; then
