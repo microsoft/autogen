@@ -82,7 +82,7 @@ An agent uses the very first model available in the "config_list" and makes LLM 
 
 Besides throttling/rotating models the 'config_list' can be useful for:
 - Having a single global list of models and [filtering it](/docs/reference/oai/openai_utils#filter_config) based on certain keys (e.g. name, tag) in order to pass select models into a certain agent (e.g. use cheaper GPT 3.5 for agents solving easier tasks)
-- Using more advanced features not directly related to Agents, such as `filter_func` with [`OpenAIWrapper`](/docs/reference/oai/client#create) or [inference optimization](/docs/Examples#enhanced-inferences)
+- Using more advanced features for special purposes related to inference, such as `filter_func` with [`OpenAIWrapper`](/docs/reference/oai/client#create) or [inference optimization](/docs/Examples#enhanced-inferences)
 
 ### Unexpected keyword argument 'base_url'
 
