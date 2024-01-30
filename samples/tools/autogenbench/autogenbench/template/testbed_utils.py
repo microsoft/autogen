@@ -49,9 +49,9 @@ def init():
     """
 
     # Print some information about the run
-    with open("timestamp.txt", "wt") as f:
-        f.write("Timestamp: " + datetime.now().isoformat() + "\n")
+    with open("timestamp.txt", "at") as f:
         f.write("pyautogen version: " + str(autogen.__version__) + "\n")
+        f.write("Timestamp: " + datetime.now().isoformat() + "\n")
 
     # Start logging
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):

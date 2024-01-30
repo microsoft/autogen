@@ -11,6 +11,7 @@ import docker
 import random
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from .version import __version__
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -286,6 +287,7 @@ def run_scenario_natively(work_dir, env, timeout=TASK_TIMEOUT):
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Native"
+echo "autogenbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -387,7 +389,9 @@ def run_scenario_in_docker(work_dir, env, timeout=TASK_TIMEOUT, docker_image=Non
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Docker"
+
 umask 000
+echo "autogenbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
