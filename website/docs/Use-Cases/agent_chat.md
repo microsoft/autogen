@@ -54,7 +54,7 @@ or Pydantic models:
 
 The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
-1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](../FAQ#set-your-api-endpoints) function:
+1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](/docs/FAQ#set-your-api-endpoints) function:
 
 ``` python
 from typing import Literal
