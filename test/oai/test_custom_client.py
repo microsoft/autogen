@@ -62,7 +62,7 @@ def test_custom_model_client():
     config_list = [
         {
             "model": TEST_LOCAL_MODEL_NAME,
-            "api_type": "custom",
+            "api_type": "CustomModel",
             "device": TEST_DEVICE,
             "params": {
                 "max_length": TEST_MAX_LENGTH,
@@ -74,7 +74,7 @@ def test_custom_model_client():
     test_hook = {"called": False}
 
     client = OpenAIWrapper(config_list=config_list)
-    client.register_model_client(model=TEST_LOCAL_MODEL_NAME, model_client_cls=CustomModel, test_hook=test_hook)
+    client.register_model_client(model_client_cls=CustomModel, test_hook=test_hook)
 
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     assert response.choices[0].message.content == TEST_CUSTOM_RESPONSE
@@ -88,7 +88,7 @@ def test_custom_model_client():
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_registering_with_wrong_model_name_raises_error():
+def test_registering_with_wrong_class_name_raises_error():
     class CustomModel:
         def __init__(self, config: Dict):
             pass
@@ -108,14 +108,14 @@ def test_registering_with_wrong_model_name_raises_error():
 
     config_list = [
         {
-            "model": "local_model_name_but_wrong_name",
-            "api_type": "custom",
+            "model": "local_model_name",
+            "api_type": "CustomModelWrongName",
         },
     ]
     client = OpenAIWrapper(config_list=config_list)
 
     with pytest.raises(ValueError):
-        client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
+        client.register_model_client(model_client_cls=CustomModel)
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -123,7 +123,7 @@ def test_no_client_registered_raises_error():
     config_list = [
         {
             "model": "local_model_name",
-            "api_type": "custom",
+            "api_type": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
@@ -160,7 +160,7 @@ def test_not_all_clients_registered_raises_error():
     config_list = [
         {
             "model": "local_model_name",
-            "api_type": "custom",
+            "api_type": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
@@ -169,7 +169,7 @@ def test_not_all_clients_registered_raises_error():
         },
         {
             "model": "local_model_name_2",
-            "api_type": "custom",
+            "api_type": "CustomModel",
             "device": "cpu",
             "params": {
                 "max_length": 1000,
@@ -180,46 +180,7 @@ def test_not_all_clients_registered_raises_error():
 
     client = OpenAIWrapper(config_list=config_list)
 
-    client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
+    client.register_model_client(model_client_cls=CustomModel)
 
     with pytest.raises(RuntimeError):
         client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
-
-
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
-def test_registering_same_client_twice_raises_error():
-    class CustomModel:
-        def __init__(self, config: Dict):
-            pass
-
-        def create(self, params):
-            return None
-
-        def message_retrieval(self, response):
-            return []
-
-        def cost(self, response) -> float:
-            return 0
-
-        @staticmethod
-        def get_usage(response) -> Dict:
-            return {}
-
-    config_list = [
-        {
-            "model": "local_model_name",
-            "api_type": "custom",
-            "device": "cpu",
-            "params": {
-                "max_length": 1000,
-                "other_params": "other_params",
-            },
-        },
-    ]
-
-    client = OpenAIWrapper(config_list=config_list)
-
-    client.register_model_client(model="local_model_name", model_client_cls=CustomModel)
-
-    with pytest.raises(ValueError):
-        client.register_model_client(model="local_model_name", model_client_cls=CustomModel)

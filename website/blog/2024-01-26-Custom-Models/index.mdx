@@ -66,12 +66,12 @@ class CustomModelClient:
 
 ### Step 2: Add the configuration to the OAI_CONFIG_LIST
 
-The two fields that are necessary in the config are `"model" [str]` and `"api_type":"custom"`. Any other fields will be forwarded to the class constructor, so you have full control over what parameters to specify and how to use them. E.g.:
+The field that is necessary is setting `api_type` to the name of the new class (as a string) `"api_type":"CustomModelClient"`. Any other fields will be forwarded to the class constructor, so you have full control over what parameters to specify and how to use them. E.g.:
 
 ```json
 {
     "model": "Open-Orca/Mistral-7B-OpenOrca",
-    "api_type": "custom",
+    "api_type": "CustomModelClient",
     "device": "cuda",
     "n": 1,
     "params": {
@@ -82,13 +82,13 @@ The two fields that are necessary in the config are `"model" [str]` and `"api_ty
 
 ### Step 3: Register the new custom model to the agent that will use it
 
-If a configuration with the field `"api_type":"custom"` has been added to an Agent's config list, then the corresponding model with the desired class must be registered after the agent is created and before the conversation is initialized:
+If a configuration with the field `"api_type":"<class name>"` has been added to an Agent's config list, then the corresponding model with the desired class must be registered after the agent is created and before the conversation is initialized:
 
 ```python
-my_agent.register_model_client(model="Open-Orca/Mistral-7B-OpenOrca", model_client_cls=CustomModelClient, [other args that will be forwarded to CustomModelClient constructor])
+my_agent.register_model_client(model_client_cls=CustomModelClient, [other args that will be forwarded to CustomModelClient constructor])
 ```
 
-`model` matches the one specified in the `OAI_CONFIG_LIST` and `CustomModelClient` is the class that adheres to the `Client` protocol (more details on the protocol below).
+`model_client_cls=CustomModelClient` arg matches the one specified in the `OAI_CONFIG_LIST` and `CustomModelClient` is the class that adheres to the `Client` protocol (more details on the protocol below).
 
 If the new model client is in the config list but not registered by the time the chat is initialized, then an error will be raised.
 
@@ -160,9 +160,9 @@ If something doesn't work then run through the checklist:
   - `message_retrieval()` method: returns a list of strings or a list of message objects. If a list of message objects is returned, they currently must contain the fields of OpenAI's ChatCompletion Message object, since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
   - `cost()`method: returns an integer, and if you don't care about cost tracking you can just return `0`.
   - `get_usage()`: returns a dictionary, and if you don't care about usage tracking you can just return an empty dictionary `{}`.
-- Make sure you have a corresponding entry in the `OAI_CONFIG_LIST` and that that entry has the `"model" [str]` and `"api_type":"custom"` fields.
-- Make sure you have registered the client using the corresponding config entry and your new class `agent.register_model_client(model="<model-name>", model_client_cls=<class-of-custom-model>, [other optional args])`
-- Make sure you have registered only unique pairs of (`model`, `model_client_cls`) and don't try to register the same pair twice.
+- Make sure you have a corresponding entry in the `OAI_CONFIG_LIST` and that that entry has the `"api_type":"<custom-model-class-name>"` field.
+- Make sure you have registered the client using the corresponding config entry and your new class `agent.register_model_client(model_client_cls=<class-of-custom-model>, [other optional args])`
+- Make sure that all of the custom models defined in the `OAI_CONFIG_LIST` have been registered.
 - Any other troubleshooting might need to be done in the custom code itself.
 
 ## Conclusion

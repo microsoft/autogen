@@ -103,6 +103,11 @@ class Client(Protocol):
         ...  # pragma: no cover
 
 
+class PlaceHolderClient:
+    def __init__(self, config):
+        self.config = config
+
+
 class OpenAIClient:
     """Follows the Client protocol and wraps the OpenAI client."""
 
@@ -350,16 +355,13 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                activated = self._register_openai_client(config, openai_config)  # could modify the config
+                self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(
-                    {
-                        "config": {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}},
-                        "activated": activated,
-                    }
+                    {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
                 )
         else:
-            activated = self._register_openai_client(extra_kwargs, openai_config)
-            self._config_list = [{"config": extra_kwargs, "activated": activated}]
+            self._register_default_client(extra_kwargs, openai_config)
+            self._config_list = [extra_kwargs]
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -379,7 +381,7 @@ class OpenAIWrapper:
             openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
         openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
 
-    def _register_openai_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> bool:
+    def _register_default_client(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:
         """Create a client with the given config to override openai_config,
         after removing extra kwargs.
 
@@ -388,55 +390,49 @@ class OpenAIWrapper:
         "gpt-35-turbo" and define model "gpt-3.5-turbo" in the config the function will remove the dot
         from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
-        activated = False
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         api_type = config.get("api_type")
         if api_type is None:
             self._clients.append(OpenAIClient(OpenAI(**openai_config)))
-            activated = True
         else:
             if api_type.startswith("azure"):
                 self._configure_azure_openai(config, openai_config)
                 self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
-                activated = True
-            elif api_type.startswith("custom"):
+            else:
                 # else a config for a custom client is set
                 # skipping until the register_model_client is called with the appropriate class
-                logging.info(
-                    "Detected custom model client in config, skipping registration until register_model_client is called."
+                self._clients.append(PlaceHolderClient(config))
+                logger.info(
+                    f"Detected custom model client in config: {api_type}, skipping registration until register_model_client is called."
                 )
-            else:
-                raise ValueError(
-                    f"api_type {api_type} is not supported, please select one from ['azure', 'custom'], or remove and let it default to openai"
-                )
-        return activated
 
-    def register_model_client(self, model: str, model_client_cls: Client, **kwargs):
+    def register_model_client(self, model_client_cls: Client, **kwargs):
         """Register a model client.
 
         Args:
-            model: The model name, as specified in the config list
             model_client_cls: A custom client class that follows the Client interface
             **kwargs: The kwargs for the custom client class to be initialized with
         """
-        for i, config in enumerate(self._config_list):
-            config_model = config.get("config", {}).get("model")
-            activated = config.get("activated")
+        existing_client_class = False
+        for i, client in enumerate(self._clients):
+            if isinstance(client, PlaceHolderClient):
+                placeholder_config = client.config
 
-            if config_model == model:
-                if activated and model_client_cls.__name__ == self._clients[i].__class__.__name__:
-                    raise ValueError(
-                        f'Model "{model}" with model client "{model_client_cls.__name__}" is already registered.'
-                    )
+                if placeholder_config in self._config_list:
+                    if placeholder_config.get("api_type") == model_client_cls.__name__:
+                        self._clients[i] = model_client_cls(placeholder_config, **kwargs)
+                        return
+            elif isinstance(client, model_client_cls):
+                existing_client_class = True
 
-                client = model_client_cls(config.get("config", {}), **kwargs)
-                self._clients.append(client)
-                config["activated"] = True
-                break
+        if existing_client_class:
+            logger.warn(
+                f"Model client {model_client_cls.__name__} is already registered. Add more entires in the config_list to use multiple model clients."
+            )
         else:
             raise ValueError(
-                f'Model "{model}" is being registered but was not found in the config_list. '
-                'Please make sure to include an entry in the config_list with "model": "{model}"'
+                f'Model client "{model_client_cls.__name__}" is being registered but was not found in the config_list. '
+                f'Please make sure to include an entry in the config_list with "api_type": "{model_client_cls.__name__}"'
             )
 
     @classmethod
@@ -524,16 +520,14 @@ class OpenAIWrapper:
                 "No model client is active. Please populate the config list or register any custom model clients."
             )
         # Check if all configs in config list are activated
-        non_activated_confs = [
-            config_["config"]["model"] for config_ in self._config_list if not config_.get("activated")
-        ]
-        if non_activated_confs:
+        non_activated = [client.config["api_type"] for client in self._clients if isinstance(client, PlaceHolderClient)]
+        if non_activated:
             raise RuntimeError(
-                f"Model client(s) {non_activated_confs} are not activated. Please register the custom model clients or filter them out form the config list."
+                f"Model client(s) {non_activated} are not activated. Please register the custom model clients using `register_model_client` or filter them out form the config list."
             )
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
-            full_config = {**config, **self._config_list[i]["config"]}
+            full_config = {**config, **self._config_list[i]}
             # separate the config into create_config and extra_kwargs
             create_config, extra_kwargs = self._separate_create_config(full_config)
             api_type = extra_kwargs.get("api_type")
