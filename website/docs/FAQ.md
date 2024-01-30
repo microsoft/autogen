@@ -38,7 +38,7 @@ config_list = [
 "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
 "api_type": "azure",
 "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-"api_version": "2023-03-15-preview",
+"api_version": "2023-12-01-preview",
 },
 
 {
