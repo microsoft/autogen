@@ -391,7 +391,6 @@ def sanitize_model(model: Model):
     """
     Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
     """
-    print("sanitizing model")
     if isinstance(model, Model):
         model = model.dict()
     valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]

@@ -118,7 +118,6 @@ class AutoGenWorkFlowManager:
         if agent_spec.config.llm_config is not False:
             config_list = []
             for llm in agent_spec.config.llm_config.config_list:
-                print(" >> llm config", llm)
                 # check if api_key is present either in llm or env variable
                 if "api_key" not in llm and "OPENAI_API_KEY" not in os.environ:
                     error_message = f"api_key is not present in llm_config or OPENAI_API_KEY env variable for agent ** {agent_spec.config.name}**. Update your workflow to provide an api_key to use the LLM."
@@ -127,7 +126,6 @@ class AutoGenWorkFlowManager:
                 # only add key if value is not None
                 sanitized_llm = sanitize_model(llm)
                 config_list.append(sanitized_llm)
-                print(" >> llm config", sanitized_llm)
             agent_spec.config.llm_config.config_list = config_list
         if agent_spec.config.code_execution_config is not False:
             code_execution_config = agent_spec.config.code_execution_config or {}
