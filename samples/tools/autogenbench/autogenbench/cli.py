@@ -91,15 +91,11 @@ Additionally, you can use the --help option with any command for further command
                 sys.stderr.write(help_text + "\n")
                 sys.exit(0)
             else:
-                command["function"](
-                    [invocation_cmd + " " + command["command"]] + args[2:]
-                )
+                command["function"]([invocation_cmd + " " + command["command"]] + args[2:])
                 sys.exit(0)
 
     # Command not found
-    sys.stderr.write(
-        f"Invalid command '{args[1]}'. Available commands include: {commands_list}\n"
-    )
+    sys.stderr.write(f"Invalid command '{args[1]}'. Available commands include: {commands_list}\n")
     sys.exit(2)
 
 
