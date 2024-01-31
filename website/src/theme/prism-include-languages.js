@@ -1,9 +1,9 @@
 import siteConfig from '@generated/docusaurus.config';
 export default function prismIncludeLanguages(PrismObject) {
   const {
-    themeConfig: {prism},
+    themeConfig: { prism },
   } = siteConfig;
-  const {additionalLanguages} = prism;
+  const { additionalLanguages } = prism;
   // Prism components work on the Prism instance on the window, while prism-
   // react-renderer uses its own Prism instance. We temporarily mount the
   // instance onto window, import components to enhance it, then remove it to
@@ -22,20 +22,18 @@ export default function prismIncludeLanguages(PrismObject) {
   });
 
   Prism.languages['text'] = {
-      'message-id': {
-        pattern: /\b(:?[A-Za-z0-9\-_]+)\s+\(:?to\s([A-Za-z0=9\-_]+)\)\:/,
-        inside: {
-          'class-name': /\b(?!to\b)[A-Za-z0-9\-_^]+\b/,
-          punctuation: /[()]/,
-          keyword: /\bto\b/
-        }
-      },
-      builtin: /\bTERMINATE\b/,
-      punctuation: /(?:(---)-+)/,
-      function: />>>>>>>>.+[\r\n]?/
-   };
-
-
+    'message-id': {
+      pattern: /\b(:?[A-Za-z0-9\-_]+)\s+\(:?to\s([A-Za-z0=9\-_]+)\)\:/,
+      inside: {
+        'class-name': /\b(?!to\b)[A-Za-z0-9\-_^]+\b/,
+        punctuation: /[()]/,
+        keyword: /\bto\b/
+      }
+    },
+    builtin: /\bTERMINATE\b/,
+    punctuation: /(?:(---)-+)/,
+    function: />>>>>>>>.+[\r\n]?/
+  };
 
   delete globalThis.Prism;
 }
