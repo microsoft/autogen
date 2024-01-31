@@ -5,7 +5,7 @@ import json
 import pytest
 import sqlite3
 from conftest import skip_openai
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, Mock
 
 
 try:
@@ -251,10 +251,12 @@ def test_to_dict():
     assert autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"]) == expected_result
 
 
-@patch('logging.Logger.error')
+@patch("logging.Logger.error")
 def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, db_connection):
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_REQUEST)
     sample_completion["is_cached"] = {"foo": "bar"}
 
     autogen.telemetry.log_chat_completion(**sample_completion)
-    mock_logger_error.assert_called_once_with("[Telemetry] log_chat_completion error: Error binding parameter 6 - probably unsupported type.")
+    mock_logger_error.assert_called_once_with(
+        "[Telemetry] log_chat_completion error: Error binding parameter 6 - probably unsupported type."
+    )
