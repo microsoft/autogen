@@ -17,21 +17,21 @@ testbed_utils.init()
 
 config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
-#    filter_dict={"model": ["gpt-4"]},
+    #    filter_dict={"model": ["gpt-4"]},
 )
 llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
 llm_config["temperature"] = 0.1
 
 summarizer_config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
-#    filter_dict={"model": ["gpt-3.5-turbo-16k"]},
+    #    filter_dict={"model": ["gpt-3.5-turbo-16k"]},
 )
 summarizer_llm_config = testbed_utils.default_llm_config(summarizer_config_list, timeout=180)
 summarizer_llm_config["temperature"] = 0.1
 
 final_config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
-#    filter_dict={"model": ["gpt-4-1106-preview"]},
+    #    filter_dict={"model": ["gpt-4-1106-preview"]},
 )
 final_llm_config = testbed_utils.default_llm_config(final_config_list, timeout=180)
 final_llm_config["temperature"] = 0.1
@@ -93,10 +93,10 @@ If you are asked for a comma separated list, apply the above rules depending of 
 
     if tokens + 256 > limit:
         print(f"The transcript token count ({tokens}) exceeds the response_preparer token limit ({limit}).")
-        while tokens + 256 > limit: # Leave room for an answer
-           mid = int(len(messages) / 2)  # Remove from the middle
-           tokens -= count_token(messages[mid])
-           del messages[mid]
+        while tokens + 256 > limit:  # Leave room for an answer
+            mid = int(len(messages) / 2)  # Remove from the middle
+            tokens -= count_token(messages[mid])
+            del messages[mid]
 
     response = client.create(context=None, messages=messages)
     extracted_response = client.extract_text_or_completion_object(response)[0]
