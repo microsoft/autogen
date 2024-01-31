@@ -9,22 +9,6 @@ class Agent(Protocol):
     Different agents can differ in what actions they perform in the `receive` method.
     """
 
-    # def __init__(
-    #     self,
-    #     name: str,
-    # ):
-    #     """
-    #     Args:
-    #         name (str): name of the agent.
-    #     """
-    #     # a dictionary of conversations, default value is list
-    #     self._name = name
-
-    # @property
-    # def name(self) -> str:
-    #     """Get the name of the agent."""
-    #     # return self._name
-
     def send(
         self, message: Union[Dict[str, Any], str], recipient: "Agent", request_reply: Optional[bool] = None
     ) -> None:
