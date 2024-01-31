@@ -45,6 +45,11 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        run: |
+          echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
       - name: Test with pytest skip openai tests
         if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
