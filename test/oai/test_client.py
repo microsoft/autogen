@@ -138,12 +138,6 @@ def test_usage_summary():
     # check print
     client.print_usage_summary()
 
-    # check update
-    client._update_usage_summary(response, use_cache=True)
-    assert (
-        client.total_usage_summary["total_cost"] == response.cost * 2
-    ), "total_cost should be equal to response.cost * 2"
-
     # check clear
     client.clear_usage_summary()
     assert client.actual_usage_summary is None, "actual_usage_summary should be None"
@@ -152,7 +146,15 @@ def test_usage_summary():
     # actual usage and all usage should be different
     response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    client.clear_usage_summary()
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
+
+    # check update
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    assert (
+        client.total_usage_summary["total_cost"] == response.cost * 2
+    ), "total_cost should be equal to response.cost * 2"
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
