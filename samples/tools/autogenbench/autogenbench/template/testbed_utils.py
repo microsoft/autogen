@@ -6,6 +6,15 @@ import json
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
+# Try importing the telemetry module (only available in some branches)
+TELEMETRY_ENABLED = False
+try:
+    import autogen.telemetry
+
+    TELEMETRY_ENABLED = True
+except ImportError:
+    pass
+
 
 def default_llm_config(config_list, timeout=180):
     """Return a default config list with a given timeout, and with caching disabled.
@@ -49,13 +58,17 @@ def init():
     """
 
     # Print some information about the run
-    with open("timestamp.txt", "at") as f:
-        f.write("pyautogen version: " + str(autogen.__version__) + "\n")
+    with open("timestamp.txt", "wt") as f:
         f.write("Timestamp: " + datetime.now().isoformat() + "\n")
+        f.write("pyautogen version: " + str(autogen.__version__) + "\n")
 
     # Start logging
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
         autogen.Completion.start_logging(compact=False)
+
+    # Start telemetry
+    if TELEMETRY_ENABLED:
+        autogen.telemetry.start_logging()
 
 
 def finalize(agents):
@@ -89,3 +102,7 @@ def finalize(agents):
         with open(os.path.join(script_dir, "completion_log.json"), "wt") as fh:
             fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
         autogen.Completion.stop_logging()
+
+    # Start telemetry
+    if TELEMETRY_ENABLED:
+        autogen.telemetry.stop_logging()
