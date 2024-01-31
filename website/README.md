@@ -19,12 +19,19 @@ cd website
 yarn install
 ```
 
+### Install Quarto
+
+`quarto` is used to render notebooks.
+
+Install it [here](https://quarto.org/docs/get-started/).
+
 ## Local Development
 
-Navigate to the website folder and run:
+Navigate to the `website` folder and run:
 
 ```console
 pydoc-markdown
+quarto render ./docs
 yarn start
 ```
 
