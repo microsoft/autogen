@@ -115,7 +115,7 @@ class GPTAssistantAgent(ConversableAgent):
 
             if specified_tools is None:
                 # Check if the current assistant has tools defined
-                if self._openai_assistant.get("tools"):
+                if self._openai_assistant.tools:
                     logger.warning(
                         "No tools were provided for given assistant. Using existing tools from assistant API."
                     )
