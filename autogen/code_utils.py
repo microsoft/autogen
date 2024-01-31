@@ -318,7 +318,7 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Union[List[str], str, bool] = SENTINEL,
+    use_docker: Union[List[str], str, bool, None] = None,
     lang: Optional[str] = "python",
 ) -> Tuple[int, str, Optional[str]]:
     """Execute code in a docker container.
@@ -365,7 +365,7 @@ def execute_code(
     docker_running = is_docker_running()
 
     # SENTINEL is used to indicate that the user did not explicitly set the argument
-    if use_docker is SENTINEL:
+    if use_docker is None:
         use_docker = decide_use_docker(use_docker=None)
     check_can_use_docker_or_throw(use_docker)
 

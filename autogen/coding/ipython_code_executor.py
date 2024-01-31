@@ -57,13 +57,8 @@ the output will be a path to the image instead of the image itself.
         def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent."""
             # system message is a string or a list of strings
-            if isinstance(agent.system_message, str):
-                system_message_str = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-                agent.update_system_message(system_message_str)
-            else:
-                system_message_list = agent.system_message.copy()
-                system_message_list[-1] = system_message_list[-1] + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-                agent.update_system_message(system_message_list)
+            system_message = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+            agent.update_system_message(system_message)
 
     timeout: int = Field(default=DEFAULT_TIMEOUT, ge=1, description="The timeout for code execution.")
     kernel: str = Field(default="python3", description="The kernel to use.")

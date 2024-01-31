@@ -44,14 +44,8 @@ If you want the user to save the code in a file before executing it, put # filen
 
         def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent."""
-            # system message is a string or a list of strings
-            if isinstance(agent.system_message, str):
-                system_message_str = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-                agent.update_system_message(system_message_str)
-            else:
-                system_message_list = agent.system_message.copy()
-                system_message_list[0] = system_message_list[0] + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-                agent.update_system_message(system_message_list)
+            system_message = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
+            agent.update_system_message(system_message)
 
     timeout: Optional[int] = Field(default=DEFAULT_TIMEOUT, ge=1)
     filename: Optional[str] = None
@@ -78,30 +72,6 @@ If you want the user to save the code in a file before executing it, put # filen
         """Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
-    def _execute_code(self, code: str, lang: str, filename: Optional[str] = None) -> Tuple[int, str, Optional[str]]:
-        use_docker = self._get_use_docker_for_code_utils()
-        filename = self.filename if filename is None else filename
-        # execute_code cannot handle None for use_docker
-        if use_docker is None:
-            return execute_code(
-                code=code,
-                lang=lang,
-                filename=filename,
-                timeout=self.timeout,
-                work_dir=self.work_dir,
-            )
-        else:
-            exitcode, logs, image = execute_code(
-                code=code,
-                lang=lang,
-                filename=filename,
-                timeout=self.timeout,
-                work_dir=self.work_dir,
-                use_docker=use_docker,
-            )
-
-        return exitcode, logs, image
-
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
         """Execute the code blocks and return the result."""
         logs_all = ""
@@ -115,21 +85,27 @@ If you want the user to save the code in a file before executing it, put # filen
                 flush=True,
             )
             if lang in ["bash", "shell", "sh"]:
-                exitcode, logs, image = self._execute_code(code, lang)
-                # exitcode, logs, image = execute_code(
-                #     code=code,
-                #     lang=lang,
-                #     timeout=self.timeout,
-                #     work_dir=self.work_dir,
-                #     filename=self.filename,
-                #     use_docker=self._get_use_docker_for_code_utils(),
-                # )
+                exitcode, logs, image = execute_code(
+                    code=code,
+                    lang=lang,
+                    timeout=self.timeout,
+                    work_dir=self.work_dir,
+                    filename=self.filename,
+                    use_docker=self._get_use_docker_for_code_utils(),
+                )
             elif lang in ["python", "Python"]:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
                     filename = None
-                exitcode, logs, image = self._execute_code(code, "python", filename=filename)
+                exitcode, logs, image = execute_code(
+                    code=code,
+                    lang="python",
+                    timeout=self.timeout,
+                    work_dir=self.work_dir,
+                    filename=filename,
+                    use_docker=self._get_use_docker_for_code_utils(),
+                )
             else:
                 # In case the language is not supported, we return an error message.
                 exitcode, logs, image = (1, f"unknown language {lang}", None)

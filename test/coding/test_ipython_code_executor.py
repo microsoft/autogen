@@ -124,7 +124,7 @@ def test_conversable_agent_capability() -> None:
     # Test code generation.
     reply = agent.generate_reply(
         [{"role": "user", "content": "print 'hello world' to the console"}],
-        sender=Agent("user"),
+        sender=ConversableAgent("user"),
     )
 
     # Test code extraction.
@@ -149,5 +149,5 @@ And then this:
 print(test_function(123, 4))
 ```
 """
-    reply = agent.generate_reply([{"role": "user", "content": msg}], sender=Agent("user"))
+    reply = agent.generate_reply([{"role": "user", "content": msg}], sender=ConversableAgent("user"))
     assert "492" in reply  # type: ignore[operator]

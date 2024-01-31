@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 
 @runtime_checkable
@@ -52,6 +52,7 @@ class Agent(Protocol):
         self,
         messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional["Agent"] = None,
+        exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """(Abstract method) Generate a reply based on the received messages.
@@ -67,6 +68,7 @@ class Agent(Protocol):
         self,
         messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional["Agent"] = None,
+        exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """(Abstract async method) Generate a reply based on the received messages.
@@ -84,12 +86,12 @@ class LLMAgent(Agent, Protocol):
     """(In preview) An abstract class for LLM agent."""
 
     @property
-    def system_message(self) -> Union[str, List]:
+    def system_message(self) -> str:
         """(Abstract method) Return the system message."""
 
-    def update_system_message(self, system_message: Union[str, List]):
+    def update_system_message(self, system_message: str) -> None:
         """(Abstract method) Update the system message.
 
         Args:
-            system_message (str or List): system message for the ChatCompletion inference.
+            system_message (str): system message for the ChatCompletion inference.
         """

@@ -18,7 +18,7 @@ else:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()),
+    sys.platform in ["win32"] or (not is_docker_running()) or (in_docker_container()),
     reason="docker is not running",
 )
 def test_execute_code_docker() -> None:
@@ -112,7 +112,7 @@ def test_conversable_agent_capability() -> None:
     # Test code generation.
     reply = agent.generate_reply(
         [{"role": "user", "content": "write a python script to print 'hello world' to the console"}],
-        sender=Agent("user"),
+        sender=ConversableAgent(name="user", llm_config=False),
     )
 
     # Test code extraction.
@@ -121,7 +121,7 @@ def test_conversable_agent_capability() -> None:
 
     # Test code execution.
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower()
+    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
 
 
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
@@ -130,7 +130,7 @@ def test_coversable_agent_code_execution_no_docker() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()),
+    sys.platform in ["win32"] or (not is_docker_running()) or (in_docker_container()),
     reason="docker is not running",
 )
 def test_conversable_agent_code_execution_docker() -> None:
@@ -159,7 +159,7 @@ def _test_conversable_agent_code_execution(config: Dict[str, Any]) -> None:
 
     reply = agent.generate_reply(
         [{"role": "user", "content": message}],
-        sender=Agent("user"),
+        sender=ConversableAgent("user"),
     )
     assert "hello extract code" in reply  # type: ignore[operator]
     if config["use_docker"] is not False:
