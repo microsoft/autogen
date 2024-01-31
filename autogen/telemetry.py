@@ -26,7 +26,7 @@ else:
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
-this._session_id = str(uuid.uuid4())
+this._session_id = None
 this._con = None
 this._cur = None
 
@@ -37,6 +37,8 @@ def start_logging(dbname: str = "telemetry.db") -> None:
     """
     this._con = sqlite3.connect(dbname)
     this._cur = this._con.cursor()
+    this._session_id = str(uuid.uuid4())
+
     query = """
         CREATE TABLE IF NOT EXISTS chat_completions(
             id INTEGER PRIMARY KEY,
@@ -94,6 +96,7 @@ def start_logging(dbname: str = "telemetry.db") -> None:
     """
     this._cur.execute(query)
     this._con.commit()
+    return this._session_id
 
 
 def get_connection():
