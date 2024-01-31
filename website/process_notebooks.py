@@ -91,13 +91,19 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     if "-->" not in lines:
         return "no closing --> found, or it is not on a line on its own"
 
-    front_matter = exract_yaml_from_notebook(notebook)
+    try:
+        front_matter = exract_yaml_from_notebook(notebook)
+    except yaml.YAMLError as e:
+        return colored(f"Failed to parse front matter in {notebook.name}: {e}", "red")
     
     if "skip" in front_matter and front_matter["skip"] == True:
         return "skip is set to true"
 
-    if not "tags" in front_matter or not "description" in front_matter:
-        return "no tags or description found"
+    if not "tags" in front_matter:
+        return "tags is not in front matter"
+
+    if not "description" in front_matter:
+        return "description is not in front matter"
 
     # Make sure tags is a list of strings
     if not all([isinstance(tag, str) for tag in front_matter["tags"]]):
