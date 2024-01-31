@@ -1913,7 +1913,7 @@ class ConversableAgent(Agent):
         return _decorator
 
     def register_model_client(self, model_client_cls: Client, **kwargs):
-        """Register a model.
+        """Register a model client.
 
         Args:
             model_client_cls: A custom client class that follows the Client interface
