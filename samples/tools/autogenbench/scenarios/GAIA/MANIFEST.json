@@ -5,6 +5,7 @@
         "Scripts/custom_tabulate.py": "Scripts/custom_tabulate.py",
         "Templates/BasicTwoAgents/expected_answer.txt": "Templates/BasicTwoAgents/expected_answer.txt",
         "Templates/BasicTwoAgents/scenario.py": "Templates/BasicTwoAgents/scenario.py",
+        "Templates/BasicTwoAgents/requirements.txt": "Templates/BasicTwoAgents/requirements.txt",
         "Templates/SocietyOfMind/scenario.py": "Templates/SocietyOfMind/scenario.py",
         "Templates/SocietyOfMind/expected_answer.txt": "Templates/SocietyOfMind/expected_answer.txt",
         "Templates/SocietyOfMind/requirements.txt": "Templates/SocietyOfMind/requirements.txt"

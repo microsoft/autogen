@@ -9,6 +9,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from .. import OpenAIWrapper
+from ..telemetry import log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -117,6 +118,7 @@ class ConversableAgent(Agent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         super().__init__(name)
+
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
@@ -135,6 +137,8 @@ class ConversableAgent(Agent):
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
+
+        log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None
@@ -948,9 +952,7 @@ class ConversableAgent(Agent):
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_id = tool_response.get("tool_call_id", "")
-        response = tool_response.get("content", "")
-        return f"Tool Call Id: {func_id}\n{response}"
+        return str(tool_response.get("content", ""))
 
     def generate_tool_calls_reply(
         self,

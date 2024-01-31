@@ -3,6 +3,7 @@
         "Templates/TwoAgents/scenario_finalize.sh": "Templates/TwoAgents/scenario_finalize.sh",
         "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
         "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh",
+        "Templates/TwoAgents/requirements.txt": "Templates/TwoAgents/requirements.txt",
         "Tasks/default_two_agents.jsonl": "Tasks/default_two_agents.jsonl",
         "README.md": "README.md"
     }
