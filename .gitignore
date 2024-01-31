@@ -1,5 +1,4 @@
 .docusaurus/
-.notebook/
 node_modules/
 # Project
 /.vs
