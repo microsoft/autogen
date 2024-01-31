@@ -68,11 +68,12 @@ module.exports = {
         //   to: 'examples',
         //   label: 'Examples',
         // },
-        {
-          to: "docs/notebooks",
-          position: "left",
-          label: "Notebooks",
-        },
+        // Uncomment below to add Notebooks to the navbar
+        // {
+        //   to: "docs/notebooks",
+        //   position: "left",
+        //   label: "Notebooks",
+        // },
         {
           label: "Resources",
           type: "dropdown",

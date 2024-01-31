@@ -9,13 +9,9 @@ package-lock.json
 .docusaurus
 .cache-loader
 docs/reference
+/docs/notebooks
 
 docs/llm_endpoint_configuration.mdx
-
-# These are generated files from the notebooks
-docs/notebooks/*.mdx
-docs/notebooks/**/*.png
-docs/notebooks/*.svg
 
 # Misc
 .DS_Store

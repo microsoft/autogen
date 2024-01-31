@@ -7,11 +7,12 @@ function findAllNotebooks() {
         key = key.slice(0, -4);
 
         notebooks.push({
-            title: notebook.contentTitle,
+            title: notebook.frontMatter.title,
             link: "/autogen/docs/notebooks/" + key,
             description: notebook.frontMatter.description,
             image: notebook.frontMatter.image,
-            tags: notebook.frontMatter.tags
+            tags: notebook.frontMatter.tags,
+            source: notebook.frontMatter.source_notebook            
         });
     });
     console.log(notebooks);
