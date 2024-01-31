@@ -18,7 +18,7 @@ from autogen.code_utils import (
     decide_use_docker,
     check_can_use_docker_or_throw,
 )
-from .conftest import skip_docker
+from conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
