@@ -47,10 +47,14 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-      - name: Test with pytest skip openai tests
-        if: matrix.python-version != '3.10'
+      - name: Test with pytest skipping openai tests
+        if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
           pytest test --skip-openai
+      - name: Test with pytest skipping openai and docker tests
+        if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
+        run: |
+          pytest test --skip-openai --skip-docker
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
