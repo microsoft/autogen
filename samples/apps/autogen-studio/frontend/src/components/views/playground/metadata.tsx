@@ -119,7 +119,11 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_code) {
       fileView = (
         <div className="h">
-          <a href={`${serverUrl}/${file_path}`} target="_blank">
+          <a
+            href={`${serverUrl}/${file_path}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <div className="mb-4">{fileTitle}</div>
           </a>
           <CodeLoader
@@ -145,7 +149,11 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
       fileView = (
         <div className="h-full">
           <div className="mb-4">
-            <a href={`${serverUrl}/${file_path}`} target="_blank">
+            <a
+              href={`${serverUrl}/${file_path}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {fileTitle}
             </a>
           </div>
