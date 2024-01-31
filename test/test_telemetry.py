@@ -5,6 +5,8 @@ import json
 import pytest
 import sqlite3
 from conftest import skip_openai
+from unittest.mock import patch, MagicMock, Mock
+
 
 try:
     import openai
@@ -188,8 +190,6 @@ def test_log_oai_wrapper(db_connection):
 
 @pytest.mark.skipif(skip, reason="openai not installed")
 def test_log_oai_client(db_connection):
-    from unittest.mock import Mock
-
     cur = db_connection.cursor()
 
     openai_config = {
@@ -249,3 +249,12 @@ def test_to_dict():
         "o": {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]},
     }
     assert autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"]) == expected_result
+
+
+@patch('logging.Logger.error')
+def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, db_connection):
+    sample_completion = get_sample_chat_completion(SAMPLE_CHAT_REQUEST)
+    sample_completion["is_cached"] = {"foo": "bar"}
+
+    autogen.telemetry.log_chat_completion(**sample_completion)
+    mock_logger_error.assert_called_once_with("[Telemetry] log_chat_completion error: Error binding parameter 6 - probably unsupported type.")
