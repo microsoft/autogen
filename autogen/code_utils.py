@@ -467,8 +467,8 @@ def execute_code(
         working_dir="/workspace",
         detach=True,
         # get absolute path to the working directory
-        volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
-        mounts=[Mount("/workspace", abs_path, type="bind")],
+        # volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
+        mounts=[Mount("/workspace", str(abs_path), type="bind")],
     )
     start_time = time.time()
     while container.status != "exited" and time.time() - start_time < timeout:
