@@ -8,9 +8,7 @@ import pytest
 
 import autogen
 from autogen.code_utils import (
-    PATH_SEPARATOR,
     UNKNOWN,
-    WIN32,
     content_str,
     execute_code,
     extract_code,
@@ -324,42 +322,64 @@ def test_execute_code(use_docker=None):
     if use_docker is None:
         use_docker = docker is not None
 
-    # execute code and save the code to a file.
-    filename = os.path.join("tmp", "codetest.py")
-    exit_code, msg, image = execute_code("print('hello world')", filename=filename, use_docker=use_docker)
-    assert exit_code == 0 and msg == "hello world\n", msg
+    # Test execute code and save the code to a file.
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = "temp_file_with_code.py"
 
-    # read the file just saved
-    exit_code, msg, image = execute_code(f"with open('{filename}', 'rt') as f: print(f.read())", use_docker=use_docker)
-    assert exit_code == 0 and "print('hello world')" in msg, msg
+        # execute code and save the code to a file.
+        exit_code, msg, image = execute_code(
+            "print('hello world')",
+            filename=filename,
+            work_dir=tempdir,
+            use_docker=use_docker,
+        )
+        assert exit_code == 0 and msg == "hello world\n", msg
 
-    # try to read the file from a different working directory.
-    filename_2 = os.path.join("my_tmp", "codetest.py")
-    exit_code, msg, image = execute_code(
-        f"with open('{filename}', 'w') as f: f.write('b=1')",
-        work_dir=os.path.join(here, "my_tmp"),
-        filename=filename_2,
-        use_docker=use_docker,
-    )
-    assert exit_code
-    assert f'File "{filename_2}"' in msg or f'File ".\\{filename_2}"' in msg  # py3.8 + win32
+        # read the file just saved
+        exit_code, msg, image = execute_code(
+            f"with open('{filename}', 'rt') as f: print(f.read())",
+            use_docker=use_docker,
+            work_dir=tempdir,
+        )
+        assert exit_code == 0 and "print('hello world')" in msg, msg
 
-    # execute code in a file
-    exit_code, msg, image = execute_code(filename=filename, use_docker=use_docker)
-    assert exit_code == 0 and msg == "hello world\n", msg
+        # execute code in a file
+        exit_code, msg, image = execute_code(
+            filename=filename,
+            use_docker=use_docker,
+            work_dir=tempdir,
+        )
+        assert exit_code == 0 and msg == "hello world\n", msg
 
-    exit_code, msg, image = execute_code(f"python {filename}", lang="sh", use_docker=use_docker)
-    assert exit_code == 0 and msg == "hello world\n", msg
+        # execute code in a file using shell command directly
+        exit_code, msg, image = execute_code(
+            f"python {filename}",
+            lang="sh",
+            use_docker=use_docker,
+            work_dir=tempdir,
+        )
+        assert exit_code == 0 and msg == "hello world\n", msg
 
-    # execute code for assertion error
-    exit_code, msg, image = execute_code("assert 1==2", use_docker=use_docker)
-    assert exit_code, msg
-    assert 'File ""' in msg or 'File ".\\"' in msg  # py3.8 + win32
+    with tempfile.TemporaryDirectory() as tempdir:
+        # execute code for assertion error
+        exit_code, msg, image = execute_code(
+            "assert 1==2",
+            use_docker=use_docker,
+            work_dir=tempdir,
+        )
+        assert exit_code, msg
+        assert 'File ""' in msg or 'File ".\\"' in msg  # py3.8 + win32
 
-    # execute code which takes a long time
-    exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=use_docker)
-    assert exit_code and error == "Timeout"
-    assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
+    with tempfile.TemporaryDirectory() as tempdir:
+        # execute code which takes a long time
+        exit_code, error, image = execute_code(
+            "import time; time.sleep(2)",
+            timeout=1,
+            use_docker=use_docker,
+            work_dir=tempdir,
+        )
+        assert exit_code and error == "Timeout"
+        assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
 
 
 @pytest.mark.skipif(
@@ -367,10 +387,16 @@ def test_execute_code(use_docker=None):
     reason="docker is not running or in docker container already",
 )
 def test_execute_code_with_custom_filename_on_docker():
-    filename = os.path.join("tmp", "codetest.py")
-    exit_code, msg, image = execute_code("print('hello world')", filename=filename, use_docker=True)
-    assert exit_code == 0 and msg == "hello world\n", msg
-    assert image == "python:tmp_codetest.py"
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = "codetest.py"
+        exit_code, msg, image = execute_code(
+            "print('hello world')",
+            filename=filename,
+            use_docker=True,
+            work_dir=tempdir,
+        )
+        assert exit_code == 0 and msg == "hello world\n", msg
+        assert image == "python:codetest.py"
 
 
 @pytest.mark.skipif(
@@ -378,10 +404,16 @@ def test_execute_code_with_custom_filename_on_docker():
     reason="docker is not running or in docker container already",
 )
 def test_execute_code_with_misformed_filename_on_docker():
-    filename = os.path.join("tmp", "codetest.py (some extra information)")
-    exit_code, msg, image = execute_code("print('hello world')", filename=filename, use_docker=True)
-    assert exit_code == 0 and msg == "hello world\n", msg
-    assert image == "python:tmp_codetest.py__some_extra_information_"
+    with tempfile.TemporaryDirectory() as tempdir:
+        filename = "codetest.py (some extra information)"
+        exit_code, msg, image = execute_code(
+            "print('hello world')",
+            filename=filename,
+            use_docker=True,
+            work_dir=tempdir,
+        )
+        assert exit_code == 0 and msg == "hello world\n", msg
+        assert image == "python:codetest.py__some_extra_information_"
 
 
 def test_execute_code_raises_when_code_and_filename_are_both_none():
@@ -395,8 +427,7 @@ def test_execute_code_nodocker():
 
 def test_execute_code_no_docker():
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
-    if sys.platform != "win32":
-        assert exit_code and error == "Timeout"
+    assert exit_code and error == "Timeout"
     assert image is None
 
 
