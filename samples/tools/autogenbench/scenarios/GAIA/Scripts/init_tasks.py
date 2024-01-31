@@ -63,9 +63,7 @@ def create_jsonl(name, tasks, files_dir, template):
                         "__FILE_NAME__": task["file_name"],
                         "__PROMPT__": task["Question"],
                     },
-                    "expected_answer.txt": {
-                        "__EXPECTED_ANSWER__": task["Final answer"]
-                    },
+                    "expected_answer.txt": {"__EXPECTED_ANSWER__": task["Final answer"]},
                 },
             }
 
@@ -80,9 +78,7 @@ def main():
     gaia_test_files = os.path.join(REPO_DIR, "2023", "test")
 
     if not os.path.isdir(gaia_validation_files) or not os.path.isdir(gaia_test_files):
-        sys.exit(
-            f"Error: '{REPO_DIR}' does not appear to be a copy of the GAIA repository."
-        )
+        sys.exit(f"Error: '{REPO_DIR}' does not appear to be a copy of the GAIA repository.")
 
     # Load the GAIA data
     gaia_validation_tasks = [[], [], []]
