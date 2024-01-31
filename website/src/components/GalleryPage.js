@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
-import galleryData from "../data/gallery.json";
 import { Card, List, Select, Typography } from "antd";
 import { useLocation, useHistory } from "react-router-dom";
 
 const { Option } = Select;
 const { Paragraph, Title } = Typography;
 
-const GalleryPage = () => {
+const GalleryPage = (props) => {
   const location = useLocation();
   const history = useHistory();
 
@@ -28,15 +27,23 @@ const GalleryPage = () => {
 
   const TagsView = ({ tags }) => (
     <div className="tags-container">
-      {tags.map((tag, index) => (
-        <span className="tag" key={index}>
+      {tags?.map((tag, index) => (
+
+        <span className="tag" key={index} onClick={(evt) => {
+          if (!selectedTags.includes(tag)) {
+            handleTagChange([...selectedTags, tag])
+          }
+          evt.preventDefault();
+          evt.stopPropagation();
+          return false;
+        }} >
           {tag}
         </span>
       ))}
     </div>
   );
 
-  const allTags = [...new Set(galleryData.flatMap((item) => item.tags))];
+  const allTags = [...new Set(props.items.flatMap((item) => item.tags))];
 
   const handleTagChange = (tags) => {
     setSelectedTags(tags);
@@ -49,11 +56,38 @@ const GalleryPage = () => {
 
   const filteredData =
     selectedTags.length > 0
-      ? galleryData.filter((item) =>
-          selectedTags.some((tag) => item.tags.includes(tag))
-        )
-      : galleryData;
+      ? props.items.filter((item) =>
+        selectedTags.some((tag) => item.tags.includes(tag))
+      )
+      : props.items;
 
+  const defaultImageIfNoImage = props.allowDefaultImage ?? true;
+  console.log(defaultImageIfNoImage)
+  const imageFunc = (item) => {
+    const image =
+      <img
+        alt={item.title}
+        src={
+          item.image
+            ? item.image.includes("http")
+              ? item.image
+              : `/autogen/img/gallery/${item.image}`
+            : `/autogen/img/gallery/default.png`
+        }
+        style={{
+          height: 150,
+          width: "fit-content",
+          margin: "auto",
+          padding: 2,
+        }}
+      />
+      ;
+
+    const imageToUse = item.image ? image : defaultImageIfNoImage ? image : null;
+    return imageToUse;
+  }
+
+  const target = props.target ?? "_blank";
   return (
     <div>
       <Select
@@ -86,7 +120,7 @@ const GalleryPage = () => {
           <List.Item>
             <a
               href={item.link}
-              target="_blank"
+              target={target}
               rel="noopener noreferrer"
               style={{ display: "block" }}
             >
@@ -94,30 +128,13 @@ const GalleryPage = () => {
                 hoverable
                 bordered
                 style={{ height: 370, paddingTop: 15 }}
-                cover={
-                  <img
-                    alt={item.title}
-                    src={
-                      item.image
-                        ? item.image.includes("http")
-                          ? item.image
-                          : `/autogen/img/gallery/${item.image}`
-                        : `/autogen/img/gallery/default.png`
-                    }
-                    style={{
-                      height: 150,
-                      width: "fit-content",
-                      margin: "auto",
-                      padding: 2,
-                    }}
-                  />
-                }
+                cover={imageFunc(item)}
               >
-                <Title level={5} ellipsis={{ rows: 2 }}>
+                <Title level={5} ellipsis={{ rows: 4 }}>
                   {item.title}
                 </Title>
                 <Paragraph
-                  ellipsis={{ rows: 3 }}
+                  ellipsis={{ rows: imageFunc(item) ? 3 : 7 }}
                   style={{
                     fontWeight: "normal",
                     color: "#727272",

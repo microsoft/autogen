@@ -69,10 +69,9 @@ module.exports = {
         //   label: 'Examples',
         // },
         {
-          type: "doc",
-          docId: "Examples",
+          to: "docs/notebooks",
           position: "left",
-          label: "Examples",
+          label: "Notebooks",
         },
         {
           label: "Resources",
