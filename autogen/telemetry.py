@@ -9,6 +9,8 @@ import uuid
 
 from typing import TYPE_CHECKING, Any, Dict, List, Union, Tuple
 
+import pandas as pd
+
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
@@ -317,3 +319,12 @@ def stop_logging():
         this._con.close()
         this._con = None
         this._cur = None
+
+
+def get_log(dbname: str = "telemetry.db", table: str = "chat_completions"):
+    """
+    Return a pandas dataframe of the telemetry database.
+    """
+    con = sqlite3.connect(dbname)
+    query = f"SELECT * FROM {table}"
+    return pd.read_sql_query(query, con)
