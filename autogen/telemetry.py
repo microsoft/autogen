@@ -33,7 +33,7 @@ this._cur = None
 logger = logging.getLogger(__name__)
 
 
-def start_logging(dbname: str = "telemetry.db") -> None:
+def start_logging(dbname: str = "telemetry.db") -> str:
     """
     Open a connection to the telemetry logging database, and start recording.
     """
@@ -330,3 +330,17 @@ def stop_logging():
         this._con.close()
         this._con = None
         this._cur = None
+
+
+def get_log(dbname: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
+    """
+    Return a dict string of the database.
+    """
+    con = sqlite3.connect(dbname)
+    query = f"SELECT * FROM {table}"
+    cursor = con.execute(query)
+    rows = cursor.fetchall()
+    column_names = [description[0] for description in cursor.description]
+    data = [dict(zip(column_names, row)) for row in rows]
+    con.close()
+    return data
