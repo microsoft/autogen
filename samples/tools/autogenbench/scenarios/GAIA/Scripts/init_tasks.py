@@ -62,7 +62,9 @@ def create_jsonl(name, tasks, files_dir, template):
                         "__FILE_NAME__": task["file_name"],
                         "__PROMPT__": task["Question"],
                     },
-                    "expected_answer.txt": {"__EXPECTED_ANSWER__": task["Final answer"]},
+                    "expected_answer.txt": {
+                        "__EXPECTED_ANSWER__": task["Final answer"]
+                    },
                 },
             }
 
@@ -77,7 +79,9 @@ def main():
     gaia_test_files = os.path.join(REPO_DIR, "2023", "test")
 
     if not os.path.isdir(gaia_validation_files) or not os.path.isdir(gaia_test_files):
-        sys.exit(f"Error: '{REPO_DIR}' does not appear to be a copy of the GAIA repository.")
+        sys.exit(
+            f"Error: '{REPO_DIR}' does not appear to be a copy of the GAIA repository."
+        )
 
     # Load the GAIA data
     gaia_validation_tasks = [[], [], []]
@@ -97,10 +101,12 @@ def main():
 
             gaia_test_tasks[data["Level"] - 1].append(data)
 
-    templates = {
-        "two_agents": os.path.join(TEMPLATES_DIR, "BasicTwoAgents"),
-        "soc": os.path.join(TEMPLATES_DIR, "SocietyOfMind"),
-    }
+    # list all directories in the Templates directory
+    # and populate a dictionary with the name and path
+    templates = {}
+    for entry in os.scandir(TEMPLATES_DIR):
+        if entry.is_dir():
+            templates[entry.name] = entry.path
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
     for template in templates.values():
