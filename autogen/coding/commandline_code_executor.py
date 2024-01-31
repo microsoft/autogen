@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 
-from ..agentchat.agent import Agent
+from ..agentchat.agent import LLMAgent
 from ..code_utils import DEFAULT_TIMEOUT, WORKING_DIR, execute_code
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
@@ -42,7 +42,7 @@ When using code, you must indicate the script type in the code block. The user c
 If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
 """
 
-        def add_to_agent(self, agent: Agent) -> None:
+        def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent."""
             # system message is a string or a list of strings
             if isinstance(agent.system_message, str):

@@ -26,7 +26,7 @@ from ..code_utils import (
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
-from .agent import Agent
+from .agent import Agent, LLMAgent
 from .._pydantic import model_dump
 
 try:
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class ConversableAgent(Agent):
+class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
@@ -119,7 +119,7 @@ class ConversableAgent(Agent):
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
-        super().__init__(name)
+        self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
@@ -202,6 +202,11 @@ class ConversableAgent(Agent):
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+
+    @property
+    def name(self) -> str:
+        """Get the name of the agent."""
+        return self._name
 
     @property
     def code_executor(self) -> CodeExecutor:

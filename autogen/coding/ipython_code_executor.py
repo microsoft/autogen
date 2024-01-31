@@ -10,7 +10,7 @@ from jupyter_client import KernelManager  # type: ignore[attr-defined]
 from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
 from pydantic import BaseModel, Field
 
-from ..agentchat.agent import Agent
+from ..agentchat.agent import LLMAgent
 from ..code_utils import DEFAULT_TIMEOUT
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
@@ -54,7 +54,7 @@ Because you have limited conversation memory, if your code creates an image,
 the output will be a path to the image instead of the image itself.
 """
 
-        def add_to_agent(self, agent: Agent) -> None:
+        def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent."""
             # system message is a string or a list of strings
             if isinstance(agent.system_message, str):

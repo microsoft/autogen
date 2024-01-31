@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
 from pydantic import BaseModel
 
-from ..agentchat.agent import Agent
+from ..agentchat.agent import LLMAgent
 
 __all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor")
 
@@ -49,7 +49,7 @@ class CodeExecutor(Protocol):
     class UserCapability(Protocol):
         """An AgentCapability class that gives agent ability use this code executor."""
 
-        def add_to_agent(self, agent: Agent) -> None:
+        def add_to_agent(self, agent: LLMAgent) -> None:
             ...  # pragma: no cover
 
     @property
