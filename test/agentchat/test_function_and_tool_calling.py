@@ -83,7 +83,8 @@ _tool_use_message_1_expected_reply = {
         {"tool_call_id": "1", "role": "tool", "content": "_tool_func_1: value1 value2"},
         {"tool_call_id": "2", "role": "tool", "content": "_tool_func_2: value3 value4"},
     ],
-    "content": "Tool Call Id: 1\n_tool_func_1: value1 value2\n\nTool Call Id: 2\n_tool_func_2: value3 value4",
+    # "content": "Tool Call Id: 1\n_tool_func_1: value1 value2\n\nTool Call Id: 2\n_tool_func_2: value3 value4",
+    "content": "_tool_func_1: value1 value2\n\n_tool_func_2: value3 value4",
 }
 
 
@@ -97,7 +98,7 @@ _tool_use_message_1_bad_json_expected_reply = {
         },
         {"tool_call_id": "2", "role": "tool", "content": "_tool_func_2: value3 value4"},
     ],
-    "content": "Tool Call Id: 1\nError: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.\n\nTool Call Id: 2\n_tool_func_2: value3 value4",
+    "content": "Error: Expecting property name enclosed in double quotes: line 1 column 37 (char 36)\n You argument should follow json format.\n\n_tool_func_2: value3 value4",
 }
 
 _tool_use_message_1_error_expected_reply = {
@@ -110,7 +111,7 @@ _tool_use_message_1_error_expected_reply = {
             "content": "Error: Error in tool function",
         },
     ],
-    "content": "Tool Call Id: 1\n_tool_func_1: value1 value2\n\nTool Call Id: 2\nError: Error in tool function",
+    "content": "_tool_func_1: value1 value2\n\nError: Error in tool function",
 }
 
 _tool_use_message_1_not_found_expected_reply = {
@@ -123,7 +124,7 @@ _tool_use_message_1_not_found_expected_reply = {
             "content": "Error: Function _tool_func_2 not found.",
         },
     ],
-    "content": "Tool Call Id: 1\n_tool_func_1: value1 value2\n\nTool Call Id: 2\nError: Function _tool_func_2 not found.",
+    "content": "_tool_func_1: value1 value2\n\nError: Function _tool_func_2 not found.",
 }
 
 _function_use_message_1 = {
