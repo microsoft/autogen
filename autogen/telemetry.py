@@ -15,7 +15,8 @@ if TYPE_CHECKING:
 try:
     import openai
 except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
+    ERROR = ImportError(
+        "Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
     AzureOpenAI = object
 else:
@@ -31,7 +32,7 @@ this._con = None
 this._cur = None
 
 
-def start_logging(dbname: str = "telemetry.db") -> None:
+def start_logging(dbname: str = "telemetry.db") -> str:
     """
     Open a connection to the telemetry logging database, and start recording.
     """
@@ -204,7 +205,8 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     # We do an upsert since both the superclass and subclass may call this method (in that order)
     query = """
@@ -247,7 +249,8 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     query = """
     INSERT INTO oai_wrappers (wrapper_id, session_id, init_args, timestamp) VALUES (?, ?, ?, ?)
@@ -280,7 +283,8 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     query = """
     INSERT INTO oai_clients (client_id, wrapper_id, session_id, class, init_args, timestamp) VALUES (?, ?, ?, ?, ?, ?)
