@@ -368,7 +368,8 @@ def test_execute_code(use_docker=None):
             work_dir=tempdir,
         )
         assert exit_code, msg
-        assert 'File ""' in msg or 'File ".\\"' in msg  # py3.8 + win32
+        assert "AssertionError" in msg
+        assert 'File "' in msg or 'File ".\\"' in msg  # py3.8 + win32
 
     with tempfile.TemporaryDirectory() as tempdir:
         # execute code which takes a long time
