@@ -5,7 +5,7 @@ const envFile = `.env.${process.env.NODE_ENV}`;
 
 fs.access(envFile, fs.constants.F_OK, (err) => {
   if (err) {
-      throw(`File '${envFile}' is missing`);
+      console.warn(`File '${envFile}' is missing. Using default values.`);
   }
 });
 
