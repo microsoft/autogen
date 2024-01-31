@@ -1,6 +1,7 @@
 from typing import Callable, Dict, Literal, Optional, Union
 
 from .conversable_agent import ConversableAgent
+from ..telemetry import log_new_agent
 
 
 class AssistantAgent(ConversableAgent):
@@ -69,6 +70,7 @@ Reply "TERMINATE" in the end when everything is done.
             description=description,
             **kwargs,
         )
+        log_new_agent(self, locals())
 
         # Update the provided description if None, and we are using the default system_message,
         # then use the default description.

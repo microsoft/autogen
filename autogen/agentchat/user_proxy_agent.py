@@ -1,6 +1,7 @@
 from typing import Callable, Dict, List, Literal, Optional, Union
 
 from .conversable_agent import ConversableAgent
+from ..telemetry import log_new_agent
 
 
 class UserProxyAgent(ConversableAgent):
@@ -93,3 +94,4 @@ class UserProxyAgent(ConversableAgent):
             if description is not None
             else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
         )
+        log_new_agent(self, locals())

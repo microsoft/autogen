@@ -5,6 +5,7 @@ import sys
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
 import inspect
+import uuid
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
@@ -15,6 +16,8 @@ from autogen.oai import completion
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 from autogen._pydantic import model_dump
+
+import autogen.telemetry
 
 TOOL_ENABLED = False
 try:
@@ -104,6 +107,7 @@ class OpenAIWrapper:
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
+        autogen.telemetry.log_new_wrapper(self, locals())
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
@@ -119,6 +123,7 @@ class OpenAIWrapper:
         else:
             self._clients = [self._client(extra_kwargs, openai_config)]
             self._config_list = [extra_kwargs]
+        self.wrapper_id = id(self)
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -149,8 +154,10 @@ class OpenAIWrapper:
                 openai_config["azure_deployment"] = openai_config["azure_deployment"].replace(".", "")
             openai_config["azure_endpoint"] = openai_config.get("azure_endpoint", openai_config.pop("base_url", None))
             client = AzureOpenAI(**openai_config)
+            autogen.telemetry.log_new_client(client, self, openai_config)
         else:
             client = OpenAI(**openai_config)
+            autogen.telemetry.log_new_client(client, self, openai_config)
         return client
 
     @classmethod
@@ -232,6 +239,7 @@ class OpenAIWrapper:
         """
         if ERROR:
             raise ERROR
+        invocation_id = str(uuid.uuid4())
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
             # merge the input config with the i-th config in the config list
@@ -261,6 +269,7 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
+                    request_ts = autogen.telemetry.get_current_ts()
                     response: ChatCompletion = cache.get(key, None)
 
                     if response is not None:
@@ -271,6 +280,19 @@ class OpenAIWrapper:
                             response.cost = self.cost(response)
                             cache.set(key, response)
                         self._update_usage_summary(response, use_cache=True)
+
+                        # Log the cache hit
+                        autogen.telemetry.log_chat_completion(
+                            invocation_id=invocation_id,
+                            client_id=id(client),
+                            wrapper_id=id(self),
+                            request=params,
+                            response=response,
+                            is_cached=1,
+                            cost=response.cost,
+                            start_time=request_ts,
+                        )
+
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
@@ -280,9 +302,21 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                request_ts = autogen.telemetry.get_current_ts()
                 response = self._completions_create(client, params)
             except APIError as err:
                 error_code = getattr(err, "code", None)
+                autogen.telemetry.log_chat_completion(
+                    invocation_id=invocation_id,
+                    client_id=id(client),
+                    wrapper_id=id(self),
+                    request=params,
+                    response=f"error_code:{error_code}, config {i} failed",
+                    is_cached=0,
+                    cost=0,
+                    start_time=request_ts,
+                )
+
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
@@ -297,6 +331,18 @@ class OpenAIWrapper:
                     # Cache the response
                     with cache_client as cache:
                         cache.set(key, response)
+
+                # Log the telemetry
+                autogen.telemetry.log_chat_completion(
+                    invocation_id=invocation_id,
+                    client_id=id(client),
+                    wrapper_id=id(self),
+                    request=params,
+                    response=response,
+                    is_cached=0,
+                    cost=response.cost,
+                    start_time=request_ts,
+                )
 
                 # check the filter
                 pass_filter = filter_func is None or filter_func(context=context, response=response)
@@ -492,7 +538,6 @@ class OpenAIWrapper:
                             response_contents[choice.index] += content
                             completion_tokens += 1
                         else:
-                            # print()
                             pass
 
             # Reset the terminal text color
@@ -684,6 +729,3 @@ class OpenAIWrapper:
                 choice.message if choice.message.function_call is not None else choice.message.content  # type: ignore [union-attr]
                 for choice in choices
             ]
-
-
-# TODO: logging

@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Union, Tuple
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+from ..telemetry import log_new_agent
 
 logger = logging.getLogger(__name__)
 
@@ -323,6 +324,7 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
 
