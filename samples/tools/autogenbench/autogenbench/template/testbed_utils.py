@@ -6,6 +6,15 @@ import json
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
+# Try importing the telemetry module (only available in some branches)
+TELEMETRY_ENABLED = False
+try:
+    import autogen.telemetry
+
+    TELEMETRY_ENABLED = True
+except ImportError:
+    pass
+
 
 def default_llm_config(config_list, timeout=180):
     """Return a default config list with a given timeout, and with caching disabled.
@@ -57,6 +66,10 @@ def init():
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
         autogen.Completion.start_logging(compact=False)
 
+    # Start telemetry
+    if TELEMETRY_ENABLED:
+        autogen.telemetry.start_logging()
+
 
 def finalize(agents):
     """Helper function to finalize logging in a testbed scenario.
@@ -89,3 +102,7 @@ def finalize(agents):
         with open(os.path.join(script_dir, "completion_log.json"), "wt") as fh:
             fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
         autogen.Completion.stop_logging()
+
+    # Start telemetry
+    if TELEMETRY_ENABLED:
+        autogen.telemetry.stop_logging()
