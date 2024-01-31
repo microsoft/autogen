@@ -312,16 +312,11 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
-@pytest.mark.skipif(not is_docker_running() and not in_docker_container(), reason="docker is not running")
-def test_execute_code(use_docker=None):
-    try:
-        import docker
-    except ImportError as exc:
-        print(exc)
-        docker = None
-    if use_docker is None:
-        use_docker = docker is not None
-
+@pytest.mark.skipif(
+    not is_docker_running() or in_docker_container(),
+    reason="docker is not running or in docker container already",
+)
+def test_execute_code(use_docker=True):
     # Test execute code and save the code to a file.
     with tempfile.TemporaryDirectory() as tempdir:
         filename = "temp_file_with_code.py"
@@ -380,7 +375,8 @@ def test_execute_code(use_docker=None):
             work_dir=tempdir,
         )
         assert exit_code and error == "Timeout"
-        assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
+        if use_docker is True:
+            assert isinstance(image, str)
 
 
 @pytest.mark.skipif(
@@ -422,11 +418,11 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
         execute_code(code=None, filename=None)
 
 
-def test_execute_code_nodocker():
+def test_execute_code_no_docker():
     test_execute_code(use_docker=False)
 
 
-def test_execute_code_no_docker():
+def test_execute_code_timeout_no_docker():
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
     assert exit_code and error == "Timeout"
     assert image is None
