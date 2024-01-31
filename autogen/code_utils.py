@@ -8,7 +8,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
 
@@ -40,7 +40,7 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List, None]) -> str:
+def content_str(content: Union[str, List[Dict[str, Any]], None]) -> str:
     """Converts `content` into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
@@ -81,7 +81,7 @@ def content_str(content: Union[str, List, None]) -> str:
     return rst
 
 
-def infer_lang(code):
+def infer_lang(code: str) -> str:
     """infer the language for the code.
     TODO: make it robust.
     """
@@ -226,7 +226,7 @@ def _cmd(lang):
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
-def is_docker_running():
+def is_docker_running() -> bool:
     """Check if docker is running.
 
     Returns:
@@ -242,7 +242,7 @@ def is_docker_running():
         return False
 
 
-def in_docker_container():
+def in_docker_container() -> bool:
     """Check if the code is running in a docker container.
 
     Returns:
@@ -318,9 +318,9 @@ def execute_code(
     timeout: Optional[int] = None,
     filename: Optional[str] = None,
     work_dir: Optional[str] = None,
-    use_docker: Union[List[str], str, bool] = SENTINEL,
+    use_docker: Union[List[str], str, bool, None] = None,
     lang: Optional[str] = "python",
-) -> Tuple[int, str, str]:
+) -> Tuple[int, str, Optional[str]]:
     """Execute code in a docker container.
     This function is not tested on MacOS.
 
@@ -365,7 +365,7 @@ def execute_code(
     docker_running = is_docker_running()
 
     # SENTINEL is used to indicate that the user did not explicitly set the argument
-    if use_docker is SENTINEL:
+    if use_docker is None:
         use_docker = decide_use_docker(use_docker=None)
     check_can_use_docker_or_throw(use_docker)
 

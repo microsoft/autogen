@@ -8,9 +8,8 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
-from autogen.coding.base import CodeExecutor
-
-from autogen.coding.factory import CodeExecutorFactory
+from ..coding.base import CodeExecutor
+from ..coding.factory import CodeExecutorFactory
 
 from .. import OpenAIWrapper
 from ..cache.cache import Cache
@@ -27,7 +26,7 @@ from ..code_utils import (
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
-from .agent import Agent
+from .agent import Agent, LLMAgent
 from .._pydantic import model_dump
 
 try:
@@ -45,7 +44,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class ConversableAgent(Agent):
+class ConversableAgent:  # implements LLAgent protocol
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
@@ -120,7 +119,7 @@ class ConversableAgent(Agent):
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
-        super().__init__(name)
+        self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
@@ -205,6 +204,11 @@ class ConversableAgent(Agent):
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
 
     @property
+    def name(self) -> str:
+        """Get the name of the agent."""
+        return self._name
+
+    @property
     def code_executor(self) -> CodeExecutor:
         """The code executor used by this agent. Raise if code execution is disabled."""
         if not hasattr(self, "_code_executor"):
@@ -286,15 +290,15 @@ class ConversableAgent(Agent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @property
-    def system_message(self) -> Union[str, List]:
+    def system_message(self) -> str:
         """Return the system message."""
         return self._oai_system_message[0]["content"]
 
-    def update_system_message(self, system_message: Union[str, List]):
+    def update_system_message(self, system_message: str) -> None:
         """Update the system message.
 
         Args:
-            system_message (str or List): system message for the ChatCompletion inference.
+            system_message (str): system message for the ChatCompletion inference.
         """
         self._oai_system_message[0]["content"] = system_message
 
@@ -1326,9 +1330,10 @@ class ConversableAgent(Agent):
 
     def generate_reply(
         self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        exclude: Optional[List[Callable[..., Any]]] = None,
+        **kwargs: Any,
     ) -> Union[str, Dict, None]:
         """Reply based on the conversation history and the sender.
 
@@ -1382,10 +1387,11 @@ class ConversableAgent(Agent):
 
     async def a_generate_reply(
         self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
-    ) -> Union[str, Dict, None]:
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        exclude: Optional[List[Callable[..., Any]]] = None,
+        **kwargs: Any,
+    ) -> Union[str, Dict[str, Any], None]:
         """(async) Reply based on the conversation history and the sender.
 
         Either messages or sender must be provided.

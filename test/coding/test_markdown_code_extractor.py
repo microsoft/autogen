@@ -1,4 +1,4 @@
-from autogen.coding.markdown_code_extractor import MarkdownCodeExtractor
+from autogen.coding import MarkdownCodeExtractor
 
 _message_1 = """
 Example:
@@ -90,7 +90,7 @@ Test some message that has no code block.
 """
 
 
-def test_extract_code():
+def test_extract_code() -> None:
     extractor = MarkdownCodeExtractor()
 
     code_blocks = extractor.extract_code_blocks(_message_1)

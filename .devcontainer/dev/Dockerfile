@@ -4,7 +4,7 @@ FROM python:3.11-slim-bookworm
 # Update and install necessary packages
 RUN apt-get update && apt-get -y update
 # added vim and nano for convenience
-RUN apt-get install -y sudo git npm vim nano curl
+RUN apt-get install -y sudo git npm vim nano curl wget
 
 # Setup a non-root user 'autogen' with sudo access
 RUN adduser --disabled-password --gecos '' autogen
@@ -31,6 +31,14 @@ RUN sudo npm install --global yarn
 RUN sudo pip install pydoc-markdown
 RUN cd website
 RUN yarn install --frozen-lockfile --ignore-engines
+
+RUN arch=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) && \
+    wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.4.549/quarto-1.4.549-linux-${arch}.tar.gz && \
+    mkdir -p /home/autogen/quarto/ && \
+    tar -xzf quarto-1.4.549-linux-${arch}.tar.gz --directory /home/autogen/quarto/ && \
+    rm quarto-1.4.549-linux-${arch}.tar.gz
+
+ENV PATH="${PATH}:/home/autogen/quarto/quarto-1.4.549/bin/"
 
 # Exposes the Yarn port for Docusaurus
 EXPOSE 3000
