@@ -68,6 +68,12 @@ module.exports = {
         //   to: 'examples',
         //   label: 'Examples',
         // },
+        {
+          type: "doc",
+          docId: "Examples",
+          position: "left",
+          label: "Examples",
+        },
         // Uncomment below to add Notebooks to the navbar
         // {
         //   to: "docs/notebooks",
