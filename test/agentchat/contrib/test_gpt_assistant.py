@@ -397,6 +397,7 @@ def test_assistant_mismatch_retrieval():
     candidates = retrieve_assistants_by_name(openai_client, name)
     assert len(candidates) == 0
 
+
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
@@ -414,67 +415,73 @@ def test_gpt_assistant_tools_overwrite():
     """
 
     name = "For test_gpt_assistant_tools_overwrite"
-    original_tools = [{
-        "type": "function",
-        "function": {
-        "name": "calculateTax",
-        "description": "Calculate tax for a given amount",
-        "parameters": {
-            "type": "object",
-            "properties": {
-            "amount": {"type": "number", "description": "The amount to calculate tax on"},
-            "tax_rate": {"type": "number", "description": "The tax rate to apply"}
+    original_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateTax",
+                "description": "Calculate tax for a given amount",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to calculate tax on"},
+                        "tax_rate": {"type": "number", "description": "The tax rate to apply"},
+                    },
+                    "required": ["amount", "tax_rate"],
+                },
             },
-            "required": ["amount", "tax_rate"]
-        }
-        }
-    }, {
-        "type": "function",
-        "function": {
-        "name": "convertCurrency",
-        "description": "Convert currency from one type to another",
-        "parameters": {
-            "type": "object",
-            "properties": {
-            "amount": {"type": "number", "description": "The amount to convert"},
-            "from_currency": {"type": "string", "description": "Currency type to convert from"},
-            "to_currency": {"type": "string", "description": "Currency type to convert to"}
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "convertCurrency",
+                "description": "Convert currency from one type to another",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to convert"},
+                        "from_currency": {"type": "string", "description": "Currency type to convert from"},
+                        "to_currency": {"type": "string", "description": "Currency type to convert to"},
+                    },
+                    "required": ["amount", "from_currency", "to_currency"],
+                },
             },
-            "required": ["amount", "from_currency", "to_currency"]
-        }
-        } 
-    }]
-    
-    new_tools = [{
-        "type": "function",
-        "function": {
-        "name": "findRestaurant",
-        "description": "Find a restaurant based on cuisine type and location",
-        "parameters": {
-            "type": "object",
-            "properties": {
-            "cuisine": {"type": "string", "description": "Type of cuisine"},
-            "location": {"type": "string", "description": "City or area for the restaurant search"}
+        },
+    ]
+
+    new_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "findRestaurant",
+                "description": "Find a restaurant based on cuisine type and location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cuisine": {"type": "string", "description": "Type of cuisine"},
+                        "location": {"type": "string", "description": "City or area for the restaurant search"},
+                    },
+                    "required": ["cuisine", "location"],
+                },
             },
-            "required": ["cuisine", "location"]
-        }
-        }
-    }, {
-        "type": "function",
-        "function": {
-        "name": "calculateMortgage",
-        "description": "Calculate monthly mortgage payments",
-        "parameters": {
-            "type": "object",
-            "properties": {
-            "principal": {"type": "number", "description": "The principal loan amount"},
-            "interest_rate": {"type": "number", "description": "Annual interest rate"},
-            "years": {"type": "integer", "description": "Number of years for the loan"}
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateMortgage",
+                "description": "Calculate monthly mortgage payments",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "principal": {"type": "number", "description": "The principal loan amount"},
+                        "interest_rate": {"type": "number", "description": "Annual interest rate"},
+                        "years": {"type": "integer", "description": "Number of years for the loan"},
+                    },
+                    "required": ["principal", "interest_rate", "years"],
+                },
             },
-            "required": ["principal", "interest_rate", "years"]
-        }
-        } 
-    }]
+        },
+    ]
 
     # Create an assistant with original tools
     assistant = GPTAssistantAgent(
@@ -499,7 +506,7 @@ def test_gpt_assistant_tools_overwrite():
     )
 
     # Add logic to retrieve the tools from the assistant and assert
-    retrieved_tools = assistant.llm_config.get('tools', [])
+    retrieved_tools = assistant.llm_config.get("tools", [])
     assistant.delete_assistant()
 
     assert retrieved_tools == new_tools

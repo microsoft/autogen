@@ -109,13 +109,13 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.warning(
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
-            
+
             # Check if tools are specified in llm_config
             specified_tools = llm_config.get("tools", None)
 
             if specified_tools is None:
                 # Check if the current assistant has tools defined
-                if self._openai_assistant.get('tools'):
+                if self._openai_assistant.get("tools"):
                     logger.warning(
                         "No tools were provided for given assistant. Using existing tools from assistant API."
                     )
@@ -134,9 +134,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
             else:
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
-                logger.warning(
-                    "overwrite_tools is False. Using existing tools from assistant API."
-                )
+                logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
         self._verbose = kwargs.pop("verbose", False)
         super().__init__(
