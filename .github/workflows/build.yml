@@ -19,8 +19,9 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-permissions: {}
-    # actions: read
+permissions:
+  {}
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read
@@ -44,12 +45,12 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-      - name: Set AUTOGEN_USE_DOCKER based on OS
-        shell: bash
-        run: |
-          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
-            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
-          fi
+      #   - name: Set AUTOGEN_USE_DOCKER based on OS
+      #     shell: bash
+      #     run: |
+      #       if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+      #         echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+      #       fi
       - name: Test with pytest
         if: matrix.python-version != '3.10'
         run: |

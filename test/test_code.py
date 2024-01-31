@@ -1,6 +1,4 @@
-import importlib.metadata
 import os
-import sys
 import tempfile
 import unittest
 
@@ -24,21 +22,6 @@ from autogen.code_utils import (
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
-
-
-def is_package_installed(package_name):
-    """Check if a package is installed. This is a preferred way to check if a
-    package is installed or not than doing a try-catch around an import
-    because it avoids name conflict with local modules and
-    code execution in the imported module."""
-    try:
-        importlib.metadata.version(package_name)
-        return True
-    except importlib.metadata.PackageNotFoundError:
-        return False
-
-
-docker_package_installed = is_package_installed("docker")
 
 
 # def test_find_code():

@@ -12,10 +12,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
 
-try:
-    import docker
-except ImportError:
-    docker = None
+import docker
 
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
@@ -232,8 +229,6 @@ def is_docker_running():
     Returns:
         bool: True if docker is running; False otherwise.
     """
-    if docker is None:
-        return False
     try:
         client = docker.from_env()
         client.ping()
