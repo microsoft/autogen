@@ -6,6 +6,7 @@
         "Templates/TwoAgents/prompt.txt": "Templates/TwoAgents/prompt.txt",
         "Templates/TwoAgents/expected_answer.txt": "Templates/TwoAgents/expected_answer.txt",
         "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
-        "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh"
+        "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh",
+        "Templates/TwoAgents/requirements.txt": "Templates/TwoAgents/requirements.txt"
     }
 }

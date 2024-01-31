@@ -8,6 +8,7 @@
         "Templates/TwoAgents/should_not_contain.json.txt": "Templates/TwoAgents/should_not_contain.json.txt",
         "Templates/TwoAgents/scenario.py": "Templates/TwoAgents/scenario.py",
         "Templates/TwoAgents/scenario_init.sh": "Templates/TwoAgents/scenario_init.sh",
+        "Templates/TwoAgents/requirements.txt": "Templates/TwoAgents/requirements.txt",
         "Challenges/1_sort_csv/data.json": "Challenges/1_sort_csv/data.json",
         "Challenges/1_sort_csv/artifacts_in/input.csv": "Challenges/1_sort_csv/artifacts_in/input.csv",
         "Challenges/2_combine_csv/data.json": "Challenges/2_combine_csv/data.json",
