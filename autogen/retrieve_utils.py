@@ -94,7 +94,11 @@ def split_text_to_chunks(
                 f"max_tokens is too small to fit a single line of text. Breaking this line:\n\t{lines[0][:100]} ..."
             )
             if not must_break_at_empty_line:
-                split_len = int(max_tokens / lines_tokens[0] * 0.9 * len(lines[0]))
+                denominator = lines_tokens[0] * 0.9 * len(lines[0])
+                if denominator == 0:
+                    split_len = 0
+                else:
+                    split_len = int(max_tokens / denominator)
                 prev = lines[0][:split_len]
                 lines[0] = lines[0][split_len:]
                 lines_tokens[0] = count_token(lines[0])
@@ -219,13 +223,23 @@ def get_file_from_url(url: str, save_path: str = None):
         save_path = os.path.join("/tmp/chromadb", os.path.basename(url))
     else:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with requests.get(url, stream=True) as r:
-        r.raise_for_status()
-        with open(save_path, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-    return save_path
+    # Check if save_path is a directory
+    if os.path.isdir(save_path):
+        raise ValueError(f"Expected a file path, but got a directory: {save_path}")
 
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(save_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    except requests.exceptions.HTTPError as err:
+        if err.response.status_code == 404:
+            print(f"Skipping URL due to 404 error: {url}")
+            return None
+        else:
+            raise
+    return save_path
 
 def is_url(string: str):
     """Return True if the string is a valid URL."""
