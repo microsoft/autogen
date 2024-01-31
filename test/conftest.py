@@ -2,6 +2,7 @@ import pytest
 
 skip_openai = False
 skip_redis = False
+skip_docker = False
 
 
 # Registers command-line option '--skip-openai' and '--skip-redis' via pytest hook.
@@ -9,6 +10,7 @@ skip_redis = False
 def pytest_addoption(parser):
     parser.addoption("--skip-openai", action="store_true", help="Skip all tests that require openai")
     parser.addoption("--skip-redis", action="store_true", help="Skip all tests that require redis")
+    parser.addoption("--skip-docker", action="store_true", help="Skip all tests that require docker")
 
 
 # pytest hook implementation extracting the '--skip-openai' and '--skip-redis' command line arg and exposing it globally
@@ -18,3 +20,5 @@ def pytest_configure(config):
     skip_openai = config.getoption("--skip-openai", False)
     global skip_redis
     skip_redis = config.getoption("--skip-redis", False)
+    global skip_docker
+    skip_docker = config.getoption("--skip-docker", False)

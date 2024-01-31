@@ -18,6 +18,7 @@ from autogen.code_utils import (
     decide_use_docker,
     check_can_use_docker_or_throw,
 )
+from .conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -296,8 +297,8 @@ def scrape(url):
 
 
 @pytest.mark.skipif(
-    not is_docker_running() or in_docker_container(),
-    reason="docker is not running or in docker container already",
+    skip_docker or not is_docker_running() or in_docker_container(),
+    reason="docker is not running or in docker container already or requested to skip docker tests",
 )
 def test_execute_code(use_docker=True):
     # Test execute code and save the code to a file.
@@ -363,8 +364,8 @@ def test_execute_code(use_docker=True):
 
 
 @pytest.mark.skipif(
-    not is_docker_running() or in_docker_container(),
-    reason="docker is not running or in docker container already",
+    skip_docker or not is_docker_running() or in_docker_container(),
+    reason="docker is not running or in docker container already or requested to skip docker tests",
 )
 def test_execute_code_with_custom_filename_on_docker():
     with tempfile.TemporaryDirectory() as tempdir:
@@ -380,8 +381,8 @@ def test_execute_code_with_custom_filename_on_docker():
 
 
 @pytest.mark.skipif(
-    not is_docker_running() or in_docker_container(),
-    reason="docker is not running or in docker container already",
+    skip_docker or not is_docker_running() or in_docker_container(),
+    reason="docker is not running or in docker container already or requested to skip docker tests",
 )
 def test_execute_code_with_misformed_filename_on_docker():
     with tempfile.TemporaryDirectory() as tempdir:
