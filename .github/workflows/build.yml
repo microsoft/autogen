@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
@@ -45,15 +45,14 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-      - name: Test with pytest
-        if: matrix.python-version != '3.10'
+      - name: Test with pytest skip openai tests
+        if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
-          if [[ ${{ matrix.os }} == ubuntu-latest ]]; then
-            pytest test --skip-openai
-          else
-            # Skip tests that require docker if not on ubuntu.
-            pytest test --skip-openai --skip-docker
-          fi
+          pytest test --skip-openai
+      - name: Test with pytest skip openai and docker tests
+        if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
+        run: |
+          pytest test --skip-openai --skip-docker
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
