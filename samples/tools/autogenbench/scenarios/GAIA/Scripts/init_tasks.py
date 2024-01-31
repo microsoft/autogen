@@ -6,6 +6,7 @@
 import json
 import os
 import sys
+import re
 from huggingface_hub import snapshot_download
 
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -106,7 +107,7 @@ def main():
     templates = {}
     for entry in os.scandir(TEMPLATES_DIR):
         if entry.is_dir():
-            templates[entry.name] = entry.path
+            templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     # Add coding directories if needed (these are usually empty and left out of the repo)
     for template in templates.values():
