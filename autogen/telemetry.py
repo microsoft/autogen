@@ -9,15 +9,14 @@ import uuid
 
 from typing import TYPE_CHECKING, Any, Dict, List, Union, Tuple
 
-import pandas as pd
-
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
 try:
     import openai
 except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
+    ERROR = ImportError(
+        "Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
     OpenAI = object
     AzureOpenAI = object
 else:
@@ -206,7 +205,8 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     # We do an upsert since both the superclass and subclass may call this method (in that order)
     query = """
@@ -249,7 +249,8 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     query = """
     INSERT INTO oai_wrappers (wrapper_id, session_id, init_args, timestamp) VALUES (?, ?, ?, ?)
@@ -282,7 +283,8 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=[
+                    "self", "__class__", "api_key", "organization"])
 
     query = """
     INSERT INTO oai_clients (client_id, wrapper_id, session_id, class, init_args, timestamp) VALUES (?, ?, ?, ?, ?, ?)
@@ -317,10 +319,15 @@ def stop_logging():
         this._cur = None
 
 
-def get_log(dbname: str = "telemetry.db", table: str = "chat_completions"):
+def get_log(dbname: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
     """
-    Return a pandas dataframe of the telemetry database.
+    Return a dict string of the database.
     """
     con = sqlite3.connect(dbname)
     query = f"SELECT * FROM {table}"
-    return pd.read_sql_query(query, con)
+    cursor = con.execute(query)
+    rows = cursor.fetchall()
+    column_names = [description[0] for description in cursor.description]
+    data = [dict(zip(column_names, row)) for row in rows]
+    con.close()
+    return data
