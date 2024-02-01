@@ -850,7 +850,10 @@ class ConversableAgent(Agent):
         takeaway = []
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
-            chat_info["carryover"] = list(self._finished_chats.values())
+            _chat_carryover = chat_info.get("carryover", [])
+            if isinstance(_chat_carryover, str):
+                _chat_carryover = [_chat_carryover]
+            chat_info["carryover"] = _chat_carryover + list(self._finished_chats.values())
             if "message" not in chat_info:
                 warnings.warn(
                     "message is not provided in chat_info. input() will be called to get the initial message.",
