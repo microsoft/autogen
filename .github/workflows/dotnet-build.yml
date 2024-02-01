@@ -42,7 +42,7 @@ jobs:
     - name: Pack
       run: |
         echo "Create nightly build package"
-        dotnet pack --no-build --configuration Release --output './output/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) -bl
+        dotnet pack --no-build --configuration Release --output './output/nightly' -p:VersionSuffix=nightly-${{github.BuildNumber}} -bl
 
         echo "Create release build package"
         dotnet pack --no-build --configuration Release --output './output/release' -bl
