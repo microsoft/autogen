@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    name: CI
+    name: Build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,12 +53,12 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: nightly
-        path: ./output/nightly
+        path: ./dotnet/output/nightly
     - name: Upload package
       uses: actions/upload-artifact@v2
       with:
         name: release
-        path: ./output/release
+        path: ./dotnet/output/release
   publish:
     environment: dotnet-internal-feed
     name: Publish
@@ -75,11 +75,11 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: nightly
-        path: ./output/nightly
+        path: ./dotnet/output/nightly
     - uses: actions/download-artifact@v2
       with:
         name: release
-        path: ./output/release
+        path: ./dotnet/output/release
     - name: Publish nightly package to Azure Devops
       run: |
         echo "Publish nightly package to Azure Devops"
