@@ -686,15 +686,16 @@ class ConversableAgent(Agent):
             **context: any context information.
                 "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
-                "takeaway_method" can be used to specify the method to extract the takeaway from the chat.
-                    Supported methods are "last_msg" and "llm".
+                "takeaway_method": a string specify the method to extract the takeaway from the chat.
+                    Supported methods are "last_msg" and "reflection_with_llm".
                     when set "last_msg", it returns the last message of the dialog as the takeaway.
-                    when set "llm", it returns the takeaway extracted using an llm client.
+                    when set "reflection_with_llm", it returns the takeaway extracted using an llm client.
                     "llm" requires the llm_config to be set in either the sender or the recipient.
-                "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "llm".
+                "takeaway_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
+                    on the conversation and extract the key takeaway when takeaway_method is "reflection_with_llm".
                     Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
                     "Identify and extract the final solution to the originally asked question based on the conversation."
-                "carryover" can be used to specify the carryover information to be passed to this chat.
+                "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
                     message in `generate_init_message`. Please override the `generate_init_message` if you want to customize
                     how to use the carryover information shall be used.
@@ -761,13 +762,14 @@ class ConversableAgent(Agent):
                 takeaway = takeaway.replace("TERMINATE", "")
             except (IndexError, AttributeError):
                 warnings.warn("Cannot extract takeaway from last message.", UserWarning)
-        elif method == "llm":
+        elif method == "reflection_with_llm":
             prompt = (
-                "Identify and extract the final solution to the originally asked question based on the conversation."
+                "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
                 if prompt is None
                 else prompt
             )
             msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
+
             takeaway = self._llm_response_preparer(prompt, msg_list, target_agent)
         else:
             warnings.warn("No takeaway_method provided or takeaway_method is not supported: ")
@@ -873,6 +875,7 @@ class ConversableAgent(Agent):
             )
             print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
             takeaway = self.initiate_chat(**chat_info)
+
             self._finished_chats[current_agent] = takeaway
 
     def reset(self):
@@ -1768,8 +1771,21 @@ class ConversableAgent(Agent):
         If not overridden, "message" needs to be provided in the context.
 
         Args:
-            **context: any context information, and "message" parameter needs to be provided.
-                       If message is not given, prompt for it via input()
+            **context: any context information. It has the following preserved fields.
+                "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
+                "takeaway_method": a string specify the method to extract the takeaway from the chat.
+                    Supported methods are "last_msg" and "reflection_with_llm".
+                    when set "last_msg", it returns the last message of the dialog as the takeaway.
+                    when set "reflection_with_llm", it returns the takeaway extracted using an llm client.
+                    "llm" requires the llm_config to be set in either the sender or the recipient.
+                "takeaway_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
+                    on the conversation and extract the key takeaway when takeaway_method is "reflection_with_llm".
+                    Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                    "Identify and extract the final solution to the originally asked question based on the conversation."
+                "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
+                    If provided, we will combine this carryover with the "message" content when generating the initial chat
+                    message in `generate_init_message`. Please override the `generate_init_message` if you want to customize
+                    how to use the carryover information shall be used.
         """
         if "message" not in context:
             context["message"] = self.get_human_input(">")
