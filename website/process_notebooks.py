@@ -98,7 +98,7 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     except yaml.YAMLError as e:
         return colored(f"Failed to parse front matter in {notebook.name}: {e}", "red")
 
-    # Should not be none at this point as we have already done the smae checks as in extract_yaml_from_notebook
+    # Should not be none at this point as we have already done the same checks as in extract_yaml_from_notebook
     assert front_matter is not None, f"Front matter is None for {notebook.name}"
 
     if "skip" in front_matter and front_matter["skip"] is True:
@@ -145,7 +145,7 @@ def process_notebook(src_notebook: Path, dest_dir: Path, quarto_bin: str, dry_ru
     # Check if another file has to be copied too
     # Solely added for the purpose of agent_library_example.json
     front_matter = extract_yaml_from_notebook(src_notebook)
-    # Should not be none at this point as we have already done the smae checks as in extract_yaml_from_notebook
+    # Should not be none at this point as we have already done the same checks as in extract_yaml_from_notebook
     assert front_matter is not None, f"Front matter is None for {src_notebook.name}"
     if "extra_files_to_copy" in front_matter:
         for file in front_matter["extra_files_to_copy"]:
@@ -177,7 +177,7 @@ def post_process_mdx(rendered_mdx: Path) -> None:
     with open(rendered_mdx, "r") as f:
         content = f.read()
 
-    # Check for existance of "export const quartoRawHtml", this indicates there was a front matter line in the file
+    # Check for existence of "export const quartoRawHtml", this indicates there was a front matter line in the file
     if "export const quartoRawHtml" not in content:
         raise ValueError(f"File {rendered_mdx} does not contain 'export const quartoRawHtml'")
 
