@@ -38,7 +38,7 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
-      run: dotnet test --no-build -bl
+      run: dotnet test --no-build -bl --configuration Release
     - name: Pack
       run: |
         echo "Create nightly build package"
