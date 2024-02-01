@@ -147,7 +147,7 @@ const GalleryPage = (props) => {
                   {item.title}
                 </Title>
                 {badges(item)}
-                
+
                 <Paragraph
                   ellipsis={{ rows: imageFunc(item) ? 3 : 6 }}
                   style={{

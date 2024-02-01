@@ -12,7 +12,7 @@ function findAllNotebooks() {
             description: notebook.frontMatter.description,
             image: notebook.frontMatter.image,
             tags: notebook.frontMatter.tags,
-            source: notebook.frontMatter.source_notebook            
+            source: notebook.frontMatter.source_notebook
         });
     });
     console.log(notebooks);
