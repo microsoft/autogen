@@ -177,7 +177,6 @@ Problem:
         self.logs = {}
         self._prepare_chat(recipient, True)
 
-        chat_history = []
         error_message = None
 
         try:
@@ -188,6 +187,7 @@ Problem:
             self.logs["is_correct"] = 0
             print("error information: {}".format(error_message))
 
+        chat_history = []
         key = list(self.chat_messages.keys())[0]
         chat_messages = self.chat_messages[key]
         for item in chat_messages:

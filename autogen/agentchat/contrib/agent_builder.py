@@ -34,10 +34,11 @@ class AgentBuilder:
     online_server_name = "online"
 
     DEFAULT_PROXY_DESCRIPTION = """A user console with a code interpreter interface.
-It can provide the code execution results. Select this player when other players provide some code that needs to be executed.
-DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."""
+It can provide the code execution results. Select this player when other players provide some code that needs to be executed."""
 
     DEFAULT_PROXY_SYS_MESSAGE = "User console with a python code interpreter interface."
+
+    DEFAULT_PROXY_AUTO_REPLY = "There is no code for me to execute. Let other participants to continue the conversation."
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
 or coding may help the following task become easier?
@@ -690,6 +691,7 @@ Hint:
                         description=self.DEFAULT_PROXY_DESCRIPTION,
                         code_execution_config=code_execution_config,
                         human_input_mode="NEVER",
+                        default_auto_reply=self.DEFAULT_PROXY_AUTO_REPLY,
                     )
             agent_list = [user_proxy] + agent_list
 
