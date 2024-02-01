@@ -27,7 +27,7 @@
 
 :fire: Nov 1: AutoGen is the top trending repo on GitHub in October 2023.
 
-:tada: Oct 03: AutoGen spins off from FLAML on Github and has a major paper update (first version on Aug 16).
+:tada: Oct 03: AutoGen spins off from FLAML on GitHub and has a major paper update (first version on Aug 16).
 
 <!-- :tada: Aug 16: Paper about AutoGen on [arxiv](https://arxiv.org/abs/2308.08155). -->
 
