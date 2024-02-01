@@ -61,6 +61,9 @@ class ConversableAgent(Agent):
 
     llm_config: Union[Dict, Literal[False]]
 
+    CONTINUE: Literal["CONTINUE"] = "CONTINUE"
+    TERMINATE: Literal["TERMINATE"] = "TERMINATE"
+
     def __init__(
         self,
         name: str,
@@ -181,6 +184,22 @@ class ConversableAgent(Agent):
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+        self._state = ConversableAgent.CONTINUE
+
+    def register_state_transition(self, state_transition: Callable[[Any], Any]):
+        """Register a state transition function.
+
+        Args:
+            state_transition (Callable): a function that takes the current state and returns the next state.
+            state_transition:
+                args:
+                    state: the current state.
+                    message: the message received.
+                    sender: the sender of the message.
+                returns:
+                    the next state.
+        """
+        self._state_transition_list.append(state_transition)
 
     def register_reply(
         self,
@@ -563,6 +582,43 @@ class ConversableAgent(Agent):
         if not silent:
             self._print_received_message(message, sender)
 
+    def update_state_from_state_transition(self, message: Union[Dict, str], sender: Agent):
+        """Update the state of the agent based on the message received.
+
+        Args:
+            message (dict or str): message from the sender.
+            sender (Agent): sender of an Agent instance.
+        """
+        # if self._is_termination_msg(message):
+        #     self._state = ConversableAgent.TERMINATE
+        state_list = []
+        for state_transition in self._state_transition_list:
+            state = state_transition(self._state, message, sender)
+            state_list.append(state)
+        for state in state_list:
+            status = state[1]
+            if status == ConversableAgent.TERMINATE:
+                return ConversableAgent.TERMINATE
+        # if ConversableAgent.TERMINATE in state_list:
+        #     self._state = ConversableAgent.TERMINATE
+
+    def _update_state(self, message, request_reply: Optional[bool], sender: Agent, silent: bool):
+        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
+            self._state = ConversableAgent.TERMINATE
+            return
+        self._process_received_message(message, sender, silent)
+
+        self.update_state_from_message(
+            message,
+            sender,
+        )
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        if reply is None:
+            self._state = ConversableAgent.TERMINATE
+        else:
+            self._state = ConversableAgent.CONTINUE
+        return reply
+
     def receive(
         self,
         message: Union[Dict, str],
@@ -593,11 +649,8 @@ class ConversableAgent(Agent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        self._process_received_message(message, sender, silent)
-        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
-            return
-        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
-        if reply is not None:
+        reply = self._update_state(message, request_reply, sender)
+        if self._state == ConversableAgent.CONTINUE:
             self.send(reply, sender, silent=silent)
 
     async def a_receive(
