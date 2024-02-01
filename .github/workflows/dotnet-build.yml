@@ -89,8 +89,14 @@ jobs:
         echo "ls output directory"
         ls -R ./output/nightly
         dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.nupkg --skip-duplicate
-        dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.snupkg --skip-duplicate
       env:
         AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
-        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }} 
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+    - name: Publish nightly package to github package
+      run: |
+        echo "Publish nightly package to github package"
+        echo "ls output directory"
+        ls -R ./output/nightly
+        dotnet nuget add source --username USERNAME --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/microsoft/index.json"
+        dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source github ./output/nightly/*.nupkg --skip-duplicate
 
