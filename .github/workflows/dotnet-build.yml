@@ -71,7 +71,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        global-json-file: dotnet/global.json
+        version: '6.0.x'
     - uses: actions/download-artifact@v2
       with:
         name: nightly
