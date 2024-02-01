@@ -60,6 +60,7 @@ jobs:
         name: release
         path: ./output/release
   publish:
+    environment: dotnet-internal-feed
     name: Publish
     runs-on: ubuntu-latest
     defaults:
