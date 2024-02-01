@@ -690,10 +690,10 @@ class ConversableAgent(Agent):
                     Supported methods are "last_msg" and "reflection_with_llm".
                     when set "last_msg", it returns the last message of the dialog as the takeaway.
                     when set "reflection_with_llm", it returns the takeaway extracted using an llm client.
-                    "llm" requires the llm_config to be set in either the sender or the recipient.
+                    "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
                 "takeaway_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract the key takeaway when takeaway_method is "reflection_with_llm".
-                    Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                    Default is None and the following default prompt will be used when "takeaway_method" is set to "reflection_with_llm":
                     "Identify and extract the final solution to the originally asked question based on the conversation."
                 "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
@@ -747,7 +747,7 @@ class ConversableAgent(Agent):
         Args:
             method (str): the method to extract the takeaway.
             agent: the participating agent in a chat.
-            prompt (str): the prompt used to extract the takeaway when takeaway_method is "llm".
+            prompt (str): the prompt used to extract the takeaway when takeaway_method is "reflection_with_llm".
             Default is None and the following default prompt will be used:
                 "Identify and extract the final solution to the originally asked question based on the conversation."
 
@@ -826,12 +826,12 @@ class ConversableAgent(Agent):
                     "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
                     "takeaway_method" can be used to specify the method to extract the takeaway from the chat.
-                        Supported methods are "last_msg" and "llm".
+                        Supported methods are "last_msg" and "reflection_with_llm".
                         when set "last_msg", it returns the last message of the dialog as the takeaway.
-                        when set "llm", it returns the takeaway extracted using an llm client.
-                        "llm" requires the llm_config to be set in either the sender or the recipient.
-                    "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "llm".
-                        Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                        when set "reflection_with_llm", it returns the takeaway extracted using an llm client.
+                        "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                    "takeaway_prompt" can be used to specify the prompt used to extract the takeaway when takeaway_method is "reflection_with_llm".
+                        Default is None and the following default prompt will be used when "takeaway_method" is set to "reflection_with_llm":
                         "Identify and extract the final solution to the originally asked question based on the conversation."
                     "carryover" can be used to specify the carryover information to be passed to this chat.
                         If provided, we will combine this carryover with the "message" content when generating the initial chat
@@ -1806,7 +1806,7 @@ class ConversableAgent(Agent):
                     "llm" requires the llm_config to be set in either the sender or the recipient.
                 "takeaway_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract the key takeaway when takeaway_method is "reflection_with_llm".
-                    Default is None and the following default prompt will be used when "takeaway_method" is set to "llm":
+                    Default is None and the following default prompt will be used when "takeaway_method" is set to "reflection_with_llm":
                     "Identify and extract the final solution to the originally asked question based on the conversation."
                 "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
