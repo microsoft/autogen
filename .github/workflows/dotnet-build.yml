@@ -71,7 +71,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        version: '6.0.x'
+        dotnet-version: '6.0.x'
         source-url: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
       env:
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
@@ -88,7 +88,6 @@ jobs:
         echo "Publish nightly package to Azure Devops"
         echo "ls output directory"
         ls -R ./output/nightly
-        dotnet nuget add source --name AutoGen $AZURE_ARTIFACTS_FEED_URL
         dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.nupkg --skip-duplicate
         dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.snupkg --skip-duplicate
       env:
