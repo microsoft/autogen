@@ -97,6 +97,5 @@ jobs:
         echo "Publish nightly package to github package"
         echo "ls output directory"
         ls -R ./output/nightly
-        dotnet nuget add source --username NotUsed --password ${{ secrets.GITHUB_TOKEN }} --name "github" "https://nuget.pkg.github.com/microsoft/index.json"
-        dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source "github" ./output/nightly/*.nupkg --skip-duplicate
+        dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/microsoft/index.json" ./output/nightly/*.nupkg --skip-duplicate
 
