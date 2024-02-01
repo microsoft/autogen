@@ -398,6 +398,120 @@ def test_assistant_mismatch_retrieval():
     assert len(candidates) == 0
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_gpt_assistant_tools_overwrite():
+    """
+    Test that the tools of a GPTAssistantAgent can be overwritten or not depending on the value of the
+    `overwrite_tools` parameter when creating a new assistant with the same ID.
+
+    Steps:
+    1. Create a new GPTAssistantAgent with a set of tools.
+    2. Get the ID of the assistant.
+    3. Create a new GPTAssistantAgent with the same ID but different tools and `overwrite_tools=True`.
+    4. Check that the tools of the assistant have been overwritten with the new ones.
+    """
+
+    name = "For test_gpt_assistant_tools_overwrite"
+    original_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateTax",
+                "description": "Calculate tax for a given amount",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to calculate tax on"},
+                        "tax_rate": {"type": "number", "description": "The tax rate to apply"},
+                    },
+                    "required": ["amount", "tax_rate"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "convertCurrency",
+                "description": "Convert currency from one type to another",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to convert"},
+                        "from_currency": {"type": "string", "description": "Currency type to convert from"},
+                        "to_currency": {"type": "string", "description": "Currency type to convert to"},
+                    },
+                    "required": ["amount", "from_currency", "to_currency"],
+                },
+            },
+        },
+    ]
+
+    new_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "findRestaurant",
+                "description": "Find a restaurant based on cuisine type and location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cuisine": {"type": "string", "description": "Type of cuisine"},
+                        "location": {"type": "string", "description": "City or area for the restaurant search"},
+                    },
+                    "required": ["cuisine", "location"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateMortgage",
+                "description": "Calculate monthly mortgage payments",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "principal": {"type": "number", "description": "The principal loan amount"},
+                        "interest_rate": {"type": "number", "description": "Annual interest rate"},
+                        "years": {"type": "integer", "description": "Number of years for the loan"},
+                    },
+                    "required": ["principal", "interest_rate", "years"],
+                },
+            },
+        },
+    ]
+
+    # Create an assistant with original tools
+    assistant = GPTAssistantAgent(
+        name,
+        llm_config={
+            "config_list": config_list,
+            "tools": original_tools,
+        },
+    )
+
+    assistant_id = assistant.assistant_id
+
+    # Create a new assistant with new tools and overwrite_tools set to True
+    assistant = GPTAssistantAgent(
+        name,
+        llm_config={
+            "config_list": config_list,
+            "assistant_id": assistant_id,
+            "tools": new_tools,
+        },
+        overwrite_tools=True,
+    )
+
+    # Add logic to retrieve the tools from the assistant and assert
+    retrieved_tools = assistant.llm_config.get("tools", [])
+    assistant.delete_assistant()
+
+    assert retrieved_tools == new_tools
+
+
 if __name__ == "__main__":
     test_gpt_assistant_chat()
     test_get_assistant_instructions()
@@ -405,3 +519,4 @@ if __name__ == "__main__":
     test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
     test_assistant_mismatch_retrieval()
+    test_gpt_assistant_tools_overwrite()
