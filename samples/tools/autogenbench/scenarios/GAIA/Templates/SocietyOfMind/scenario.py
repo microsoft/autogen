@@ -9,8 +9,8 @@ from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
-from autogen.agentchat.contrib.group_chat_moderator import GroupChatModerator
 from autogen.token_count_utils import count_token, get_max_token_limit
+from group_chat_moderator import GroupChatModerator
 
 testbed_utils.init()
 ##############################
@@ -40,7 +40,7 @@ final_llm_config["temperature"] = 0.1
 client = autogen.OpenAIWrapper(**final_llm_config)
 
 
-def response_preparer(inner_messages):
+def response_preparer(agent, inner_messages):
     tokens = 0
 
     messages = [
