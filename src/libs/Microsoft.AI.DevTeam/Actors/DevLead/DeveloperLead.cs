@@ -15,13 +15,31 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
     private readonly ISemanticTextMemory _memory;
     private readonly ILogger<DeveloperLead> _logger;
 
+    private readonly IManageGithub _ghService;
+
     protected override string MemorySegment => "dev-lead-memory";
 
-    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state,IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger) : base(state)
+    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger, IManageGithub ghService) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
+        _ghService = ghService;
+    }
+
+    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
+    {
+        var devLeadIssue = await _ghService.CreateIssue(new CreateIssueRequest
+        {
+            Label = $"{nameof(DevLead)}.{nameof(DevLead.Plan)}",
+            Org = org,
+            Repo = repo,
+            Input = input,
+            ParentNumber = parentNumber
+        });
+        
+         _state.State.ParentIssueNumber = parentNumber;
+        await _state.WriteStateAsync();
     }
     public async Task<string> CreatePlan(string ask)
     {
@@ -49,7 +67,7 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
                 UserType = ChatUserType.Agent
             });
             await _state.WriteStateAsync();
-            
+
             return resultMessage;
         }
         catch (Exception ex)
@@ -57,6 +75,23 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
             _logger.LogError(ex, "Error creating development plan");
             return default;
         }
+    }
+
+    public async Task ClosePlan()
+    {
+        //   var devLead = _grains.GetGrain<ILeadDevelopment>(issueNumber, suffix);
+        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
+        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
+        // var conductor = _grains.GetGrain<IOrchestrateWorkflows>(parentIssue.IssueNumber, suffix);
+        // var plan = await devLead.GetLatestPlan();
+        // await conductor.ImplementationFlow(plan, org, repo, parentIssue.IssueNumber);
+
+        // await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+        // {
+        //     Org = org,
+        //     Repo = repo,
+        //     CommentId = parentIssue.CommentId
+        // });
     }
 
     public Task<DevLeadPlanResponse> GetLatestPlan()
@@ -71,6 +106,7 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         switch (item.Type)
         {
             case EventType.NewAsk:
+                await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
                 break;
             default:
                 break;

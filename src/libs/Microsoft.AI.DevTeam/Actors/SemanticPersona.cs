@@ -86,6 +86,7 @@ public class SemanticPersonaState
 {
     public List<ChatHistoryItem> History { get; set; }
     public string Understanding { get; set; }
+    public long ParentIssueNumber { get; set; }
 }
 
 public enum ChatUserType

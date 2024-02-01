@@ -14,16 +14,32 @@ public class Dev : SemanticPersona, IDevelopCode
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
     private readonly ILogger<Dev> _logger;
+    private readonly IManageGithub _ghService;
 
     protected override string MemorySegment => "dev-memory";
 
-    public Dev([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) : base(state)
+    public Dev([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger, IManageGithub ghService) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
+        _ghService = ghService;
     }
 
+    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
+    {
+        var devLeadIssue = await _ghService.CreateIssue(new CreateIssueRequest
+        {
+            Label = $"{nameof(Developer)}.{nameof(Developer.Implement)}",
+            Org = org,
+            Repo = repo,
+            Input = input,
+            ParentNumber = parentNumber
+        });
+        
+         _state.State.ParentIssueNumber = parentNumber;
+        await _state.WriteStateAsync();
+    }
     public async Task<string> GenerateCode(string ask)
     {
         try
@@ -74,6 +90,52 @@ public class Dev : SemanticPersona, IDevelopCode
     public Task<string> ReviewPlan(string plan)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task CloseImplementation()
+    {
+        // var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
+        // var code = await dev.GetLastMessage();
+        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
+        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
+        // await _azService.Store(new SaveOutputRequest
+        // {
+        //     ParentIssueNumber = parentIssue.IssueNumber,
+        //     IssueNumber = (int)issueNumber,
+        //     Output = code,
+        //     Extension = "sh",
+        //     Directory = "output",
+        //     FileName = "run",
+        //     Org = org,
+        //     Repo = repo
+        // });
+        // var sandboxRequest = new SandboxRequest
+        // {
+        //     Org = org,
+        //     Repo = repo,
+        //     IssueNumber = (int)issueNumber,
+        //     ParentIssueNumber = parentIssue.IssueNumber
+        // };
+        // await _azService.RunInSandbox(sandboxRequest);
+
+        // var commitRequest = new CommitRequest
+        // {
+        //     Dir = "output",
+        //     Org = org,
+        //     Repo = repo,
+        //     ParentNumber = parentIssue.IssueNumber,
+        //     Number = (int)issueNumber,
+        //     Branch = $"sk-{parentIssue.IssueNumber}"
+        // };
+        // var markTaskCompleteRequest = new MarkTaskCompleteRequest
+        // {
+        //     Org = org,
+        //     Repo = repo,
+        //     CommentId = parentIssue.CommentId
+        // };
+
+        // var sandbox = _grains.GetGrain<IManageSandbox>(issueNumber, suffix);
+        // await sandbox.ScheduleCommitSandboxRun(commitRequest, markTaskCompleteRequest, sandboxRequest);
     }
 
     public async Task<UnderstandingResult> BuildUnderstanding(string content)

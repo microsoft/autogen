@@ -10,8 +10,11 @@ public class Event
 public enum EventType
 {
     NewAsk,
+    NewAskReadme,
+    NewAskPlan,
+    NewAskImplement,
     ChainClosed,
     ReadmeCreated,
-    PlanSubstemCreated,
+    PlanSubstepCreated,
     CodeCreated
 }

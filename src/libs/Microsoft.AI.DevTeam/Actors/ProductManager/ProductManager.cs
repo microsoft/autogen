@@ -14,13 +14,45 @@ public class ProductManager : SemanticPersona, IManageProduct
     private readonly ISemanticTextMemory _memory;
     private readonly ILogger<ProductManager> _logger;
 
+    private readonly IManageGithub _ghService;
+
     protected override string MemorySegment => "pm-memory";
 
-    public ProductManager([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger) : base(state)
+    public ProductManager([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger, IManageGithub ghService) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
+        _ghService = ghService;
+    }
+
+    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        switch (item.Type)
+        {
+            case EventType.NewAsk:
+                await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
+    {
+            // TODO: Create branch and PR
+             var pmIssue = await _ghService.CreateIssue(new CreateIssueRequest
+             {
+                 Label = $"{nameof(PM)}.{nameof(PM.Readme)}",
+                 Org = org,
+                 Repo = repo,
+                 Input = input,
+                 ParentNumber = parentNumber
+             });
+
+             _state.State.ParentIssueNumber = parentNumber;
+            await _state.WriteStateAsync();
+
     }
     public async Task<string> CreateReadme(string ask)
     {
@@ -57,14 +89,37 @@ public class ProductManager : SemanticPersona, IManageProduct
         }
     }
 
-    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    public async Task CloseReadme()
     {
-        switch (item.Type)
-        {
-            case EventType.NewAsk:
-                break;
-            default:
-                break;
-        }
+        // var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
+        // var readme = await pm.GetLastMessage();
+        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
+        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
+        // await _azService.Store(new SaveOutputRequest
+        // {
+        //     ParentIssueNumber = parentIssue.IssueNumber,
+        //     IssueNumber = (int)issueNumber,
+        //     Output = readme,
+        //     Extension = "md",
+        //     Directory = "output",
+        //     FileName = "readme",
+        //     Org = org,
+        //     Repo = repo
+        // });
+        // await _ghService.CommitToBranch(new CommitRequest
+        // {
+        //     Dir = "output",
+        //     Org = org,
+        //     Repo = repo,
+        //     ParentNumber = parentIssue.IssueNumber,
+        //     Number = (int)issueNumber,
+        //     Branch = $"sk-{parentIssue.IssueNumber}"
+        // });
+        // await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+        // {
+        //     Org = org,
+        //     Repo = repo,
+        //     CommentId = parentIssue.CommentId
+        // });
     }
 }
