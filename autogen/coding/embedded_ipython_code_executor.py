@@ -7,22 +7,31 @@ from queue import Empty
 from typing import Any, List
 
 from jupyter_client import KernelManager  # type: ignore[attr-defined]
-from jupyter_client.kernelspec import KernelSpecManager, NoSuchKernel
+from jupyter_client.kernelspec import KernelSpecManager
 from pydantic import BaseModel, Field
 
 from ..agentchat.agent import LLMAgent
-from ..code_utils import DEFAULT_TIMEOUT
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = ("IPythonCodeExecutor",)
+__all__ = ("EmbeddedIPythonCodeExecutor",)
 
 
-class IPythonCodeExecutor(BaseModel):
-    """A code executor class that executes code statefully using IPython kernel.
+class EmbeddedIPythonCodeExecutor(BaseModel):
+    """A code executor class that executes code statefully using an embedded
+    IPython kernel managed by this class.
 
     Each execution is stateful and can access variables created from previous
-    executions in the same session.
+    executions in the same session. The kernel must be installed before using
+    this class. The kernel can be installed using the following command:
+    `python -m ipykernel install --user --name {kernel_name}`
+    where `kernel_name` is the name of the kernel to install.
+
+    Args:
+        timeout (int): The timeout for code execution, by default 60.
+        kernel_name (str): The kernel name to use. Make sure it is installed.
+            By default, it is "python3".
+        output_dir (str): The directory to save output files, by default ".".
     """
 
     class UserCapability:
@@ -60,29 +69,29 @@ the output will be a path to the image instead of the image itself.
             system_message = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
             agent.update_system_message(system_message)
 
-    timeout: int = Field(default=DEFAULT_TIMEOUT, ge=1, description="The timeout for code execution.")
-    kernel: str = Field(default="python3", description="The kernel to use.")
+    timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
+    kernel_name: str = Field(default="python3", description="The kernel name to use. Make sure it is installed.")
     output_dir: str = Field(default=".", description="The directory to save output files.")
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         # Check if the kernel is installed.
-        if self.kernel not in KernelSpecManager().find_kernel_specs():
+        if self.kernel_name not in KernelSpecManager().find_kernel_specs():
             raise ValueError(
-                f"Kernel {self.kernel} is not installed. "
+                f"Kernel {self.kernel_name} is not installed. "
                 "Please first install it with "
-                f"`python -m ipykernel install --user --name {self.kernel}`."
+                f"`python -m ipykernel install --user --name {self.kernel_name}`."
             )
-        self._kernel_manager = KernelManager()
+        self._kernel_manager = KernelManager(kernel_name=self.kernel_name)
         self._kernel_manager.start_kernel()
         self._kernel_client = self._kernel_manager.client()
         self._kernel_client.start_channels()
         self._timeout = self.timeout
 
     @property
-    def user_capability(self) -> "IPythonCodeExecutor.UserCapability":
+    def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
         """Export a user capability that can be added to an agent."""
-        return IPythonCodeExecutor.UserCapability()
+        return EmbeddedIPythonCodeExecutor.UserCapability()
 
     @property
     def code_extractor(self) -> CodeExtractor:
@@ -90,6 +99,19 @@ the output will be a path to the image instead of the image itself.
         return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+        """Execute a list of code blocks and return the result.
+
+        This method executes a list of code blocks as cells in an IPython kernel
+        managed by this class.
+        See: https://jupyter-client.readthedocs.io/en/stable/messaging.html
+        for the message protocol.
+
+        Args:
+            code_blocks (List[CodeBlock]): A list of code blocks to execute.
+
+        Returns:
+            CodeResult: The result of the code execution.
+        """
         self._kernel_client.wait_for_ready()
         outputs = []
         for code_block in code_blocks:
@@ -140,7 +162,7 @@ the output will be a path to the image instead of the image itself.
         """Restart a new session."""
         self._kernel_client.stop_channels()
         self._kernel_manager.shutdown_kernel()
-        self._kernel_manager = KernelManager(kernel_name=self.kernel)
+        self._kernel_manager = KernelManager(kernel_name=self.kernel_name)
         self._kernel_manager.start_kernel()
         self._kernel_client = self._kernel_manager.client()
         self._kernel_client.start_channels()

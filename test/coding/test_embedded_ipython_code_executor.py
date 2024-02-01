@@ -5,7 +5,7 @@ import pytest
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock
-from autogen.coding.ipython_code_executor import IPythonCodeExecutor
+from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 from conftest import skip_openai  # noqa: E402
 
@@ -18,14 +18,14 @@ else:
 
 
 def test_execute_code_single_code_block() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="import sys\nprint('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
 def test_execute_code_multiple_code_blocks() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [
         CodeBlock(code="import sys\na = 123 + 123\n", language="python"),
         CodeBlock(code="print(a)", language="python"),
@@ -46,7 +46,7 @@ def test_function(a, b):
 
 
 def test_execute_code_bash_script() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     # Test bash script.
     code_blocks = [CodeBlock(code='!echo "hello world!"', language="bash")]
     code_result = executor.execute_code_blocks(code_blocks)
@@ -54,7 +54,7 @@ def test_execute_code_bash_script() -> None:
 
 
 def test_saving_to_file() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     with tempfile.TemporaryDirectory() as tmpdirname:
         code = f"""
 with open('{os.path.join(tmpdirname, "test_file_name")}', 'w') as f:
@@ -66,14 +66,14 @@ with open('{os.path.join(tmpdirname, "test_file_name")}', 'w') as f:
 
 
 def test_timeout() -> None:
-    executor = IPythonCodeExecutor(timeout=1)
+    executor = EmbeddedIPythonCodeExecutor(timeout=1)
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code and "Timeout" in code_result.output
 
 
 def test_silent_pip_install() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="!pip install matplotlib numpy", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and code_result.output.strip() == ""
@@ -85,7 +85,7 @@ def test_silent_pip_install() -> None:
 
 
 def test_restart() -> None:
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="x = 123", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and code_result.output.strip() == ""
@@ -115,7 +115,7 @@ def test_conversable_agent_capability() -> None:
         "coding_agent",
         llm_config=llm_config,
     )
-    executor = IPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor()
     executor.user_capability.add_to_agent(agent)
 
     # Test updated system prompt.

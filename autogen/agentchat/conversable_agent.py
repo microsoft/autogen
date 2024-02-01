@@ -894,24 +894,24 @@ class ConversableAgent:  # implements LLAgent protocol
         if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
             raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
 
-        messages_to_scan = last_n_messages
+        num_messages_to_scan = last_n_messages
         if last_n_messages == "auto":
             # Find when the agent last spoke
-            messages_to_scan = 0
-            for i in range(len(messages)):
-                message = messages[-(i + 1)]
+            num_messages_to_scan = 0
+            for message in reversed(messages):
                 if "role" not in message:
                     break
                 elif message["role"] != "user":
                     break
                 else:
-                    messages_to_scan += 1
+                    num_messages_to_scan += 1
+        num_messages_to_scan = min(len(messages), num_messages_to_scan)
+        messages_to_scan = messages[-num_messages_to_scan:]
 
         # iterate through the last n messages in reverse
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
-        for i in range(min(len(messages), messages_to_scan)):
-            message = messages[-(i + 1)]
+        for message in reversed(messages_to_scan):
             if not message["content"]:
                 continue
             code_blocks = self._code_executor.code_extractor.extract_code_blocks(message["content"])

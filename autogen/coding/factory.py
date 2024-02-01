@@ -29,10 +29,10 @@ class CodeExecutorFactory:
         if isinstance(executor, CodeExecutor):
             # If the executor is already an instance of CodeExecutor, return it.
             return executor
-        if executor == "ipython":
-            from .ipython_code_executor import IPythonCodeExecutor
+        if executor == "ipython-embedded":
+            from .embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 
-            return IPythonCodeExecutor(**code_execution_config.get("ipython", {}))
+            return EmbeddedIPythonCodeExecutor(**code_execution_config.get("ipython-embedded", {}))
         elif executor == "commandline":
             from .commandline_code_executor import CommandlineCodeExecutor
 

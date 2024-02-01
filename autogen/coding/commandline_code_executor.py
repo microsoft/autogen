@@ -1,5 +1,6 @@
+import uuid
 import warnings
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -20,12 +21,33 @@ __all__ = ("CommandlineCodeExecutor",)
 
 
 class CommandlineCodeExecutor(BaseModel):
-    """A code executor class that executes code through command line without persisting
-    any state in memory between executions.
+    """A code executor class that executes code through a terminal command line
+    environment.
 
-    Each execution is independent of each other. By default, it uses docker to
-    execute code. It can be configured to execute code locally without docker
+    By default, this code executor uses a docker container to execute code.
+    It can be configured to execute code locally without docker
     but it's not recommended.
+
+    Each code block is saved as a file and executed in a separate process in
+    the working directory, and a unique filename is generated for each code
+    block. The code blocks are executed in the order they are received.
+    Currently the only supported languages is Python and shell scripts.
+    For Python code, use the language "python" for the code block.
+    For shell scripts, use the language "bash", "shell", or "sh" for the code
+    block.
+
+    Args:
+        timeout (int): The timeout for code execution.
+        work_dir (str): The working directory for the code execution. If None,
+            a default working directory will be used. The default working
+            directory is the "extensions" directory under path to `autogen`.
+        use_docker (bool): Whether to use a docker container for code
+            execution. If False, the code will be executed in the current
+            environment. Default is True.
+        docker_image_name (str): The optional docker image to use for code
+            execution. `use_docker` must be True for this to take effect.
+            If not provided, a default image will be created based on
+            python:3-slim and used for code execution.
     """
 
     class UserCapability:
@@ -48,9 +70,8 @@ If you want the user to save the code in a file before executing it, put # filen
             agent.update_system_message(system_message)
 
     timeout: Optional[int] = Field(default=DEFAULT_TIMEOUT, ge=1)
-    filename: Optional[str] = None
     work_dir: Optional[str] = Field(default=WORKING_DIR)
-    use_docker: Optional[Union[List[str], str, bool]] = None
+    use_docker: bool = Field(default=True)
     docker_image_name: Optional[str] = None
 
     def _get_use_docker_for_code_utils(self) -> Optional[Union[List[str], str, bool]]:
@@ -73,7 +94,13 @@ If you want the user to save the code in a file before executing it, put # filen
         return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
-        """Execute the code blocks and return the result."""
+        """Execute the code blocks and return the result.
+
+        Args:
+            code_blocks (List[CodeBlock]): The code blocks to execute.
+
+        Returns:
+            CodeResult: The result of the code execution."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
@@ -84,20 +111,19 @@ If you want the user to save the code in a file before executing it, put # filen
                 ),
                 flush=True,
             )
+            filename_uuid = uuid.uuid4().hex
             if lang in ["bash", "shell", "sh"]:
+                filename = f"{filename_uuid}.{lang}"
                 exitcode, logs, image = execute_code(
                     code=code,
                     lang=lang,
                     timeout=self.timeout,
                     work_dir=self.work_dir,
-                    filename=self.filename,
+                    filename=filename,
                     use_docker=self._get_use_docker_for_code_utils(),
                 )
             elif lang in ["python", "Python"]:
-                if code.startswith("# filename: "):
-                    filename = code[11 : code.find("\n")].strip()
-                else:
-                    filename = None
+                filename = f"{filename_uuid}.py"
                 exitcode, logs, image = execute_code(
                     code=code,
                     lang="python",
