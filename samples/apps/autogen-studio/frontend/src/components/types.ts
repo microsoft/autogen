@@ -39,6 +39,7 @@ export interface IAgentConfig {
   max_consecutive_auto_reply: number;
   system_message: string | "";
   is_termination_msg?: boolean | string;
+  default_auto_reply?: string | null;
   code_execution_config?: boolean | string | { [key: string]: any } | null;
 }
 
