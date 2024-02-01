@@ -1,14 +1,16 @@
 import datasets
 
 
-def get_dataset_from_task(task, data_path) -> datasets.Dataset:
-    if task == "math":
+def get_dataset_from_scene(scene, data_path) -> datasets.Dataset:
+    if scene == "math":
         return datasets.load_dataset("json", data_files={
             'test': f"{data_path}/MATH/test.jsonl",
         })
-    elif task == "ml-bench":
+    elif scene == "coding":
         pass
-    elif task == "sci-bench":
-        pass
+    elif scene == "tabular":
+        return datasets.load_dataset("json", data_files={
+            'test': f"{data_path}/SciBench/q_selected_balanced.jsonl",
+        })
     else:
-        raise ValueError("Unknown task: {}".format(task))
+        raise ValueError("Unknown scene: {}".format(scene))
