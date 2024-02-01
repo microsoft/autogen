@@ -183,7 +183,7 @@ def post_process_mdx(rendered_mdx: Path) -> None:
 
     # Extract the text between <!-- and -->
     front_matter = content.split("<!--")[1].split("-->")[0]
-    # Strip empy lines before and after
+    # Strip empty lines before and after
     front_matter = "\n".join([line for line in front_matter.split("\n") if line.strip() != ""])
 
     # add file path
