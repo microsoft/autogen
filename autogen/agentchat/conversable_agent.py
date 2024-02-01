@@ -815,11 +815,11 @@ class ConversableAgent(Agent):
         else:
             return extracted_response
 
-    def initiate_chats(self, chats_info: List[Dict]):
+    def initiate_chats(self, chat_queue: List[Dict]):
         """Initiate chats with multiple agents.
 
         Args:
-            chats_info (List[Dict]): a list of dictionaries containing the information of the chats.
+            chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
                 Each dictionary should contain the following fields:
                 - "recipient": the recipient agent.
                 - "context": any context information.
@@ -840,12 +840,12 @@ class ConversableAgent(Agent):
 
         """
         receipts_set = set()
-        for chat_info in chats_info:
+        for chat_info in chat_queue:
             assert "recipient" in chat_info, "recipient must be provided."
             receipts_set.add(chat_info["recipient"])
-        assert len(receipts_set) == len(chats_info), "recipients must be different."
+        assert len(receipts_set) == len(chat_queue), "recipients must be different."
 
-        self._chat_queue = chats_info
+        self._chat_queue = chat_queue
         self._finished_chats = {}
         takeaway = []
         while self._chat_queue:
