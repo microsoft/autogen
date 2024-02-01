@@ -46,7 +46,7 @@ async def heyanny(ctx, task: str = None):
 
 def help_msg():
     response = """
-Hi this is Anny a AutoGen-powered, Discord bot. I can help you with the following tasks:
+Hi this is Anny, an AutoGen-powered Discord bot. I can help you with the following tasks:
 - ghstatus: Find the most recent issues and PRs from microsoft/autogen today.
 - ghgrowth: Find the number of stars, forks, and indicators of growth of
  microsoft/autogen.
