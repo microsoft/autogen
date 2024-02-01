@@ -188,7 +188,7 @@ def test_update_tool():
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            super().__init__(name)
+            self.name = name
             self.received = []
 
         def receive(
@@ -275,7 +275,7 @@ def test_multi_tool_call():
 async def test_async_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            super().__init__(name)
+            self.name = name
             self.received = []
 
         async def a_receive(

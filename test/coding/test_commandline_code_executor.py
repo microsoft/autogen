@@ -125,8 +125,10 @@ def test_conversable_agent_capability() -> None:
 
 
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_coversable_agent_code_execution_no_docker() -> None:
-    _test_conversable_agent_code_execution({"use_docker": False})
+def test_conversable_agent_code_execution_no_docker() -> None:
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        _test_conversable_agent_code_execution({"use_docker": False})
 
 
 @pytest.mark.skipif(
@@ -134,7 +136,9 @@ def test_coversable_agent_code_execution_no_docker() -> None:
     reason="docker is not running",
 )
 def test_conversable_agent_code_execution_docker() -> None:
-    _test_conversable_agent_code_execution({"use_docker": True})
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        _test_conversable_agent_code_execution({"use_docker": True})
 
 
 def _test_conversable_agent_code_execution(config: Dict[str, Any]) -> None:
