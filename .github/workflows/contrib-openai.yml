@@ -5,13 +5,17 @@ name: OpenAI4ContribTests
 
 on:
   pull_request_target:
-    branches: ["main"]
+    branches: ['main']
     paths:
-      - "autogen/**"
-      - "test/agentchat/contrib/**"
-      - ".github/workflows/contrib-openai.yml"
-      - "setup.py"
+      - 'autogen/**'
+      - 'test/agentchat/contrib/**'
+      - '.github/workflows/contrib-openai.yml'
+      - 'setup.py'
 permissions: {}
+    # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 jobs:
   RetrieveChatTest:
     strategy:
@@ -37,7 +41,6 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-          python -m ipykernel install --user --name python3
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -180,8 +183,8 @@ jobs:
   AgentBuilder:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.11"]
+        os: [ ubuntu-latest ]
+        python-version: [ "3.11" ]
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:

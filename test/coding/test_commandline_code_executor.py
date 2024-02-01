@@ -45,7 +45,7 @@ def _test_execute_code(executor: CodeExecutor) -> None:
     )
 
     # Test bash script.
-    if not sys.platform in ["win32"]:
+    if sys.platform not in ["win32"]:
         code_blocks = [CodeBlock(code="echo 'hello world!'", language="bash")]
         code_result = executor.execute_code_blocks(code_blocks)
         assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
