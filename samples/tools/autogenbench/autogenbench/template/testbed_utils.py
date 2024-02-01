@@ -68,7 +68,8 @@ def init():
 
     # Start telemetry
     if TELEMETRY_ENABLED:
-        autogen.telemetry.start_logging()
+        session_id = autogen.telemetry.start_logging()
+        print("====Session ID: ", session_id)
 
 
 def finalize(agents):
