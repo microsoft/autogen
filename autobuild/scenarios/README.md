@@ -15,8 +15,14 @@ pip install pyautogen autogenbench
 Use following command to run the benchmark for each scenario:
 ```bash
 cd [SCENARIO FOLDER. For example, /path/to/scenarious/MATH]
-autogenbench run Tasks/[THE TASK YOU WANT TO RUN].jsonl  // run the task
-autogenbench tabulate results/[THE TASK YOU WANT TO RUN]  // print the results in tabulate.
+python Scripts/init_tasks.py  // initialize the tasks
+autogenbench run Tasks/[TASK YOU WANT TO RUN].jsonl  // run the task
+autogenbench tabulate results/[TASK YOU WANT TO RUN]  // print the results in tabulate.
+```
+
+if you want to debug, set `-s 1` to use a single data for testing:
+```bash
+autogenbench run Tasks/[TASK YOU WANT TO RUN].jsonl -s 1
 ```
 
 ## Contribute
