@@ -19,6 +19,7 @@ class GroupChatModerator(GroupChat):
         speaker_selection_method: str = "auto",
         allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True,
         first_speaker: Agent = None,
+        send_introductions: bool = False,
     ):
         """
         GroupChatModerator uses the same initialization and constructor as GroupChat.
@@ -32,6 +33,7 @@ class GroupChatModerator(GroupChat):
             func_call_filter=func_call_filter,
             speaker_selection_method=speaker_selection_method,
             allow_repeat_speaker=allow_repeat_speaker,
+            send_introductions=send_introductions,
         )
         self.first_speaker = first_speaker
         self._selection_turns = 0
