@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
+from autogen.agentchat.conversable_agent import register_function
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
@@ -823,6 +824,47 @@ def test_register_for_execution():
         assert get_origin(user_proxy_1.function_map) == expected_function_map
 
 
+def test_register_functions():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        user_proxy = UserProxyAgent(name="user_proxy")
+
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        register_function(
+            exec_python,
+            caller=agent,
+            executor=user_proxy,
+            description="run cell in ipython and return the execution result.",
+        )
+
+        expected_function_map = {"exec_python": exec_python}
+        assert get_origin(user_proxy.function_map) == expected_function_map
+
+        expected = [
+            {
+                "type": "function",
+                "function": {
+                    "description": "run cell in ipython and return the execution result.",
+                    "name": "exec_python",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cell": {
+                                "type": "string",
+                                "description": "Valid Python cell to execute.",
+                            }
+                        },
+                        "required": ["cell"],
+                    },
+                },
+            }
+        ]
+        assert agent.llm_config["tools"] == expected
+
+
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.10"),
     reason="do not run if openai is not installed or py!=3.10",
@@ -860,7 +902,7 @@ def test_function_registration_e2e_sync() -> None:
     timer_mock = unittest.mock.MagicMock()
     stopwatch_mock = unittest.mock.MagicMock()
 
-    # An example async function
+    # An example async function registered using decorators
     @user_proxy.register_for_execution()
     @coder.register_for_llm(description="create a timer for N seconds")
     def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
@@ -873,9 +915,7 @@ def test_function_registration_e2e_sync() -> None:
         timer_mock(num_seconds=num_seconds)
         return "Timer is done!"
 
-    # An example sync function
-    @user_proxy.register_for_execution()
-    @coder.register_for_llm(description="create a stopwatch for N seconds")
+    # An example sync function registered using register_function
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
         print("stopwatch is running")
         # assert False, "stopwatch's alive!"
@@ -886,6 +926,8 @@ def test_function_registration_e2e_sync() -> None:
 
         stopwatch_mock(num_seconds=num_seconds)
         return "Stopwatch is done!"
+
+    register_function(stopwatch, caller=coder, executor=user_proxy, description="create a stopwatch for N seconds")
 
     # start the conversation
     # 'await' is used to pause and resume code execution for async IO operations.
@@ -938,9 +980,7 @@ async def test_function_registration_e2e_async() -> None:
     timer_mock = unittest.mock.MagicMock()
     stopwatch_mock = unittest.mock.MagicMock()
 
-    # An example async function
-    @user_proxy.register_for_execution()
-    @coder.register_for_llm(description="create a timer for N seconds")
+    # An example async function registered using register_function
     async def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
         print("timer is running")
         for i in range(int(num_seconds)):
@@ -951,7 +991,9 @@ async def test_function_registration_e2e_async() -> None:
         timer_mock(num_seconds=num_seconds)
         return "Timer is done!"
 
-    # An example sync function
+    register_function(timer, caller=coder, executor=user_proxy, description="create a timer for N seconds")
+
+    # An example sync function registered using decorators
     @user_proxy.register_for_execution()
     @coder.register_for_llm(description="create a stopwatch for N seconds")
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
