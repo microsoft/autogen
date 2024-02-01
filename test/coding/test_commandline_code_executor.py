@@ -1,45 +1,35 @@
+import os
 import sys
-from typing import Any, Dict
+import tempfile
 import pytest
-from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.code_utils import WIN32, in_docker_container, is_docker_running
-from autogen.coding.base import CodeBlock
-from autogen.coding.commandline_code_executor import CommandlineCodeExecutor
+from autogen.coding.base import CodeBlock, CodeExecutor
+from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
-from conftest import skip_openai  # noqa: E402
 
-try:
-    from openai import OpenAI
-except ImportError:
-    skip_openai_tests = True
-else:
-    skip_openai_tests = False or skip_openai
+from conftest import skip_openai
 
 
-@pytest.mark.skipif(
-    sys.platform in ["win32"] or (not is_docker_running()) or (in_docker_container()),
-    reason="docker is not running",
-)
-def test_execute_code_docker() -> None:
-    _test_execute_code({"use_docker": True})
+def test_local_commandline_executor_init() -> None:
+    executor = LocalCommandlineCodeExecutor(timeout=10, work_dir=".")
+    assert executor.timeout == 10 and executor.work_dir == "."
+
+    # Try invalid working directory.
+    with pytest.raises(ValueError, match="Working directory .* does not exist."):
+        executor = LocalCommandlineCodeExecutor(timeout=111, work_dir="/invalid/directory")
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_execute_code_local() -> None:
-    _test_execute_code({"use_docker": False})
+def test_local_commandline_executor_execute_code() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        _test_execute_code(executor=executor)
 
 
-def _test_execute_code(config: Dict[str, Any]) -> None:
-    executor = CommandlineCodeExecutor(**config)
-
+def _test_execute_code(executor: CodeExecutor) -> None:
     # Test single code block.
     code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world!" in code_result.output
-    # Check if the docker image is set.
-    if config["use_docker"] is not False:
-        assert isinstance(executor.docker_image_name, str) and len(executor.docker_image_name) > 0
+    assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
 
     # Test multiple code blocks.
     code_blocks = [
@@ -47,45 +37,69 @@ def _test_execute_code(config: Dict[str, Any]) -> None:
         CodeBlock(code="a = 100 + 100; print(a)", language="python"),
     ]
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
+    assert (
+        code_result.exit_code == 0
+        and "hello world!" in code_result.output
+        and "200" in code_result.output
+        and code_result.code_file is not None
+    )
 
     # Test bash script.
-    code_blocks = [CodeBlock(code="echo 'hello world!'", language="bash")]
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world!" in code_result.output
+    if not sys.platform in ["win32"]:
+        code_blocks = [CodeBlock(code="echo 'hello world!'", language="bash")]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
 
-    # Test running code and saving code to a file.
-    file_lines = ["# filename: test_file_name.py", "import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
+    # Test running code.
+    file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
     code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world!" in code_result.output and "200" in code_result.output
+    assert (
+        code_result.exit_code == 0
+        and "hello world!" in code_result.output
+        and "200" in code_result.output
+        and code_result.code_file is not None
+    )
 
-    # Test checking and reading saved file.
-    code_blocks = [
-        CodeBlock(code="import os; print(os.path.exists('test_file_name.py'))", language="python"),
-        CodeBlock(code="with open('test_file_name.py') as f: print(f.readlines())", language="python"),
-    ]
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "True" in code_result.output
-    for line in file_lines:
-        assert line in code_result.output
+    # Check saved code file.
+    with open(code_result.code_file) as f:
+        code_lines = f.readlines()
+        for file_line, code_line in zip(file_lines, code_lines):
+            assert file_line.strip() == code_line.strip()
 
-    # Test timeout.
-    executor = CommandlineCodeExecutor(**config, timeout=1)
+
+@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
+def test_local_commandline_code_executor_timeout() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandlineCodeExecutor(timeout=1, work_dir=temp_dir)
+        _test_timeout(executor)
+
+
+def _test_timeout(executor: CodeExecutor) -> None:
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code and "Timeout" in code_result.output or WIN32
+    assert code_result.exit_code and "Timeout" in code_result.output
 
 
-def test_restart() -> None:
-    executor = CommandlineCodeExecutor(use_docker=True)
+def test_local_commandline_code_executor_restart() -> None:
+    executor = LocalCommandlineCodeExecutor()
+    _test_restart(executor)
+
+
+def _test_restart(executor: CodeExecutor) -> None:
     # Check warning.
-    with pytest.warns(UserWarning, match="Restarting command line code executor is not supported. No action is taken."):
+    with pytest.warns(UserWarning, match=r".*No action is taken."):
         executor.restart()
 
 
-@pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
-def test_conversable_agent_capability() -> None:
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_local_commandline_executor_conversable_agent_capability() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        _test_conversable_agent_capability(executor=executor)
+
+
+def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
     config_list = config_list_from_json(
@@ -102,8 +116,8 @@ def test_conversable_agent_capability() -> None:
     agent = ConversableAgent(
         "coding_agent",
         llm_config=llm_config,
+        code_execution_config=False,
     )
-    executor = CommandlineCodeExecutor(use_docker=False)
     executor.user_capability.add_to_agent(agent)
 
     # Test updated system prompt.
@@ -112,7 +126,7 @@ def test_conversable_agent_capability() -> None:
     # Test code generation.
     reply = agent.generate_reply(
         [{"role": "user", "content": "write a python script to print 'hello world' to the console"}],
-        sender=ConversableAgent(name="user", llm_config=False),
+        sender=ConversableAgent(name="user", llm_config=False, code_execution_config=False),
     )
 
     # Test code extraction.
@@ -124,35 +138,22 @@ def test_conversable_agent_capability() -> None:
     assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_conversable_agent_code_execution_no_docker() -> None:
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        _test_conversable_agent_code_execution({"use_docker": False})
+def test_local_commandline_executor_conversable_agent_code_execution() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("OPENAI_API_KEY", "mock")
+            _test_conversable_agent_code_execution(executor)
 
 
-@pytest.mark.skipif(
-    sys.platform in ["win32"] or (not is_docker_running()) or (in_docker_container()),
-    reason="docker is not running",
-)
-def test_conversable_agent_code_execution_docker() -> None:
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        _test_conversable_agent_code_execution({"use_docker": True})
-
-
-def _test_conversable_agent_code_execution(config: Dict[str, Any]) -> None:
+def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
     agent = ConversableAgent(
         "user_proxy",
-        code_execution_config={
-            "executor": "commandline",
-            "commandline": config,
-        },
+        code_execution_config={"executor": executor},
         llm_config=False,
     )
 
-    isinstance(agent._code_executor, CommandlineCodeExecutor)
-    code_executor: CommandlineCodeExecutor = agent._code_executor  # type: ignore[assignment]
+    assert agent.code_executor is executor
 
     message = """
     Example:
@@ -163,15 +164,6 @@ def _test_conversable_agent_code_execution(config: Dict[str, Any]) -> None:
 
     reply = agent.generate_reply(
         [{"role": "user", "content": message}],
-        sender=ConversableAgent("user"),
+        sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
     )
     assert "hello extract code" in reply  # type: ignore[operator]
-    if config["use_docker"] is not False:
-        # Check if the docker image is set.
-        assert isinstance(code_executor.docker_image_name, str) and len(code_executor.docker_image_name) > 0
-
-
-def test_conversable_agent_warning_legacy_code_executor() -> None:
-    # Test warning message.
-    with pytest.warns(DeprecationWarning, match="legacy code executor"):
-        ConversableAgent("user_proxy", llm_config=False, code_execution_config=True)  # type: ignore[arg-type]

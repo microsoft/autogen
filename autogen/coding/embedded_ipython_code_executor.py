@@ -8,7 +8,7 @@ from typing import Any, List
 
 from jupyter_client import KernelManager  # type: ignore[attr-defined]
 from jupyter_client.kernelspec import KernelSpecManager
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from ..agentchat.agent import LLMAgent
 from .base import CodeBlock, CodeExtractor, CodeResult
@@ -17,9 +17,20 @@ from .markdown_code_extractor import MarkdownCodeExtractor
 __all__ = ("EmbeddedIPythonCodeExecutor",)
 
 
+class IPythonCodeResult(CodeResult):
+    """A code result class for IPython code executor."""
+
+    output_files: List[str] = Field(
+        default_factory=list,
+        description="The list of files that the executed code blocks generated.",
+    )
+
+
 class EmbeddedIPythonCodeExecutor(BaseModel):
     """A code executor class that executes code statefully using an embedded
     IPython kernel managed by this class.
+
+    **This will execute LLM generated code on the local machine.**
 
     Each execution is stateful and can access variables created from previous
     executions in the same session. The kernel must be installed before using
@@ -73,6 +84,12 @@ the output will be a path to the image instead of the image itself.
     kernel_name: str = Field(default="python3", description="The kernel name to use. Make sure it is installed.")
     output_dir: str = Field(default=".", description="The directory to save output files.")
 
+    @validator("output_dir")
+    def _output_dir_must_exist(cls, value: str) -> str:
+        if not os.path.exists(value):
+            raise ValueError(f"Output directory {value} does not exist.")
+        return value
+
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         # Check if the kernel is installed.
@@ -98,7 +115,7 @@ the output will be a path to the image instead of the image itself.
         """Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
         """Execute a list of code blocks and return the result.
 
         This method executes a list of code blocks as cells in an IPython kernel
@@ -110,10 +127,11 @@ the output will be a path to the image instead of the image itself.
             code_blocks (List[CodeBlock]): A list of code blocks to execute.
 
         Returns:
-            CodeResult: The result of the code execution.
+            IPythonCodeResult: The result of the code execution.
         """
         self._kernel_client.wait_for_ready()
         outputs = []
+        output_files = []
         for code_block in code_blocks:
             code = self._process_code(code_block.code)
             self._kernel_client.execute(code, store_history=True)
@@ -131,10 +149,12 @@ the output will be a path to the image instead of the image itself.
                                 # Output is an image.
                                 path = self._save_image(data)
                                 outputs.append(f"Image data saved to {path}")
+                                output_files.append(path)
                             elif data_type == "text/html":
                                 # Output is an html.
                                 path = self._save_html(data)
                                 outputs.append(f"HTML data saved to {path}")
+                                output_files.append(path)
                             else:
                                 # Output raw data.
                                 outputs.append(json.dumps(data))
@@ -143,7 +163,7 @@ the output will be a path to the image instead of the image itself.
                         outputs.append(content["text"])
                     elif msg_type == "error":
                         # Output is an error.
-                        return CodeResult(
+                        return IPythonCodeResult(
                             exit_code=1,
                             output=f"ERROR: {content['ename']}: {content['evalue']}\n{content['traceback']}",
                         )
@@ -151,12 +171,14 @@ the output will be a path to the image instead of the image itself.
                         break
                 # handle time outs.
                 except Empty:
-                    return CodeResult(
+                    return IPythonCodeResult(
                         exit_code=1,
                         output=f"ERROR: Timeout waiting for output from code block: {code_block.code}",
                     )
         # We return the full output.
-        return CodeResult(exit_code=0, output="\n".join([str(output) for output in outputs]))
+        return IPythonCodeResult(
+            exit_code=0, output="\n".join([str(output) for output in outputs]), output_files=output_files
+        )
 
     def restart(self) -> None:
         """Restart a new session."""

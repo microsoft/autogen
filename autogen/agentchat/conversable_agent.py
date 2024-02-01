@@ -142,16 +142,6 @@ class ConversableAgent:  # implements LLAgent protocol
         # Initialize standalone client cache object.
         self.client_cache = None
 
-        self._code_execution_config: Union[Dict, Literal[False]] = (
-            {} if code_execution_config is None else code_execution_config
-        )
-
-        if isinstance(self._code_execution_config, dict):
-            use_docker = self._code_execution_config.get("use_docker", None)
-            use_docker = decide_use_docker(use_docker)
-            check_can_use_docker_or_throw(use_docker)
-            self._code_execution_config["use_docker"] = use_docker
-
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
@@ -170,23 +160,29 @@ class ConversableAgent:  # implements LLAgent protocol
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
 
-        # Do not register code executor if code execution is disabled.
-        if self._code_execution_config is not False:
-            if self._code_execution_config is True or (
-                isinstance(self._code_execution_config, dict) and self._code_execution_config.get("executor") is None
-            ):
-                # Legacy code executor using code_utils.
-                warnings.warn(
-                    "Using legacy code executor. Please use the new code executor "
-                    "by setting 'executor' in code_execution_config. "
-                    "For example: code_execution_config={'executor': 'commandline'}. "
-                    "The legacy code executor will be removed in the future.",
-                    DeprecationWarning,
-                )
-                self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
-            else:
+        # Setting up code execution.
+        # Do not register code execution reply if code execution is disabled.
+        if code_execution_config is not False:
+            # If code_execution_config is None, set it to an empty dict.
+            if code_execution_config is None:
+                code_execution_config = {}
+            if not isinstance(code_execution_config, dict):
+                raise ValueError("code_execution_config must be a dict or False.")
+
+            # We have got a valid code_execution_config.
+            self._code_execution_config = code_execution_config
+
+            if self._code_execution_config.get("executor") is not None:
+                # Use the new code executor.
                 self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
                 self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
+            else:
+                # Legacy code execution using code_utils.
+                use_docker = self._code_execution_config.get("use_docker", None)
+                use_docker = decide_use_docker(use_docker)
+                check_can_use_docker_or_throw(use_docker)
+                self._code_execution_config["use_docker"] = use_docker
+                self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
 
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)

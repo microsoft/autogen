@@ -2,19 +2,24 @@ import os
 import tempfile
 import uuid
 import pytest
-from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock
 from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 from conftest import skip_openai  # noqa: E402
 
-try:
-    from openai import OpenAI
-except ImportError:
-    skip_openai_tests = True
-else:
-    skip_openai_tests = False or skip_openai
+
+def test_init() -> None:
+    executor = EmbeddedIPythonCodeExecutor(timeout=10, kernel_name="python3", output_dir=".")
+    assert executor.timeout == 10 and executor.kernel_name == "python3" and executor.output_dir == "."
+
+    # Try invalid output directory.
+    with pytest.raises(ValueError, match="Output directory .* does not exist."):
+        executor = EmbeddedIPythonCodeExecutor(timeout=111, kernel_name="python3", output_dir="/invalid/directory")
+
+    # Try invalid kernel name.
+    with pytest.raises(ValueError, match="Kernel .* is not installed."):
+        executor = EmbeddedIPythonCodeExecutor(timeout=111, kernel_name="invalid_kernel_name", output_dir=".")
 
 
 def test_execute_code_single_code_block() -> None:
@@ -53,18 +58,6 @@ def test_execute_code_bash_script() -> None:
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
-def test_saving_to_file() -> None:
-    executor = EmbeddedIPythonCodeExecutor()
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        code = f"""
-with open('{os.path.join(tmpdirname, "test_file_name")}', 'w') as f:
-    f.write('test saving file')
-"""
-        code_blocks = [CodeBlock(code=code, language="python")]
-        code_result = executor.execute_code_blocks(code_blocks)
-        assert code_result.exit_code == 0 and os.path.exists(os.path.join(tmpdirname, "test_file_name"))
-
-
 def test_timeout() -> None:
     executor = EmbeddedIPythonCodeExecutor(timeout=1)
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
@@ -96,7 +89,38 @@ def test_restart() -> None:
     assert code_result.exit_code and "NameError" in code_result.output
 
 
-@pytest.mark.skipif(skip_openai_tests, reason="openai not installed OR requested to skip")
+def test_save_image() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = EmbeddedIPythonCodeExecutor(output_dir=temp_dir)
+        # Install matplotlib.
+        code_blocks = [CodeBlock(code="!pip install matplotlib", language="python")]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+        # Test saving image.
+        code_blocks = [
+            CodeBlock(code="import matplotlib.pyplot as plt\nplt.plot([1, 2, 3, 4])\nplt.show()", language="python")
+        ]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert code_result.exit_code == 0
+        assert os.path.exists(code_result.output_files[0])
+        assert f"Image data saved to {code_result.output_files[0]}" in code_result.output
+
+
+def test_save_html() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = EmbeddedIPythonCodeExecutor(output_dir=temp_dir)
+        # Test saving html.
+        code_blocks = [
+            CodeBlock(code="from IPython.display import HTML\nHTML('<h1>Hello, world!</h1>')", language="python")
+        ]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert code_result.exit_code == 0
+        assert os.path.exists(code_result.output_files[0])
+        assert f"HTML data saved to {code_result.output_files[0]}" in code_result.output
+
+
+@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
 def test_conversable_agent_capability() -> None:
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -114,6 +138,7 @@ def test_conversable_agent_capability() -> None:
     agent = ConversableAgent(
         "coding_agent",
         llm_config=llm_config,
+        code_execution_config=False,
     )
     executor = EmbeddedIPythonCodeExecutor()
     executor.user_capability.add_to_agent(agent)
@@ -123,8 +148,8 @@ def test_conversable_agent_capability() -> None:
 
     # Test code generation.
     reply = agent.generate_reply(
-        [{"role": "user", "content": "print 'hello world' to the console"}],
-        sender=ConversableAgent("user"),
+        [{"role": "user", "content": "print 'hello world' to the console in a single python code block"}],
+        sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
     )
 
     # Test code extraction.
@@ -137,7 +162,11 @@ def test_conversable_agent_capability() -> None:
 
 
 def test_conversable_agent_code_execution() -> None:
-    agent = ConversableAgent("user_proxy", llm_config=False, code_execution_config={"executor": "ipython"})
+    agent = ConversableAgent(
+        "user_proxy",
+        llm_config=False,
+        code_execution_config={"executor": "ipython-embedded"},
+    )
     msg = """
 Run this code:
 ```python
@@ -151,5 +180,8 @@ print(test_function(123, 4))
 """
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", "mock")
-        reply = agent.generate_reply([{"role": "user", "content": msg}], sender=ConversableAgent("user"))
+        reply = agent.generate_reply(
+            [{"role": "user", "content": msg}],
+            sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
+        )
         assert "492" in reply  # type: ignore[operator]

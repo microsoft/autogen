@@ -33,9 +33,9 @@ class CodeExecutorFactory:
             from .embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 
             return EmbeddedIPythonCodeExecutor(**code_execution_config.get("ipython-embedded", {}))
-        elif executor == "commandline":
-            from .commandline_code_executor import CommandlineCodeExecutor
+        elif executor == "commandline-local":
+            from .local_commandline_code_executor import LocalCommandlineCodeExecutor
 
-            return CommandlineCodeExecutor(**code_execution_config.get("commandline", {}))
+            return LocalCommandlineCodeExecutor(**code_execution_config.get("commandline-local", {}))
         else:
             raise ValueError(f"Unknown code executor {executor}")

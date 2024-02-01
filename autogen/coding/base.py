@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..agentchat.agent import LLMAgent
 
@@ -10,21 +10,17 @@ __all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor")
 class CodeBlock(BaseModel):
     """A class that represents a code block."""
 
-    """The code to execute."""
-    code: str
+    code: str = Field(description="The code to execute.")
 
-    """The language of the code."""
-    language: str
+    language: str = Field(description="The language of the code.")
 
 
 class CodeResult(BaseModel):
     """A class that represents the result of a code execution."""
 
-    """The exit code of the code execution."""
-    exit_code: int
+    exit_code: int = Field(description="The exit code of the code execution.")
 
-    """The output of the code execution."""
-    output: str
+    output: str = Field(description="The output of the code execution.")
 
 
 class CodeExtractor(Protocol):
