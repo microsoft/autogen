@@ -1,3 +1,4 @@
+import uuid
 import pytest
 import os
 import sys
@@ -225,7 +226,7 @@ def test_assistant_retrieval():
     Test function to check if the GPTAssistantAgent can retrieve the same assistant
     """
 
-    name = "For test_assistant_retrieval"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
         "name": "call_function_1",
@@ -254,7 +255,7 @@ def test_assistant_retrieval():
         "config_list": config_list,
     }
 
-    name = "For test_gpt_assistant_chat"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     assistant_first = GPTAssistantAgent(
         name,
@@ -270,12 +271,9 @@ def test_assistant_retrieval():
     )
     candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
 
-    try:
-        assistant_first.delete_assistant()
+    assistant_first.delete_assistant()
+    with pytest.raises(openai.NotFoundError):
         assistant_second.delete_assistant()
-    except openai.NotFoundError:
-        # Not found error is expected because the same assistant can not be deleted twice
-        pass
 
     openai_client.files.delete(file_1.id)
     openai_client.files.delete(file_2.id)
@@ -294,7 +292,7 @@ def test_assistant_retrieval():
 def test_assistant_mismatch_retrieval():
     """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
 
-    name = "For test_assistant_retrieval"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
         "name": "call_function",
@@ -328,7 +326,7 @@ def test_assistant_mismatch_retrieval():
         "config_list": config_list,
     }
 
-    name = "For test_gpt_assistant_chat"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     assistant_first = GPTAssistantAgent(
         name,

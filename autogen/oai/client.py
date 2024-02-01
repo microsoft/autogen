@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
+from typing import Any, List, Literal, Optional, Dict, Callable, Tuple, TypeVar, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
@@ -11,7 +11,6 @@ from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai import completion
 
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
@@ -100,6 +99,146 @@ class ModelClient(Protocol):
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
         """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
+        ...  # pragma: no cover
+
+
+T = TypeVar("T")
+
+
+class AssistantModelClient(ModelClient, Protocol):
+    class SyncCursorPage(Protocol[T]):
+        ...
+
+    class FilesWithRawResponse(Protocol):
+        ...
+
+    class FilesWithStreamingResponse(Protocol):
+        ...
+
+    class AssistantFile(Protocol):
+        ...
+
+    class FileDeleteResponse(Protocol):
+        ...
+
+    class Files(Protocol):
+        def create(self, assistant_id: str, **kwargs: Any) -> AssistantModelClient.AssistantFile:
+            ...  # pragma: no cover
+
+        def retrieve(self, file_id: str, *, assistant_id: str, **kwargs: Any) -> AssistantModelClient.AssistantFile:
+            ...  # pragma: no cover
+
+        def list(
+            self, assistant_id: str, **kwargs: Any
+        ) -> AssistantModelClient.SyncCursorPage[AssistantModelClient.AssistantFile]:
+            ...  # pragma: no cover
+
+        def delete(self, file_id: str, *, assistant_id: str, **kwargs: Any) -> AssistantModelClient.FileDeleteResponse:
+            ...  # pragma: no cover
+
+    class Tool(Protocol):
+        @property
+        def type(self) -> Union[Literal["code_interpreter"], Literal["retrieval"], Literal["function"]]:
+            ...  # pragma: no cover
+
+        def function_call(self) -> Any:
+            ...  # pragma: no cover
+
+    class Assistant(Protocol):
+        @property
+        def id(self) -> str:
+            ...  # pragma: no cover
+
+        @property
+        def created_at(self) -> int:
+            ...  # pragma: no cover
+
+        @property
+        def description(self) -> Optional[str]:
+            ...  # pragma: no cover
+
+        @property
+        def file_ids(self) -> List[str]:
+            ...  # pragma: no cover
+
+        @property
+        def instructions(self) -> Optional[str]:
+            ...  # pragma: no cover
+
+        @property
+        def metadata(self) -> Optional[object]:
+            ...  # pragma: no cover
+
+        @property
+        def model(self) -> str:
+            ...  # pragma: no cover
+
+        @property
+        def name(self) -> Optional[str]:
+            ...  # pragma: no cover
+
+        @property
+        def object(self) -> Literal["assistant"]:
+            ...  # pragma: no cover
+
+        @property
+        def tools(self) -> List[AssistantModelClient.Tool]:
+            ...  # pragma: no cover
+
+    class Assistants(Protocol):
+        @property
+        def files(self) -> AssistantModelClient.Files:
+            ...
+
+        @property
+        def with_raw_responses(self) -> AssistantModelClient.FilesWithRawResponse:
+            ...  # pragma: no cover
+
+        @property
+        def with_streaming_responses(self) -> AssistantModelClient.FilesWithStreamingResponse:
+            ...  # pragma: no cover
+
+        async def create(self, model: str, **kwargs: Any) -> AssistantModelClient.Assistant:
+            ...  # pragma: no cover
+
+        async def retrieve(self, assistant_id: str, **kwargs: Any) -> AssistantModelClient.Assistant:
+            ...  # pragma: no cover
+
+        async def update(self, assistant_id: str, **kwargs: Any) -> AssistantModelClient.Assistant:
+            ...  # pragma: no cover
+
+        def list(self, **kwargs: Any) -> AssistantModelClient.SyncCursorPage[AssistantModelClient.Assistant]:
+            ...  # pragma: no cover
+
+        async def delete(self, assistant_id: str, **kwargs: Any) -> None:
+            ...  # pragma: no cover
+
+    class Beta(Protocol):
+        @property
+        def assistants(self) -> AssistantModelClient.Assistants:
+            ...  # pragma: no cover
+
+        @property
+        # todo: add Protocol definition using https://github.com/openai/openai-python/blob/main/src/openai/resources/beta/threads/threads.py#L48
+        def threads(self) -> Any:
+            ...  # pragma: no cover
+
+        @property
+        # todo: add Protocol definition using https://github.com/openai/openai-python/blob/main/src/openai/resources/beta/beta.py#L65
+        def with_raw_responses(self) -> Any:
+            ...  # pragma: no cover
+
+        @property
+        # todo: add Protocol definition using https://github.com/openai/openai-python/blob/main/src/openai/resources/beta/beta.py#L91
+        def with_streaming_responses(self) -> Any:
+            ...  # pragma: no cover
+
+    @property
+    def beta(self) -> Beta:
+        ...  # pragma: no cover
+
+    @property
+    def files(self) -> AssertionError.Files:
         ...  # pragma: no cover
 
 
@@ -291,6 +430,14 @@ class OpenAIClient:
             "cost": response.cost,
             "model": response.model,
         }
+
+    @property
+    def beta(self) -> AssistantModelClient.Beta:
+        return self._oai_client.beta
+
+    @property
+    def files(self) -> Any:
+        return self._oai_client.files
 
 
 class OpenAIWrapper:
@@ -821,6 +968,38 @@ class OpenAIWrapper:
             A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         return response.message_retrieval_function(response)
+
+    @property
+    def beta(self) -> AssistantModelClient.Beta:
+        """Return the beta client.
+
+        Returns:
+            The beta client.
+
+        Raises:
+            RuntimeError: If no beta client is found.
+        """
+        for client in self._clients:
+            if hasattr(client, "beta"):
+                return client.beta
+
+        raise RuntimeError("No beta client found.")
+
+    @property
+    def files(self) -> Any:
+        """Return the files client.
+
+        Returns:
+            The files client.
+
+        Raises:
+            RuntimeError: If no files client is found.
+        """
+        for client in self._clients:
+            if hasattr(client, "files"):
+                return client.files
+
+        raise RuntimeError("No files client found.")
 
 
 # TODO: logging
