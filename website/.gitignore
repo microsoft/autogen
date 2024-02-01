@@ -10,6 +10,8 @@ package-lock.json
 .cache-loader
 docs/reference
 
+docs/llm_endpoint_configuration.mdx
+
 # Misc
 .DS_Store
 .env.local
@@ -20,3 +22,5 @@ docs/reference
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+/.quarto/
