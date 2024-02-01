@@ -32,8 +32,61 @@ jobs:
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
-        dotnet restore
+        dotnet restore -bl
     - name: Build
-      run: dotnet build --no-restore
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build -bl
+    - name: Pack
+      run: |
+        echo "Create nightly build package"
+        dotnet pack --no-build --configuration Release --output './output/nightly' -p:VersionSuffix=nightly-$(Build.BuildNumber) -bl
+
+        echo "Create release build package"
+        dotnet pack --no-build --configuration Release --output './output/release' -bl
+
+        echo "ls output directory"
+        ls -R ./output
+    - name: Upload package
+      uses: actions/upload-artifact@v2
+      with:
+        name: nightly
+        path: ./output/nightly
+    - name: Upload package
+      uses: actions/upload-artifact@v2
+      with:
+        name: release
+        path: ./output/release
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dotnet
+    needs: build
+    steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: dotnet/global.json
+    - uses: actions/download-artifact@v2
+      with:
+        name: nightly
+        path: ./output/nightly
+    - uses: actions/download-artifact@v2
+      with:
+        name: release
+        path: ./output/release
+    - name: Publish nightly package to Azure Devops
+      run: |
+        echo "Publish nightly package to Azure Devops"
+        echo "ls output directory"
+        ls -R ./output/nightly
+        dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.nupkg
+        dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.snupkg
+      env:
+        AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }} 
+
