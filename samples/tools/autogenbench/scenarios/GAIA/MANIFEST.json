@@ -7,6 +7,7 @@
         "Templates/BasicTwoAgents/scenario.py": "Templates/BasicTwoAgents/scenario.py",
         "Templates/BasicTwoAgents/requirements.txt": "Templates/BasicTwoAgents/requirements.txt",
         "Templates/SocietyOfMind/scenario.py": "Templates/SocietyOfMind/scenario.py",
+        "Templates/SocietyOfMind/group_chat_moderator.py": "Templates/SocietyOfMind/group_chat_moderator.py",
         "Templates/SocietyOfMind/expected_answer.txt": "Templates/SocietyOfMind/expected_answer.txt",
         "Templates/SocietyOfMind/requirements.txt": "Templates/SocietyOfMind/requirements.txt"
     }
