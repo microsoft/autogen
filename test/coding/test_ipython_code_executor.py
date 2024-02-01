@@ -149,5 +149,7 @@ And then this:
 print(test_function(123, 4))
 ```
 """
-    reply = agent.generate_reply([{"role": "user", "content": msg}], sender=ConversableAgent("user"))
-    assert "492" in reply  # type: ignore[operator]
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", "mock")
+        reply = agent.generate_reply([{"role": "user", "content": msg}], sender=ConversableAgent("user"))
+        assert "492" in reply  # type: ignore[operator]
