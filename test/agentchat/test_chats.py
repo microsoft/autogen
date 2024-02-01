@@ -178,6 +178,7 @@ def test_chats():
             {
                 "recipient": writer,
                 "message": writing_tasks[0],
+                "carryover": "I want to include a figure or a table of data in the blogpost.",
             },
         ]
     )
