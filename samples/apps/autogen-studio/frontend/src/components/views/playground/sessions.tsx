@@ -4,13 +4,14 @@ import {
   Square3Stack3DIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { message } from "antd";
+import { Button, Modal, message } from "antd";
 import * as React from "react";
 import { IChatSession, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
 import { LaunchButton, LoadingOverlay } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
+import AgentsWorkflowView from "./workflows";
 
 const SessionsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -33,7 +34,7 @@ const SessionsView = ({}: any) => {
   //   React.useState<IChatSession | null>(null);
   const session = useConfigStore((state) => state.session);
   const setSession = useConfigStore((state) => state.setSession);
-
+  const setWorkflowConfig = useConfigStore((state) => state.setWorkflowConfig);
   const deleteSession = (session: IChatSession) => {
     setError(null);
     setLoading(true);
@@ -53,6 +54,9 @@ const SessionsView = ({}: any) => {
       if (data && data.status) {
         message.success(data.message);
         setSessions(data.data);
+        if (data.data && data.data.length > 0) {
+          setSession(data.data[0]);
+        }
       } else {
         message.error(data.message);
       }
@@ -65,6 +69,9 @@ const SessionsView = ({}: any) => {
     };
     fetchJSON(deleteSessionUrl, payLoad, onSuccess, onError);
   };
+
+  const [newSessionModalVisible, setNewSessionModalVisible] =
+    React.useState(false);
 
   const fetchSessions = () => {
     setError(null);
@@ -79,12 +86,9 @@ const SessionsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
-        // console.log("sesssions", data);
+        // message.success(data.message);
+        // console.log("sessions", data);
         setSessions(data.data);
-        if (data.data && data.data.length === 0) {
-          createSession();
-        }
       } else {
         message.error(data.message);
       }
@@ -135,7 +139,11 @@ const SessionsView = ({}: any) => {
 
   React.useEffect(() => {
     if (sessions && sessions.length > 0) {
-      setSession(sessions[0]);
+      const firstSession = sessions[0];
+      setSession(firstSession);
+      setWorkflowConfig(firstSession?.flow_config);
+    } else {
+      setSession(null);
     }
   }, [sessions]);
 
@@ -145,14 +153,11 @@ const SessionsView = ({}: any) => {
 
     const body = {
       user_id: user?.email,
-      session:
-        session === null
-          ? {
-              user_id: user?.email,
-              flow_config: workflowConfig,
-              session_id: null,
-            }
-          : session,
+      session: {
+        user_id: user?.email,
+        flow_config: workflowConfig,
+        session_id: null,
+      },
     };
     // const fetch;
     const payLoad = {
@@ -163,10 +168,13 @@ const SessionsView = ({}: any) => {
       body: JSON.stringify(body),
     };
 
+    console.log("createSession", payLoad);
+
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
         setSessions(data.data);
+        setWorkflowConfig(data.data[0]?.workflow_config);
       } else {
         message.error(data.message);
       }
@@ -202,9 +210,11 @@ const SessionsView = ({}: any) => {
           role="button"
           onClick={() => {
             setSession(data);
+            setWorkflowConfig(data.flow_config);
           }}
         >
           <div className="text-xs">{truncateText(data.id, 27)}</div>
+          <div className="text-xs">{data.flow_config.name}</div>
           <div className="text-xs text-right ">{timeAgo(data.timestamp)} </div>
         </div>
         <div className="flex mt-2 text-secondary">
@@ -244,16 +254,50 @@ const SessionsView = ({}: any) => {
 
   return (
     <div className="  ">
+      <Modal
+        title={
+          <div className="font-semibold mb-2 pb-1 border-b">
+            <Square3Stack3DIcon className="h-5 w-5 inline-block mr-1" />
+            New Sessions{" "}
+          </div>
+        }
+        open={newSessionModalVisible}
+        footer={[
+          <Button
+            key="back"
+            onClick={() => {
+              setNewSessionModalVisible(false);
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            disabled={!workflowConfig}
+            onClick={() => {
+              setNewSessionModalVisible(false);
+              createSession();
+            }}
+          >
+            Create
+          </Button>,
+        ]}
+      >
+        <AgentsWorkflowView />
+      </Modal>
       <div className="mb-2 relative">
         <div className="">
           <div className="font-semibold mb-2 pb-1 border-b">
             <Square3Stack3DIcon className="h-5 w-5 inline-block mr-1" />
             Sessions{" "}
           </div>
-          <div className="text-xs mb-2 pb-1  ">
-            {" "}
-            Create a new session or select an existing session to view chat.
-          </div>
+          {sessions && sessions.length > 0 && (
+            <div className="text-xs mb-2 pb-1  ">
+              {" "}
+              Create a new session or select an existing session to view chat.
+            </div>
+          )}
           <div
             style={{
               maxHeight: "300px",
@@ -263,7 +307,7 @@ const SessionsView = ({}: any) => {
             <LoadingOverlay loading={loading} />
             {sessionRows}
           </div>
-          {(!sessions || sessions.length == 0) && (
+          {(!sessions || sessions.length == 0) && !loading && (
             <div className="text-xs text-gray-500">
               No sessions found. Create a new session to get started.
             </div>
@@ -274,7 +318,12 @@ const SessionsView = ({}: any) => {
           <LaunchButton
             className="text-sm p-2 px-3"
             onClick={() => {
-              createSession();
+              if (sessions && sessions.length > 0) {
+                setWorkflowConfig(sessions[0]?.flow_config);
+              } else {
+                setWorkflowConfig(null);
+              }
+              setNewSessionModalVisible(true);
             }}
           >
             {" "}
