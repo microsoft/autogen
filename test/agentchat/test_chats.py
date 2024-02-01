@@ -109,7 +109,7 @@ def test_chats_group():
             {
                 "recipient": manager_1,
                 "message": financial_tasks[1],
-                "takeaway_method": "llm",
+                "takeaway_method": "reflection_with_llm",
             },
             {"recipient": manager_2, "message": writing_tasks[0]},
         ]
@@ -173,7 +173,7 @@ def test_chats():
             {
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
-                "takeaway_method": "llm",
+                "takeaway_method": "reflection_with_llm",
             },
             {
                 "recipient": writer,
