@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 import pytest
 
 import autogen
-from autogen.agentchat.agent import Agent
 from autogen.agentchat.conversable_agent import ConversableAgent
 
 try:
