@@ -54,7 +54,7 @@ or Pydantic models:
 
 The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
-1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](../FAQ#set-your-api-endpoints) function:
+1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](/docs/FAQ#set-your-api-endpoints) function:
 
 ``` python
 from typing import Literal
@@ -101,7 +101,6 @@ user_proxy = autogen.UserProxyAgent(
 
 ``` python
 CurrencySymbol = Literal["USD", "EUR"]
-
 
 def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
     if base_currency == quote_currency:
@@ -156,10 +155,28 @@ you can call the decorators as functions:
 
 ```python
 # Register the function with the chatbot's llm_config.
-chatbot.register_for_llm(description="Currency exchange calculator.")(currency_calculator)
+currency_calculator = chatbot.register_for_llm(description="Currency exchange calculator.")(currency_calculator)
 
 # Register the function with the user_proxy's function_map.
 user_proxy.register_for_execution()(currency_calculator)
+```
+
+Alternatevely, you can also use `autogen.agentchat.register_function()` instead as follows:
+```python
+def currency_calculator(
+    base_amount: Annotated[float, "Amount of currency in base_currency"],
+    base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
+    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+) -> str:
+    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+    return f"{quote_amount} {quote_currency}"
+
+autogen.agentchat.register_function(
+    currency_calculator,
+    agent=chatbot,
+    executor=user_proxy,
+    description="Currency exchange calculator.",
+)
 ```
 
 4. Agents can now use the function as follows:
@@ -216,14 +233,19 @@ class Currency(BaseModel):
   # parameter of type float, must be greater or equal to 0 with default value 0
   amount: Annotated[float, Field(0, description="Amount of currency", ge=0)]
 
-@user_proxy.register_for_execution()
-@chatbot.register_for_llm(description="Currency exchange calculator.")
 def currency_calculator(
   base: Annotated[Currency, "Base currency: amount and currency symbol"],
   quote_currency: Annotated[CurrencySymbol, "Quote currency symbol"] = "USD",
 ) -> Currency:
   quote_amount = exchange_rate(base.currency, quote_currency) * base.amount
   return Currency(amount=quote_amount, currency=quote_currency)
+
+autogen.agentchat.register_function(
+    currency_calculator,
+    agent=chatbot,
+    executor=user_proxy,
+    description="Currency exchange calculator.",
+)
 ```
 
 The generated JSON schema has additional properties such as minimum value encoded:
