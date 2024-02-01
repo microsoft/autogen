@@ -15,6 +15,7 @@ concurrency:
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
