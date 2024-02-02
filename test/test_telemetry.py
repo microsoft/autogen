@@ -285,3 +285,24 @@ def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, d
     args, _ = mock_logger_error.call_args
     error_message = args[0]
     assert error_message.startswith("[Telemetry] log_chat_completion error:")
+
+
+def test_group_chat_logging(db_connection):
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=3)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent2.initiate_chat(group_chat_manager, message={"function_call": {"name": "test_func", "arguments": '{"x": 1}'}})
+
+    assert len(groupchat.messages) == 3
