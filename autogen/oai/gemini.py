@@ -26,7 +26,8 @@ from google.api_core.exceptions import InternalServerError
 from google.generativeai import ChatSession
 from openai import OpenAI, _exceptions, resources
 from openai._qs import Querystring
-from openai._types import NOT_GIVEN, NotGiven, Omit, ProxiesTypes, RequestOptions, Timeout, Transport
+from openai._types import (NOT_GIVEN, NotGiven, Omit, ProxiesTypes,
+                           RequestOptions, Timeout, Transport)
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -62,7 +63,7 @@ class GeminiClient:
             "Please provide api_key in OAI_CONFIG_LIST " "or set the GOOGLE_API_KEY env variable."
         )
 
-    def call(self, params: Dict) -> ChatCompletion:
+    def create(self, params: Dict) -> ChatCompletion:
         model_name = params.get("model", "gemini-pro")
         params.get("api_type", "google")  # not used
         messages = params.get("messages", [])
