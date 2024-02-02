@@ -411,7 +411,7 @@ def execute_code(
                 future = executor.submit(
                     subprocess.run,
                     cmd,
-                    cwd=work_dir,
+                    cwd="/workspace/coding",  # work_dir,
                     capture_output=True,
                     text=True,
                 )
