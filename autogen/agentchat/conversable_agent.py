@@ -142,7 +142,7 @@ class ConversableAgent:  # implements LLAgent protocol
 
         # Initialize standalone client cache object.
         self.client_cache = None
-        
+
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
@@ -162,16 +162,15 @@ class ConversableAgent:  # implements LLAgent protocol
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
 
         # Setting up code execution.
-        if code_execution_config is None:
-            warnings.warn(
-                "Using None to signal a default code_execution_config is deprecated. "
-                "Use {} to use default or False to disable code execution.",
-                stacklevel=2,
-            )
         # Do not register code execution reply if code execution is disabled.
         if code_execution_config is not False:
             # If code_execution_config is None, set it to an empty dict.
             if code_execution_config is None:
+                warnings.warn(
+                    "Using None to signal a default code_execution_config is deprecated. "
+                    "Use {} to use default or False to disable code execution.",
+                    stacklevel=2,
+                )
                 code_execution_config = {}
             if not isinstance(code_execution_config, dict):
                 raise ValueError("code_execution_config must be a dict or False.")
