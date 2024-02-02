@@ -403,15 +403,11 @@ def execute_code(
                 text=True,
             )
         else:
-            print(f"Coding directory: {work_dir}")
-            print([c for c in os.listdir(work_dir)])
-            print("")
-
             with ThreadPoolExecutor(max_workers=1) as executor:
                 future = executor.submit(
                     subprocess.run,
                     cmd,
-                    cwd="/workspace/coding",  # work_dir,
+                    cwd=work_dir,
                     capture_output=True,
                     text=True,
                 )
