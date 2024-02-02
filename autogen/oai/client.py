@@ -90,13 +90,12 @@ class OpenAIWrapper:
             {
                 "model": "gpt-3.5-turbo",
                 "api_key": os.environ.get("OPENAI_API_KEY"),
-                "api_type": "open_ai",
+                "api_type": "openai",
                 "base_url": "https://api.openai.com/v1",
             },
             {
                 "model": "llama-7B",
                 "base_url": "http://127.0.0.1:8080",
-                "api_type": "open_ai",
             }
         ]
         ```
