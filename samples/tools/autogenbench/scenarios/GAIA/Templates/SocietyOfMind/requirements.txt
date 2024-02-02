@@ -1,4 +1,1 @@
-git+https://github.com/microsoft/autogen.git@society_of_mind_gaia
-pdfminer.six
-markdownify
-pathvalidate
+pyautogen[websurfer] @ git+https://github.com/microsoft/autogen.git@complex_tasks

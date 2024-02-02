@@ -9,8 +9,8 @@ from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
-from autogen.agentchat.contrib.group_chat_moderator import GroupChatModerator
 from autogen.token_count_utils import count_token, get_max_token_limit
+from group_chat_moderator import GroupChatModerator
 
 testbed_utils.init()
 ##############################
@@ -40,7 +40,7 @@ final_llm_config["temperature"] = 0.1
 client = autogen.OpenAIWrapper(**final_llm_config)
 
 
-def response_preparer(inner_messages):
+def response_preparer(agent, inner_messages):
     tokens = 0
 
     messages = [
@@ -109,6 +109,7 @@ If you are asked for a comma separated list, apply the above rules depending of 
 assistant = autogen.AssistantAgent(
     "assistant",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    code_execution_config=False,
     llm_config=llm_config,
 )
 user_proxy = autogen.UserProxyAgent(
@@ -131,6 +132,7 @@ web_surfer = WebSurferAgent(
     llm_config=llm_config,
     summarizer_llm_config=summarizer_llm_config,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    code_execution_config=False,
     browser_config={
         "bing_api_key": os.environ["BING_API_KEY"],
         "viewport_size": 1024 * 5,
@@ -159,13 +161,14 @@ groupchat = GroupChatModerator(
     messages=[],
     speaker_selection_method="auto",
     allow_repeat_speaker=[web_surfer, assistant],
+    send_introductions=True,
 )
 
 manager = autogen.GroupChatManager(
     groupchat=groupchat,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
-    send_introductions=True,
     llm_config=llm_config,
+    code_execution_config=False,
 )
 
 soc = SocietyOfMindAgent(
@@ -173,6 +176,7 @@ soc = SocietyOfMindAgent(
     chat_manager=manager,
     response_preparer=response_preparer,
     llm_config=llm_config,
+    code_execution_config=False,
 )
 
 try:
