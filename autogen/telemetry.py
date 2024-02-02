@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import inspect
 import json
+import logging
 import sqlite3
 import sys
 import uuid
@@ -26,74 +27,83 @@ else:
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
-this._session_id = str(uuid.uuid4())
+this._session_id = None
 this._con = None
 this._cur = None
+logger = logging.getLogger(__name__)
 
 
-def start_logging(dbname: str = "telemetry.db") -> None:
+def start_logging(dbname: str = "telemetry.db") -> str:
     """
     Open a connection to the telemetry logging database, and start recording.
     """
-    this._con = sqlite3.connect(dbname)
-    this._cur = this._con.cursor()
-    query = """
-        CREATE TABLE IF NOT EXISTS chat_completions(
-            id INTEGER PRIMARY KEY,
-            invocation_id TEXT,
-            client_id INTEGER,
-            wrapper_id INTEGER,
-            session_id TEXT,
-            request TEXT,
-            response TEXT,
-            is_cached INEGER,
-            cost REAL,
-            start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-            end_time DATETIME DEFAULT CURRENT_TIMESTAMP)
-    """
-    this._cur.execute(query)
-    this._con.commit()
+    this._session_id = str(uuid.uuid4())
 
-    query = """
-        CREATE TABLE IF NOT EXISTS agents (
-            id INTEGER PRIMARY KEY,                             -- Key assigned by the database
-            agent_id INTEGER,                                   -- result of python id(agent)
-            wrapper_id INTEGER,                                 -- result of python id(agent.client)
-            session_id TEXT,
-            name TEXT,                                          -- agent.name
-            class TEXT,                                         -- type or class name of agent
-            init_args TEXT,                                     -- JSON serialization of constructor
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(agent_id, session_id))
-    """
-    this._cur.execute(query)
-    this._con.commit()
+    try:
+        this._con = sqlite3.connect(dbname)
+        this._cur = this._con.cursor()
 
-    query = """
-        CREATE TABLE IF NOT EXISTS oai_wrappers (
-            id INTEGER PRIMARY KEY,                             -- Key assigned by the database
-            wrapper_id INTEGER,                                 -- result of python id(wrapper)
-            session_id TEXT,
-            init_args TEXT,                                     -- JSON serialization of constructor
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(wrapper_id, session_id))
-    """
-    this._cur.execute(query)
-    this._con.commit()
+        query = """
+            CREATE TABLE IF NOT EXISTS chat_completions(
+                id INTEGER PRIMARY KEY,
+                invocation_id TEXT,
+                client_id INTEGER,
+                wrapper_id INTEGER,
+                session_id TEXT,
+                request TEXT,
+                response TEXT,
+                is_cached INEGER,
+                cost REAL,
+                start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                end_time DATETIME DEFAULT CURRENT_TIMESTAMP)
+        """
+        this._cur.execute(query)
+        this._con.commit()
 
-    query = """
-        CREATE TABLE IF NOT EXISTS oai_clients (
-            id INTEGER PRIMARY KEY,                             -- Key assigned by the database
-            client_id INTEGER,                                  -- result of python id(client)
-            wrapper_id INTEGER,                                 -- result of python id(wrapper)
-            session_id TEXT,
-            class TEXT,                                         -- type or class name of client
-            init_args TEXT,                                     -- JSON serialization of constructor
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(client_id, session_id))
-    """
-    this._cur.execute(query)
-    this._con.commit()
+        query = """
+            CREATE TABLE IF NOT EXISTS agents (
+                id INTEGER PRIMARY KEY,                             -- Key assigned by the database
+                agent_id INTEGER,                                   -- result of python id(agent)
+                wrapper_id INTEGER,                                 -- result of python id(agent.client)
+                session_id TEXT,
+                name TEXT,                                          -- agent.name
+                class TEXT,                                         -- type or class name of agent
+                init_args TEXT,                                     -- JSON serialization of constructor
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(agent_id, session_id))
+        """
+        this._cur.execute(query)
+        this._con.commit()
+
+        query = """
+            CREATE TABLE IF NOT EXISTS oai_wrappers (
+                id INTEGER PRIMARY KEY,                             -- Key assigned by the database
+                wrapper_id INTEGER,                                 -- result of python id(wrapper)
+                session_id TEXT,
+                init_args TEXT,                                     -- JSON serialization of constructor
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(wrapper_id, session_id))
+        """
+        this._cur.execute(query)
+        this._con.commit()
+
+        query = """
+            CREATE TABLE IF NOT EXISTS oai_clients (
+                id INTEGER PRIMARY KEY,                             -- Key assigned by the database
+                client_id INTEGER,                                  -- result of python id(client)
+                wrapper_id INTEGER,                                 -- result of python id(wrapper)
+                session_id TEXT,
+                class TEXT,                                         -- type or class name of client
+                init_args TEXT,                                     -- JSON serialization of constructor
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(client_id, session_id))
+        """
+        this._cur.execute(query)
+        this._con.commit()
+    except sqlite3.Error as e:
+        logger.error(f"[Telemetry] start_logging error: {e}")
+    finally:
+        return this._session_id
 
 
 def get_connection():
@@ -106,6 +116,8 @@ def get_connection():
 def _to_dict(
     obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any], exclude: List[str] = []
 ) -> Any:
+    from autogen import Agent
+
     if isinstance(obj, (int, float, str, bool)):
         return obj
     elif callable(obj):
@@ -113,7 +125,7 @@ def _to_dict(
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
-        return [_to_dict(v, exclude) for v in obj]
+        return [_to_dict(v, exclude) if not isinstance(v, Agent) else _to_dict(str(v), exclude) for v in obj]
     elif hasattr(obj, "__dict__"):
         return {k: _to_dict(v, exclude) for k, v in vars(obj).items() if k not in exclude}
     else:
@@ -148,7 +160,6 @@ def log_chat_completion(
         start_time (str):                   A string representing the moment the request was initiated
     """
 
-    # Nothing to do
     if this._con is None:
         return
 
@@ -168,22 +179,26 @@ def log_chat_completion(
 
     query = """INSERT INTO chat_completions (
         invocation_id, client_id, wrapper_id, session_id, request, response, is_cached, cost, start_time, end_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-    this._cur.execute(
-        query,
-        (
-            invocation_id,
-            client_id,
-            wrapper_id,
-            this._session_id,
-            json.dumps(request),
-            response_messages,
-            is_cached,
-            cost,
-            start_time,
-            end_time,
-        ),
-    )
-    this._con.commit()
+
+    try:
+        this._cur.execute(
+            query,
+            (
+                invocation_id,
+                client_id,
+                wrapper_id,
+                this._session_id,
+                json.dumps(request),
+                response_messages,
+                is_cached,
+                cost,
+                start_time,
+                end_time,
+            ),
+        )
+        this._con.commit()
+    except sqlite3.Error as e:
+        logger.error(f"[Telemetry] log_chat_completion error: {e}")
 
 
 def log_new_agent(agent: ConversableAgent, init_args: Dict):
@@ -213,20 +228,22 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
         init_args = excluded.init_args,
         timestamp = excluded.timestamp
     """
-
-    this._cur.execute(
-        query,
-        (
-            id(agent),
-            agent.client.wrapper_id if agent.client is not None else "",
-            this._session_id,
-            agent.name,
-            type(agent).__name__,
-            json.dumps(args),
-            get_current_ts(),
-        ),
-    )
-    this._con.commit()
+    try:
+        this._cur.execute(
+            query,
+            (
+                id(agent),
+                agent.client.wrapper_id if agent.client is not None else "",
+                this._session_id,
+                agent.name,
+                type(agent).__name__,
+                json.dumps(args),
+                get_current_ts(),
+            ),
+        )
+        this._con.commit()
+    except sqlite3.Error as e:
+        logger.error(f"[Telemetry] log_new_agent error: {e}")
 
 
 def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
@@ -250,16 +267,19 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     INSERT INTO oai_wrappers (wrapper_id, session_id, init_args, timestamp) VALUES (?, ?, ?, ?)
     ON CONFLICT (wrapper_id, session_id) DO NOTHING;
     """
-    this._cur.execute(
-        query,
-        (
-            id(wrapper),
-            this._session_id,
-            json.dumps(args),
-            get_current_ts(),
-        ),
-    )
-    this._con.commit()
+    try:
+        this._cur.execute(
+            query,
+            (
+                id(wrapper),
+                this._session_id,
+                json.dumps(args),
+                get_current_ts(),
+            ),
+        )
+        this._con.commit()
+    except sqlite3.Error as e:
+        logger.error(f"[Telemetry] log_new_wrapper error: {e}")
 
 
 def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict):
@@ -283,19 +303,21 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
     INSERT INTO oai_clients (client_id, wrapper_id, session_id, class, init_args, timestamp) VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT (client_id, session_id) DO NOTHING;
     """
-
-    this._cur.execute(
-        query,
-        (
-            id(client),
-            id(wrapper),
-            this._session_id,
-            type(client).__name__,
-            json.dumps(args),
-            get_current_ts(),
-        ),
-    )
-    this._con.commit()
+    try:
+        this._cur.execute(
+            query,
+            (
+                id(client),
+                id(wrapper),
+                this._session_id,
+                type(client).__name__,
+                json.dumps(args),
+                get_current_ts(),
+            ),
+        )
+        this._con.commit()
+    except sqlite3.Error as e:
+        logger.error(f"[Telemetry] log_new_client error: {e}")
 
 
 def get_current_ts():
@@ -310,3 +332,17 @@ def stop_logging():
         this._con.close()
         this._con = None
         this._cur = None
+
+
+def get_log(dbname: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
+    """
+    Return a dict string of the database.
+    """
+    con = sqlite3.connect(dbname)
+    query = f"SELECT * FROM {table}"
+    cursor = con.execute(query)
+    rows = cursor.fetchall()
+    column_names = [description[0] for description in cursor.description]
+    data = [dict(zip(column_names, row)) for row in rows]
+    con.close()
+    return data
