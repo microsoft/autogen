@@ -15,7 +15,7 @@ AutoAnny is a Discord bot built using AutoGen to help with AutoGen's Discord ser
 
 ## Installation
 
-1. Clone this repository: `git clone https://github.com/gagb/AutoAnny.git`
+1. Clone the AutoGen repository and `cd samples/apps/auto-anny`
 2. Install dependencies: `pip install -r requirements.txt`
 3. Export Discord token and GitHub API token,
     ```
