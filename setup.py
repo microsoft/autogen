@@ -22,8 +22,8 @@ install_requires = [
     "tiktoken",
     "pydantic>=1.10,<3",  # could be both V1 and V2
     "docker",
-    "jupyter-client",
-    "ipykernel",
+    "jupyter-client>=8.6.0",
+    "ipykernel>=6.29.0",
 ]
 
 setuptools.setup(
