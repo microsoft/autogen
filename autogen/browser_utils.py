@@ -8,8 +8,7 @@ import uuid
 import mimetypes
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 # Optional PDF support
 IS_PDF_CAPABLE = False

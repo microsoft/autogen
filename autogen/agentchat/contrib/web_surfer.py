@@ -53,31 +53,7 @@ class WebSurferAgent(ConversableAgent):
             default_auto_reply=default_auto_reply,
         )
 
-        # If the summarizer_llm_config is None, we copy it from the llm_config
-        if summarizer_llm_config is None:
-            if llm_config is None:  # Nothing to copy
-                self.summarizer_llm_config = None
-            elif llm_config is False:  # LLMs disabled
-                self.summarizer_llm_config = False
-            else:  # Create a suitable config
-                self.summarizer_llm_config = copy.deepcopy(llm_config)  # type: ignore[assignment]
-                if "config_list" in self.summarizer_llm_config:  # type: ignore[operator]
-                    preferred_models = filter_config(  # type: ignore[no-untyped-call]
-                        self.summarizer_llm_config["config_list"],  # type: ignore[index]
-                        {"model": ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]},
-                    )
-                    if len(preferred_models) == 0:
-                        logger.warning(
-                            "The summarizer did not find the preferred model (gpt-3.5-turbo-16k) in the config list. "
-                            "Semantic operations on webpages (summarization or Q&A) might be costly or ineffective."
-                        )
-                    else:
-                        self.summarizer_llm_config["config_list"] = preferred_models  # type: ignore[index]
-        else:
-            self.summarizer_llm_config = summarizer_llm_config  # type: ignore[assignment]
-
-        # Create the summarizer client
-        self.summarization_client = None if self.summarizer_llm_config is False else OpenAIWrapper(**self.summarizer_llm_config)  # type: ignore[arg-type]
+        self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
         self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
@@ -108,6 +84,33 @@ class WebSurferAgent(ConversableAgent):
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    def _create_summarizer_client(self, summarizer_llm_config: Dict[str, Any], llm_config: Dict[str, Any]) -> None:
+        # If the summarizer_llm_config is None, we copy it from the llm_config
+        if summarizer_llm_config is None:
+            if llm_config is None:  # Nothing to copy
+                self.summarizer_llm_config = None
+            elif llm_config is False:  # LLMs disabled
+                self.summarizer_llm_config = False
+            else:  # Create a suitable config
+                self.summarizer_llm_config = copy.deepcopy(llm_config)  # type: ignore[assignment]
+                if "config_list" in self.summarizer_llm_config:  # type: ignore[operator]
+                    preferred_models = filter_config(  # type: ignore[no-untyped-call]
+                        self.summarizer_llm_config["config_list"],  # type: ignore[index]
+                        {"model": ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]},
+                    )
+                    if len(preferred_models) == 0:
+                        logger.warning(
+                            "The summarizer did not find the preferred model (gpt-3.5-turbo-16k) in the config list. "
+                            "Semantic operations on webpages (summarization or Q&A) might be costly or ineffective."
+                        )
+                    else:
+                        self.summarizer_llm_config["config_list"] = preferred_models  # type: ignore[index]
+        else:
+            self.summarizer_llm_config = summarizer_llm_config  # type: ignore[assignment]
+
+        # Create the summarizer client
+        self.summarization_client = None if self.summarizer_llm_config is False else OpenAIWrapper(**self.summarizer_llm_config)  # type: ignore[arg-type]
 
     def _register_functions(self) -> None:
         """Register the functions for the inner assistant and user proxy."""
