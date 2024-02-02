@@ -4,19 +4,20 @@ import inspect
 import logging
 import os
 import sys
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
 from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
+from autogen._pydantic import model_dump
 from autogen.cache.cache import Cache
 from autogen.oai import completion
-from autogen.oai.openai_utils import OAI_PRICE1K, get_key
+from autogen.oai.openai_utils import (DEFAULT_AZURE_API_VERSION, OAI_PRICE1K,
+                                      get_key)
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
 try:
-    import diskcache
     import openai
 except ImportError:
     ERROR: Optional[ImportError] = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
@@ -40,12 +41,10 @@ else:
         TOOL_ENABLED = True
     ERROR = None
 
-
 try:
     from autogen.oai.gemini import GeminiClient
 except ImportError:
     GeminiClient = object
-
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:

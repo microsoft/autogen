@@ -41,10 +41,7 @@ from autogen.token_count_utils import count_token
 
 
 class GeminiClient:
-    """
-    _summary_
-
-    _extended_summary_
+    """Client for Google's Gemini API.
 
     TODO: this Gemini implementation does not support the following features yet:
     - function_call (OpenAI)
@@ -62,6 +59,36 @@ class GeminiClient:
         assert self.api_key is not None, (
             "Please provide api_key in OAI_CONFIG_LIST " "or set the GOOGLE_API_KEY env variable."
         )
+
+        self.model = kwargs.get("model", "gemini-pro")
+
+
+    def message_retrieval(
+        self, response
+    ) -> List:
+        """
+        Retrieve and return a list of strings or a list of Choice.Message from the response.
+
+        NOTE: if a list of Choice.Message is returned, it currently needs to contain the fields of OpenAI's ChatCompletion Message object,
+        since that is expected for function or tool calling in the rest of the codebase at the moment, unless a custom agent is being used.
+        """
+        return [choice.message for choice in response.choices]
+
+    def cost(self, response) -> float:
+        return 0.0 # the current cost of Gemini api is zero.
+
+    @staticmethod
+    def get_usage(response) -> Dict:
+        """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
+        # ...  # pragma: no cover
+        return {
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+            "total_tokens": response.usage.total_tokens,
+            "cost": response.cost,
+            "model": response.model,
+        }
+
 
     def create(self, params: Dict) -> ChatCompletion:
         model_name = params.get("model", "gemini-pro")
@@ -139,9 +166,11 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
+            cost=0, # Gemini's cost is zero
         )
 
         return response_oai
+
 
 
 def oai_content_to_gemini_content(content: Union[str, List]) -> List:
