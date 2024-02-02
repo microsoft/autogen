@@ -1963,7 +1963,6 @@ class ConversableAgent(Agent):
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        # If any required condition is not met, return the original message list.
         hook_list = self.hook_lists[self.process_all_messages]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
