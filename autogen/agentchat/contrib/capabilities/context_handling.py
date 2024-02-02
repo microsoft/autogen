@@ -40,5 +40,7 @@ class LongContextCapability:
             if len(processed_messages) >= self.max_messages:
                 break
             processed_messages.append(message)
-        print(f"Truncated {len(messages) - len(processed_messages)}:")
+        num_truncated = len(messages) - len(processed_messages)
+        if num_truncated > 0:
+            print(f"Truncated {len(messages) - len(processed_messages)} messages.")
         return processed_messages
