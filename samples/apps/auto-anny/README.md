@@ -5,6 +5,7 @@
 # AutoAnny
 
 AutoAnny is a Discord bot built using AutoGen to help with AutoGen's Discord server.
+Actually Anny can help with any OSS GitHub project (set `ANNY_GH_REPO` below).
 
 ## Features
 
@@ -22,6 +23,7 @@ AutoAnny is a Discord bot built using AutoGen to help with AutoGen's Discord ser
     export OAI_CONFIG_LIST=your-autogen-config-list
     export DISCORD_TOKEN=your-bot-token
     export GH_TOKEN=your-gh-token
+    export ANNY_GH_REPO=microsoft/autogen  # you may choose a different repo name
     ```
 4. Start the bot: `python bot.py`
 
