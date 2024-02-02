@@ -123,7 +123,7 @@ def _to_dict(
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
-        return [_to_dict(v, exclude) for v in obj if not callable(v)]
+        return [_to_dict(v, exclude) for v in obj]
     elif hasattr(obj, "__dict__"):
         result = {}
         for k, v in vars(obj).items():
