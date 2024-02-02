@@ -8,6 +8,7 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
+
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
@@ -72,7 +73,7 @@ class ConversableAgent:  # implements LLAgent protocol
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        code_execution_config: Union[Dict, Literal[False]] = {},
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         description: Optional[str] = None,
@@ -141,7 +142,7 @@ class ConversableAgent:  # implements LLAgent protocol
 
         # Initialize standalone client cache object.
         self.client_cache = None
-
+        
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
@@ -161,6 +162,12 @@ class ConversableAgent:  # implements LLAgent protocol
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
 
         # Setting up code execution.
+        if code_execution_config is None:
+            warnings.warn(
+                "Using None to signal a default code_execution_config is deprecated. "
+                "Use {} to use default or False to disable code execution.",
+                stacklevel=2,
+            )
         # Do not register code execution reply if code execution is disabled.
         if code_execution_config is not False:
             # If code_execution_config is None, set it to an empty dict.
