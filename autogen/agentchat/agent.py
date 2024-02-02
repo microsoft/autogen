@@ -9,28 +9,45 @@ class Agent(Protocol):
     Different agents can differ in what actions they perform in the `receive` method.
     """
 
+    @property
+    def name(self) -> str:
+        """The name of the agent."""
+        ...
+
+    @property
+    def description(self) -> str:
+        """The description of the agent. Used for the agent's introduction in
+        a group chat setting."""
+        ...
+
     def send(
-        self, message: Union[Dict[str, Any], str], recipient: "Agent", request_reply: Optional[bool] = None
+        self,
+        message: Union[Dict[str, Any], str],
+        recipient: "Agent",
+        request_reply: Optional[bool] = None,
     ) -> None:
-        """(Abstract method) Send a message to another agent."""
+        """Send a message to another agent."""
+        ...
 
     async def a_send(
-        self, message: Union[Dict[str, Any], str], recipient: "Agent", request_reply: Optional[bool] = None
+        self,
+        message: Union[Dict[str, Any], str],
+        recipient: "Agent",
+        request_reply: Optional[bool] = None,
     ) -> None:
-        """(Abstract async method) Send a message to another agent."""
+        """(Async) Send a message to another agent."""
+        ...
 
     def receive(
         self, message: Union[Dict[str, Any], str], sender: "Agent", request_reply: Optional[bool] = None
     ) -> None:
-        """(Abstract method) Receive a message from another agent."""
+        """Receive a message from another agent."""
 
     async def a_receive(
         self, message: Union[Dict[str, Any], str], sender: "Agent", request_reply: Optional[bool] = None
     ) -> None:
-        """(Abstract async method) Receive a message from another agent."""
-
-    def reset(self) -> None:
-        """(Abstract method) Reset the agent."""
+        """(Async) Receive a message from another agent."""
+        ...
 
     def generate_reply(
         self,
@@ -39,7 +56,7 @@ class Agent(Protocol):
         exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
-        """(Abstract method) Generate a reply based on the received messages.
+        """Generate a reply based on the received messages.
 
         Args:
             messages (list[dict]): a list of messages received.
@@ -55,7 +72,7 @@ class Agent(Protocol):
         exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
-        """(Abstract async method) Generate a reply based on the received messages.
+        """(Async) Generate a reply based on the received messages.
 
         Args:
             messages (list[dict]): a list of messages received.
