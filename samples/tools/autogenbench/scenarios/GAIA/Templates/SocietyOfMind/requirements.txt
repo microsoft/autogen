@@ -1,1 +1,1 @@
-pyautogen[websurfer] @ git+https://github.com/microsoft/autogen.git@soc_gaia
+pyautogen[websurfer] @ git+https://github.com/microsoft/autogen.git@complex_tasks
