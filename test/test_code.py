@@ -16,6 +16,10 @@ from autogen.code_utils import (
     improve_code,
     improve_function,
     infer_lang,
+    is_docker_running,
+    in_docker_container,
+    decide_use_docker,
+    check_can_use_docker_or_throw,
 )
 
 KEY_LOC = "notebook"
@@ -309,6 +313,10 @@ def scrape(url):
     assert len(codeblocks) == 1 and codeblocks[0] == ("", "source setup.sh")
 
 
+# skip if os is windows
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running() and not in_docker_container()), reason="docker is not running"
+)
 def test_execute_code(use_docker=None):
     try:
         import docker
@@ -350,14 +358,20 @@ def test_execute_code(use_docker=None):
     assert isinstance(image, str) or docker is None or os.path.exists("/.dockerenv") or use_docker is False
 
 
-@pytest.mark.skipif(docker_package_installed is False, reason="docker package not installed")
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running()) or in_docker_container(),
+    reason="docker is not running or in docker container already",
+)
 def test_execute_code_with_custom_filename_on_docker():
     exit_code, msg, image = execute_code("print('hello world')", filename="tmp/codetest.py", use_docker=True)
     assert exit_code == 0 and msg == "hello world\n", msg
     assert image == "python:tmp_codetest.py"
 
 
-@pytest.mark.skipif(docker_package_installed is False, reason="docker package not installed")
+@pytest.mark.skipif(
+    sys.platform in ["win32"] or (not is_docker_running()) or in_docker_container(),
+    reason="docker is not running or in docker container already",
+)
 def test_execute_code_with_misformed_filename_on_docker():
     exit_code, msg, image = execute_code(
         "print('hello world')", filename="tmp/codetest.py (some extra information)", use_docker=True
@@ -380,6 +394,89 @@ def test_execute_code_no_docker():
     if sys.platform != "win32":
         assert exit_code and error == "Timeout"
     assert image is None
+
+
+def get_current_autogen_env_var():
+    return os.environ.get("AUTOGEN_USE_DOCKER", None)
+
+
+def restore_autogen_env_var(current_env_value):
+    if current_env_value is None:
+        del os.environ["AUTOGEN_USE_DOCKER"]
+    else:
+        os.environ["AUTOGEN_USE_DOCKER"] = current_env_value
+
+
+def test_decide_use_docker_truthy_values():
+    current_env_value = get_current_autogen_env_var()
+
+    for truthy_value in ["1", "true", "yes", "t"]:
+        os.environ["AUTOGEN_USE_DOCKER"] = truthy_value
+        assert decide_use_docker(None) is True
+
+    restore_autogen_env_var(current_env_value)
+
+
+def test_decide_use_docker_falsy_values():
+    current_env_value = get_current_autogen_env_var()
+
+    for falsy_value in ["0", "false", "no", "f"]:
+        os.environ["AUTOGEN_USE_DOCKER"] = falsy_value
+        assert decide_use_docker(None) is False
+
+    restore_autogen_env_var(current_env_value)
+
+
+def test_decide_use_docker():
+    current_env_value = get_current_autogen_env_var()
+
+    os.environ["AUTOGEN_USE_DOCKER"] = "none"
+    assert decide_use_docker(None) is None
+    os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
+    with pytest.raises(ValueError):
+        decide_use_docker(None)
+
+    restore_autogen_env_var(current_env_value)
+
+
+def test_decide_use_docker_with_env_var():
+    current_env_value = get_current_autogen_env_var()
+
+    os.environ["AUTOGEN_USE_DOCKER"] = "false"
+    assert decide_use_docker(None) is False
+    os.environ["AUTOGEN_USE_DOCKER"] = "true"
+    assert decide_use_docker(None) is True
+    os.environ["AUTOGEN_USE_DOCKER"] = "none"
+    assert decide_use_docker(None) is None
+    os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
+    with pytest.raises(ValueError):
+        decide_use_docker(None)
+
+    restore_autogen_env_var(current_env_value)
+
+
+def test_decide_use_docker_with_env_var_and_argument():
+    current_env_value = get_current_autogen_env_var()
+
+    os.environ["AUTOGEN_USE_DOCKER"] = "false"
+    assert decide_use_docker(True) is True
+    os.environ["AUTOGEN_USE_DOCKER"] = "true"
+    assert decide_use_docker(False) is False
+    os.environ["AUTOGEN_USE_DOCKER"] = "none"
+    assert decide_use_docker(True) is True
+    os.environ["AUTOGEN_USE_DOCKER"] = "invalid"
+    assert decide_use_docker(True) is True
+
+    restore_autogen_env_var(current_env_value)
+
+
+def test_can_use_docker_or_throw():
+    check_can_use_docker_or_throw(None)
+    if not is_docker_running() and not in_docker_container():
+        check_can_use_docker_or_throw(False)
+    if not is_docker_running() and not in_docker_container():
+        with pytest.raises(RuntimeError):
+            check_can_use_docker_or_throw(True)
 
 
 def _test_improve():

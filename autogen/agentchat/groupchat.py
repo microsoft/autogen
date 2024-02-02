@@ -31,6 +31,9 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat.
+    - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
+        "clear history" phrase in user prompt. This is experimental feature.
+        See description of GroupChatManager.clear_agents_history function for more info.
     """
 
     agents: List[Agent]
@@ -40,6 +43,7 @@ class GroupChat:
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = True
+    enable_clear_history: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
 
@@ -334,18 +338,32 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
+        super()._prepare_chat(recipient, clear_history, prepare_recipient)
+
+        if clear_history:
+            self._groupchat.reset()
+
+        for agent in self._groupchat.agents:
+            if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
+                agent._prepare_chat(self, clear_history, False)
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[GroupChat] = None,
-    ) -> Union[str, Dict, None]:
+    ) -> Tuple[bool, Optional[str]]:
         """Run a group chat."""
         if messages is None:
             messages = self._oai_messages[sender]
         message = messages[-1]
         speaker = sender
         groupchat = config
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.previous_cache = a.client_cache
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
             if self._is_termination_msg(message):
@@ -374,11 +392,23 @@ class GroupChatManager(ConversableAgent):
                     raise
             if reply is None:
                 break
+
+            # check for "clear history" phrase in reply and activate clear history function if found
+            if (
+                groupchat.enable_clear_history
+                and isinstance(reply, dict)
+                and "CLEAR HISTORY" in reply["content"].upper()
+            ):
+                reply["content"] = self.clear_agents_history(reply["content"], groupchat)
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
             if i == groupchat.max_round - 1:
                 groupchat.append(message, speaker)
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.client_cache = a.previous_cache
+                a.previous_cache = None
         return True, None
 
     async def a_run_chat(
@@ -393,6 +423,10 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.previous_cache = a.client_cache
+                a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
 
@@ -426,6 +460,10 @@ class GroupChatManager(ConversableAgent):
             # The speaker sends the message without requesting a reply
             await speaker.a_send(reply, self, request_reply=False)
             message = self.last_message(speaker)
+        if self.client_cache is not None:
+            for a in groupchat.agents:
+                a.client_cache = a.previous_cache
+                a.previous_cache = None
         return True, None
 
     def _raise_exception_on_async_reply_functions(self) -> None:
@@ -438,3 +476,70 @@ class GroupChatManager(ConversableAgent):
 
         for agent in self._groupchat.agents:
             agent._raise_exception_on_async_reply_functions()
+
+    def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
+        """Clears history of messages for all agents or selected one. Can preserve selected number of last messages.
+        That function is called when user manually provide "clear history" phrase in his reply.
+        When "clear history" is provided, the history of messages for all agents is cleared.
+        When "clear history <agent_name>" is provided, the history of messages for selected agent is cleared.
+        When "clear history <nr_of_messages_to_preserve>" is provided, the history of messages for all agents is cleared
+        except last <nr_of_messages_to_preserve> messages.
+        When "clear history <agent_name> <nr_of_messages_to_preserve>" is provided, the history of messages for selected
+        agent is cleared except last <nr_of_messages_to_preserve> messages.
+        Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
+
+        Args:
+            reply (str): Admin reply to analyse.
+            groupchat (GroupChat): GroupChat object.
+        """
+        # Split the reply into words
+        words = reply.split()
+        # Find the position of "clear" to determine where to start processing
+        clear_word_index = next(i for i in reversed(range(len(words))) if words[i].upper() == "CLEAR")
+        # Extract potential agent name and steps
+        words_to_check = words[clear_word_index + 2 : clear_word_index + 4]
+        nr_messages_to_preserve = None
+        agent_to_memory_clear = None
+
+        for word in words_to_check:
+            if word.isdigit():
+                nr_messages_to_preserve = int(word)
+            elif word[:-1].isdigit():  # for the case when number of messages is followed by dot or other sign
+                nr_messages_to_preserve = int(word[:-1])
+            else:
+                for agent in groupchat.agents:
+                    if agent.name == word:
+                        agent_to_memory_clear = agent
+                        break
+                    elif agent.name == word[:-1]:  # for the case when agent name is followed by dot or other sign
+                        agent_to_memory_clear = agent
+                        break
+        # clear history
+        if agent_to_memory_clear:
+            if nr_messages_to_preserve:
+                print(
+                    f"Clearing history for {agent_to_memory_clear.name} except last {nr_messages_to_preserve} messages."
+                )
+            else:
+                print(f"Clearing history for {agent_to_memory_clear.name}.")
+            agent_to_memory_clear.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
+        else:
+            if nr_messages_to_preserve:
+                print(f"Clearing history for all agents except last {nr_messages_to_preserve} messages.")
+                # clearing history for groupchat here
+                temp = groupchat.messages[-nr_messages_to_preserve:]
+                groupchat.messages.clear()
+                groupchat.messages.extend(temp)
+            else:
+                print("Clearing history for all agents.")
+                # clearing history for groupchat here
+                groupchat.messages.clear()
+            # clearing history for agents
+            for agent in groupchat.agents:
+                agent.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
+
+        # Reconstruct the reply without the "clear history" command and parameters
+        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(nr_messages_to_preserve))
+        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
+
+        return reply

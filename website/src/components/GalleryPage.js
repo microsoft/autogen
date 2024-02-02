@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import galleryData from "../data/gallery.json";
-import { Card, List, Select } from "antd";
+import { Card, List, Select, Typography } from "antd";
 import { useLocation, useHistory } from "react-router-dom";
 
 const { Option } = Select;
+const { Paragraph, Title } = Typography;
 
 const GalleryPage = () => {
   const location = useLocation();
@@ -61,6 +62,7 @@ const GalleryPage = () => {
         style={{ width: "100%", marginBottom: 16 }}
         value={selectedTags}
         onChange={handleTagChange}
+        aria-label="Filter by tags"
       >
         {allTags.map((tag) => (
           <Option key={tag} value={tag}>
@@ -74,10 +76,10 @@ const GalleryPage = () => {
           gutter: 16,
           xs: 1,
           sm: 2,
-          md: 3,
-          lg: 3,
-          xl: 4,
-          xxl: 4,
+          md: 2,
+          lg: 2,
+          xl: 3,
+          xxl: 3,
         }}
         dataSource={filteredData}
         renderItem={(item) => (
@@ -91,6 +93,7 @@ const GalleryPage = () => {
               <Card
                 hoverable
                 bordered
+                style={{ height: 370, paddingTop: 15 }}
                 cover={
                   <img
                     alt={item.title}
@@ -101,29 +104,27 @@ const GalleryPage = () => {
                           : `/autogen/img/gallery/${item.image}`
                         : `/autogen/img/gallery/default.png`
                     }
+                    style={{
+                      height: 150,
+                      width: "fit-content",
+                      margin: "auto",
+                      padding: 2,
+                    }}
                   />
                 }
               >
-                <div>
-                  <span
-                    style={{
-                      fontSize: "1.2rem",
-                      fontWeight: "bold",
-                      color: "black",
-                    }}
-                  >
-                    {item.title}
-                  </span>
-                </div>
-                <div
+                <Title level={5} ellipsis={{ rows: 2 }}>
+                  {item.title}
+                </Title>
+                <Paragraph
+                  ellipsis={{ rows: 3 }}
                   style={{
-                    // fontSize: "0.8rem",
                     fontWeight: "normal",
-                    color: "grey",
+                    color: "#727272",
                   }}
                 >
                   {item.description ? item.description : item.title}
-                </div>
+                </Paragraph>
                 <TagsView tags={item.tags} />
               </Card>
             </a>

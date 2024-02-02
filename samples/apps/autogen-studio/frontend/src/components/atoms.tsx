@@ -7,10 +7,23 @@ import {
   PlusIcon,
   ArrowPathIcon,
   ArrowDownRightIcon,
+  PencilIcon,
+  UserGroupIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
-import { Button, Input, Modal, Select, Slider, Tooltip, message } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  MenuProps,
+  Modal,
+  Select,
+  Slider,
+  Tooltip,
+  message,
+} from "antd";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -19,6 +32,7 @@ import { fetchJSON, getServerUrl, truncateText } from "./utils";
 import {
   IAgentFlowSpec,
   IFlowConfig,
+  IGroupChatFlowSpec,
   IModelConfig,
   ISkill,
   IStatus,
@@ -27,6 +41,7 @@ import { ResizableBox } from "react-resizable";
 import debounce from "lodash.debounce";
 import TextArea from "antd/es/input/TextArea";
 import { appContext } from "../hooks/provider";
+import Item from "antd/es/list/Item";
 
 interface CodeProps {
   node?: any;
@@ -603,17 +618,27 @@ export const ModelSelector = ({
     null
   );
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [models, setModels] = useState<IModelConfig[]>([]);
+  const serverUrl = getServerUrl();
+
+  const { user } = React.useContext(appContext);
+  const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
 
   const sanitizeModelConfig = (config: IModelConfig) => {
     const sanitizedConfig: IModelConfig = { model: config.model };
     if (config.api_key) sanitizedConfig.api_key = config.api_key;
     if (config.base_url) sanitizedConfig.base_url = config.base_url;
     if (config.api_type) sanitizedConfig.api_type = config.api_type;
+    if (config.api_version) sanitizedConfig.api_version = config.api_version;
     return sanitizedConfig;
   };
 
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
+
     setConfigs(updatedConfigs);
   };
 
@@ -621,6 +646,78 @@ export const ModelSelector = ({
     setNewModelConfig(config);
     setEditIndex(index);
     setIsModalVisible(true);
+  };
+
+  const fetchModels = () => {
+    setError(null);
+    setLoading(true);
+    // const fetch;
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        // message.success(data.message);
+        setModels(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(listModelsUrl, payLoad, onSuccess, onError);
+  };
+
+  useEffect(() => {
+    fetchModels();
+  }, []);
+
+  const modelItems: MenuProps["items"] =
+    models.length > 0
+      ? models.map((model: IModelConfig, index: number) => ({
+          key: index,
+          label: model.model,
+          value: index,
+        }))
+      : [
+          {
+            key: -1,
+            label: "No models found",
+            value: 0,
+          },
+        ];
+
+  const modelOnClick: MenuProps["onClick"] = ({ key }) => {
+    const selectedIndex = parseInt(key.toString());
+    let selectedModel = models[selectedIndex];
+    selectedModel = sanitizeModelConfig(selectedModel);
+    const updatedConfigs = [...configs, selectedModel];
+    setConfigs(updatedConfigs);
+  };
+
+  const AddModelsDropDown = () => {
+    return (
+      <Dropdown
+        menu={{ items: modelItems, onClick: modelOnClick }}
+        placement="bottomRight"
+        trigger={["click"]}
+      >
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+          role="button"
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
+      </Dropdown>
+    );
   };
 
   const handleOk = () => {
@@ -665,6 +762,7 @@ export const ModelSelector = ({
     return (
       <div
         key={"modelrow_" + i}
+        role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
         onClick={() => showModal(config, i)}
       >
@@ -692,18 +790,7 @@ export const ModelSelector = ({
     <div className={`${className}`}>
       <div className="flex flex-wrap">
         {modelButtons}
-        <div
-          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
-          role="button"
-          onClick={() =>
-            showModal(
-              { model: "", api_key: "", base_url: "", api_type: "" },
-              null
-            )
-          }
-        >
-          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
-        </div>
+        <AddModelsDropDown />
       </div>
       <Modal
         title={`${editIndex !== null ? "Edit" : "Add"} Model Configuration`}
@@ -879,27 +966,26 @@ export const AgentFlowSpecView = ({
   // Event handlers for updating local state and propagating changes
 
   const onControlChange = (value: any, key: string) => {
+    if (key === "llm_config") {
+      if (value.config_list.length === 0) {
+        value = false;
+      }
+    }
     const updatedFlowSpec = {
       ...localFlowSpec,
       config: { ...localFlowSpec.config, [key]: value },
     };
+    console.log(updatedFlowSpec.config.llm_config);
     setLocalFlowSpec(updatedFlowSpec);
     setFlowSpec(updatedFlowSpec);
   };
-
-  const onDebouncedControlChange = React.useCallback(
-    debounce((value: any, key: string) => {
-      onControlChange(value, key);
-    }, 3000),
-    [onControlChange]
-  );
 
   const llm_config = localFlowSpec.config.llm_config || { config_list: [] };
 
   return (
     <>
-      <div className="text-accent">{title}</div>
-      <GroupView title={flowSpec.config.name} className="mb-4">
+      <div className="text-accent ">{title}</div>
+      <GroupView title={flowSpec.config.name} className="mb-4 bg-primary  ">
         <ControlRowView
           title="Agent Name"
           className="mt-4"
@@ -950,7 +1036,7 @@ export const AgentFlowSpecView = ({
               max={30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
-              onAfterChange={(value: any) => {
+              onChange={(value: any) => {
                 onControlChange(value, "max_consecutive_auto_reply");
               }}
             />
@@ -971,8 +1057,8 @@ export const AgentFlowSpecView = ({
               options={
                 [
                   { label: "NEVER", value: "NEVER" },
-                  { label: "TERMINATE", value: "TERMINATE" },
-                  { label: "ALWAYS", value: "ALWAYS" },
+                  // { label: "TERMINATE", value: "TERMINATE" },
+                  // { label: "ALWAYS", value: "ALWAYS" },
                 ] as any
               }
             />
@@ -991,7 +1077,8 @@ export const AgentFlowSpecView = ({
                 value={flowSpec.config.system_message}
                 rows={3}
                 onChange={(e) => {
-                  onDebouncedControlChange(e.target.value, "system_message");
+                  // onDebouncedControlChange(e.target.value, "system_message");
+                  onControlChange(e.target.value, "system_message");
                 }}
               />
             }
@@ -1262,6 +1349,341 @@ export const SkillLoader = ({
   );
 };
 
+const GroupChatFlowSpecView = ({
+  flowSpec,
+  setFlowSpec,
+  flowSpecs,
+}: {
+  flowSpec: IGroupChatFlowSpec | null;
+  setFlowSpec: (flowSpec: IGroupChatFlowSpec | null) => void;
+  flowSpecs: IAgentFlowSpec[];
+}) => {
+  const [showAgentModal, setShowAgentModal] = React.useState(false);
+  const [selectedAgent, setSelectedAgent] = React.useState<number | null>(null);
+
+  const handleRemoveAgent = (index: number) => {
+    const updatedAgents = flowSpec?.groupchat_config.agents.filter(
+      (_, i) => i !== index
+    );
+    if (flowSpec?.groupchat_config && updatedAgents) {
+      setFlowSpec({
+        ...flowSpec,
+        groupchat_config: {
+          ...flowSpec?.groupchat_config,
+          agents: updatedAgents,
+        },
+      });
+    }
+  };
+
+  const handleAddAgent = (agent: IAgentFlowSpec) => {
+    if (flowSpec?.groupchat_config && flowSpec?.groupchat_config.agents) {
+      const updatedAgents = [...flowSpec?.groupchat_config.agents, agent];
+      if (flowSpec?.groupchat_config) {
+        setFlowSpec({
+          ...flowSpec,
+          groupchat_config: {
+            ...flowSpec?.groupchat_config,
+            agents: updatedAgents,
+          },
+        });
+      }
+    }
+  };
+
+  const handleAgentUpdate = (updatedAgent: IAgentFlowSpec, index: number) => {
+    const updatedAgents = flowSpec?.groupchat_config.agents.map((agent, i) => {
+      if (i === index) {
+        return updatedAgent;
+      }
+      return agent;
+    });
+    if (flowSpec?.groupchat_config && updatedAgents) {
+      setFlowSpec({
+        ...flowSpec,
+        groupchat_config: {
+          ...flowSpec?.groupchat_config,
+          agents: updatedAgents,
+        },
+      });
+    }
+  };
+
+  const agentItems: MenuProps["items"] = flowSpecs.map(
+    (flowSpec: IAgentFlowSpec, index: number) => ({
+      key: index,
+      label: flowSpec.config.name,
+      value: index,
+    })
+  );
+
+  const agentOnClick: MenuProps["onClick"] = ({ key }) => {
+    const selectedIndex = parseInt(key.toString());
+    const selectedAgent = flowSpecs[selectedIndex];
+    handleAddAgent(selectedAgent);
+  };
+
+  const AgentDropDown = () => {
+    return (
+      <Dropdown
+        menu={{ items: agentItems, onClick: agentOnClick }}
+        placement="bottomRight"
+        trigger={["click"]}
+      >
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+          role="button"
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
+      </Dropdown>
+    );
+  };
+
+  const agentsView = flowSpec?.groupchat_config.agents.map(
+    (flowSpec: IAgentFlowSpec, index: number) => {
+      const tooltipText = `Agent: ${flowSpec?.config.name}`;
+      return (
+        <div
+          key={"agent" + index}
+          className="mr-1 mb-1 p-1 px-2 rounded border"
+          role="button"
+          onClick={() => {
+            setSelectedAgent(index);
+            // setShowAgentModal(true);
+          }}
+        >
+          <div className="inline-flex">
+            {" "}
+            <Tooltip title={tooltipText}>
+              <div className="">{flowSpec.config.name} </div>{" "}
+            </Tooltip>
+            <div
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveAgent(index);
+              }}
+              className="ml-1 text-primary hover:text-accent duration-300"
+            >
+              <XMarkIcon className="w-4 h-4 inline-block" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+  );
+
+  useEffect(() => {
+    if (selectedAgent !== null) {
+      // showAgentModal = true;
+      setShowAgentModal(true);
+    }
+  }, [selectedAgent]);
+
+  return (
+    <div className="mb-4">
+      {showAgentModal &&
+        selectedAgent !== null &&
+        flowSpec?.groupchat_config && (
+          <AgentModal
+            agent={flowSpec?.groupchat_config.agents[selectedAgent]}
+            showAgentModal={showAgentModal}
+            setShowAgentModal={setShowAgentModal}
+            handler={(agent: IAgentFlowSpec | null) => {
+              if (agent) {
+                handleAgentUpdate(agent, selectedAgent);
+                console.log("updating agent at index", selectedAgent, agent);
+              }
+              setSelectedAgent(null);
+            }}
+          />
+        )}
+      <GroupView title="Group Chat Agents">
+        <div className="flex flex-wrap mt-3">
+          {agentsView}
+          <AgentDropDown />
+        </div>
+      </GroupView>
+    </div>
+  );
+};
+
+const AgentModal = ({
+  agent,
+  showAgentModal,
+  setShowAgentModal,
+  handler,
+}: {
+  agent: IAgentFlowSpec | null;
+  showAgentModal: boolean;
+  setShowAgentModal: (show: boolean) => void;
+  handler?: (agent: IAgentFlowSpec | null) => void;
+}) => {
+  const [localAgent, setLocalAgent] = React.useState<IAgentFlowSpec | null>(
+    agent
+  );
+  const [selectedFlowSpec, setSelectedFlowSpec] = useState<number | null>(0);
+
+  const serverUrl = getServerUrl();
+  const { user } = React.useContext(appContext);
+  const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
+
+  const [flowSpecs, setFlowSpecs] = useState<IAgentFlowSpec[]>([]);
+  useEffect(() => {
+    fetchAgents();
+  }, []);
+
+  const fetchAgents = () => {
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        setFlowSpecs(data.data);
+      }
+    };
+    const onError = (err: any) => {
+      console.error(err);
+    };
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
+  };
+
+  const handleAgentChange = (value: any) => {
+    setSelectedFlowSpec(value);
+    setLocalAgent(flowSpecs[value]);
+  };
+
+  return (
+    <Modal
+      title={
+        <>
+          Agent Specification{" "}
+          <span className="text-accent font-normal">{agent?.config.name}</span>{" "}
+        </>
+      }
+      width={800}
+      open={showAgentModal}
+      onOk={() => {
+        if (handler) {
+          handler(localAgent);
+        }
+        setShowAgentModal(false);
+      }}
+      onCancel={() => {
+        setShowAgentModal(false);
+      }}
+    >
+      {agent && (
+        <>
+          {" "}
+          <div className="text-sm text-secondary mt-2">
+            Modify current agent{" "}
+          </div>
+          {localAgent && localAgent.type === "groupchat" && (
+            <div>
+              {" "}
+              Group Chat
+              <GroupChatFlowSpecView
+                flowSpec={localAgent as IGroupChatFlowSpec}
+                setFlowSpec={setLocalAgent}
+                flowSpecs={flowSpecs}
+              />
+            </div>
+          )}
+          {localAgent && (
+            <AgentFlowSpecView
+              title=""
+              flowSpec={localAgent}
+              setFlowSpec={setLocalAgent}
+            />
+          )}
+        </>
+      )}
+
+      {agent && agent.type !== "groupchat" && (
+        <div>
+          {" "}
+          <div>
+            <div className="text-sm text-secondary mt-2">
+              Or replace with an existing agent{" "}
+            </div>
+          </div>
+          <Select
+            className="mt-2 w-full"
+            defaultValue={selectedFlowSpec}
+            value={selectedFlowSpec}
+            onChange={handleAgentChange}
+            options={flowSpecs.map((spec, index) => ({
+              label: spec.config.name,
+              value: index,
+            }))}
+          />
+        </div>
+      )}
+      {/* {JSON.stringify(localAgent)} */}
+    </Modal>
+  );
+};
+
+export const AgentSelector = ({
+  flowSpec,
+  setFlowSpec,
+}: {
+  flowSpec: IAgentFlowSpec | null;
+  setFlowSpec: (agent: IAgentFlowSpec | null) => void;
+}) => {
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  return (
+    <div className="   ">
+      <div
+        role="button"
+        onClick={() => setIsModalVisible(true)}
+        className="hover:bg-secondary h-full duration-300  border border-dashed rounded p-2"
+      >
+        {flowSpec && (
+          <div className=" ">
+            {flowSpec.type === "groupchat" ? (
+              <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+            ) : (
+              <UsersIcon className="w-5 h-5 inline-block mr-2" />
+            )}
+            {flowSpec.config.name}
+            <div className="mt-2 text-secondary text-sm">
+              {" "}
+              {flowSpec.description || flowSpec.config.name}
+            </div>
+            <div className="mt-2 text-secondary text-sm">
+              {" "}
+              <span className="text-xs">
+                {(flowSpec.skills && flowSpec.skills?.length) || 0} skills
+              </span>
+              <span className="text-xs mx-2 ">
+                | max replies: {flowSpec.config.max_consecutive_auto_reply}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+      {
+        <>
+          <AgentModal
+            agent={flowSpec}
+            showAgentModal={isModalVisible}
+            setShowAgentModal={setIsModalVisible}
+            handler={(agent: IAgentFlowSpec | null) => {
+              setFlowSpec(agent);
+            }}
+          />
+        </>
+      }
+    </div>
+  );
+};
 export const FlowConfigViewer = ({
   flowConfig,
   setFlowConfig,
@@ -1270,25 +1692,28 @@ export const FlowConfigViewer = ({
   setFlowConfig: (newFlowConfig: IFlowConfig) => void;
 }) => {
   // Local state for sender and receiver FlowSpecs
-  const [senderFlowSpec, setSenderFlowSpec] = React.useState<IAgentFlowSpec>(
-    flowConfig.sender
-  );
+  const [senderFlowSpec, setSenderFlowSpec] =
+    React.useState<IAgentFlowSpec | null>(flowConfig.sender);
 
   const [localFlowConfig, setLocalFlowConfig] =
     React.useState<IFlowConfig>(flowConfig);
 
   const [receiverFlowSpec, setReceiverFlowSpec] =
-    React.useState<IAgentFlowSpec>(flowConfig.receiver);
+    React.useState<IAgentFlowSpec | null>(flowConfig.receiver);
 
   // Update the local state and propagate changes to the parent component
-  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+  const updateSenderFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setSenderFlowSpec(newFlowSpec);
-    setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, sender: newFlowSpec });
+    }
   };
 
-  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec) => {
+  const updateReceiverFlowSpec = (newFlowSpec: IAgentFlowSpec | null) => {
     setReceiverFlowSpec(newFlowSpec);
-    setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+    if (newFlowSpec) {
+      setFlowConfig({ ...flowConfig, receiver: newFlowSpec });
+    }
   };
 
   const updateFlowConfigName = (newName: string) => {
@@ -1365,19 +1790,17 @@ export const FlowConfigViewer = ({
           />
         }
       />
-      <div className="flex gap-3 ">
-        <div className="w-1/2">
-          <div className="">
-            <AgentFlowSpecView
-              title="Sender"
-              flowSpec={senderFlowSpec}
-              setFlowSpec={updateSenderFlowSpec}
-            />
-          </div>
+      <div className="flex gap-3 mt-4">
+        <div className="w-1/2 ">
+          <div className="mb-2  ">Sender</div>
+          <AgentSelector
+            flowSpec={senderFlowSpec}
+            setFlowSpec={updateSenderFlowSpec}
+          />
         </div>
         <div className="w-1/2">
-          <AgentFlowSpecView
-            title="Receiver"
+          <div className="mb-2">Receiver</div>
+          <AgentSelector
             flowSpec={receiverFlowSpec}
             setFlowSpec={updateReceiverFlowSpec}
           />

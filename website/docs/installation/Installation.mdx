@@ -1,0 +1,112 @@
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Installation
+
+## Create a virtual environment (optional)
+
+When installing AutoGen locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AutoGen are isolated from the rest of your system.
+
+<Tabs>
+  <TabItem value="venv" label="venv" default>
+
+    Create and activate:
+
+    ```bash
+    python3 -m venv pyautogen
+    source pyautogen/bin/activate
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    deactivate
+    ```
+
+  </TabItem>
+  <TabItem value="conda" label="Conda">
+
+    [Install Conda](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) if you have not already.
+
+
+    Create and activate:
+
+    ```bash
+    conda create -n pyautogen python=3.10
+    conda activate pyautogen
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    conda deactivate
+    ```
+
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+
+    [Install Poetry](https://python-poetry.org/docs/#installation) if you have not already.
+
+    Create and activate:
+    ```bash
+    poetry init
+    poetry shell
+
+    poetry add pyautogen
+    ```
+
+    To deactivate later, run:
+
+    ```bash
+    exit
+    ```
+
+  </TabItem>
+</Tabs>
+
+## Install AutoGen
+
+AutoGen requires **Python version >= 3.8, < 3.13**. It can be installed from pip:
+
+```bash
+pip install pyautogen
+```
+
+:::info
+
+`pyautogen<0.2` required `openai<1`. Starting from pyautogen v0.2, `openai>=1` is required.
+
+:::
+
+
+## Code execution with Docker (default)
+
+Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#code-execution).
+
+The default behaviour for code-execution agents is for code execution to be performed in a docker container.
+
+**To turn this off**: if you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+
+You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    human_input_mode="TERMINATE",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
+    llm_config=llm_config,
+    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
+Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
+)
+```
+
+**Turn off code execution entirely**: if you want to turn off code execution entirely, set `code_execution_config` to `False`. E.g.:
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    name="agent",
+    llm_config=llm_config,
+    code_execution_config=False,
+)
+```
