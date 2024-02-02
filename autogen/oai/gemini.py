@@ -26,8 +26,7 @@ from google.api_core.exceptions import InternalServerError
 from google.generativeai import ChatSession
 from openai import OpenAI, _exceptions, resources
 from openai._qs import Querystring
-from openai._types import (NOT_GIVEN, NotGiven, Omit, ProxiesTypes,
-                           RequestOptions, Timeout, Transport)
+from openai._types import NOT_GIVEN, NotGiven, Omit, ProxiesTypes, RequestOptions, Timeout, Transport
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
@@ -62,10 +61,7 @@ class GeminiClient:
 
         self.model = kwargs.get("model", "gemini-pro")
 
-
-    def message_retrieval(
-        self, response
-    ) -> List:
+    def message_retrieval(self, response) -> List:
         """
         Retrieve and return a list of strings or a list of Choice.Message from the response.
 
@@ -75,7 +71,7 @@ class GeminiClient:
         return [choice.message for choice in response.choices]
 
     def cost(self, response) -> float:
-        return 0.0 # the current cost of Gemini api is zero.
+        return 0.0  # the current cost of Gemini api is zero.
 
     @staticmethod
     def get_usage(response) -> Dict:
@@ -88,7 +84,6 @@ class GeminiClient:
             "cost": response.cost,
             "model": response.model,
         }
-
 
     def create(self, params: Dict) -> ChatCompletion:
         model_name = params.get("model", "gemini-pro")
@@ -166,11 +161,10 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
-            cost=0, # Gemini's cost is zero
+            cost=0,  # Gemini's cost is zero
         )
 
         return response_oai
-
 
 
 def oai_content_to_gemini_content(content: Union[str, List]) -> List:
