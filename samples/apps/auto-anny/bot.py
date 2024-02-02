@@ -1,8 +1,26 @@
 import os
+import logging
+import logging.handlers
+
 import discord
 from discord.ext import commands
 
 from agent_utils import solve_task
+
+logger = logging.getLogger("anny")
+logger.setLevel(logging.INFO)
+logging.getLogger("discord.http").setLevel(logging.INFO)
+
+handler = logging.handlers.RotatingFileHandler(
+    filename="autoanny.log",
+    encoding="utf-8",
+    maxBytes=32 * 1024 * 1024,  # 32 MiB
+    backupCount=5,  # Rotate through 5 files
+)
+dt_fmt = "%Y-%m-%d %H:%M:%S"
+formatter = logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", dt_fmt, style="{")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 required_env_vars = ["OAI_CONFIG_LIST", "DISCORD_TOKEN", "GH_TOKEN", "ANNY_GH_REPO"]
 for var in required_env_vars:
@@ -15,7 +33,33 @@ REPO = os.environ["ANNY_GH_REPO"]
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True
 bot = commands.Bot(command_prefix="/", intents=intents)
+
+
+@bot.event
+async def on_message(message):
+    logger.info({"message": message.content, "author": message.author, "id": message.id})
+    await bot.process_commands(message)
+
+
+@bot.event
+async def on_reaction_add(reaction, user):
+    message = reaction.message
+    logger.info(
+        {
+            "message": message.content,
+            "author": message.author,
+            "id": message.id,
+            "reaction": reaction.emoji,
+            "reactor": user,
+        }
+    )
+
+
+@bot.event
+async def on_ready():
+    logger.info("Logged in", extra={"user": bot.user})
 
 
 @bot.command(description="Invoke Anny to solve a task.")
@@ -54,9 +98,6 @@ You can invoke me by typing `/heyanny <task>`.
 
 
 async def ghstatus(ctx):
-    # await ctx.send('Here is the summary of GitHub activity')
-    message = ctx.message
-    print(f"{message.guild} - {message.channel} - {message.author} - {message.content}")
     response = await solve_task(
         f"""
     Find the most recent issues and PRs from `{REPO}` in last 24 hours.
@@ -71,9 +112,6 @@ async def ghstatus(ctx):
 
 
 async def ghgrowth(ctx):
-    # await ctx.send('Here is the summary of GitHub activity')
-    message = ctx.message
-    print(f"{message.guild} - {message.channel} - {message.author} - {message.content}")
     response = await solve_task(
         f"""
     Find the number of stars, forks, and indicators of growth of `{REPO}`.
@@ -86,9 +124,6 @@ async def ghgrowth(ctx):
 
 
 async def ghunattended(ctx):
-    # await ctx.send('Here is the summary of GitHub activity')
-    message = ctx.message
-    print(f"{message.guild} - {message.channel} - {message.author} - {message.content}")
     response = await solve_task(
         f"""
     Find the issues *created* in the last 24 hours from `{REPO}` that haven't
@@ -102,9 +137,6 @@ async def ghunattended(ctx):
 
 
 async def ghstudio(ctx):
-    # await ctx.send('Here is the summary of GitHub activity')
-    message = ctx.message
-    print(f"{message.guild} - {message.channel} - {message.author} - {message.content}")
     # TODO: Generalize to feature name
     response = await solve_task(
         f"""
@@ -118,4 +150,4 @@ async def ghstudio(ctx):
     return response
 
 
-bot.run(DISCORD_TOKEN)
+bot.run(DISCORD_TOKEN, log_handler=None)
