@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 
-from .. import OpenAIWrapper
+from .. import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -1945,6 +1945,15 @@ class ConversableAgent(Agent):
             return func
 
         return _decorator
+
+    def register_model_client(self, model_client_cls: ModelClient, **kwargs):
+        """Register a model client.
+
+        Args:
+            model_client_cls: A custom client class that follows the Client interface
+            **kwargs: The kwargs for the custom client class to be initialized with
+        """
+        self.client.register_model_client(model_client_cls, **kwargs)
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
