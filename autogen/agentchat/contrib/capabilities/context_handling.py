@@ -33,13 +33,17 @@ class LongContextCapability:
             List of messages truncated to the last n messages.
         """
         processed_messages = []
+        rest_messages = messages
+        # check if the first message is a system message and append it to the processed messages
         if len(messages) > self.max_messages:
             if messages[0]["role"] == "system":
                 processed_messages.append(messages[0])
-        for message in reversed(messages):
-            if len(processed_messages) >= self.max_messages:
-                break
+                rest_messages = messages[1:]
+
+        # iterate through rest of the messages and append them to the processed messages
+        for message in rest_messages[-self.max_messages :]:
             processed_messages.append(message)
+
         num_truncated = len(messages) - len(processed_messages)
         if num_truncated > 0:
             print(f"Truncated {len(messages) - len(processed_messages)} messages.")
