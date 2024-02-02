@@ -116,6 +116,8 @@ def get_connection():
 def _to_dict(
     obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any], exclude: List[str] = []
 ) -> Any:
+    from autogen import Agent
+
     if isinstance(obj, (int, float, str, bool)):
         return obj
     elif callable(obj):
@@ -123,15 +125,9 @@ def _to_dict(
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
-        return [_to_dict(v, exclude) for v in obj]
+        return [_to_dict(v, exclude) if not isinstance(v, Agent) else _to_dict(str(v), exclude) for v in obj ]
     elif hasattr(obj, "__dict__"):
-        result = {}
-        for k, v in vars(obj).items():
-            if k == "agents":
-                result[k] = str(v)
-            elif k not in exclude:
-                result[k] = _to_dict(v, exclude)
-        return result
+        return {k: _to_dict(v, exclude) for k, v in vars(obj).items() if k not in exclude}
     else:
         return obj
 
