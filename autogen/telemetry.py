@@ -123,9 +123,15 @@ def _to_dict(
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):
-        return [_to_dict(v, exclude) for v in obj]
+        return [_to_dict(v, exclude) for v in obj if not callable(v)]
     elif hasattr(obj, "__dict__"):
-        return {k: _to_dict(v, exclude) for k, v in vars(obj).items() if k not in exclude}
+        result = {}
+        for k, v in vars(obj).items():
+            if k == "agents":
+                result[k] = str(v)
+            elif k not in exclude:
+                result[k] = _to_dict(v, exclude)
+        return result
     else:
         return obj
 

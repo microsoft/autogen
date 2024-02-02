@@ -378,9 +378,10 @@ When debugging or diagnosing an LLM-based system, it is often convenient to log 
 
 ### For openai >= 1
 
+Telemetry logging example: [View Notebook](../../../notebook/agentchat_telemetry.ipynb)
+
 #### Start logging:
 ```python
-import autogen
 import autogen.telemetry
 
 autogen.telemetry.start_logging(dbname="YOUR_DB_NAME")

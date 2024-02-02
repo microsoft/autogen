@@ -217,6 +217,23 @@ def test_log_oai_client(db_connection):
 
 
 def test_to_dict():
+    import re
+
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+
     class Foo:
         def __init__(self):
             self.a = 1.234
@@ -233,22 +250,29 @@ def test_to_dict():
         def build(self):
             self.foo_val = [Foo()]
             self.o = {"key_1": None, "key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
+            self.agents = [agent1, agent2]
 
     bar = Bar()
     bar.build()
-    expected_result = {
-        "foo_val": [
-            {
-                "a": 1.234,
-                "b": "some string",
-                "c": {"some_key": [7, 8, 9]},
-                "d": None,
-                "test_function": "self.test_function = lambda x, y: x + y",
-            }
-        ],
-        "o": {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]},
-    }
-    assert autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"]) == expected_result
+
+    expected_foo_val_field = [
+        {
+            "a": 1.234,
+            "b": "some string",
+            "c": {"some_key": [7, 8, 9]},
+            "d": None,
+            "test_function": "self.test_function = lambda x, y: x + y",
+        }
+    ]
+
+    expected_o_field = {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
+
+    result = autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"])
+    assert result["foo_val"] == expected_foo_val_field
+    assert result["o"] == expected_o_field
+
+    agents_matches = re.findall(r"autogen.agentchat.conversable_agent.ConversableAgent", result["agents"])
+    assert len(agents_matches) == 2, "conversable agent didn't show up twice for agents"
 
 
 @patch("logging.Logger.error")
