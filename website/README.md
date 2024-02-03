@@ -14,7 +14,7 @@ npm install --global yarn
 ## Installation
 
 ```console
-pip install pydoc-markdown
+pip install pydoc-markdown pyyaml colored
 cd website
 yarn install
 ```
@@ -34,6 +34,7 @@ Navigate to the `website` folder and run:
 ```console
 pydoc-markdown
 quarto render ./docs
+python ./process_notebooks.py
 yarn start
 ```
 
