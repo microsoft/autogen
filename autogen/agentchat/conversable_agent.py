@@ -12,7 +12,7 @@ import warnings
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
-from .. import OpenAIWrapper
+from .. import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -73,7 +73,7 @@ class ConversableAgent(Agent, LLMAgent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Union[Dict, Literal[False]] = {},
+        code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         description: Optional[str] = None,
@@ -111,7 +111,8 @@ class ConversableAgent(Agent, LLMAgent):
                     If False, the code will be executed in the current environment.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
+                - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
+                    If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
             llm_config (dict or False): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
@@ -2026,6 +2027,15 @@ class ConversableAgent(Agent, LLMAgent):
             return func
 
         return _decorator
+
+    def register_model_client(self, model_client_cls: ModelClient, **kwargs):
+        """Register a model client.
+
+        Args:
+            model_client_cls: A custom client class that follows the Client interface
+            **kwargs: The kwargs for the custom client class to be initialized with
+        """
+        self.client.register_model_client(model_client_cls, **kwargs)
 
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
