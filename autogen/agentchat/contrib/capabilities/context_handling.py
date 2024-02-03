@@ -21,16 +21,16 @@ class TransformChatHistory:
         Create a new context handling capability.
 
         Args:
+            max_tokens_per_message: Maximum number of tokens to keep in each message.
             max_messages: Maximum number of messages to keep in the context.
             max_tokens: Maximum number of tokens to keep in the context.
-            max_tokens_per_message: Maximum number of tokens to keep in each message.
 
         Returns:
             None
         """
+        self.max_tokens_per_message = max_tokens_per_message
         self.max_messages = max_messages
         self.max_tokens = max_tokens
-        self.max_tokens_per_message = max_tokens_per_message
 
     def add_to_agent(self, agent: ConversableAgent):
         """
