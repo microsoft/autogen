@@ -6,7 +6,7 @@ import json
 import logging
 import re
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 
 from ..coding.base import CodeExecutor
@@ -15,7 +15,6 @@ from ..coding.factory import CodeExecutorFactory
 from .. import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
-    DEFAULT_MODEL,
     UNKNOWN,
     content_str,
     check_can_use_docker_or_throw,
@@ -45,7 +44,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class ConversableAgent(Agent, LLMAgent):
+class ConversableAgent(LLMAgent, Agent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.

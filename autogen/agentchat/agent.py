@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Union, runtime
 
 @runtime_checkable
 class Agent(Protocol):
-    """(In preview) An abstract class for AI agent.
+    """(In preview) A protocol for Agent.
 
     An agent can communicate with other agents and perform actions.
     Different agents can differ in what actions they perform in the `receive` method.
@@ -84,15 +84,15 @@ class Agent(Protocol):
 
 @runtime_checkable
 class LLMAgent(Agent, Protocol):
-    """(In preview) An abstract class for LLM agent."""
+    """(In preview) A protocol for an LLM agent."""
 
     @property
     def system_message(self) -> str:
-        """(Abstract method) Return the system message."""
+        """The system message of this agent."""
 
     def update_system_message(self, system_message: str) -> None:
-        """(Abstract method) Update the system message.
+        """Update this agent's system message.
 
         Args:
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str): system message for inference.
         """
