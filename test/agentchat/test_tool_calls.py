@@ -188,8 +188,16 @@ def test_update_tool():
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            self.name = name
+            self._name = name
             self.received = []
+
+        @property
+        def name(self):
+            return self._name
+
+        @property
+        def description(self):
+            return self._name
 
         def receive(
             self,
@@ -275,8 +283,16 @@ def test_multi_tool_call():
 async def test_async_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            self.name = name
+            self._name = name
             self.received = []
+
+        @property
+        def name(self):
+            return self._name
+
+        @property
+        def description(self):
+            return self._name
 
         async def a_receive(
             self,

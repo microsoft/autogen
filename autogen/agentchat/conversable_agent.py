@@ -189,6 +189,9 @@ class ConversableAgent(LLMAgent, Agent):
                 check_can_use_docker_or_throw(use_docker)
                 self._code_execution_config["use_docker"] = use_docker
                 self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        else:
+            # Code execution is disabled.
+            self._code_execution_config = False
 
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
@@ -937,10 +940,7 @@ class ConversableAgent(LLMAgent, Agent):
         sender: Optional[Agent] = None,
         config: Optional[Union[Dict, Literal[False]]] = None,
     ):
-        """(Deprecated) Generate a reply using code execution.
-
-        NOTE: this function uses the legacy code utils and will be removed in the future.
-        """
+        """Generate a reply using code execution."""
         code_execution_config = config if config is not None else self._code_execution_config
         if code_execution_config is False:
             return False, None
