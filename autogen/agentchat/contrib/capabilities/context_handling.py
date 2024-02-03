@@ -60,18 +60,17 @@ class TransformChatHistory:
             List of messages with the first system message and the last max_messages messages.
         """
         processed_messages = []
-        rest_messages = messages
-        processed_messages_tokens = 0
-
         messages = messages.copy()
+        rest_messages = messages
+
         # check if the first message is a system message and append it to the processed messages
         if len(messages) > 0:
             if messages[0]["role"] == "system":
                 msg = messages[0]
                 processed_messages.append(msg)
-                processed_messages_tokens += token_count_utils.count_token(msg["content"])
                 rest_messages = messages[1:]
 
+        processed_messages_tokens = 0
         for msg in messages:
             msg["content"] = truncate_str_to_tokens(msg["content"], self.max_tokens_per_message)
 
@@ -108,6 +107,6 @@ def truncate_str_to_tokens(text: str, max_tokens: int) -> str:
     truncated_string = ""
     for char in text:
         truncated_string += char
-        if token_count_utils.count_token(truncated_string) > max_tokens:
+        if token_count_utils.count_token(truncated_string) == max_tokens:
             break
     return truncated_string
