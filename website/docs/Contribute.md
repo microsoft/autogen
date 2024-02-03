@@ -173,9 +173,9 @@ pytest test
 
 #### Skip flags for tests
 
-- `--skip-openai` for skipping tests that requires access to OpenAI services.
+- `--skip-openai` for skipping tests that require access to OpenAI services.
 - `--skip-docker` for skipping tests that explicitly use docker
-- `--skip-redis` for skipping tests that requires a Redis server
+- `--skip-redis` for skipping tests that require a Redis server
 
 For example, the following command will skip tests that require access to
 OpenAI and docker services:
