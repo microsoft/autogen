@@ -159,7 +159,7 @@ Make sure all tests pass, this is required for [build.yml](https://github.com/mi
 
 #### Running tests locally
 
-To run all tests, install the [test] option:
+To run tests, install the [test] option:
 
 ```bash
 pip install -e."[test]"
@@ -170,6 +170,10 @@ Then you can run the tests from the `test` folder using the following command:
 ```bash
 pytest test
 ```
+
+Tests for the `autogen.agentchat.contrib` module may be skipped automatically if the
+required dependencies are not installed. Please consult the documentation for
+each contrib module to see what dependencies are required.
 
 #### Skip flags for tests
 
