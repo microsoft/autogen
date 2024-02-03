@@ -15,59 +15,62 @@ class TestHelpers:
     def test_get_successor_agent_names(self):
         # Setup test data
         agents = [Agent(name=f"Agent{i}") for i in range(3)]
-        allowed_speaker_order = {
+        allowed_speaker_transitions = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
             agents[2].name: [agents[0]],
         }
 
         # Testing
-        assert gru.get_successor_agent_names(agents[0].name, allowed_speaker_order) == [agents[1].name, agents[2].name]
-        assert gru.get_successor_agent_names(agents[1].name, allowed_speaker_order) == [agents[2].name]
-        assert gru.get_successor_agent_names(agents[2].name, allowed_speaker_order) == [agents[0].name]
+        assert gru.get_successor_agent_names(agents[0].name, allowed_speaker_transitions) == [
+            agents[1].name,
+            agents[2].name,
+        ]
+        assert gru.get_successor_agent_names(agents[1].name, allowed_speaker_transitions) == [agents[2].name]
+        assert gru.get_successor_agent_names(agents[2].name, allowed_speaker_transitions) == [agents[0].name]
 
         # Test with an agent not in the dictionary
         with pytest.raises(KeyError):
-            gru.get_successor_agent_names("NonExistentAgent", allowed_speaker_order)
+            gru.get_successor_agent_names("NonExistentAgent", allowed_speaker_transitions)
 
     # Tests for get_predecessor_agent_names
     def test_get_predecessor_agent_names(self):
         # Setup test data
         agents = [Agent(name=f"Agent{i}") for i in range(3)]
-        allowed_speaker_order = {
+        allowed_speaker_transitions = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
             agents[2].name: [agents[0]],
         }
 
         # Testing
-        assert gru.get_predecessor_agent_names(agents[1].name, allowed_speaker_order) == [agents[0].name]
-        assert gru.get_predecessor_agent_names(agents[2].name, allowed_speaker_order) == [
+        assert gru.get_predecessor_agent_names(agents[1].name, allowed_speaker_transitions) == [agents[0].name]
+        assert gru.get_predecessor_agent_names(agents[2].name, allowed_speaker_transitions) == [
             agents[0].name,
             agents[1].name,
         ]
-        assert gru.get_predecessor_agent_names(agents[0].name, allowed_speaker_order) == [agents[2].name]
+        assert gru.get_predecessor_agent_names(agents[0].name, allowed_speaker_transitions) == [agents[2].name]
 
         # Test with an agent not in the dictionary
-        assert gru.get_predecessor_agent_names("NonExistentAgent", allowed_speaker_order) == []
+        assert gru.get_predecessor_agent_names("NonExistentAgent", allowed_speaker_transitions) == []
 
     def test_has_self_loops(self):
         # Setup test data
         agents = [Agent(name=f"Agent{i}") for i in range(3)]
-        allowed_speaker_order = {
+        allowed_speaker_transitions = {
             agents[0].name: [agents[1], agents[2]],
             agents[1].name: [agents[2]],
             agents[2].name: [agents[0]],
         }
-        allowed_speaker_order_with_self_loops = {
+        allowed_speaker_transitions_with_self_loops = {
             agents[0].name: [agents[0], agents[1], agents[2]],
             agents[1].name: [agents[1], agents[2]],
             agents[2].name: [agents[0]],
         }
 
         # Testing
-        assert not gru.has_self_loops(allowed_speaker_order)
-        assert gru.has_self_loops(allowed_speaker_order_with_self_loops)
+        assert not gru.has_self_loops(allowed_speaker_transitions)
+        assert gru.has_self_loops(allowed_speaker_transitions_with_self_loops)
 
 
 # Use pytest.mark.skipif decorator for conditional skipping
@@ -78,28 +81,28 @@ class TestHelpers:
 class TestGraphUtilCheckGraphValidity:
     def test_valid_structure(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        valid_speaker_order_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
-        gru.check_graph_validity(allowed_speaker_order_dict=valid_speaker_order_dict, agents=agents)
+        valid_speaker_transitions_dict = {agent.name: [other_agent for other_agent in agents] for agent in agents}
+        gru.check_graph_validity(allowed_speaker_transitions_dict=valid_speaker_transitions_dict, agents=agents)
 
     def test_graph_with_invalid_structure(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        invalid_speaker_order_dict = {"unseen_agent": ["stranger"]}
+        invalid_speaker_transitions_dict = {"unseen_agent": ["stranger"]}
         with pytest.raises(ValueError):
-            gru.check_graph_validity(invalid_speaker_order_dict, agents)
+            gru.check_graph_validity(invalid_speaker_transitions_dict, agents)
 
     def test_graph_with_invalid_string(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        invalid_speaker_order_dict = {
+        invalid_speaker_transitions_dict = {
             agent.name: ["agent1"] for agent in agents
         }  # 'agent1' is a string, not an Agent. Therefore raises an error.
         with pytest.raises(ValueError):
-            gru.check_graph_validity(invalid_speaker_order_dict, agents)
+            gru.check_graph_validity(invalid_speaker_transitions_dict, agents)
 
     def test_graph_with_self_loops(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        speaker_order_dict_with_self_loop = {agent.name: [agent.name] for agent in agents}
+        speaker_transitions_dict_with_self_loop = {agent.name: [agent.name] for agent in agents}
         with pytest.raises(ValueError):
-            gru.check_graph_validity(speaker_order_dict_with_self_loop, agents, allow_repeat_speaker=False)
+            gru.check_graph_validity(speaker_transitions_dict_with_self_loop, agents, allow_repeat_speaker=False)
 
     def test_graph_with_unauthorized_self_loops(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
@@ -109,36 +112,38 @@ class TestGraphUtilCheckGraphValidity:
 
         # Constructing a speaker order dictionary with self-loops for all agents
         # Ensuring at least one agent outside the allowed_repeat_speakers has a self-loop
-        speaker_order_dict_with_self_loop = {}
+        speaker_transitions_dict_with_self_loop = {}
         for agent in agents:
             if agent in allowed_repeat_speakers:
-                speaker_order_dict_with_self_loop[agent.name] = [agent.name]  # Allowed self-loop
+                speaker_transitions_dict_with_self_loop[agent.name] = [agent.name]  # Allowed self-loop
             else:
-                speaker_order_dict_with_self_loop[agent.name] = [agent.name]  # Unauthorized self-loop
+                speaker_transitions_dict_with_self_loop[agent.name] = [agent.name]  # Unauthorized self-loop
 
         # Testing the function with the constructed speaker order dict
         with pytest.raises(ValueError):
             gru.check_graph_validity(
-                speaker_order_dict_with_self_loop, agents, allow_repeat_speaker=allowed_repeat_speaker_agents
+                speaker_transitions_dict_with_self_loop, agents, allow_repeat_speaker=allowed_repeat_speaker_agents
             )
 
     # Test for Warning 1: Isolated agent nodes
     def test_isolated_agent_nodes_warning(self, caplog):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        # Create a speaker_order_dict where at least one agent is isolated
-        speaker_order_dict_with_isolation = {agents[0].name: [agents[0], agents[1]], agents[1].name: [agents[0]]}
+        # Create a speaker_transitions_dict where at least one agent is isolated
+        speaker_transitions_dict_with_isolation = {agents[0].name: [agents[0], agents[1]], agents[1].name: [agents[0]]}
         # Add an isolated agent
-        speaker_order_dict_with_isolation[agents[2].name] = []
+        speaker_transitions_dict_with_isolation[agents[2].name] = []
 
         with caplog.at_level(logging.WARNING):
-            gru.check_graph_validity(allowed_speaker_order_dict=speaker_order_dict_with_isolation, agents=agents)
+            gru.check_graph_validity(
+                allowed_speaker_transitions_dict=speaker_transitions_dict_with_isolation, agents=agents
+            )
         assert "isolated" in caplog.text
 
-    # Test for Warning 2: Warning if the set of agents in allowed_speaker_order do not match agents
+    # Test for Warning 2: Warning if the set of agents in allowed_speaker_transitions do not match agents
     def test_warning_for_mismatch_in_agents(self, caplog):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
 
-        # Test with missing agents in allowed_speaker_order_dict
+        # Test with missing agents in allowed_speaker_transitions_dict
 
         unknown_agent_dict = {
             "agent1": [agents[0], agents[1], agents[2]],
@@ -147,9 +152,9 @@ class TestGraphUtilCheckGraphValidity:
         }
 
         with caplog.at_level(logging.WARNING):
-            gru.check_graph_validity(allowed_speaker_order_dict=unknown_agent_dict, agents=agents)
+            gru.check_graph_validity(allowed_speaker_transitions_dict=unknown_agent_dict, agents=agents)
 
-        assert "allowed_speaker_order do not match agents" in caplog.text
+        assert "allowed_speaker_transitions do not match agents" in caplog.text
 
 
 @pytest.mark.skipif(

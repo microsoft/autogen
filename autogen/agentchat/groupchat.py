@@ -42,9 +42,9 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
 
-    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat. allow_repeat_speaker and allowed_or_disallowed_speaker_order are mutually exclusive.
-    - allowed_or_disallowed_speaker_order: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_order_dict is assumed. allow_repeat_speaker and allowed_or_disallowed_speaker_order are mutually exclusive.
-    - speaker_order_type: whether the speaker_order_type is a dictionary containing lists of allowed agents or disallowed agents. allowed means the allowed_or_disallowed_speaker_order is a dictionary containing lists of allowed agents. If set to disallowed, then the allowed_or_disallowed_speaker_order is a dictionary containing lists of disallowed agents. Must be supplied if allowed_or_disallowed_speaker_order is not None.
+    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
+    - allowed_or_disallowed_speaker_transitions: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_transitions_dict is assumed. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
+    - speaker_transitions_type: whether the speaker_transitions_type is a dictionary containing lists of allowed agents or disallowed agents. allowed means the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of allowed agents. If set to disallowed, then the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of disallowed agents. Must be supplied if allowed_or_disallowed_speaker_transitions is not None.
     - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
@@ -58,89 +58,90 @@ class GroupChat:
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[
         Union[bool, List[Agent]]
-    ] = True  # It would be set to True if allowed_or_disallowed_speaker_order is None
-    allowed_or_disallowed_speaker_order: Optional[Dict] = None
-    speaker_order_type: Optional[str] = None
+    ] = True  # It would be set to True if allowed_or_disallowed_speaker_transitions is None
+    allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
+    speaker_transitions_type: Optional[str] = None
     enable_clear_history: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
-    _VALID_SPEAKER_ORDER_TYPE = ["allowed", "disallowed", None]
+    _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
 
-    allowed_speaker_order_dict: Dict = field(init=False)
+    allowed_speaker_transitions_dict: Dict = field(init=False)
 
     def __post_init__(self):
         # Post init steers clears of the automatically generated __init__ method from dataclass
-        # Here, we create allowed_speaker_order_dict from the supplied allowed_or_disallowed_speaker_order and is_allowed_graph, and lastly checks for validity.
+        # Here, we create allowed_speaker_transitions_dict from the supplied allowed_or_disallowed_speaker_transitions and is_allowed_graph, and lastly checks for validity.
 
         # Check input
-        if self.speaker_order_type is not None:
-            self.speaker_order_type = self.speaker_order_type.lower()
+        if self.speaker_transitions_type is not None:
+            self.speaker_transitions_type = self.speaker_transitions_type.lower()
 
-        assert self.speaker_order_type in self._VALID_SPEAKER_ORDER_TYPE, (
-            f"GroupChat speaker_order_type is set to '{self.speaker_order_type}'. "
-            f"It should be one of {self._VALID_SPEAKER_ORDER_TYPE} (case insensitive). "
+        assert self.speaker_transitions_type in self._VALID_SPEAKER_TRANSITIONS_TYPE, (
+            f"GroupChat speaker_transitions_type is set to '{self.speaker_transitions_type}'. "
+            f"It should be one of {self._VALID_SPEAKER_TRANSITIONS_TYPE} (case insensitive). "
         )
 
-        # If both self.allowed_or_disallowed_speaker_order is None and self.allow_repeat_speaker is None, set allow_repeat_speaker to True to ensure backward compatibility
+        # If both self.allowed_or_disallowed_speaker_transitions is None and self.allow_repeat_speaker is None, set allow_repeat_speaker to True to ensure backward compatibility
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451541204
-        if self.allowed_or_disallowed_speaker_order is None and self.allow_repeat_speaker is None:
+        if self.allowed_or_disallowed_speaker_transitions is None and self.allow_repeat_speaker is None:
             self.allow_repeat_speaker = True
 
-        # self.allowed_or_disallowed_speaker_order and self.allow_repeat_speaker are mutually exclusive parameters.
+        # self.allowed_or_disallowed_speaker_transitions and self.allow_repeat_speaker are mutually exclusive parameters.
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451266661
-        if self.allowed_or_disallowed_speaker_order is not None and self.allow_repeat_speaker is not None:
+        if self.allowed_or_disallowed_speaker_transitions is not None and self.allow_repeat_speaker is not None:
             raise ValueError(
-                "Don't provide both allowed_or_disallowed_speaker_order and allow_repeat_speaker in group chat. "
+                "Don't provide both allowed_or_disallowed_speaker_transitions and allow_repeat_speaker in group chat. "
                 "Please set one of them to None."
             )
 
-        # Asks the user to specify whether the speaker_order_type is allowed or disallowed if speaker_order_type is supplied
+        # Asks the user to specify whether the speaker_transitions_type is allowed or disallowed if speaker_transitions_type is supplied
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451259524
-        if self.allowed_or_disallowed_speaker_order is not None and self.speaker_order_type is None:
+        if self.allowed_or_disallowed_speaker_transitions is not None and self.speaker_transitions_type is None:
             raise ValueError(
-                "GroupChat allowed_or_disallowed_speaker_order is not None, but speaker_order_type is None. "
-                "Please set speaker_order_type to either 'allowed' or 'disallowed'."
+                "GroupChat allowed_or_disallowed_speaker_transitions is not None, but speaker_transitions_type is None. "
+                "Please set speaker_transitions_type to either 'allowed' or 'disallowed'."
             )
 
-        # Inferring self.allowed_speaker_order_dict
-        # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is None, using allow_repeat_speaker
-        if self.allowed_or_disallowed_speaker_order is None:
-            self.allowed_speaker_order_dict = {}
+        # Inferring self.allowed_speaker_transitions_dict
+        # Create self.allowed_speaker_transitions_dict if allowed_or_disallowed_speaker_transitions is None, using allow_repeat_speaker
+        if self.allowed_or_disallowed_speaker_transitions is None:
+            self.allowed_speaker_transitions_dict = {}
 
-            # Create a fully connected allowed_speaker_order_dict not including self loops
+            # Create a fully connected allowed_speaker_transitions_dict not including self loops
             for agent in self.agents:
-                self.allowed_speaker_order_dict[agent.name] = [
+                self.allowed_speaker_transitions_dict[agent.name] = [
                     other_agent for other_agent in self.agents if other_agent != agent
                 ]
 
             # If self.allow_repeat_speaker is True, add self loops to all agents
             if self.allow_repeat_speaker:
                 for agent in self.agents:
-                    self.allowed_speaker_order_dict[agent.name].append(agent)
+                    self.allowed_speaker_transitions_dict[agent.name].append(agent)
 
             # Else if self.allow_repeat_speaker is a list of Agents, add self loops to the agents in the list
             elif isinstance(self.allow_repeat_speaker, list):
                 for agent in self.allow_repeat_speaker:
-                    self.allowed_speaker_order_dict[agent.name].append(agent)
+                    self.allowed_speaker_transitions_dict[agent.name].append(agent)
 
-        # Create self.allowed_speaker_order_dict if allowed_or_disallowed_speaker_order is not None, using allowed_or_disallowed_speaker_order
+        # Create self.allowed_speaker_transitions_dict if allowed_or_disallowed_speaker_transitions is not None, using allowed_or_disallowed_speaker_transitions
         else:
             # Process based on is_allowed_graph
-            if self.speaker_order_type == "allowed":
-                self.allowed_speaker_order_dict = self.allowed_or_disallowed_speaker_order
+            if self.speaker_transitions_type == "allowed":
+                self.allowed_speaker_transitions_dict = self.allowed_or_disallowed_speaker_transitions
             else:
-                # Logic for processing disallowed allowed_or_disallowed_speaker_order to allowed_speaker_order_dict
-                self.allowed_speaker_order_dict = invert_disallowed_to_allowed(
-                    self.allowed_or_disallowed_speaker_order, self.agents
+                # Logic for processing disallowed allowed_or_disallowed_speaker_transitions to allowed_speaker_transitions_dict
+                self.allowed_speaker_transitions_dict = invert_disallowed_to_allowed(
+                    self.allowed_or_disallowed_speaker_transitions, self.agents
                 )
 
-        # Inferring self.allow_repeat_speaker from allowed_speaker_order_dict using has_self_loops
+        # Inferring self.allow_repeat_speaker from allowed_speaker_transitions_dict using has_self_loops
+        # Finally, self.allow_repeat_speaker shouldn't be None, so it is set from the the graph.
         if self.allow_repeat_speaker is None:
-            self.allow_repeat_speaker = has_self_loops(self.allowed_speaker_order_dict)
+            self.allow_repeat_speaker = has_self_loops(self.allowed_speaker_transitions_dict)
 
         # Check for validity
         check_graph_validity(
-            allowed_speaker_order_dict=self.allowed_speaker_order_dict,
+            allowed_speaker_transitions_dict=self.allowed_speaker_transitions_dict,
             agents=self.agents,
             allow_repeat_speaker=self.allow_repeat_speaker,
         )
@@ -232,9 +233,15 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
+    def random_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
+        """Randomly select the next speaker."""
+        if agents is None:
+            agents = self.agents
+        return random.choice(agents)
+
     def _prepare_and_select_agents(
         self, last_speaker: Agent
-    ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]], Optional[List[Dict]]]:
+    ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
         if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
                 f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
@@ -296,17 +303,27 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
-        # Filter agents with allowed_speaker_order_dict
-        # if last_speaker.name is not a key in allowed_speaker_order_dict, then no agents are eligible
-        if last_speaker.name not in self.allowed_speaker_order_dict:
+        # Filter agents with allowed_speaker_transitions_dict
+        # if last_speaker.name is not a key in allowed_speaker_transitions_dict, then no agents are eligible
+        if last_speaker.name not in self.allowed_speaker_transitions_dict:
             raise NoEligibleSpeakerException(
-                f"Last speaker {last_speaker.name} is not in the allowed_speaker_order_dict."
+                f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict."
             )
         else:
             # Extract agent names from the list of agents
-            graph_eligible_agents_names = [agent.name for agent in self.allowed_speaker_order_dict[last_speaker.name]]
+            graph_eligible_agents_names = [
+                agent.name for agent in self.allowed_speaker_transitions_dict[last_speaker.name]
+            ]
         # Perform filtering
         graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
+
+        # If there is only one eligible agent, just return it to avoid the speaker selection prompt
+        if len(graph_eligible_agents) == 1:
+            return graph_eligible_agents[0], graph_eligible_agents, None
+
+        # If there are no eligible agents, return None, which means all agents will be taken into consideration in the next step
+        if len(graph_eligible_agents) == 0:
+            graph_eligible_agents = None
 
         # Use the selected speaker selection method
         select_speaker_messages = None
@@ -315,7 +332,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         elif self.speaker_selection_method.lower() == "round_robin":
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif self.speaker_selection_method.lower() == "random":
-            selected_agent = random.choice(graph_eligible_agents)
+            selected_agent = self.random_select_speaker(graph_eligible_agents)
         else:
             selected_agent = None
             select_speaker_messages = self.messages.copy()
@@ -349,7 +366,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         final, name = await selector.a_generate_oai_reply(messages)
         return self._finalize_speaker(last_speaker, final, name, agents)
 
-    def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: List[Agent]) -> Agent:
+    def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: Optional[List[Agent]]) -> Agent:
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
@@ -383,7 +400,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             roles.append(f"{agent.name}: {agent.description}".strip())
         return "\n".join(roles)
 
-    def _mentioned_agents(self, message_content: Union[str, List], agents: List[Agent]) -> Dict:
+    def _mentioned_agents(self, message_content: Union[str, List], agents: Optional[List[Agent]]) -> Dict:
         """Counts the number of times each agent is mentioned in the provided message content.
 
         Args:
@@ -393,6 +410,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         Returns:
             Dict: a counter for mentioned agents.
         """
+        if agents is None:
+            agents = self.agents
+
         # Cast message content to str
         if isinstance(message_content, dict):
             message_content = message_content["content"]
