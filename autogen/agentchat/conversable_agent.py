@@ -124,7 +124,7 @@ class ConversableAgent(LLMAgent, Agent):
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
-        self.description = description if description is not None else system_message
+        self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
@@ -209,6 +209,11 @@ class ConversableAgent(LLMAgent, Agent):
     def name(self) -> str:
         """Get the name of the agent."""
         return self._name
+
+    @property
+    def description(self) -> str:
+        """Get the description of the agent."""
+        return self._description
 
     @property
     def code_executor(self) -> CodeExecutor:
