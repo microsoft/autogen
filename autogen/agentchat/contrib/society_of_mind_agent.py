@@ -37,7 +37,7 @@ class SocietyOfMindAgent(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
     ):

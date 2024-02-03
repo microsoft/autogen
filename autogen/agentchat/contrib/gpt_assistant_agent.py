@@ -56,7 +56,7 @@ class GPTAssistantAgent(ConversableAgent):
         oai_wrapper = OpenAIWrapper(**llm_config)
         if len(oai_wrapper._clients) > 1:
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
-        self._openai_client = oai_wrapper._clients[0]
+        self._openai_client = oai_wrapper._clients[0]._oai_client
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # try to find assistant by name first
