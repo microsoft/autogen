@@ -540,6 +540,7 @@ def test_graceful_exit_before_max_round():
         messages=[],
         speaker_selection_method="round_robin",
         max_round=10,
+        allow_repeat_speaker=None,
         allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
         speaker_transitions_type="allowed",
     )
