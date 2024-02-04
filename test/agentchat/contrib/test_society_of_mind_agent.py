@@ -63,12 +63,12 @@ def test_society_of_mind_agent():
     assert groupchat.messages[3]["name"] == "sam"
     assert groupchat.messages[3]["content"] == "This is sam speaking. TERMINATE"
 
-    assert len(agent1.chat_messages[group_chat_manager]) == 3  # Everything but the termination message
-    assert len(agent2.chat_messages[group_chat_manager]) == 3  # Everything but the termination message
+    assert len(agent1.chat_messages[group_chat_manager]) == 4  # Everything *including* the termination message
+    assert len(agent2.chat_messages[group_chat_manager]) == 4  # Everything *including* the termination message
     assert len(agent3.chat_messages[group_chat_manager]) == 4  # Everything *including* the termination message
 
-    assert len(group_chat_manager.chat_messages[agent1]) == 3  # Everything but the termination message
-    assert len(group_chat_manager.chat_messages[agent2]) == 3  # Everything but the termination message
+    assert len(group_chat_manager.chat_messages[agent1]) == 4  # Everything *including* the termination message
+    assert len(group_chat_manager.chat_messages[agent2]) == 4  # Everything *including* the termination message
     assert len(group_chat_manager.chat_messages[agent3]) == 4  # Everything *including* the termination message
 
     # Let's go again. It should reset the inner monologue, but keep the external monologue
@@ -89,21 +89,21 @@ def test_society_of_mind_agent():
     assert groupchat.messages[3]["content"] == "This is sam speaking. TERMINATE"
 
     assert (
-        len(agent1.chat_messages[group_chat_manager]) == 5
-    )  # Prior external conversation + everything but the termination message
+        len(agent1.chat_messages[group_chat_manager]) == 6
+    )  # Prior external conversation + everything including the termination message
     assert (
-        len(agent2.chat_messages[group_chat_manager]) == 5
-    )  # Prior external conversation + everything but the termination message
+        len(agent2.chat_messages[group_chat_manager]) == 6
+    )  # Prior external conversation + everything including the termination message
     assert (
         len(agent3.chat_messages[group_chat_manager]) == 6
     )  # Prior external conversation + everything *including* the termination message
 
     assert (
-        len(group_chat_manager.chat_messages[agent1]) == 5
-    )  # Prior external conversation + everything but the termination message
+        len(group_chat_manager.chat_messages[agent1]) == 6
+    )  # Prior external conversation + everything including the termination message
     assert (
-        len(group_chat_manager.chat_messages[agent2]) == 5
-    )  # Prior external conversation + everything but the termination message
+        len(group_chat_manager.chat_messages[agent2]) == 6
+    )  # Prior external conversation + everything including the termination message
     assert (
         len(group_chat_manager.chat_messages[agent3]) == 6
     )  # Prior external conversation + everything *including* the termination message
