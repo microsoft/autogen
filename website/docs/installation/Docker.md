@@ -20,14 +20,14 @@ AutoGen now provides updated Dockerfiles tailored for different needs. Building 
 - **Autogen Basic**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
 
   ```bash
-  docker build -f .devcontainer/base/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git
   ```
 
 - **Autogen Advanced**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
-   ```bash
-   docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git
-   ```
+  ```bash
+  docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git
+  ```
 
 ## Step 3: Run AutoGen Applications from Docker Image
 
@@ -62,23 +62,23 @@ Here's how you can run an application built with AutoGen, using the Docker image
 docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Docker_DIR} {name_of_the_image} {bash/python} {Docker_path_to_script_to_execute}
 ```
 
-- *Simple Script*: Run a Python script located in your local `myapp` directory.
+- _Simple Script_: Run a Python script located in your local `myapp` directory.
 
-   ```bash
-   docker run -it -v `pwd`/myapp:/myapp autogen_base_img:latest python /myapp/my_script.py
-   ```
+  ```bash
+  docker run -it -v `pwd`/myapp:/myapp autogen_base_img:latest python /myapp/my_script.py
+  ```
 
-- *Web Application*: If your application includes a web server running on port 5000.
+- _Web Application_: If your application includes a web server running on port 5000.
 
-   ```bash
-   docker run -it -p 8080:5000 -v $(pwd)/myapp:/myapp autogen_base_img:latest
-   ```
+  ```bash
+  docker run -it -p 8080:5000 -v $(pwd)/myapp:/myapp autogen_base_img:latest
+  ```
 
-- *Data Processing*: For tasks that involve processing data stored in a local directory.
+- _Data Processing_: For tasks that involve processing data stored in a local directory.
 
-   ```bash
-   docker run -it -v $(pwd)/data:/data autogen_base_img:latest python /myapp/process_data.py
-   ```
+  ```bash
+  docker run -it -v $(pwd)/data:/data autogen_base_img:latest python /myapp/process_data.py
+  ```
 
 ## Additional Resources
 
