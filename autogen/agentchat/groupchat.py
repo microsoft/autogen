@@ -490,7 +490,7 @@ class GroupChatManager(ConversableAgent):
         Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
 
         Args:
-            reply (str): user proxy reply to analyse.
+            reply (str): user proxy reply message dict to analyse.
             groupchat (GroupChat): GroupChat object.
         """
         reply_content = reply['content']
@@ -501,13 +501,16 @@ class GroupChatManager(ConversableAgent):
         # Extract potential agent name and steps
         words_to_check = words[clear_word_index + 2 : clear_word_index + 4]
         nr_messages_to_preserve = None
+        nr_messages_to_preserve_provided = False
         agent_to_memory_clear = None
 
         for word in words_to_check:
             if word.isdigit():
                 nr_messages_to_preserve = int(word)
+                nr_messages_to_preserve_provided = True
             elif word[:-1].isdigit():  # for the case when number of messages is followed by dot or other sign
                 nr_messages_to_preserve = int(word[:-1])
+                nr_messages_to_preserve_provided = True
             else:
                 for agent in groupchat.agents:
                     if agent.name == word:
@@ -547,7 +550,7 @@ class GroupChatManager(ConversableAgent):
                 agent.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
 
         # Reconstruct the reply without the "clear history" command and parameters
-        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(nr_messages_to_preserve))
+        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(nr_messages_to_preserve_provided)
         reply_content = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
 
         return reply_content
