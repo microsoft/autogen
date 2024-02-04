@@ -778,6 +778,11 @@ class ConversableAgent(Agent):
         if recipient is None:
             if nr_messages_to_preserve:
                 for key in self._oai_messages:
+                    # if breaking history between function call and function response, save function call message
+                    # additionally, otherwise openai will return error
+                    first_msg_to_save = self._oai_messages[key][-nr_messages_to_preserve]
+                    if "tool_responses" in first_msg_to_save:
+                        nr_messages_to_preserve += 1
                     # Remove messages from history except last `nr_messages_to_preserve` messages.
                     self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve:]
             else:

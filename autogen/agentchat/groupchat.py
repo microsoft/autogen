@@ -397,9 +397,10 @@ class GroupChatManager(ConversableAgent):
             if (
                 groupchat.enable_clear_history
                 and isinstance(reply, dict)
+                and reply["content"]
                 and "CLEAR HISTORY" in reply["content"].upper()
             ):
-                reply["content"] = self.clear_agents_history(reply["content"], groupchat)
+                reply["content"] = self.clear_agents_history(reply, groupchat)
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
@@ -489,11 +490,12 @@ class GroupChatManager(ConversableAgent):
         Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
 
         Args:
-            reply (str): Admin reply to analyse.
+            reply (str): user proxy reply to analyse.
             groupchat (GroupChat): GroupChat object.
         """
+        reply_content = reply['content']
         # Split the reply into words
-        words = reply.split()
+        words = reply_content.split()
         # Find the position of "clear" to determine where to start processing
         clear_word_index = next(i for i in reversed(range(len(words))) if words[i].upper() == "CLEAR")
         # Extract potential agent name and steps
@@ -514,6 +516,12 @@ class GroupChatManager(ConversableAgent):
                     elif agent.name == word[:-1]:  # for the case when agent name is followed by dot or other sign
                         agent_to_memory_clear = agent
                         break
+        # preserve last tool call message if function inside of tool response
+        if "tool_responses" in reply and not nr_messages_to_preserve:
+            nr_messages_to_preserve = 1
+            logger.warning(
+                "The last tool call message will be saved to prevent errors caused by tool response without tool call."
+            )
         # clear history
         if agent_to_memory_clear:
             if nr_messages_to_preserve:
@@ -540,6 +548,6 @@ class GroupChatManager(ConversableAgent):
 
         # Reconstruct the reply without the "clear history" command and parameters
         skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(nr_messages_to_preserve))
-        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
+        reply_content = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
 
-        return reply
+        return reply_content
