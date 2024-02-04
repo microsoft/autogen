@@ -692,14 +692,13 @@ class ConversableAgent(Agent):
             clear_history (bool): whether to clear the chat history with the agent.
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
             cache (Cache or None): the cache client to be used for this conversation.
-            **context: any context information.
-                "message" needs to be provided if the `generate_init_message` method is not overridden.
-                          Otherwise, input() will be called to get the initial message.
+            **context: any context information. It has the following reserved fields:
+                "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "takeaway_method": a string specify the method to extract the takeaway from the chat.
                     Supported methods are "last_msg" and "reflection_with_llm".
                     when set "last_msg", it returns the last message of the dialog as the takeaway.
                     when set "reflection_with_llm", it returns the takeaway extracted using an llm client.
-                    "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                    "llm" requires the llm_config to be set in either the sender or the recipient.
                 "takeaway_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract the key takeaway when takeaway_method is "reflection_with_llm".
                     Default is None and the following default prompt will be used when "takeaway_method" is set to "reflection_with_llm":
@@ -831,7 +830,7 @@ class ConversableAgent(Agent):
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
                 Each dictionary should contain the following fields:
                 - "recipient": the recipient agent.
-                - "context": any context information.
+                - "context": any context information, e.g., the request message. The following fields are reserved:
                     "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
                     "takeaway_method" can be used to specify the method to extract the takeaway from the chat.
@@ -865,7 +864,7 @@ class ConversableAgent(Agent):
             chat_info["carryover"] = _chat_carryover + list(self._finished_chats.values())
             if "message" not in chat_info:
                 warnings.warn(
-                    "message is not provided in chat_info. input() will be called to get the initial message.",
+                    "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
                     UserWarning,
                 )
             current_agent = chat_info["recipient"]
@@ -879,7 +878,7 @@ class ConversableAgent(Agent):
                 colored(
                     "Start work on the following task: \n"
                     + chat_info.get("message")
-                    + "\n\nWith the following carryover from previous tasks: \n"
+                    + "\n\nWith the following carryover: \n"
                     + print_carryover,
                     "blue",
                 ),
@@ -889,6 +888,13 @@ class ConversableAgent(Agent):
             takeaway = self.initiate_chat(**chat_info)
 
             self._finished_chats[current_agent] = takeaway
+
+    def get_chat_takeaway(self, agent: Optional[Agent] = None):
+        """The takeaway from the finished chats of particular agents."""
+        if agent is not None:
+            return self._finished_chats.get(agent)
+        else:
+            return list(self._finished_chats.values())
 
     def reset(self):
         """Reset the agent."""
@@ -1806,7 +1812,7 @@ class ConversableAgent(Agent):
         If not overridden, "message" needs to be provided in the context.
 
         Args:
-            **context: any context information. It has the following preserved fields.
+            **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "takeaway_method": a string specify the method to extract the takeaway from the chat.
                     Supported methods are "last_msg" and "reflection_with_llm".
