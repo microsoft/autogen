@@ -709,7 +709,6 @@ export const ModelSelector = ({
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
     let selectedModel = models[selectedIndex];
-    selectedModel = selectedModel;
     const updatedConfigs = [...configs, selectedModel];
     setConfigs(updatedConfigs);
   };
