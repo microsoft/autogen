@@ -493,7 +493,7 @@ class GroupChatManager(ConversableAgent):
             reply (str): user proxy reply message dict to analyse.
             groupchat (GroupChat): GroupChat object.
         """
-        reply_content = reply['content']
+        reply_content = reply["content"]
         # Split the reply into words
         words = reply_content.split()
         # Find the position of "clear" to determine where to start processing
