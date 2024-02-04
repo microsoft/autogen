@@ -179,9 +179,14 @@ def test_chats():
                 "recipient": writer,
                 "message": writing_tasks[0],
                 "carryover": "I want to include a figure or a table of data in the blogpost.",
+                "takeaway_method": "last_msg",
             },
         ]
     )
+
+    blogpost = user.get_chat_takeaway(writer)
+    insights_and_blogpost = user.get_chat_takeaway()
+    print(blogpost, insights_and_blogpost)
 
 
 if __name__ == "__main__":
