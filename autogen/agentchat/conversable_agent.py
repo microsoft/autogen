@@ -7,8 +7,9 @@ import logging
 import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+import warnings
 
-from .. import OpenAIWrapper
+from .. import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
@@ -69,7 +70,7 @@ class ConversableAgent(Agent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         description: Optional[str] = None,
@@ -107,7 +108,8 @@ class ConversableAgent(Agent):
                     If False, the code will be executed in the current environment.
                     We strongly recommend using docker for code execution.
                 - timeout (Optional, int): The maximum execution time in seconds.
-                - last_n_messages (Experimental, Optional, int or str): The number of messages to look back for code execution. If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
+                - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
+                    If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
             llm_config (dict or False): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
@@ -138,6 +140,13 @@ class ConversableAgent(Agent):
 
         # Initialize standalone client cache object.
         self.client_cache = None
+
+        if code_execution_config is None:
+            warnings.warn(
+                "Using None to signal a default code_execution_config is deprecated. "
+                "Use {} to use default or False to disable code execution.",
+                stacklevel=2,
+            )
 
         self._code_execution_config: Union[Dict, Literal[False]] = (
             {} if code_execution_config is None else code_execution_config
@@ -759,16 +768,30 @@ class ConversableAgent(Agent):
         else:
             self._consecutive_auto_reply_counter[sender] = 0
 
-    def clear_history(self, agent: Optional[Agent] = None):
+    def clear_history(self, recipient: Optional[Agent] = None, nr_messages_to_preserve: Optional[int] = None):
         """Clear the chat history of the agent.
 
         Args:
-            agent: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
+            recipient: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
+            nr_messages_to_preserve: the number of newest messages to preserve in the chat history.
         """
-        if agent is None:
-            self._oai_messages.clear()
+        if recipient is None:
+            if nr_messages_to_preserve:
+                for key in self._oai_messages:
+                    # Remove messages from history except last `nr_messages_to_preserve` messages.
+                    self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve:]
+            else:
+                self._oai_messages.clear()
         else:
-            self._oai_messages[agent].clear()
+            self._oai_messages[recipient].clear()
+            if nr_messages_to_preserve:
+                print(
+                    colored(
+                        "WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
+                        "yellow",
+                    ),
+                    flush=True,
+                )
 
     def generate_oai_reply(
         self,
@@ -900,9 +923,20 @@ class ConversableAgent(Agent):
             func_call = message["function_call"]
             func = self._function_map.get(func_call.get("name", None), None)
             if inspect.iscoroutinefunction(func):
-                return False, None
+                try:
+                    # get the running loop if it was already created
+                    loop = asyncio.get_running_loop()
+                    close_loop = False
+                except RuntimeError:
+                    # create a loop if there is no running loop
+                    loop = asyncio.new_event_loop()
+                    close_loop = True
 
-            _, func_return = self.execute_function(message["function_call"])
+                _, func_return = loop.run_until_complete(self.a_execute_function(func_call))
+                if close_loop:
+                    loop.close()
+            else:
+                _, func_return = self.execute_function(message["function_call"])
             return True, func_return
         return False, None
 
@@ -929,14 +963,14 @@ class ConversableAgent(Agent):
             func = self._function_map.get(func_name, None)
             if func and inspect.iscoroutinefunction(func):
                 _, func_return = await self.a_execute_function(func_call)
-                return True, func_return
+            else:
+                _, func_return = self.execute_function(func_call)
+            return True, func_return
 
         return False, None
 
     def _str_for_tool_response(self, tool_response):
-        func_id = tool_response.get("tool_call_id", "")
-        response = tool_response.get("content", "")
-        return f"Tool Call Id: {func_id}\n{response}"
+        return str(tool_response.get("content", ""))
 
     def generate_tool_calls_reply(
         self,
@@ -956,8 +990,20 @@ class ConversableAgent(Agent):
             function_call = tool_call.get("function", {})
             func = self._function_map.get(function_call.get("name", None), None)
             if inspect.iscoroutinefunction(func):
-                continue
-            _, func_return = self.execute_function(function_call)
+                try:
+                    # get the running loop if it was already created
+                    loop = asyncio.get_running_loop()
+                    close_loop = False
+                except RuntimeError:
+                    # create a loop if there is no running loop
+                    loop = asyncio.new_event_loop()
+                    close_loop = True
+
+                _, func_return = loop.run_until_complete(self.a_execute_function(function_call))
+                if close_loop:
+                    loop.close()
+            else:
+                _, func_return = self.execute_function(function_call)
             tool_returns.append(
                 {
                     "tool_call_id": id,
@@ -1900,6 +1946,15 @@ class ConversableAgent(Agent):
 
         return _decorator
 
+    def register_model_client(self, model_client_cls: ModelClient, **kwargs):
+        """Register a model client.
+
+        Args:
+            model_client_cls: A custom client class that follows the Client interface
+            **kwargs: The kwargs for the custom client class to be initialized with
+        """
+        self.client.register_model_client(model_client_cls, **kwargs)
+
     def register_hook(self, hookable_method: Callable, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
@@ -1974,3 +2029,30 @@ class ConversableAgent(Agent):
             return None
         else:
             return self.client.total_usage_summary
+
+
+def register_function(
+    f: Callable[..., Any],
+    *,
+    caller: ConversableAgent,
+    executor: ConversableAgent,
+    name: Optional[str] = None,
+    description: str,
+) -> None:
+    """Register a function to be proposed by an agent and executed for an executor.
+
+    This function can be used instead of function decorators `@ConversationAgent.register_for_llm` and
+    `@ConversationAgent.register_for_execution`.
+
+    Args:
+        f: the function to be registered.
+        caller: the agent calling the function, typically an instance of ConversableAgent.
+        executor: the agent executing the function, typically an instance of UserProxy.
+        name: name of the function. If None, the function name will be used (default: None).
+        description: description of the function. The description is used by LLM to decode whether the function
+            is called. Make sure the description is properly describing what the function does or it might not be
+            called by LLM when needed.
+
+    """
+    f = caller.register_for_llm(name=name, description=description)(f)
+    executor.register_for_execution(name=name)(f)

@@ -78,7 +78,7 @@ response = oai.Completion.create(
         {
             "model": "chatglm2-6b",
             "base_url": "http://localhost:8000/v1",
-            "api_type": "open_ai",
+            "api_type": "openai",
             "api_key": "NULL", # just a placeholder
         }
     ],
@@ -92,7 +92,7 @@ response = oai.ChatCompletion.create(
         {
             "model": "chatglm2-6b",
             "base_url": "http://localhost:8000/v1",
-            "api_type": "open_ai",
+            "api_type": "openai",
             "api_key": "NULL",
         }
     ],
@@ -126,13 +126,13 @@ response = oai.ChatCompletion.create(
         {
             "model": "chatglm2-6b",
             "base_url": "http://localhost:8000/v1",
-            "api_type": "open_ai",
+            "api_type": "openai",
             "api_key": "NULL",
         },
         {
             "model": "vicuna-7b-v1.3",
             "base_url": "http://localhost:8000/v1",
-            "api_type": "open_ai",
+            "api_type": "openai",
             "api_key": "NULL",
         }
     ],
