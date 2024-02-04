@@ -297,6 +297,11 @@ echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Native"
 echo "autogenbench version: {__version__}" > timestamp.txt
 
+# Create and activate the virtual environment
+# This is called in a subprocess, and will not impact the parent
+{sys.executable} -m venv .autogenbench_venv
+. .autogenbench_venv/bin/activate
+
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
     . ./global_init.sh
@@ -308,6 +313,7 @@ if [ -f scenario_init.sh ] ; then
 fi
 
 # Run the scenario
+pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
 EXIT_CODE=$?
@@ -322,6 +328,10 @@ if [ -d .cache ] ; then
     rm -Rf .cache
 fi
 
+if [ -d __pycache__ ] ; then
+    rm -Rf __pycache__
+fi
+
 # Run the scenario finalize script if it exists
 if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
@@ -330,6 +340,12 @@ fi
 # Run the global finalize script if it exists
 if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
+fi
+
+# We don't need to deactivate the venv because it's
+# contained in the subprocess; but we should clean it up
+if [ -d .autogenbench_venv ] ; then
+    rm -Rf .autogenbench_venv
 fi
 
 echo RUN.SH COMPLETE !#!#
@@ -398,11 +414,6 @@ def run_scenario_in_docker(work_dir, env, timeout=TASK_TIMEOUT, docker_image=Non
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Docker"
 
-# If a read-only copy of the autogen repo is local, copy it to a writeable directory
-if [ -d /autogen.ro ] ; then
-    cp -R /autogen.ro /autogen
-fi
-
 umask 000
 echo "autogenbench version: {__version__}" > timestamp.txt
 
@@ -432,6 +443,10 @@ if [ -d .cache ] ; then
     rm -Rf .cache
 fi
 
+if [ -d __pycache__ ] ; then
+    rm -Rf __pycache__
+fi
+
 # Run the scenario finalize script if it exists
 if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
@@ -457,7 +472,7 @@ echo RUN.SH COMPLETE !#!#
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), autogen_repo_base)
 
     if autogen_repo_base is not None:
-        volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen.ro", "mode": "ro"}
+        volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen", "mode": "rw"}
 
     print("Mounting:")
     for k in volumes:
