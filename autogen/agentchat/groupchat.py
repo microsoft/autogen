@@ -304,11 +304,17 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
 
         # Filter agents with allowed_speaker_transitions_dict
-        # if last_speaker.name is not a key in allowed_speaker_transitions_dict, then no agents are eligible
-        if last_speaker.name not in self.allowed_speaker_transitions_dict:
+
+        is_last_speaker_in_group = last_speaker in self.agents
+
+        # this condition means last_speaker is a sink in the graph, then no agents are eligible
+        if last_speaker.name not in self.allowed_speaker_transitions_dict and is_last_speaker_in_group:
             raise NoEligibleSpeakerException(
                 f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict."
             )
+        # last_speaker is not in the group, so all agents are eligible
+        elif last_speaker.name not in self.allowed_speaker_transitions_dict and not is_last_speaker_in_group:
+            graph_eligible_agents_names = []
         else:
             # Extract agent names from the list of agents
             graph_eligible_agents_names = [
