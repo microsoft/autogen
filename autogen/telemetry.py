@@ -114,20 +114,28 @@ def get_connection():
 
 
 def _to_dict(
-    obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any], exclude: List[str] = []
+    obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any],
+    exclude: Tuple[str] = (),
+    no_recursive: Tuple[str] = (),
 ) -> Any:
-    from autogen import Agent
-
     if isinstance(obj, (int, float, str, bool)):
         return obj
     elif callable(obj):
         return inspect.getsource(obj).strip()
     elif isinstance(obj, dict):
-        return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
+        return {
+            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            for k, v in obj.items()
+            if k not in exclude
+        }
     elif isinstance(obj, (list, tuple)):
-        return [_to_dict(v, exclude) if not isinstance(v, Agent) else _to_dict(str(v), exclude) for v in obj]
+        return [_to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive) for v in obj]
     elif hasattr(obj, "__dict__"):
-        return {k: _to_dict(v, exclude) for k, v in vars(obj).items() if k not in exclude}
+        return {
+            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            for k, v in vars(obj).items()
+            if k not in exclude
+        }
     else:
         return obj
 
@@ -209,6 +217,7 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
         agent (ConversableAgent):   The agent to log.
         init_args (dict):           The arguments passed to the construct the conversable agent
     """
+    from autogen import Agent
 
     if this._con is None:
         return
@@ -216,7 +225,7 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"), no_recursive=(Agent))
 
     # We do an upsert since both the superclass and subclass may call this method (in that order)
     query = """
@@ -233,9 +242,9 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
             query,
             (
                 id(agent),
-                agent.client.wrapper_id if agent.client is not None else "",
+                agent.client.wrapper_id if hasattr(agent, "client") and agent.client is not None else "",
                 this._session_id,
-                agent.name,
+                agent.name if hasattr(agent, "name") and agent.name is not None else "",
                 type(agent).__name__,
                 json.dumps(args),
                 get_current_ts(),
@@ -261,7 +270,7 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 
     query = """
     INSERT INTO oai_wrappers (wrapper_id, session_id, init_args, timestamp) VALUES (?, ?, ?, ?)
@@ -297,7 +306,7 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
     if ERROR:
         raise ERROR
 
-    args = _to_dict(init_args, exclude=["self", "__class__", "api_key", "organization"])
+    args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 
     query = """
     INSERT INTO oai_clients (client_id, wrapper_id, session_id, class, init_args, timestamp) VALUES (?, ?, ?, ?, ?, ?)
