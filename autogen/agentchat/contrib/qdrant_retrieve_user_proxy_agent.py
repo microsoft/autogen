@@ -81,10 +81,10 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
                 - on_disk (Optional, bool): Whether to store the collection on disk. Default is False.
                 - quantization_config: Quantization configuration. If None, quantization will be disabled.
                 - hnsw_config: HNSW configuration. If None, default configuration will be used.
-                  You can find more info about the hnsw configuration options at https://qdrant.tech/documentation/concepts/indexing/#vector-index.
+                  You can find more info about the hnsw configuration options in the `vector-index` section at https://qdrant.tech/documentation/concepts/indexing/.
                   API Reference: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_collection
                 - payload_indexing: Whether to create a payload index for the document field. Default is False.
-                  You can find more info about the payload indexing options at https://qdrant.tech/documentation/concepts/indexing/#payload-index
+                  You can find more info about the payload indexing options in the `payload-index` section at https://qdrant.tech/documentation/concepts/indexing/
                   API Reference: https://qdrant.github.io/qdrant/redoc/index.html#tag/collections/operation/create_field_index
              **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
