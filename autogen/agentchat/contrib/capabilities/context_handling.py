@@ -45,8 +45,7 @@ class TransformChatHistory:
 
     def add_to_agent(self, agent: ConversableAgent):
         """
-        Adds a particular capability to the given agent. Must be implemented by the capability subclass.
-        An implementation will typically call agent.register_hook() one or more times. See teachability.py as an example.
+        Adds TransformChatHistory capability to the given agent.
         """
         agent.register_hook(hookable_method=agent.process_all_messages, hook=self._transform_messages)
 
