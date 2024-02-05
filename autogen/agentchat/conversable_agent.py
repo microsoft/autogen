@@ -29,6 +29,14 @@ from .._pydantic import model_dump
 from ..io.base import IOStream
 from ..io.console import IOConsole
 
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
+
+
 __all__ = ("ConversableAgent",)
 
 logger = logging.getLogger(__name__)
@@ -502,10 +510,7 @@ class ConversableAgent(Agent):
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         iostream = self._iostream
         # print the message received
-        with iostream.set_style(fg="yellow"):
-            iostream.print(f"{sender.name}", end="")
-        iostream.print(f" (to {self.name}):\n", end="", flush=True)
-
+        iostream.print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
         message = self._message_to_dict(message)
 
         if message.get("tool_responses"):  # Handle tool multi-call responses
@@ -521,11 +526,9 @@ class ConversableAgent(Agent):
                 id_key = "tool_call_id"
 
             func_print = f"***** Response from calling {message['role']} \"{message[id_key]}\" *****"
-            with iostream.set_style(fg="green"):
-                iostream.print(func_print, flush=True)
+            iostream.print(colored(func_print, "green"), flush=True)
             iostream.print(message["content"], flush=True)
-            with iostream.set_style(fg="green"):
-                iostream.print("*" * len(func_print), flush=True)
+            iostream.print(colored("*" * len(func_print), "green"), flush=True)
         else:
             content = message.get("content")
             if content is not None:
@@ -541,29 +544,29 @@ class ConversableAgent(Agent):
                 func_print = (
                     f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
                 )
-                with iostream.set_style(fg="green"):
-                    iostream.print(func_print, flush=True)
+                iostream.print(colored(func_print, "green"), flush=True)
                 iostream.print(
-                    "Arguments: \n" + function_call.get("arguments", "(No arguments found)"),
+                    "Arguments: \n",
+                    function_call.get("arguments", "(No arguments found)"),
                     flush=True,
+                    sep="",
                 )
-                with iostream.set_style(fg="green"):
-                    iostream.print("*" * len(func_print), flush=True)
+                iostream.print(colored("*" * len(func_print), "green"), flush=True)
             if "tool_calls" in message and message["tool_calls"]:
                 for tool_call in message["tool_calls"]:
                     id = tool_call.get("id", "(No id found)")
                     function_call = dict(tool_call.get("function", {}))
                     func_print = f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
-                    with iostream.set_style(fg="green"):
-                        iostream.print(func_print, flush=True)
+                    iostream.print(colored(func_print, "green"), flush=True)
                     iostream.print(
-                        "Arguments: \n" + function_call.get("arguments", "(No arguments found)"),
+                        "Arguments: \n",
+                        function_call.get("arguments", "(No arguments found)"),
                         flush=True,
+                        sep="",
                     )
-                    with iostream.set_style(fg="green"):
-                        iostream.print("*" * len(func_print), flush=True)
+                    iostream.print(colored("*" * len(func_print), "green"), flush=True)
 
-        iostream.print("\n" + "-" * 80, flush=True)
+        iostream.print("\n", "-" * 80, flush=True, sep="")
 
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
@@ -778,6 +781,7 @@ class ConversableAgent(Agent):
             recipient: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
             nr_messages_to_preserve: the number of newest messages to preserve in the chat history.
         """
+        iostream = self._iostream
         if recipient is None:
             if nr_messages_to_preserve:
                 for key in self._oai_messages:
@@ -788,12 +792,13 @@ class ConversableAgent(Agent):
         else:
             self._oai_messages[recipient].clear()
             if nr_messages_to_preserve:
-                iostream = self._iostream
-                with iostream.set_style(fg="yellow"):
-                    iostream.print(
+                iostream.print(
+                    colored(
                         "WARNING: `nr_preserved_messages` is ignored when clearing chat history with a specific agent.",
-                        flush=True,
-                    )
+                        "yellow",
+                    ),
+                    flush=True,
+                )
 
     def generate_oai_reply(
         self,
@@ -1125,8 +1130,7 @@ class ConversableAgent(Agent):
 
         # print the no_human_input_msg
         if no_human_input_msg:
-            with iostream.set_style(fg="red"):
-                iostream.print(f"\n>>>>>>>> {no_human_input_msg}", flush=True)
+            iostream.print(colored(f"\n>>>>>>>> {no_human_input_msg}", "red"), flush=True)
 
         # stop the conversation
         if reply == "exit":
@@ -1166,8 +1170,7 @@ class ConversableAgent(Agent):
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
         if self.human_input_mode != "NEVER":
-            with iostream.set_style(fg="red"):
-                iostream.print("\n>>>>>>>> USING AUTO REPLY...", flush=True)
+            iostream.print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
 
         return False, None
 
@@ -1239,8 +1242,7 @@ class ConversableAgent(Agent):
 
         # print the no_human_input_msg
         if no_human_input_msg:
-            with iostream.set_style(fg="red"):
-                iostream.print(f"\n>>>>>>>> {no_human_input_msg}", flush=True)
+            iostream.print(colored(f"\n>>>>>>>> {no_human_input_msg}", "red"), flush=True)
 
         # stop the conversation
         if reply == "exit":
@@ -1280,8 +1282,7 @@ class ConversableAgent(Agent):
         # increment the consecutive_auto_reply_counter
         self._consecutive_auto_reply_counter[sender] += 1
         if self.human_input_mode != "NEVER":
-            with iostream.set_style(fg="red"):
-                iostream.print("\n>>>>>>>> USING AUTO REPLY...", flush=True)
+            iostream.print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
 
         return False, None
 
@@ -1486,11 +1487,13 @@ class ConversableAgent(Agent):
             lang, code = code_block
             if not lang:
                 lang = infer_lang(code)
-            with iostream.set_style(fg="red"):
-                iostream.print(
+            iostream.print(
+                colored(
                     f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
-                    flush=True,
-                )
+                    "red",
+                ),
+                flush=True,
+            )
             if lang in ["bash", "shell", "sh"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
             elif lang in ["python", "Python"]:
@@ -1581,8 +1584,10 @@ class ConversableAgent(Agent):
 
             # Try to execute the function
             if arguments is not None:
-                with iostream.set_style(fg="magenta"):
-                    iostream.print(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", flush=True)
+                iostream.print(
+                    colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"),
+                    flush=True,
+                )
                 try:
                     content = func(**arguments)
                     is_exec_success = True
@@ -1592,8 +1597,10 @@ class ConversableAgent(Agent):
             content = f"Error: Function {func_name} not found."
 
         if verbose:
-            with iostream.set_style(fg="magenta"):
-                iostream.print(f"\nInput arguments: {arguments}\nOutput:\n{content}")
+            iostream.print(
+                colored(f"\nInput arguments: {arguments}\nOutput:\n{content}", "magenta"),
+                flush=True,
+            )
 
         return is_exec_success, {
             "name": func_name,
@@ -1633,8 +1640,10 @@ class ConversableAgent(Agent):
 
             # Try to execute the function
             if arguments is not None:
-                iostream.set_style(fg="magenta")
-                iostream.print(f"\n>>>>>>>> EXECUTING ASYNC FUNCTION {func_name}...", flush=True)
+                iostream.print(
+                    colored(f"\n>>>>>>>> EXECUTING ASYNC FUNCTION {func_name}...", "magenta"),
+                    flush=True,
+                )
                 try:
                     if inspect.iscoroutinefunction(func):
                         content = await func(**arguments)
