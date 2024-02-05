@@ -75,7 +75,7 @@ class ModelClient(Protocol):
     """
 
     @_ClassProperty
-    def RESPONSE_USAGE_KEYS():
+    def RESPONSE_USAGE_KEYS(cls) -> List[str]:
         warnings.warn("RESPONSE_USAGE_KEYS is deprecated. Use ResponseUsage instead.", DeprecationWarning, stacklevel=2)
         return ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
 
