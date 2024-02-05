@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
+from typing import Any, List, Optional, Dict, Callable, Tuple, TypedDict, Union
 import logging
 import inspect
 from flaml.automl.logger import logger_formatter
+import warnings
 
 from pydantic import BaseModel
 from typing import Protocol
@@ -58,29 +59,39 @@ class ModelClient(Protocol):
     A client class must implement the following methods:
     - create must return a response object that implements the ModelClientResponseProtocol
     - cost must return the cost of the response
-    - get_usage must return a dict with the following keys:
-        - prompt_tokens
-        - completion_tokens
-        - total_tokens
-        - cost
-        - model
+    - get_usage must return a dict corresponding to the TypedDict ResponseUsage
 
     This class is used to create a client that can be used by OpenAIWrapper.
     The response returned from create must adhere to the ModelClientResponseProtocol but can be extended however needed.
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
 
-    RESPONSE_USAGE_KEYS = ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
+    @property
+    def RESPONSE_USAGE_KEYS():
+        warnings.warn("RESPONSE_USAGE_KEYS is deprecated. Use ResponseUsage instead.", DeprecationWarning, stacklevel=2)
+        return ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
 
     class ModelClientResponseProtocol(Protocol):
         class Choice(Protocol):
             class Message(Protocol):
                 content: Optional[str]
 
+            message: Message
+
         choices: List[Choice]
         model: str
 
+
+    class ResponseUsage(TypedDict):
+        prompt_tokens: int
+        completion_tokens: int
+        total_tokens: int
+        cost: float
+        model: str
+
+
     def create(self, **params: Any) -> ModelClientResponseProtocol:
+        """Create a completion for the given parameters."""
         ...  # pragma: no cover
 
     def message_retrieval(
@@ -98,8 +109,8 @@ class ModelClient(Protocol):
         ...  # pragma: no cover
 
     @staticmethod
-    def get_usage(response: ModelClientResponseProtocol) -> Dict:
-        """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
+    def get_usage(response: ModelClientResponseProtocol) -> ResponseUsage:
+        """Return usage summary of the response"""
         ...  # pragma: no cover
 
 
