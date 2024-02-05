@@ -149,6 +149,15 @@ def check_graph_validity(
             f"""Warning: The set of agents in allowed_speaker_transitions do not match agents. Offending agents: {full_anti_join}"""
         )
 
+    # Warning 3. Warning if there are duplicated agents in any values of `allowed_speaker_transitions_dict`
+    for key, values in allowed_speaker_transitions_dict.items():
+        duplicates = [item for item in values if values.count(item) > 1]
+        unique_duplicates = list(set(duplicates))
+        if unique_duplicates:
+            logging.warning(
+                f"Agent '{key}' has duplicate elements: {unique_duplicates}. Please remove duplicates manually."
+            )
+
 
 def invert_disallowed_to_allowed(disallowed_speaker_transitions_dict: dict, agents: List[Agent]) -> dict:
     """

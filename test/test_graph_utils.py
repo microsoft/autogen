@@ -1,7 +1,7 @@
 import sys
 import pytest
 import logging
-from autogen.agentchat.groupchat import Agent
+from autogen.agentchat import Agent
 import autogen.graph_utils as gru
 
 
@@ -155,6 +155,22 @@ class TestGraphUtilCheckGraphValidity:
             gru.check_graph_validity(allowed_speaker_transitions_dict=unknown_agent_dict, agents=agents)
 
         assert "allowed_speaker_transitions do not match agents" in caplog.text
+
+    # Test for Warning 3: Warning if there is duplicated agents in allowed_speaker_transitions_dict
+    def test_warning_for_duplicate_agents(self, caplog):
+        agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
+
+        # Construct an `allowed_speaker_transitions_dict` with duplicated agents
+        duplicate_agents_dict = {
+            "agent1": [agents[0], agents[1], agents[2]],
+            "agent2": [agents[0], agents[1], agents[2], agents[1]],
+            "agent3": [agents[0], agents[1], agents[2], agents[0], agents[2]],
+        }
+
+        with caplog.at_level(logging.WARNING):
+            gru.check_graph_validity(allowed_speaker_transitions_dict=duplicate_agents_dict, agents=agents)
+
+        assert "duplicate" in caplog.text
 
 
 @pytest.mark.skipif(
