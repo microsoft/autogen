@@ -1842,6 +1842,7 @@ class ConversableAgent(Agent):
 
     def generate_init_message(self, **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
+        TODO: offer a way to customize initial message without overriding this function.
 
         Override this function to customize the initial message based on user's request.
         If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
@@ -1882,25 +1883,13 @@ class ConversableAgent(Agent):
 
     async def a_generate_init_message(self, **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
+        TODO: offer a way to customize initial message without overriding this function.
 
         Override this function to customize the initial message based on user's request.
         If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
 
         Args:
-            **context: any context information. It has the following reserved fields:
-                "message": a str of message.
-                "summary_method": a string specify the method to get a summary from the chat.
-                    Supported methods are "last_msg" and "reflection_with_llm".
-                    when set "last_msg", it returns the last message of the dialog as the summary.
-                    when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                    "llm" requires the llm_config to be set in either the sender or the recipient so that an llm client is available.
-                    When both the sender and the recipient have an llm client, the recipient's llm client will be used.
-                "summary_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
-                    on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                    Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
-                "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
-                    If provided, we will combine this carryover with the "message" content when generating the initial chat
-                    message.
+            Please refer to `generate_init_message` for the description of the arguments.
         """
         if "message" not in context:
             context["message"] = await self.a_get_human_input(">")
