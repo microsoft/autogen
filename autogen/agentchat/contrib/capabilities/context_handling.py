@@ -12,11 +12,22 @@ class TransformChatHistory:
     This capability allows the agent to transform its chat history prior to using it to generate a reply.
     It does not permanently modify the chat history, but rather processes it on every invocation.
 
+    It enables various strategies to transform chat history, such as:
+        - Truncate messages: Truncate each message to first maximum number of tokens.
+        - Limit number of messages: Truncate the chat history to a maximum number of (recent) messages.
+        - Limit number of tokens: Truncate the chat history to number of recent N messages that fit in
+        maximum number of tokens.
+    Note that the system message, because of its special significance, is always kept as is.
+
+    The three strategies can be combined. For example, when each of these parameters are specified
+    they are used in the following order:
+    1. First truncate messages to a maximum number of tokens
+    2. Second, it limits the number of message to keep
+    3. Third, it limits the total number of tokens in the chat history
+
     """
 
-    def __init__(
-        self, max_tokens_per_message: int = sys.maxsize, max_messages: int = sys.maxsize, max_tokens: int = sys.maxsize
-    ):
+    def __init__(self, *, max_tokens_per_message: int = None, max_messages: int = None, max_tokens: int = None):
         """
         Create a new context handling capability.
 
@@ -28,9 +39,9 @@ class TransformChatHistory:
         Returns:
             None
         """
-        self.max_tokens_per_message = max_tokens_per_message
-        self.max_messages = max_messages
-        self.max_tokens = max_tokens
+        self.max_tokens_per_message = max_tokens_per_message if max_tokens_per_message else sys.maxsize
+        self.max_messages = max_messages if max_messages else sys.maxsize
+        self.max_tokens = max_tokens if max_tokens else sys.maxsize
 
     def add_to_agent(self, agent: ConversableAgent):
         """
@@ -41,18 +52,6 @@ class TransformChatHistory:
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
         """
-        This function enables various strategies to transform chat history, such as:
-            - Truncate messages: Truncate each message to a maximum number of tokens.
-            - Limit number of messages: Truncate the chat history to a maximum number of messages.
-            - Limit number of tokens: Truncate the chat history to a maximum number of tokens.
-        Note that the system message, because of its special significance, is always kept as is.
-
-        The three strategies can be combined. For example, when each of these parameters are specified
-        they are used in the following order:
-        1. First truncate messages to a maximum number of tokens
-        2. Second, it limits the number of message to keep
-        3. Third, it limits the total number of tokens in the chat history
-
         Args:
             messages: List of messages to process.
 
