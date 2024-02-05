@@ -160,74 +160,67 @@ class OpenAIClient:
             completion_tokens = 0
 
             # Set the terminal text color to green
+            iostream.print("\033[32m", end="")
 
-            # print("\033[32m", end="")
-            with iostream.set_style(fg="green"):
-                # Prepare for potential function call
-                full_function_call: Optional[Dict[str, Any]] = None
-                full_tool_calls: Optional[List[Optional[Dict[str, Any]]]] = None
+            # Prepare for potential function call
+            full_function_call: Optional[Dict[str, Any]] = None
+            full_tool_calls: Optional[List[Optional[Dict[str, Any]]]] = None
 
-                # Send the chat completion request to OpenAI's API and process the response in chunks
-                for chunk in completions.create(**params):
-                    if chunk.choices:
-                        for choice in chunk.choices:
-                            content = choice.delta.content
-                            tool_calls_chunks = choice.delta.tool_calls
-                            finish_reasons[choice.index] = choice.finish_reason
+            # Send the chat completion request to OpenAI's API and process the response in chunks
+            for chunk in completions.create(**params):
+                if chunk.choices:
+                    for choice in chunk.choices:
+                        content = choice.delta.content
+                        tool_calls_chunks = choice.delta.tool_calls
+                        finish_reasons[choice.index] = choice.finish_reason
 
-                            # todo: remove this after function calls are removed from the API
-                            # the code should work regardless of whether function calls are removed or not, but test_chat_functions_stream should fail
-                            # begin block
-                            function_call_chunk = (
-                                choice.delta.function_call if hasattr(choice.delta, "function_call") else None
-                            )
+                        # todo: remove this after function calls are removed from the API
+                        # the code should work regardless of whether function calls are removed or not, but test_chat_functions_stream should fail
+                        # begin block
+                        function_call_chunk = (
+                            choice.delta.function_call if hasattr(choice.delta, "function_call") else None
+                        )
+                        # Handle function call
+                        if function_call_chunk:
                             # Handle function call
                             if function_call_chunk:
-                                # Handle function call
-                                if function_call_chunk:
-                                    (
-                                        full_function_call,
-                                        completion_tokens,
-                                    ) = OpenAIWrapper._update_function_call_from_chunk(
-                                        function_call_chunk, full_function_call, completion_tokens
-                                    )
+                                full_function_call, completion_tokens = OpenAIWrapper._update_function_call_from_chunk(
+                                    function_call_chunk, full_function_call, completion_tokens
+                                )
+                            if not content:
+                                continue
+                        # end block
+
+                        # Handle tool calls
+                        if tool_calls_chunks:
+                            for tool_calls_chunk in tool_calls_chunks:
+                                # the current tool call to be reconstructed
+                                ix = tool_calls_chunk.index
+                                if full_tool_calls is None:
+                                    full_tool_calls = []
+                                if ix >= len(full_tool_calls):
+                                    # in case ix is not sequential
+                                    full_tool_calls = full_tool_calls + [None] * (ix - len(full_tool_calls) + 1)
+
+                                full_tool_calls[ix], completion_tokens = OpenAIWrapper._update_tool_calls_from_chunk(
+                                    tool_calls_chunk, full_tool_calls[ix], completion_tokens
+                                )
                                 if not content:
                                     continue
-                            # end block
 
-                            # Handle tool calls
-                            if tool_calls_chunks:
-                                for tool_calls_chunk in tool_calls_chunks:
-                                    # the current tool call to be reconstructed
-                                    ix = tool_calls_chunk.index
-                                    if full_tool_calls is None:
-                                        full_tool_calls = []
-                                    if ix >= len(full_tool_calls):
-                                        # in case ix is not sequential
-                                        full_tool_calls = full_tool_calls + [None] * (ix - len(full_tool_calls) + 1)
+                        # End handle tool calls
 
-                                    (
-                                        full_tool_calls[ix],
-                                        completion_tokens,
-                                    ) = OpenAIWrapper._update_tool_calls_from_chunk(
-                                        tool_calls_chunk, full_tool_calls[ix], completion_tokens
-                                    )
-                                    if not content:
-                                        continue
-
-                            # End handle tool calls
-
-                            # If content is present, print it to the terminal and update response variables
-                            if content is not None:
-                                iostream.print(content, end="", flush=True)
-                                response_contents[choice.index] += content
-                                completion_tokens += 1
-                            else:
-                                iostream.print()
-                                pass
+                        # If content is present, print it to the terminal and update response variables
+                        if content is not None:
+                            iostream.print(content, end="", flush=True)
+                            response_contents[choice.index] += content
+                            completion_tokens += 1
+                        else:
+                            # iostream.print()
+                            pass
 
             # Reset the terminal text color
-            # print("\033[0m\n")
+            iostream.print("\033[0m\n")
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
@@ -365,7 +358,6 @@ class OpenAIWrapper:
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
-        # we want to raise an exception if the iostream is not provided
         self._iostream: IOStream = extra_kwargs.get("iostream", None) or IOConsole()
 
         if config_list:
@@ -804,7 +796,7 @@ class OpenAIWrapper:
         iostream.print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
-            iostream.print("")
+            iostream.print()
             if self.total_usage_summary != self.actual_usage_summary:
                 print_usage(self.total_usage_summary, "total")
             else:
