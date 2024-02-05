@@ -104,12 +104,12 @@ def test_chats_group():
             {
                 "recipient": financial_assistant,
                 "message": financial_tasks[0],
-                "takeaway_method": "last_msg",
+                "summary_method": "last_msg",
             },
             {
                 "recipient": manager_1,
                 "message": financial_tasks[1],
-                "takeaway_method": "reflection_with_llm",
+                "summary_method": "reflection_with_llm",
             },
             {"recipient": manager_2, "message": writing_tasks[0]},
         ]
@@ -168,24 +168,24 @@ def test_chats():
                 "message": financial_tasks[0],
                 "clear_history": True,
                 "silent": False,
-                "takeaway_method": "last_msg",
+                "summary_method": "last_msg",
             },
             {
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
-                "takeaway_method": "reflection_with_llm",
+                "summary_method": "reflection_with_llm",
             },
             {
                 "recipient": writer,
                 "message": writing_tasks[0],
                 "carryover": "I want to include a figure or a table of data in the blogpost.",
-                "takeaway_method": "last_msg",
+                "summary_method": "last_msg",
             },
         ]
     )
 
-    blogpost = user.get_chat_takeaway(writer)
-    insights_and_blogpost = user.get_chat_takeaway()
+    blogpost = user.get_chat_summary(writer)
+    insights_and_blogpost = user.get_chat_summary()
     print(blogpost, insights_and_blogpost)
 
 
