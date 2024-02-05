@@ -29,14 +29,6 @@ from .._pydantic import model_dump
 from ..io.base import IOStream
 from ..io.console import IOConsole
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
-
 __all__ = ("ConversableAgent",)
 
 logger = logging.getLogger(__name__)

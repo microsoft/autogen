@@ -12,6 +12,7 @@ from typing import Protocol
 
 from autogen.cache.cache import Cache
 from autogen.io.base import IOStream
+from autogen.io.console import IOConsole
 from autogen.oai import completion
 
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
@@ -112,8 +113,9 @@ class PlaceHolderClient:
 class OpenAIClient:
     """Follows the Client protocol and wraps the OpenAI client."""
 
-    def __init__(self, client: Union[OpenAI, AzureOpenAI]):
+    def __init__(self, client: Union[OpenAI, AzureOpenAI], iostream: IOStream):
         self._oai_client = client
+        self._iostream = iostream
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -146,7 +148,7 @@ class OpenAIClient:
         Returns:
             The completion.
         """
-        iostream = self._oai_client.iostream
+        iostream = self._iostream
 
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
@@ -362,7 +364,7 @@ class OpenAIWrapper:
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
         # we want to raise an exception if the iostream is not provided
-        self._iostream: IOStream = extra_kwargs["iostream"]
+        self._iostream: IOStream = extra_kwargs.get("iostream", None) or IOConsole()
 
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
@@ -415,9 +417,9 @@ class OpenAIWrapper:
         else:
             if api_type is not None and api_type.startswith("azure"):
                 self._configure_azure_openai(config, openai_config)
-                self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
+                self._clients.append(OpenAIClient(AzureOpenAI(**openai_config), iostream=self._iostream))
             else:
-                self._clients.append(OpenAIClient(OpenAI(**openai_config)))
+                self._clients.append(OpenAIClient(OpenAI(**openai_config), iostream=self._iostream))
 
     def register_model_client(self, model_client_cls: ModelClient, **kwargs):
         """Register a model client.
