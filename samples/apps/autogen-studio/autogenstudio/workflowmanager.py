@@ -147,14 +147,11 @@ class AutoGenWorkFlowManager:
         if agent_spec.skills:
             # get skill prompt, also write skills to a file named skills.py
             skills_prompt = ""
-            skills_prompt = get_skills_from_prompt(
-                agent_spec.skills, self.work_dir)
+            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
             if agent_spec.config.system_message:
-                agent_spec.config.system_message = agent_spec.config.system_message + \
-                    "\n\n" + skills_prompt
+                agent_spec.config.system_message = agent_spec.config.system_message + "\n\n" + skills_prompt
             else:
-                agent_spec.config.system_message = get_default_system_message(
-                    agent_spec.type) + "\n\n" + skills_prompt
+                agent_spec.config.system_message = get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
 
         return agent_spec
 
@@ -176,10 +173,8 @@ class AutoGenWorkFlowManager:
             group_chat_config = agent_spec.groupchat_config.dict()
             group_chat_config["agents"] = agents
             groupchat = autogen.GroupChat(**group_chat_config)
-            agent = autogen.GroupChatManager(
-                groupchat=groupchat, **agent_spec.config.dict())
-            agent.register_reply(
-                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent = autogen.GroupChatManager(groupchat=groupchat, **agent_spec.config.dict())
+            agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
             return agent
 
         else:
@@ -203,8 +198,7 @@ class AutoGenWorkFlowManager:
             agent = autogen.UserProxyAgent(**agent_config.dict())
         else:
             raise ValueError(f"Unknown agent type: {agent_type}")
-        agent.register_reply(
-            [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+        agent.register_reply([autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
         return agent
 
     def run(self, message: str, clear_history: bool = False) -> None:
