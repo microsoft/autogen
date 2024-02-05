@@ -155,23 +155,38 @@ Tests are automatically run via GitHub actions. There are two workflows:
 
 The first workflow is required to pass for all PRs (and it doesn't do any OpenAI calls). The second workflow is required for changes that affect the OpenAI tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require OpenAI calls, please use [`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/openai.yml).
 
-#### Run non-OpenAI tests
+Make sure all tests pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
 
-To run the subset of the tests not depending on `openai` (and not calling LLMs)):
+#### Running tests locally
 
-- Install pytest:
+To run tests, install the [test] option:
 
-``` code
-pip install pytest
+```bash
+pip install -e."[test]"
 ```
 
-- Run the tests from the `test` folder using the `--skip-openai` flag.
+Then you can run the tests from the `test` folder using the following command:
 
-``` code
-pytest test --skip-openai
+```bash
+pytest test
 ```
 
-- Make sure all tests pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
+Tests for the `autogen.agentchat.contrib` module may be skipped automatically if the
+required dependencies are not installed. Please consult the documentation for
+each contrib module to see what dependencies are required.
+
+#### Skip flags for tests
+
+- `--skip-openai` for skipping tests that require access to OpenAI services.
+- `--skip-docker` for skipping tests that explicitly use docker
+- `--skip-redis` for skipping tests that require a Redis server
+
+For example, the following command will skip tests that require access to
+OpenAI and docker services:
+
+```bash
+pytest test --skip-openai --skip-docker
+```
 
 ### Coverage
 
