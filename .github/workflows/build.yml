@@ -40,6 +40,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install -e .
+          pip install -e .[test,websurfer]
           python -c "import autogen"
           pip install pytest mock
       - name: Test with pytest skipping openai tests

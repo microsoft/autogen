@@ -1,15 +1,16 @@
-import json
-import os
-import requests
-import re
-import markdownify
 import io
-import uuid
 import mimetypes
+import os
+import re
+from typing import Optional, Union, Dict
+import uuid
 from urllib.parse import urljoin, urlparse
+
+import markdownify
+import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
+
+from autogen.browser_utils.abstract_browser import AbstractBrowser
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
@@ -28,7 +29,7 @@ except ModuleNotFoundError:
     pass
 
 
-class SimpleTextBrowser:
+class SimpleTextBrowser(AbstractBrowser):
     """(In preview) An extremely simple text-based web browser comparable to Lynx. Suitable for Agentic use."""
 
     def __init__(

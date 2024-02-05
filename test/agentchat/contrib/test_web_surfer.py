@@ -93,6 +93,53 @@ def test_web_surfer():
 
 
 @pytest.mark.skipif(
+    skip_all,
+    reason="do not run if dependency is not installed",
+)
+def test_web_surfer_headless():
+    page_size = 4096
+    web_surfer = WebSurferAgent(
+        "web_surfer", llm_config=False, browser_config={"viewport_size": page_size, "headless": True}
+    )
+
+    # Sneak a peak at the function map, allowing us to call the functions for testing here
+    function_map = web_surfer._user_proxy._function_map
+
+    # Test some basic navigations
+    response = function_map["visit_page"](BLOG_POST_URL)
+    assert f"Address: {BLOG_POST_URL}".strip() in response
+    # assert f"Title: {BLOG_POST_TITLE}".strip() in response
+
+    # Test scrolling
+    m = re.search(r"\bViewport position: Showing page 1 of (\d+).", response)
+    total_pages = int(m.group(1))
+
+    response = function_map["page_down"]()
+    assert (
+        f"Viewport position: Showing page 2 of {total_pages}." in response
+    )  # Assumes the content is longer than one screen
+
+    response = function_map["page_up"]()
+    assert f"Viewport position: Showing page 1 of {total_pages}." in response
+
+    # Try to scroll too far back up
+    response = function_map["page_up"]()
+    assert f"Viewport position: Showing page 1 of {total_pages}." in response
+
+    # Try to scroll too far down
+    for i in range(0, total_pages + 1):
+        response = function_map["page_down"]()
+    assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
+
+    # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
+    with pytest.raises(AttributeError, match="'NoneType' object has no attribute 'create'"):
+        response = function_map["answer_from_page"]("When was it founded?")
+
+    with pytest.raises(AttributeError, match="'NoneType' object has no attribute 'create'"):
+        response = function_map["summarize_page"]()
+
+
+@pytest.mark.skipif(
     skip_oai,
     reason="do not run if oai is not installed",
 )
@@ -110,32 +157,34 @@ def test_web_surfer_oai():
     assert len(llm_config["config_list"]) > 0
     assert len(summarizer_llm_config["config_list"]) > 0
 
-    page_size = 4096
-    web_surfer = WebSurferAgent(
-        "web_surfer",
-        llm_config=llm_config,
-        summarizer_llm_config=summarizer_llm_config,
-        browser_config={"viewport_size": page_size},
-    )
+    # run the test with both text and headless browsers
+    for useHeadlessBrowser in [False, True]:
+        page_size = 4096
+        web_surfer = WebSurferAgent(
+            "web_surfer",
+            llm_config=llm_config,
+            summarizer_llm_config=summarizer_llm_config,
+            browser_config={"viewport_size": page_size, "headless": useHeadlessBrowser},
+        )
 
-    user_proxy = UserProxyAgent(
-        "user_proxy",
-        human_input_mode="NEVER",
-        code_execution_config=False,
-        default_auto_reply="",
-        is_termination_msg=lambda x: True,
-    )
+        user_proxy = UserProxyAgent(
+            "user_proxy",
+            human_input_mode="NEVER",
+            code_execution_config=False,
+            default_auto_reply="",
+            is_termination_msg=lambda x: True,
+        )
 
-    # Make some requests that should test function calling
-    user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
+        # Make some requests that should test function calling
+        user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
 
-    user_proxy.initiate_chat(web_surfer, message="When was it founded?")
+        user_proxy.initiate_chat(web_surfer, message="When was it founded?")
 
-    user_proxy.initiate_chat(web_surfer, message="What's this page about?")
+        user_proxy.initiate_chat(web_surfer, message="What's this page about?")
 
 
 @pytest.mark.skipif(
@@ -163,6 +212,32 @@ def test_web_surfer_bing():
     # Test informational queries
     response = function_map["navigational_web_search"](BING_QUERY + " Wikipedia")
     assert "Address: https://en.wikipedia.org/wiki/" in response
+
+
+@pytest.mark.skipif(
+    skip_oai,
+    reason="do not run if open ai api key is not available",
+)
+def test_web_surfer_headless_bing():
+    page_size = 4096
+    web_surfer = WebSurferAgent(
+        "web_surfer",
+        llm_config=False,
+        browser_config={"viewport_size": page_size, "headless": True},
+    )
+
+    # Sneak a peak at the function map, allowing us to call the functions for testing here
+    function_map = web_surfer._user_proxy._function_map
+
+    # Test informational queries
+    response = function_map["informational_web_search"](BING_QUERY)
+    assert "Address: https://www.bing.com/search?q=Microsoft&form=QBLH" in response
+    assert "Microsoft – Cloud, Computers, Apps & Gaming" in response
+
+    # Test informational queries
+    response = function_map["navigational_web_search"](BING_QUERY + " Wikipedia")
+    assert "Address: https://www.bing.com/search?q=Microsoft+Wikipedia&form=QBLH" in response
+    assert "Microsoft - Wikipedia" in response
 
 
 if __name__ == "__main__":
