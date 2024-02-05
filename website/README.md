@@ -46,4 +46,4 @@ This command starts a local development server and opens up a browser window. Mo
 
 1. [Install `htmlproofer`](https://github.com/gjtorikian/html-proofer?tab=readme-ov-file#installation)
 2. Ensure site is completely built
-3. `htmlproofer REPO_ROOT/website/build/ --swap-urls '^/autogen/:/' --disable-external`
+3. `htmlproofer REPO_ROOT/website/build/ --swap-urls '^/autogen/:/' --disable-external --ignore-missing-alt`
