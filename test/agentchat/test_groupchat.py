@@ -494,17 +494,19 @@ def test_init_default_parameters():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
     group_chat = GroupChat(agents=agents, messages=[], max_round=3)
     for agent in agents:
-        assert set([a.name for a in group_chat.allowed_speaker_transitions_dict[agent.name]]) == set(
+        assert set([a.name for a in group_chat.allowed_speaker_transitions_dict[agent]]) == set(
             [a.name for a in agents]
         )
 
 
 def test_graph_validity_check():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
-    invalid_order = {agents[0].name: []}
+    invalid_transitions = {agents[0]: []}
     with pytest.raises(Exception):
         GroupChat(
-            agents=agents, allowed_or_disallowed_speaker_transitions=invalid_order, speaker_transitions_type="allowed"
+            agents=agents,
+            allowed_or_disallowed_speaker_transitions=invalid_transitions,
+            speaker_transitions_type="allowed",
         )
 
 
@@ -532,7 +534,7 @@ def test_graceful_exit_before_max_round():
     )
 
     # This speaker_transitions limits the transition to be only from agent1 to agent2, and from agent2 to agent3 and end.
-    allowed_or_disallowed_speaker_transitions = {agent1.name: [agent2], agent2.name: [agent3]}
+    allowed_or_disallowed_speaker_transitions = {agent1: [agent2], agent2: [agent3]}
 
     # Test empty is_termination_msg function
     groupchat = autogen.GroupChat(

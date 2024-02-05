@@ -43,7 +43,7 @@ class GroupChat:
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
 
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
-    - allowed_or_disallowed_speaker_transitions: a dictionary of keys and list as values. The keys are the names of the agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_transitions_dict is assumed. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
+    - allowed_or_disallowed_speaker_transitions: a dictionary of keys and list as values. The keys are the source agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_transitions_dict is assumed. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
     - speaker_transitions_type: whether the speaker_transitions_type is a dictionary containing lists of allowed agents or disallowed agents. allowed means the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of allowed agents. If set to disallowed, then the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of disallowed agents. Must be supplied if allowed_or_disallowed_speaker_transitions is not None.
     - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
         "clear history" phrase in user prompt. This is experimental feature.
@@ -109,19 +109,19 @@ class GroupChat:
 
             # Create a fully connected allowed_speaker_transitions_dict not including self loops
             for agent in self.agents:
-                self.allowed_speaker_transitions_dict[agent.name] = [
+                self.allowed_speaker_transitions_dict[agent] = [
                     other_agent for other_agent in self.agents if other_agent != agent
                 ]
 
             # If self.allow_repeat_speaker is True, add self loops to all agents
             if self.allow_repeat_speaker:
                 for agent in self.agents:
-                    self.allowed_speaker_transitions_dict[agent.name].append(agent)
+                    self.allowed_speaker_transitions_dict[agent].append(agent)
 
             # Else if self.allow_repeat_speaker is a list of Agents, add self loops to the agents in the list
             elif isinstance(self.allow_repeat_speaker, list):
                 for agent in self.allow_repeat_speaker:
-                    self.allowed_speaker_transitions_dict[agent.name].append(agent)
+                    self.allowed_speaker_transitions_dict[agent].append(agent)
 
         # Create self.allowed_speaker_transitions_dict if allowed_or_disallowed_speaker_transitions is not None, using allowed_or_disallowed_speaker_transitions
         else:
@@ -308,20 +308,18 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         is_last_speaker_in_group = last_speaker in self.agents
 
         # this condition means last_speaker is a sink in the graph, then no agents are eligible
-        if last_speaker.name not in self.allowed_speaker_transitions_dict and is_last_speaker_in_group:
+        if last_speaker not in self.allowed_speaker_transitions_dict and is_last_speaker_in_group:
             raise NoEligibleSpeakerException(
                 f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict."
             )
         # last_speaker is not in the group, so all agents are eligible
-        elif last_speaker.name not in self.allowed_speaker_transitions_dict and not is_last_speaker_in_group:
-            graph_eligible_agents_names = []
+        elif last_speaker not in self.allowed_speaker_transitions_dict and not is_last_speaker_in_group:
+            graph_eligible_agents = []
         else:
             # Extract agent names from the list of agents
-            graph_eligible_agents_names = [
-                agent.name for agent in self.allowed_speaker_transitions_dict[last_speaker.name]
+            graph_eligible_agents = [
+                agent for agent in agents if agent in self.allowed_speaker_transitions_dict[last_speaker]
             ]
-        # Perform filtering
-        graph_eligible_agents = [agent for agent in agents if agent.name in graph_eligible_agents_names]
 
         # If there is only one eligible agent, just return it to avoid the speaker selection prompt
         if len(graph_eligible_agents) == 1:
