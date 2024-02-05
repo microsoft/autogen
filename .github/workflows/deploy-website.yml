@@ -68,7 +68,7 @@ jobs:
       - name: Htmlproofer
         uses: athackst/htmlproofer-action@main
         with:
-          directory: build
+          directory: website/build
           swap_urls: ^/autogen/:/
           disable_external: true
   gh-release:
@@ -120,7 +120,7 @@ jobs:
       - name: Htmlproofer
         uses: athackst/htmlproofer-action@main
         with:
-          directory: build
+          directory: website/build
           swap_urls: ^/autogen/:/
           disable_external: true
       - name: Deploy to GitHub Pages
