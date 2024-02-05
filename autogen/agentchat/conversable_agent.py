@@ -823,7 +823,7 @@ class ConversableAgent(Agent):
         else:
             return extracted_response
 
-    def initiate_chats(self, chat_queue: List[Dict]):
+    def initiate_chats(self, chat_queue: List[Dict[str, Any]]):
         """Initiate chats with multiple agents.
 
         Args:
