@@ -11,28 +11,21 @@ pip install "pyautogen[redis]"
 
 See [LLM Caching](Use-Cases/agent_chat.md#llm-caching) for details.
 
-## Docker
+## IPython Code Executor
 
-Even if you install AutoGen locally, we highly recommend using Docker for [code execution](FAQ.md#enable-python-3-docker-image).
-
-To use docker for code execution, you also need to install the python package `docker`:
+To use the IPython code executor, you need to install the `jupyter-client`
+and `ipykernel` packages:
 
 ```bash
-pip install docker
+pip install "pyautogen[ipython]"
 ```
 
-You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
+To use the IPython code executor:
 
 ```python
-user_proxy = autogen.UserProxyAgent(
-    name="agent",
-    human_input_mode="TERMINATE",
-    max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
-    llm_config=llm_config,
-    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
-Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
-)
+from autogen import UserProxyAgent
+
+proxy = UserProxyAgent(name="proxy", code_execution_config={"executor": "ipython-embedded"})
 ```
 
 ## blendsearch
