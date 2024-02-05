@@ -20,17 +20,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 permissions: {}
-    # actions: read
-  # checks: read
-  # contents: read
-  # deployments: read
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    env:
+      AUTOGEN_USE_DOCKER: ${{ matrix.os != 'ubuntu-latest'  && 'False' }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v3
@@ -44,16 +42,14 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-      - name: Set AUTOGEN_USE_DOCKER based on OS
-        shell: bash
-        run: |
-          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
-            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
-          fi
-      - name: Test with pytest
-        if: matrix.python-version != '3.10'
+      - name: Test with pytest skipping openai tests
+        if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
           pytest test --skip-openai
+      - name: Test with pytest skipping openai and docker tests
+        if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
+        run: |
+          pytest test --skip-openai --skip-docker
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
