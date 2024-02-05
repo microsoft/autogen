@@ -89,7 +89,10 @@ In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for 
 
 ### Can I use non-OpenAI models?
 
-Yes. Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+Yes. You currently have two options:
+
+- Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+- You can supply your own custom model implementation and use it with Autogen. Please check https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
 ## Handle Rate Limit Error and Timeout Error
 
