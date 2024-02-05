@@ -161,7 +161,7 @@ def test_chats():
 
     user = UserProxyAgent(
         name="User",
-        human_input_mode="ALWAYS",
+        human_input_mode="NEVER",
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         code_execution_config={
             "last_n_messages": 1,
