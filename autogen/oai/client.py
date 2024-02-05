@@ -54,6 +54,13 @@ LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
 
 
+class _ClassProperty(object):
+    def __init__(self, func):
+        self.func = func
+    def __get__(self, inst, cls):
+        return self.func(cls)
+
+
 class ModelClient(Protocol):
     """
     A client class must implement the following methods:
@@ -66,7 +73,7 @@ class ModelClient(Protocol):
     The message_retrieval method must be implemented to return a list of str or a list of messages from the response.
     """
 
-    @property
+    @_ClassProperty
     def RESPONSE_USAGE_KEYS():
         warnings.warn("RESPONSE_USAGE_KEYS is deprecated. Use ResponseUsage instead.", DeprecationWarning, stacklevel=2)
         return ["prompt_tokens", "completion_tokens", "total_tokens", "cost", "model"]
