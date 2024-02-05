@@ -1,13 +1,23 @@
-import os
 import sys
 import tempfile
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
+from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 
 from conftest import skip_openai
+
+
+def test_create() -> None:
+    config = {"executor": "commandline-local"}
+    executor = CodeExecutorFactory.create(config)
+    assert isinstance(executor, LocalCommandlineCodeExecutor)
+
+    config = {"executor": LocalCommandlineCodeExecutor()}
+    executor = CodeExecutorFactory.create(config)
+    assert executor is config["executor"]
 
 
 def test_local_commandline_executor_init() -> None:

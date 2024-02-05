@@ -1,14 +1,36 @@
 import os
 import tempfile
+from typing import Dict, Union
 import uuid
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.coding.base import CodeBlock
-from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
+from autogen.coding.base import CodeBlock, CodeExecutor
+from autogen.coding.factory import CodeExecutorFactory
 from autogen.oai.openai_utils import config_list_from_json
 from conftest import skip_openai  # noqa: E402
 
+try:
+    from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 
+    skip = False
+    skip_reason = ""
+except ImportError:
+    skip = True
+    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor not installed."
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
+def test_create() -> None:
+    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
+    executor = CodeExecutorFactory.create(config)
+    assert isinstance(executor, EmbeddedIPythonCodeExecutor)
+
+    config = {"executor": EmbeddedIPythonCodeExecutor()}
+    executor = CodeExecutorFactory.create(config)
+    assert executor is config["executor"]
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_init() -> None:
     executor = EmbeddedIPythonCodeExecutor(timeout=10, kernel_name="python3", output_dir=".")
     assert executor.timeout == 10 and executor.kernel_name == "python3" and executor.output_dir == "."
@@ -22,6 +44,7 @@ def test_init() -> None:
         executor = EmbeddedIPythonCodeExecutor(timeout=111, kernel_name="invalid_kernel_name", output_dir=".")
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_execute_code_single_code_block() -> None:
     executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="import sys\nprint('hello world!')", language="python")]
@@ -29,6 +52,7 @@ def test_execute_code_single_code_block() -> None:
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_execute_code_multiple_code_blocks() -> None:
     executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [
@@ -50,6 +74,7 @@ def test_function(a, b):
     assert code_result.exit_code == 0 and "854" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_execute_code_bash_script() -> None:
     executor = EmbeddedIPythonCodeExecutor()
     # Test bash script.
@@ -58,6 +83,7 @@ def test_execute_code_bash_script() -> None:
     assert code_result.exit_code == 0 and "hello world!" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_timeout() -> None:
     executor = EmbeddedIPythonCodeExecutor(timeout=1)
     code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
@@ -65,6 +91,7 @@ def test_timeout() -> None:
     assert code_result.exit_code and "Timeout" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_silent_pip_install() -> None:
     executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="!pip install matplotlib numpy", language="python")]
@@ -77,6 +104,7 @@ def test_silent_pip_install() -> None:
     assert code_result.exit_code == 0 and "ERROR: " in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_restart() -> None:
     executor = EmbeddedIPythonCodeExecutor()
     code_blocks = [CodeBlock(code="x = 123", language="python")]
@@ -89,6 +117,7 @@ def test_restart() -> None:
     assert code_result.exit_code and "NameError" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_save_image() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = EmbeddedIPythonCodeExecutor(output_dir=temp_dir)
@@ -107,6 +136,7 @@ def test_save_image() -> None:
         assert f"Image data saved to {code_result.output_files[0]}" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_save_html() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = EmbeddedIPythonCodeExecutor(output_dir=temp_dir)
@@ -120,6 +150,7 @@ def test_save_html() -> None:
         assert f"HTML data saved to {code_result.output_files[0]}" in code_result.output
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 @pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
 def test_conversable_agent_capability() -> None:
     KEY_LOC = "notebook"
@@ -161,6 +192,7 @@ def test_conversable_agent_capability() -> None:
     assert code_result.exit_code == 0 and "hello world" in code_result.output.lower()
 
 
+@pytest.mark.skipif(skip, reason=skip_reason)
 def test_conversable_agent_code_execution() -> None:
     agent = ConversableAgent(
         "user_proxy",

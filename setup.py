@@ -22,8 +22,6 @@ install_requires = [
     "tiktoken",
     "pydantic>=1.10,<3",  # could be both V1 and V2
     "docker",
-    "jupyter-client>=8.6.0",
-    "ipykernel>=6.29.0",
 ]
 
 setuptools.setup(
@@ -56,6 +54,7 @@ setuptools.setup(
         "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
+        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
