@@ -57,6 +57,7 @@ LEGACY_CACHE_DIR = ".cache"
 class _ClassProperty(object):
     def __init__(self, func):
         self.func = func
+
     def __get__(self, inst, cls):
         return self.func(cls)
 
@@ -88,14 +89,12 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-
     class ResponseUsage(TypedDict):
         prompt_tokens: int
         completion_tokens: int
         total_tokens: int
         cost: float
         model: str
-
 
     def create(self, **params: Any) -> ModelClientResponseProtocol:
         """Create a completion for the given parameters."""
@@ -112,8 +111,7 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
-        ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> ResponseUsage:
@@ -142,9 +140,11 @@ class OpenAIClient:
 
         if TOOL_ENABLED:
             return [  # type: ignore [return-value]
-                choice.message  # type: ignore [union-attr]
-                if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
-                else choice.message.content  # type: ignore [union-attr]
+                (
+                    choice.message  # type: ignore [union-attr]
+                    if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
+                    else choice.message.content
+                )  # type: ignore [union-attr]
                 for choice in choices
             ]
         else:
@@ -487,12 +487,14 @@ class OpenAIWrapper:
         elif context:
             # Instantiate the messages
             params["messages"] = [
-                {
-                    **m,
-                    "content": self.instantiate(m["content"], context, allow_format_str_template),
-                }
-                if m.get("content")
-                else m
+                (
+                    {
+                        **m,
+                        "content": self.instantiate(m["content"], context, allow_format_str_template),
+                    }
+                    if m.get("content")
+                    else m
+                )
                 for m in messages  # type: ignore [union-attr]
             ]
         return params
