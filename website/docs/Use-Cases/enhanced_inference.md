@@ -163,7 +163,7 @@ Total cost: 0.00027
 * Model 'gpt-3.5-turbo': cost: 0.00027, prompt_tokens: 50, completion_tokens: 100, total_tokens: 150
 ```
 
-Note: if using a custom model client (see [here](blog/2024/01/26/Custom-Models) for details) and if usage summary is not implemented, then the usage summary will not be available.
+Note: if using a custom model client (see [here](/blog/2024/01/26/Custom-Models) for details) and if usage summary is not implemented, then the usage summary will not be available.
 
 ## Caching
 
