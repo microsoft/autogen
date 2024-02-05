@@ -270,9 +270,9 @@ def test_to_dict():
     result = autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"])
     assert result["foo_val"] == expected_foo_val_field
     assert result["o"] == expected_o_field
-
-    agents_matches = re.findall(r"autogen.agentchat.conversable_agent.ConversableAgent", result["agents"])
-    assert len(agents_matches) == 2, "conversable agent didn't show up twice for agents"
+    assert len(result["agents"]) == 2
+    for agent in result["agents"]:
+        assert "autogen.agentchat.conversable_agent.ConversableAgent" in agent
 
 
 @patch("logging.Logger.error")
