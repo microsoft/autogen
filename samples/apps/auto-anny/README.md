@@ -30,6 +30,14 @@ Actually Anny can help with any OSS GitHub project (set `ANNY_GH_REPO` below).
 
 Note: By default Anny will log data to `autoanny.log`.
 
+
+## Roadmap
+
+- Enable access control
+- Enable a richer set of commands
+- Enrich agents with tool use
+
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
