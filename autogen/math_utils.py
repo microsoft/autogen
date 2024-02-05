@@ -1,5 +1,6 @@
-from typing import Optional
-from autogen import oai, DEFAULT_MODEL
+from typing import Any, Dict, List, Optional, Tuple, TypedDict
+from autogen import oai
+from .code_utils import DEFAULT_MODEL
 
 _MATH_PROMPT = "{problem} Solve the problem carefully. Simplify your answer as much as possible. Put the final answer in \\boxed{{}}."
 _MATH_CONFIG = {
@@ -8,7 +9,7 @@ _MATH_CONFIG = {
 }
 
 
-def solve_problem(problem: str, **config) -> str:
+def solve_problem(problem: str, **config: Any) -> Tuple[Optional[str], float]:
     """(openai<1) Solve the math problem.
 
     Args:
@@ -283,7 +284,7 @@ def is_equiv(str1: Optional[str], str2: Optional[str]) -> float:
         return float(str1 == str2)
 
 
-def is_equiv_chain_of_thought(str1: str, str2: str) -> float:
+def is_equiv_chain_of_thought(str1: str, str2: Optional[str]) -> float:
     """Strips the solution first before calling `is_equiv`."""
     ans1 = get_answer(str1)
     ans2 = get_answer(str2)
@@ -291,8 +292,8 @@ def is_equiv_chain_of_thought(str1: str, str2: str) -> float:
     return is_equiv(ans1, ans2)
 
 
-def voting_counts(responses):
-    answers = {}
+def voting_counts(responses: List[str]) -> Dict[int, int]:
+    answers: Dict[int, int] = {}
     for i in range(len(responses)):
         equiv = i
         if get_answer(responses[i]) is None:
@@ -309,7 +310,15 @@ def voting_counts(responses):
     return answers
 
 
-def eval_math_responses(responses, solution=None, **args):
+class EvaluatedMathResponse(TypedDict):
+    expected_success: float
+    success: bool
+    success_vote: float
+    voted_answer: Optional[str]
+    votes: int
+
+
+def eval_math_responses(responses: List[str], solution: Optional[str] = None, **args: Any) -> EvaluatedMathResponse:
     """Select a response for a math problem using voting, and check if the response is correct if the solution is provided.
 
     Args:
