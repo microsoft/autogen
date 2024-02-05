@@ -15,6 +15,11 @@ from group_chat_moderator import GroupChatModerator
 testbed_utils.init()
 ##############################
 
+# Read the prompt
+PROMPT = ""
+with open("prompt.txt", "rt") as fh:
+    PROMPT = fh.read().strip()
+
 config_list = autogen.config_list_from_json(
     "OAI_CONFIG_LIST",
     #    filter_dict={"model": ["gpt-4"]},
@@ -46,9 +51,9 @@ def response_preparer(agent, inner_messages):
     messages = [
         {
             "role": "user",
-            "content": """Earlier you were asked the following:
+            "content": f"""Earlier you were asked the following:
 
-__PROMPT__
+{PROMPT}
 
 Your team then worked diligently to address that request. Here is a transcript of that conversation:""",
         }
@@ -69,10 +74,10 @@ Your team then worked diligently to address that request. Here is a transcript o
     messages.append(
         {
             "role": "user",
-            "content": """
+            "content": f"""
 Read the above conversation and output a FINAL ANSWER to the question. The question is repeated here for convenience:
 
-__PROMPT__
+{PROMPT}
 
 To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
 YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
@@ -151,7 +156,7 @@ if len(filename_prompt) > 0:
 question = f"""
 Below I will pose a question to you that I would like you to answer. You should begin by listing all the relevant facts necessary to derive an answer, then fill in those facts from memory where possible, including specific names, numbers and statistics. You are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from. After listing the facts, begin to solve the question in earnest. Here is the question:
 
-{filename_prompt}__PROMPT__
+{filename_prompt}{PROMPT}
 """.strip()
 
 groupchat = GroupChatModerator(
