@@ -366,15 +366,12 @@ class GroupChatManager(ConversableAgent):
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
             groupchat.append(message, speaker)
-            if self._is_termination_msg(message):
-                # The conversation is over
-                break
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
-            if i == groupchat.max_round - 1:
-                # the last round
+            if self._is_termination_msg(message) or i == groupchat.max_round - 1:
+                # The conversation is over or it's the last round
                 break
             try:
                 # select the next speaker
@@ -391,6 +388,7 @@ class GroupChatManager(ConversableAgent):
                     # admin agent is not found in the participants
                     raise
             if reply is None:
+                # no reply is generated, exit the chat
                 break
 
             # check for "clear history" phrase in reply and activate clear history function if found
@@ -403,8 +401,6 @@ class GroupChatManager(ConversableAgent):
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
-            if i == groupchat.max_round - 1:
-                groupchat.append(message, speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.client_cache = a.previous_cache
