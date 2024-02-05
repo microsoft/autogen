@@ -12,32 +12,29 @@ class TransformChatHistory:
     This capability allows the agent to transform its chat history prior to using it to generate a reply.
     It does not permanently modify the chat history, but rather processes it on every invocation.
 
-    It enables various strategies to transform chat history, such as:
-        - Truncate messages: Truncate each message to first maximum number of tokens.
-        - Limit number of messages: Truncate the chat history to a maximum number of (recent) messages.
-        - Limit number of tokens: Truncate the chat history to number of recent N messages that fit in
-        maximum number of tokens.
-    Note that the system message, because of its special significance, is always kept as is.
 
-    The three strategies can be combined. For example, when each of these parameters are specified
-    they are used in the following order:
-    1. First truncate messages to a maximum number of tokens
-    2. Second, it limits the number of message to keep
-    3. Third, it limits the total number of tokens in the chat history
 
     """
 
     def __init__(self, *, max_tokens_per_message: int = None, max_messages: int = None, max_tokens: int = None):
         """
-        Create a new context handling capability.
+        Creates a new capability that enables various strategies to transform chat history, such as:
+        - Truncate messages: Truncate each message to first maximum number of tokens.
+        - Limit number of messages: Truncate the chat history to a maximum number of (recent) messages.
+        - Limit number of tokens: Truncate the chat history to number of recent N messages that fit in
+        maximum number of tokens.
+        Note that the system message, because of its special significance, is always kept as is.
+
+        The three strategies can be combined. For example, when each of these parameters are specified
+        they are used in the following order:
+        1. First truncate messages to a maximum number of tokens
+        2. Second, it limits the number of message to keep
+        3. Third, it limits the total number of tokens in the chat history
 
         Args:
             max_tokens_per_message: Maximum number of tokens to keep in each message.
             max_messages: Maximum number of messages to keep in the context.
             max_tokens: Maximum number of tokens to keep in the context.
-
-        Returns:
-            None
         """
         self.max_tokens_per_message = max_tokens_per_message if max_tokens_per_message else sys.maxsize
         self.max_messages = max_messages if max_messages else sys.maxsize
