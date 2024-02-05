@@ -262,6 +262,7 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
     system_message: "You are a helpful assistant.",
+    default_auto_reply: "TERMINATE",
     llm_config: false,
     code_execution_config: {
       work_dir: null,
