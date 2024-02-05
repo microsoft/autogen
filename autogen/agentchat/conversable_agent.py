@@ -721,7 +721,7 @@ class ConversableAgent(Agent):
 
         Reset the consecutive auto reply counter.
         If `clear_history` is True, the chat history with the recipient agent will be cleared.
-        `generate_init_message` is called to generate the initial message for the agent.
+        `a_generate_init_message` is called to generate the initial message for the agent.
 
         Args:
             recipient: the recipient agent.
@@ -729,7 +729,7 @@ class ConversableAgent(Agent):
             silent (bool or None): (Experimental) whether to print the messages for this conversation.
             cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information.
-                "message" needs to be provided if the `generate_init_message` method is not overridden.
+                "message" needs to be provided if the `a_generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
         """
         self._prepare_chat(recipient, clear_history)
