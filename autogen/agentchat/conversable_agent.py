@@ -414,7 +414,7 @@ class ConversableAgent(Agent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ):
+    ) -> ChatResult:
         """Send a message to another agent.
 
         Args:
@@ -446,6 +446,9 @@ class ConversableAgent(Agent):
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
+
+        Returns:
+            ChatResult: an ChatResult object.
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -470,7 +473,7 @@ class ConversableAgent(Agent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ):
+    ) -> ChatResult:
         """(async) Send a message to another agent.
 
         Args:
@@ -502,6 +505,9 @@ class ConversableAgent(Agent):
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
+
+        Returns:
+            ChatResult: an ChatResult object.
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -699,7 +705,7 @@ class ConversableAgent(Agent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         **context,
-    ) -> Dict:
+    ) -> ChatResult:
         """Initiate a chat with the recipient agent.
 
         Reset the consecutive auto reply counter.
@@ -730,7 +736,7 @@ class ConversableAgent(Agent):
             RuntimeError: if any async reply functions are registered and not ignored in sync chat.
 
         Returns:
-            Dict: a chat summary.
+            ChatResult: an ChatResult object.
         """
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
@@ -757,7 +763,7 @@ class ConversableAgent(Agent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         **context,
-    ) -> Dict:
+    ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
 
         Reset the consecutive auto reply counter.
@@ -767,7 +773,7 @@ class ConversableAgent(Agent):
         Args: Please refer to `initiate_chat`.
 
         Returns:
-            Dict: a chat summary.
+            ChatResult: an ChatResult object.
         """
         self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
@@ -856,7 +862,7 @@ class ConversableAgent(Agent):
         else:
             return extracted_response
 
-    def initiate_chats(self, chat_queue: List[Dict[str, Any]]):
+    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
         TODO: add async version of this method.
 
@@ -880,6 +886,7 @@ class ConversableAgent(Agent):
                         If provided, we will combine this carryover with the "message" content when generating the initial chat
                         message in `generate_init_message`.
 
+        Returns: a dictionary of ChatResult object from the finished chats of particular agents.
         """
         receipts_set = set()
         for chat_info in chat_queue:
