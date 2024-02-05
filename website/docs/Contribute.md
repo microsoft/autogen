@@ -208,6 +208,16 @@ To build and test documentation locally, install [Node.js](https://nodejs.org/en
 nvm install --lts
 ```
 
+#### Install Quarto
+
+`quarto` is used to render notebooks.
+
+Install it [here](https://quarto.org/docs/get-started/).
+
+> Note: Support for Docusaurus 3.0 in Quarto is from version `1.4`. Ensure that your `quarto` version is `1.4` or higher.
+
+#### Build
+
 Then:
 
 ```console
@@ -249,3 +259,11 @@ Once done you should be able to access the documentation at `http://127.0.0.1:80
 
 Note:
 some tips in this guide are based off the contributor guide from [flaml](https://microsoft.github.io/FLAML/docs/Contribute).
+
+#### Running htmlproofer
+
+`htmlproofer` is a tool to check for broken links and other issues in HTML files.
+
+1. [Install `htmlproofer`](https://github.com/gjtorikian/html-proofer?tab=readme-ov-file#installation)
+2. Ensure site is completely built
+3. `htmlproofer REPO_ROOT/website/build/ --swap-urls '^/autogen/:/' --disable-external`

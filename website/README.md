@@ -39,3 +39,11 @@ yarn start
 ```
 
 This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+
+## Running htmlproofer
+
+`htmlproofer` is a tool to check for broken links and other issues in HTML files.
+
+1. [Install `htmlproofer`](https://github.com/gjtorikian/html-proofer?tab=readme-ov-file#installation)
+2. Ensure site is completely built
+3. `htmlproofer REPO_ROOT/website/build/ --swap-urls '^/autogen/:/' --disable-external`

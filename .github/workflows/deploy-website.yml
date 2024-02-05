@@ -65,6 +65,12 @@ jobs:
           npm i --legacy-peer-deps
           npm run build
           fi
+      - name: Htmlproofer
+        uses: athackst/htmlproofer-action@main
+        with:
+          directory: build
+          swap_urls: ^/autogen/:/
+          disable_external: true
   gh-release:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -111,6 +117,12 @@ jobs:
           npm i --legacy-peer-deps
           npm run build
           fi
+      - name: Htmlproofer
+        uses: athackst/htmlproofer-action@main
+        with:
+          directory: build
+          swap_urls: ^/autogen/:/
+          disable_external: true
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
