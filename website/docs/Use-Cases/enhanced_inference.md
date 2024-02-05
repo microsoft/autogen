@@ -269,7 +269,7 @@ client = OpenAIWrapper(
 )
 ```
 
-`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using custom provided inference, one by one,
+`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using a custom model client class named `CustomModelClient`, one by one,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
 For convenience, we provide a number of utility functions to load config lists.
