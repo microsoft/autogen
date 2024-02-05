@@ -1,8 +1,7 @@
 from typing import List, Dict, Tuple
-from autogen import Agent
 
 
-def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str, any]]:
+def gather_usage_summary(agents: List) -> Tuple[Dict[str, any], Dict[str, any]]:
     """Gather usage summary from all agents.
 
     Args:
