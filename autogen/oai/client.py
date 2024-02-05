@@ -79,6 +79,8 @@ class ModelClient(Protocol):
             class Message(Protocol):
                 content: Optional[str]
 
+            message: Message
+
         choices: List[Choice]
         model: str
 
