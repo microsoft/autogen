@@ -56,12 +56,6 @@ class TestGraphUtilCheckGraphValidity:
         with pytest.raises(ValueError):
             gru.check_graph_validity(invalid_speaker_transitions_dict, agents)
 
-    def test_graph_with_self_loops(self):
-        agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        speaker_transitions_dict_with_self_loop = {agent: [agent] for agent in agents}
-        with pytest.raises(ValueError):
-            gru.check_graph_validity(speaker_transitions_dict_with_self_loop, agents, allow_repeat_speaker=False)
-
     def test_graph_with_unauthorized_self_loops(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
         # Creating a subset of agents allowed to have self-loops

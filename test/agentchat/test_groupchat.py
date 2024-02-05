@@ -499,6 +499,38 @@ def test_init_default_parameters():
         )
 
 
+def test_graph_parameters():
+    agents = [Agent(name=f"Agent{i}") for i in range(3)]
+    with pytest.raises(Exception):
+        GroupChat(
+            agents=agents,
+            messages=[],
+            max_round=3,
+            allow_repeat_speaker=None,
+            allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
+        )
+
+    with pytest.raises(Exception):
+        GroupChat(
+            agents=agents,
+            messages=[],
+            max_round=3,
+            allow_repeat_speaker=None,
+            allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
+            speaker_transitions_type="a",
+        )
+
+    group_chat = GroupChat(
+        agents=agents,
+        messages=[],
+        max_round=3,
+        allow_repeat_speaker=None,
+        allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
+        speaker_transitions_type="allowed",
+    )
+    assert "Agent0" in group_chat.agent_names
+
+
 def test_graph_validity_check():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
     invalid_transitions = {agents[0]: []}

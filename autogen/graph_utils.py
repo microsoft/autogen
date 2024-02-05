@@ -26,11 +26,11 @@ def check_graph_validity(
         1. The dictionary must have a structure of keys and list as values
         2. Every key exists in agents' names.
         3. Every value is a list of Agents (not string).
-        4. Check for contradiction between allow_repeat_speaker and allowed_speaker_transitions_dict
 
         Warnings
         1. Warning if there are isolated agent nodes
         2. Warning if the set of agents in allowed_speaker_transitions do not match agents
+        3. Warning if there are duplicated agents in any values of `allowed_speaker_transitions_dict`
     """
 
     ### Errors
@@ -52,39 +52,6 @@ def check_graph_validity(
         [all([isinstance(agent, Agent) for agent in value]) for value in allowed_speaker_transitions_dict.values()]
     ):
         raise ValueError("allowed_speaker_transitions_dict has values that are not lists of Agents.")
-
-    # Check 4. Check for contradiction between allow_repeat_speaker and allowed_speaker_transitions_dict
-    if allow_repeat_speaker is False:
-        offending_agents = [key for key, value in allowed_speaker_transitions_dict.items() if key in value]
-        if len(offending_agents) > 0:
-            raise ValueError(
-                f"""allowed_speaker_transitions_dict has self-loops when allow_repeat_speaker is set to false. Offending agents: {offending_agents}"""
-            )
-    elif allow_repeat_speaker is True:
-        # Iterate through the keys
-        # For each key, extract the list of names from value which is a List[Agent]
-        # Check if the key is in the list of names
-        has_self_loops = [key for key, value in allowed_speaker_transitions_dict.items() if key in value]
-
-        if len(has_self_loops) == 0:
-            raise ValueError(
-                """allowed_speaker_transitions_dict has no self-loops when allow_repeat_speaker is set to true."""
-            )
-
-    elif isinstance(allow_repeat_speaker, list):
-        # First extract the names of the agents that are having self loop in allowed_speaker_transitions_dict
-        # To do that, we iterate across all keys, and find all keys that are in their value, value is a list of Agent.
-        # Need to access name from Agent.name
-        self_loop_agents = [key for key, value in allowed_speaker_transitions_dict.items() if key in value]
-
-        # Check if all of the agents in self_loop_agents are in allow_repeat_speaker and vice-versa
-        # Full anti-join, aka symmetric diff
-        full_anti_join = set(self_loop_agents).symmetric_difference(set(allow_repeat_speaker))
-        if len(full_anti_join) > 0:
-            raise ValueError(
-                f"""allowed_speaker_transitions_dict has self-loops not mentioned in the list of agents allowed to repeat in allow_repeat_speaker_names. allow_repeat_speaker_names: {[agent.name for agent in allow_repeat_speaker]}; self_loop_agents: {[agent.name for agent in self_loop_agents]}
-                """
-            )
 
     # Warnings
     # Warning 1. Warning if there are isolated agent nodes, there are not incoming nor outgoing edges
