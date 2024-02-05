@@ -1,15 +1,13 @@
 import logging
-from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, TypedDict
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ChatResult:
-    """(In preview) A dataclass to store the result of a chat."""
+class ChatResult(TypedDict):
+    """(Experimental) The result of a chat. Almost certain to be changed."""
 
     chat_history: List[Dict[str, any]]
-    summary: str = None
-    cost: dict = None  # (dict, dict) - (total_cost, actual_cost_with_cache)
-    human_input: List[str] = None
+    summary: str
+    cost: dict  # (dict, dict) - (total_cost, actual_cost_with_cache)
+    human_input: List[str]
