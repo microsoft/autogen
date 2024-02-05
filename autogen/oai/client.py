@@ -802,7 +802,7 @@ class OpenAIWrapper:
         iostream.print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
-            iostream.print()
+            iostream.print("")
             if self.total_usage_summary != self.actual_usage_summary:
                 print_usage(self.total_usage_summary, "total")
             else:
