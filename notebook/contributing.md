@@ -26,7 +26,8 @@ The following points are best practices for authoring notebooks to ensure consis
 
 You don't need to explain in depth how to install AutoGen. Unless there are specific instructions for the notebook just use the following markdown snippet:
 
-\:\:info Requirements
+````
+\:\:\:info Requirements
 
 Install `pyautogen`:
 ```bash
@@ -36,6 +37,7 @@ pip install pyautogen
 For more information, please refer to the [installation guide](/docs/installation/).
 
 \:\:\:
+````
 
 When specifying the config list, to ensure consistency it is best to use approximately the following code:
 
