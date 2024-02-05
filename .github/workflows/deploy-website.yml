@@ -37,7 +37,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown
+          pip install pydoc-markdown pyyaml colored
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
@@ -50,6 +50,9 @@ jobs:
       - name: quarto run
         run: |
           quarto render .
+      - name: Process notebooks
+        run: |
+          python process_notebooks.py
       - name: Test Build
         run: |
           if [ -e yarn.lock ]; then
@@ -80,7 +83,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown
+          pip install pydoc-markdown pyyaml colored
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
@@ -93,6 +96,9 @@ jobs:
       - name: quarto run
         run: |
           quarto render .
+      - name: Process notebooks
+        run: |
+          python process_notebooks.py
       - name: Build website
         run: |
           if [ -e yarn.lock ]; then
