@@ -130,7 +130,7 @@ print(client.extract_text_or_completion_object(response))
 
 For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-For custom model clients, one can register the client with `autogen.OpenAIWrapper.register_custom_model_client` and then use the same API to send a request. See [here](blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
+For custom model clients, one can register the client with `autogen.OpenAIWrapper.register_model_client` and then use the same API to send a request. See [here](blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
 
 ## Usage Summary
 
