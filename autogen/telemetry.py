@@ -121,10 +121,7 @@ def _to_dict(
     if isinstance(obj, (int, float, str, bool)):
         return obj
     elif callable(obj):
-        try:
-            return inspect.getsource(obj).strip()
-        except OSError:
-            return str(obj)
+        return inspect.getsource(obj).strip()
     elif isinstance(obj, dict):
         return {k: _to_dict(v, exclude) for k, v in obj.items() if k not in exclude}
     elif isinstance(obj, (list, tuple)):

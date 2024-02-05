@@ -336,7 +336,7 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
-        log_new_agent(self, locals())
+        # log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
 
