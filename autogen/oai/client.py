@@ -111,7 +111,8 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float:
+        ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Optional[ResponseUsage]:
