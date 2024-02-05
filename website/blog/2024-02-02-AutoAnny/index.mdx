@@ -1,30 +1,45 @@
 ---
-title: "AutoAnny -- An AutoGen-Based Bot for Assisting AutoGen Devs"
+title: "Anny: Assisting AutoGen Devs Via AutoGen"
 authors:
   - gagb
 tags: [AutoGen]
 ---
 
-![AutoAnny](img/AutoAnnyLogo.jpg)
+import AutoAnnyLogo from './img/AutoAnnyLogo.jpg';
+
+<div style={{ display: "flex", justifyContent: "center" }}>
+  <img src={AutoAnnyLogo} alt="AutoAnny Logo" style={{ width: "250px" }} />
+</div>
 <p align="center"><em>Anny is a Discord bot powered by AutoGen to help AutoGen's Discord server.</em></p>
+
 
 ### TLDR
 
-To help AutoGen devs manage our OSS community, we are adding a new sample app called, Anny-- a simple Discord bot powered by AutoGen.
+To help AutoGen devs manage our OSS community, we are adding a new sample app called Anny-- a simple Discord bot powered by AutoGen. See `samples/apps/auto-anny` for details.
 
 ### Introduction
 
-Over the past few months, our team has experienced both the satisfaction of growth and the overwhelming task of keeping up with community requests. Our daily process involves manually sifting through issues, PRs, and discussions on GitHub, as well as managing messages from our 2,000+ community members on Discord, not to mention direct messages and emails from colleagues both inside and outside our organization.
+Over the past few months, our team has experienced both the satisfaction of growth and the overwhelming task of keeping up with community requests. Our daily process involves manually sifting through issues, PRs, and discussions on GitHub, as well as managing messages from our 2,000+ community members on Discord, not to mention direct messages and emails from colleagues both inside and outside our organization. All of this inaddition to pushing the frontiers of research on agents.
 
-Our responsibilities include:
+There many specific tasks we perform everyday, but here are some of the most common ones:
 - Answering questions
 - Recognizing and prioritizing bugs and features
 - Maintaining responsiveness for our incredible community
 - Tracking growth
 
+This requires a significant amount of effort from our talented team. Agentic-workflows and interfaces promise adding immense value-added automation for many tasks, so we thought why don't we use AutoGen to make our lives easier?! So we're turning to automation to handle the more monotonous tasks and allow us to focus on what's most critical.
 
-This requires a significant amount of effort from our talented team, and it's time that could be better spent on more value-added tasks. That's why we're turning to automation to handle the more monotonous tasks and allow us to focus on what's most critical.
+### Current Version of Anny
+The current version of Anny is pretty simple -- it uses the Discord API and AutoGen to enable a bot that can respond to a set of commands.
+For example, it supports commands like `/heyanny help` for command listing, `/heyanny ghstatus` for GitHub activity summary, `/heyanny ghgrowth` for GitHub repo growth indicators, and `/heyanny ghunattended` for listing unattended issues and PRs. Most of these commands use multiple AutoGen agents to accomplish these task.
+
+To use Anny, please following instructions in `samples/apps/auto-anny`
+
+
+### Roadmap
+- Make Anny available to AutoGen Discord users (starting with active developers)
+- Add access control and more expressive commands
 
 
 ### Its Not Just for AutoGen
-If you're an open-source developer managing your own project, you can probably relate to our challenges. We invite you to check out Anny and contribute to its development. Together, we can make open-source development a smoother, more efficient process for everyone.
+If you're an open-source developer managing your own project, you can probably relate to our challenges. We invite you to check out Anny and contribute to its development.
