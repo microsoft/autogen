@@ -61,9 +61,9 @@ def create_jsonl(name, tasks, files_dir, template):
                 "substitutions": {
                     "scenario.py": {
                         "__FILE_NAME__": task["file_name"],
-                        "__PROMPT__": task["Question"],
                     },
                     "expected_answer.txt": {"__EXPECTED_ANSWER__": task["Final answer"]},
+                    "prompt.txt": {"__PROMPT__": task["Question"]},
                 },
             }
 
