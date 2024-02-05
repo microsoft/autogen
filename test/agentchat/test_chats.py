@@ -99,7 +99,7 @@ def test_chats_group():
             "use_docker": False,
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
-    user.initiate_chats(
+    chat_res = user.initiate_chats(
         [
             {
                 "recipient": financial_assistant,
@@ -114,6 +114,15 @@ def test_chats_group():
             {"recipient": manager_2, "message": writing_tasks[0]},
         ]
     )
+
+    chat_w_manager = chat_res[manager_2]
+    print(chat_w_manager.chat_history, chat_w_manager.summary, chat_w_manager.cost)
+
+    manager_2_res = user.get_chat_results(manager_2)
+    all_res = user.get_chat_results()
+    print(manager_2_res.summary, manager_2_res.cost)
+    print(all_res[financial_assistant].human_input)
+    print(all_res[manager_1].summary)
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
@@ -152,7 +161,7 @@ def test_chats():
 
     user = UserProxyAgent(
         name="User",
-        human_input_mode="NEVER",
+        human_input_mode="ALWAYS",
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         code_execution_config={
             "last_n_messages": 1,
@@ -161,7 +170,7 @@ def test_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    user.initiate_chats(
+    chat_res = user.initiate_chats(
         [
             {
                 "recipient": financial_assistant_1,
@@ -184,11 +193,17 @@ def test_chats():
         ]
     )
 
-    blogpost = user.get_chat_summary(writer)
-    insights_and_blogpost = user.get_chat_summary()
-    print(blogpost, insights_and_blogpost)
+    chat_w_writer = chat_res[writer]
+    print(chat_w_writer.chat_history, chat_w_writer.summary, chat_w_writer.cost)
+
+    writer_res = user.get_chat_results(writer)
+    all_res = user.get_chat_results()
+    print(writer_res.summary, writer_res.cost)
+    print(all_res[financial_assistant_1].human_input)
+    print(all_res[financial_assistant_1].summary)
+    # print(blogpost.summary, insights_and_blogpost)
 
 
 if __name__ == "__main__":
-    test_chats()
+    # test_chats()
     test_chats_group()

@@ -21,6 +21,8 @@ from ..code_utils import (
     extract_code,
     infer_lang,
 )
+from ..agent_utils import gather_usage_summary
+from .chat import ChatResult
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -173,6 +175,7 @@ class ConversableAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self._ignore_async_func_in_sync_chat_list = []
+        self._human_input = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
@@ -454,6 +457,13 @@ class ConversableAgent(Agent):
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
+        chat_result = ChatResult(
+            chat_history=self.chat_messages[recipient],
+            cost=gather_usage_summary([self, recipient]),
+            human_input=self._human_input,
+        )
+        return chat_result
+
     async def a_send(
         self,
         message: Union[Dict, str],
@@ -502,6 +512,13 @@ class ConversableAgent(Agent):
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
+
+        chat_result = ChatResult(
+            chat_history=self.chat_messages[recipient],
+            cost=gather_usage_summary([self, recipient]),
+            human_input=self._human_input,
+        )
+        return chat_result
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
@@ -652,6 +669,7 @@ class ConversableAgent(Agent):
         self.reply_at_receive[recipient] = True
         if clear_history:
             self.clear_history(recipient)
+            self._human_input = []
         if prepare_recipient:
             recipient._prepare_chat(self, clear_history, False)
 
@@ -723,7 +741,14 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        return self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
+        summary = self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
+        chat_result = ChatResult(
+            chat_history=self.chat_messages[recipient],
+            summary=summary,
+            cost=gather_usage_summary([self, recipient]),
+            human_input=self._human_input,
+        )
+        return chat_result
 
     async def a_initiate_chat(
         self,
@@ -752,7 +777,14 @@ class ConversableAgent(Agent):
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        return self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
+        summary = self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
+        chat_result = ChatResult(
+            chat_history=self.chat_messages[recipient],
+            summary=summary,
+            cost=gather_usage_summary([self, recipient]),
+            human_input=self._human_input,
+        )
+        return chat_result
 
     def _summarize_chat(self, method, agent: Optional[Agent] = None, prompt: Optional[str] = None) -> str:
         """Get a chat summary from an agent participating in a chat.
@@ -856,13 +888,12 @@ class ConversableAgent(Agent):
 
         self._chat_queue = chat_queue
         self._finished_chats = {}
-        summary = []
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
             _chat_carryover = chat_info.get("carryover", [])
             if isinstance(_chat_carryover, str):
                 _chat_carryover = [_chat_carryover]
-            chat_info["carryover"] = _chat_carryover + list(self._finished_chats.values())
+            chat_info["carryover"] = _chat_carryover + [r.summary for r in self._finished_chats.values()]
             if "message" not in chat_info:
                 warnings.warn(
                     "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
@@ -886,16 +917,16 @@ class ConversableAgent(Agent):
                 flush=True,
             )
             print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            summary = self.initiate_chat(**chat_info)
+            chat_res = self.initiate_chat(**chat_info)
+            self._finished_chats[current_agent] = chat_res
+        return self._finished_chats
 
-            self._finished_chats[current_agent] = summary
-
-    def get_chat_summary(self, agent: Optional[Agent] = None):
+    def get_chat_results(self, agent: Optional[Agent] = None) -> Union[Dict[Agent, ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
         if agent is not None:
             return self._finished_chats.get(agent)
         else:
-            return list(self._finished_chats.values())
+            return self._finished_chats
 
     def reset(self):
         """Reset the agent."""
@@ -1594,6 +1625,7 @@ class ConversableAgent(Agent):
             str: human input.
         """
         reply = input(prompt)
+        self._human_input.append(reply)
         return reply
 
     async def a_get_human_input(self, prompt: str) -> str:
@@ -1608,6 +1640,7 @@ class ConversableAgent(Agent):
             str: human input.
         """
         reply = input(prompt)
+        self._human_inputs.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
