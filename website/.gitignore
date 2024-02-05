@@ -9,6 +9,7 @@ package-lock.json
 .docusaurus
 .cache-loader
 docs/reference
+/docs/notebooks
 
 docs/llm_endpoint_configuration.mdx
 

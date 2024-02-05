@@ -56,7 +56,7 @@ In `autogen` module there are [multiple helper functions](/docs/reference/oai/op
 - `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
 
-We suggest that you take a look at this [notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_openai_utils.ipynb) for full code examples of the different methods to configure your model endpoints.
+We suggest that you take a look at this [notebook](/docs/llm_endpoint_configuration) for full code examples of the different methods to configure your model endpoints.
 
 ### Use the constructed configuration list in agents
 
@@ -89,7 +89,10 @@ In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for 
 
 ### Can I use non-OpenAI models?
 
-Yes. Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+Yes. You currently have two options:
+
+- Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+- You can supply your own custom model implementation and use it with Autogen. Please check https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
 ## Handle Rate Limit Error and Timeout Error
 

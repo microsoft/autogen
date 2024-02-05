@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+import uuid
 import pytest
 import os
 import sys
@@ -26,15 +28,19 @@ if not skip:
     )
 
 
-def ask_ossinsight(question):
-    return f"That is a good question, but I don't know the answer yet. Please ask your human  developer friend to help you. \n\n{question}"
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_config_list() -> None:
+    assert len(config_list) > 0
 
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_gpt_assistant_chat():
+def test_gpt_assistant_chat() -> None:
     ossinsight_api_schema = {
         "name": "ossinsight_data_api",
         "parameters": {
@@ -49,30 +55,50 @@ def test_gpt_assistant_chat():
         },
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
     }
+    ask_ossinsight_mock = MagicMock()
 
-    name = "For test_gpt_assistant_chat"
+    def ask_ossinsight(question: str) -> str:
+        ask_ossinsight_mock(question)
+        return "The repository microsoft/autogen has 123,456 stars on GitHub."
+
+    name = f"For test_gpt_assistant_chat {uuid.uuid4()}"
     analyst = GPTAssistantAgent(
         name=name,
         llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
-    analyst.register_function(
-        function_map={
-            "ossinsight_data_api": ask_ossinsight,
-        }
-    )
+    try:
+        analyst.register_function(
+            function_map={
+                "ossinsight_data_api": ask_ossinsight,
+            }
+        )
 
-    ok, response = analyst._invoke_assistant(
-        [{"role": "user", "content": "What is the most popular open source project on GitHub?"}]
-    )
-    executable = analyst.can_execute_function("ossinsight_data_api")
-    analyst.reset()
-    threads_count = len(analyst._openai_threads)
-    analyst.delete_assistant()
+        ok, response = analyst._invoke_assistant(
+            [{"role": "user", "content": "How many stars microsoft/autogen has on GitHub?"}]
+        )
+        executable = analyst.can_execute_function("ossinsight_data_api")
+        analyst.reset()
+        threads_count = len(analyst._openai_threads)
+    finally:
+        analyst.delete_assistant()
 
+    # check response
     assert ok is True
     assert response.get("role", "") == "assistant"
-    assert len(response.get("content", "")) > 0
+
+    # check the question asked
+    ask_ossinsight_mock.assert_called_once()
+    question_asked = ask_ossinsight_mock.call_args[0][0].lower()
+    for word in "microsoft autogen stars github".split(" "):
+        assert word in question_asked
+
+    # check the answer
+    response_content = response.get("content", "").lower()
+    assert len(response_content) > 0
+    for word in "microsoft autogen 123 456".split(" "):
+        assert word in response_content
+
     assert executable is False
     assert threads_count == 0
 
@@ -81,12 +107,12 @@ def test_gpt_assistant_chat():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_get_assistant_instructions():
+def test_get_assistant_instructions() -> None:
     """
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
     and assert that the retrieved instructions match the set instructions.
     """
-    name = "For test_get_assistant_instructions"
+    name = f"For test_get_assistant_instructions {uuid.uuid4()}"
     assistant = GPTAssistantAgent(
         name,
         instructions="This is a test",
@@ -105,7 +131,7 @@ def test_get_assistant_instructions():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_gpt_assistant_instructions_overwrite():
+def test_gpt_assistant_instructions_overwrite() -> None:
     """
     Test that the instructions of a GPTAssistantAgent can be overwritten or not depending on the value of the
     `overwrite_instructions` parameter when creating a new assistant with the same ID.
@@ -117,7 +143,7 @@ def test_gpt_assistant_instructions_overwrite():
     4. Check that the instructions of the assistant have been overwritten with the new ones.
     """
 
-    name = "For test_gpt_assistant_instructions_overwrite"
+    name = f"For test_gpt_assistant_instructions_overwrite {uuid.uuid4()}"
     instructions1 = "This is a test #1"
     instructions2 = "This is a test #2"
 
@@ -129,19 +155,22 @@ def test_gpt_assistant_instructions_overwrite():
         },
     )
 
-    assistant_id = assistant.assistant_id
-    assistant = GPTAssistantAgent(
-        name,
-        instructions=instructions2,
-        llm_config={
-            "config_list": config_list,
-            "assistant_id": assistant_id,
-        },
-        overwrite_instructions=True,
-    )
+    try:
+        assistant_id = assistant.assistant_id
+        assistant = GPTAssistantAgent(
+            name,
+            instructions=instructions2,
+            llm_config={
+                "config_list": config_list,
+                "assistant_id": assistant_id,
+            },
+            overwrite_instructions=True,
+        )
 
-    instruction_match = assistant.get_assistant_instructions() == instructions2
-    assistant.delete_assistant()
+        instruction_match = assistant.get_assistant_instructions() == instructions2
+
+    finally:
+        assistant.delete_assistant()
 
     assert instruction_match is True
 
@@ -150,12 +179,12 @@ def test_gpt_assistant_instructions_overwrite():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_gpt_assistant_existing_no_instructions():
+def test_gpt_assistant_existing_no_instructions() -> None:
     """
     Test function to check if the GPTAssistantAgent can retrieve instructions for an existing assistant
     even if the assistant was created with no instructions initially.
     """
-    name = "For test_gpt_assistant_existing_no_instructions"
+    name = f"For test_gpt_assistant_existing_no_instructions {uuid.uuid4()}"
     instructions = "This is a test #1"
 
     assistant = GPTAssistantAgent(
@@ -166,19 +195,23 @@ def test_gpt_assistant_existing_no_instructions():
         },
     )
 
-    assistant_id = assistant.assistant_id
+    try:
+        assistant_id = assistant.assistant_id
 
-    # create a new assistant with the same ID but no instructions
-    assistant = GPTAssistantAgent(
-        name,
-        llm_config={
-            "config_list": config_list,
-            "assistant_id": assistant_id,
-        },
-    )
+        # create a new assistant with the same ID but no instructions
+        assistant = GPTAssistantAgent(
+            name,
+            llm_config={
+                "config_list": config_list,
+                "assistant_id": assistant_id,
+            },
+        )
 
-    instruction_match = assistant.get_assistant_instructions() == instructions
-    assistant.delete_assistant()
+        instruction_match = assistant.get_assistant_instructions() == instructions
+
+    finally:
+        assistant.delete_assistant()
+
     assert instruction_match is True
 
 
@@ -186,15 +219,15 @@ def test_gpt_assistant_existing_no_instructions():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_get_assistant_files():
+def test_get_assistant_files() -> None:
     """
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
     and assert that the retrieved instructions match the set instructions.
     """
     current_file_path = os.path.abspath(__file__)
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
-    name = "For test_get_assistant_files"
+    name = f"For test_get_assistant_files {uuid.uuid4()}"
 
     assistant = GPTAssistantAgent(
         name,
@@ -206,11 +239,14 @@ def test_get_assistant_files():
         },
     )
 
-    files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
-    retrieved_file_ids = [fild.id for fild in files]
-    expected_file_id = file.id
+    try:
+        files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
+        retrieved_file_ids = [fild.id for fild in files]
+        expected_file_id = file.id
 
-    assistant.delete_assistant()
+    finally:
+        assistant.delete_assistant()
+
     openai_client.files.delete(file.id)
 
     assert expected_file_id in retrieved_file_ids
@@ -220,12 +256,12 @@ def test_get_assistant_files():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_assistant_retrieval():
+def test_assistant_retrieval() -> None:
     """
     Test function to check if the GPTAssistantAgent can retrieve the same assistant
     """
 
-    name = "For test_assistant_retrieval"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
         "name": "call_function_1",
@@ -238,47 +274,49 @@ def test_assistant_retrieval():
         "description": "This is a test function 2",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
+
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
 
-    all_llm_config = {
-        "tools": [
-            {"type": "function", "function": function_1_schema},
-            {"type": "function", "function": function_2_schema},
-            {"type": "retrieval"},
-            {"type": "code_interpreter"},
-        ],
-        "file_ids": [file_1.id, file_2.id],
-        "config_list": config_list,
-    }
-
-    name = "For test_gpt_assistant_chat"
-
-    assistant_first = GPTAssistantAgent(
-        name,
-        instructions="This is a test",
-        llm_config=all_llm_config,
-    )
-    candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
-
-    assistant_second = GPTAssistantAgent(
-        name,
-        instructions="This is a test",
-        llm_config=all_llm_config,
-    )
-    candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
-
     try:
-        assistant_first.delete_assistant()
-        assistant_second.delete_assistant()
-    except openai.NotFoundError:
-        # Not found error is expected because the same assistant can not be deleted twice
-        pass
+        all_llm_config = {
+            "tools": [
+                {"type": "function", "function": function_1_schema},
+                {"type": "function", "function": function_2_schema},
+                {"type": "retrieval"},
+                {"type": "code_interpreter"},
+            ],
+            "file_ids": [file_1.id, file_2.id],
+            "config_list": config_list,
+        }
 
-    openai_client.files.delete(file_1.id)
-    openai_client.files.delete(file_2.id)
+        name = f"For test_assistant_retrieval {uuid.uuid4()}"
+
+        assistant_first = GPTAssistantAgent(
+            name,
+            instructions="This is a test",
+            llm_config=all_llm_config,
+        )
+        candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
+
+        try:
+            assistant_second = GPTAssistantAgent(
+                name,
+                instructions="This is a test",
+                llm_config=all_llm_config,
+            )
+            candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
+
+        finally:
+            assistant_first.delete_assistant()
+            with pytest.raises(openai.NotFoundError):
+                assistant_second.delete_assistant()
+
+    finally:
+        openai_client.files.delete(file_1.id)
+        openai_client.files.delete(file_2.id)
 
     assert candidate_first == candidate_second
     assert len(candidate_first) == 1
@@ -291,10 +329,10 @@ def test_assistant_retrieval():
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_assistant_mismatch_retrieval():
+def test_assistant_mismatch_retrieval() -> None:
     """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
 
-    name = "For test_assistant_retrieval"
+    name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
     function_1_schema = {
         "name": "call_function",
@@ -312,90 +350,217 @@ def test_assistant_mismatch_retrieval():
         "description": "This is a test function 3",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]
+    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
 
-    all_llm_config = {
-        "tools": [
-            {"type": "function", "function": function_1_schema},
-            {"type": "function", "function": function_2_schema},
-            {"type": "retrieval"},
-            {"type": "code_interpreter"},
-        ],
-        "file_ids": [file_1.id, file_2.id],
-        "config_list": config_list,
-    }
+    try:
+        all_llm_config = {
+            "tools": [
+                {"type": "function", "function": function_1_schema},
+                {"type": "function", "function": function_2_schema},
+                {"type": "retrieval"},
+                {"type": "code_interpreter"},
+            ],
+            "file_ids": [file_1.id, file_2.id],
+            "config_list": config_list,
+        }
 
-    name = "For test_gpt_assistant_chat"
+        name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
-    assistant_first = GPTAssistantAgent(
-        name,
-        instructions="This is a test",
-        llm_config=all_llm_config,
-    )
-    candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
-    assert len(candidate_first) == 1
+        assistant_first, assistant_instructions_mistaching = None, None
+        assistant_file_ids_mismatch, assistant_tools_mistaching = None, None
+        try:
+            assistant_first = GPTAssistantAgent(
+                name,
+                instructions="This is a test",
+                llm_config=all_llm_config,
+            )
+            candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
+            assert len(candidate_first) == 1
 
-    # test instructions mismatch
-    assistant_instructions_mistaching = GPTAssistantAgent(
-        name,
-        instructions="This is a test for mismatch instructions",
-        llm_config=all_llm_config,
-    )
-    candidate_instructions_mistaching = retrieve_assistants_by_name(
-        assistant_instructions_mistaching.openai_client, name
-    )
-    assert len(candidate_instructions_mistaching) == 2
+            # test instructions mismatch
+            assistant_instructions_mistaching = GPTAssistantAgent(
+                name,
+                instructions="This is a test for mismatch instructions",
+                llm_config=all_llm_config,
+            )
+            candidate_instructions_mistaching = retrieve_assistants_by_name(
+                assistant_instructions_mistaching.openai_client, name
+            )
+            assert len(candidate_instructions_mistaching) == 2
 
-    # test mismatch fild ids
-    file_ids_mismatch_llm_config = {
-        "tools": [
-            {"type": "code_interpreter"},
-            {"type": "retrieval"},
-            {"type": "function", "function": function_2_schema},
-            {"type": "function", "function": function_1_schema},
-        ],
-        "file_ids": [file_2.id],
-        "config_list": config_list,
-    }
-    assistant_file_ids_mismatch = GPTAssistantAgent(
-        name,
-        instructions="This is a test",
-        llm_config=file_ids_mismatch_llm_config,
-    )
-    candidate_file_ids_mismatch = retrieve_assistants_by_name(assistant_file_ids_mismatch.openai_client, name)
-    assert len(candidate_file_ids_mismatch) == 3
+            # test mismatch fild ids
+            file_ids_mismatch_llm_config = {
+                "tools": [
+                    {"type": "code_interpreter"},
+                    {"type": "retrieval"},
+                    {"type": "function", "function": function_2_schema},
+                    {"type": "function", "function": function_1_schema},
+                ],
+                "file_ids": [file_2.id],
+                "config_list": config_list,
+            }
+            assistant_file_ids_mismatch = GPTAssistantAgent(
+                name,
+                instructions="This is a test",
+                llm_config=file_ids_mismatch_llm_config,
+            )
+            candidate_file_ids_mismatch = retrieve_assistants_by_name(assistant_file_ids_mismatch.openai_client, name)
+            assert len(candidate_file_ids_mismatch) == 3
 
-    # test tools mismatch
-    tools_mismatch_llm_config = {
-        "tools": [
-            {"type": "code_interpreter"},
-            {"type": "retrieval"},
-            {"type": "function", "function": function_3_schema},
-        ],
-        "file_ids": [file_2.id, file_1.id],
-        "config_list": config_list,
-    }
-    assistant_tools_mistaching = GPTAssistantAgent(
-        name,
-        instructions="This is a test",
-        llm_config=tools_mismatch_llm_config,
-    )
-    candidate_tools_mismatch = retrieve_assistants_by_name(assistant_tools_mistaching.openai_client, name)
-    assert len(candidate_tools_mismatch) == 4
+            # test tools mismatch
+            tools_mismatch_llm_config = {
+                "tools": [
+                    {"type": "code_interpreter"},
+                    {"type": "retrieval"},
+                    {"type": "function", "function": function_3_schema},
+                ],
+                "file_ids": [file_2.id, file_1.id],
+                "config_list": config_list,
+            }
+            assistant_tools_mistaching = GPTAssistantAgent(
+                name,
+                instructions="This is a test",
+                llm_config=tools_mismatch_llm_config,
+            )
+            candidate_tools_mismatch = retrieve_assistants_by_name(assistant_tools_mistaching.openai_client, name)
+            assert len(candidate_tools_mismatch) == 4
 
-    openai_client.files.delete(file_1.id)
-    openai_client.files.delete(file_2.id)
+        finally:
+            if assistant_first:
+                assistant_first.delete_assistant()
+            if assistant_instructions_mistaching:
+                assistant_instructions_mistaching.delete_assistant()
+            if assistant_file_ids_mismatch:
+                assistant_file_ids_mismatch.delete_assistant()
+            if assistant_tools_mistaching:
+                assistant_tools_mistaching.delete_assistant()
 
-    assistant_first.delete_assistant()
-    assistant_instructions_mistaching.delete_assistant()
-    assistant_file_ids_mismatch.delete_assistant()
-    assistant_tools_mistaching.delete_assistant()
+    finally:
+        openai_client.files.delete(file_1.id)
+        openai_client.files.delete(file_2.id)
 
     candidates = retrieve_assistants_by_name(openai_client, name)
     assert len(candidates) == 0
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_gpt_assistant_tools_overwrite() -> None:
+    """
+    Test that the tools of a GPTAssistantAgent can be overwritten or not depending on the value of the
+    `overwrite_tools` parameter when creating a new assistant with the same ID.
+
+    Steps:
+    1. Create a new GPTAssistantAgent with a set of tools.
+    2. Get the ID of the assistant.
+    3. Create a new GPTAssistantAgent with the same ID but different tools and `overwrite_tools=True`.
+    4. Check that the tools of the assistant have been overwritten with the new ones.
+    """
+
+    original_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateTax",
+                "description": "Calculate tax for a given amount",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to calculate tax on"},
+                        "tax_rate": {"type": "number", "description": "The tax rate to apply"},
+                    },
+                    "required": ["amount", "tax_rate"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "convertCurrency",
+                "description": "Convert currency from one type to another",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {"type": "number", "description": "The amount to convert"},
+                        "from_currency": {"type": "string", "description": "Currency type to convert from"},
+                        "to_currency": {"type": "string", "description": "Currency type to convert to"},
+                    },
+                    "required": ["amount", "from_currency", "to_currency"],
+                },
+            },
+        },
+    ]
+
+    new_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "findRestaurant",
+                "description": "Find a restaurant based on cuisine type and location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "cuisine": {"type": "string", "description": "Type of cuisine"},
+                        "location": {"type": "string", "description": "City or area for the restaurant search"},
+                    },
+                    "required": ["cuisine", "location"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "calculateMortgage",
+                "description": "Calculate monthly mortgage payments",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "principal": {"type": "number", "description": "The principal loan amount"},
+                        "interest_rate": {"type": "number", "description": "Annual interest rate"},
+                        "years": {"type": "integer", "description": "Number of years for the loan"},
+                    },
+                    "required": ["principal", "interest_rate", "years"],
+                },
+            },
+        },
+    ]
+
+    name = f"For test_gpt_assistant_tools_overwrite {uuid.uuid4()}"
+
+    # Create an assistant with original tools
+    assistant_org = GPTAssistantAgent(
+        name,
+        llm_config={
+            "config_list": config_list,
+            "tools": original_tools,
+        },
+    )
+
+    assistant_id = assistant_org.assistant_id
+
+    try:
+        # Create a new assistant with new tools and overwrite_tools set to True
+        assistant = GPTAssistantAgent(
+            name,
+            llm_config={
+                "config_list": config_list,
+                "assistant_id": assistant_id,
+                "tools": new_tools,
+            },
+            overwrite_tools=True,
+        )
+
+        # Add logic to retrieve the tools from the assistant and assert
+        retrieved_tools = assistant.llm_config.get("tools", [])
+    finally:
+        assistant_org.delete_assistant()
+
+    assert retrieved_tools == new_tools
 
 
 if __name__ == "__main__":
@@ -405,3 +570,4 @@ if __name__ == "__main__":
     test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
     test_assistant_mismatch_retrieval()
+    test_gpt_assistant_tools_overwrite()
