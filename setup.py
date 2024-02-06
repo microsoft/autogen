@@ -51,7 +51,7 @@ setuptools.setup(
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
-        "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
+        "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
     },
