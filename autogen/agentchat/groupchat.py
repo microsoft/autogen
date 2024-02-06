@@ -401,6 +401,7 @@ class GroupChatManager(ConversableAgent):
                 and "CLEAR HISTORY" in reply["content"].upper()
             ):
                 reply["content"] = self.clear_agents_history(reply, groupchat)
+
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
@@ -490,7 +491,7 @@ class GroupChatManager(ConversableAgent):
         Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
 
         Args:
-            reply (str): user proxy reply message dict to analyse.
+            reply (dict): reply message dict to analyze.
             groupchat (GroupChat): GroupChat object.
         """
         reply_content = reply["content"]
