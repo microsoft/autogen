@@ -210,6 +210,7 @@ def test_chats():
     # print(blogpost.summary, insights_and_blogpost)
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_chats_w_func():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
