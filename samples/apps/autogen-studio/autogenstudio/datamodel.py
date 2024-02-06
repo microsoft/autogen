@@ -154,6 +154,7 @@ class GroupChatConfig:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     speaker_selection_method: Optional[str] = "auto"
+    # TODO: match the new group chat default and support transition spec
     allow_repeat_speaker: Optional[Union[bool, List[AgentConfig]]] = True
 
     def dict(self):
