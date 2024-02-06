@@ -1364,7 +1364,6 @@ class ConversableAgent(LLMAgent, Agent):
         self,
         messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional["Agent"] = None,
-        exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict, None]:
         """Reply based on the conversation history and the sender.
@@ -1386,9 +1385,7 @@ class ConversableAgent(LLMAgent, Agent):
 
         Args:
             messages: a list of messages in the conversation history.
-            default_reply (str or dict): default reply.
             sender: sender of an Agent instance.
-            exclude: a list of functions to exclude.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
@@ -1407,7 +1404,7 @@ class ConversableAgent(LLMAgent, Agent):
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
+            if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
             if inspect.iscoroutinefunction(reply_func):
                 continue
@@ -1421,7 +1418,6 @@ class ConversableAgent(LLMAgent, Agent):
         self,
         messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional["Agent"] = None,
-        exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """(async) Reply based on the conversation history and the sender.
@@ -1443,9 +1439,7 @@ class ConversableAgent(LLMAgent, Agent):
 
         Args:
             messages: a list of messages in the conversation history.
-            default_reply (str or dict): default reply.
             sender: sender of an Agent instance.
-            exclude: a list of functions to exclude.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
@@ -1464,7 +1458,7 @@ class ConversableAgent(LLMAgent, Agent):
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
+            if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
