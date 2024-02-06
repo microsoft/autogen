@@ -54,6 +54,7 @@ setuptools.setup(
         "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
+        "websockets": ["websockets>=12.0,<13"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

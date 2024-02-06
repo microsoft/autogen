@@ -13,10 +13,10 @@ class IOConsole(IOStream):
         """Print data to the output stream.
 
         Args:
-            data (str): The data to print.
-            end (str, optional): The string to append to the end of the data. If None (default), newline '\n' is appended. Defaults to None.
-            flush (bool, optional): Whether to flush the output stream. Defaults to False.
-
+            objects (any): The data to print.
+            sep (str, optional): The separator between objects. Defaults to " ".
+            end (str, optional): The end of the output. Defaults to "\n".
+            flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         print(*objects, sep=sep, end=end, flush=flush)
 
@@ -33,5 +33,5 @@ class IOConsole(IOStream):
         """
 
         if password:
-            return getpass.getpass()
+            return getpass.getpass(prompt if prompt != "" else "Password: ")
         return input(prompt)

@@ -1,4 +1,4 @@
-from typing import Any, ContextManager, Literal, Optional, Protocol, Tuple, Union, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 __all__ = ("OutputStream", "InputStream", "IOStream")
 
@@ -10,9 +10,9 @@ class OutputStream(Protocol):
 
         Args:
             objects (any): The data to print.
-            sep (str, optional): The string to separate the data. Defaults to " ".
-            end (str, optional): The string to append to the end of the data. If None (default), newline '\n' is appended. Defaults to None.
-            flush (bool, optional): Whether to flush the output stream. Defaults to False.
+            sep (str, optional): The separator between objects. Defaults to " ".
+            end (str, optional): The end of the output. Defaults to "\n".
+            flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         ...  # pragma: no cover
 
