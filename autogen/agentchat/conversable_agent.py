@@ -1387,6 +1387,9 @@ class ConversableAgent(LLMAgent, Agent):
             messages: a list of messages in the conversation history.
             sender: sender of an Agent instance.
 
+        Additional keyword arguments:
+            exclude (List[Callable]): a list of reply functions to be excluded from the search.
+
         Returns:
             str or dict or None: reply. None if no reply is generated.
         """
@@ -1440,6 +1443,9 @@ class ConversableAgent(LLMAgent, Agent):
         Args:
             messages: a list of messages in the conversation history.
             sender: sender of an Agent instance.
+
+        Additional keyword arguments:
+            exclude (List[Callable]): a list of reply functions to be excluded from the search.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
