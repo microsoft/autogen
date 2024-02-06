@@ -108,6 +108,7 @@ export interface IChatSession {
   user_id: string;
   timestamp: string;
   flow_config: IFlowConfig;
+  name: string;
 }
 
 export interface IGalleryItem {

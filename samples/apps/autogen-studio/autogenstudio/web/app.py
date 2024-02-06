@@ -170,6 +170,26 @@ async def create_user_session(req: DBWebRequestModel):
         }
 
 
+@api.post("/sessions/rename")
+async def rename_user_session(name: str, req: DBWebRequestModel):
+    """Rename a session for a user"""    
+    print("Rename: " + name)
+    print("renaming session for user: " + req.user_id + " to: " + name)
+    try:
+        session = dbutils.rename_session(name=name, session=req.session, dbmanager=dbmanager)
+        return {
+            "status": True,
+            "message": "Session renamed successfully",
+            "data": session,
+        }
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while renaming session: " + str(ex_error),
+        }
+
+
 @api.post("/sessions/publish")
 async def publish_user_session_to_gallery(req: DBWebRequestModel):
     """Create a new session for a user"""
