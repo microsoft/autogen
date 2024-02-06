@@ -10,13 +10,9 @@ from autogen.io import IOWebsockets
 
 # Check if the websockets module is available
 try:
-    import websockets
-
-    # from websockets.server import WebSocketServerProtocol, serve
-    from websockets.sync.server import ServerConnection, WebSocketServer, serve
+    from websockets.sync.server import ServerConnection, serve
     from websockets.sync.client import connect
 except ImportError:  # pragma: no cover
-    # websockets = None  # type: ignore[assignment]
     skip_test = True
 else:
     skip_test = False
@@ -145,34 +141,3 @@ class TestConsoleIOWithWebsockets:
                 assert actual == "4"
 
                 print(" - Test passed.", flush=True)
-
-        #         # calling the print method should send the message to the websocket server
-        #         console_io.print("Hello, World!", flush=True)
-        #         mock_print.assert_called_once_with("Hello, World!", end="\n", sep=" ", flush=True)
-        # # calling the print method should call the mock of the builtin print function
-        # self.console_io.print("Hello, World!", flush=True)
-        # mock_print.assert_called_once_with("Hello, World!", end="\n", sep=" ", flush=True)
-
-    # @pytest.mark.skipif(skip_test, reason="websockets module is not available")
-    # @patch("builtins.input")
-    # def test_input(self, mock_input: MagicMock) -> None:
-    #     # calling the input method should call the mock of the builtin input function
-    #     mock_input.return_value = "Hello, World!"
-
-    #     actual = self.console_io.input("Hi!")
-    #     assert actual == "Hello, World!"
-    #     mock_input.assert_called_once_with("Hi!")
-
-    # @pytest.mark.skipif(skip_test, reason="websockets module is not available")
-    # @pytest.mark.parametrize("prompt", ["", "Password: ", "Enter you password:"])
-    # def test_input_password(self, monkeypatch: pytest.MonkeyPatch, prompt: str) -> None:
-    #     mock_getpass = MagicMock()
-    #     mock_getpass.return_value = "123456"
-    #     monkeypatch.setattr("getpass.getpass", mock_getpass)
-
-    #     actual = self.console_io.input(prompt, password=True)
-    #     assert actual == "123456"
-    #     if prompt == "":
-    #         mock_getpass.assert_called_once_with("Password: ")
-    #     else:
-    #         mock_getpass.assert_called_once_with(prompt)
