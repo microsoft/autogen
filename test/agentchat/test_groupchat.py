@@ -606,8 +606,8 @@ def test_clear_agents_history():
             "role": "assistant",
             "function_call": None,
             "tool_calls": [
-            {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
-        ]
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
+            ],
         },
         group_chat_manager,
     )
@@ -625,14 +625,16 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
 
     assert agent1_history == [
-        {"tool_calls": [
+        {
+            "tool_calls": [
                 {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"},
             ],
             "content": None,
-            "role": "assistant"
+            "role": "assistant",
         },
-        {"content": "example tool response",
-         "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+        {
+            "content": "example tool response",
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
             "role": "tool",
          },
         {"content": "hello", "role": "assistant"},
