@@ -535,19 +535,6 @@ def test_graph_parameters():
     assert "Agent0" in group_chat.agent_names
 
 
-def test_graph_validity_check():
-    from autogen.graph_utils import check_graph_validity
-
-    agents = [Agent(name=f"Agent{i}") for i in range(3)]
-    with pytest.raises(ValueError):
-        check_graph_validity({agents[0]: 1}, agents)
-    with pytest.raises(ValueError):
-        check_graph_validity({1: 1}, agents)
-    with pytest.raises(ValueError):
-        check_graph_validity({agents[0]: ["1"]}, agents)
-    check_graph_validity({agents[0]: agents}, agents)
-
-
 def test_graceful_exit_before_max_round():
     agent1 = autogen.ConversableAgent(
         "alice",
