@@ -465,6 +465,7 @@ def rename_session(name:str,  session: Session, dbmanager: DBManager) -> List[di
     """
     Edit a session for a specific user in the database.
 
+    :param name: The new name of the session
     :param session: The Session object containing session data
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a session
