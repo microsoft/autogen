@@ -856,8 +856,11 @@ class ConversableAgent(Agent):
         ]
         for message in messages:
             message = copy.deepcopy(message)
-            message["role"] = "user"
-            _messages.append(message)
+            if "tool_responses" in message:
+                del message["tool_responses"]
+            if not (message["role"] == "assistant" and "tool_calls" in message):
+                message["role"] = "user"
+                _messages.append(message)
 
         _messages.append(
             {
