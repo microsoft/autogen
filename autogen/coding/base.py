@@ -57,7 +57,7 @@ class CodeExecutor(Protocol):
 
         ```python
         code_executor = CodeExecutor()
-        agent = Agent()
+        agent = ConversableAgent("agent", ...)
         code_executor.user_capability.add_to_agent(agent)
         ```
 
