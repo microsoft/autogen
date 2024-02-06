@@ -9,7 +9,7 @@ from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 
-from .. import OpenAIWrapper, ModelClient
+from ..oai.client import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
     DEFAULT_MODEL,
