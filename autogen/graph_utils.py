@@ -24,7 +24,7 @@ def check_graph_validity(
     Checks for the following:
         Errors
         1. The dictionary must have a structure of keys and list as values
-        2. Every key exists in agents' names.
+        2. Every key exists in agents.
         3. Every value is a list of Agents (not string).
 
         Warnings
