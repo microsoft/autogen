@@ -636,7 +636,7 @@ def test_clear_agents_history():
             "content": "example tool response",
             "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
             "role": "tool",
-         },
+        },
         {"content": "hello", "role": "assistant"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
