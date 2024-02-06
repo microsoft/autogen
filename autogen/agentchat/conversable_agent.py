@@ -1388,7 +1388,7 @@ class ConversableAgent(LLMAgent, Agent):
             sender: sender of an Agent instance.
 
         Additional keyword arguments:
-            exclude (List[Callable]): a list of reply functions to be excluded from the search.
+            exclude (List[Callable]): a list of reply functions to be excluded.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
@@ -1445,7 +1445,7 @@ class ConversableAgent(LLMAgent, Agent):
             sender: sender of an Agent instance.
 
         Additional keyword arguments:
-            exclude (List[Callable]): a list of reply functions to be excluded from the search.
+            exclude (List[Callable]): a list of reply functions to be excluded.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
