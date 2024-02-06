@@ -615,7 +615,7 @@ def test_clear_agents_history():
         {
             "role": "tool",
             "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
-            "content": "example tool response"
+            "content": "example tool response",
         },
         group_chat_manager,
     )
@@ -627,12 +627,13 @@ def test_clear_agents_history():
     assert agent1_history == [
         {"tool_calls": [
             {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
-        ],
-            "content": None, "role": "assistant"
+            ],
+            "content": None,
+            "role": "assistant"
         },
         {"content": "example tool response", "tool_responses": [
             {"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}
-        ],
+            ],
             "role": "tool"
          },
         {"content": "hello", "role": "assistant"},
