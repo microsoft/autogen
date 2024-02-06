@@ -15,7 +15,7 @@ const BuildView = () => {
   return (
     <div className=" ">
       {/* <div className="mb-4 text-2xl">Build </div> */}
-      <div className="mb-6 text-sm text-secondary">
+      <div className="mb-6 text-sm hidden text-secondary">
         {" "}
         Create skills, agents and workflows for building multiagent capabilities{" "}
       </div>
