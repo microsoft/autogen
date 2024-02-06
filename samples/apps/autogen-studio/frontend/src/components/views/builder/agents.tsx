@@ -186,19 +186,26 @@ const AgentsView = ({}: any) => {
               {truncateText(agent.description || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
             <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteAgent(agent);
+              onMouseEnter={(e) => {
+                e.stopPropagation();
               }}
+              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              {" "}
+              <div
+                role="button"
+                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteAgent(agent);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs hidden"> delete</span>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
