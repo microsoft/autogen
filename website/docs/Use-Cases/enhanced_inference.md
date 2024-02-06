@@ -380,9 +380,9 @@ Telemetry logging example: [View Notebook](../../../notebook/agentchat_telemetry
 ```python
 import autogen.telemetry
 
-autogen.telemetry.start_logging(dbname="YOUR_DB_NAME")
+autogen.telemetry.start_logging(dbpath="YOUR_DB_PATH")
 ```
-dbname is optional, default is `telemetry.db`
+dbpath is optional, default is `telemetry.db`
 
 #### Stop logging:
 ```python

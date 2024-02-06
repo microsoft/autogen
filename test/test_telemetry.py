@@ -67,7 +67,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def db_connection():
-    autogen.telemetry.start_logging(dbname=":memory:")
+    autogen.telemetry.start_logging(dbpath=":memory:")
     con = autogen.telemetry.get_connection()
     con.row_factory = sqlite3.Row
     yield con
