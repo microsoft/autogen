@@ -501,7 +501,7 @@ def test_init_default_parameters():
 
 def test_graph_parameters():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         GroupChat(
             agents=agents,
             messages=[],
@@ -510,7 +510,7 @@ def test_graph_parameters():
             allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
         )
 
-    with pytest.raises(Exception):
+    with pytest.raises(AssertionError):
         GroupChat(
             agents=agents,
             messages=[],
@@ -534,9 +534,10 @@ def test_graph_parameters():
 def test_graph_validity_check():
     agents = [Agent(name=f"Agent{i}") for i in range(3)]
     invalid_transitions = {agents[0]: []}
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         GroupChat(
             agents=agents,
+            messages=[],
             allowed_or_disallowed_speaker_transitions=invalid_transitions,
             speaker_transitions_type="allowed",
         )

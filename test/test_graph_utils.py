@@ -5,11 +5,6 @@ from autogen.agentchat import Agent
 import autogen.graph_utils as gru
 
 
-# Use pytest.mark.skipif decorator for conditional skipping
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows or dependency is not installed",
-)
 class TestHelpers:
     def test_has_self_loops(self):
         # Setup test data
@@ -30,11 +25,6 @@ class TestHelpers:
         assert gru.has_self_loops(allowed_speaker_transitions_with_self_loops)
 
 
-# Use pytest.mark.skipif decorator for conditional skipping
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows or dependency is not installed",
-)
 class TestGraphUtilCheckGraphValidity:
     def test_valid_structure(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
@@ -119,10 +109,6 @@ class TestGraphUtilCheckGraphValidity:
         assert "duplicate" in caplog.text
 
 
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"],
-    reason="do not run on MacOS or windows or dependency is not installed",
-)
 class TestGraphUtilInvertDisallowedToAllowed:
     def test_basic_functionality(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
