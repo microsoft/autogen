@@ -489,7 +489,7 @@ def test_selection_helpers():
 
 
 def test_init_default_parameters():
-    agents = [Agent(name=f"Agent{i}") for i in range(3)]
+    agents = [autogen.ConversableAgent(name=f"Agent{i}", llm_config=False) for i in range(3)]
     group_chat = GroupChat(agents=agents, messages=[], max_round=3)
     for agent in agents:
         assert set([a.name for a in group_chat.allowed_speaker_transitions_dict[agent]]) == set(
@@ -498,7 +498,7 @@ def test_init_default_parameters():
 
 
 def test_graph_parameters():
-    agents = [Agent(name=f"Agent{i}") for i in range(3)]
+    agents = [autogen.ConversableAgent(name=f"Agent{i}", llm_config=False) for i in range(3)]
     with pytest.raises(ValueError):
         GroupChat(
             agents=agents,
