@@ -1,8 +1,7 @@
 from typing import List, Dict, Tuple
-from autogen import Agent
 
 
-def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str, any]]:
+def gather_usage_summary(agents: List) -> Tuple[Dict[str, any], Dict[str, any]]:
     """Gather usage summary from all agents.
 
     Args:
@@ -44,7 +43,7 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
     actual_usage_summary = {"total_cost": 0}
 
     for agent in agents:
-        if agent.client:
+        if getattr(agent, "client", None):
             aggregate_summary(total_usage_summary, agent.client.total_usage_summary)
             aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
 
