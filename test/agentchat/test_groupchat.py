@@ -226,16 +226,14 @@ def test_invalid_allow_repeat_speaker():
         default_auto_reply="This is bob speaking.",
     )
     # test invalid allow_repeat_speaker
-    groupchat = autogen.GroupChat(
-        agents=[agent1, agent2],
-        messages=[],
-        max_round=6,
-        speaker_selection_method="round_robin",
-        allow_repeat_speaker={},
-    )
     with pytest.raises(ValueError) as e:
-        group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-        agent1.initiate_chat(group_chat_manager, message="This is alice speaking.")
+        autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            max_round=6,
+            speaker_selection_method="round_robin",
+            allow_repeat_speaker={},
+        )
     assert str(e.value) == "GroupChat allow_repeat_speaker should be a bool or a list of Agents.", e.value
 
 
@@ -506,11 +504,18 @@ def test_graph_parameters():
             agents=agents,
             messages=[],
             max_round=3,
-            allow_repeat_speaker=None,
+            allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
+        )
+    with pytest.raises(ValueError):
+        GroupChat(
+            agents=agents,
+            messages=[],
+            max_round=3,
+            allow_repeat_speaker=False,  # should be None
             allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
         )
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         GroupChat(
             agents=agents,
             messages=[],
@@ -524,23 +529,10 @@ def test_graph_parameters():
         agents=agents,
         messages=[],
         max_round=3,
-        allow_repeat_speaker=None,
         allowed_or_disallowed_speaker_transitions={agents[0]: [agents[1]], agents[1]: [agents[2]]},
         speaker_transitions_type="allowed",
     )
     assert "Agent0" in group_chat.agent_names
-
-
-def test_graph_validity_check():
-    agents = [Agent(name=f"Agent{i}") for i in range(3)]
-    invalid_transitions = {agents[0]: []}
-    with pytest.raises(ValueError):
-        GroupChat(
-            agents=agents,
-            messages=[],
-            allowed_or_disallowed_speaker_transitions=invalid_transitions,
-            speaker_transitions_type="allowed",
-        )
 
 
 def test_graceful_exit_before_max_round():
