@@ -22,7 +22,8 @@ Links to notebook examples:
    - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
    - Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
    - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_society_of_mind.ipynb)
-
+1. **Sequential Multi-Agent Chats**
+   - Automated Sequential Multi-Agent Chats - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_chats.ipynb)
 1. **Applications**
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
