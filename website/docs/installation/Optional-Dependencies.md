@@ -107,3 +107,14 @@ pip install "pyautogen[mathchat]<0.2"
 Example notebooks:
 
 [Using MathChat to Solve Math Problems](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_MathChat.ipynb)
+
+## Graph
+
+To use a graph in `GroupChat`, particularly for graph visualization, please install AutoGen with the [graph] option.
+
+
+```bash
+pip install "pyautogen[graph]"
+```
+
+Example notebook:  [Graph Modeling Language with using select_speaker](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
