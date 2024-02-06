@@ -7,7 +7,13 @@ import { Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
+import {
+  fetchJSON,
+  getServerUrl,
+  sampleAgentConfig,
+  timeAgo,
+  truncateText,
+} from "../../utils";
 import {
   AgentFlowSpecView,
   BounceLoader,
@@ -38,27 +44,7 @@ const AgentsView = ({}: any) => {
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
-  const sampleAgent: IAgentFlowSpec = {
-    type: "assistant",
-    description: "Sample assistant",
-    user_id: user?.email,
-    config: {
-      name: "sample_assistant",
-      llm_config: {
-        config_list: [
-          {
-            model: "gpt-4-1106-preview",
-          },
-        ],
-        temperature: 0.1,
-        timeout: 600,
-        cache_seed: null,
-      },
-      human_input_mode: "NEVER",
-      max_consecutive_auto_reply: 8,
-      system_message: " ..",
-    },
-  };
+  const sampleAgent = sampleAgentConfig(user?.email || "");
   const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
     sampleAgent
   );
