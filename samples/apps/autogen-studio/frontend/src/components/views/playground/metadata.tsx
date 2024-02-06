@@ -7,6 +7,7 @@ import * as React from "react";
 import {
   CodeBlock,
   CodeLoader,
+  CsvLoader,
   CollapseBox,
   ExpandView,
   GroupView,
@@ -24,6 +25,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     const file_type = file.extension;
     const is_image = ["image"].includes(file.type);
     const is_code = ["code"].includes(file.type);
+    const is_csv = ["csv"].includes(file.type);
     const is_pdf = ["pdf"].includes(file.type);
     const is_video = ["video"].includes(file.type);
     const file_name = file.name || "unknown";
@@ -64,7 +66,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_video) {
       fileView = (
         <div className="mb-2">
-          {fileTitle}
+          <a href={`${serverUrl}/${file_path}`}>{fileTitle}</a>
           <video controls className="w-full rounded">
             <source
               src={`${serverUrl}/${file_path}`}
@@ -89,10 +91,41 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
           </div>
         </div>
       );
+    } else if (is_csv) {
+      fileView = (
+        <div className="h">
+          <a href={`${serverUrl}/${file_path}`}>
+            <div className="mb-4">{fileTitle}</div>
+          </a>
+          <CsvLoader
+            csvUrl={`${serverUrl}/${file_path}`}
+            className="w-full rounded"
+          />
+        </div>
+      );
+      icon = (
+        <div className="   relative rounded   h-full">
+          <div className="absolute rounded p-2 bg-secondary top-0 ">
+            {fileTitle}
+          </div>
+          <div
+            style={{ minHeight: "150px" }}
+            className="bg-secondary  h-full w-full rounded  flex items-center justify-center text-primary"
+          >
+            <Icon icon="csv" size={14} />
+          </div>
+        </div>
+      );
     } else if (is_code) {
       fileView = (
         <div className="h">
-          <div className="mb-4">{fileTitle}</div>
+          <a
+            href={`${serverUrl}/${file_path}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <div className="mb-4">{fileTitle}</div>
+          </a>
           <CodeLoader
             url={`${serverUrl}/${file_path}`}
             className="w-full rounded"
@@ -115,7 +148,15 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
     } else if (is_pdf) {
       fileView = (
         <div className="h-full">
-          <div className="mb-4">{fileTitle}</div>
+          <div className="mb-4">
+            <a
+              href={`${serverUrl}/${file_path}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {fileTitle}
+            </a>
+          </div>
           <PdfViewer url={`${serverUrl}/${file_path}`} />
         </div>
       );
@@ -156,7 +197,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
 
   const messages = (metadata.messages || []).map((message: any, i: number) => {
     return (
-      <div className="borpder-b mb-2 border-dashed" key={"messagerow" + i}>
+      <div className=" mb-2 border-dashed" key={"messagerow" + i}>
         <GroupView
           title={
             <div className="rounded p-1 px-2 inline-block text-xs bg-secondary">
@@ -178,7 +219,7 @@ const MetaDataView = ({ metadata }: { metadata: any | null }) => {
   return (
     <div>
       {hasMessages && (
-        <div className="rounded bg-primary p-2">
+        <div className="rounded   bg-primary  ">
           <CollapseBox
             open={false}
             title={`Agent Messages (${messages.length} message${

@@ -1,11 +1,14 @@
 import {
+  ArrowDownTrayIcon,
+  DocumentDuplicateIcon,
+  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Modal, message } from "antd";
+import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
 import * as React from "react";
 import { IFlowConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -13,6 +16,7 @@ import {
   fetchJSON,
   getServerUrl,
   sampleWorkflowConfig,
+  sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
@@ -177,22 +181,71 @@ const WorkflowView = ({}: any) => {
             >
               <div style={{ minHeight: "65px" }} className="break-words  my-2">
                 {" "}
-                {truncateText(workflow.name, 70)}
+                {truncateText(workflow.description, 70)}
               </div>
               <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
-            </Card>
-            <div className="text-right  mt-2">
+
               <div
-                role="button"
-                className="text-accent text-xs inline-block"
-                onClick={() => {
-                  deleteWorkFlow(workflow);
+                onMouseEnter={(e) => {
+                  e.stopPropagation();
                 }}
+                className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
               >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs"> delete</span>
+                <div
+                  role="button"
+                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // download workflow as workflow.name.json
+                    const element = document.createElement("a");
+                    const sanitizedWorkflow = sanitizeConfig(workflow);
+                    const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
+                      type: "application/json",
+                    });
+                    element.href = URL.createObjectURL(file);
+                    element.download = `${workflow.name}.json`;
+                    document.body.appendChild(element); // Required for this to work in FireFox
+                    element.click();
+
+                    // window.op
+                  }}
+                >
+                  <Tooltip title="Download">
+                    <ArrowDownTrayIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
+                </div>
+                <div
+                  role="button"
+                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    let newWorkflow = { ...workflow };
+                    newWorkflow.name = `${workflow.name} Copy`;
+                    newWorkflow.user_id = user?.email;
+                    newWorkflow.timestamp = new Date().toISOString();
+                    delete newWorkflow.id;
+                    setNewWorkflow(newWorkflow);
+                    setShowNewWorkflowModal(true);
+                  }}
+                >
+                  <Tooltip title="Make a Copy">
+                    <DocumentDuplicateIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
+                </div>
+                <div
+                  role="button"
+                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteWorkFlow(workflow);
+                  }}
+                >
+                  <Tooltip title="Delete">
+                    <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                  </Tooltip>
+                </div>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       );

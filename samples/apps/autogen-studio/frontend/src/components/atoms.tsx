@@ -5,44 +5,48 @@ import {
   XMarkIcon,
   ClipboardIcon,
   PlusIcon,
-  ArrowPathIcon,
-  ArrowDownRightIcon,
-  PencilIcon,
   UserGroupIcon,
   UsersIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import Icon from "./icons";
 import {
   Button,
+  Divider,
   Dropdown,
   Input,
   MenuProps,
   Modal,
   Select,
   Slider,
+  Table,
+  Space,
   Tooltip,
   message,
+  theme,
 } from "antd";
+import Editor from "@monaco-editor/react";
+import Papa from "papaparse";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { fetchJSON, getServerUrl, truncateText } from "./utils";
+import { fetchJSON, getServerUrl, obscureString, truncateText } from "./utils";
 import {
   IAgentFlowSpec,
   IFlowConfig,
   IGroupChatFlowSpec,
+  ILLMConfig,
   IModelConfig,
   ISkill,
   IStatus,
 } from "./types";
-import { ResizableBox } from "react-resizable";
-import debounce from "lodash.debounce";
 import TextArea from "antd/es/input/TextArea";
 import { appContext } from "../hooks/provider";
-import Item from "antd/es/list/Item";
 
+const { useToken } = theme;
 interface CodeProps {
   node?: any;
   inline?: any;
@@ -207,7 +211,7 @@ export const CollapseBox = ({
       </div>
 
       {isOpen && (
-        <div className={`${className} bg-light  rounded rounded-t-none`}>
+        <div className={`${className} bg-tertiary  rounded rounded-t-none`}>
           {children}
         </div>
       )}
@@ -298,7 +302,7 @@ export const GroupView = ({
   return (
     <div className={`rounded mt-4  border-secondary   ${className}`}>
       <div className="mt-4 p-2 rounded border relative">
-        <div className={`absolute  -top-5  p-2 inline-block ${className}`}>
+        <div className={`absolute  -top-3 inline-block ${className}`}>
           {title}
         </div>
         <div className="mt-2"> {children}</div>
@@ -371,7 +375,7 @@ export const LoadingOverlay = ({ children, loading }: IProps) => {
       {loading && (
         <>
           <div
-            className="absolute inset-0 bg-secondary flex"
+            className="absolute inset-0 bg-secondary flex  pointer-events-none"
             style={{ opacity: 0.5 }}
           >
             {/* Overlay background */}
@@ -593,12 +597,13 @@ export const ControlRowView = ({
         <span className="text-primary inline-block">{title} </span>
         <span className="text-xs ml-1 text-accent -mt-2 inline-block">
           {truncateText(value + "", 20)}
-        </span>
+        </span>{" "}
+        <Tooltip title={description}>
+          <InformationCircleIcon className="text-gray-400 inline-block w-4 h-4" />
+        </Tooltip>
       </div>
-      <div className="text-secondary text-xs"> {description} </div>
       {control}
-
-      <div className="border-b border-dashed mt-2 mx-2"></div>
+      <div className="bordper-b  border-secondary border-dashed pb-2 mxp-2"></div>
     </div>
   );
 };
@@ -627,14 +632,14 @@ export const ModelSelector = ({
   const { user } = React.useContext(appContext);
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
 
-  const sanitizeModelConfig = (config: IModelConfig) => {
-    const sanitizedConfig: IModelConfig = { model: config.model };
-    if (config.api_key) sanitizedConfig.api_key = config.api_key;
-    if (config.base_url) sanitizedConfig.base_url = config.base_url;
-    if (config.api_type) sanitizedConfig.api_type = config.api_type;
-    if (config.api_version) sanitizedConfig.api_version = config.api_version;
-    return sanitizedConfig;
-  };
+  // const sanitizeModelConfig = (config: IModelConfig) => {
+  //   const sanitizedConfig: IModelConfig = { model: config.model };
+  //   if (config.api_key) sanitizedConfig.api_key = config.api_key;
+  //   if (config.base_url) sanitizedConfig.base_url = config.base_url;
+  //   if (config.api_type) sanitizedConfig.api_type = config.api_type;
+  //   if (config.api_version) sanitizedConfig.api_version = config.api_version;
+  //   return sanitizedConfig;
+  // };
 
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
@@ -684,13 +689,20 @@ export const ModelSelector = ({
     models.length > 0
       ? models.map((model: IModelConfig, index: number) => ({
           key: index,
-          label: model.model,
+          label: (
+            <>
+              <div>{model.model}</div>
+              <div className="text-xs text-accent">
+                {truncateText(model.description || "", 20)}
+              </div>
+            </>
+          ),
           value: index,
         }))
       : [
           {
             key: -1,
-            label: "No models found",
+            label: <>No models found</>,
             value: 0,
           },
         ];
@@ -698,10 +710,28 @@ export const ModelSelector = ({
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
     let selectedModel = models[selectedIndex];
-    selectedModel = sanitizeModelConfig(selectedModel);
     const updatedConfigs = [...configs, selectedModel];
     setConfigs(updatedConfigs);
   };
+
+  const menuStyle: React.CSSProperties = {
+    boxShadow: "none",
+  };
+
+  const { token } = useToken();
+  const contentStyle: React.CSSProperties = {
+    backgroundColor: token.colorBgElevated,
+    borderRadius: token.borderRadiusLG,
+    boxShadow: token.boxShadowSecondary,
+  };
+
+  const addModelsMessage = (
+    <span className="text-xs">
+      {" "}
+      <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" /> Please
+      create models in the Model tab
+    </span>
+  );
 
   const AddModelsDropDown = () => {
     return (
@@ -709,6 +739,20 @@ export const ModelSelector = ({
         menu={{ items: modelItems, onClick: modelOnClick }}
         placement="bottomRight"
         trigger={["click"]}
+        dropdownRender={(menu) => (
+          <div style={contentStyle}>
+            {React.cloneElement(menu as React.ReactElement, {
+              style: menuStyle,
+            })}
+            {models.length === 0 && (
+              <>
+                <Divider style={{ margin: 0 }} />
+                <Space style={{ padding: 8 }}></Space>
+                <div className="p-3">{addModelsMessage}</div>
+              </>
+            )}
+          </div>
+        )}
       >
         <div
           className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
@@ -722,7 +766,7 @@ export const ModelSelector = ({
 
   const handleOk = () => {
     if (newModelConfig?.model.trim()) {
-      const sanitizedConfig = sanitizeModelConfig(newModelConfig);
+      const sanitizedConfig = newModelConfig;
 
       if (editIndex !== null) {
         // Edit existing model
@@ -756,15 +800,22 @@ export const ModelSelector = ({
   };
 
   const modelButtons = configs.map((config, i) => {
-    const tooltipText = `${config.model} \n ${config.base_url || ""} \n ${
-      config.api_type || ""
-    }`;
+    const tooltipText = (
+      <>
+        <div>{config.model}</div>
+        {config.base_url && <div>{config.base_url}</div>}
+        {config.api_key && <div>{obscureString(config.api_key, 3)}</div>}
+        <div className="text-xs text-accent">
+          {truncateText(config.description || "", 90)}
+        </div>
+      </>
+    );
     return (
       <div
         key={"modelrow_" + i}
-        role="button"
+        // role="button"
         className="mr-1 mb-1 p-1 px-2 rounded border"
-        onClick={() => showModal(config, i)}
+        // onClick={() => showModal(config, i)}
       >
         <div className="inline-flex">
           {" "}
@@ -889,6 +940,73 @@ export const ImageLoader = ({
   );
 };
 
+type DataRow = { [key: string]: any };
+export const CsvLoader = ({
+  csvUrl,
+  className,
+}: {
+  csvUrl: string;
+  className?: string;
+}) => {
+  const [data, setData] = useState<DataRow[]>([]);
+  const [columns, setColumns] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(csvUrl);
+        const csvString = await response.text();
+        const parsedData = Papa.parse(csvString, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+        });
+        setData(parsedData.data as DataRow[]);
+
+        // Use the keys of the first object for column headers
+        const firstRow = parsedData.data[0] as DataRow; // Type assertion
+        const columnHeaders: any[] = Object.keys(firstRow).map((key) => {
+          const val = {
+            title: key.charAt(0).toUpperCase() + key.slice(1), // Capitalize the key for the title
+            dataIndex: key,
+            key: key,
+          };
+          if (typeof firstRow[key] === "number") {
+            return {
+              ...val,
+              sorter: (a: DataRow, b: DataRow) => a[key] - b[key],
+            };
+          }
+          return val;
+        });
+        setColumns(columnHeaders);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching CSV data:", error);
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [csvUrl]);
+
+  // calculate x scroll, based on number of columns
+  const scrollX = columns.length * 150;
+
+  return (
+    <div className={`CsvLoader ${className}`}>
+      <Table
+        dataSource={data}
+        columns={columns}
+        loading={isLoading}
+        pagination={{ pageSize: 50 }}
+        scroll={{ y: 450, x: scrollX }}
+      />
+    </div>
+  );
+};
+
 export const CodeLoader = ({
   url,
   className,
@@ -963,6 +1081,11 @@ export const AgentFlowSpecView = ({
   const [localFlowSpec, setLocalFlowSpec] =
     React.useState<IAgentFlowSpec>(flowSpec);
 
+  // Required to monitor localAgent updates that occur in GroupChatFlowSpecView and reflect updates.
+  useEffect(() => {
+    setLocalFlowSpec(flowSpec);
+  }, [flowSpec]);
+
   // Event handlers for updating local state and propagating changes
 
   const onControlChange = (value: any, key: string) => {
@@ -975,17 +1098,23 @@ export const AgentFlowSpecView = ({
       ...localFlowSpec,
       config: { ...localFlowSpec.config, [key]: value },
     };
-    console.log(updatedFlowSpec.config.llm_config);
+
     setLocalFlowSpec(updatedFlowSpec);
     setFlowSpec(updatedFlowSpec);
   };
 
-  const llm_config = localFlowSpec.config.llm_config || { config_list: [] };
+  const llm_config: ILLMConfig = localFlowSpec.config.llm_config || {
+    config_list: [],
+    temperature: 0.1,
+  };
 
   return (
     <>
       <div className="text-accent ">{title}</div>
-      <GroupView title={flowSpec.config.name} className="mb-4 bg-primary  ">
+      <GroupView
+        title=<div className="px-2">{flowSpec.config.name}</div>
+        className="mb-4 bg-primary  "
+      >
         <ControlRowView
           title="Agent Name"
           className="mt-4"
@@ -1032,12 +1161,29 @@ export const AgentFlowSpecView = ({
           value={flowSpec.config.max_consecutive_auto_reply}
           control={
             <Slider
-              min={2}
+              min={1}
               max={30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
               onChange={(value: any) => {
                 onControlChange(value, "max_consecutive_auto_reply");
+              }}
+            />
+          }
+        />
+
+        <ControlRowView
+          title="Agent Default Auto Reply"
+          className="mt-4"
+          description="Default auto reply when no code execution or llm-based reply is generated."
+          value={flowSpec.config.default_auto_reply || ""}
+          control={
+            <Input
+              className="mt-2"
+              placeholder="Agent Description"
+              value={flowSpec.config.default_auto_reply || ""}
+              onChange={(e) => {
+                onControlChange(e.target.value, "default_auto_reply");
               }}
             />
           }
@@ -1065,7 +1211,7 @@ export const AgentFlowSpecView = ({
           }
         />
 
-        {llm_config && (
+        {llm_config && llm_config.config_list.length > 0 && (
           <ControlRowView
             title="System Message"
             className="mt-4"
@@ -1097,8 +1243,32 @@ export const AgentFlowSpecView = ({
                 configs={llm_config.config_list || []}
                 setConfigs={(config_list: IModelConfig[]) => {
                   const llm_config = {
-                    ...flowSpec.config.llm_config,
+                    ...(flowSpec.config.llm_config || { temperature: 0.1 }),
                     config_list,
+                  };
+                  onControlChange(llm_config, "llm_config");
+                }}
+              />
+            }
+          />
+        )}
+
+        {llm_config && llm_config.config_list.length > 0 && (
+          <ControlRowView
+            title="Temperature"
+            className="mt-4"
+            description="Defines the randomness of the agent's response."
+            value={llm_config.temperature}
+            control={
+              <Slider
+                min={0}
+                max={2}
+                step={0.1}
+                defaultValue={llm_config.temperature || 0.1}
+                onChange={(value: any) => {
+                  const llm_config = {
+                    ...flowSpec.config.llm_config,
+                    temperature: value,
                   };
                   onControlChange(llm_config, "llm_config");
                 }}
@@ -1450,7 +1620,6 @@ const GroupChatFlowSpecView = ({
           role="button"
           onClick={() => {
             setSelectedAgent(index);
-            // setShowAgentModal(true);
           }}
         >
           <div className="inline-flex">
@@ -1499,12 +1668,45 @@ const GroupChatFlowSpecView = ({
             }}
           />
         )}
-      <GroupView title="Group Chat Agents">
+      <GroupView title=<div className="px-2">Group Chat Agents</div>>
         <div className="flex flex-wrap mt-3">
           {agentsView}
           <AgentDropDown />
         </div>
       </GroupView>
+
+      <ControlRowView
+        title="Speaker Selection Method"
+        description="How the next speaker is selected"
+        className="mt-4"
+        value={flowSpec?.groupchat_config?.speaker_selection_method || "auto"}
+        control={
+          <Select
+            className="mt-2 w-full"
+            defaultValue={
+              flowSpec?.groupchat_config?.speaker_selection_method || "auto"
+            }
+            onChange={(value: any) => {
+              if (flowSpec?.groupchat_config) {
+                setFlowSpec({
+                  ...flowSpec,
+                  groupchat_config: {
+                    ...flowSpec?.groupchat_config,
+                    speaker_selection_method: value,
+                  },
+                });
+              }
+            }}
+            options={
+              [
+                { label: "Auto", value: "auto" },
+                { label: "Round Robin", value: "round_robin" },
+                { label: "Random", value: "random" },
+              ] as any
+            }
+          />
+        }
+      />
     </div>
   );
 };
@@ -1533,6 +1735,11 @@ const AgentModal = ({
   useEffect(() => {
     fetchAgents();
   }, []);
+
+  // Required to synchronize localAgent changes between GroupChatFlowSpecView and AgentFlowSpecView
+  useEffect(() => {
+    setLocalAgent(localAgent);
+  }, [localAgent]);
 
   const fetchAgents = () => {
     const onSuccess = (data: any) => {
@@ -1576,6 +1783,10 @@ const AgentModal = ({
       onCancel={() => {
         setShowAgentModal(false);
       }}
+      afterClose={() => {
+        // If the modal is closed other than onOk, the agent is reset to before the update; if it is closed onOk, the agent is updated again with the localAgent passed to the handler.
+        setLocalAgent(agent);
+      }}
     >
       {agent && (
         <>
@@ -1585,8 +1796,6 @@ const AgentModal = ({
           </div>
           {localAgent && localAgent.type === "groupchat" && (
             <div>
-              {" "}
-              Group Chat
               <GroupChatFlowSpecView
                 flowSpec={localAgent as IGroupChatFlowSpec}
                 setFlowSpec={setLocalAgent}
@@ -1716,15 +1925,13 @@ export const FlowConfigViewer = ({
     }
   };
 
-  const updateFlowConfigName = (newName: string) => {
-    const updatedFlowConfig = { ...localFlowConfig, name: newName };
+  const updateFlowConfig = (key: string, value: string) => {
+    // When an updatedFlowConfig is created using localFlowConfig, if the contents of FlowConfigViewer Modal are changed after the Agent Specification Modal is updated, the updated contents of the Agent Specification Modal are not saved. Fixed to localFlowConfig->flowConfig. Fixed a bug.
+    const updatedFlowConfig = { ...flowConfig, [key]: value };
+    console.log("updatedFlowConfig: ", updatedFlowConfig);
     setLocalFlowConfig(updatedFlowConfig);
     setFlowConfig(updatedFlowConfig);
   };
-
-  // React.useEffect(() => {
-  //   setLocalFlowConfig(flowConfig);
-  // }, [flowConfig]);
 
   return (
     <>
@@ -1738,7 +1945,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.name}
-            onChange={(e) => updateFlowConfigName(e.target.value)}
+            onChange={(e) => updateFlowConfig("name", e.target.value)}
           />
         }
       />
@@ -1752,14 +1959,7 @@ export const FlowConfigViewer = ({
           <Input
             className="mt-2 w-full"
             value={localFlowConfig.description}
-            onChange={(e) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                description: e.target.value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(e) => updateFlowConfig("description", e.target.value)}
           />
         }
       />
@@ -1772,14 +1972,7 @@ export const FlowConfigViewer = ({
           <Select
             className="mt-2 w-full"
             defaultValue={localFlowConfig.summary_method || "last"}
-            onChange={(value: any) => {
-              const updatedConfig = {
-                ...localFlowConfig,
-                summary_method: value,
-              };
-              setLocalFlowConfig(updatedConfig);
-              setFlowConfig(updatedConfig);
-            }}
+            onChange={(value: any) => updateFlowConfig("summary_method", value)}
             options={
               [
                 { label: "last", value: "last" },
@@ -1807,5 +2000,51 @@ export const FlowConfigViewer = ({
         </div>
       </div>
     </>
+  );
+};
+
+export const MonacoEditor = ({
+  value,
+  editorRef,
+  language,
+  onChange,
+  minimap = true,
+}: {
+  value: string;
+  onChange?: (value: string) => void;
+  editorRef: any;
+  language: string;
+  minimap?: boolean;
+}) => {
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  const onEditorDidMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
+    setIsEditorReady(true);
+  };
+  return (
+    <div className="h-full rounded">
+      <Editor
+        height="100%"
+        className="h-full rounded"
+        defaultLanguage={language}
+        defaultValue={value}
+        value={value}
+        onChange={(value: string | undefined) => {
+          if (onChange && value) {
+            onChange(value);
+          }
+        }}
+        onMount={onEditorDidMount}
+        theme="vs-dark"
+        options={{
+          wordWrap: "on",
+          wrappingIndent: "indent",
+          wrappingStrategy: "advanced",
+          minimap: {
+            enabled: minimap,
+          },
+        }}
+      />
+    </div>
   );
 };
