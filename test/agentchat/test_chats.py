@@ -5,15 +5,8 @@ import pytest
 from conftest import skip_openai
 import autogen
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
 
-
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats_group():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -125,7 +118,7 @@ def test_chats_group():
     print(all_res[manager_1].summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,

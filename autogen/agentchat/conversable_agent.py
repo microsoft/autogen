@@ -744,10 +744,15 @@ class ConversableAgent(Agent):
             agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
+        summary = self._summarize_chat(
+            context.get("summary_method"),
+            recipient,
+            prompt=context.get("summary_prompt"),
+            cache=cache,
+        )
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        summary = self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
         chat_result = ChatResult(
             chat_history=self.chat_messages[recipient],
             summary=summary,
@@ -780,10 +785,15 @@ class ConversableAgent(Agent):
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        summary = self._summarize_chat(
+            context.get("summary_method"),
+            recipient,
+            prompt=context.get("summary_prompt"),
+            cache=cache,
+        )
         for agent in [self, recipient]:
             agent.client_cache = agent.previous_cache
             agent.previous_cache = None
-        summary = self._summarize_chat(context.get("summary_method"), recipient, prompt=context.get("summary_prompt"))
         chat_result = ChatResult(
             chat_history=self.chat_messages[recipient],
             summary=summary,
@@ -792,7 +802,13 @@ class ConversableAgent(Agent):
         )
         return chat_result
 
-    def _summarize_chat(self, method, agent: Optional[Agent] = None, prompt: Optional[str] = None) -> str:
+    def _summarize_chat(
+        self,
+        method,
+        agent: Optional[Agent] = None,
+        prompt: Optional[str] = None,
+        cache: Optional[Cache] = None,
+    ) -> str:
         """Get a chat summary from an agent participating in a chat.
 
         Args:
@@ -817,12 +833,14 @@ class ConversableAgent(Agent):
                 raise ValueError("The summary_prompt must be a string.")
             msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
 
-            summary = self._llm_response_preparer(prompt, msg_list, agent)
+            summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
         else:
             warnings.warn("No summary_method provided or summary_method is not supported: ")
         return summary
 
-    def _llm_response_preparer(self, prompt, messages, llm_agent: Optional[Agent] = None) -> str:
+    def _llm_response_preparer(
+        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[Cache] = None
+    ) -> str:
         """Default summary preparer with llm
 
         Args:
@@ -855,7 +873,7 @@ class ConversableAgent(Agent):
         else:
             raise ValueError("No OpenAIWrapper client is found.")
 
-        response = llm_client.create(context=None, messages=_messages, cache=llm_agent.client_cache)
+        response = llm_client.create(context=None, messages=_messages, cache=cache)
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             return str(extracted_response.model_dump(mode="dict"))
