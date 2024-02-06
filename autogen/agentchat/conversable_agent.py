@@ -832,8 +832,10 @@ class ConversableAgent(Agent):
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
             msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
-
-            summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
+            try:
+                summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
+            except Exception as e:
+                warnings.warn(f"Failed to extract summary with reflection_with_llm: {e}", UserWarning)
         else:
             warnings.warn("No summary_method provided or summary_method is not supported: ")
         return summary
@@ -856,8 +858,8 @@ class ConversableAgent(Agent):
         ]
         for message in messages:
             message = copy.deepcopy(message)
-            if "tool_responses" in message:
-                del message["tool_responses"]
+            # if "tool_responses" in message:
+            #     del message["tool_responses"]
             if not (message["role"] == "assistant" and "tool_calls" in message):
                 message["role"] = "user"
                 _messages.append(message)
