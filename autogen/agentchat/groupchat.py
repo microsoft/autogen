@@ -479,7 +479,7 @@ class GroupChatManager(ConversableAgent):
         for agent in self._groupchat.agents:
             agent._raise_exception_on_async_reply_functions()
 
-    def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
+    def clear_agents_history(self, reply: dict, groupchat: GroupChat) -> str:
         """Clears history of messages for all agents or selected one. Can preserve selected number of last messages.
         That function is called when user manually provide "clear history" phrase in his reply.
         When "clear history" is provided, the history of messages for all agents is cleared.
