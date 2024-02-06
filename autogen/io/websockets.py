@@ -6,10 +6,10 @@ from .base import IOStream
 # Check if the websockets module is available
 try:
     import websockets
-    from websockets.sync.client import connect, ClientConnection
-except ImportError as e:
+    from websockets.sync.client import connect as ws_connect, Connection  # type: ignore[attr-defined]
+except ImportError as e:  # pragma: no cover
     websockets = None  # type: ignore[assignment]
-    connect = None  # type: ignore[assignment]
+    ws_connect = None  # type: ignore[assignment]
     _import_error = e
 else:
     _import_error = None  # type: ignore[assignment]
@@ -21,7 +21,7 @@ __all__ = ("IOWebsockets",)
 class IOWebsockets(IOStream):
     """A websocket input/output stream."""
 
-    def __init__(self, websocket: "ClientConnection") -> None:
+    def __init__(self, websocket: "Connection") -> None:
         """Initialize the websocket input/output stream.
 
         Args:
@@ -31,10 +31,11 @@ class IOWebsockets(IOStream):
             ImportError: If the websockets module is not available.
         """
         if websockets is None:
-            raise _import_error
+            raise _import_error  # pragma: no cover
 
         self._websocket = websocket
 
+    @classmethod
     @contextmanager
     def connect(cls, uri: Optional[str] = None) -> Iterator["IOWebsockets"]:
         """Factory function to create a websocket input/output stream.
@@ -47,11 +48,11 @@ class IOWebsockets(IOStream):
         """
         url = uri or "ws://localhost:8765"
 
-        with connect(url) as ws:
-            yield cls(ws)  # type: ignore[operator]
+        with ws_connect(url) as ws:
+            yield cls(ws)
 
     @property
-    def websocket(self) -> "ClientConnection":
+    def websocket(self) -> "Connection":
         """The URI of the websocket server."""
         return self._websocket
 
@@ -78,4 +79,7 @@ class IOWebsockets(IOStream):
             str: The line read from the input stream.
 
         """
-        raise NotImplementedError
+        self._websocket.send(prompt)
+        msg = self._websocket.recv()
+
+        return msg.decode("utf-8") if isinstance(msg, bytes) else msg
