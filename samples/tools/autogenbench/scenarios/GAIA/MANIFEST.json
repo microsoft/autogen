@@ -3,6 +3,7 @@
         "README.md": "README.md",
         "Scripts/init_tasks.py": "Scripts/init_tasks.py",
         "Scripts/custom_tabulate.py": "Scripts/custom_tabulate.py",
+        "Scripts/collate_results.py": "Scripts/collate_results.py",
         "Templates/BasicTwoAgents/expected_answer.txt": "Templates/BasicTwoAgents/expected_answer.txt",
         "Templates/BasicTwoAgents/prompt.txt": "Templates/BasicTwoAgents/prompt.txt",
         "Templates/BasicTwoAgents/scenario.py": "Templates/BasicTwoAgents/scenario.py",
