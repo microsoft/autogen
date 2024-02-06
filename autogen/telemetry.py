@@ -162,7 +162,7 @@ def _to_dict(
         return inspect.getsource(obj).strip()
     elif isinstance(obj, dict):
         return {
-            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            str(k): _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
             for k, v in obj.items()
             if k not in exclude
         }
@@ -170,7 +170,7 @@ def _to_dict(
         return [_to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive) for v in obj]
     elif hasattr(obj, "__dict__"):
         return {
-            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            str(k): _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
             for k, v in vars(obj).items()
             if k not in exclude
         }

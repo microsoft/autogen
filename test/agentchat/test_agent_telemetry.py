@@ -25,16 +25,59 @@ if not skip:
         file_location=KEY_LOC,
     )
 
+    llm_config = {"config_list": config_list}
+
+    teacher_message = """
+        You are roleplaying a math teacher, and your job is to help your students with linear algebra.
+        Keep your explanations short.
+    """
+
+    student_message = """
+        You are roleplaying a high school student strugling with linear algebra.
+        Regardless how well the teacher explains things to you, you just don't quite get it.
+        Keep your questions short.
+    """
+
+    log_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, session_id,
+        request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
+
+    agents_query = """SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents"""
+
 ###############################################################
 
+@pytest.fixture(scope="function")
+def setup_test():
+    autogen.telemetry.start_logging(dbpath=":memory:")
+    con = autogen.telemetry.get_connection()
+    con.row_factory = sqlite3.Row
 
-def verify_log_completions_table(cur, teacher_message, student_message):
-    cur.execute(
-        """SELECT id, invocation_id, client_id, wrapper_id, session_id,
-            request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
+    teacher = autogen.AssistantAgent(
+        "teacher",
+        system_message=teacher_message,
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        llm_config=llm_config,
+        max_consecutive_auto_reply=2,
     )
-    rows = cur.fetchall()
 
+    student = autogen.AssistantAgent(
+        "student",
+        system_message=student_message,
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        llm_config=llm_config,
+        max_consecutive_auto_reply=1,
+    )
+
+    yield con, teacher, student
+
+    autogen.telemetry.stop_logging()
+
+
+def fetch_rows(cur, query):
+    cur.execute(query)
+    return cur.fetchall()
+
+
+def verify_two_agents_log_completions(rows):
     assert len(rows) == 3
 
     session_id = rows[0]["session_id"]
@@ -65,10 +108,7 @@ def verify_log_completions_table(cur, teacher_message, student_message):
         assert row["end_time"], "end timestamp is empty"
 
 
-def verify_agents_table(cur, teacher_message, student_message):
-    cur.execute("SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents")
-    rows = cur.fetchall()
-
+def verify_agents(rows):
     assert len(rows) == 2
 
     session_id = rows[0]["session_id"]
@@ -91,11 +131,11 @@ def verify_agents_table(cur, teacher_message, student_message):
         assert row["timestamp"], "timestamp is empty"
 
 
-def verify_oai_client_table(cur):
+def verify_oai_client_table(cur, num_of_clients):
     cur.execute("SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients")
     rows = cur.fetchall()
 
-    assert len(rows) == 2
+    assert len(rows) == num_of_clients
     session_id = rows[0]["session_id"]
 
     for row in rows:
@@ -108,11 +148,11 @@ def verify_oai_client_table(cur):
         assert row["timestamp"], "timestamp is empty"
 
 
-def verify_oai_wrapper_table(cur):
+def verify_oai_wrapper_table(cur, num_of_wrappers):
     cur.execute("SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers")
     rows = cur.fetchall()
 
-    assert len(rows) == 2
+    assert len(rows) == num_of_wrappers
     session_id = rows[0]["session_id"]
 
     for row in rows:
@@ -146,49 +186,41 @@ def verify_keys_are_matching(cur):
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
-def test_agent_telemetry():
-    autogen.telemetry.start_logging(dbpath=":memory:")
-    llm_config = {"config_list": config_list}
-
-    teacher_message = """
-        You are roleplaying a math teacher, and your job is to help your students with linear algebra.
-        Keep your explanations short.
-    """
-    teacher = autogen.AssistantAgent(
-        "teacher",
-        system_message=teacher_message,
-        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
-        llm_config=llm_config,
-        max_consecutive_auto_reply=2,
-    )
-
-    student_message = """
-        You are roleplaying a high school student strugling with linear algebra.
-        Regardless how well the teacher explains things to you, you just don't quite get it.
-        Keep your questions short.
-    """
-    student = autogen.AssistantAgent(
-        "student",
-        system_message=student_message,
-        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
-        llm_config=llm_config,
-        max_consecutive_auto_reply=1,
-    )
+def test_two_agents_logging(setup_test):
+    con, teacher, student = setup_test
+    cur = con.cursor()
 
     student.initiate_chat(
         teacher,
         message="Can you explain the difference between eigenvalues and singular values again?",
     )
 
-    con = autogen.telemetry.get_connection()
-    con.row_factory = sqlite3.Row
+    log_completions_rows = fetch_rows(cur, log_completions_query)
+    verify_two_agents_log_completions(log_completions_rows)
 
-    cur = con.cursor()
+    agents_rows = fetch_rows(cur, agents_query)
+    verify_agents(agents_rows)
 
-    verify_log_completions_table(cur, teacher_message, student_message)
-    verify_agents_table(cur, teacher_message, student_message)
-    verify_oai_client_table(cur)
-    verify_oai_wrapper_table(cur)
+    verify_oai_client_table(cur, num_of_clients=2)
+    verify_oai_wrapper_table(cur, num_of_wrappers=2)
     verify_keys_are_matching(cur)
 
-    autogen.telemetry.stop_logging()
+
+def test_group_chat_logging(setup_test):
+    con, teacher, student = setup_test
+    cur = con.cursor()
+
+    groupchat = autogen.GroupChat(agents=[teacher, student], messages=[], max_round=3, speaker_selection_method="round_robin")
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+    student.initiate_chat(
+        group_chat_manager,
+        message="Can you explain the difference between eigenvalues and singular values again?",
+    )
+
+    agents_rows = fetch_rows(cur, agents_query)
+    verify_agents(agents_rows[:2])
+    assert agents_rows[2]["name"] == "chat_manager"
+    init_args = json.loads(agents_rows[2]["init_args"])
+    assert len(init_args["groupchat"]["agents"]) == 2
+    verify_oai_client_table(cur, num_of_clients=3)
+    verify_oai_wrapper_table(cur, num_of_wrappers=3)
