@@ -1,4 +1,3 @@
-import sys
 import pytest
 import logging
 from autogen.agentchat import Agent
@@ -46,20 +45,10 @@ class TestGraphUtilCheckGraphValidity:
         with pytest.raises(ValueError):
             gru.check_graph_validity(invalid_speaker_transitions_dict, agents)
 
-    def test_graph_with_unauthorized_self_loops(self):
+    def test_graph_with_invalid_key(self):
         agents = [Agent("agent1"), Agent("agent2"), Agent("agent3")]
-        # Creating a subset of agents allowed to have self-loops
-        allowed_repeat_speakers = agents[: len(agents) // 2]
-
-        # Constructing a speaker transitions dictionary with self-loops for all agents
-        # Ensuring at least one agent outside the allowed_repeat_speakers has a self-loop
-        speaker_transitions_dict_with_self_loop = {agent: agent for agent in agents}
-
-        # Testing the function with the constructed speaker transitions dict
         with pytest.raises(ValueError):
-            gru.check_graph_validity(
-                speaker_transitions_dict_with_self_loop, agents, allow_repeat_speaker=allowed_repeat_speakers
-            )
+            gru.check_graph_validity({1: 1}, agents)
 
     # Test for Warning 1: Isolated agent nodes
     def test_isolated_agent_nodes_warning(self, caplog):
