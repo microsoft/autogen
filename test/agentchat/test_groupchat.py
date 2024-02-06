@@ -626,20 +626,19 @@ def test_clear_agents_history():
 
     assert agent1_history == [
         {"tool_calls": [
-            {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"},
             ],
             "content": None,
             "role": "assistant"
         },
-        {"content": "example tool response", "tool_responses": [
-            {"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}
-            ],
-            "role": "tool"
+        {"content": "example tool response",
+         "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+            "role": "tool",
          },
         {"content": "hello", "role": "assistant"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
-        {"content": "This is alice speaking.", "role": "assistant"}
+        {"content": "This is alice speaking.", "role": "assistant"},
     ]
 
 
