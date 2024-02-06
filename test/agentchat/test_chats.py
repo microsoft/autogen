@@ -10,15 +10,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
-
-
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
 def test_chats_group():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -130,7 +122,7 @@ def test_chats_group():
     print(all_res[manager_1].summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
 def test_chats():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -210,7 +202,7 @@ def test_chats():
     # print(blogpost.summary, insights_and_blogpost)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
 def test_chats_w_func():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
