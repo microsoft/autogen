@@ -4,26 +4,17 @@ import datetime
 import inspect
 import json
 import logging
+import openai
 import sqlite3
 import sys
 import uuid
 
 from typing import TYPE_CHECKING, Any, Dict, List, Union, Tuple
+from openai import OpenAI, AzureOpenAI
+from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
-
-try:
-    import openai
-except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
-    OpenAI = object
-    AzureOpenAI = object
-else:
-    from openai import OpenAI, AzureOpenAI
-    from openai.types.chat import ChatCompletion
-
-    ERROR = None
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
@@ -173,9 +164,6 @@ def log_chat_completion(
 
     end_time = get_current_ts()
 
-    if ERROR:
-        raise ERROR
-
     if isinstance(response, ChatCompletion):
         response_messages = json.dumps(_to_dict(response), indent=4)
     elif isinstance(response, dict):
@@ -222,9 +210,6 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
     if this._con is None:
         return
 
-    if ERROR:
-        raise ERROR
-
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"), no_recursive=(Agent))
 
     # We do an upsert since both the superclass and subclass may call this method (in that order)
@@ -267,9 +252,6 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     if this._con is None:
         return
 
-    if ERROR:
-        raise ERROR
-
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 
     query = """
@@ -302,9 +284,6 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
 
     if this._con is None:
         return
-
-    if ERROR:
-        raise ERROR
 
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 

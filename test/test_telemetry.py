@@ -2,20 +2,12 @@ import autogen
 import autogen.telemetry
 import uuid
 import json
+import openai
 import pytest
 import sqlite3
-from conftest import skip_openai
+
+from openai import AzureOpenAI
 from unittest.mock import patch, Mock
-
-
-try:
-    import openai
-except ImportError:
-    skip = True
-    AzureOpenAI = object
-else:
-    skip = False or skip_openai
-    from openai import AzureOpenAI
 
 
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -162,7 +154,6 @@ def test_log_new_agent(db_connection):
         assert row["init_args"] == json.dumps(init_args)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed")
 def test_log_oai_wrapper(db_connection):
     from autogen import OpenAIWrapper
 
@@ -188,7 +179,6 @@ def test_log_oai_wrapper(db_connection):
         assert "base_config" in saved_init_args
 
 
-@pytest.mark.skipif(skip, reason="openai not installed")
 def test_log_oai_client(db_connection):
     cur = db_connection.cursor()
 
@@ -217,7 +207,7 @@ def test_log_oai_client(db_connection):
 
 
 def test_to_dict():
-    import re
+    from autogen import Agent
 
     agent1 = autogen.ConversableAgent(
         "alice",
@@ -251,6 +241,7 @@ def test_to_dict():
             self.foo_val = [Foo()]
             self.o = {"key_1": None, "key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
             self.agents = [agent1, agent2]
+            self.first_agent = agent1
 
     bar = Bar()
     bar.build()
@@ -267,12 +258,13 @@ def test_to_dict():
 
     expected_o_field = {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
 
-    result = autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"])
+    result = autogen.telemetry._to_dict(bar, exclude=("key_1", "extra_key"), no_recursive=(Agent))
     assert result["foo_val"] == expected_foo_val_field
     assert result["o"] == expected_o_field
     assert len(result["agents"]) == 2
     for agent in result["agents"]:
         assert "autogen.agentchat.conversable_agent.ConversableAgent" in agent
+    assert "autogen.agentchat.conversable_agent.ConversableAgent" in result["first_agent"]
 
 
 @patch("logging.Logger.error")
