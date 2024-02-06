@@ -855,7 +855,7 @@ class ConversableAgent(Agent):
         else:
             raise ValueError("No OpenAIWrapper client is found.")
 
-        response = llm_client.create(context=None, messages=_messages, cache=self.client_cache)
+        response = llm_client.create(context=None, messages=_messages, cache=llm_agent.client_cache)
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
         if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             return str(extracted_response.model_dump(mode="dict"))
