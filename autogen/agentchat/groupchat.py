@@ -47,9 +47,9 @@ class GroupChat:
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
         If set to False, then no speakers are allowed to repeat.
         `allow_repeat_speaker` and `allowed_or_disallowed_speaker_transitions` are mutually exclusive.
-    - allowed_or_disallowed_speaker_transitions: a dictionary of keys and list as values.
-        The keys are the source agents, and the values are the agents that the key agent can transition to.
-        Default is None, in which case a fully connected allowed_speaker_transitions_dict is assumed.
+    - allowed_or_disallowed_speaker_transitions: dict.
+        The keys are source agents, and the values are agents that the key agent can/can't transit to,
+        depending on speaker_transitions_type. Default is None, which means all agents can transit to all other agents.
         `allow_repeat_speaker` and `allowed_or_disallowed_speaker_transitions` are mutually exclusive.
     - speaker_transitions_type: whether the speaker_transitions_type is a dictionary containing lists of allowed agents or disallowed agents.
         "allowed" means the `allowed_or_disallowed_speaker_transitions` is a dictionary containing lists of allowed agents.
