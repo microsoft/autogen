@@ -234,23 +234,27 @@ def test_update_function():
         },
         is_remove=False,
     )
-    user_proxy.initiate_chat(
+    res1 = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+        summary_method="reflection_with_llm",
     )
     messages1 = assistant.chat_messages[user_proxy][-1]["content"]
     print(messages1)
+    print("Chat summary and cost", res1.summary, res1.cost)
 
     assistant.update_function_signature("greet_user", is_remove=True)
-    user_proxy.initiate_chat(
+    res2 = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+        summary_method="reflection_with_llm",
     )
     messages2 = assistant.chat_messages[user_proxy][-1]["content"]
     print(messages2)
     # The model should know about the function in the context of the conversation
     assert "greet_user" in messages1
     assert "greet_user" not in messages2
+    print("Chat summary and cost", res2.summary, res2.cost)
 
 
 if __name__ == "__main__":
