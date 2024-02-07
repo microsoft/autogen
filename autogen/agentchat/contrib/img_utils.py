@@ -162,7 +162,7 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
 
     Args:
         - prompt (str): The input string that may contain image tags like <img ...>.
-        - img_format (str): what image format shoule be used. One of "uri", "url", "pil".
+        - img_format (str): what image format should be used. One of "uri", "url", "pil".
 
     Returns:
         - List[Union[str, dict]]: A list of alternating text and image dictionary items.

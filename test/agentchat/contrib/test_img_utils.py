@@ -49,12 +49,12 @@ class TestGetPilImage(unittest.TestCase):
         temp_file = "_temp.png"
         raw_pil_image.save(temp_file)
         img2 = get_pil_image(temp_file)
-        self.assert_((np.array(raw_pil_image) == np.array(img2)).all())
+        self.assertTrue((np.array(raw_pil_image) == np.array(img2)).all())
 
     def test_read_pil(self):
         # Create a small red image for testing
         img2 = get_pil_image(raw_pil_image)
-        self.assert_((np.array(raw_pil_image) == np.array(img2)).all())
+        self.assertTrue((np.array(raw_pil_image) == np.array(img2)).all())
 
 
 def are_b64_images_equal(x: str, y: str):
