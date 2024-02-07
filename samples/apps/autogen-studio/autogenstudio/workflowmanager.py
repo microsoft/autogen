@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 import autogen
 from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, Message
 from .utils import get_skills_from_prompt, clear_folder, sanitize_model
@@ -45,25 +45,32 @@ class AutoGenWorkFlowManager:
         if history:
             self.populate_history(history)
 
-    def process_reply(self, recipient, messages, sender, config):
-        if "callback" in config and config["callback"] is not None:
-            callback = config["callback"]
-            callback(sender, recipient, messages[-1])
-        last_message = messages[-1]
+    def process_message(self, sender: autogen.Agent, receiver: autogen.Agent, message: Dict, request_reply: bool = False, silent: bool = False, sender_type: str = "agent") -> None:
+        """
+        Processes the message and adds it to the agent history.
 
-        sender = sender.name
-        recipient = recipient.name
-        if "name" in last_message:
-            sender = last_message["name"]
+        Args:
 
+            sender: The sender of the message.
+            receiver: The receiver of the message.
+            message: The message content.
+            request_reply: If set to True, the message will be added to agent history.
+            silent: determining verbosity.
+            sender_type: The type of the sender of the message.
+        """
+
+        message = message if isinstance(message, dict) else {
+            "content": message, "role": "user"}
         iteration = {
-            "recipient": recipient,
-            "sender": sender,
-            "message": last_message,
+            "recipient": receiver.name,
+            "sender": sender.name,
+            "message": message,
             "timestamp": datetime.now().isoformat(),
+            "sender_type": sender_type,
         }
-        self.agent_history.append(iteration)
-        return False, None
+        # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
+        if request_reply != False or sender_type == "groupchat":
+            self.agent_history.append(iteration)
 
     def _sanitize_history_message(self, message: str) -> str:
         """
@@ -176,10 +183,8 @@ class AutoGenWorkFlowManager:
             group_chat_config = agent_spec.groupchat_config.dict()
             group_chat_config["agents"] = agents
             groupchat = autogen.GroupChat(**group_chat_config)
-            agent = autogen.GroupChatManager(
-                groupchat=groupchat, **agent_spec.config.dict())
-            agent.register_reply(
-                [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+            agent = ExtendedGroupChatManager(
+                groupchat=groupchat, **agent_spec.config.dict(), message_processor=self.process_message)
             return agent
 
         else:
@@ -198,13 +203,14 @@ class AutoGenWorkFlowManager:
             An instance of the loaded agent.
         """
         if agent_type == "assistant":
-            agent = autogen.AssistantAgent(**agent_config.dict())
+            agent = ExtendedConversableAgent(
+                **agent_config.dict(), message_processor=self.process_message)
         elif agent_type == "userproxy":
-            agent = autogen.UserProxyAgent(**agent_config.dict())
+            agent = ExtendedConversableAgent(
+                **agent_config.dict(), message_processor=self.process_message)
         else:
             raise ValueError(f"Unknown agent type: {agent_type}")
-        agent.register_reply(
-            [autogen.Agent, None], reply_func=self.process_reply, config={"callback": None})
+
         return agent
 
     def run(self, message: str, clear_history: bool = False) -> None:
@@ -221,4 +227,39 @@ class AutoGenWorkFlowManager:
             message=message,
             clear_history=clear_history,
         )
-        # pass
+
+
+class ExtendedConversableAgent(autogen.ConversableAgent):
+    def __init__(self, message_processor=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message_processor = message_processor
+
+    def receive(
+        self,
+        message: Union[Dict, str],
+        sender: autogen.Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
+    ):
+        if self.message_processor:
+            self.message_processor(
+                sender, self,  message, request_reply, silent, sender_type="agent")
+        super().receive(message, sender, request_reply, silent)
+
+
+class ExtendedGroupChatManager(autogen.GroupChatManager):
+    def __init__(self, message_processor=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.message_processor = message_processor
+
+    def receive(
+        self,
+        message: Union[Dict, str],
+        sender: autogen.Agent,
+        request_reply: Optional[bool] = None,
+        silent: Optional[bool] = False,
+    ):
+        if self.message_processor:
+            self.message_processor(
+                sender, self,  message, request_reply, silent, sender_type="groupchat")
+        super().receive(message, sender, request_reply, silent)
