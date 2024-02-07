@@ -585,7 +585,7 @@ class OpenAIWrapper:
                 logger.debug(f"config {i} timed out", exc_info=True)
                 if i == last:
                     raise TimeoutError(
-                        "OpenAI API call timed out. This could be due to congestion or too small a timeout value. The timeout can be specified by setting the 'timeout' value (in seconds) in the llm_config."
+                        "OpenAI API call timed out. This could be due to congestion or too small a timeout value. The timeout can be specified by setting the 'timeout' value (in seconds) in the llm_config (if you are using agents) or the OpenAIWrapper constructor (if you are using the OpenAIWrapper directly)."
                     ) from err
             except APIError as err:
                 error_code = getattr(err, "code", None)
