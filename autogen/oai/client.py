@@ -26,7 +26,7 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, __version__ as OPENAIVERSION
+    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
@@ -581,6 +581,12 @@ class OpenAIWrapper:
                         continue  # filter is not passed; try the next config
             try:
                 response = client.create(params)
+            except APITimeoutError as err:
+                logger.debug(f"config {i} timed out", exc_info=True)
+                if i == last:
+                    raise TimeoutError(
+                        "OpenAI API call timed out. This could be due to congestion or too small a timeout value. The timeout can be specified by setting the 'timeout' value (in seconds) in the llm_config (if you are using agents) or the OpenAIWrapper constructor (if you are using the OpenAIWrapper directly)."
+                    ) from err
             except APIError as err:
                 error_code = getattr(err, "code", None)
                 if error_code == "content_filter":
