@@ -1,4 +1,12 @@
 from typing import List, Dict, Tuple
+from functools import partial
+
+
+def nested_chat_reply(nested_agent, **context):
+    def chat(nested_agent, recipient, messages, sender, config):
+        return True, recipient.initiate_chat(nested_agent, message=messages[0], **context)
+
+    return partial(chat, nested_agent)
 
 
 def gather_usage_summary(agents: List) -> Tuple[Dict[str, any], Dict[str, any]]:
