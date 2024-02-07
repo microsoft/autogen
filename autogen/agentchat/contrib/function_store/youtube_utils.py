@@ -1,7 +1,19 @@
-from youtube_transcript_api import YouTubeTranscriptApi
+from .function_store_utils import requires
 
 
+@requires("youtube_transcript_api")
 def get_youtube_transcript(youtube_link: str) -> str:
+    """
+    Gets the transcript of a YouTube video.
+
+    Args:
+        youtube_link (str): The link to the YouTube video.
+
+    Returns:
+        str: The transcript of the YouTube video.
+    """
+    from youtube_transcript_api import YouTubeTranscriptApi
+
     # Extract video ID from the YouTube link
     video_id = youtube_link.split("v=")[1]
 
