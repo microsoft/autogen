@@ -93,7 +93,7 @@ class LLMConfig:
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
     max_tokens: Optional[int] = None
-    
+
     def dict(self):
         result = asdict(self)
         result["config_list"] = [c.dict() for c in self.config_list]
@@ -170,7 +170,8 @@ class GroupChatFlowSpec:
 
     type: Literal["groupchat"]
     config: AgentConfig = field(default_factory=AgentConfig)
-    groupchat_config: Optional[GroupChatConfig] = field(default_factory=GroupChatConfig)
+    groupchat_config: Optional[GroupChatConfig] = field(
+        default_factory=GroupChatConfig)
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
