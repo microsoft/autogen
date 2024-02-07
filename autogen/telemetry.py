@@ -4,26 +4,18 @@ import datetime
 import inspect
 import json
 import logging
+import openai
+import os
 import sqlite3
 import sys
 import uuid
 
 from typing import TYPE_CHECKING, Any, Dict, List, Union, Tuple
+from openai import OpenAI, AzureOpenAI
+from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
-
-try:
-    import openai
-except ImportError:
-    ERROR = ImportError("Please install openai>=1 and diskcache to use autogen.OpenAIWrapper.")
-    OpenAI = object
-    AzureOpenAI = object
-else:
-    from openai import OpenAI, AzureOpenAI
-    from openai.types.chat import ChatCompletion
-
-    ERROR = None
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
@@ -33,14 +25,14 @@ this._cur = None
 logger = logging.getLogger(__name__)
 
 
-def start_logging(dbname: str = "telemetry.db") -> str:
+def start_logging(dbpath: str = "telemetry.db") -> str:
     """
     Open a connection to the telemetry logging database, and start recording.
     """
     this._session_id = str(uuid.uuid4())
 
     try:
-        this._con = sqlite3.connect(dbname)
+        this._con = sqlite3.connect(dbpath)
         this._cur = this._con.cursor()
 
         query = """
@@ -100,10 +92,56 @@ def start_logging(dbname: str = "telemetry.db") -> str:
         """
         this._cur.execute(query)
         this._con.commit()
+
+        query = """
+        CREATE TABLE IF NOT EXISTS version (
+            id INTEGER PRIMARY KEY CHECK (id = 1),                  -- id of the telemetry database
+            version_number INTEGER NOT NULL                         -- version of the telemetry database
+        );
+        """
+        this._cur.execute(query)
+        this._con.commit
+
+        current_verion = _get_current_version()
+        if current_verion is None:
+            query = """INSERT INTO version (id, version_number) VALUES (1, 1);"""
+            this._cur.execute(query)
+            this._con.commit
+
+        _apply_migration(dbpath)
+
     except sqlite3.Error as e:
         logger.error(f"[Telemetry] start_logging error: {e}")
     finally:
         return this._session_id
+
+
+def _get_current_version():
+    this._cur.execute("SELECT version_number FROM version ORDER BY id DESC LIMIT 1")
+    result = this._cur.fetchone()
+    return result[0] if result else None
+
+
+# Example migration script name format: 002_update_agents_table.sql
+def _apply_migration(db_path, migrations_dir="./migrations"):
+    current_version = _get_current_version()
+    if os.path.isdir(migrations_dir):
+        migrations = sorted(os.listdir(migrations_dir))
+    else:
+        logger.info("no migration scripts, skip...")
+        return
+
+    migrations_to_apply = [m for m in migrations if int(m.split("_")[0]) > current_version]
+
+    for script in migrations_to_apply:
+        with open(script, "r") as f:
+            migration_sql = f.read()
+            this._con.executescript(migration_sql)
+            this._con.commit()
+
+            latest_version = int(script.split("_")[0])
+            this._cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version))
+            this._con.commit()
 
 
 def get_connection():
@@ -124,7 +162,7 @@ def _to_dict(
         return inspect.getsource(obj).strip()
     elif isinstance(obj, dict):
         return {
-            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            str(k): _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
             for k, v in obj.items()
             if k not in exclude
         }
@@ -132,7 +170,7 @@ def _to_dict(
         return [_to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive) for v in obj]
     elif hasattr(obj, "__dict__"):
         return {
-            k: _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
+            str(k): _to_dict(str(v)) if isinstance(v, no_recursive) else _to_dict(v, exclude, no_recursive)
             for k, v in vars(obj).items()
             if k not in exclude
         }
@@ -172,9 +210,6 @@ def log_chat_completion(
         return
 
     end_time = get_current_ts()
-
-    if ERROR:
-        raise ERROR
 
     if isinstance(response, ChatCompletion):
         response_messages = json.dumps(_to_dict(response), indent=4)
@@ -222,9 +257,6 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict):
     if this._con is None:
         return
 
-    if ERROR:
-        raise ERROR
-
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"), no_recursive=(Agent))
 
     # We do an upsert since both the superclass and subclass may call this method (in that order)
@@ -267,9 +299,6 @@ def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict):
     if this._con is None:
         return
 
-    if ERROR:
-        raise ERROR
-
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 
     query = """
@@ -302,9 +331,6 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
 
     if this._con is None:
         return
-
-    if ERROR:
-        raise ERROR
 
     args = _to_dict(init_args, exclude=("self", "__class__", "api_key", "organization"))
 
@@ -343,11 +369,11 @@ def stop_logging():
         this._cur = None
 
 
-def get_log(dbname: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
+def get_log(dbpath: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
     """
     Return a dict string of the database.
     """
-    con = sqlite3.connect(dbname)
+    con = sqlite3.connect(dbpath)
     query = f"SELECT * FROM {table}"
     cursor = con.execute(query)
     rows = cursor.fetchall()
