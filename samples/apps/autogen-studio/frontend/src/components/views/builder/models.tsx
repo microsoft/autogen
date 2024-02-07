@@ -1,21 +1,15 @@
 import {
+  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Input, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import * as React from "react";
-import { IAgentFlowSpec, IModelConfig, IStatus } from "../../types";
+import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
-import {
-  AgentFlowSpecView,
-  BounceLoader,
-  Card,
-  LaunchButton,
-  LoadBox,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, LaunchButton, LoadingOverlay } from "../../atoms";
 import TextArea from "antd/es/input/TextArea";
 
 const ModelsView = ({}: any) => {
@@ -30,10 +24,15 @@ const ModelsView = ({}: any) => {
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
   const saveModelsUrl = `${serverUrl}/models`;
   const deleteModelUrl = `${serverUrl}/models/delete`;
+  const testModelUrl = `${serverUrl}/models/test`;
+  const [modelStatus, setModelStatus] = React.useState<IStatus | null>({
+    status: true,
+    message: "All good",
+  });
 
   const defaultModel: IModelConfig = {
     model: "gpt-4-1106-preview",
-    description: "Sample model",
+    description: "Sample OpenAI GPT-4 model",
     user_id: user?.email,
   };
 
@@ -148,12 +147,6 @@ const ModelsView = ({}: any) => {
     }
   }, []);
 
-  React.useEffect(() => {
-    if (selectedModel) {
-      console.log("selected agent", selectedModel);
-    }
-  }, [selectedModel]);
-
   const modelRows = (models || []).map((model: IModelConfig, i: number) => {
     return (
       <div key={"modelrow" + i} className=" " style={{ width: "200px" }}>
@@ -161,7 +154,7 @@ const ModelsView = ({}: any) => {
           <Card
             className="h-full p-2 cursor-pointer"
             title={
-              <div className="  ">{truncateText(model.model || "", 25)}</div>
+              <div className="  ">{truncateText(model.model || "", 20)}</div>
             }
             onClick={() => {
               setSelectedModel(model);
@@ -173,19 +166,26 @@ const ModelsView = ({}: any) => {
               {truncateText(model.description || model.model || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(model.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
             <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteModel(model);
+              onMouseEnter={(e) => {
+                e.stopPropagation();
               }}
+              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              {" "}
+              <div
+                role="button"
+                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteModel(model);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs hidden"> delete</span>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
@@ -204,9 +204,42 @@ const ModelsView = ({}: any) => {
     setShowModelModal: (show: boolean) => void;
     handler?: (agent: IModelConfig) => void;
   }) => {
+    const [loadingModelTest, setLoadingModelTest] = React.useState(false);
+    const [modelStatus, setModelStatus] = React.useState<IStatus | null>(null);
+
     const [localModel, setLocalModel] = React.useState<IModelConfig | null>(
       model
     );
+    const testModel = (model: IModelConfig) => {
+      setModelStatus(null);
+      setLoadingModelTest(true);
+      const payLoad = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user?.email,
+          model: model,
+        }),
+      };
+
+      const onSuccess = (data: any) => {
+        if (data && data.status) {
+          message.success(data.message);
+          setModelStatus(data.data);
+        } else {
+          message.error(data.message);
+        }
+        setLoadingModelTest(false);
+        setModelStatus(data);
+      };
+      const onError = (err: any) => {
+        message.error(err.message);
+        setLoadingModelTest(false);
+      };
+      fetchJSON(testModelUrl, payLoad, onSuccess, onError);
+    };
 
     return (
       <Modal
@@ -218,6 +251,44 @@ const ModelsView = ({}: any) => {
         }
         width={800}
         open={showModelModal}
+        footer={[
+          <Button
+            key="close"
+            onClick={() => {
+              setModel(null);
+              setShowModelModal(false);
+            }}
+          >
+            Close
+          </Button>,
+          <Button
+            key="test"
+            type="primary"
+            loading={loadingModelTest}
+            onClick={() => {
+              if (localModel) {
+                testModel(localModel);
+              }
+            }}
+          >
+            Test Model
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            onClick={() => {
+              setModel(null);
+              setShowModelModal(false);
+              if (handler) {
+                if (localModel) {
+                  handler(localModel);
+                }
+              }
+            }}
+          >
+            Save
+          </Button>,
+        ]}
         onOk={() => {
           setModel(null);
           setShowModelModal(false);
@@ -232,70 +303,85 @@ const ModelsView = ({}: any) => {
           setShowModelModal(false);
         }}
       >
-        <div className="text-sm my-2">Enter parameters for your model.</div>
-        <Input
-          placeholder="Model Name"
-          value={localModel?.model}
-          onChange={(e) => {
-            setLocalModel({ ...localModel, model: e.target.value });
-          }}
-        />
-        <Input.Password
-          className="mt-2"
-          placeholder="API Key"
-          value={localModel?.api_key}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_key: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="Base URL"
-          value={localModel?.base_url}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, base_url: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="API Type (e.g. azure)"
-          value={localModel?.api_type}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_type: e.target.value });
-            }
-          }}
-        />
-        <Input
-          className="mt-2"
-          placeholder="API Version (optional)"
-          value={localModel?.api_version}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, api_version: e.target.value });
-            }
-          }}
-        />
-        <TextArea
-          className="mt-2"
-          placeholder="Description"
-          value={localModel?.description}
-          onChange={(e) => {
-            if (localModel) {
-              setLocalModel({ ...localModel, description: e.target.value });
-            }
-          }}
-        />
+        <div className="relative ">
+          <div className="text-sm my-2">Enter parameters for your model.</div>
+          <Input
+            placeholder="Model Name"
+            value={localModel?.model}
+            onChange={(e) => {
+              setLocalModel({ ...localModel, model: e.target.value });
+            }}
+          />
+          <Input.Password
+            className="mt-2"
+            placeholder="API Key"
+            value={localModel?.api_key}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_key: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="Base URL"
+            value={localModel?.base_url}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, base_url: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="API Type (e.g. azure)"
+            value={localModel?.api_type}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_type: e.target.value });
+              }
+            }}
+          />
+          <Input
+            className="mt-2"
+            placeholder="API Version (optional)"
+            value={localModel?.api_version}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, api_version: e.target.value });
+              }
+            }}
+          />
+          <TextArea
+            className="mt-2"
+            placeholder="Description"
+            value={localModel?.description}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, description: e.target.value });
+              }
+            }}
+          />
 
-        {localModel?.api_type === "azure" && (
-          <div className="mt-4 text-xs">
-            Note: For Azure OAI models, you will need to specify all fields.
-          </div>
-        )}
+          {localModel?.api_type === "azure" && (
+            <div className="mt-4 text-xs">
+              Note: For Azure OAI models, you will need to specify all fields.
+            </div>
+          )}
+
+          {modelStatus && (
+            <div
+              className={`text-sm border mt-4 rounded text-secondary p-2 ${
+                modelStatus.status ? "border-accent" : " border-red-500 "
+              }`}
+            >
+              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+              {modelStatus.message}
+
+              {/* <span className="block"> Note </span> */}
+            </div>
+          )}
+        </div>
       </Modal>
     );
   };
@@ -349,6 +435,17 @@ const ModelsView = ({}: any) => {
             {" "}
             Create model configurations that can be reused in your agents and
             workflows. {selectedModel?.model}
+            {models && models.length > 0 && (
+              <span className="block my-2 border rounded border-secondary p-2">
+                <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
+                Note: Changes made to your model do not automatically get
+                updated in your workflow. After creating or editing your model,{" "}
+                <span className="font-semibold underline">
+                  you must also (re-)add
+                </span>{" "}
+                it to your workflow.
+              </span>
+            )}
           </div>
           {models && models.length > 0 && (
             <div className="w-full  relative">
@@ -360,7 +457,8 @@ const ModelsView = ({}: any) => {
           {models && models.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
-              No models found. Please create a new agent.
+              No models found. Please create a new model which can be reused
+              with agents.
             </div>
           )}
 
