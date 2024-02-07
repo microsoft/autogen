@@ -622,14 +622,13 @@ def test_clear_agents_history():
         group_chat_manager,
         request_reply=True,        
     )
-    # increase max_round to 2
-    groupchat.max_round = 2
+    # increase max_round to 3
+    groupchat.max_round = 3
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-    with mock.patch.object(builtins, "input", lambda _: "clear history alice 3. How you doing?"):
+    with mock.patch.object(builtins, "input", lambda _: "clear history alice 1. How you doing?"):
         agent1.initiate_chat(group_chat_manager, message="hello", clear_history=False)
 
     agent1_history = list(agent1._oai_messages.values())[0]
-
     assert agent1_history == [
         {
             "tool_calls": [
@@ -643,10 +642,6 @@ def test_clear_agents_history():
             "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
             "role": "tool",
         },
-        {"content": "hello", "role": "assistant"},
-        {"content": "This is bob speaking.", "name": "bob", "role": "user"},
-        {"content": "How you doing?", "name": "sam", "role": "user"},
-        {"content": "This is alice speaking.", "role": "assistant"},
     ]
 
 
