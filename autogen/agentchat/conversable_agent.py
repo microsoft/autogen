@@ -868,67 +868,6 @@ class ConversableAgent(Agent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
-    def _llm_response_preparer_bak(
-        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[Cache] = None
-    ) -> str:
-        """Default summary preparer with llm
-
-        Args:
-            prompt (str): The prompt used to extract the final response from the transcript.
-            messages (list): The messages generated as part of a chat conversation.
-        """
-
-        _messages = [
-            {
-                "role": "system",
-                "content": """Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:""",
-            }
-        ]
-        for message in messages:
-            message = copy.deepcopy(message)
-            message["role"] = "user"
-            # Convert tool and function calls to basic messages to avoid an error on the LLM call
-            if "content" not in message:
-                message["content"] = ""
-
-            if "tool_calls" in message:
-                del message["tool_calls"]
-            if "tool_responses" in message:
-                del message["tool_responses"]
-            if "function_call" in message:
-                if message["content"] == "":
-                    try:
-                        message["content"] = (
-                            message["function_call"]["name"] + "(" + message["function_call"]["arguments"] + ")"
-                        )
-                    except KeyError:
-                        pass
-                    del message["function_call"]
-            # Add the modified message to the transcript if it has content
-            if message.get("content"):
-                _messages.append(message)
-
-        _messages.append(
-            {
-                "role": "system",
-                "content": prompt,
-            }
-        )
-
-        if llm_agent and llm_agent.client is not None:
-            llm_client = llm_agent.client
-        elif self.client is not None:
-            llm_client = self.client
-        else:
-            raise ValueError("No OpenAIWrapper client is found.")
-
-        response = llm_client.create(context=None, messages=_messages, cache=cache)
-        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
-        if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
-            return str(extracted_response.model_dump(mode="dict"))
-        else:
-            return extracted_response
-
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
         TODO: add async version of this method.
