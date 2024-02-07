@@ -588,6 +588,12 @@ class OpenAIWrapper:
                     raise
                 logger.debug(f"config {i} failed", exc_info=True)
                 if i == last:
+                    # Unfortunately, a timeout is not communicated in the error_code
+                    # so we have to check the message
+                    if err.message == "Request timed out.":
+                        raise TimeoutError(
+                            "OpenAI API call timed out. This could be due to congestion or too small a timeout value. The timeout can be specified by setting the 'timeout' value (in seconds) in the llm_config."
+                        ) from err
                     raise
             else:
                 # add cost calculation before caching no matter filter is passed or not
