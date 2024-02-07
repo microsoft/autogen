@@ -860,7 +860,26 @@ class ConversableAgent(Agent):
         for message in messages:
             message = copy.deepcopy(message)
             message["role"] = "user"
-            _messages.append(message)
+            # Convert tool and function calls to basic messages to avoid an error on the LLM call
+            if "content" not in message:
+                message["content"] = ""
+
+            if "tool_calls" in message:
+                del message["tool_calls"]
+            if "tool_responses" in message:
+                del message["tool_responses"]
+            if "function_call" in message:
+                if message["content"] == "":
+                    try:
+                        message["content"] = (
+                            message["function_call"]["name"] + "(" + message["function_call"]["arguments"] + ")"
+                        )
+                    except KeyError:
+                        pass
+                    del message["function_call"]
+            # Add the modified message to the transcript if it has content
+            if message.get("content"):
+                _messages.append(message)
 
         _messages.append(
             {
