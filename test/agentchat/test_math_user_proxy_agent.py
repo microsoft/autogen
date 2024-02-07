@@ -1,13 +1,16 @@
 import pytest
 import sys
+import os
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
     _remove_print,
     _add_print_to_last_line,
 )
-from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -52,8 +55,10 @@ def test_math_user_proxy_agent():
     #     message=mathproxyagent.generate_init_message(math_problem),
     #     sender=mathproxyagent,
     # )
-    mathproxyagent.initiate_chat(assistant, problem=math_problem)
+    res = mathproxyagent.initiate_chat(assistant, problem=math_problem)
     print(conversations)
+    print("Chat summary:", res.summary)
+    print("Chat history:", res.chat_history)
 
 
 def test_add_remove_print():

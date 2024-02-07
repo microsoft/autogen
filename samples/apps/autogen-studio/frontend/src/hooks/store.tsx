@@ -4,13 +4,15 @@ import { IChatMessage, IChatSession, IFlowConfig } from "../components/types";
 
 interface ConfigState {
   workflowConfig: IFlowConfig | null;
-  setWorkflowConfig: (flowConfig: IFlowConfig) => void;
+  setWorkflowConfig: (flowConfig: IFlowConfig | null) => void;
   messages: IChatMessage[] | null;
   setMessages: (messages: IChatMessage[]) => void;
   session: IChatSession | null;
-  setSession: (session: IChatSession) => void;
+  setSession: (session: IChatSession | null) => void;
   sessions: IChatSession[];
   setSessions: (sessions: IChatSession[]) => void;
+  version: string | null;
+  setVersion: (version: string) => void;
 }
 
 export const useConfigStore = create<ConfigState>()((set) => ({
@@ -22,4 +24,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   setSession: (session) => set({ session }),
   sessions: [],
   setSessions: (sessions) => set({ sessions }),
+  version: null,
+  setVersion: (version) => set({ version }),
 }));

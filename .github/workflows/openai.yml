@@ -5,22 +5,33 @@ name: OpenAI
 
 on:
   pull_request_target:
-    branches: ['main']
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/**'
-      - 'notebook/agentchat_auto_feedback_from_code_execution.ipynb'
-      - 'notebook/agentchat_function_call.ipynb'
-      - '.github/workflows/openai.yml'
+      - "autogen/**"
+      - "test/**"
+      - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
+      - "notebook/agentchat_function_call.ipynb"
+      - ".github/workflows/openai.yml"
+permissions: {}
+    # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 
 jobs:
   test:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     runs-on: ${{ matrix.os }}
     environment: openai1
+    services:
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --entrypoint redis-server
     steps:
       # checkout to pr branch
       - name: Checkout
@@ -42,6 +53,7 @@ jobs:
         if: matrix.python-version == '3.9'
         run: |
           pip install docker
+          pip install -e .[redis]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:
@@ -62,7 +74,6 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
           pip install nbconvert nbformat ipykernel
-          coverage run -a -m pytest test/agentchat/test_function_call_groupchat.py
           coverage run -a -m pytest test/test_notebook.py
           coverage xml
           cat "$(pwd)/test/executed_openai_notebook_output.txt"

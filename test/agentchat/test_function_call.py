@@ -2,10 +2,13 @@ import pytest
 import asyncio
 import json
 import autogen
-from conftest import skip_openai
 from autogen.math_utils import eval_math_responses
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -18,7 +21,7 @@ else:
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
 def test_eval_math_responses():
     config_list = autogen.config_list_from_models(
-        KEY_LOC, exclude="aoai", model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
+        KEY_LOC, model_list=["gpt-4-0613", "gpt-3.5-turbo-0613", "gpt-3.5-turbo-16k"]
     )
     functions = [
         {
@@ -231,23 +234,27 @@ def test_update_function():
         },
         is_remove=False,
     )
-    user_proxy.initiate_chat(
+    res1 = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+        summary_method="reflection_with_llm",
     )
     messages1 = assistant.chat_messages[user_proxy][-1]["content"]
     print(messages1)
+    print("Chat summary and cost", res1.summary, res1.cost)
 
     assistant.update_function_signature("greet_user", is_remove=True)
-    user_proxy.initiate_chat(
+    res2 = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+        summary_method="reflection_with_llm",
     )
     messages2 = assistant.chat_messages[user_proxy][-1]["content"]
     print(messages2)
     # The model should know about the function in the context of the conversation
     assert "greet_user" in messages1
     assert "greet_user" not in messages2
+    print("Chat summary and cost", res2.summary, res2.cost)
 
 
 if __name__ == "__main__":

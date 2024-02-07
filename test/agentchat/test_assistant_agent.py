@@ -2,8 +2,10 @@ import os
 import sys
 import pytest
 import autogen
-from conftest import skip_openai
 from autogen.agentchat import AssistantAgent, UserProxyAgent
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -53,11 +55,12 @@ def test_ai_user_proxy_agent():
     assistant.reset()
 
     math_problem = "$x^3=125$. What is x?"
-    ai_user_proxy.initiate_chat(
+    res = ai_user_proxy.initiate_chat(
         assistant,
         message=math_problem,
     )
     print(conversations)
+    print("Result summary:", res.summary)
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
@@ -140,7 +143,14 @@ def test_create_execute_script(human_input_mode="NEVER", max_consecutive_auto_re
         message="""Create and execute a script to plot a rocket without using matplotlib""",
     )
     assistant.reset()
-    user.initiate_chat(
+    user = UserProxyAgent(
+        "user",
+        human_input_mode=human_input_mode,
+        code_execution_config={"work_dir": f"{here}/test_agent_scripts"},
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+    )
+    res = user.initiate_chat(
         assistant,
         message="""Create a temp.py file with the following content:
 ```
@@ -148,12 +158,14 @@ print('Hello world!')
 ```""",
     )
     print(conversations)
+    print("Result summary:", res.summary)
     # autogen.ChatCompletion.print_usage_summary()
     # autogen.ChatCompletion.start_logging(compact=False)
-    user.send("""Execute temp.py""", assistant)
+    res = user.send("""Execute temp.py""", assistant)
     # print(autogen.ChatCompletion.logged_history)
     # autogen.ChatCompletion.print_usage_summary()
     # autogen.ChatCompletion.stop_logging()
+    print("Execution result summary:", res.summary)
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
@@ -195,8 +207,8 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
 
 if __name__ == "__main__":
     # test_gpt35()
-    # test_create_execute_script(human_input_mode="TERMINATE")
+    test_create_execute_script(human_input_mode="TERMINATE")
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
-    test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    # test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)

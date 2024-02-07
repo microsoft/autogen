@@ -1,13 +1,22 @@
 import type { GatsbyConfig } from "gatsby";
+import fs from 'fs';
+
+const envFile = `.env.${process.env.NODE_ENV}`;
+
+fs.access(envFile, fs.constants.F_OK, (err) => {
+  if (err) {
+    console.warn(`File '${envFile}' is missing. Using default values.`);
+  }
+});
 
 require("dotenv").config({
-  path: `.env.${process.env.NODE_ENV}`,
+  path: envFile,
 });
 
 const config: GatsbyConfig = {
   pathPrefix: `${process.env.PREFIX_PATH_VALUE}`,
   siteMetadata: {
-    title: `AutoGen Studio`,
+    title: `AutoGen Studio [Beta]`,
     description: `Build Multi-Agent Apps`,
     siteUrl: `http://tbd.place`,
   },

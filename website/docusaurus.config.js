@@ -2,6 +2,16 @@
 const math = require("remark-math");
 const katex = require("rehype-katex");
 
+customPostCssPlugin = () => {
+  return {
+    name: "custom-postcss",
+    configurePostCss(options) {
+      options.plugins.push(require("postcss-preset-env"));
+      return options;
+    }
+  };
+}
+
 module.exports = {
   title: "AutoGen",
   tagline: "Enable Next-Gen Large Language Model Applications",
@@ -12,6 +22,16 @@ module.exports = {
   favicon: "img/ag.ico",
   organizationName: "Microsoft", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
+  scripts: [
+    {
+      src: '/autogen/js/custom.js',
+      async: true,
+      defer: true,
+    },
+  ],
+  markdown: {
+    format: 'detect', // Support for MD files with .md extension
+  },
   themeConfig: {
     navbar: {
       title: "AutoGen",
@@ -54,6 +74,12 @@ module.exports = {
           position: "left",
           label: "Examples",
         },
+        // Uncomment below to add Notebooks to the navbar
+        // {
+        //   to: "docs/notebooks",
+        //   position: "left",
+        //   label: "Notebooks",
+        // },
         {
           label: "Resources",
           type: "dropdown",
@@ -100,7 +126,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
     },
   },
   presets: [
@@ -135,7 +161,6 @@ module.exports = {
   ],
 
   plugins: [
-    // ... Your other plugins.
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
@@ -150,5 +175,6 @@ module.exports = {
         // When applying `zh` in language, please install `nodejieba` in your project.
       },
     ],
+    customPostCssPlugin
   ],
 };
