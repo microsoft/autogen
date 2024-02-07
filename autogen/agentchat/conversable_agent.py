@@ -8,6 +8,7 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
+from openai import BadRequestError
 
 from ..oai.client import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
@@ -832,8 +833,10 @@ class ConversableAgent(Agent):
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
             msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
-
-            summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
+            try:
+                summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
+            except BadRequestError as e:
+                warnings.warn(f"Cannot extract summary using reflection_with_llm: {e}", UserWarning)
         else:
             warnings.warn("No summary_method provided or summary_method is not supported: ")
         return summary
