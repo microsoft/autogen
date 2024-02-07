@@ -108,10 +108,12 @@ def test_agent_usage():
     )
 
     math_problem = "$x^3=125$. What is x?"
-    ai_user_proxy.initiate_chat(
+    res = ai_user_proxy.initiate_chat(
         assistant,
         message=math_problem,
+        summary_method="reflection_with_llm",
     )
+    print("Result summary:", res.summary)
 
     # test print
     captured_output = io.StringIO()

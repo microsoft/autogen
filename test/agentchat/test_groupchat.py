@@ -606,12 +606,15 @@ def test_clear_agents_history():
 
     # testing pure "clear history" statement
     with mock.patch.object(builtins, "input", lambda _: "clear history. How you doing?"):
-        agent1.initiate_chat(group_chat_manager, message="hello")
+        res = agent1.initiate_chat(group_chat_manager, message="hello", summary_method="last_msg")
     agent1_history = list(agent1._oai_messages.values())[0]
     agent2_history = list(agent2._oai_messages.values())[0]
     assert agent1_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
     assert agent2_history == [{"content": "How you doing?", "name": "sam", "role": "user"}]
     assert groupchat.messages == [{"content": "How you doing?", "name": "sam", "role": "user"}]
+    print("Chat summary", res.summary)
+    print("Chat cost", res.cost)
+    print("Chat history", res.chat_history)
 
     # testing clear history for defined agent
     with mock.patch.object(builtins, "input", lambda _: "clear history bob. How you doing?"):
