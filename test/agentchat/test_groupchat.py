@@ -596,10 +596,10 @@ def test_clear_agents_history():
     agent1.reset()
     agent2.reset()
     agent3.reset()
-    # we want to broadcast the message only in the preparation
+    # we want to broadcast the message only in the preparation.
     groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=1, enable_clear_history=True)
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-    # We want to trigger the broadcast of group chat manager, which requires `request_reply` to be set to True. 
+    # We want to trigger the broadcast of group chat manager, which requires `request_reply` to be set to True.
     agent1.send("dummy message", group_chat_manager, request_reply=True)
     agent1.send(
         {
@@ -620,7 +620,7 @@ def test_clear_agents_history():
             "content": "example tool response",
         },
         group_chat_manager,
-        request_reply=True,        
+        request_reply=True,
     )
     # increase max_round to 3
     groupchat.max_round = 3
