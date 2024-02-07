@@ -1,12 +1,13 @@
 import {
   ArrowPathIcon,
   Cog6ToothIcon,
+  DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PaperAirplaneIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, message } from "antd";
+import { Button, Dropdown, MenuProps, message as ToastMessage } from "antd";
 import * as React from "react";
 import {
   IChatMessage,
@@ -128,6 +129,25 @@ const ChatBox = ({
           </div>
         ),
         key: "retrymessage",
+      });
+      items.push({
+        label: (
+          <div
+            onClick={() => {
+              // copy to clipboard
+              navigator.clipboard.writeText(message.text);
+              ToastMessage.success("Message copied to clipboard");
+            }}
+          >
+            <DocumentDuplicateIcon
+              role={"button"}
+              title={"Copy"}
+              className="h-4 w-4 mr-1 inline-block"
+            />
+            Copy
+          </div>
+        ),
+        key: "copymessage",
       });
     }
 
@@ -288,22 +308,26 @@ const ChatBox = ({
             } else {
               console.log("error", data);
               // setError(data);
-              message.error(data.message);
+              ToastMessage.error(data.message);
             }
           });
         } else {
           res.json().then((data) => {
             console.log("error", data);
             // setError(data);
-            message.error(data.message);
+            ToastMessage.error(data.message);
           });
-          message.error("Connection error. Ensure server is up and running.");
+          ToastMessage.error(
+            "Connection error. Ensure server is up and running."
+          );
         }
       })
       .catch(() => {
         setLoading(false);
 
-        message.error("Connection error. Ensure server is up and running.");
+        ToastMessage.error(
+          "Connection error. Ensure server is up and running."
+        );
       });
   };
 
