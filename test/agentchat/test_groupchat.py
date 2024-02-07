@@ -596,10 +596,11 @@ def test_clear_agents_history():
     agent1.reset()
     agent2.reset()
     agent3.reset()
-    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=4, enable_clear_history=True)
+    # we want to broadcast the message only in the preparation
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=1, enable_clear_history=True)
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
-
-    agent1.send("dummy message", group_chat_manager)
+    # We want to trigger the broadcast of group chat manager, which requires `request_reply` to be set to True. 
+    agent1.send("dummy message", group_chat_manager, request_reply=True)
     agent1.send(
         {
             "content": None,
@@ -610,6 +611,7 @@ def test_clear_agents_history():
             ],
         },
         group_chat_manager,
+        request_reply=True,
     )
     agent1.send(
         {
@@ -618,7 +620,11 @@ def test_clear_agents_history():
             "content": "example tool response",
         },
         group_chat_manager,
+        request_reply=True,        
     )
+    # increase max_round to 2
+    groupchat.max_round = 2
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     with mock.patch.object(builtins, "input", lambda _: "clear history alice 3. How you doing?"):
         agent1.initiate_chat(group_chat_manager, message="hello", clear_history=False)
 
