@@ -8,11 +8,18 @@ using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AutoGen.Tests
 {
     public partial class SingleAgentTest
     {
+        private ITestOutputHelper _output;
+        public SingleAgentTest(ITestOutputHelper output)
+        {
+            _output = output;
+        }
+
         private ILLMConfig CreateAzureOpenAIGPT35TurboConfig()
         {
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
@@ -167,6 +174,8 @@ namespace AutoGen.Tests
                 {
                     { nameof(EchoAsync), this.EchoAsyncWrapper },
                 });
+
+            await EchoFunctionCallExecutionStreamingTestAsync(agent);
             await EchoFunctionCallExecutionTestAsync(agent);
             await UpperCaseTest(agent);
         }
@@ -215,6 +224,34 @@ namespace AutoGen.Tests
             reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
             reply.FunctionName.Should().Be(nameof(EchoAsync));
+        }
+
+        private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingReplyAgent agent)
+        {
+            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new Message(Role.User, "echo Hello world");
+            var option = new GenerateReplyOptions
+            {
+                Temperature = 0,
+            };
+            var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
+            var answer = "[ECHO] Hello world";
+            Message? finalReply = default;
+            await foreach (var reply in replyStream)
+            {
+                reply.Role.Should().Be(Role.Assistant);
+                reply.From.Should().Be(agent.Name);
+
+                finalReply = reply;
+
+                var formatted = reply.FormatMessage();
+                _output.WriteLine(formatted);
+            }
+
+            finalReply!.Content.Should().Be(answer);
+            finalReply!.Role.Should().Be(Role.Assistant);
+            finalReply!.From.Should().Be(agent.Name);
+            finalReply!.FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task UpperCaseTest(IAgent agent)

@@ -157,8 +157,6 @@ public class GPTAgent : IStreamingReplyAgent
 
                 continue;
             }
-
-            throw new Exception("OpenAI response is invalid.");
         }
     }
 
