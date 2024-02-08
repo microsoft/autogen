@@ -90,3 +90,79 @@ def read_text_from_image(file_path: str) -> str:
     text = " ".join([item[1] for item in output])
 
     return text
+
+
+@requires("python-pptx")
+def read_text_from_pptx(file_path: str) -> str:
+    """
+    Reads text from a PowerPoint file and returns it as a string.
+
+    Args:
+        file_path (str): The path to the PowerPoint file.
+
+    Returns:
+        str: The extracted text from the PowerPoint file.
+    """
+    from pptx import Presentation
+
+    presentation = Presentation(file_path)
+    text = ""
+
+    for slide in presentation.slides:
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                text += shape.text
+
+    return text
+
+
+@requires("pandas")
+def read_text_from_xlsx(file_path: str) -> str:
+    """
+    Reads text from an Excel file and returns it as a string.
+
+    Args:
+        file_path (str): The path to the Excel file.
+
+    Returns:
+        str: The extracted text from the Excel file.
+    """
+    import pandas as pd
+
+    df = pd.read_excel(file_path)
+    text = df.to_string(index=False)
+
+    return text
+
+
+@requires("SpeechRecognition", "requests")
+def read_text_from_audio(file_path: str) -> str:
+    """
+    Reads text from an audio file or a URL and returns it as a string.
+
+    Args:
+        file_path (str): The path to the audio file or the URL.
+
+    Returns:
+        str: The extracted text from the audio file or the URL.
+    """
+    import requests
+    import speech_recognition as sr
+    import tempfile
+
+    recognizer = sr.Recognizer()
+
+    if file_path.startswith("http"):
+        response = requests.get(file_path)
+        with tempfile.NamedTemporaryFile(delete=True, suffix=".wav") as temp_audio:
+            temp_audio.write(response.content)
+            temp_audio.seek(0)
+            with sr.AudioFile(temp_audio.name) as source:
+                audio = recognizer.record(source)
+    else:
+        with sr.AudioFile(file_path) as source:
+            audio = recognizer.record(source)
+
+    text = recognizer.recognize_google(audio)
+
+    return text
