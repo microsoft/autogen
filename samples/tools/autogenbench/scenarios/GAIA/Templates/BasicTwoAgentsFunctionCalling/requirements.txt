@@ -1,1 +1,1 @@
--e /workspaces/autogen
+git+https://github.com/microsoft/autogen.git@complex_tasks[websurfer]
