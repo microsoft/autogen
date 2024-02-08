@@ -1,3 +1,4 @@
+# ruff: noqa: E722
 import json
 import os
 import requests
@@ -6,7 +7,7 @@ import markdownify
 import io
 import uuid
 import mimetypes
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
@@ -18,6 +19,15 @@ try:
     import pdfminer.high_level
 
     IS_PDF_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
+# Optional YouTube transcription support
+IS_YOUTUBE_TRANSCRIPT_CAPABLE = False
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+
+    IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
 except ModuleNotFoundError:
     pass
 
@@ -70,6 +80,10 @@ class PageTextRenderer:
         """Read the entire response, and return an in-memory bytes stream."""
         return io.BytesIO(response.raw.read())
 
+    def _fix_newlines(self, rendered_text):
+        re.sub(r"\r\n", "\n", rendered_text)
+        return re.sub(r"\n{2,}", "\n\n", rendered_text).strip()  # Remove excessive blank lines
+
 
 class PlainTextRenderer(PageTextRenderer):
     """Anything with content type text/plain"""
@@ -78,7 +92,7 @@ class PlainTextRenderer(PageTextRenderer):
         return content_type is not None and "text/plain" in content_type.lower()
 
     def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
-        return TextRendererResult(title=None, page_content=self._read_all_text(response))
+        return TextRendererResult(title=None, page_content=self._fix_newlines(self._read_all_text(response)))
 
 
 class HtmlRenderer(PageTextRenderer):
@@ -96,13 +110,160 @@ class HtmlRenderer(PageTextRenderer):
 
         webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
 
-        # Convert newlines
-        webpage_text = re.sub(r"\r\n", "\n", webpage_text)
+        return TextRendererResult(
+            title=soup.title.string,
+            page_content=self._fix_newlines(webpage_text),
+        )
+
+
+class WikipediaRenderer(PageTextRenderer):
+    """Handle Wikipedia pages separately, focusing only on the main document content."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return (
+            content_type is not None
+            and "text/html" in content_type.lower()
+            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}.wikipedia.org\/", url)
+        )
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        soup = self._read_all_html(response)
+
+        # Remove javascript and style blocks
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        # Print only the main content
+        body_elm = soup.find("div", {"id": "mw-content-text"})
+        title_elm = soup.find("span", {"class": "mw-page-title-main"})
+
+        webpage_text = ""
+        if body_elm:
+            # What's the title
+            main_title = soup.title.string
+            if title_elm and len(title_elm) > 0:
+                main_title = title_elm.string
+
+            # Render the page
+            webpage_text = "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+        else:
+            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
 
         return TextRendererResult(
             title=soup.title.string,
-            page_content=re.sub(r"\n{2,}", "\n\n", webpage_text).strip(),  # Remove excessive blank lines
+            page_content=self._fix_newlines(webpage_text),
         )
+
+
+class YouTubeRenderer(PageTextRenderer):
+    """Handle YouTube specially, focusing on the video title, description, and transcript."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return (
+            content_type is not None
+            and "text/html" in content_type.lower()
+            and url.startswith("https://www.youtube.com/watch?")
+        )
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        soup = self._read_all_html(response)
+
+        # Read the meta tags
+        metadata = {"title": soup.title.string}
+        for meta in soup(["meta"]):
+            for a in meta.attrs:
+                if a in ["itemprop", "property", "name"]:
+                    metadata[meta[a]] = meta.get("content", "")
+                    break
+
+        # We can also try to read the full description. This is more prone to breaking, since it reaches into the page implementation
+        try:
+            for script in soup(["script"]):
+                content = script.text
+                if "ytInitialData" in content:
+                    lines = re.split(r"\r?\n", content)
+                    obj_start = lines[0].find("{")
+                    obj_end = lines[0].rfind("}")
+                    if obj_start >= 0 and obj_end >= 0:
+                        data = json.loads(lines[0][obj_start : obj_end + 1])
+                        attrdesc = self._findKey(data, "attributedDescriptionBodyText")
+                        if attrdesc:
+                            metadata["description"] = attrdesc["content"]
+                    break
+        except:
+            pass
+
+        # Start preparing the page
+        webpage_text = "# YouTube\n"
+
+        title = self._get(metadata, ["title", "og:title", "name"])
+        if title:
+            webpage_text += f"\n## {title}\n"
+
+        stats = ""
+        views = self._get(metadata, ["interactionCount"])
+        if views:
+            stats += f"- **Views:** {views}\n"
+
+        keywords = self._get(metadata, ["keywords"])
+        if keywords:
+            stats += f"- **Keywords:** {keywords}\n"
+
+        runtime = self._get(metadata, ["duration"])
+        if runtime:
+            stats += f"- **Runtime:** {runtime}\n"
+
+        if len(stats) > 0:
+            webpage_text += f"\n### Video Metadata\n{stats}\n"
+
+        description = self._get(metadata, ["description", "og:description"])
+        if description:
+            webpage_text += f"\n### Description\n{description}\n"
+
+        if IS_YOUTUBE_TRANSCRIPT_CAPABLE:
+            transcript_text = ""
+            parsed_url = urlparse(url)
+            params = parse_qs(parsed_url.query)
+            if "v" in params:
+                video_id = params["v"][0]
+                try:
+                    # Must be a single transcript.
+                    transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                    transcript_text = " ".join([part["text"] for part in transcript])
+                    # Alternative formatting:
+                    # formatter = TextFormatter()
+                    # formatter.format_transcript(transcript)
+                except:
+                    pass
+            if transcript_text:
+                webpage_text += f"\n### Transcript\n{transcript_text}\n"
+
+        return TextRendererResult(
+            title="",
+            page_content=self._fix_newlines(webpage_text),
+        )
+
+    def _get(self, json, keys, default=None):
+        for k in keys:
+            if k in json:
+                return json[k]
+        return default
+
+    def _findKey(self, json, key):
+        if isinstance(json, list):
+            for elm in json:
+                ret = self._findKey(elm, key)
+                if ret is not None:
+                    return ret
+        elif isinstance(json, dict):
+            for k in json:
+                if k == key:
+                    return json[k]
+                else:
+                    ret = self._findKey(json[k], key)
+                    if ret is not None:
+                        return ret
+        return None
 
 
 class PdfRenderer(PageTextRenderer):
@@ -218,10 +379,13 @@ class SimpleTextBrowser:
 
         # Register renderers for successful browsing operations
         # Later registrations are tried first / take higher priority than earlier registrations
+        # To this end, the most specific renderers should appear below the most generic renderers
         self.register_page_renderer(FallbackPageRenderer())
         self.register_page_renderer(DownloadRenderer(self))
         self.register_page_renderer(HtmlRenderer())
         self.register_page_renderer(PlainTextRenderer())
+        self.register_page_renderer(WikipediaRenderer())
+        self.register_page_renderer(YouTubeRenderer())
 
         if IS_PDF_CAPABLE:
             self.register_page_renderer(PdfRenderer())
@@ -416,4 +580,6 @@ Content-type: {content_type}"""
 if __name__ == "__main__":
     browser = SimpleTextBrowser()
     # print(browser.visit_page("https://www.adamfourney.com/papers/jahanbakhsh_cscw2022.pdf"))
-    print(browser.visit_page("http://www.adamfourney.com"))
+    # print(browser.visit_page("http://www.adamfourney.com"))
+    # print(browser.visit_page("https://en.wikipedia.org/wiki/Microsoft"))
+    print(browser.visit_page("https://www.youtube.com/watch?v=WXAavnORAxg"))
