@@ -63,7 +63,7 @@ class ConversableAgent(Agent):
     DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
-    DEFAULT_summary_prompt = "Summarize the takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+    DEFAULT_summary_prompt = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
     llm_config: Union[Dict, Literal[False]]
 
     def __init__(
@@ -822,66 +822,51 @@ class ConversableAgent(Agent):
         """
         agent = self if agent is None else agent
         summary = ""
-        if method == "last_msg":
-            try:
-                summary = agent.last_message(self)["content"]
-                summary = summary.replace("TERMINATE", "")
-            except (IndexError, AttributeError):
-                warnings.warn("Cannot extract summary from last message.", UserWarning)
-        elif method == "reflection_with_llm":
+        if method == "reflection_with_llm":
             prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
             msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
             try:
-                summary = self._llm_response_preparer(prompt, msg_list, llm_agent=agent, cache=cache)
+                summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
                 warnings.warn(f"Cannot extract summary using reflection_with_llm: {e}", UserWarning)
+        elif method == "last_msg" or method is None:
+            try:
+                summary = agent.last_message(self)["content"].replace("TERMINATE", "")
+            except (IndexError, AttributeError) as e:
+                warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
         else:
-            warnings.warn("No summary_method provided or summary_method is not supported: ")
+            warnings.warn(f"Unsupported summary method: {method}", UserWarning)
         return summary
 
-    def _llm_response_preparer(
+    def _reflection_with_llm(
         self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[Cache] = None
     ) -> str:
-        """Default summary preparer with llm
+        """Get a chat summary using reflection with an llm client based on the conversation history.
 
         Args:
-            prompt (str): The prompt used to extract the final response from the transcript.
+            prompt (str): The prompt (in this method it is used as system prompt) used to get the summary.
             messages (list): The messages generated as part of a chat conversation.
+            llm_agent: the agent with an llm client.
+            cache (Cache or None): the cache client to be used for this conversation.
         """
-
-        _messages = [
-            {
-                "role": "system",
-                "content": """Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:""",
-            }
-        ]
-        for message in messages:
-            message = copy.deepcopy(message)
-            message["role"] = "user"
-            _messages.append(message)
-
-        _messages.append(
+        system_msg = [
             {
                 "role": "system",
                 "content": prompt,
             }
-        )
+        ]
 
+        messages = messages + system_msg
         if llm_agent and llm_agent.client is not None:
             llm_client = llm_agent.client
         elif self.client is not None:
             llm_client = self.client
         else:
             raise ValueError("No OpenAIWrapper client is found.")
-
-        response = llm_client.create(context=None, messages=_messages, cache=cache)
-        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
-        if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
-            return str(extracted_response.model_dump(mode="dict"))
-        else:
-            return extracted_response
+        response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
+        return response
 
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
@@ -1021,7 +1006,12 @@ class ConversableAgent(Agent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
+        extracted_response = self._generate_oai_reply_from_client(
+            client, self._oai_system_message + messages, self.client_cache
+        )
+        return True, extracted_response
 
+    def _generate_oai_reply_from_client(self, llm_client, messages, cache):
         # unroll tool_responses
         all_messages = []
         for message in messages:
@@ -1035,13 +1025,12 @@ class ConversableAgent(Agent):
                 all_messages.append(message)
 
         # TODO: #1143 handle token limit exceeded error
-        response = client.create(
+        response = llm_client.create(
             context=messages[-1].pop("context", None),
-            messages=self._oai_system_message + all_messages,
-            cache=self.client_cache,
+            messages=all_messages,
+            cache=cache,
         )
-
-        extracted_response = client.extract_text_or_completion_object(response)[0]
+        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
         if extracted_response is None:
             warnings.warn("Extracted_response is None.", UserWarning)
@@ -1056,7 +1045,7 @@ class ConversableAgent(Agent):
                 )
             for tool_call in extracted_response.get("tool_calls") or []:
                 tool_call["function"]["name"] = self._normalize_name(tool_call["function"]["name"])
-        return True, extracted_response
+        return extracted_response
 
     async def a_generate_oai_reply(
         self,
