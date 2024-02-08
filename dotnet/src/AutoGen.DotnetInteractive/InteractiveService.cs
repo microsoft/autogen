@@ -181,7 +181,7 @@ public class InteractiveService : IDisposable
         this.WriteLine("Restore dotnet interactive tool");
         // write RestoreInteractive.config from embedded resource to this.workingDirectory
         var assembly = Assembly.GetAssembly(typeof(InteractiveService))!;
-        var resourceName = "AutoGen.DotnetInteractiveFunction.RestoreInteractive.config";
+        var resourceName = "AutoGen.DotnetInteractive.RestoreInteractive.config";
         using (var stream = assembly.GetManifestResourceStream(resourceName)!)
         using (var fileStream = File.Create(Path.Combine(this.installingDirectory, "RestoreInteractive.config")))
         {
@@ -190,7 +190,7 @@ public class InteractiveService : IDisposable
 
         // write dotnet-tool.json from embedded resource to this.workingDirectory
 
-        resourceName = "AutoGen.DotnetInteractiveFunction.dotnet-tools.json";
+        resourceName = "AutoGen.DotnetInteractive.dotnet-tools.json";
         using (var stream2 = assembly.GetManifestResourceStream(resourceName)!)
         using (var fileStream2 = File.Create(Path.Combine(this.installingDirectory, "dotnet-tools.json")))
         {
