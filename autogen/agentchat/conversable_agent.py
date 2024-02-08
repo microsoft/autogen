@@ -303,6 +303,10 @@ class ConversableAgent(Agent):
         """A dictionary of conversations from agent to list of messages."""
         return self._oai_messages
 
+    def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
+        """A list of messages as a conversation to summarize."""
+        return self._oai_messages[agent]
+
     def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
         """The last message exchanged with the agent.
 
@@ -449,7 +453,7 @@ class ConversableAgent(Agent):
             ValueError: if the message can't be converted into a valid ChatCompletion message.
 
         Returns:
-            ChatResult: an ChatResult object.
+            ChatResult: a ChatResult object.
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -826,7 +830,7 @@ class ConversableAgent(Agent):
             prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
-            msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
+            msg_list = agent.chat_messages_for_summary(self)
             try:
                 summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
