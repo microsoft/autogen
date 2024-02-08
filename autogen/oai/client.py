@@ -126,9 +126,11 @@ class OpenAIClient:
 
         if TOOL_ENABLED:
             return [  # type: ignore [return-value]
-                choice.message  # type: ignore [union-attr]
-                if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
-                else choice.message.content  # type: ignore [union-attr]
+                (
+                    choice.message  # type: ignore [union-attr]
+                    if choice.message.function_call is not None or choice.message.tool_calls is not None  # type: ignore [union-attr]
+                    else choice.message.content
+                )  # type: ignore [union-attr]
                 for choice in choices
             ]
         else:
@@ -276,8 +278,8 @@ class OpenAIClient:
             logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
             return 0
 
-        n_input_tokens = response.usage.prompt_tokens  # type: ignore [union-attr]
-        n_output_tokens = response.usage.completion_tokens  # type: ignore [union-attr]
+        n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -287,10 +289,10 @@ class OpenAIClient:
     @staticmethod
     def get_usage(response: Union[ChatCompletion, Completion]) -> Dict:
         return {
-            "prompt_tokens": response.usage.prompt_tokens,
-            "completion_tokens": response.usage.completion_tokens,
-            "total_tokens": response.usage.total_tokens,
-            "cost": response.cost,
+            "prompt_tokens": response.usage.prompt_tokens if response.usage is not None else 0,
+            "completion_tokens": response.usage.completion_tokens if response.usage is not None else 0,
+            "total_tokens": response.usage.total_tokens if response.usage is not None else 0,
+            "cost": response.cost if hasattr(response, "cost") else 0,
             "model": response.model,
         }
 
@@ -471,12 +473,14 @@ class OpenAIWrapper:
         elif context:
             # Instantiate the messages
             params["messages"] = [
-                {
-                    **m,
-                    "content": self.instantiate(m["content"], context, allow_format_str_template),
-                }
-                if m.get("content")
-                else m
+                (
+                    {
+                        **m,
+                        "content": self.instantiate(m["content"], context, allow_format_str_template),
+                    }
+                    if m.get("content")
+                    else m
+                )
                 for m in messages  # type: ignore [union-attr]
             ]
         return params
