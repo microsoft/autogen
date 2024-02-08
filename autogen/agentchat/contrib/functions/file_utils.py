@@ -1,7 +1,7 @@
-from .functions_utils import requires
+from .functions_utils import requires_python_packages
 
 
-@requires("pdfminer.six", "requests")
+@requires_python_packages("pdfminer.six", "requests")
 def read_text_from_pdf(file_path: str) -> str:
     """
     Reads text from a PDF file and returns it as a string.
@@ -39,7 +39,7 @@ def read_text_from_pdf(file_path: str) -> str:
     return text
 
 
-@requires("python-docx")
+@requires_python_packages("python-docx")
 def read_text_from_docx(file_path: str) -> str:
     """
     Reads text from a DOCX file and returns it as a string.
@@ -59,7 +59,7 @@ def read_text_from_docx(file_path: str) -> str:
     return text
 
 
-@requires("pillow", "requests", "easyocr")
+@requires_python_packages("pillow", "requests", "easyocr")
 def read_text_from_image(file_path: str) -> str:
     """
     Reads text from an image file or URL and returns it as a string.
@@ -92,7 +92,7 @@ def read_text_from_image(file_path: str) -> str:
     return text
 
 
-@requires("python-pptx")
+@requires_python_packages("python-pptx")
 def read_text_from_pptx(file_path: str) -> str:
     """
     Reads text from a PowerPoint file and returns it as a string.
@@ -116,7 +116,7 @@ def read_text_from_pptx(file_path: str) -> str:
     return text
 
 
-@requires("pandas")
+@requires_python_packages("pandas")
 def read_text_from_xlsx(file_path: str) -> str:
     """
     Reads text from an Excel file and returns it as a string.
@@ -135,7 +135,7 @@ def read_text_from_xlsx(file_path: str) -> str:
     return text
 
 
-@requires("SpeechRecognition", "requests")
+@requires_python_packages("SpeechRecognition", "requests")
 def read_text_from_audio(file_path: str) -> str:
     """
     Reads text from an audio file or a URL and returns it as a string.
