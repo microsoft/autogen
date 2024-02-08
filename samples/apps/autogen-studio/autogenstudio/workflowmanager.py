@@ -36,10 +36,10 @@ class AutoGenWorkFlowManager:
         # given the config, return an AutoGen agent object
         self.receiver = self.load(config.receiver)
 
-        if config.receiver.type == "groupchat":
-            # append self.sender to the list of agents
-            self.receiver._groupchat.agents = self.receiver._groupchat.agents + \
-                [self.sender]
+        # if config.receiver.type == "groupchat":
+        #     # append self.sender to the list of agents
+        #     self.receiver._groupchat.agents = self.receiver._groupchat.agents + \
+        #         [self.sender]
         self.agent_history = []
 
         if history:

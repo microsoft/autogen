@@ -494,6 +494,11 @@ export const examplePrompts = [
     prompt:
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
+  {
+    title: "Travel",
+    prompt:
+      "Plan a 2 day trip to hawaii. Limit to 3 activities per day, be as brief as possible!",
+  },
 ];
 
 export const fetchVersion = () => {
