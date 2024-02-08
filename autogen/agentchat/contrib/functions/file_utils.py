@@ -57,3 +57,36 @@ def read_text_from_docx(file_path: str) -> str:
     text = "\n".join(paragraphs)
 
     return text
+
+
+@requires("pillow", "requests", "easyocr")
+def read_text_from_image(file_path: str) -> str:
+    """
+    Reads text from an image file or URL and returns it as a string.
+
+    Args:
+        file_path (str): The path to the image file or URL.
+
+    Returns:
+        str: The extracted text from the image file or URL.
+    """
+    import io
+    import requests
+    import easyocr
+    from PIL import Image
+
+    reader = easyocr.Reader(["en"])  # specify the language(s)
+
+    if file_path.startswith("http://") or file_path.startswith("https://"):
+        response = requests.get(file_path)
+        image = Image.open(io.BytesIO(response.content))
+    else:
+        image = Image.open(file_path)
+
+    output = reader.readtext(image)
+
+    # The output is a list of tuples, each containing the coordinates of the text and the text itself.
+    # We join all the text pieces together to get the final text.
+    text = " ".join([item[1] for item in output])
+
+    return text

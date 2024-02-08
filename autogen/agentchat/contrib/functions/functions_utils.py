@@ -29,17 +29,25 @@ def requires(*packages, **pip_packages):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            all_packages = {**{pkg: pkg for pkg in packages}, **pip_packages}
-            for python_name, pip_name in all_packages.items():
-                if "==" in pip_name:
-                    name, version = pip_name.split("==")
-                else:
-                    name, version = pip_name, None
+            all_packages = {**{pkg: None for pkg in packages}, **pip_packages}
+            for name, version in all_packages.items():
+                if "==" in name:
+                    name, version = name.split("==")
+                print("requested package:", name, version)
                 try:
-                    installed_package = pkg_resources.get_distribution(python_name)
-                    if version is not None and installed_package.parsed_version != pkg_resources.parse_version(version):
+                    try:
+                        installed_package = pkg_resources.get_distribution(name)
+                    except pkg_resources.DistributionNotFound:
+                        print(f"Package {name} not found")
+                        installed_package = None
                         raise ImportError
-                except ImportError:
+
+                    print("found package", installed_package)
+                    if version is not None and installed_package.parsed_version != pkg_resources.parse_version(version):
+                        print("Package mismatch detected")
+                        raise ImportError
+                except ImportError or pkg_resources.DistributionNotFound:
+                    print(f"Installing {name}{'==' + version if version else ''}...")
                     subprocess.check_call(
                         [
                             sys.executable,
@@ -51,6 +59,9 @@ def requires(*packages, **pip_packages):
                             "--quiet",
                         ]
                     )
+                except Exception as e:
+                    print(f"Error: {e}")
+                    raise e
             return func(*args, **kwargs)
 
         return wrapper
