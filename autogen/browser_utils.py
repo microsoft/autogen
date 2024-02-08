@@ -574,12 +574,3 @@ Url: {url}
 Status code: {response.status_code}
 Content-type: {content_type}"""
             )
-
-
-####################################3
-if __name__ == "__main__":
-    browser = SimpleTextBrowser()
-    # print(browser.visit_page("https://www.adamfourney.com/papers/jahanbakhsh_cscw2022.pdf"))
-    # print(browser.visit_page("http://www.adamfourney.com"))
-    # print(browser.visit_page("https://en.wikipedia.org/wiki/Microsoft"))
-    print(browser.visit_page("https://www.youtube.com/watch?v=WXAavnORAxg"))
