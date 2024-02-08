@@ -81,7 +81,8 @@ The image is generated from prompt {prompt}
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
                 { nameof(GenerateImage), instance.GenerateImageWrapper },
-            }).RegisterReply(async (msgs, ct) =>
+            })
+            .RegisterReply(async (msgs, ct) =>
             {
                 // if last message contains [TERMINATE], then find the last image url and terminate the conversation
                 if (msgs.Last().Content?.Contains("TERMINATE") is true)
@@ -103,7 +104,8 @@ The image is generated from prompt {prompt}
                 }
 
                 return null;
-            }).RegisterPrintFormatMessageHook();
+            })
+            .RegisterPrintFormatMessageHook();
 
         var gpt4VAgent = new AssistantAgent(
             name: "gpt4v",

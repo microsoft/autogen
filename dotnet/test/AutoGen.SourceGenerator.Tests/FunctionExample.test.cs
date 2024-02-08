@@ -74,6 +74,19 @@ namespace AutoGen.SourceGenerator.Tests
         }
 
         [Fact]
+        public async Task FilescopeFunctionExampleAddTestAsync()
+        {
+            var example = new FilescopeNamespaceFunctionExample();
+            var args = new
+            {
+                a = 1,
+                b = 2,
+            };
+
+            await this.VerifyAsyncFunction(example.AddWrapper, args, "3");
+        }
+
+        [Fact]
         public void Query_Test()
         {
             var args = new

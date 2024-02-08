@@ -90,8 +90,9 @@ namespace AutoGen.SourceGenerator
                     {
                         var functionContracts = group.SelectMany(item => item!.FunctionContracts).ToArray();
                         var className = group.First()!.ClassDeclarationSyntax.Identifier.ToString();
-                        var namespaceName = group.First()!.ClassDeclarationSyntax.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString() : string.Empty;
-
+                        var namespaceName = group.First()!.ClassDeclarationSyntax.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString()
+                        : group.First()!.ClassDeclarationSyntax.Parent is FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclarationSyntax ? fileScopedNamespaceDeclarationSyntax.Name.ToString()
+                        : string.Empty;
                         var functionTT = new FunctionCallTemplate
                         {
                             NameSpace = namespaceName,

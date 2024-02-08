@@ -31,9 +31,10 @@ namespace AutoGen.Tests
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
-            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0);
+            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
 
             await UpperCaseTest(agent);
+            await UpperCaseStreamingTestAsync(agent);
         }
 
         [ApiKeyFact("OPENAI_API_KEY", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -108,6 +109,7 @@ namespace AutoGen.Tests
             await EchoFunctionCallTestAsync(assistantAgent);
             await UpperCaseTest(assistantAgent);
         }
+
 
         [Fact]
         public async Task AssistantAgentDefaultReplyTestAsync()
@@ -225,6 +227,32 @@ namespace AutoGen.Tests
             reply.Content.Should().Be("ABCDEFG");
             reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
+        }
+
+        private async Task UpperCaseStreamingTestAsync(IStreamingReplyAgent agent)
+        {
+            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var helloWorld = new Message(Role.User, "abcdefg");
+            var option = new GenerateReplyOptions
+            {
+                Temperature = 0,
+            };
+            var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
+            var answer = "ABCDEFG";
+            Message? finalReply = default;
+            await foreach (var reply in replyStream)
+            {
+                reply.Role.Should().Be(Role.Assistant);
+                reply.From.Should().Be(agent.Name);
+
+                // the content should be part of the answer
+                reply.Content.Should().Be(answer.Substring(0, reply.Content!.Length));
+                finalReply = reply;
+            }
+
+            finalReply!.Content.Should().Be(answer);
+            finalReply!.Role.Should().Be(Role.Assistant);
+            finalReply!.From.Should().Be(agent.Name);
         }
     }
 }

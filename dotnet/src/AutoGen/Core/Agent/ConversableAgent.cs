@@ -197,26 +197,31 @@ public class ConversableAgent : IAgent
         });
 
         // process function call
-        agent = agent.RegisterReply(async (messages, cancellationToken) =>
+        agent = agent.RegisterMiddleware(async (messages, option, innerAgent, cancellationToken) =>
         {
-            if (this.functionMap != null && messages.Last()?.FunctionName is string functionName && messages.Last()?.FunctionArguments is string functionArguments && this.functionMap.ContainsKey(functionName))
+            if (this.functionMap != null &&
+                messages.Last()?.FunctionName is string functionName &&
+                messages.Last()?.FunctionArguments is string functionArguments &&
+                messages.Last()?.Content is null &&
+                this.functionMap.ContainsKey(functionName) &&
+                messages.Last().From != this.Name)
             {
-                return await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
+                var reply = await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
+
+                // perform as a proxy to run function call from external agent, therefore, the reply should be from the last message's sender
+                reply.Role = Role.Function;
+
+                return reply;
             }
 
-            return null;
-        });
-
-        // process self execute
-        agent = agent.RegisterPostProcess(async (messages, currentMessage, cancellationToken) =>
-        {
-            if (this.functionMap != null && currentMessage.FunctionName is string functionName && currentMessage.FunctionArguments is string functionArguments)
+            var agentReply = await innerAgent.GenerateReplyAsync(messages, option, cancellationToken);
+            if (this.functionMap != null && agentReply.FunctionName is string && agentReply.FunctionArguments is string)
             {
-                return await this.ExecuteFunctionCallAsync(currentMessage, cancellationToken);
+                return await this.ExecuteFunctionCallAsync(agentReply, cancellationToken);
             }
             else
             {
-                return currentMessage;
+                return agentReply;
             }
         });
 

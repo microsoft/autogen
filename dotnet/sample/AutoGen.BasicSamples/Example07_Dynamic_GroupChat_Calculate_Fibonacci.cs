@@ -79,56 +79,76 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             {
                 { nameof(ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
             })
-            .RegisterPostProcess(async (_, reply, _) =>
+            .RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
             {
-                var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reply.Content!);
-                var reviews = new List<string>();
-                if (reviewResultObj.HasMultipleCodeBlocks)
+                var maxRetry = 3;
+                var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
+                while (maxRetry-- > 0)
                 {
-                    var fixCodeBlockPrompt = @"There're multiple code blocks, please combine them into one code block";
-                    reviews.Add(fixCodeBlockPrompt);
-                }
-
-                if (reviewResultObj.IsDotnetCodeBlock is false)
-                {
-                    var fixCodeBlockPrompt = @"The code block is not csharp code block, please write dotnet code only";
-                    reviews.Add(fixCodeBlockPrompt);
-                }
-
-                if (reviewResultObj.IsTopLevelStatement is false)
-                {
-                    var fixCodeBlockPrompt = @"The code is not top level statement, please rewrite your dotnet code using top level statement";
-                    reviews.Add(fixCodeBlockPrompt);
-                }
-
-                if (reviewResultObj.IsPrintResultToConsole is false)
-                {
-                    var fixCodeBlockPrompt = @"The code doesn't print out result to console, please print out result to console";
-                    reviews.Add(fixCodeBlockPrompt);
-                }
-
-                if (reviews.Count > 0)
-                {
-                    var sb = new StringBuilder();
-                    sb.AppendLine("There're some comments from code reviewer, please fix these comments");
-                    foreach (var review in reviews)
+                    if (reply.FunctionName == nameof(ReviewCodeBlock))
                     {
-                        sb.AppendLine($"- {review}");
+                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reply.Content!);
+                        var reviews = new List<string>();
+                        if (reviewResultObj.HasMultipleCodeBlocks)
+                        {
+                            var fixCodeBlockPrompt = @"There're multiple code blocks, please combine them into one code block";
+                            reviews.Add(fixCodeBlockPrompt);
+                        }
+
+                        if (reviewResultObj.IsDotnetCodeBlock is false)
+                        {
+                            var fixCodeBlockPrompt = @"The code block is not csharp code block, please write dotnet code only";
+                            reviews.Add(fixCodeBlockPrompt);
+                        }
+
+                        if (reviewResultObj.IsTopLevelStatement is false)
+                        {
+                            var fixCodeBlockPrompt = @"The code is not top level statement, please rewrite your dotnet code using top level statement";
+                            reviews.Add(fixCodeBlockPrompt);
+                        }
+
+                        if (reviewResultObj.IsPrintResultToConsole is false)
+                        {
+                            var fixCodeBlockPrompt = @"The code doesn't print out result to console, please print out result to console";
+                            reviews.Add(fixCodeBlockPrompt);
+                        }
+
+                        if (reviews.Count > 0)
+                        {
+                            var sb = new StringBuilder();
+                            sb.AppendLine("There're some comments from code reviewer, please fix these comments");
+                            foreach (var review in reviews)
+                            {
+                                sb.AppendLine($"- {review}");
+                            }
+
+                            reply.Content = sb.ToString();
+
+                            return reply;
+                        }
+                        else
+                        {
+                            var msg = new Message(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
+                            {
+                                From = "code_reviewer",
+                            };
+
+                            return msg;
+                        }
                     }
-
-                    reply.Content = sb.ToString();
-
-                    return reply;
-                }
-                else
-                {
-                    var msg = new Message(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
+                    else
                     {
-                        From = "code_reviewer",
-                    };
+                        var originalContent = reply.Content;
+                        var prompt = $@"Please convert the content to ReviewCodeBlock function arguments.
 
-                    return msg;
+## Original Content
+{originalContent}";
+
+                        reply = await innerAgent.SendAsync(prompt, msgs, ct);
+                    }
                 }
+
+                throw new Exception("Failed to review code block");
             })
             .RegisterPrintFormatMessageHook();
         #endregion create_reviewer

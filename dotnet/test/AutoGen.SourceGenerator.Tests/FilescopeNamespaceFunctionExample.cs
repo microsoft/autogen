@@ -1,9 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // TopLevelStatementFunctionExample.cs
 
-using AutoGen;
-
-public partial class TopLevelStatementFunctionExample
+namespace AutoGen.SourceGenerator.Tests;
+public partial class FilescopeNamespaceFunctionExample
 {
     [Function]
     public Task<string> Add(int a, int b)
