@@ -4,45 +4,39 @@ import functools
 import pkg_resources
 
 
-def requires(*packages):
+def requires(*packages, **pip_packages):
     """
-    Decorator that ensures the specified packages are installed before executing the decorated function.
+    Decorator that ensures the required packages are installed before executing the decorated function.
 
     Args:
-        *packages: Variable number of package names to be checked and installed if necessary.
+        *packages: Variable length argument list of package names that should be installed.
+        **pip_packages: Keyword arguments specifying package names and versions in the format `package_name=version`.
 
-    Returns:
-        The decorated function.
+    Examples:
+        @requires('numpy', 'pandas')
+        def my_function():
+            # Code that depends on numpy and pandas
 
-    Raises:
-        ImportError: If a required package is not found or has an incompatible version.
+        @requires(matplotlib='3.2.1', seaborn='0.11.1')
+        def another_function():
+            # Code that depends on matplotlib version 3.2.1 and seaborn version 0.11.1
 
-    For example,
-
-    @requires("youtube_transcript_api==0.6.0")
-    def get_youtube_transcript(youtube_link: str) -> str:
-        from youtube_transcript_api import YouTubeTranscriptApi
-        ...
-
-    This will ensure that the "youtube_transcript_api" package is installed and has version 0.6.0 before executing the "get_youtube_transcript" function.
-
-    @requires("youtube_transcript_api", "requests")
-    def my_function():
-        ...
-
-    This will ensure that the "youtube_transcript_api" and "requests" packages are installed before executing the "my_function" function.
+        @requires('numpy', 'pandas', matplotlib='3.2.1', PIL='8.1.0')
+        def yet_another_function():
+            # Code that depends on numpy, pandas, matplotlib version 3.2.1, and PIL version 8.1.0
     """
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            for package in packages:
-                if "==" in package:
-                    name, version = package.split("==")
+            all_packages = {**{pkg: pkg for pkg in packages}, **pip_packages}
+            for python_name, pip_name in all_packages.items():
+                if "==" in pip_name:
+                    name, version = pip_name.split("==")
                 else:
-                    name, version = package, None
+                    name, version = pip_name, None
                 try:
-                    installed_package = pkg_resources.get_distribution(name)
+                    installed_package = pkg_resources.get_distribution(python_name)
                     if version is not None and installed_package.parsed_version != pkg_resources.parse_version(version):
                         raise ImportError
                 except ImportError:
