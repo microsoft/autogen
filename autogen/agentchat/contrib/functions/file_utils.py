@@ -1,7 +1,7 @@
-from .function_store_utils import requires
+from .functions_utils import requires
 
 
-@requires("pdfminer.six", "requests", "io")
+@requires("pdfminer.six", "requests")
 def read_text_from_pdf(file_path: str) -> str:
     """
     Reads text from a PDF file and returns it as a string.
