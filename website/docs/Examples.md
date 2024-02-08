@@ -29,6 +29,7 @@ Links to notebook examples:
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
    - Automated Continual Learning from New Data - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
    - [OptiGuide](https://github.com/microsoft/optiguide) - Coding, Tool Using, Safeguarding & Question Answering for Supply Chain Optimization
+   - [AutoAnny](https://github.com/microsoft/autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
 
 1. **Tool Use**
 
