@@ -114,7 +114,7 @@ class Teachability(AgentCapability):
                 comment,
                 "Briefly copy any advice from the TEXT that may be useful for a similar but different task in the future. But if no advice is present, just respond with 'none'.",
             )
-            if "none" not in advice.lower():
+            if "none" not in str(advice).lower():
                 # Yes. Extract the task.
                 task = self._analyze(
                     comment,
