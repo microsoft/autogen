@@ -1,3 +1,4 @@
+# ruff: noqa: E722
 import json
 import os
 import requests
@@ -6,7 +7,7 @@ import markdownify
 import io
 import uuid
 import mimetypes
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
@@ -21,11 +22,333 @@ try:
 except ModuleNotFoundError:
     pass
 
+# Optional YouTube transcription support
+IS_YOUTUBE_TRANSCRIPT_CAPABLE = False
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+
+    IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
 # Other optional dependencies
 try:
     import pathvalidate
 except ModuleNotFoundError:
     pass
+
+
+class TextRendererResult:
+    """The result of rendering a webpage to text."""
+
+    def __init__(self, title: Union[str, None] = None, page_content: str = ""):
+        self.title = title
+        self.page_content = page_content
+
+
+class PageTextRenderer:
+    """A TextRender is used by the SimpleTextBrowser to claim
+    responsibility for rendering a page. Once a page has been claimed,
+    the instance' render_page function will be called, and the result
+    stream is expected to be consumed -- there is no going back."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        """Return true only if the text renderer is prepared to
+        claim responsibility for the page.
+        """
+        raise NotImplementedError()
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        """Return true only if the text renderer is prepared to
+        claim responsibility for the page.
+        """
+        raise NotImplementedError()
+
+    # Helper functions
+    def _read_all_text(self, response):
+        """Read the entire response, and return as a string."""
+        text = ""
+        for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
+            text += chunk
+        return text
+
+    def _read_all_html(self, response):
+        """Read the entire response, and return as a beautiful soup object."""
+        return BeautifulSoup(self._read_all_text(response), "html.parser")
+
+    def _read_all_bytesio(self, response):
+        """Read the entire response, and return an in-memory bytes stream."""
+        return io.BytesIO(response.raw.read())
+
+    def _fix_newlines(self, rendered_text):
+        re.sub(r"\r\n", "\n", rendered_text)
+        return re.sub(r"\n{2,}", "\n\n", rendered_text).strip()  # Remove excessive blank lines
+
+
+class PlainTextRenderer(PageTextRenderer):
+    """Anything with content type text/plain"""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return content_type is not None and "text/plain" in content_type.lower()
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        return TextRendererResult(title=None, page_content=self._fix_newlines(self._read_all_text(response)))
+
+
+class HtmlRenderer(PageTextRenderer):
+    """Anything with content type text/html"""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return content_type is not None and "text/html" in content_type.lower()
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        soup = self._read_all_html(response)
+
+        # Remove javascript and style blocks
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+
+        return TextRendererResult(
+            title=soup.title.string,
+            page_content=self._fix_newlines(webpage_text),
+        )
+
+
+class WikipediaRenderer(PageTextRenderer):
+    """Handle Wikipedia pages separately, focusing only on the main document content."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return (
+            content_type is not None
+            and "text/html" in content_type.lower()
+            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}.wikipedia.org\/", url)
+        )
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        soup = self._read_all_html(response)
+
+        # Remove javascript and style blocks
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        # Print only the main content
+        body_elm = soup.find("div", {"id": "mw-content-text"})
+        title_elm = soup.find("span", {"class": "mw-page-title-main"})
+
+        webpage_text = ""
+        if body_elm:
+            # What's the title
+            main_title = soup.title.string
+            if title_elm and len(title_elm) > 0:
+                main_title = title_elm.string
+
+            # Render the page
+            webpage_text = "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+        else:
+            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+
+        return TextRendererResult(
+            title=soup.title.string,
+            page_content=self._fix_newlines(webpage_text),
+        )
+
+
+class YouTubeRenderer(PageTextRenderer):
+    """Handle YouTube specially, focusing on the video title, description, and transcript."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return (
+            content_type is not None
+            and "text/html" in content_type.lower()
+            and url.startswith("https://www.youtube.com/watch?")
+        )
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        soup = self._read_all_html(response)
+
+        # Read the meta tags
+        metadata = {"title": soup.title.string}
+        for meta in soup(["meta"]):
+            for a in meta.attrs:
+                if a in ["itemprop", "property", "name"]:
+                    metadata[meta[a]] = meta.get("content", "")
+                    break
+
+        # We can also try to read the full description. This is more prone to breaking, since it reaches into the page implementation
+        try:
+            for script in soup(["script"]):
+                content = script.text
+                if "ytInitialData" in content:
+                    lines = re.split(r"\r?\n", content)
+                    obj_start = lines[0].find("{")
+                    obj_end = lines[0].rfind("}")
+                    if obj_start >= 0 and obj_end >= 0:
+                        data = json.loads(lines[0][obj_start : obj_end + 1])
+                        attrdesc = self._findKey(data, "attributedDescriptionBodyText")
+                        if attrdesc:
+                            metadata["description"] = attrdesc["content"]
+                    break
+        except:
+            pass
+
+        # Start preparing the page
+        webpage_text = "# YouTube\n"
+
+        title = self._get(metadata, ["title", "og:title", "name"])
+        if title:
+            webpage_text += f"\n## {title}\n"
+
+        stats = ""
+        views = self._get(metadata, ["interactionCount"])
+        if views:
+            stats += f"- **Views:** {views}\n"
+
+        keywords = self._get(metadata, ["keywords"])
+        if keywords:
+            stats += f"- **Keywords:** {keywords}\n"
+
+        runtime = self._get(metadata, ["duration"])
+        if runtime:
+            stats += f"- **Runtime:** {runtime}\n"
+
+        if len(stats) > 0:
+            webpage_text += f"\n### Video Metadata\n{stats}\n"
+
+        description = self._get(metadata, ["description", "og:description"])
+        if description:
+            webpage_text += f"\n### Description\n{description}\n"
+
+        if IS_YOUTUBE_TRANSCRIPT_CAPABLE:
+            transcript_text = ""
+            parsed_url = urlparse(url)
+            params = parse_qs(parsed_url.query)
+            if "v" in params:
+                video_id = params["v"][0]
+                try:
+                    # Must be a single transcript.
+                    transcript = YouTubeTranscriptApi.get_transcript(video_id)
+                    transcript_text = " ".join([part["text"] for part in transcript])
+                    # Alternative formatting:
+                    # formatter = TextFormatter()
+                    # formatter.format_transcript(transcript)
+                except:
+                    pass
+            if transcript_text:
+                webpage_text += f"\n### Transcript\n{transcript_text}\n"
+
+        return TextRendererResult(
+            title="",
+            page_content=self._fix_newlines(webpage_text),
+        )
+
+    def _get(self, json, keys, default=None):
+        for k in keys:
+            if k in json:
+                return json[k]
+        return default
+
+    def _findKey(self, json, key):
+        if isinstance(json, list):
+            for elm in json:
+                ret = self._findKey(elm, key)
+                if ret is not None:
+                    return ret
+        elif isinstance(json, dict):
+            for k in json:
+                if k == key:
+                    return json[k]
+                else:
+                    ret = self._findKey(json[k], key)
+                    if ret is not None:
+                        return ret
+        return None
+
+
+class PdfRenderer(PageTextRenderer):
+    """Anything with content type application/pdf"""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return content_type is not None and "application/pdf" in content_type.lower()
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        return TextRendererResult(
+            title=None,
+            page_content=pdfminer.high_level.extract_text(self._read_all_bytesio(response)),
+        )
+
+
+class DownloadRenderer(PageTextRenderer):
+    def __init__(self, browser):
+        self._browser = browser
+
+    """Catch all downloader, when a download folder is set."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return bool(self._browser.downloads_folder)
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        # Try producing a safe filename
+        fname = None
+        try:
+            fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
+        except NameError:
+            pass
+
+        # No suitable name, so make one
+        if fname is None:
+            extension = mimetypes.guess_extension(content_type)
+            if extension is None:
+                extension = ".download"
+            fname = str(uuid.uuid4()) + extension
+
+        # Open a file for writing
+        download_path = os.path.abspath(os.path.join(self._browser.downloads_folder, fname))
+        with open(download_path, "wb") as fh:
+            for chunk in response.iter_content(chunk_size=512):
+                fh.write(chunk)
+
+        return TextRendererResult(
+            title="Download complete.",
+            page_content=f"Downloaded '{url}' to '{download_path}'.",
+        )
+
+
+class FallbackPageRenderer(PageTextRenderer):
+    """Accept all requests that come to it."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return True
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        return TextRendererResult(
+            title=f"Error - Unsupported Content-Type '{content_type}'",
+            page_content=f"Error - Unsupported Content-Type '{content_type}'",
+        )
+
+
+class FallbackErrorRenderer(PageTextRenderer):
+    def __init__(self):
+        self._html_renderer = HtmlRenderer()
+
+    """Accept all requests that come to it."""
+
+    def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
+        return True
+
+    def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
+        # If the error was rendered in HTML we might as well render it
+        if content_type is not None and "text/html" in content_type.lower():
+            res = self._html_renderer.render_page(response, url, status_code, content_type)
+            res.title = f"Error {status_code}"
+            res.page_content = f"## Error {status_code}\n\n{res.page_content}"
+            return res
+        else:
+            return TextRendererResult(
+                title=f"Error {status_code}",
+                page_content=f"## Error {status_code}\n\n{self._read_all_text(response)}",
+            )
 
 
 class SimpleTextBrowser:
@@ -50,7 +373,25 @@ class SimpleTextBrowser:
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
 
+        self._page_renderers = []
+        self._error_renderers = []
         self._page_content = ""
+
+        # Register renderers for successful browsing operations
+        # Later registrations are tried first / take higher priority than earlier registrations
+        # To this end, the most specific renderers should appear below the most generic renderers
+        self.register_page_renderer(FallbackPageRenderer())
+        self.register_page_renderer(DownloadRenderer(self))
+        self.register_page_renderer(HtmlRenderer())
+        self.register_page_renderer(PlainTextRenderer())
+        self.register_page_renderer(WikipediaRenderer())
+        self.register_page_renderer(YouTubeRenderer())
+
+        if IS_PDF_CAPABLE:
+            self.register_page_renderer(PdfRenderer())
+
+        # Register renderers for error conditions
+        self.register_error_renderer(FallbackErrorRenderer())
 
     @property
     def address(self) -> str:
@@ -101,6 +442,14 @@ class SimpleTextBrowser:
         """Update the address, visit the page, and return the content of the viewport."""
         self.set_address(path_or_uri)
         return self.viewport
+
+    def register_page_renderer(self, renderer: PageTextRenderer):
+        """Register a page text renderer."""
+        self._page_renderers.insert(0, renderer)
+
+    def register_error_renderer(self, renderer: PageTextRenderer):
+        """Register a page text renderer."""
+        self._error_renderers.insert(0, renderer)
 
     def _split_pages(self):
         # Split only regular pages
@@ -192,92 +541,45 @@ class SimpleTextBrowser:
             response = requests.get(url, **request_kwargs)
             response.raise_for_status()
 
-            # If the HTTP request returns a status code 200, proceed
-            if response.status_code == 200:
+            # If the HTTP request was successful
+            content_type = response.headers.get("content-type", "")
+            for renderer in self._page_renderers:
+                if renderer.claim_responsibility(url, response.status_code, content_type):
+                    res = renderer.render_page(response, url, response.status_code, content_type)
+                    self.page_title = res.title
+                    self._set_page_content(res.page_content)
+                    return
+
+            # Unhandled page
+            self.page_title = "Error - Unhandled _fetch_page"
+            self._set_page_content(
+                f"""Error - Unhandled _fetch_page:
+Url: {url}
+Status code: {response.status_code}
+Content-type: {content_type}"""
+            )
+        except requests.exceptions.RequestException as ex:
+            for renderer in self._error_renderers:
+                response = ex.response
                 content_type = response.headers.get("content-type", "")
-                for ct in ["text/html", "text/plain", "application/pdf"]:
-                    if ct in content_type.lower():
-                        content_type = ct
-                        break
+                if renderer.claim_responsibility(url, response.status_code, content_type):
+                    res = renderer.render_page(response, url, response.status_code, content_type)
+                    self.page_title = res.title
+                    self._set_page_content(res.page_content)
+                    return
+            self.page_title = "Error - Unhandled _fetch_page"
+            self._set_page_content(
+                f"""Error - Unhandled _fetch_page error:
+Url: {url}
+Status code: {response.status_code}
+Content-type: {content_type}"""
+            )
 
-                if content_type == "text/html":
-                    # Get the content of the response
-                    html = ""
-                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                        html += chunk
 
-                    soup = BeautifulSoup(html, "html.parser")
-
-                    # Remove javascript and style blocks
-                    for script in soup(["script", "style"]):
-                        script.extract()
-
-                    # Convert to markdown -- Wikipedia gets special attention to get a clean version of the page
-                    if url.startswith("https://en.wikipedia.org/"):
-                        body_elm = soup.find("div", {"id": "mw-content-text"})
-                        title_elm = soup.find("span", {"class": "mw-page-title-main"})
-
-                        if body_elm:
-                            # What's the title
-                            main_title = soup.title.string
-                            if title_elm and len(title_elm) > 0:
-                                main_title = title_elm.string
-                            webpage_text = (
-                                "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
-                            )
-                        else:
-                            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
-                    else:
-                        webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
-
-                    # Convert newlines
-                    webpage_text = re.sub(r"\r\n", "\n", webpage_text)
-
-                    # Remove excessive blank lines
-                    self.page_title = soup.title.string
-                    self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
-                elif content_type == "text/plain":
-                    # Get the content of the response
-                    plain_text = ""
-                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                        plain_text += chunk
-
-                    self.page_title = None
-                    self._set_page_content(plain_text)
-                elif IS_PDF_CAPABLE and content_type == "application/pdf":
-                    pdf_data = io.BytesIO(response.raw.read())
-                    self.page_title = None
-                    self._set_page_content(pdfminer.high_level.extract_text(pdf_data))
-                elif self.downloads_folder is not None:
-                    # Try producing a safe filename
-                    fname = None
-                    try:
-                        fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
-                    except NameError:
-                        pass
-
-                    # No suitable name, so make one
-                    if fname is None:
-                        extension = mimetypes.guess_extension(content_type)
-                        if extension is None:
-                            extension = ".download"
-                        fname = str(uuid.uuid4()) + extension
-
-                    # Open a file for writing
-                    download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
-                    with open(download_path, "wb") as fh:
-                        for chunk in response.iter_content(chunk_size=512):
-                            fh.write(chunk)
-
-                    # Return a page describing what just happened
-                    self.page_title = "Download complete."
-                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
-                else:
-                    self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
-                    self._set_page_content(self.page_title)
-            else:
-                self.page_title = "Error"
-                self._set_page_content("Failed to retrieve " + url)
-        except requests.exceptions.RequestException as e:
-            self.page_title = "Error"
-            self._set_page_content(str(e))
+####################################3
+if __name__ == "__main__":
+    browser = SimpleTextBrowser()
+    # print(browser.visit_page("https://www.adamfourney.com/papers/jahanbakhsh_cscw2022.pdf"))
+    # print(browser.visit_page("http://www.adamfourney.com"))
+    # print(browser.visit_page("https://en.wikipedia.org/wiki/Microsoft"))
+    print(browser.visit_page("https://www.youtube.com/watch?v=WXAavnORAxg"))
