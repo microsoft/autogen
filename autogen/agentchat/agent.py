@@ -68,7 +68,6 @@ class Agent(Protocol):
         self,
         messages: Optional[List[Dict[str, Any]]] = None,
         sender: Optional["Agent"] = None,
-        exclude: Optional[List[Callable[..., Any]]] = None,
         **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """(Async) Generate a reply based on the received messages.
