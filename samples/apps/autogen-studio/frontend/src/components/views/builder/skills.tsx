@@ -3,7 +3,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Input, Modal, message } from "antd";
+import { Button, Input, Modal, message } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -20,8 +20,8 @@ import {
   CodeBlock,
   LaunchButton,
   LoadingOverlay,
+  MonacoEditor,
 } from "../../atoms";
-import { useConfigStore } from "../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
 const SkillsView = ({}: any) => {
@@ -43,10 +43,8 @@ const SkillsView = ({}: any) => {
   const [showSkillModal, setShowSkillModal] = React.useState(false);
   const [showNewSkillModal, setShowNewSkillModal] = React.useState(false);
 
-  const [newSkillTitle, setNewSkillTitle] = React.useState("");
-
   const sampleSkill = getSampleSkill();
-  const [skillCode, setSkillCode] = React.useState(sampleSkill);
+  const [newSkill, setNewSkill] = React.useState<ISkill | null>(sampleSkill);
 
   const deleteSkill = (skill: ISkill) => {
     setError(null);
@@ -109,21 +107,7 @@ const SkillsView = ({}: any) => {
     fetchJSON(listSkillsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveSkill = () => {
-    // check if skillTextAreaRef.current is not null or ""
-
-    if (!skillCode || skillCode == "" || skillCode == sampleSkill) {
-      message.error("Please provide code for the skill");
-      return;
-    }
-
-    const skill: ISkill = {
-      title: newSkillTitle,
-      file_name: "skill.py",
-      content: skillCode,
-      user_id: user?.email,
-    };
-
+  const saveSkill = (skill: ISkill) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -148,7 +132,6 @@ const SkillsView = ({}: any) => {
         message.error(data.message);
       }
       setLoading(false);
-      setSkillCode("");
     };
     const onError = (err: any) => {
       setError(err);
@@ -171,7 +154,7 @@ const SkillsView = ({}: any) => {
         <div>
           {" "}
           <Card
-            className="h-full p-2 cursor-pointer"
+            className="h-full p-2 cursor-pointer group"
             title={truncateText(skill.title, 25)}
             onClick={() => {
               setSelectedSkill(skill);
@@ -183,47 +166,131 @@ const SkillsView = ({}: any) => {
               {truncateText(skill.content, 70)}
             </div>
             <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-          </Card>
-          <div className="text-right mt-2">
             <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteSkill(skill);
+              onMouseEnter={(e) => {
+                e.stopPropagation();
               }}
+              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
+              {" "}
+              <div
+                role="button"
+                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteSkill(skill);
+                }}
+              >
+                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+                <span className="text-xs hidden"> delete</span>
+              </div>
             </div>
-          </div>
+          </Card>
+          <div className="text-right mt-2"></div>
         </div>
       </div>
     );
   });
 
-  return (
-    <div className=" text-primary ">
+  const SkillModal = ({
+    skill,
+    setSkill,
+    showSkillModal,
+    setShowSkillModal,
+    handler,
+  }: {
+    skill: ISkill | null;
+    setSkill: any;
+    showSkillModal: boolean;
+    setShowSkillModal: any;
+    handler: any;
+  }) => {
+    const editorRef = React.useRef<any | null>(null);
+    const [localSkill, setLocalSkill] = React.useState<ISkill | null>(skill);
+    return (
       <Modal
-        title={selectedSkill?.name}
+        title={
+          <>
+            Skill Specification{" "}
+            <span className="text-accent font-normal">{localSkill?.title}</span>{" "}
+          </>
+        }
         width={800}
         open={showSkillModal}
-        onOk={() => {
-          setShowSkillModal(false);
-        }}
         onCancel={() => {
           setShowSkillModal(false);
         }}
+        footer={[
+          <Button
+            key="back"
+            onClick={() => {
+              setShowSkillModal(false);
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            loading={loading}
+            onClick={() => {
+              setShowSkillModal(false);
+              if (editorRef.current) {
+                const value = editorRef.current.getValue();
+                const updatedSkill = { ...localSkill, content: value };
+                setSkill(updatedSkill);
+                handler(updatedSkill);
+              }
+            }}
+          >
+            Save
+          </Button>,
+        ]}
       >
-        {selectedSkill && (
-          <div>
-            <div className="mb-2">{selectedSkill.title}</div>
+        {localSkill && (
+          <div style={{ minHeight: "70vh" }}>
+            <div className="mb-2">
+              <Input
+                placeholder="Skill Title"
+                value={localSkill.title}
+                onChange={(e) => {
+                  const updatedSkill = { ...localSkill, title: e.target.value };
+                  setLocalSkill(updatedSkill);
+                }}
+              />
+            </div>
 
-            <CodeBlock code={selectedSkill?.content} language="python" />
+            {/* <div className="mb-2">
+              <div className="inline-block  "> Skill Description </div>
+              <TextArea
+                placeholder="Skill Description"
+                value={localSkill.description}
+                onChange={(e) => {
+                  const updatedSkill = {
+                    ...localSkill,
+                    description: e.target.value,
+                  };
+                  setLocalSkill(updatedSkill);
+                }}
+              />
+            </div> */}
+
+            <div style={{ height: "70vh" }} className="h-full  mt-2 rounded">
+              <MonacoEditor
+                value={localSkill?.content}
+                language="python"
+                editorRef={editorRef}
+              />
+            </div>
           </div>
         )}
       </Modal>
+    );
+  };
 
-      <Modal
+  return (
+    <div className=" text-primary ">
+      {/* <Modal
         title={
           <div>
             <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
@@ -258,7 +325,27 @@ const SkillsView = ({}: any) => {
             rows={10}
           />
         </>
-      </Modal>
+      </Modal> */}
+
+      <SkillModal
+        skill={selectedSkill}
+        setSkill={setSelectedSkill}
+        showSkillModal={showSkillModal}
+        setShowSkillModal={setShowSkillModal}
+        handler={(skill: ISkill) => {
+          saveSkill(skill);
+        }}
+      />
+
+      <SkillModal
+        skill={newSkill}
+        setSkill={setNewSkill}
+        showSkillModal={showNewSkillModal}
+        setShowSkillModal={setShowNewSkillModal}
+        handler={(skill: ISkill) => {
+          saveSkill(skill);
+        }}
+      />
 
       <div className="mb-2   relative">
         <div className="">
