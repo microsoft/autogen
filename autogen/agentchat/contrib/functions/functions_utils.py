@@ -1,27 +1,28 @@
+import os
 import subprocess
 import sys
 import functools
 import pkg_resources
 
 
-def requires(*packages, **pip_packages):
+def requires_python_packages(*packages, **pip_packages):
     """
-    Decorator that ensures the required packages are installed before executing the decorated function.
+    Decorator that ensures the required Python packages are installed before executing the decorated function.
 
     Args:
-        *packages: Variable length argument list of package names that should be installed.
-        **pip_packages: Keyword arguments specifying package names and versions in the format `package_name=version`.
+        *packages: Variable length argument list of Python package names that should be installed.
+        **pip_packages: Keyword arguments specifying Python package names and versions in the format `package_name=version`.
 
     Examples:
-        @requires('numpy', 'pandas')
+        @requires_python_packages('numpy', 'pandas')
         def my_function():
             # Code that depends on numpy and pandas
 
-        @requires(matplotlib='3.2.1', seaborn='0.11.1')
+        @requires_python_packages(matplotlib='3.2.1', seaborn='0.11.1')
         def another_function():
             # Code that depends on matplotlib version 3.2.1 and seaborn version 0.11.1
 
-        @requires('numpy', 'pandas', matplotlib='3.2.1', PIL='8.1.0')
+        @requires_python_packages('numpy', 'pandas', matplotlib='3.2.1', PIL='8.1.0')
         def yet_another_function():
             # Code that depends on numpy, pandas, matplotlib version 3.2.1, and PIL version 8.1.0
     """
@@ -62,6 +63,36 @@ def requires(*packages, **pip_packages):
                 except Exception as e:
                     print(f"Error: {e}")
                     raise e
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def requires_secret(*env):
+    """
+    Decorator that ensures the required environment variables are set before executing the decorated function.
+
+    Args:
+        *env: Variable length argument list of environment variable names that should be set.
+
+    Examples:
+        @requires_secret('OPENAI_API_KEY')
+        def my_function():
+            # Code that depends on the OPENAI_API_KEY environment variable
+
+        @requires_secret('AWS', 'AWS_ACCESS')
+        def another_function():
+            # Code that depends on the AWS and AWS_ACCESS environment variables
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for name in env:
+                if name not in os.environ:
+                    raise EnvironmentError(f"Environment variable {name} is not set")
             return func(*args, **kwargs)
 
         return wrapper

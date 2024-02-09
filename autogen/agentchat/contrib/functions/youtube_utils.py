@@ -1,7 +1,7 @@
-from .functions_utils import requires
+from .functions_utils import requires_python_packages
 
 
-@requires("youtube_transcript_api==0.6.0")
+@requires_python_packages("youtube_transcript_api==0.6.0")
 def get_youtube_transcript(youtube_link: str) -> str:
     """
     Gets the transcript of a YouTube video.
