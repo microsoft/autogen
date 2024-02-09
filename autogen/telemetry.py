@@ -16,6 +16,8 @@ from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
+    from autogen.oai import ModelClient
+
 
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
@@ -211,7 +213,7 @@ def log_chat_completion(
 
     end_time = get_current_ts()
 
-    if isinstance(response, ChatCompletion):
+    if isinstance(response, (ChatCompletion, ModelClient.ModelClientResponseProtocol)):
         response_messages = json.dumps(_to_dict(response), indent=4)
     elif isinstance(response, dict):
         response_messages = json.dumps(response, indent=4)

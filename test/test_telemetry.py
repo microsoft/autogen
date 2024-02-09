@@ -277,4 +277,3 @@ def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, d
     args, _ = mock_logger_error.call_args
     error_message = args[0]
     assert error_message.startswith("[Telemetry] log_chat_completion error:")
-

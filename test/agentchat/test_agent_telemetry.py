@@ -16,6 +16,23 @@ except ImportError:
 else:
     skip = False or skip_openai
 
+
+teacher_message = """
+    You are roleplaying a math teacher, and your job is to help your students with linear algebra.
+    Keep your explanations short.
+"""
+
+student_message = """
+    You are roleplaying a high school student strugling with linear algebra.
+    Regardless how well the teacher explains things to you, you just don't quite get it.
+    Keep your questions short.
+"""
+
+log_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, session_id,
+    request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
+
+agents_query = """SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents"""
+
 if not skip:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -27,23 +44,8 @@ if not skip:
 
     llm_config = {"config_list": config_list}
 
-    teacher_message = """
-        You are roleplaying a math teacher, and your job is to help your students with linear algebra.
-        Keep your explanations short.
-    """
-
-    student_message = """
-        You are roleplaying a high school student strugling with linear algebra.
-        Regardless how well the teacher explains things to you, you just don't quite get it.
-        Keep your questions short.
-    """
-
-    log_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, session_id,
-        request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
-
-    agents_query = """SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents"""
-
 ###############################################################
+
 
 @pytest.fixture(scope="function")
 def setup_test():
@@ -210,7 +212,9 @@ def test_group_chat_logging(setup_test):
     con, teacher, student = setup_test
     cur = con.cursor()
 
-    groupchat = autogen.GroupChat(agents=[teacher, student], messages=[], max_round=3, speaker_selection_method="round_robin")
+    groupchat = autogen.GroupChat(
+        agents=[teacher, student], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
     student.initiate_chat(
         group_chat_manager,
