@@ -539,3 +539,31 @@ export const sanitizeConfig = (
   }
   return data;
 };
+
+/**
+ * Returns a version of the input text that adheres to the regex '^[a-zA-Z0-9_-]{1,64}$'.
+ * This means the output will only contain alphanumeric characters, underscores, or hyphens and
+ * is limited to a length of 64 characters.
+ *
+ * @param text - The input string to be sanitized.
+ * @returns A sanitized string adhering to the regex.
+ */
+export const sanitizeInput = (text: string): string => {
+  // Create a regular expression pattern to match valid characters
+  const regexPattern: RegExp = /^[a-zA-Z0-9_-]{1,64}$/;
+
+  // Check if the input text matches the pattern
+  if (regexPattern.test(text)) {
+    // Text already adheres to the pattern, return as is
+    return text;
+  } else {
+    // The text does not match, sanitize the input
+    // First, replace all invalid characters with an underscore
+    let sanitized = text.replace(/[^a-zA-Z0-9_-]/g, "_");
+
+    // Then, truncate if the length is greater than 64
+    sanitized = sanitized.slice(0, 64);
+
+    return sanitized;
+  }
+};

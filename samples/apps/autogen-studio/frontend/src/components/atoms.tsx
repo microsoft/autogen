@@ -2048,3 +2048,39 @@ export const MonacoEditor = ({
     </div>
   );
 };
+
+export const CardHoverBar = ({
+  items,
+}: {
+  items: {
+    title: string;
+    icon: any;
+    hoverText: string;
+    onClick: (e: any) => void;
+  }[];
+}) => {
+  const itemRows = items.map((item, i) => {
+    return (
+      <div
+        key={"cardhoverrow" + i}
+        role="button"
+        className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+        onClick={item.onClick}
+      >
+        <Tooltip title={item.hoverText}>
+          <item.icon className=" w-5, h-5 cursor-pointer inline-block" />
+        </Tooltip>
+      </div>
+    );
+  });
+  return (
+    <div
+      onMouseEnter={(e) => {
+        e.stopPropagation();
+      }}
+      className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
+    >
+      {itemRows}
+    </div>
+  );
+};

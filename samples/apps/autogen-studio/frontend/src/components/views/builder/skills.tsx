@@ -1,4 +1,6 @@
 import {
+  ArrowDownTrayIcon,
+  DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
@@ -11,12 +13,14 @@ import {
   fetchJSON,
   getSampleSkill,
   getServerUrl,
+  sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
 import {
   BounceLoader,
   Card,
+  CardHoverBar,
   CodeBlock,
   LaunchButton,
   LoadingOverlay,
@@ -149,6 +153,52 @@ const SkillsView = ({}: any) => {
   }, []);
 
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
+    const cardItems = [
+      {
+        title: "Download",
+        icon: ArrowDownTrayIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          // download workflow as workflow.name.json
+          const element = document.createElement("a");
+          const sanitizedSkill = sanitizeConfig(skill);
+          const file = new Blob([JSON.stringify(sanitizedSkill)], {
+            type: "application/json",
+          });
+          element.href = URL.createObjectURL(file);
+          element.download = `skill_${skill.title}.json`;
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+        },
+        hoverText: "Download",
+      },
+      {
+        title: "Make a Copy",
+        icon: DocumentDuplicateIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          let newSkill = { ...skill };
+          newSkill.title = `${skill.title} Copy`;
+          newSkill.user_id = user?.email;
+          newSkill.timestamp = new Date().toISOString();
+          if (newSkill.id) {
+            delete newSkill.id;
+          }
+          setNewSkill(newSkill);
+          setShowNewSkillModal(true);
+        },
+        hoverText: "Make a Copy",
+      },
+      {
+        title: "Delete",
+        icon: TrashIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          deleteSkill(skill);
+        },
+        hoverText: "Delete",
+      },
+    ];
     return (
       <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
         <div>
@@ -166,25 +216,7 @@ const SkillsView = ({}: any) => {
               {truncateText(skill.content, 70)}
             </div>
             <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-            <div
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-              }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-            >
-              {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSkill(skill);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
-            </div>
+            <CardHoverBar items={cardItems} />
           </Card>
           <div className="text-right mt-2"></div>
         </div>

@@ -23,6 +23,7 @@ import {
 import {
   BounceLoader,
   Card,
+  CardHoverBar,
   FlowConfigViewer,
   LaunchButton,
   LoadingOverlay,
@@ -162,6 +163,53 @@ const WorkflowView = ({}: any) => {
 
   const workflowRows = (workflows || []).map(
     (workflow: IFlowConfig, i: number) => {
+      const cardItems = [
+        {
+          title: "Download",
+          icon: ArrowDownTrayIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            // download workflow as workflow.name.json
+            const element = document.createElement("a");
+            const sanitizedWorkflow = sanitizeConfig(workflow);
+            const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
+              type: "application/json",
+            });
+            element.href = URL.createObjectURL(file);
+            element.download = `workflow_${workflow.name}.json`;
+            document.body.appendChild(element); // Required for this to work in FireFox
+            element.click();
+          },
+          hoverText: "Download",
+        },
+        {
+          title: "Make a Copy",
+          icon: DocumentDuplicateIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            let newWorkflow = { ...workflow };
+            newWorkflow.name = `${workflow.name} Copy`;
+            newWorkflow.user_id = user?.email;
+            newWorkflow.timestamp = new Date().toISOString();
+            if (newWorkflow.id) {
+              delete newWorkflow.id;
+            }
+
+            setNewWorkflow(newWorkflow);
+            setShowNewWorkflowModal(true);
+          },
+          hoverText: "Make a Copy",
+        },
+        {
+          title: "Delete",
+          icon: TrashIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            deleteWorkFlow(workflow);
+          },
+          hoverText: "Delete",
+        },
+      ];
       return (
         <div
           key={"workflowrow" + i}
@@ -185,66 +233,7 @@ const WorkflowView = ({}: any) => {
               </div>
               <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
 
-              <div
-                onMouseEnter={(e) => {
-                  e.stopPropagation();
-                }}
-                className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-              >
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // download workflow as workflow.name.json
-                    const element = document.createElement("a");
-                    const sanitizedWorkflow = sanitizeConfig(workflow);
-                    const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
-                      type: "application/json",
-                    });
-                    element.href = URL.createObjectURL(file);
-                    element.download = `${workflow.name}.json`;
-                    document.body.appendChild(element); // Required for this to work in FireFox
-                    element.click();
-
-                    // window.op
-                  }}
-                >
-                  <Tooltip title="Download">
-                    <ArrowDownTrayIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    let newWorkflow = { ...workflow };
-                    newWorkflow.name = `${workflow.name} Copy`;
-                    newWorkflow.user_id = user?.email;
-                    newWorkflow.timestamp = new Date().toISOString();
-                    delete newWorkflow.id;
-                    setNewWorkflow(newWorkflow);
-                    setShowNewWorkflowModal(true);
-                  }}
-                >
-                  <Tooltip title="Make a Copy">
-                    <DocumentDuplicateIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteWorkFlow(workflow);
-                  }}
-                >
-                  <Tooltip title="Delete">
-                    <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-              </div>
+              <CardHoverBar items={cardItems} />
             </Card>
           </div>
         </div>
