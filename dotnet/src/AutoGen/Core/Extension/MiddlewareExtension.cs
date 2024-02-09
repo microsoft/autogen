@@ -41,14 +41,29 @@ public static class MiddlewareExtension
     /// <summary>
     /// Print formatted message to console.
     /// </summary>
-    public static IAgent RegisterPrintFormatMessageHook(this IAgent agent)
+    public static MiddlewareAgent RegisterPrintFormatMessageHook(this IAgent agent)
     {
-        return agent.RegisterPostProcess(async (conversation, reply, ct) =>
+        return agent.RegisterStreamingMiddleware(async (messages, options, next, ct) =>
         {
-            Console.WriteLine(reply.FormatMessage());
+            Message? reply = null;
+            await foreach (var message in await next(messages, options, ct))
+            {
+                reply = message;
+            }
 
-            return reply;
+            if (reply != null)
+            {
+                Console.WriteLine(reply!.FormatMessage());
+                return From(reply);
+            }
+
+            throw new Exception("No reply is returned.");
         });
+    }
+
+    private static async IAsyncEnumerable<T> From<T>(T value)
+    {
+        yield return value;
     }
 
     /// <summary>
@@ -58,7 +73,7 @@ public static class MiddlewareExtension
     /// One example is <see cref="RegisterPrintFormatMessageHook(IAgent)"/>, which print the formatted message to console before the agent return the reply.
     /// </summary>
     /// <exception cref="Exception">throw when agent name is null.</exception>
-    public static IAgent RegisterPostProcess(
+    public static MiddlewareAgent RegisterPostProcess(
         this IAgent agent,
         Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
     {
@@ -103,6 +118,22 @@ public static class MiddlewareExtension
 
         var middlewareAgent = new MiddlewareAgent(agent);
         middlewareAgent.Use((messages, options, next, ct) => func(messages, options, agent, ct));
+
+        return middlewareAgent;
+    }
+
+    public static MiddlewareAgent RegisterStreamingMiddleware(
+        this IAgent agent,
+        MiddlewareStreamingDelegate func)
+    {
+        if (agent.Name == null)
+        {
+            throw new Exception("Agent name is null.");
+        }
+
+        var middlewareAgent = new MiddlewareAgent(agent);
+
+        middlewareAgent.UseStreaming(func);
 
         return middlewareAgent;
     }

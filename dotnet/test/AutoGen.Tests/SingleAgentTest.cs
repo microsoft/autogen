@@ -38,7 +38,8 @@ namespace AutoGen.Tests
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
-            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
+            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config)
+                .RegisterPrintFormatMessageHook();
 
             await UpperCaseTest(agent);
             await UpperCaseStreamingTestAsync(agent);
@@ -269,13 +270,13 @@ namespace AutoGen.Tests
         private async Task UpperCaseStreamingTestAsync(IStreamingReplyAgent agent)
         {
             var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new Message(Role.User, "abcdefg");
+            var helloWorld = new Message(Role.User, "a b c d e f g h i j k l m n");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
             var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
-            var answer = "ABCDEFG";
+            var answer = "A B C D E F G H I J K L M N";
             Message? finalReply = default;
             await foreach (var reply in replyStream)
             {
@@ -285,6 +286,10 @@ namespace AutoGen.Tests
                 // the content should be part of the answer
                 reply.Content.Should().Be(answer.Substring(0, reply.Content!.Length));
                 finalReply = reply;
+
+                // print the message
+                var formatted = reply.FormatMessage();
+                _output.WriteLine(formatted);
             }
 
             finalReply!.Content.Should().Be(answer);

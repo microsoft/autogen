@@ -26,13 +26,24 @@ public delegate Task<Message> MiddlewareDelegate(
        GenerateReplyDelegate next,
        CancellationToken cancellationToken);
 
+public delegate Task<IAsyncEnumerable<Message>> GenerateReplyStreamingDelegate(
+       IEnumerable<Message> messages,
+       GenerateReplyOptions? options,
+       CancellationToken cancellationToken);
+
+public delegate Task<IAsyncEnumerable<Message>> MiddlewareStreamingDelegate(
+    IEnumerable<Message> messages,
+    GenerateReplyOptions? options,
+    GenerateReplyStreamingDelegate next,
+    CancellationToken cancellationToken);
+
 /// <summary>
 /// An agent that allows you to add middleware and modify the behavior of an existing agent.
 /// </summary>
-public class MiddlewareAgent : IAgent
+public class MiddlewareAgent : IStreamingReplyAgent
 {
     private readonly IAgent innerAgent;
-    private readonly List<MiddlewareDelegate> middlewares = new();
+    private readonly List<MiddlewareStreamingDelegate> middlewares = new();
 
     /// <summary>
     /// Create a new instance of <see cref="MiddlewareAgent"/>
@@ -53,10 +64,28 @@ public class MiddlewareAgent : IAgent
         CancellationToken cancellationToken = default)
     {
         var middleware = this.middlewares.Aggregate(
-                       (GenerateReplyDelegate)this.innerAgent.GenerateReplyAsync,
-                       (next, current) => (messages, options, cancellationToken) => current(messages, options, next, cancellationToken));
+                ToGenerateReplyStreamingDelegate(this.innerAgent.GenerateReplyAsync),
+                (next, current) => (messages, options, cancellationToken) => current(messages, options, next, cancellationToken));
 
-        return middleware(messages, options, cancellationToken);
+        return ToGenerateReplyDelegate(middleware)(messages, options, cancellationToken);
+    }
+
+    public async Task<IAsyncEnumerable<Message>> GenerateReplyStreamingAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (this.innerAgent is IStreamingReplyAgent streamingReplyAgent)
+        {
+            var middleware = this.middlewares.Aggregate(
+                (GenerateReplyStreamingDelegate)streamingReplyAgent.GenerateReplyStreamingAsync,
+                (next, current) => (messages, options, cancellationToken) => current(messages, options, next, cancellationToken));
+
+            return await middleware(messages, options, cancellationToken);
+        }
+        else
+        {
+            var msg = await this.GenerateReplyAsync(messages, options, cancellationToken);
+
+            return this.From(msg);
+        }
     }
 
     /// <summary>
@@ -66,6 +95,47 @@ public class MiddlewareAgent : IAgent
     /// </summary>
     public void Use(MiddlewareDelegate func)
     {
+        this.middlewares.Add(async (messages, options, next, ct) =>
+        {
+            var funcNext = ToGenerateReplyDelegate(next);
+            var reply = await func(messages, options, funcNext, ct);
+
+            return this.From(reply);
+        });
+    }
+
+    public void UseStreaming(MiddlewareStreamingDelegate func)
+    {
         this.middlewares.Add(func);
+    }
+
+    private async IAsyncEnumerable<T> From<T>(T value)
+    {
+        yield return value;
+    }
+
+    private GenerateReplyStreamingDelegate ToGenerateReplyStreamingDelegate(GenerateReplyDelegate func)
+    {
+        return async (messages, options, ct) =>
+        {
+            var reply = await func(messages, options, ct);
+
+            return this.From(reply);
+        };
+    }
+
+    private GenerateReplyDelegate ToGenerateReplyDelegate(GenerateReplyStreamingDelegate func)
+    {
+        return async (messages, options, ct) =>
+        {
+            Message? msg = default;
+            var response = await func(messages, options, ct);
+            await foreach (var result in response)
+            {
+                msg = result;
+            }
+
+            return msg ?? throw new System.Exception("No result is returned.");
+        };
     }
 }
