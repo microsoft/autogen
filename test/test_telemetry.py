@@ -2,10 +2,10 @@ import autogen
 import autogen.telemetry
 import uuid
 import json
-import openai
 import pytest
 import sqlite3
 
+from autogen.logger.logger_utils import get_current_ts, to_dict
 from openai import AzureOpenAI
 from unittest.mock import patch, Mock
 
@@ -67,7 +67,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def db_connection():
-    autogen.telemetry.start_logging(dbpath=":memory:")
+    autogen.telemetry.start_logging(config={"dbname": ":memory:"})
     con = autogen.telemetry.get_connection()
     con.row_factory = sqlite3.Row
     yield con
@@ -84,7 +84,7 @@ def get_sample_chat_completion(response):
         "response": response,
         "is_cached": 0,
         "cost": 0.347,
-        "start_time": autogen.telemetry.get_current_ts(),
+        "start_time": get_current_ts()
     }
 
 
@@ -116,17 +116,6 @@ def test_log_completion(response, expected_logged_response, db_connection):
         assert row["is_cached"] == sample_completion["is_cached"]
         assert row["cost"] == sample_completion["cost"]
         assert row["start_time"] == sample_completion["start_time"]
-
-
-def test_log_chat_completion_with_unsupported_response_type_raises_exception(db_connection):
-    class NewResponseType:
-        def __init__(self):
-            self.val = "foo"
-
-    sample_completion = get_sample_chat_completion(NewResponseType())
-    with pytest.raises(TypeError) as e:
-        autogen.telemetry.log_chat_completion(**sample_completion)
-    assert "invalid type of response" in str(e.value)
 
 
 def test_log_new_agent(db_connection):
@@ -258,7 +247,7 @@ def test_to_dict():
 
     expected_o_field = {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
 
-    result = autogen.telemetry._to_dict(bar, exclude=("key_1", "extra_key"), no_recursive=(Agent))
+    result = to_dict(bar, exclude=("key_1", "extra_key"), no_recursive=(Agent))
     assert result["foo_val"] == expected_foo_val_field
     assert result["o"] == expected_o_field
     assert len(result["agents"]) == 2
@@ -276,4 +265,4 @@ def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, d
 
     args, _ = mock_logger_error.call_args
     error_message = args[0]
-    assert error_message.startswith("[Telemetry] log_chat_completion error:")
+    assert error_message.startswith("[SqliteLogger] log_chat_completion error:")

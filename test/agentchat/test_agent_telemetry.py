@@ -49,7 +49,7 @@ if not skip:
 
 @pytest.fixture(scope="function")
 def setup_test():
-    autogen.telemetry.start_logging(dbpath=":memory:")
+    autogen.telemetry.start_logging(config={"dbname": ":memory:"})
     con = autogen.telemetry.get_connection()
     con.row_factory = sqlite3.Row
 

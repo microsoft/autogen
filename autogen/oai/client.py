@@ -19,6 +19,7 @@ from autogen.token_count_utils import count_token
 from autogen._pydantic import model_dump
 
 import autogen.telemetry
+from autogen.logger.logger_utils import get_current_ts
 
 TOOL_ENABLED = False
 try:
@@ -574,7 +575,7 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
-                    request_ts = autogen.telemetry.get_current_ts()
+                    request_ts = get_current_ts()
 
                     response: ModelClient.ModelClientResponseProtocol = cache.get(key, None)
 
@@ -610,7 +611,7 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
-                request_ts = autogen.telemetry.get_current_ts()
+                request_ts = get_current_ts()
                 response = client.create(params)
             except APITimeoutError as err:
                 logger.debug(f"config {i} timed out", exc_info=True)
