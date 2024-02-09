@@ -4,6 +4,27 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
 from conftest import skip_openai
 import autogen
+from typing import Literal
+from typing_extensions import Annotated
+
+
+def test_chat_messages_for_summary():
+    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER")
+    user = UserProxyAgent(name="user", human_input_mode="NEVER")
+    user.send("What is the capital of France?", assistant)
+    messages = assistant.chat_messages_for_summary(user)
+    assert len(messages) == 1
+
+    groupchat = GroupChat(agents=[user, assistant], messages=[], max_round=2)
+    manager = GroupChatManager(groupchat=groupchat, name="manager", llm_config=False)
+    user.initiate_chat(manager, message="What is the capital of France?")
+    messages = manager.chat_messages_for_summary(user)
+    assert len(messages) == 2
+
+    messages = user.chat_messages_for_summary(manager)
+    assert len(messages) == 2
+    messages = assistant.chat_messages_for_summary(manager)
+    assert len(messages) == 2
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
@@ -127,6 +148,7 @@ def test_chats():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
+        """Investigate the reasons.""",
         """Pros and cons of the companies I'm interested in. Keep it short.""",
     ]
 
@@ -197,6 +219,69 @@ def test_chats():
     # print(blogpost.summary, insights_and_blogpost)
 
 
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_chats_w_func():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {
+        "config_list": config_list,
+        "timeout": 120,
+    }
+
+    chatbot = autogen.AssistantAgent(
+        name="chatbot",
+        system_message="For currency exchange tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+        llm_config=llm_config,
+    )
+
+    # create a UserProxyAgent instance named "user_proxy"
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },
+    )
+
+    CurrencySymbol = Literal["USD", "EUR"]
+
+    def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
+        if base_currency == quote_currency:
+            return 1.0
+        elif base_currency == "USD" and quote_currency == "EUR":
+            return 1 / 1.1
+        elif base_currency == "EUR" and quote_currency == "USD":
+            return 1.1
+        else:
+            raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+
+    @user_proxy.register_for_execution()
+    @chatbot.register_for_llm(description="Currency exchange calculator.")
+    def currency_calculator(
+        base_amount: Annotated[float, "Amount of currency in base_currency"],
+        base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
+        quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+    ) -> str:
+        quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
+        return f"{quote_amount} {quote_currency}"
+
+    res = user_proxy.initiate_chat(
+        chatbot,
+        message="How much is 123.45 USD in EUR?",
+        summary_method="reflection_with_llm",
+    )
+    print(res.summary, res.cost, res.chat_history)
+
+
 if __name__ == "__main__":
     # test_chats()
-    test_chats_group()
+    # test_chats_group()
+    # test_chats_w_func()
+    test_chat_messages_for_summary()
