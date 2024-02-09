@@ -154,7 +154,14 @@ def test_web_surfer_bing() -> None:
     page_size = 4096
     web_surfer = WebSurferAgent(
         "web_surfer",
-        llm_config=False,
+        llm_config={
+            "config_list": [
+                {
+                    "model": "gpt-3.5-turbo-16k",
+                    "api_key": "sk-PLACEHOLDER_KEY",
+                }
+            ]
+        },
         browser_config={"viewport_size": page_size, "bing_api_key": BING_API_KEY},
     )
 
@@ -176,5 +183,5 @@ def test_web_surfer_bing() -> None:
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
     test_web_surfer()
-    # test_web_surfer_oai()
-    # test_web_surfer_bing()
+    test_web_surfer_oai()
+    test_web_surfer_bing()
