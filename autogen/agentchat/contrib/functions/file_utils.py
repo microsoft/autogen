@@ -191,7 +191,11 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: str = "What's in th
     client = OpenAI()
 
     # check if the file_path_or_url is a URL
-    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
+    if (
+        file_path_or_url.startswith("http://")
+        or file_path_or_url.startswith("https://")
+        or file_path_or_url.startswith("data:")
+    ):
         image_url = file_path_or_url
 
         response = client.chat.completions.create(
