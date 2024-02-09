@@ -112,7 +112,7 @@ def read_text_from_pptx(file_path: str) -> str:
     for slide in presentation.slides:
         slide_num += 1
 
-        text += f"\n<!-- Slide number: {slide_num} -->\n"
+        text += f"\n\n<!-- Slide number: {slide_num} -->\n"
 
         for shape in slide.shapes:
             if shape.has_text_frame:
