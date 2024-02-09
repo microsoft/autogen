@@ -90,10 +90,7 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
     )
 
     parser.add_argument(
-        "-e",
-        "--excel",
-        action="store_true",
-        help="Output the results in Excel format.",
+        "-e", "--excel", help="Output the results in Excel format. Please specify a path for the Excel file.", type=str
     )
 
     parsed_args = parser.parse_args(args)

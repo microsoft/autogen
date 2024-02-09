@@ -88,8 +88,7 @@ def main(args):
             WHERE rn = 1;
         """
 
-        # TODO: allow passing in the xlsx name
-        with pd.ExcelWriter("metrics.xlsx", engine="openpyxl") as writer:
+        with pd.ExcelWriter(parsed_args.excel, engine="openpyxl") as writer:
             for trial_index, each_trial in enumerate(dbnames):
                 result_df = pd.DataFrame(
                     columns=[
