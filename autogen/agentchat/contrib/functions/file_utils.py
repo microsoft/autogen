@@ -1,4 +1,4 @@
-from .functions_utils import requires_python_packages
+from .functions_utils import requires_python_packages, requires_secret
 
 
 @requires_python_packages("pdfminer.six", "requests")
@@ -166,3 +166,52 @@ def read_text_from_audio(file_path: str) -> str:
     text = recognizer.recognize_google(audio)
 
     return text
+
+
+@requires_secret("OPENAI_API_KEY")
+@requires_python_packages("openai")
+def caption_image_using_gpt4v(file_path_or_url: str) -> str:
+    """
+    Generates a caption for an image using the GPT-4 Vision model from OpenAI.
+
+    Args:
+        file_path_or_url (str): The path to the image file or the URL.
+
+    Returns:
+        str: The caption generated for the image.
+    """
+    import os
+    import openai
+    from openai import OpenAI
+
+    caption = ""
+
+    openai.api_key = os.environ["OPENAI_API_KEY"]
+    client = OpenAI()
+
+    # check if the file_path_or_url is a URL
+    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
+        image_url = file_path_or_url
+
+        response = client.chat.completions.create(
+            model="gpt-4-vision-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "What’s in this image?"},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": image_url,
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens=300,
+        )
+        caption = response.choices[0]
+    else:
+        caption = "Please provide a valid image URL"
+    return caption

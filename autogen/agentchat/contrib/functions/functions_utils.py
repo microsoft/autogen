@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import functools
@@ -62,6 +63,36 @@ def requires_python_packages(*packages, **pip_packages):
                 except Exception as e:
                     print(f"Error: {e}")
                     raise e
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def requires_secret(*env):
+    """
+    Decorator that ensures the required environment variables are set before executing the decorated function.
+
+    Args:
+        *env: Variable length argument list of environment variable names that should be set.
+
+    Examples:
+        @requires_secret('OPENAI_API_KEY')
+        def my_function():
+            # Code that depends on the OPENAI_API_KEY environment variable
+
+        @requires_secret('AWS', 'AWS_ACCESS')
+        def another_function():
+            # Code that depends on the AWS and AWS_ACCESS environment variables
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for name in env:
+                if name not in os.environ:
+                    raise EnvironmentError(f"Environment variable {name} is not set")
             return func(*args, **kwargs)
 
         return wrapper
