@@ -175,7 +175,7 @@ def test_conversable_agent_capability() -> None:
     executor.user_capability.add_to_agent(agent)
 
     # Test updated system prompt.
-    assert executor.user_capability.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
+    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
 
     # Test code generation.
     reply = agent.generate_reply(

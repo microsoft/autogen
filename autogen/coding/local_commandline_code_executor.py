@@ -1,9 +1,9 @@
 import os
 import uuid
 import warnings
-from typing import Any, List, Optional
+from typing import Any, ClassVar, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
 from ..code_utils import execute_code
@@ -53,13 +53,14 @@ class LocalCommandlineCodeExecutor(BaseModel):
         work_dir (str): The working directory for the code execution. If None,
             a default working directory will be used. The default working
             directory is the current directory ".".
+        system_message_update (str): The system message update for agent that
+            produces code to run on this executor.
+            Default is `LocalCommandlineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
-    class UserCapability:
-        """An AgentCapability class that gives agent ability use a command line
-        code executor."""
-
-        DEFAULT_SYSTEM_MESSAGE_UPDATE = """
+    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
+        str
+    ] = """
 You have been given coding capability to solve tasks using Python code.
 In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
     1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
@@ -69,15 +70,26 @@ When using code, you must indicate the script type in the code block. The user c
 If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
 """
 
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent."""
-            system_message = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-            agent.update_system_message(system_message)
-
     timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
     work_dir: str = Field(default=".", description="The working directory for the code execution.")
+    system_message_update: str = Field(
+        default=DEFAULT_SYSTEM_MESSAGE_UPDATE,
+        description="The system message update for agent that produces code to run on this executor.",
+    )
 
-    @validator("work_dir")
+    class UserCapability:
+        """An AgentCapability class that gives agent ability use a command line
+        code executor."""
+
+        def __init__(self, system_message_update: str) -> None:
+            self.system_message_update = system_message_update
+
+        def add_to_agent(self, agent: LLMAgent) -> None:
+            """Add this capability to an agent."""
+            agent.update_system_message(agent.system_message + self.system_message_update)
+
+    @field_validator("work_dir")
+    @classmethod
     def _check_work_dir(cls, v: str) -> str:
         if os.path.exists(v):
             return v
@@ -86,7 +98,7 @@ If you want the user to save the code in a file before executing it, put # filen
     @property
     def user_capability(self) -> "LocalCommandlineCodeExecutor.UserCapability":
         """Export a user capability that can be added to an agent."""
-        return LocalCommandlineCodeExecutor.UserCapability()
+        return LocalCommandlineCodeExecutor.UserCapability(self.system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:

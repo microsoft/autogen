@@ -4,11 +4,11 @@ import os
 import re
 import uuid
 from queue import Empty
-from typing import Any, List
+from typing import Any, ClassVar, List
 
 from jupyter_client import KernelManager  # type: ignore[attr-defined]
 from jupyter_client.kernelspec import KernelSpecManager
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
 from .base import CodeBlock, CodeExtractor, CodeResult
@@ -43,13 +43,15 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
         kernel_name (str): The kernel name to use. Make sure it is installed.
             By default, it is "python3".
         output_dir (str): The directory to save output files, by default ".".
+        system_message_update (str): The system message update to add to the
+            agent that produces code. By default it is
+            `EmbeddedIPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
-    class UserCapability:
-        """An AgentCapability class that gives agent ability use a stateful
-        code executor."""
-
-        DEFAULT_SYSTEM_MESSAGE_UPDATE = """# IPython Coding Capability
+    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
+        str
+    ] = """
+# IPython Coding Capability
 You have been given coding capability to solve tasks using Python code in a stateful IPython kernel.
 You are responsible for writing the code, and the user is responsible for executing the code.
 
@@ -74,17 +76,37 @@ Because you have limited conversation memory, if your code creates an image,
 the output will be a path to the image instead of the image itself.
 """
 
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent."""
-            # system message is a string or a list of strings
-            system_message = agent.system_message + self.DEFAULT_SYSTEM_MESSAGE_UPDATE
-            agent.update_system_message(system_message)
-
     timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
     kernel_name: str = Field(default="python3", description="The kernel name to use. Make sure it is installed.")
     output_dir: str = Field(default=".", description="The directory to save output files.")
+    system_message_update: str = Field(
+        default=DEFAULT_SYSTEM_MESSAGE_UPDATE,
+        description="The system message update to the agent that produces code to be executed by this executor.",
+    )
 
-    @validator("output_dir")
+    class UserCapability:
+        """An AgentCapability class that gives agent ability use a stateful
+        IPython code executor. This capability can be added to an agent using
+        the `add_to_agent` method which append a system message update to the
+        agent's system message."""
+
+        def __init__(self, system_message_update: str):
+            self.system_message_update = system_message_update
+
+        def add_to_agent(self, agent: LLMAgent) -> None:
+            """Add this capability to an agent by appending a system message
+            update to the agent's system message.
+
+            **Currently we do not check for conflicts with existing content in
+            the agent's system message.**
+
+            Args:
+                agent (LLMAgent): The agent to add the capability to.
+            """
+            agent.update_system_message(agent.system_message + self.system_message_update)
+
+    @field_validator("output_dir")
+    @classmethod
     def _output_dir_must_exist(cls, value: str) -> str:
         if not os.path.exists(value):
             raise ValueError(f"Output directory {value} does not exist.")
@@ -107,8 +129,9 @@ the output will be a path to the image instead of the image itself.
 
     @property
     def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
-        """Export a user capability that can be added to an agent."""
-        return EmbeddedIPythonCodeExecutor.UserCapability()
+        """Export a user capability for this executor that can be added to
+        an agent using the `add_to_agent` method."""
+        return EmbeddedIPythonCodeExecutor.UserCapability(self.system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
