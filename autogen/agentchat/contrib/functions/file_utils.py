@@ -176,6 +176,7 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
 
     Args:
         file_path_or_url (str): The path to the image file or the URL.
+        prompt (str, optional): The prompt to use for generating the caption. Defaults to "What’s in this image?".
 
 
     Returns:
