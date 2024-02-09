@@ -33,6 +33,12 @@ autogenbench tabulate Results/gaia_test_level_1__soc
 
 And similarly for level 2 and 3.
 
+
+## Export the metrics in Excel format
+```sh
+autogenbench tabulate Results/gaia_test_level_1__soc -e EXCEL_REPORT_PATH
+```
+
 ## References
 **GAIA: a benchmark for General AI Assistants**<br/>
 Grégoire Mialon, Clémentine Fourrier, Craig Swift, Thomas Wolf, Yann LeCun, Thomas Scialom<br/>
