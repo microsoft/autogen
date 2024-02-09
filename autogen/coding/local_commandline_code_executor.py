@@ -79,13 +79,15 @@ If you want the user to save the code in a file before executing it, put # filen
 
     class UserCapability:
         """An AgentCapability class that gives agent ability use a command line
-        code executor."""
+        code executor via a system message update. This capability can be added
+        to an agent using the `add_to_agent` method."""
 
         def __init__(self, system_message_update: str) -> None:
             self.system_message_update = system_message_update
 
         def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent."""
+            """Add this capability to an agent by updating the agent's system
+            message."""
             agent.update_system_message(agent.system_message + self.system_message_update)
 
     @field_validator("work_dir")
@@ -97,7 +99,8 @@ If you want the user to save the code in a file before executing it, put # filen
 
     @property
     def user_capability(self) -> "LocalCommandlineCodeExecutor.UserCapability":
-        """Export a user capability that can be added to an agent."""
+        """Export a user capability for this executor that can be added to
+        an agent that produces code to be executed by this executor."""
         return LocalCommandlineCodeExecutor.UserCapability(self.system_message_update)
 
     @property
