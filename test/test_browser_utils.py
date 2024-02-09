@@ -116,10 +116,10 @@ def test_simple_text_browser():
     # Visit a plain-text file
     response = requests.get(PLAIN_TEXT_URL)
     response.raise_for_status()
-    expected_results = response.text
+    expected_results = re.sub(r"\s+", " ", response.text, re.DOTALL).strip()  # Ignore spacing differences
 
     browser.visit_page(PLAIN_TEXT_URL)
-    assert browser.page_content.strip() == expected_results.strip()
+    assert re.sub(r"\s+", " ", browser.page_content, re.DOTALL).strip() == expected_results
 
     # Directly download an image, and compute its md5
     response = requests.get(IMAGE_URL, stream=True)
