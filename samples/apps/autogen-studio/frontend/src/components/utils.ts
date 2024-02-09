@@ -541,29 +541,34 @@ export const sanitizeConfig = (
 };
 
 /**
- * Returns a version of the input text that adheres to the regex '^[a-zA-Z0-9_-]{1,64}$'.
- * This means the output will only contain alphanumeric characters, underscores, or hyphens and
- * is limited to a length of 64 characters.
+ * Checks the input text against the regex '^[a-zA-Z0-9_-]{1,64}$' and returns an object with
+ * status, message, and sanitizedText. Status is boolean indicating whether input text is valid,
+ * message provides information about the outcome, and sanitizedText contains a valid version
+ * of the input text or the original text if it was already valid.
  *
- * @param text - The input string to be sanitized.
- * @returns A sanitized string adhering to the regex.
+ * @param text - The input string to be checked and sanitized.
+ * @returns An object containing a status, a message, and sanitizedText.
  */
-export const sanitizeInput = (text: string): string => {
+export const checkAndSanitizeInput = (
+  text: string
+): { status: boolean; message: string; sanitizedText: string } => {
   // Create a regular expression pattern to match valid characters
   const regexPattern: RegExp = /^[a-zA-Z0-9_-]{1,64}$/;
+  let status: boolean = true;
+  let message: string;
+  let sanitizedText: string;
 
   // Check if the input text matches the pattern
   if (regexPattern.test(text)) {
-    // Text already adheres to the pattern, return as is
-    return text;
+    // Text already adheres to the pattern
+    message = `The text '${text}' is valid.`;
+    sanitizedText = text;
   } else {
-    // The text does not match, sanitize the input
-    // First, replace all invalid characters with an underscore
-    let sanitized = text.replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    // Then, truncate if the length is greater than 64
-    sanitized = sanitized.slice(0, 64);
-
-    return sanitized;
+    // The text does not match; sanitize the input
+    status = false;
+    sanitizedText = text.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+    message = `'${text}' is invalid. Consider using '${sanitizedText}' instead.`;
   }
+
+  return { status, message, sanitizedText };
 };

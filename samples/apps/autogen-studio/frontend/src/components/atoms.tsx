@@ -33,7 +33,13 @@ import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
 import { atomDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { fetchJSON, getServerUrl, obscureString, truncateText } from "./utils";
+import {
+  checkAndSanitizeInput,
+  fetchJSON,
+  getServerUrl,
+  obscureString,
+  truncateText,
+} from "./utils";
 import {
   IAgentFlowSpec,
   IFlowConfig,
@@ -1108,6 +1114,8 @@ export const AgentFlowSpecView = ({
     temperature: 0.1,
   };
 
+  const nameValidation = checkAndSanitizeInput(flowSpec.config.name);
+
   return (
     <>
       <div className="text-accent ">{title}</div>
@@ -1121,14 +1129,21 @@ export const AgentFlowSpecView = ({
           description="Name of the agent"
           value={flowSpec.config.name}
           control={
-            <Input
-              className="mt-2"
-              placeholder="Agent Name"
-              value={flowSpec.config.name}
-              onChange={(e) => {
-                onControlChange(e.target.value, "name");
-              }}
-            />
+            <>
+              <Input
+                className="mt-2"
+                placeholder="Agent Name"
+                value={flowSpec.config.name}
+                onChange={(e) => {
+                  onControlChange(e.target.value, "name");
+                }}
+              />
+              {!nameValidation.status && (
+                <div className="text-xs text-red-500 mt-2">
+                  {nameValidation.message}
+                </div>
+              )}
+            </>
           }
         />
 
@@ -1223,7 +1238,6 @@ export const AgentFlowSpecView = ({
                 value={flowSpec.config.system_message}
                 rows={3}
                 onChange={(e) => {
-                  // onDebouncedControlChange(e.target.value, "system_message");
                   onControlChange(e.target.value, "system_message");
                 }}
               />

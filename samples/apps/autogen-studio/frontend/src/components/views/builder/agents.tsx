@@ -14,7 +14,6 @@ import {
   getServerUrl,
   sampleAgentConfig,
   sanitizeConfig,
-  sanitizeInput,
   timeAgo,
   truncateText,
 } from "../../utils";
@@ -24,7 +23,6 @@ import {
   Card,
   CardHoverBar,
   LaunchButton,
-  LoadBox,
   LoadingOverlay,
 } from "../../atoms";
 
@@ -184,7 +182,7 @@ const AgentsView = ({}: any) => {
         onClick: (e: any) => {
           e.stopPropagation();
           let newAgent = { ...agent };
-          newAgent.config.name = sanitizeInput(`${agent.config.name} Copy`);
+          newAgent.config.name = `${agent.config.name}_copy`;
           newAgent.user_id = user?.email;
           newAgent.timestamp = new Date().toISOString();
           if (newAgent.id) {
