@@ -63,8 +63,16 @@ def get_number_of_chat_messages(chat_messages_dir):
 
 def main(args):
     parsed_args, all_results = default_tabulate(args, scorer=scorer)
+    excel_path = parsed_args.excel
 
-    if parsed_args.excel:
+    if excel_path:
+        excel_dir = os.path.dirname(excel_path)
+        if not os.path.exists(excel_dir):
+            os.makedirs(excel_dir, exist_ok=True)
+
+        if not excel_path.endswith((".xlsx", ".xls")):
+            excel_path += ".xlsx"
+
         runlogs = parsed_args.runlogs if parsed_args.runlogs.endswith("/") else parsed_args.runlogs + "/"
 
         if os.path.isdir(runlogs):
@@ -88,7 +96,7 @@ def main(args):
             WHERE rn = 1;
         """
 
-        with pd.ExcelWriter(parsed_args.excel, engine="openpyxl") as writer:
+        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
             for trial_index, each_trial in enumerate(dbnames):
                 result_df = pd.DataFrame(
                     columns=[
