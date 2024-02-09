@@ -1,3 +1,4 @@
+from typing import Optional
 from .functions_utils import FunctionWithRequirements
 
 
@@ -169,12 +170,13 @@ def read_text_from_audio(file_path: str) -> str:
 
 
 @FunctionWithRequirements(python_packages=["openai"], secrets=["OPENAI_API_KEY"])
-def caption_image_using_gpt4v(file_path_or_url: str) -> str:
+def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = None) -> str:
     """
     Generates a caption for an image using the GPT-4 Vision model from OpenAI.
 
     Args:
         file_path_or_url (str): The path to the image file or the URL.
+
 
     Returns:
         str: The caption generated for the image.
@@ -183,6 +185,7 @@ def caption_image_using_gpt4v(file_path_or_url: str) -> str:
     import openai
     from openai import OpenAI
 
+    prompt = prompt or "What’s in this image?"
     caption = ""
 
     openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -198,7 +201,7 @@ def caption_image_using_gpt4v(file_path_or_url: str) -> str:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "What’s in this image?"},
+                        {"type": "text", "text": prompt},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -210,7 +213,7 @@ def caption_image_using_gpt4v(file_path_or_url: str) -> str:
             ],
             max_tokens=300,
         )
-        caption = response.choices[0]
+        caption = response.choices[0].message.content
     else:
         caption = "Please provide a valid image URL"
     return caption
