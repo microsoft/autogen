@@ -223,6 +223,11 @@ class ConversableAgent(LLMAgent):
         """Get the description of the agent."""
         return self._description
 
+    @description.setter
+    def description(self, description: str):
+        """Set the description of the agent."""
+        self._description = description
+
     @property
     def code_executor(self) -> CodeExecutor:
         """The code executor used by this agent. Raise if code execution is disabled."""
