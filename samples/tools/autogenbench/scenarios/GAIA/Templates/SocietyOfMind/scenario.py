@@ -5,15 +5,25 @@ import json
 import autogen
 import copy
 import traceback
+import mimetypes
+import base64
+import re
 from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
 from group_chat_moderator import GroupChatModerator
+from autogen.agentchat.contrib.functions import file_utils as futils
 
 testbed_utils.init()
 ##############################
+
+
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
+
 
 # Read the prompt
 PROMPT = ""
@@ -150,15 +160,78 @@ web_surfer = WebSurferAgent(
     },
 )
 
-filename_prompt = "__FILE_NAME__".strip()
-if len(filename_prompt) > 0:
-    filename_prompt = f"Consider the file '{filename_prompt}' which can be read from the current working directory. If you need to read or write it, output python code in a code block (```python) to do so. "
+filename = "__FILE_NAME__".strip()
 
+filename_prompt = ""
+if len(filename) > 0:
+    content_type, encoding = mimetypes.guess_type(filename)
+    relpath = os.path.join("coding", filename)
+    filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
+    if re.search(r"\.docx?$", filename.lower()):
+        filename_prompt += " It is a word document. Its contents are:\n\n" + futils.read_text_from_docx(relpath)
+    elif re.search(r"\.xlsx?$", filename.lower()):
+        filename_prompt += " It is an excel document. Its contents are:\n\n" + futils.read_text_from_xlsx(relpath)
+    elif re.search(r"\.pptx?$", filename.lower()):
+        filename_prompt += " It is an powerpoint document. Its contents are:\n\n" + futils.read_text_from_pptx(relpath)
+    elif re.search(r"\.pdf$", filename.lower()):
+        filename_prompt += " It is a PDF. Its contents are:\n\n" + futils.read_text_from_pdf(relpath)
+    elif re.search(r"\.mp3$", filename.lower()):
+        from pydub import AudioSegment
+
+        sound = AudioSegment.from_mp3(relpath)
+        wave_fname = relpath + ".wav"
+        sound.export(wave_fname, format="wav")
+        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(wave_fname)
+    elif re.search(r"\.wav$", filename.lower()):
+        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(relpath)
+    elif re.search(r"\.jpe?g$", filename.lower()):
+        filename_prompt += " It is an image with the following description:\n\n "
+
+        img_prompt = f"""
+Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+
+{PROMPT}
+        """.strip()
+        filename_prompt += futils.caption_image_using_gpt4v(
+            "data:image/jpeg;base64," + encode_image(relpath), img_prompt
+        ).message.content
+        ocr = futils.read_text_from_image(relpath).strip()
+        if ocr != "":
+            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+    elif re.search(r"\.png$", filename.lower()):
+        filename_prompt += " It is an image with the following description:\n\n "
+
+        img_prompt = f"""
+Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+
+{PROMPT}
+        """.strip()
+        filename_prompt += futils.caption_image_using_gpt4v(
+            "data:image/png;base64," + encode_image(relpath), img_prompt
+        ).message.content
+
+        from PIL import Image
+
+        img = Image.open(relpath)
+        # Remove transparency
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        jpg_name = relpath + ".jpg"
+        img.save(jpg_name)
+
+        ocr = futils.read_text_from_image(jpg_name).strip()
+        if ocr != "":
+            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+    elif content_type is not None and "text/" in content_type.lower():
+        with open(relpath, "rt") as fh:
+            filename_prompt += "Here are the file's contents:\n\n" + fh.read().strip()
 
 question = f"""
 Below I will pose a question to you that I would like you to answer. You should begin by listing all the relevant facts necessary to derive an answer, then fill in those facts from memory where possible, including specific names, numbers and statistics. You are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from. After listing the facts, begin to solve the question in earnest. Here is the question:
 
-{filename_prompt}{PROMPT}
+{PROMPT}
+
+{filename_prompt}
 """.strip()
 
 groupchat = GroupChatModerator(
