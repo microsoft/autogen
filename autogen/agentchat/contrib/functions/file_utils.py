@@ -1,7 +1,8 @@
-from .functions_utils import requires_python_packages, requires_secret
+from typing import Optional
+from .functions_utils import FunctionWithRequirements
 
 
-@requires_python_packages("pdfminer.six", "requests")
+@FunctionWithRequirements(python_packages=["pdfminer.six", "requests"])
 def read_text_from_pdf(file_path: str) -> str:
     """
     Reads text from a PDF file and returns it as a string.
@@ -39,7 +40,7 @@ def read_text_from_pdf(file_path: str) -> str:
     return text
 
 
-@requires_python_packages("python-docx")
+@FunctionWithRequirements(python_packages=["python-docx"])
 def read_text_from_docx(file_path: str) -> str:
     """
     Reads text from a DOCX file and returns it as a string.
@@ -59,7 +60,7 @@ def read_text_from_docx(file_path: str) -> str:
     return text
 
 
-@requires_python_packages("pillow", "requests", "easyocr")
+@FunctionWithRequirements(python_packages=["pillow", "requests", "easyocr"])
 def read_text_from_image(file_path: str) -> str:
     """
     Reads text from an image file or URL and returns it as a string.
@@ -92,7 +93,7 @@ def read_text_from_image(file_path: str) -> str:
     return text
 
 
-@requires_python_packages("python-pptx")
+@FunctionWithRequirements(python_packages=["python-pptx"])
 def read_text_from_pptx(file_path: str) -> str:
     """
     Reads text from a PowerPoint file and returns it as a string.
@@ -123,7 +124,7 @@ def read_text_from_pptx(file_path: str) -> str:
     return text
 
 
-@requires_python_packages("pandas")
+@FunctionWithRequirements(python_packages=["pandas"])
 def read_text_from_xlsx(file_path: str) -> str:
     """
     Reads text from an Excel file and returns it as a string.
@@ -142,7 +143,7 @@ def read_text_from_xlsx(file_path: str) -> str:
     return text
 
 
-@requires_python_packages("SpeechRecognition", "requests")
+@FunctionWithRequirements(python_packages=["speechrecognition", "requests"])
 def read_text_from_audio(file_path: str) -> str:
     """
     Reads text from an audio file or a URL and returns it as a string.
@@ -175,15 +176,15 @@ def read_text_from_audio(file_path: str) -> str:
     return text
 
 
-@requires_secret("OPENAI_API_KEY")
-@requires_python_packages("openai")
-def caption_image_using_gpt4v(file_path_or_url: str, prompt: str = "What's in this image?") -> str:
+@FunctionWithRequirements(python_packages=["openai"], secrets=["OPENAI_API_KEY"])
+def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = None) -> str:
     """
     Generates a caption for an image using the GPT-4 Vision model from OpenAI.
 
     Args:
         file_path_or_url (str): The path to the image file or the URL.
-        prompt (str, Optional): The prompt to pass to GPT-v
+        prompt (str, optional): The prompt to use for generating the caption. Defaults to "What’s in this image?".
+
 
     Returns:
         str: The caption generated for the image.
@@ -192,6 +193,7 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: str = "What's in th
     import openai
     from openai import OpenAI
 
+    prompt = prompt or "What’s in this image?"
     caption = ""
 
     openai.api_key = os.environ["OPENAI_API_KEY"]
@@ -223,7 +225,7 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: str = "What's in th
             ],
             max_tokens=300,
         )
-        caption = response.choices[0]
+        caption = response.choices[0].message.content
     else:
         caption = "Please provide a valid image URL"
     return caption
