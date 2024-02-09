@@ -170,12 +170,13 @@ def read_text_from_audio(file_path: str) -> str:
 
 @requires_secret("OPENAI_API_KEY")
 @requires_python_packages("openai")
-def caption_image_using_gpt4v(file_path_or_url: str) -> str:
+def caption_image_using_gpt4v(file_path_or_url: str, prompt: str = "What's in this image?") -> str:
     """
     Generates a caption for an image using the GPT-4 Vision model from OpenAI.
 
     Args:
         file_path_or_url (str): The path to the image file or the URL.
+        prompt (str, Optional): The prompt to pass to GPT-v
 
     Returns:
         str: The caption generated for the image.
@@ -199,7 +200,7 @@ def caption_image_using_gpt4v(file_path_or_url: str) -> str:
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "What’s in this image?"},
+                        {"type": "text", "text": prompt},
                         {
                             "type": "image_url",
                             "image_url": {
