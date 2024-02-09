@@ -1,1 +1,2 @@
 pyautogen[websurfer] @ git+https://github.com/microsoft/autogen.git@complex_tasks
+youtube_transcript_api

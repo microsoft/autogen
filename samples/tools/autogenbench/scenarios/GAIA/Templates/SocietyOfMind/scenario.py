@@ -75,7 +75,9 @@ Your team then worked diligently to address that request. Here is a transcript o
         {
             "role": "user",
             "content": f"""
-Read the above conversation and output a FINAL ANSWER to the question. The question is repeated here for convenience:
+Read the above conversation and output a FINAL ANSWER to the question. If the conversation is inconclusive or fails to directly address the question, your final answer should be a believable best educated guess based on the context (answers like 'Unable to determine.' are to be avoided!)
+
+The question is repeated here for convenience:
 
 {PROMPT}
 
