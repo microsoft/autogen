@@ -330,7 +330,9 @@ iiz__zoom-img {
   margin: 0px !important;
 }
 
-.monaco-editor {
+.monaco-editor,
+.monaco-scrollable-element,
+.overflow-guard {
   @apply rounded !important;
 }
 

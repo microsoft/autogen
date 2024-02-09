@@ -572,3 +572,70 @@ export const checkAndSanitizeInput = (
 
   return { status, message, sanitizedText };
 };
+
+export const isValidConfig = (
+  jsonObj: any,
+  templateObj: any,
+  diffThreshold: number = 4
+): {
+  status: boolean;
+  message: string;
+} => {
+  // Check if both parameters are indeed objects and not null
+  if (
+    typeof jsonObj !== "object" ||
+    jsonObj === null ||
+    Array.isArray(jsonObj) ||
+    typeof templateObj !== "object" ||
+    templateObj === null ||
+    Array.isArray(templateObj)
+  ) {
+    return {
+      status: false,
+      message:
+        "Invalid input: One or both parameters are not objects, or are null or arrays.",
+    };
+  }
+
+  const jsonKeys = new Set(Object.keys(jsonObj));
+  const templateKeys = new Set(Object.keys(templateObj));
+
+  if (jsonKeys.size !== templateKeys.size) {
+    if (Math.abs(jsonKeys.size - templateKeys.size) > diffThreshold) {
+      return {
+        status: false,
+        message:
+          "Configuration does not match template: Number of keys differ.",
+      };
+    }
+  }
+
+  for (const key of templateKeys) {
+    if (!jsonKeys.has(key)) {
+      return {
+        status: false,
+        message: `Configuration does not match template: Missing key '${key}' in configuration.`,
+      };
+    }
+
+    // If the value is an object, recursively validate
+    if (
+      typeof templateObj[key] === "object" &&
+      templateObj[key] !== null &&
+      !Array.isArray(templateObj[key])
+    ) {
+      const result = isValidConfig(jsonObj[key], templateObj[key]);
+      if (!result.status) {
+        return {
+          status: false,
+          message: `Configuration error in nested key '${key}': ${result.message}`,
+        };
+      }
+    }
+  }
+
+  return {
+    status: true,
+    message: "Configuration is valid.",
+  };
+};

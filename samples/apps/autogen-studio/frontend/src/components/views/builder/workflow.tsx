@@ -1,5 +1,6 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -310,13 +311,51 @@ const WorkflowView = ({}: any) => {
         </div>
       ),
     },
+    {
+      type: "divider",
+    },
+    {
+      key: "uploadworkflow",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Workflow
+        </div>
+      ),
+    },
   ];
 
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    const newConfig = sampleWorkflowConfig(key);
-
-    setNewWorkflow(newConfig);
-    setShowNewWorkflowModal(true);
+    if (key === "uploadworkflow") {
+      // upload workflow
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = (e: any) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const text = e.target?.result;
+          if (text) {
+            try {
+              const workflow = JSON.parse(text as string);
+              // TBD validate that it is a valid workflow
+              setNewWorkflow(workflow);
+              setShowNewWorkflowModal(true);
+            } catch (err) {
+              message.error("Invalid workflow file");
+            }
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+      return;
+    } else {
+      const newConfig = sampleWorkflowConfig(key);
+      setNewWorkflow(newConfig);
+      setShowNewWorkflowModal(true);
+    }
   };
 
   return (
