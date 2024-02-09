@@ -66,7 +66,7 @@ def main(args):
     excel_path = parsed_args.excel
 
     if excel_path:
-        excel_dir = os.path.dirname(excel_path)
+        excel_dir = os.path.dirname(excel_path) or "."
         if not os.path.exists(excel_dir):
             os.makedirs(excel_dir, exist_ok=True)
 
@@ -153,15 +153,29 @@ def main(args):
                         "num_of_llm_requests": len(telemetry_df),
                         "num_of_chat_messages": num_of_chat_messages,
                         "prompt_tokens": telemetry_df["response"]
-                        .apply(lambda x: json.loads(x)["usage"]["prompt_tokens"])
+                        .apply(
+                            lambda x: json.loads(x)["usage"]["prompt_tokens"]
+                            if "usage" in json.loads(x) and "prompt_tokens" in json.loads(x)["usage"]
+                            else 0
+                        )
                         .sum(),
                         "completion_tokens": telemetry_df["response"]
-                        .apply(lambda x: json.loads(x)["usage"]["completion_tokens"])
+                        .apply(
+                            lambda x: json.loads(x)["usage"]["completion_tokens"]
+                            if "usage" in json.loads(x) and "completion_tokens" in json.loads(x)["usage"]
+                            else 0
+                        )
                         .sum(),
                         "total_tokens": telemetry_df["response"]
-                        .apply(lambda x: json.loads(x)["usage"]["total_tokens"])
+                        .apply(
+                            lambda x: json.loads(x)["usage"]["total_tokens"]
+                            if "usage" in json.loads(x) and "total_tokens" in json.loads(x)["usage"]
+                            else 0
+                        )
                         .sum(),
-                        "model": telemetry_df["response"].apply(lambda x: json.loads(x)["model"]).unique(),
+                        "model": telemetry_df["response"]
+                        .apply(lambda x: json.loads(x)["model"] if "model" in json.loads(x) else "")
+                        .unique(),
                     }
 
                     result_df = result_df.astype(result_df_type_mapping)
