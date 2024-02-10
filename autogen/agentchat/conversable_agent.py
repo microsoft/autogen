@@ -267,6 +267,63 @@ class ConversableAgent(Agent):
         if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
+    @staticmethod
+    def simple_chat_reply(chat_queue, recipient, messages, sender, config):
+        msg_content = messages[-1].get("content", "")
+        if not msg_content:
+            return True, None
+        else:
+            # TODO: how to handle message if there are multiple chats (doing this for the first chat for now)
+            c = chat_queue[0]
+            c["message"] = msg_content
+            chat_queue[0] = c
+            res = recipient.initiate_chats(chat_queue)
+            last_res = list(res.values())[-1]
+            return True, last_res.summary
+
+    def register_nested_chats(
+        self,
+        trigger,
+        chat_queue,
+        chat_reply_func="auto",
+        position: int = 3,
+        config: Optional[Any] = None,
+        reset_config: Optional[Callable] = None,
+        *,
+        ignore_async_in_sync_chat: bool = False,
+    ):
+        """Register a nested chat reply function.
+        Args:
+            trigger (Agent class, str, Agent instance, callable, or list): Ref to `register_reply` for details.
+            chat_queue (list): a list of chat objects to be initiated.
+            chat_reply_func (Callable, str): the reply function for the nested chat.
+                The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
+                Default to `auto`, which means the a pre-defined reply function will be used.
+            ```python
+            def chat_reply_func(
+                chat_queue: List[Dict],
+                recipient: ConversableAgent,
+                messages: Optional[List[Dict]] = None,
+                sender: Optional[Agent] = None,
+                config: Optional[Any] = None,
+            ) -> Tuple[bool, Union[str, Dict, None]]:
+            ```
+            position (int): Ref to `register_reply` for details.
+            config: Ref to `register_reply` for details.
+            reset_config: Ref to `register_reply` for details.
+            ignore_async_in_sync_chat: Ref to `register_reply` for details.
+        """
+        from functools import partial
+
+        if chat_reply_func == "auto":
+            chat_reply_func = self.simple_chat_reply
+        assert callable(chat_reply_func), "chat_reply_func must be a callable"
+
+        reply_func = partial(chat_reply_func, chat_queue)
+        self.register_reply(
+            trigger, reply_func, position, config, reset_config, ignore_async_in_sync_chat=ignore_async_in_sync_chat
+        )
+
     @property
     def system_message(self) -> Union[str, List]:
         """Return the system message."""
@@ -899,8 +956,8 @@ class ConversableAgent(Agent):
             assert "recipient" in chat_info, "recipient must be provided."
             receipts_set.add(chat_info["recipient"])
         assert len(receipts_set) == len(chat_queue), "recipients must be different."
-
-        self._chat_queue = chat_queue
+        self._chat_queue = chat_queue.copy()
+        # self._chat_queue = chat_queue
         self._finished_chats = {}
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
@@ -1530,12 +1587,12 @@ class ConversableAgent(Agent):
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
-                continue
-            if inspect.iscoroutinefunction(reply_func):
-                continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                print("ssssss", reply_func)
+                x = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                print("ssssssxxxxx", x)
+                final, reply = x
+                # final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
                     return reply
         return self._default_auto_reply
