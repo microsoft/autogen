@@ -93,6 +93,7 @@ jobs:
       env:
         AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet'
     - name: Publish nightly package to github package when from main branch
       run: |
         echo "Publish nightly package to github package"
