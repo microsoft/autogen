@@ -2,7 +2,7 @@ name: run-openai-test-and-notebooks
 
 on:
   pull_request_target:
-    branches: [ "main" ]
+    branches: [ "main", "dotnet" ]
     paths:
       - 'dotnet/**'
 env:
