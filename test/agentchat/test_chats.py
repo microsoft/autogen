@@ -5,9 +5,26 @@ import pytest
 from conftest import skip_openai
 import autogen
 from typing import Literal
-
-from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+
+
+def test_chat_messages_for_summary():
+    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER")
+    user = UserProxyAgent(name="user", human_input_mode="NEVER")
+    user.send("What is the capital of France?", assistant)
+    messages = assistant.chat_messages_for_summary(user)
+    assert len(messages) == 1
+
+    groupchat = GroupChat(agents=[user, assistant], messages=[], max_round=2)
+    manager = GroupChatManager(groupchat=groupchat, name="manager", llm_config=False)
+    user.initiate_chat(manager, message="What is the capital of France?")
+    messages = manager.chat_messages_for_summary(user)
+    assert len(messages) == 2
+
+    messages = user.chat_messages_for_summary(manager)
+    assert len(messages) == 2
+    messages = assistant.chat_messages_for_summary(manager)
+    assert len(messages) == 2
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
@@ -266,4 +283,5 @@ def test_chats_w_func():
 if __name__ == "__main__":
     # test_chats()
     # test_chats_group()
-    test_chats_w_func()
+    # test_chats_w_func()
+    test_chat_messages_for_summary()

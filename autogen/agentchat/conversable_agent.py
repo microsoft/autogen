@@ -194,7 +194,7 @@ class ConversableAgent(Agent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+        self.hook_lists = {self.process_last_message: [], self.process_all_messages: []}
 
     def register_reply(
         self,
@@ -360,6 +360,10 @@ class ConversableAgent(Agent):
         """A dictionary of conversations from agent to list of messages."""
         return self._oai_messages
 
+    def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
+        """A list of messages as a conversation to summarize."""
+        return self._oai_messages[agent]
+
     def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
         """The last message exchanged with the agent.
 
@@ -506,7 +510,7 @@ class ConversableAgent(Agent):
             ValueError: if the message can't be converted into a valid ChatCompletion message.
 
         Returns:
-            ChatResult: an ChatResult object.
+            ChatResult: a ChatResult object.
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -883,7 +887,7 @@ class ConversableAgent(Agent):
             prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
-            msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
+            msg_list = agent.chat_messages_for_summary(self)
             try:
                 summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
@@ -1581,6 +1585,10 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # Call the hookable method that gives registered hooks a chance to process all messages.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_all_messages(messages)
+
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = self.process_last_message(messages)
@@ -1636,6 +1644,10 @@ class ConversableAgent(Agent):
 
         if messages is None:
             messages = self._oai_messages[sender]
+
+        # Call the hookable method that gives registered hooks a chance to process all messages.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_all_messages(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
@@ -2263,6 +2275,21 @@ class ConversableAgent(Agent):
         hook_list = self.hook_lists[hookable_method]
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
+
+    def process_all_messages(self, messages: List[Dict]) -> List[Dict]:
+        """
+        Calls any registered capability hooks to process all messages, potentially modifying the messages.
+        """
+        hook_list = self.hook_lists[self.process_all_messages]
+        # If no hooks are registered, or if there are no messages to process, return the original message list.
+        if len(hook_list) == 0 or messages is None:
+            return messages
+
+        # Call each hook (in order of registration) to process the messages.
+        processed_messages = messages
+        for hook in hook_list:
+            processed_messages = hook(processed_messages)
+        return processed_messages
 
     def process_last_message(self, messages):
         """
