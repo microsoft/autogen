@@ -60,10 +60,13 @@ def read_text_from_docx(file_path: str) -> str:
     return text
 
 
-@FunctionWithRequirements(python_packages=["pillow", "requests", "easyocr"])
+@FunctionWithRequirements(python_packages=["easyocr"])
 def read_text_from_image(file_path: str) -> str:
     """
     Reads text from an image file or URL and returns it as a string.
+
+    Warning: EasyOCR requires torch, which is slow to download and install.
+    TODO: is there a better way to handle large dependencies?
 
     Args:
         file_path (str): The path to the image file or URL.
@@ -71,25 +74,13 @@ def read_text_from_image(file_path: str) -> str:
     Returns:
         str: The extracted text from the image file or URL.
     """
-    import io
-    import requests
     import easyocr
-    from PIL import Image
 
     reader = easyocr.Reader(["en"])  # specify the language(s)
-
-    if file_path.startswith("http://") or file_path.startswith("https://"):
-        response = requests.get(file_path)
-        image = Image.open(io.BytesIO(response.content))
-    else:
-        image = Image.open(file_path)
-
-    output = reader.readtext(image)
-
+    output = reader.readtext(file_path)
     # The output is a list of tuples, each containing the coordinates of the text and the text itself.
     # We join all the text pieces together to get the final text.
     text = " ".join([item[1] for item in output])
-
     return text
 
 
@@ -109,15 +100,22 @@ def read_text_from_pptx(file_path: str) -> str:
     presentation = Presentation(file_path)
     text = ""
 
+    slide_num = 0
     for slide in presentation.slides:
+        slide_num += 1
+
+        text += f"\n\n<!-- Slide number: {slide_num} -->\n"
+
         for shape in slide.shapes:
             if shape.has_text_frame:
-                text += shape.text
+                text += shape.text + " "
+
+        text = text.strip()
 
     return text
 
 
-@FunctionWithRequirements(python_packages=["pandas"])
+@FunctionWithRequirements(python_packages=["pandas", "openpyxl"])
 def read_text_from_xlsx(file_path: str) -> str:
     """
     Reads text from an Excel file and returns it as a string.
@@ -136,7 +134,7 @@ def read_text_from_xlsx(file_path: str) -> str:
     return text
 
 
-@FunctionWithRequirements(python_packages=["speechrecognition", "requests"])
+@FunctionWithRequirements(python_packages=["speechrecognition", "requests", "pydub"])
 def read_text_from_audio(file_path: str) -> str:
     """
     Reads text from an audio file or a URL and returns it as a string.
@@ -183,6 +181,7 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
         str: The caption generated for the image.
     """
     import os
+    import base64
     import openai
     from openai import OpenAI
 
@@ -192,10 +191,20 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
     openai.api_key = os.environ["OPENAI_API_KEY"]
     client = OpenAI()
 
-    # check if the file_path_or_url is a URL
-    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
-        image_url = file_path_or_url
+    # check if the file_path_or_url is a local file that exists
+    if os.path.exists(file_path_or_url):
+        image_path = file_path_or_url
+        with open(image_path, "rb") as image_file:
+            image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+            file_path_or_url = f"data:image/jpeg;base64,{image_base64}"
 
+    # check if the file_path_or_url is a URL
+    if (
+        file_path_or_url.startswith("http://")
+        or file_path_or_url.startswith("https://")
+        or file_path_or_url.startswith("data:")
+    ):
+        image_url = file_path_or_url
         response = client.chat.completions.create(
             model="gpt-4-vision-preview",
             messages=[
@@ -216,5 +225,5 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
         )
         caption = response.choices[0].message.content
     else:
-        caption = "Please provide a valid image URL"
+        raise ValueError("Invalid file path or URL")
     return caption
