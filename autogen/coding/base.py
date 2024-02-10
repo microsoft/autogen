@@ -8,7 +8,7 @@ __all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor")
 
 
 class CodeBlock(BaseModel):
-    """A class that represents a code block."""
+    """(Experimental) A class that represents a code block."""
 
     code: str = Field(description="The code to execute.")
 
@@ -16,7 +16,7 @@ class CodeBlock(BaseModel):
 
 
 class CodeResult(BaseModel):
-    """A class that represents the result of a code execution."""
+    """(Experimental) A class that represents the result of a code execution."""
 
     exit_code: int = Field(description="The exit code of the code execution.")
 
@@ -24,10 +24,10 @@ class CodeResult(BaseModel):
 
 
 class CodeExtractor(Protocol):
-    """A code extractor class that extracts code blocks from a message."""
+    """(Experimental) A code extractor class that extracts code blocks from a message."""
 
     def extract_code_blocks(self, message: Union[str, List[Dict[str, Any]], None]) -> List[CodeBlock]:
-        """Extract code blocks from a message.
+        """(Experimental) Extract code blocks from a message.
 
         Args:
             message (str): The message to extract code blocks from.
@@ -40,17 +40,17 @@ class CodeExtractor(Protocol):
 
 @runtime_checkable
 class CodeExecutor(Protocol):
-    """A code executor class that executes code blocks and returns the result."""
+    """(Experimental) A code executor class that executes code blocks and returns the result."""
 
     class UserCapability(Protocol):
-        """An AgentCapability class that gives agent ability use this code executor."""
+        """(Experimental) An AgentCapability class that gives agent ability use this code executor."""
 
         def add_to_agent(self, agent: LLMAgent) -> None:
             ...  # pragma: no cover
 
     @property
     def user_capability(self) -> "CodeExecutor.UserCapability":
-        """Capability to use this code executor.
+        """(Experimental) Capability to use this code executor.
 
         The exported capability can be added to an agent to allow it to use this
         code executor:
@@ -68,11 +68,11 @@ class CodeExecutor(Protocol):
 
     @property
     def code_extractor(self) -> CodeExtractor:
-        """The code extractor used by this code executor."""
+        """(Experimental) The code extractor used by this code executor."""
         ...  # pragma: no cover
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CodeResult:
-        """Execute code blocks and return the result.
+        """(Experimental) Execute code blocks and return the result.
 
         This method should be implemented by the code executor.
 
@@ -85,7 +85,7 @@ class CodeExecutor(Protocol):
         ...  # pragma: no cover
 
     def restart(self) -> None:
-        """Restart the code executor.
+        """(Experimental) Restart the code executor.
 
         This method should be implemented by the code executor.
 

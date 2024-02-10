@@ -18,7 +18,7 @@ __all__ = ("EmbeddedIPythonCodeExecutor",)
 
 
 class IPythonCodeResult(CodeResult):
-    """A code result class for IPython code executor."""
+    """(Experimental) A code result class for IPython code executor."""
 
     output_files: List[str] = Field(
         default_factory=list,
@@ -27,7 +27,7 @@ class IPythonCodeResult(CodeResult):
 
 
 class EmbeddedIPythonCodeExecutor(BaseModel):
-    """A code executor class that executes code statefully using an embedded
+    """(Experimental) A code executor class that executes code statefully using an embedded
     IPython kernel managed by this class.
 
     **This will execute LLM generated code on the local machine.**
@@ -85,7 +85,7 @@ the output will be a path to the image instead of the image itself.
     )
 
     class UserCapability:
-        """An AgentCapability class that gives agent ability use a stateful
+        """(Experimental) An AgentCapability class that gives agent ability use a stateful
         IPython code executor. This capability can be added to an agent using
         the `add_to_agent` method which append a system message update to the
         agent's system message."""
@@ -129,17 +129,17 @@ the output will be a path to the image instead of the image itself.
 
     @property
     def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
-        """Export a user capability for this executor that can be added to
+        """(Experimental) Export a user capability for this executor that can be added to
         an agent using the `add_to_agent` method."""
         return EmbeddedIPythonCodeExecutor.UserCapability(self.system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
-        """Export a code extractor that can be used by an agent."""
+        """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
-        """Execute a list of code blocks and return the result.
+        """(Experimental) Execute a list of code blocks and return the result.
 
         This method executes a list of code blocks as cells in an IPython kernel
         managed by this class.
@@ -204,7 +204,7 @@ the output will be a path to the image instead of the image itself.
         )
 
     def restart(self) -> None:
-        """Restart a new session."""
+        """(Experimental) Restart a new session."""
         self._kernel_client.stop_channels()
         self._kernel_manager.shutdown_kernel()
         self._kernel_manager = KernelManager(kernel_name=self.kernel_name)
