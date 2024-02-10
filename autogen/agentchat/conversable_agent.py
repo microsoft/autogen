@@ -6,14 +6,16 @@ import json
 import logging
 import re
 from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
+
+from ..coding.base import CodeExecutor
+from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
 from ..cache.cache import Cache
 from ..code_utils import (
-    DEFAULT_MODEL,
     UNKNOWN,
     content_str,
     check_can_use_docker_or_throw,
@@ -27,7 +29,7 @@ from .chat import ChatResult
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
-from .agent import Agent
+from .agent import Agent, LLMAgent
 from .._pydantic import model_dump
 
 try:
@@ -45,7 +47,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-class ConversableAgent(Agent):
+class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
     After receiving each message, the agent will send a reply to the sender unless the msg is a termination msg.
@@ -122,11 +124,11 @@ class ConversableAgent(Agent):
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
-        super().__init__(name)
+        self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
-        self.description = description if description is not None else system_message
+        self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
@@ -144,23 +146,6 @@ class ConversableAgent(Agent):
 
         # Initialize standalone client cache object.
         self.client_cache = None
-
-        if code_execution_config is None:
-            warnings.warn(
-                "Using None to signal a default code_execution_config is deprecated. "
-                "Use {} to use default or False to disable code execution.",
-                stacklevel=2,
-            )
-
-        self._code_execution_config: Union[Dict, Literal[False]] = (
-            {} if code_execution_config is None else code_execution_config
-        )
-
-        if isinstance(self._code_execution_config, dict):
-            use_docker = self._code_execution_config.get("use_docker", None)
-            use_docker = decide_use_docker(use_docker)
-            check_can_use_docker_or_throw(use_docker)
-            self._code_execution_config["use_docker"] = use_docker
 
         self.human_input_mode = human_input_mode
         self._max_consecutive_auto_reply = (
@@ -180,7 +165,39 @@ class ConversableAgent(Agent):
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_oai_reply, ignore_async_in_sync_chat=True)
-        self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+
+        # Setting up code execution.
+        # Do not register code execution reply if code execution is disabled.
+        if code_execution_config is not False:
+            # If code_execution_config is None, set it to an empty dict.
+            if code_execution_config is None:
+                warnings.warn(
+                    "Using None to signal a default code_execution_config is deprecated. "
+                    "Use {} to use default or False to disable code execution.",
+                    stacklevel=2,
+                )
+                code_execution_config = {}
+            if not isinstance(code_execution_config, dict):
+                raise ValueError("code_execution_config must be a dict or False.")
+
+            # We have got a valid code_execution_config.
+            self._code_execution_config = code_execution_config
+
+            if self._code_execution_config.get("executor") is not None:
+                # Use the new code executor.
+                self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
+                self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
+            else:
+                # Legacy code execution using code_utils.
+                use_docker = self._code_execution_config.get("use_docker", None)
+                use_docker = decide_use_docker(use_docker)
+                check_can_use_docker_or_throw(use_docker)
+                self._code_execution_config["use_docker"] = use_docker
+                self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        else:
+            # Code execution is disabled.
+            self._code_execution_config = False
+
         self.register_reply([Agent, None], ConversableAgent.generate_tool_calls_reply)
         self.register_reply([Agent, None], ConversableAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
@@ -194,7 +211,32 @@ class ConversableAgent(Agent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: []}  # This is currently the only hookable method.
+        self.hook_lists = {self.process_last_message: [], self.process_all_messages: []}
+
+    @property
+    def name(self) -> str:
+        """Get the name of the agent."""
+        return self._name
+
+    @property
+    def description(self) -> str:
+        """Get the description of the agent."""
+        return self._description
+
+    @description.setter
+    def description(self, description: str):
+        """Set the description of the agent."""
+        self._description = description
+
+    @property
+    def code_executor(self) -> CodeExecutor:
+        """The code executor used by this agent. Raise if code execution is disabled."""
+        if not hasattr(self, "_code_executor"):
+            raise ValueError(
+                "No code executor as code execution is disabled. "
+                "To enable code execution, set code_execution_config."
+            )
+        return self._code_executor
 
     def register_reply(
         self,
@@ -268,15 +310,15 @@ class ConversableAgent(Agent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @property
-    def system_message(self) -> Union[str, List]:
+    def system_message(self) -> str:
         """Return the system message."""
         return self._oai_system_message[0]["content"]
 
-    def update_system_message(self, system_message: Union[str, List]):
+    def update_system_message(self, system_message: str) -> None:
         """Update the system message.
 
         Args:
-            system_message (str or List): system message for the ChatCompletion inference.
+            system_message (str): system message for the ChatCompletion inference.
         """
         self._oai_system_message[0]["content"] = system_message
 
@@ -302,6 +344,10 @@ class ConversableAgent(Agent):
     def chat_messages(self) -> Dict[Agent, List[Dict]]:
         """A dictionary of conversations from agent to list of messages."""
         return self._oai_messages
+
+    def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
+        """A list of messages as a conversation to summarize."""
+        return self._oai_messages[agent]
 
     def last_message(self, agent: Optional[Agent] = None) -> Optional[Dict]:
         """The last message exchanged with the agent.
@@ -449,7 +495,7 @@ class ConversableAgent(Agent):
             ValueError: if the message can't be converted into a valid ChatCompletion message.
 
         Returns:
-            ChatResult: an ChatResult object.
+            ChatResult: a ChatResult object.
         """
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
@@ -826,7 +872,7 @@ class ConversableAgent(Agent):
             prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
-            msg_list = agent._groupchat.messages if hasattr(agent, "_groupchat") else agent.chat_messages[self]
+            msg_list = agent.chat_messages_for_summary(self)
             try:
                 summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
@@ -1057,6 +1103,54 @@ class ConversableAgent(Agent):
         return await asyncio.get_event_loop().run_in_executor(
             None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
         )
+
+    def _generate_code_execution_reply_using_executor(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Union[Dict, Literal[False]]] = None,
+    ):
+        """Generate a reply using code executor."""
+        if config is not None:
+            raise ValueError("config is not supported for _generate_code_execution_reply_using_executor.")
+        if self._code_execution_config is False:
+            return False, None
+        if messages is None:
+            messages = self._oai_messages[sender]
+        last_n_messages = self._code_execution_config.get("last_n_messages", "auto")
+
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+
+        num_messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            # Find when the agent last spoke
+            num_messages_to_scan = 0
+            for message in reversed(messages):
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    num_messages_to_scan += 1
+        num_messages_to_scan = min(len(messages), num_messages_to_scan)
+        messages_to_scan = messages[-num_messages_to_scan:]
+
+        # iterate through the last n messages in reverse
+        # if code blocks are found, execute the code blocks and return the output
+        # if no code blocks are found, continue
+        for message in reversed(messages_to_scan):
+            if not message["content"]:
+                continue
+            code_blocks = self._code_executor.code_extractor.extract_code_blocks(message["content"])
+            if len(code_blocks) == 0:
+                continue
+            # found code blocks, execute code.
+            code_result = self._code_executor.execute_code_blocks(code_blocks)
+            exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
+            return True, f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+
+        return False, None
 
     def generate_code_execution_reply(
         self,
@@ -1486,9 +1580,9 @@ class ConversableAgent(Agent):
 
     def generate_reply(
         self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        **kwargs: Any,
     ) -> Union[str, Dict, None]:
         """Reply based on the conversation history and the sender.
 
@@ -1509,9 +1603,10 @@ class ConversableAgent(Agent):
 
         Args:
             messages: a list of messages in the conversation history.
-            default_reply (str or dict): default reply.
             sender: sender of an Agent instance.
-            exclude: a list of functions to exclude.
+
+        Additional keyword arguments:
+            exclude (List[Callable]): a list of reply functions to be excluded.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
@@ -1524,13 +1619,17 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # Call the hookable method that gives registered hooks a chance to process all messages.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_all_messages(messages)
+
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = self.process_last_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
+            if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
             if inspect.iscoroutinefunction(reply_func):
                 continue
@@ -1542,10 +1641,10 @@ class ConversableAgent(Agent):
 
     async def a_generate_reply(
         self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        exclude: Optional[List[Callable]] = None,
-    ) -> Union[str, Dict, None]:
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        **kwargs: Any,
+    ) -> Union[str, Dict[str, Any], None]:
         """(async) Reply based on the conversation history and the sender.
 
         Either messages or sender must be provided.
@@ -1565,9 +1664,10 @@ class ConversableAgent(Agent):
 
         Args:
             messages: a list of messages in the conversation history.
-            default_reply (str or dict): default reply.
             sender: sender of an Agent instance.
-            exclude: a list of functions to exclude.
+
+        Additional keyword arguments:
+            exclude (List[Callable]): a list of reply functions to be excluded.
 
         Returns:
             str or dict or None: reply. None if no reply is generated.
@@ -1580,13 +1680,17 @@ class ConversableAgent(Agent):
         if messages is None:
             messages = self._oai_messages[sender]
 
+        # Call the hookable method that gives registered hooks a chance to process all messages.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_all_messages(messages)
+
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = self.process_last_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
-            if exclude and reply_func in exclude:
+            if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
@@ -2206,6 +2310,21 @@ class ConversableAgent(Agent):
         hook_list = self.hook_lists[hookable_method]
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
+
+    def process_all_messages(self, messages: List[Dict]) -> List[Dict]:
+        """
+        Calls any registered capability hooks to process all messages, potentially modifying the messages.
+        """
+        hook_list = self.hook_lists[self.process_all_messages]
+        # If no hooks are registered, or if there are no messages to process, return the original message list.
+        if len(hook_list) == 0 or messages is None:
+            return messages
+
+        # Call each hook (in order of registration) to process the messages.
+        processed_messages = messages
+        for hook in hook_list:
+            processed_messages = hook(processed_messages)
+        return processed_messages
 
     def process_last_message(self, messages):
         """

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import autogen
-from autogen.agentchat.agent import Agent
+from autogen.agentchat.conversable_agent import ConversableAgent
 
 try:
     from autogen.agentchat.contrib.img_utils import get_pil_image
@@ -79,7 +79,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
         self.assertDictEqual(self.agent._message_to_dict(message_dict), message_dict)
 
     def test_print_received_message(self):
-        sender = Agent(name="SenderAgent")
+        sender = ConversableAgent(name="SenderAgent", llm_config=False, code_execution_config=False)
         message_str = "Hello"
         self.agent._print_received_message = MagicMock()  # Mocking print method to avoid actual print
         self.agent._print_received_message(message_str, sender)
