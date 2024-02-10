@@ -286,7 +286,7 @@ class ConversableAgent(Agent):
         trigger,
         chat_queue,
         chat_reply_func="auto",
-        position: int = 3,
+        position: int = 2,
         config: Optional[Any] = None,
         reset_config: Optional[Callable] = None,
         *,
@@ -308,7 +308,7 @@ class ConversableAgent(Agent):
                 config: Optional[Any] = None,
             ) -> Tuple[bool, Union[str, Dict, None]]:
             ```
-            position (int): Ref to `register_reply` for details.
+            position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
             config: Ref to `register_reply` for details.
             reset_config: Ref to `register_reply` for details.
             ignore_async_in_sync_chat: Ref to `register_reply` for details.
@@ -961,7 +961,6 @@ class ConversableAgent(Agent):
             receipts_set.add(chat_info["recipient"])
         assert len(receipts_set) == len(chat_queue), "recipients must be different."
         self._chat_queue = chat_queue.copy()
-        # self._chat_queue = chat_queue
         self._finished_chats = {}
         while self._chat_queue:
             chat_info = self._chat_queue.pop(0)
@@ -1595,12 +1594,12 @@ class ConversableAgent(Agent):
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
+            if exclude and reply_func in exclude:
+                continue
+            if inspect.iscoroutinefunction(reply_func):
+                continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                print("ssssss", reply_func)
-                x = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
-                print("ssssssxxxxx", x)
-                final, reply = x
-                # final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
                     return reply
         return self._default_auto_reply
