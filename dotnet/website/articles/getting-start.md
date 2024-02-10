@@ -48,12 +48,6 @@ var userProxyAgent = new UserProxyAgent(
     humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
     .RegisterPrintFormatMessageHook();
 
-// set human input mode to ALWAYS so that user always provide input
-var userProxyAgent = new UserProxyAgent(
-    name: "user",
-    humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
-    .RegisterPrintFormatMessageHook();
-
 // start the conversation
 await userProxyAgent.InitiateChatAsync(
     receiver: assistantAgent,
