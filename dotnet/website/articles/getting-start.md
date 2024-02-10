@@ -3,7 +3,13 @@
 [![dotnet-ci](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml)
 
 #### Get start with AutoGen for dotnet
-First, add the following to your project file:
+Firstly, select one of the following package feed to consume AutoGen packages:
+- [Public, PAT token required] Github package feed: https://nuget.pkg.github.com/microsoft/index.json
+- [Public] Myget feed:  https://www.myget.org/F/agentchat/api/v3/index.json
+- [Internal] Azure Devops feed: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+
+
+Then, add the following to your project file:
 ```xml
 <ItemGroup>
     <PackageReference Include="AutoGen" />
@@ -16,8 +22,6 @@ First, add the following to your project file:
     <PackageReference Include="AutoGen.DotnetInteractive" />
 </ItemGroup>
 ```
-
-> Nightly Build feed: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
 
 Then, start using AutoGen in your code:
 
