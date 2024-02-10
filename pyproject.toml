@@ -41,7 +41,10 @@ exclude = [
     "_build",
     "build",
     "dist",
-    "docs"
+    "docs",
+     # This file needs to be either upgraded or removed and therefore should be
+    # ignore from type checking for now
+    "math_utils\\.py$",
 ]
 ignore-init-module-imports = true
 unfixable = ["F401"]
@@ -75,9 +78,3 @@ warn_unused_ignores = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = true
-
-exclude = [
-    # This file needs to be either upgraded or removed and therefore should be
-    # ignore from type checking for now
-    "math_utils\\.py$",
-]
