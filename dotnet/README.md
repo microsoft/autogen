@@ -1,11 +1,15 @@
-### AutoGen for dotnet
+### AutoGen for .NET
 
 [![dotnet-ci](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml)
 
-Official dotnet implementation for AutoGen.
-
 #### Get start with AutoGen for dotnet
-First, add the following to your project file:
+Firstly, select one of the following package feed to consume AutoGen packages:
+- [Public, PAT token required] Github package feed: https://nuget.pkg.github.com/microsoft/index.json
+- [Public] Myget feed:  https://www.myget.org/F/agentchat/api/v3/index.json
+- [Internal] Azure Devops feed: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+
+
+Then, add the following to your project file:
 ```xml
 <ItemGroup>
     <PackageReference Include="AutoGen" />
@@ -19,27 +23,23 @@ First, add the following to your project file:
 </ItemGroup>
 ```
 
-> Nightly Build feed: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
-
 Then, start using AutoGen in your code:
 
 ```csharp
 using AutoGen;
-
-namespace Example;
+using AutoGen.OpenAI;
 
 var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
-var config = new ConversableAgentConfig
-{
-    Temperature = 0,
-    ConfigList = llmConfig,
-};
+var gpt35Config = new OpenAIConfig(openAIKey, "gpt-3.5-turbo");
 
 var assistantAgent = new AssistantAgent(
     name: "assistant",
     systemMessage: "You are an assistant that help user to do some tasks.",
-    llmConfig: config)
+    llmConfig: new ConversableAgentConfig
+    {
+        Temperature = 0,
+        ConfigList = [gpt35Config],
+    })
     .RegisterPrintFormatMessageHook(); // register a hook to print message nicely to console
 
 // set human input mode to ALWAYS so that user always provide input
@@ -54,9 +54,6 @@ await userProxyAgent.InitiateChatAsync(
     message: "Hey assistant, please do me a favor.",
     maxRound: 10);
 ```
-
-For more examples, please check out the following projects:
-- [AutoGen.BasicSamples](sample/AutoGen.BasicSamples/)
 
 #### Functionality
 - ConversableAgent
