@@ -8,8 +8,7 @@ import uuid
 import mimetypes
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
+from typing import Any, Dict, List, Optional, Union, Tuple
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
@@ -33,20 +32,20 @@ class SimpleTextBrowser:
 
     def __init__(
         self,
-        start_page: Optional[str] = "about:blank",
+        start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
-        request_kwargs: Optional[Union[Dict, None]] = None,
+        request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
-        self.start_page = start_page
+        self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.downloads_folder = downloads_folder
-        self.history = list()
-        self.page_title = None
+        self.history: List[str] = list()
+        self.page_title: Optional[str] = None
         self.viewport_current_page = 0
-        self.viewport_pages = list()
-        self.set_address(start_page)
+        self.viewport_pages: List[Tuple[int, int]] = list()
+        self.set_address(self.start_page)
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
 
@@ -57,7 +56,7 @@ class SimpleTextBrowser:
         """Return the address of the current page."""
         return self.history[-1]
 
-    def set_address(self, uri_or_path):
+    def set_address(self, uri_or_path: str) -> None:
         self.history.append(uri_or_path)
 
         # Handle special URIs
@@ -84,25 +83,25 @@ class SimpleTextBrowser:
         """Return the full contents of the current page."""
         return self._page_content
 
-    def _set_page_content(self, content) -> str:
+    def _set_page_content(self, content: str) -> None:
         """Sets the text content of the current page."""
         self._page_content = content
         self._split_pages()
         if self.viewport_current_page >= len(self.viewport_pages):
             self.viewport_current_page = len(self.viewport_pages) - 1
 
-    def page_down(self):
+    def page_down(self) -> None:
         self.viewport_current_page = min(self.viewport_current_page + 1, len(self.viewport_pages) - 1)
 
-    def page_up(self):
+    def page_up(self) -> None:
         self.viewport_current_page = max(self.viewport_current_page - 1, 0)
 
-    def visit_page(self, path_or_uri):
+    def visit_page(self, path_or_uri: str) -> str:
         """Update the address, visit the page, and return the content of the viewport."""
         self.set_address(path_or_uri)
         return self.viewport
 
-    def _split_pages(self):
+    def _split_pages(self) -> None:
         # Split only regular pages
         if not self.address.startswith("http:") and not self.address.startswith("https:"):
             self.viewport_pages = [(0, len(self._page_content))]
@@ -117,14 +116,14 @@ class SimpleTextBrowser:
         self.viewport_pages = []
         start_idx = 0
         while start_idx < len(self._page_content):
-            end_idx = min(start_idx + self.viewport_size, len(self._page_content))
+            end_idx = min(start_idx + self.viewport_size, len(self._page_content))  # type: ignore[operator]
             # Adjust to end on a space
             while end_idx < len(self._page_content) and self._page_content[end_idx - 1] not in [" ", "\t", "\r", "\n"]:
                 end_idx += 1
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _bing_api_call(self, query):
+    def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
         # Make sure the key was set
         if self.bing_api_key is None:
             raise ValueError("Missing Bing API key.")
@@ -149,12 +148,12 @@ class SimpleTextBrowser:
         response.raise_for_status()
         results = response.json()
 
-        return results
+        return results  # type: ignore[no-any-return]
 
-    def _bing_search(self, query):
+    def _bing_search(self, query: str) -> None:
         results = self._bing_api_call(query)
 
-        web_snippets = list()
+        web_snippets: List[str] = list()
         idx = 0
         for page in results["webPages"]["value"]:
             idx += 1
@@ -163,7 +162,7 @@ class SimpleTextBrowser:
                 for dl in page["deepLinks"]:
                     idx += 1
                     web_snippets.append(
-                        f"{idx}. [{dl['name']}]({dl['url']})\n{dl['snippet'] if 'snippet' in dl else ''}"
+                        f"{idx}. [{dl['name']}]({dl['url']})\n{dl['snippet'] if 'snippet' in dl else ''}"  # type: ignore[index]
                     )
 
         news_snippets = list()
@@ -182,7 +181,7 @@ class SimpleTextBrowser:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
         self._set_page_content(content)
 
-    def _fetch_page(self, url):
+    def _fetch_page(self, url: str) -> None:
         try:
             # Prepare the request parameters
             request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
