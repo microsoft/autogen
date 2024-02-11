@@ -100,7 +100,7 @@ class TransformChatHistory:
 
 def truncate_str_to_tokens(text: str, max_tokens: int) -> str:
     """
-    Truncate a string so that number of tokens in less than max_tokens.
+    Truncate a string so that number of tokens is less than max_tokens.
 
     Args:
         content: String to process.
@@ -109,9 +109,11 @@ def truncate_str_to_tokens(text: str, max_tokens: int) -> str:
     Returns:
         Truncated string.
     """
-    truncated_string = ""
-    for char in text:
-        truncated_string += char
-        if token_count_utils.count_token(truncated_string) == max_tokens:
-            break
-    return truncated_string
+
+    tokens = text.split()
+    for token_count in range(max_tokens, 0, -1):
+        truncated_text_tokens = tokens[:token_count]
+        actual_token_count = token_count_utils.count_token(" ".join(truncated_text_tokens))
+        if actual_token_count <= max_tokens:
+            return " ".join(truncated_text_tokens)
+    return ""  # Return empty string if no tokens are found
