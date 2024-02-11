@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sys
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
@@ -12,11 +11,8 @@ from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai import completion
-
-from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
-from autogen._pydantic import model_dump
 
 import autogen.telemetry
 
