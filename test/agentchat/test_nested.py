@@ -1,5 +1,6 @@
 import pytest
-from conftest import skip_openai
+
+# from conftest import skip_openai
 import autogen
 
 from pydantic import BaseModel, Field
@@ -11,7 +12,7 @@ import chess
 import chess.svg
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_nested():
     import autogen
 
@@ -81,13 +82,17 @@ def test_nested():
     user.initiate_chat(financial_assistant_1, message=financial_tasks[0])
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_nested_chess():
     config_list_gpt4 = autogen.config_list_from_json(
         "OAI_CONFIG_LIST",
     )
+    autogen.config_list_from_json(
+        "OAI_CONFIG_LIST",
+        filter_dict={"model": "gpt-35-turbo-1106"},
+    )
 
-    max_turn = 5
+    max_turn = 20
 
     sys_msg_tmpl = """Your name is {name} and you are a chess player.
     You are playing against {opponent_name}.
@@ -98,7 +103,8 @@ def test_nested_chess():
     Do not apologize for making illegal moves."""
 
     board_sysm_msg = """You are an AI-powered chess board agent.
-    You translate the user's natural language input into legal UCI moves.
+    You translate the user's natural language input into legal UCI moves. Note that the user's input may contain the
+    UCI move itself, or it may contain a natural language description of the move.
     You should only reply with a UCI move string extracted from the user's input."""
 
     color_white = "white"
@@ -125,6 +131,7 @@ def test_nested_chess():
         name="BoardAgent",
         system_message=board_sysm_msg,
         llm_config={"temperature": 0.0, "config_list": config_list_gpt4},
+        # llm_config={"config_list": config_list_gpt4},
         max_consecutive_auto_reply=max_turn,
     )
 
@@ -135,8 +142,7 @@ def test_nested_chess():
             opponent_name=black_player_name,
             color=color_white,
         ),
-        llm_config={"temperature": 0.5, "cache_seed": 1, "config_list": config_list_gpt4},
-        # llm_config={"config_list": config_list_gpt4},
+        llm_config={"config_list": config_list_gpt4},
         max_consecutive_auto_reply=max_turn,
     )
 
@@ -147,26 +153,22 @@ def test_nested_chess():
             opponent_name=white_player_name,
             color=color_black,
         ),
+        # llm_config={"temperature":1, "cache_seed": 1, "config_list": config_list_gpt35},
         llm_config={"config_list": config_list_gpt4},
+        # llm_config={"temperature":1, "cache_seed": 1, "config_list": config_list_gpt4},
         max_consecutive_auto_reply=max_turn,
     )
 
-    def player2board_reply(
-        recipient: Optional[autogen.Agent] = None,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[autogen.Agent] = None,
-        config: Optional[chess.Board] = None,
-    ):
+    def player2board_reply(recipient, messages, sender, config):
         board = config if config else ""
         # add a system message about the current state of the board.
+        board = sender.board
         board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
         last_message = messages[-1]
         if last_message["content"].startswith("Error"):
             # try again
-            # last_message["role"] = "system"
-            # return True,  messages + board_state_msg
-            # TODO: better way to handle this
             _, rep = recipient.generate_oai_reply(messages + board_state_msg, sender)
+            # rep = recipient.generate_reply(messages + board_state_msg, sender)
             return True, rep
         else:
             return True, None
@@ -175,39 +177,35 @@ def test_nested_chess():
         # TODO: better way to handle this
         if chat_queue[0]["recipient"].reply_num >= max_turn:
             return True, None
-        msg_content = messages[-1].get("content", "")
-        board = config
-        # if  msg_content.startswith("Error"):
-        if msg_content:
-            # TODO: how to handle message if there are multiple chats (doing this for the first chat for now)
-            c = chat_queue[0]
-            c["message"] = msg_content
-            c["carryover"] = f"Current board:\n{board}"  # NOTE: in the old code, this is added as system message
+        c = chat_queue[0]  # board = config
+        board = c["recipient"].board
+        board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
+        useful_msg = messages[-1].copy()
+        useful_msg["content"] = useful_msg.get("content", "") + f"The current board is:\n {board} ."
+        oai_messages = [messages[-1]]
+        # _, message = recipient.generate_oai_reply(messages + board_state_msg, sender)
+        _, message = recipient.generate_oai_reply(oai_messages + board_state_msg, sender)
+        c["message"] = message
+        # c["carryover"] = f"Current board:\n{board}"  # NOTE: in the old code, this is added as system message
+        chat_queue[0] = c
+        # print("nessss")
+        res = recipient.initiate_chats(chat_queue)
+        last_res = list(res.values())[-1]
+        # return True, message + "My Move is:\n" + last_res.summary
+        return True, last_res.summary
 
-            chat_queue[0] = c
-            res = recipient.initiate_chats(chat_queue)
-            last_res = list(res.values())[-1]
-            return True, last_res.summary
-        else:
-            return True, None
-
-    def board_reply(
-        recipient: Optional[autogen.Agent] = None,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[autogen.Agent] = None,
-        config: Optional[Any] = None,
-    ) -> Union[str, Dict, None]:
+    def board_reply(recipient, messages, sender, config):
         # print("resplyssss")
         if recipient.reply_num >= max_turn:
             return True, None
+        org_msg = messages[-1].copy()
         message = messages[-1]
         # extract a UCI move from player's message
         # TODO: better way to handle this
-        _, reply = recipient.generate_oai_reply(recipient.correct_move_messages[sender] + [message], sender)
-        # print("recipient.correct_move_messages[sender]", recipient.correct_move_messages[sender])
-        # reply = messages[-1]["content"]
+        message["content"] = "Extract a UCI move from the following message \n." + message.get("content", "")
+        _, reply = recipient.generate_oai_reply([message], sender)
+        # reply = recipient.generate_reply(recipient.correct_move_messages[sender] + [message], sender)
         uci_move = reply if isinstance(reply, str) else str(reply["content"])
-        # print(f"uci_movexxxxx: {uci_move}")
         recipient.update_reply_num()
         try:
             recipient.board.push_uci(uci_move)
@@ -228,26 +226,21 @@ def test_nested_chess():
             # better way to handle this
             recipient.set_correct_move_messages(sender, message, uci_move)
             recipient.correct_move_messages[sender][-1]["role"] = "assistant"
-            return True, uci_move
+            return True, org_msg.get("content", "")  # + "\n Move:" + uci_move
 
-    board_agent.register_reply(autogen.Agent, board_reply, 0, ignore_async_in_sync_chat=True)
+    board_agent.register_reply([white_player_name, black_player_name], board_reply, 0)
     player_white.register_nested_chats(
-        [autogen.Agent, None],
+        black_player_name,
         [{"recipient": board_agent, "summary_method": "last_msg"}],
         board_chat_func,
-        0,
-        ignore_async_in_sync_chat=True,
     )
     player_black.register_nested_chats(
-        [autogen.Agent, None],
+        white_player_name,
         [{"recipient": board_agent, "summary_method": "last_msg"}],
         board_chat_func,
-        0,
-        ignore_async_in_sync_chat=True,
     )
-    player_white.register_reply(BoardAgent, player2board_reply, ignore_async_in_sync_chat=True)
-    player_black.register_reply(BoardAgent, player2board_reply, ignore_async_in_sync_chat=True)
-
+    player_white.register_reply(BoardAgent, player2board_reply)
+    player_black.register_reply(BoardAgent, player2board_reply)
     player_white.initiate_chat(player_black, message="Your turn.")
 
 

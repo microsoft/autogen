@@ -185,6 +185,9 @@ def test_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
+    def my_last_msg(sender, receiver):
+        return receiver.last_message(sender)["content"].replace("TERMINATE", "")
+
     chat_res = user.initiate_chats(
         [
             {
@@ -192,7 +195,7 @@ def test_chats():
                 "message": financial_tasks[0],
                 "clear_history": True,
                 "silent": False,
-                "summary_method": "last_msg",
+                "summary_method": my_last_msg,
             },
             {
                 "recipient": financial_assistant_2,
@@ -281,7 +284,7 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    # test_chats()
+    test_chats()
     # test_chats_group()
     # test_chats_w_func()
-    test_chat_messages_for_summary()
+    # test_chat_messages_for_summary()

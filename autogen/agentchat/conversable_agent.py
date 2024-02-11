@@ -176,6 +176,7 @@ class ConversableAgent(Agent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self._ignore_async_func_in_sync_chat_list = []
+        self._exclude_reply_list = []
         self._human_input = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
@@ -274,9 +275,9 @@ class ConversableAgent(Agent):
             return True, None
         else:
             # TODO: how to handle message if there are multiple chats (doing this for the first chat for now)
-            c = chat_queue[0]
-            c["message"] = msg_content
-            chat_queue[0] = c
+            first_chat_info = chat_queue[0]
+            first_chat_info["message"] = msg_content + "\n" + first_chat_info.get("message", "")
+            chat_queue[0] = first_chat_info
             res = recipient.initiate_chats(chat_queue)
             last_res = list(res.values())[-1]
             return True, last_res.summary
@@ -323,6 +324,7 @@ class ConversableAgent(Agent):
         self.register_reply(
             trigger, reply_func, position, config, reset_config, ignore_async_in_sync_chat=ignore_async_in_sync_chat
         )
+        # self._exclude_reply_list.append(reply_func)
 
     @property
     def system_message(self) -> Union[str, List]:
@@ -874,7 +876,12 @@ class ConversableAgent(Agent):
         """Get a chat summary from an agent participating in a chat.
 
         Args:
-            method (str): the method to get the summary.
+            method (str or callable): the method to get the summary.
+                The callable method should take the agent as input and return a summary. E.g,
+                ```python
+                def get_summary(agent):
+                    return agent.last_message(agent)["content"]
+                ```
             agent: the participating agent in a chat.
             prompt (str): the prompt used to get a summary when summary_method is "reflection_with_llm".
 
@@ -897,6 +904,14 @@ class ConversableAgent(Agent):
                 summary = agent.last_message(self)["content"].replace("TERMINATE", "")
             except (IndexError, AttributeError) as e:
                 warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
+        elif isinstance(method, Callable):
+            print("methodxxxxxxxxx", method)
+            summary = method(self, agent)
+            print("susssss", summary)
+            # try:
+            #     summary = method(agent)
+            # except Exception as e:
+            #     warnings.warn(f"Cannot extract summary using the callable method: {e}", UserWarning)
         else:
             warnings.warn(f"Unsupported summary method: {method}", UserWarning)
         return summary
