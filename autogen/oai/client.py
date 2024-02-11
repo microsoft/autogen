@@ -356,10 +356,15 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                self._register_default_client(config, openai_config)  # could modify the config
-                self._config_list.append(
-                    {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
-                )
+                try:
+                    self._register_default_client(config, openai_config)  # could modify the config
+                except ValueError:
+                    config_model = config.get("model")
+                    logger.warning(f"Unable to register a default client for a model '{config_model}'.")
+                else:
+                    self._config_list.append(
+                        {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
+                    )
         else:
             self._register_default_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
