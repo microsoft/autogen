@@ -896,7 +896,9 @@ class ConversableAgent(LLMAgent):
         elif isinstance(summary_method, Callable):
             summary = summary_method(recipient, self)
         else:
-            warnings.warn(f"Unsupported summary method: {summary_method}. Returning an empty summary.", UserWarning)
+            warnings.warn(
+                f"Unsupported summary method: {summary_method}. Returning an empty string as a summary.", UserWarning
+            )
         return summary
 
     def _reflection_with_llm(
