@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
@@ -72,6 +73,19 @@ def get_key(config: Dict[str, Any]) -> str:
     #     return tuple(get_key(x) for x in config)
     # return config
     return json.dumps(config, sort_keys=True)
+
+
+def is_valid_api_key(api_key: str):
+    """Determine if input is valid OpenAI API key.
+
+    Args:
+        api_key (str): An input string to be validated.
+
+    Returns:
+        bool: A boolean that indicates if input is valid OpenAI API key.
+    """
+    api_key_re = re.compile(r"^sk-[A-Za-z0-9]{32,}$")
+    return bool(re.fullmatch(api_key_re, api_key))
 
 
 def get_config_list(

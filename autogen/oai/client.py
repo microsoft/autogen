@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai.openai_utils import get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -111,6 +111,8 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
+        if not isinstance(client, openai.AzureOpenAI) and not is_valid_api_key(self._oai_client.api_key):
+            raise ValueError("Please check the format of the OpenAI API key.")
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]

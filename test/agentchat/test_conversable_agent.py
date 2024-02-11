@@ -15,7 +15,7 @@ import autogen
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import skip_openai
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
 try:
     import openai
@@ -473,7 +473,7 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent = ConversableAgent(name="agent", llm_config={})
 
         def exec_python(cell: str) -> None:
@@ -617,7 +617,7 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
         agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
         agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
@@ -690,7 +690,7 @@ def test_register_for_llm():
 
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
         agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
         agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
@@ -761,7 +761,7 @@ def test_register_for_llm_api_style_function():
 
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent = ConversableAgent(name="agent", llm_config={})
 
         with pytest.raises(ValueError) as e:
@@ -775,7 +775,7 @@ def test_register_for_llm_without_description():
 
 def test_register_for_llm_without_LLM():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent = ConversableAgent(name="agent", llm_config=None)
         agent.llm_config = None
         assert agent.llm_config is None
@@ -791,7 +791,7 @@ def test_register_for_llm_without_LLM():
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent = ConversableAgent(name="agent", llm_config={"config_list": []})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
@@ -826,7 +826,7 @@ def test_register_for_execution():
 
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         agent = ConversableAgent(name="agent", llm_config={"config_list": []})
         user_proxy = UserProxyAgent(name="user_proxy")
 
