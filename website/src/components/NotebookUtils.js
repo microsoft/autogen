@@ -15,7 +15,6 @@ function findAllNotebooks() {
             source: notebook.frontMatter.source_notebook
         });
     });
-    console.log(notebooks);
     return notebooks;
 }
 
