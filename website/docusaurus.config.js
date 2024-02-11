@@ -59,11 +59,6 @@ module.exports = {
           position: "left",
           label: "FAQ",
         },
-        {
-          href: "https://github.com/microsoft/autogen",
-          label: "GitHub",
-          position: "right",
-        },
         // {
         //   to: 'examples',
         //   label: 'Examples',
@@ -74,6 +69,12 @@ module.exports = {
           position: "left",
           label: "Examples",
         },
+        // Uncomment below to add Notebooks to the navbar
+        // {
+        //   to: "docs/notebooks",
+        //   position: "left",
+        //   label: "Notebooks",
+        // },
         {
           label: "Resources",
           type: "dropdown",
@@ -88,6 +89,22 @@ module.exports = {
             },
           ],
         },
+        {
+          label: "Other Languages",
+          type: "dropdown",
+          position: "right",
+          items: [
+            {
+              label: "Dotnet",
+              href: "https://microsoft.github.io/autogen-for-net/",
+            }
+          ],
+        },
+        {
+          href: "https://github.com/microsoft/autogen",
+          label: "GitHub",
+          position: "right",
+        }
       ],
     },
     footer: {

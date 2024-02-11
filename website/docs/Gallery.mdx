@@ -1,4 +1,5 @@
 import GalleryPage from '../src/components/GalleryPage';
+import galleryData from "../src/data/gallery.json";
 
 # Gallery
 
@@ -7,7 +8,7 @@ This page contains a list of demos that use AutoGen in various applications from
 **Contribution guide:**
 Built something interesting with AutoGen? Submit a PR to add it to the list! See the [Contribution Guide below](#contributing) for more details.
 
-<GalleryPage />
+<GalleryPage items={galleryData} />
 
 ## Contributing
 
