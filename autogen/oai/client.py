@@ -112,7 +112,9 @@ class OpenAIClient:
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
         if not isinstance(client, openai.AzureOpenAI) and not is_valid_api_key(self._oai_client.api_key):
-            raise ValueError("Please check the format of the OpenAI API key.")
+            logger.warning(
+                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
+            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -356,15 +358,10 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
-                try:
-                    self._register_default_client(config, openai_config)  # could modify the config
-                except ValueError:
-                    config_model = config.get("model")
-                    logger.warning(f"Unable to register a default client for a model '{config_model}'.")
-                else:
-                    self._config_list.append(
-                        {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
-                    )
+                self._register_default_client(config, openai_config)  # could modify the config
+                self._config_list.append(
+                    {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
+                )
         else:
             self._register_default_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
