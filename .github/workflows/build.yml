@@ -42,6 +42,14 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
+          pip install jupyter-client ipykernel
+          python -m ipykernel install --user --name python3
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Test with pytest skipping openai tests
         if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
