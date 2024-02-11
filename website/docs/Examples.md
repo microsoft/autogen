@@ -74,7 +74,8 @@ Links to notebook examples:
 
 1. **Long Context Handling**
 
-   - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb)
+   <!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
+   - Long Context Handling as A Capability - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb)
 
 1. **Evaluation and Assessment**
 
