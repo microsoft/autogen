@@ -6,11 +6,11 @@ __all__ = ("CodeExecutorFactory",)
 
 
 class CodeExecutorFactory:
-    """A factory class for creating code executors."""
+    """(Experimental) A factory class for creating code executors."""
 
     @staticmethod
     def create(code_execution_config: Dict[str, Any]) -> CodeExecutor:
-        """Get a code executor based on the code execution config.
+        """(Experimental) Get a code executor based on the code execution config.
 
         Args:
             code_execution_config (Dict): The code execution config,
