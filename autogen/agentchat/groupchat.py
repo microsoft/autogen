@@ -478,6 +478,22 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    def agent_by_name(self, name: str) -> Optional[Agent]:
+        """Returns the agent in the group chat manager with a given name. Returns None if
+        name is not found.
+        """
+        return self.all_agents().get(name)
+
+    def all_agents(self) -> Dict[str, Agent]:
+        """Returns all agents in the group chat manager."""
+        agents = dict()
+        for agent in self._groupchat.agents:
+            if not isinstance(agent, GroupChatManager):
+                agents[agent.name] = agent
+            else:
+                agents.update(agent.all_agents())
+        return agents
+
     def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
         """The list of messages in the group chat as a conversation to summarize.
         The agent is ignored.
