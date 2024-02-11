@@ -148,7 +148,7 @@ def test_chats():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Investigate the reasons.""",
+        """Get the current stock price of NVDA and TESLA.""",
         """Pros and cons of the companies I'm interested in. Keep it short.""",
     ]
 
@@ -190,14 +190,20 @@ def test_chats():
             {
                 "recipient": financial_assistant_1,
                 "message": financial_tasks[0],
-                "clear_history": True,
                 "silent": False,
-                "summary_method": "last_msg",
+                "summary_method": None,
             },
             {
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
+                "silent": True,
                 "summary_method": "reflection_with_llm",
+            },
+            {
+                "recipient": financial_assistant_1,
+                "message": financial_tasks[2],
+                "summary_method": "last_msg",
+                "clear_history": False,
             },
             {
                 "recipient": writer,
@@ -216,6 +222,8 @@ def test_chats():
     print(writer_res.summary, writer_res.cost)
     print(all_res[financial_assistant_1].human_input)
     print(all_res[financial_assistant_1].summary)
+    print(all_res[financial_assistant_1].chat_history)
+    print(all_res[financial_assistant_2].summary)
     # print(blogpost.summary, insights_and_blogpost)
 
 
@@ -281,7 +289,7 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    # test_chats()
+    test_chats()
     # test_chats_group()
     # test_chats_w_func()
-    test_chat_messages_for_summary()
+    # test_chat_messages_for_summary()
