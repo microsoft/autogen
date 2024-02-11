@@ -861,7 +861,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             summary_method (str or callable): the summary_method to get the summary.
-                The callable summary_method should take sender and recipient agent as input and return a string of summary. E.g,
+                The callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
                 ```python
                 def my_summary_method(
                     sender: ConversableAgent,
@@ -894,7 +894,7 @@ class ConversableAgent(LLMAgent):
             except (IndexError, AttributeError) as e:
                 warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
         elif isinstance(summary_method, Callable):
-            summary = summary_method(self, recipient)
+            summary = summary_method(recipient, self)
         else:
             warnings.warn(f"Unsupported summary method: {summary_method}. Returning an empty summary.", UserWarning)
         return summary

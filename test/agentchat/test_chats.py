@@ -148,8 +148,8 @@ def test_chats():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get the current stock price of NVDA and TESLA.""",
-        """Pros and cons of the companies I'm interested in. Keep it short.""",
+        """Get their stock price.""",
+        """Analyze pros and cons. Keep it short.""",
     ]
 
     writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
@@ -185,13 +185,16 @@ def test_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
+    def my_summary_method(recipient, sender):
+        return recipient.chat_messages[sender][0].get("content", "")
+
     chat_res = user.initiate_chats(
         [
             {
                 "recipient": financial_assistant_1,
                 "message": financial_tasks[0],
                 "silent": False,
-                "summary_method": None,
+                "summary_method": my_summary_method,
             },
             {
                 "recipient": financial_assistant_2,
@@ -219,6 +222,7 @@ def test_chats():
 
     writer_res = user.get_chat_results(writer)
     all_res = user.get_chat_results()
+    assert all_res[financial_assistant_1].summary == "What are the full names of NVDA and TESLA."
     print(writer_res.summary, writer_res.cost)
     print(all_res[financial_assistant_1].human_input)
     print(all_res[financial_assistant_1].summary)
@@ -290,6 +294,6 @@ def test_chats_w_func():
 
 if __name__ == "__main__":
     test_chats()
-    # test_chats_group()
+    test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
