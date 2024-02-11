@@ -222,6 +222,28 @@ def _cmd(lang):
         return "powershell"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
+class CommandSanitizer:
+    """
+    A utility to sanitize code blocks before execution to prevent running dangerous commands,
+    with specific messages for each pattern.
+    """
+    dangerous_patterns: List[Tuple[str, str]] = [
+        (r'\brm\s+-rf\b', "Use of 'rm -rf' command is not allowed."),
+        (r'\bmv\b.*?\s+/dev/null', "Moving files to /dev/null is not allowed."),
+        (r'\bdd\b', "Use of 'dd' command is not allowed."),
+        (r'>\s*/dev/sd[a-z][1-9]?', "Overwriting disk blocks directly is not allowed."),
+        (r':\(\)\{\s*:\|\:&\s*\};:', "Fork bombs are not allowed."),
+    ]
+
+    @staticmethod
+    def sanitize(lang: str, code: str) -> None:
+        """
+        Checks if the given code contains dangerous patterns and raises an appropriate error.
+        """
+        if lang in ["bash", "shell", "sh"]:
+            for pattern, message in CommandSanitizer.dangerous_patterns:
+                if re.search(pattern, code):
+                    raise ValueError(f"Potentially dangerous command: {message}")
 
 def is_docker_running() -> bool:
     """Check if docker is running.

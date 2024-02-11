@@ -6,7 +6,7 @@ from typing import Any, ClassVar, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
-from ..code_utils import execute_code
+from ..code_utils import execute_code, CommandSanitizer
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
@@ -43,6 +43,8 @@ class LocalCommandlineCodeExecutor(BaseModel):
     the working directory, and a unique file is generated and saved in the
     working directory for each code block.
     The code blocks are executed in the order they are received.
+    Command line code is sanitized in order to prevent self destructive
+    commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
     For shell scripts, use the language "bash", "shell", or "sh" for the code
@@ -119,6 +121,9 @@ If you want the user to save the code in a file before executing it, put # filen
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
+
+            CommandSanitizer.sanitize(lang, code)
+
             print(
                 colored(
                     f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
