@@ -38,8 +38,7 @@ namespace AutoGen.Tests
         {
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
 
-            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config)
-                .RegisterPrintFormatMessageHook();
+            var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
 
             await UpperCaseTest(agent);
             await UpperCaseStreamingTestAsync(agent);
@@ -227,7 +226,7 @@ namespace AutoGen.Tests
             reply.FunctionName.Should().Be(nameof(EchoAsync));
         }
 
-        private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingReplyAgent agent)
+        private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
         {
             var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
             var helloWorld = new Message(Role.User, "echo Hello world");
@@ -235,7 +234,7 @@ namespace AutoGen.Tests
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
             var answer = "[ECHO] Hello world";
             Message? finalReply = default;
             await foreach (var reply in replyStream)
@@ -267,7 +266,7 @@ namespace AutoGen.Tests
             reply.From.Should().Be(agent.Name);
         }
 
-        private async Task UpperCaseStreamingTestAsync(IStreamingReplyAgent agent)
+        private async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
         {
             var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
             var helloWorld = new Message(Role.User, "a b c d e f g h i j k l m n");
@@ -275,7 +274,7 @@ namespace AutoGen.Tests
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
             var answer = "A B C D E F G H I J K L M N";
             Message? finalReply = default;
             await foreach (var reply in replyStream)

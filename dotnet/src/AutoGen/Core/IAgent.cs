@@ -23,17 +23,6 @@ public interface IAgent
         CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// agent that supports streaming reply
-/// </summary>
-public interface IStreamingReplyAgent : IAgent
-{
-    public Task<IAsyncEnumerable<Message>> GenerateReplyStreamingAsync(
-        IEnumerable<Message> messages,
-        GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default);
-}
-
 public class GenerateReplyOptions
 {
     public float? Temperature { get; set; }

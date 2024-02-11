@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MiddlewareExtension.cs
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using AutoGen.Core.Middleware;
 
 namespace AutoGen;
 
 public static class MiddlewareExtension
 {
-
     /// <summary>
     /// Register a auto reply hook to an agent. The hook will be called before the agent generate the reply.
     /// If the hook return a non-null reply, then that non-null reply will be returned directly without calling the agent.
@@ -43,27 +43,11 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareAgent RegisterPrintFormatMessageHook(this IAgent agent)
     {
-        return agent.RegisterStreamingMiddleware(async (messages, options, next, ct) =>
-        {
-            Message? reply = null;
-            await foreach (var message in await next(messages, options, ct))
-            {
-                reply = message;
-            }
+        var middleware = new PrintMessageMiddleware();
+        var middlewareAgent = new MiddlewareAgent(agent);
+        middlewareAgent.Use(middleware);
 
-            if (reply != null)
-            {
-                Console.WriteLine(reply!.FormatMessage());
-                return From(reply);
-            }
-
-            throw new Exception("No reply is returned.");
-        });
-    }
-
-    private static async IAsyncEnumerable<T> From<T>(T value)
-    {
-        yield return value;
+        return middlewareAgent;
     }
 
     /// <summary>
@@ -109,7 +93,8 @@ public static class MiddlewareExtension
     /// <returns></returns>
     public static MiddlewareAgent RegisterMiddleware(
         this IAgent agent,
-        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func)
+        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
+        string? middlewareName = null)
     {
         if (agent.Name == null)
         {
@@ -117,23 +102,7 @@ public static class MiddlewareExtension
         }
 
         var middlewareAgent = new MiddlewareAgent(agent);
-        middlewareAgent.Use((messages, options, next, ct) => func(messages, options, agent, ct));
-
-        return middlewareAgent;
-    }
-
-    public static MiddlewareAgent RegisterStreamingMiddleware(
-        this IAgent agent,
-        MiddlewareStreamingDelegate func)
-    {
-        if (agent.Name == null)
-        {
-            throw new Exception("Agent name is null.");
-        }
-
-        var middlewareAgent = new MiddlewareAgent(agent);
-
-        middlewareAgent.UseStreaming(func);
+        middlewareAgent.Use(func, middlewareName);
 
         return middlewareAgent;
     }
