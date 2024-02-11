@@ -8,10 +8,10 @@ __all__ = ("MarkdownCodeExtractor",)
 
 
 class MarkdownCodeExtractor:
-    """A class that extracts code blocks from a message using Markdown syntax."""
+    """(Experimental) A class that extracts code blocks from a message using Markdown syntax."""
 
     def extract_code_blocks(self, message: Union[str, List[Dict[str, Any]], None]) -> List[CodeBlock]:
-        """Extract code blocks from a message. If no code blocks are found,
+        """(Experimental) Extract code blocks from a message. If no code blocks are found,
         return an empty list.
 
         Args:
