@@ -122,7 +122,7 @@ pip install autogen[graph]
         human_input_mode="NEVER",
         llm_config=False,
         description="""
-    Never select me as a speaker. 
+    Never select me as a speaker.
     """
     )
     ```
@@ -156,7 +156,7 @@ pip install autogen[graph]
 
     # create the manager
     manager = GroupChatManager(
-        groupchat=group_chat, 
+        groupchat=group_chat,
         llm_config=gpt_config,
         is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
         code_execution_config=False,
