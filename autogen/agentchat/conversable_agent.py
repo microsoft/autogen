@@ -767,7 +767,7 @@ class ConversableAgent(LLMAgent):
             cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
-                "summary_method": a string specify the method to get a summary from the chat.
+                "summary_method": a string specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
                     Supported methods are "last_msg" and "reflection_with_llm".
                     when set "last_msg", it returns the last message of the dialog as the summary.
                     when set "reflection_with_llm", it returns a summary extracted using an llm client.
@@ -940,8 +940,8 @@ class ConversableAgent(LLMAgent):
                 - "context": any context information, e.g., the request message. The following fields are reserved:
                     "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
-                    "summary_method" can be used to specify the method to extract a summary from the chat.
-                        Supported methods are "last_msg" and "reflection_with_llm".
+                    "summary_method": a string specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                        Supported methods are "last_msg" and "reflection_with_llm". Default is "last_msg".
                         when set "last_msg", it returns the last message of the dialog as the summary.
                         when set "reflection_with_llm", it returns a summary extracted using an llm client.
                         `llm_config` must be set in either the recipient or sender.
@@ -959,7 +959,6 @@ class ConversableAgent(LLMAgent):
         for chat_info in chat_queue:
             assert "recipient" in chat_info, "recipient must be provided."
             receipts_set.add(chat_info["recipient"])
-        # assert len(receipts_set) == len(chat_queue), "recipients must be different."
         if len(receipts_set) < len(chat_queue):
             warnings.warn(
                 "Repetitive recipients detected: The chat history will be cleared by default if a recipient appears more than once. To retain the chat history, please set 'clear_history=False' in the configuration of the repeating agent.",
@@ -1990,8 +1989,8 @@ class ConversableAgent(LLMAgent):
         Args:
             **context: any context information. It has the following reserved fields:
                 "message": a str of message.
-                "summary_method": a string specify the method to get a summary from the chat.
-                    Supported methods are "last_msg" and "reflection_with_llm".
+                "summary_method": a string specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                    Supported methods are "last_msg" and "reflection_with_llm". Default is "last_msg".
                     when set "last_msg", it returns the last message of the dialog as the summary.
                     when set "reflection_with_llm", it returns a summary extracted using an llm client.
                     "llm" requires the llm_config to be set in either the sender or the recipient so that an llm client is available.
