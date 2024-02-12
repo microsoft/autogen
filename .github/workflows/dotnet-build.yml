@@ -4,10 +4,13 @@
 name: dotnet-ci
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [ "main", "dotnet" ]
     paths:
       - 'dotnet/**'
+  push:
+    branches: [ "dotnet" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -46,7 +49,7 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet'
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
     needs: build
     steps:
     - uses: actions/checkout@v3
