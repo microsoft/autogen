@@ -62,7 +62,6 @@ const GalleryPage = (props) => {
       : props.items;
 
   const defaultImageIfNoImage = props.allowDefaultImage ?? true;
-  console.log(defaultImageIfNoImage)
   const imageFunc = (item) => {
     const image =
       <img
