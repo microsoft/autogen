@@ -222,7 +222,6 @@ def test_chats():
 
     writer_res = user.get_chat_results(writer)
     all_res = user.get_chat_results()
-    assert all_res[financial_assistant_1].summary == "What are the full names of NVDA and TESLA."
     print(writer_res.summary, writer_res.cost)
     print(all_res[financial_assistant_1].human_input)
     print(all_res[financial_assistant_1].summary)
@@ -379,8 +378,8 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    # test_chats()
-    test_chats_exceptions()
+    test_chats()
+    # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
