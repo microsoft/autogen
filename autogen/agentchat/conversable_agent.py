@@ -25,7 +25,7 @@ from ..code_utils import (
     infer_lang,
 )
 from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult
+from .chat import ChatResult, initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -973,49 +973,10 @@ class ConversableAgent(LLMAgent):
 
         Returns: a dictionary of ChatResult object from the finished chats of particular agents.
         """
-        consolidate_chat_info(chat_queue, uniform_sender=self)
-        receipts_set = set()
-        for chat_info in chat_queue:
-            assert "recipient" in chat_info, "recipient must be provided."
-            receipts_set.add(chat_info["recipient"])
-        if len(receipts_set) < len(chat_queue):
-            warnings.warn(
-                "Repetitive recipients detected: The chat history will be cleared by default if a recipient appears more than once. To retain the chat history, please set 'clear_history=False' in the configuration of the repeating agent.",
-                UserWarning,
-            )
-        self._chat_queue = chat_queue.copy()
-        self._finished_chats = {}
-        while self._chat_queue:
-            chat_info = self._chat_queue.pop(0)
-            _chat_carryover = chat_info.get("carryover", [])
-            if isinstance(_chat_carryover, str):
-                _chat_carryover = [_chat_carryover]
-            chat_info["carryover"] = _chat_carryover + [r.summary for r in self._finished_chats.values()]
-            if "message" not in chat_info:
-                warnings.warn(
-                    "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
-                    UserWarning,
-                )
-            current_agent = chat_info["recipient"]
-            print_carryover = (
-                ("\n").join([t for t in chat_info["carryover"]])
-                if isinstance(chat_info["carryover"], list)
-                else chat_info["carryover"]
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            print(
-                colored(
-                    "Start a new chat with the following message: \n"
-                    + chat_info.get("message")
-                    + "\n\nWith the following carryover: \n"
-                    + print_carryover,
-                    "blue",
-                ),
-                flush=True,
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            chat_res = self.initiate_chat(**chat_info)
-            self._finished_chats[current_agent] = chat_res
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
     def get_chat_results(self, agent: Optional[Agent] = None) -> Union[Dict[Agent, ChatResult], ChatResult]:
