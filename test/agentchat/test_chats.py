@@ -277,6 +277,18 @@ def test_chats_general():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
+    user_2 = UserProxyAgent(
+        name="User",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        max_consecutive_auto_reply=3,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
     def my_summary_method(recipient, sender):
         return recipient.chat_messages[sender][0].get("content", "")
 
@@ -290,7 +302,7 @@ def test_chats_general():
                 "summary_method": my_summary_method,
             },
             {
-                "sender": user,
+                "sender": user_2,
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
                 "silent": True,
@@ -471,9 +483,9 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    test_chats()
+    # test_chats()
     test_chats_general()
-    test_chats_exceptions()
+    # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
