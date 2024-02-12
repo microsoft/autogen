@@ -781,12 +781,16 @@ def test_register_for_llm_without_LLM():
         assert e.args[0] == "Please specify the value for 'llm_config'."
 
 
+def test_register_for_llm_without_configuration_but_with_model_name():
+    ConversableAgent(name="agent", llm_config={"model": "gpt-4", "config_list": []})
+
+
 def test_register_for_llm_without_configuration():
     try:
         ConversableAgent(name="agent", llm_config={"config_list": []})
         assert False, "Expected ConversableAgent to throw ValueError."
     except ValueError as e:
-        assert e.args[0] == "Please specify at least one configuration in 'llm_config'."
+        assert e.args[0] == "Please specify a value for the 'model' in 'llm_config'."
 
 
 def test_register_for_llm_without_model_name():
@@ -794,7 +798,7 @@ def test_register_for_llm_without_model_name():
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": "", "api_key": ""}]})
         assert False, "Expected ConversableAgent to throw ValueError."
     except ValueError as e:
-        assert e.args[0] == "Please specify a value for the 'model' in 'llm_config'."
+        assert e.args[0] == "Please specify a value for the 'model' in 'config_list'."
 
 
 def test_register_for_execution():

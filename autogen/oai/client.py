@@ -345,8 +345,13 @@ class OpenAIWrapper:
                 and additional kwargs.
         """
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
+        # This *may* work if the `llm_config` has specified the `model` attribute,
+        # so just warn here.
         if type(config_list) is list and len(config_list) == 0:
-            logger.warning("openai client was provided with an empty config_list, which may not be intended.")
+            logger.warning("OpenAI client was provided with an empty config_list, which may not be intended.")
+            # If the `llm_config` has no `model` then the call will fail. Abort now.
+            if "model" not in extra_kwargs:
+                raise ValueError("Please specify a value for the 'model' in 'llm_config'.")
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
@@ -354,6 +359,13 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
+                # We require that each element of `config_list` has a non-empty value
+                # for `model` specified.
+                model = None
+                if "model" in config:
+                    model = config["model"]
+                if model is None or len(model) == 0:
+                    raise ValueError("Please specify a value for the 'model' in 'config_list'.")
                 self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(
                     {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
