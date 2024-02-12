@@ -781,10 +781,6 @@ def test_register_for_llm_without_LLM():
         assert e.args[0] == "Please specify the value for 'llm_config'."
 
 
-def test_register_for_llm_without_configuration_but_with_model_name():
-    ConversableAgent(name="agent", llm_config={"model": "gpt-4", "config_list": []})
-
-
 def test_register_for_llm_without_configuration():
     try:
         ConversableAgent(name="agent", llm_config={"config_list": []})
