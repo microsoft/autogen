@@ -360,11 +360,11 @@ class OpenAIWrapper:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
                 # We require that each element of `config_list` has a non-empty value
-                # for `model` specified.
+                # for `model` specified unless `extra_kwargs` contains "model".
                 model = None
                 if "model" in config:
                     model = config["model"]
-                if model is None or len(model) == 0:
+                if "model" not in extra_kwargs and (model is None or len(model) == 0):
                     raise ValueError("Please specify a non-empty 'model' value for every item in 'config_list'.")
                 self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(

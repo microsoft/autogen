@@ -52,7 +52,7 @@ def test_web_surfer() -> None:
         page_size = 4096
         web_surfer = WebSurferAgent(
             "web_surfer",
-            llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]},
+            llm_config=False,
             browser_config={"viewport_size": page_size},
         )
 
