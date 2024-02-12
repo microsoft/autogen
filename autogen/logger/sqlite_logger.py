@@ -296,19 +296,6 @@ class SqliteLogger(BaseLogger):
             self.con = None
             self.cur = None
 
-    def get_log(self, dbname: str = "logs.db", table: str = "chat_completions") -> List[Dict]:
-        """
-        Return a dict string of the database.
-        """
-        con = sqlite3.connect(dbname)
-        query = f"SELECT * FROM {table}"
-        cursor = con.execute(query)
-        rows = cursor.fetchall()
-        column_names = [description[0] for description in cursor.description]
-        data = [dict(zip(column_names, row)) for row in rows]
-        con.close()
-        return data
-
     def get_connection(self) -> sqlite3.Connection:
         if self.con:
             return self.con
