@@ -1,4 +1,3 @@
-import ast
 import base64
 import hashlib
 from typing import List, Dict, Tuple, Union
@@ -7,7 +6,8 @@ import shutil
 from pathlib import Path
 import re
 import autogen
-from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
+from autogen.oai.client import OpenAIWrapper
+from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
 
 
 def md5_hash(text: str) -> str:
@@ -26,6 +26,9 @@ def clear_folder(folder_path: str) -> None:
 
     :param folder_path: The path to the folder to clear.
     """
+    # exit if the folder does not exist
+    if not os.path.exists(folder_path):
+        return
     # exit if the folder does not exist
     if not os.path.exists(folder_path):
         return
@@ -86,6 +89,9 @@ def get_file_type(file_path: str) -> str:
         ".config",
     }
 
+    # Supported spreadsheet extensions
+    CSV_EXTENSIONS = {".csv", ".xlsx"}
+
     # Supported image extensions
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
@@ -100,6 +106,8 @@ def get_file_type(file_path: str) -> str:
     # Determine the file type based on the extension
     if file_extension in CODE_EXTENSIONS:
         file_type = "code"
+    elif file_extension in CSV_EXTENSIONS:
+        file_type = "csv"
     elif file_extension in IMAGE_EXTENSIONS:
         file_type = "image"
     elif file_extension == PDF_EXTENSION:
@@ -211,19 +219,18 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
+
+    if not os.path.exists(root_file_path):
+        os.makedirs(root_file_path, exist_ok=True)
     files_static_root = os.path.join(root_file_path, "files/")
     static_folder_root = os.path.join(root_file_path, "ui")
-    workdir_root = os.path.join(root_file_path, "workdir")
 
     os.makedirs(files_static_root, exist_ok=True)
     os.makedirs(os.path.join(files_static_root, "user"), exist_ok=True)
     os.makedirs(static_folder_root, exist_ok=True)
-    os.makedirs(workdir_root, exist_ok=True)
-
     folders = {
         "files_static_root": files_static_root,
         "static_folder_root": static_folder_root,
-        "workdir_root": workdir_root,
     }
     return folders
 
@@ -260,6 +267,9 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
+    # overwrite skills.py in work_dir
+    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+        f.write(prompt)
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
         f.write(prompt)
@@ -375,3 +385,26 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)
 
     return successful_code_blocks
+
+
+def sanitize_model(model: Model):
+    """
+    Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
+    """
+    if isinstance(model, Model):
+        model = model.dict()
+    valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
+    # only add key if value is not None
+    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
+    return sanitized_model
+
+
+def test_model(model: Model):
+    """
+    Test the model endpoint by sending a simple message to the model and returning the response.
+    """
+
+    sanitized_model = sanitize_model(model)
+    client = OpenAIWrapper(config_list=[sanitized_model])
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    return response.choices[0].message.content

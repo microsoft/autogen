@@ -1,4 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync();
+using AutoGen.BasicSample;
+
+await Example08_LMStudio.RunAsync();

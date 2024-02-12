@@ -26,6 +26,7 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        overwrite_tools: bool = False,
         **kwargs,
     ):
         """
@@ -46,6 +47,7 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
+            overwrite_tools (bool): whether to overwrite the tools of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             kwargs (dict): Additional configuration options for the agent.
                 - verbose (bool): If set to True, enables more detailed output from the assistant thread.
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
@@ -54,7 +56,7 @@ class GPTAssistantAgent(ConversableAgent):
         oai_wrapper = OpenAIWrapper(**llm_config)
         if len(oai_wrapper._clients) > 1:
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
-        self._openai_client = oai_wrapper._clients[0]
+        self._openai_client = oai_wrapper._clients[0]._oai_client
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # try to find assistant by name first
@@ -107,6 +109,32 @@ class GPTAssistantAgent(ConversableAgent):
                 logger.warning(
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
+
+            # Check if tools are specified in llm_config
+            specified_tools = llm_config.get("tools", None)
+
+            if specified_tools is None:
+                # Check if the current assistant has tools defined
+                if self._openai_assistant.tools:
+                    logger.warning(
+                        "No tools were provided for given assistant. Using existing tools from assistant API."
+                    )
+                else:
+                    logger.info(
+                        "No tools were provided for the assistant, and the assistant currently has no tools set."
+                    )
+            elif overwrite_tools is True:
+                # Tools are specified and overwrite_tools is True; update the assistant's tools
+                logger.warning(
+                    "overwrite_tools is True. Provided tools will be used and will modify the assistant in the API"
+                )
+                self._openai_assistant = self._openai_client.beta.assistants.update(
+                    assistant_id=openai_assistant_id,
+                    tools=llm_config.get("tools", []),
+                )
+            else:
+                # Tools are specified but overwrite_tools is False; do not update the assistant's tools
+                logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
 
         self._verbose = kwargs.pop("verbose", False)
         super().__init__(

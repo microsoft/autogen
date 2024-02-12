@@ -24,7 +24,7 @@
 	<ItemGroup>
 		<PackageReference Include="System.CodeDom" Version="$(SystemCodeDomVersion)" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisVersion)" PrivateAssets="all" GeneratePathProperty="True" />
-		<PackageReference Include="Newtonsoft.Json" PrivateAssets="all" Version="12.0.1" GeneratePathProperty="true" />
+		<PackageReference Include="Newtonsoft.Json" PrivateAssets="all" Version="13.0.1" GeneratePathProperty="true" />
 	</ItemGroup>
 
 

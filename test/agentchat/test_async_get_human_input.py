@@ -38,6 +38,12 @@ async def test_async_get_human_input():
 
     await user_proxy.a_initiate_chat(assistant, clear_history=True, message="Hello.")
     # Test without message
-    await user_proxy.a_initiate_chat(assistant, clear_history=True)
+    res = await user_proxy.a_initiate_chat(assistant, clear_history=True, summary_method="reflection_with_llm")
     # Assert that custom a_get_human_input was called at least once
     user_proxy.a_get_human_input.assert_called()
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
+
+
+if __name__ == "__main__":
+    asyncio.run(test_async_get_human_input())

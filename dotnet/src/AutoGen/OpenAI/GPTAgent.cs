@@ -52,6 +52,26 @@ public class GPTAgent : IStreamingAgent, IAgent
         this.functionMap = functionMap;
     }
 
+    public GPTAgent(
+        string name,
+        string systemMessage,
+        OpenAIClient openAIClient,
+        string modelName,
+        float temperature = 0.7f,
+        int maxTokens = 1024,
+        IEnumerable<FunctionDefinition>? functions = null,
+        IDictionary<string, Func<string, Task<string>>>? functionMap = null)
+    {
+        this.openAIClient = openAIClient;
+        this.modelName = modelName;
+        _systemMessage = systemMessage;
+        _functions = functions;
+        Name = name;
+        _temperature = temperature;
+        _maxTokens = maxTokens;
+        this.functionMap = functionMap;
+    }
+
     public string? Name { get; }
 
     public async Task<Message> GenerateReplyAsync(
@@ -189,6 +209,7 @@ public class GPTAgent : IStreamingAgent, IAgent
 
         return settings;
     }
+
 
     private IEnumerable<ChatRequestMessage> ProcessMessages(IEnumerable<Message> messages)
     {
