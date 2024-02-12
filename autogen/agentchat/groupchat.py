@@ -480,7 +480,7 @@ class GroupChatManager(ConversableAgent):
 
     def agent_by_name(self, name: str) -> Optional[Agent]:
         """Returns the agent in the group chat manager with a given name. Returns None if
-        name is not found.
+        agent is not found.
         """
         return self.all_agents().get(name)
 
