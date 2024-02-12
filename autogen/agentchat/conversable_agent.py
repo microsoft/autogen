@@ -839,6 +839,9 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        _chat_info = context.copy()
+        _chat_info["recipient"] = recipient
+        self._consolidate_chat_info(_chat_info)
         self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
