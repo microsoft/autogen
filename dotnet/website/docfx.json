@@ -55,7 +55,11 @@
       "_appName": "AutoGen for .NET",
       "_appLogoPath": "images/ag.ico",
       "_appFooter": "AutoGen for .NET",
-      "_appFaviconPath": "images/ag.ico"
+      "_appFaviconPath": "images/ag.ico",
+      "_gitContribute": {
+        "repo": "https://github.com/microsoft/autogen.git",
+        "branch": "dotnet"
+      }
     },
     "postProcessors": [],
     "keepFileLink": false,
