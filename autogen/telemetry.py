@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 autogen_logger = None
 is_logging = False
 
+
 def start_logging(logger_type: str = "sqlite", config: Dict = {}) -> str:
     global autogen_logger
     global is_logging

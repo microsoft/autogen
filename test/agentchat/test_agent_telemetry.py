@@ -208,6 +208,10 @@ def test_two_agents_logging(setup_test):
     verify_keys_are_matching(cur)
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
 def test_group_chat_logging(setup_test):
     con, teacher, student = setup_test
     cur = con.cursor()
