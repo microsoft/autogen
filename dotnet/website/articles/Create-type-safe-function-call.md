@@ -4,9 +4,11 @@
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="AutoGen.SourceGenerator" />
+    <PackageReference Include="AutoGen.SourceGenerator" Version="AUTOGEN_VERSION" />
 </ItemGroup>
 ```
+> [!NOTE]
+> It's recommended to enable structural xml document support by setting `GenerateDocumentationFile` property to true in your project file. This allows source generator to leverage the documentation of the function when generating the function definition.
 
 ```xml
 <PropertyGroup>
@@ -15,21 +17,15 @@
 </PropertyGroup>
 ```
 
-> [!NOTE]
-> It's recommended to enable structural xml document support by setting `GenerateDocumentationFile` property to true in your project file. This allows source generator to leverage the documentation of the function when generating the function definition.
-
-Then, for the methods you want to generate function definition and function call wrapper, mark them with `Function` attribute:
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=code_snippet_3)]
+Then, create a `public partial` class to host the methods you want to use in AutoGen agents. The method has to be a `public` instance method and its return type must be `Task<string>`. After the methods is defined, mark them with @AutoGen.FunctionAttribute attribute:
 
 > [!NOTE]
 > A `public partial` class is required for the source generator to generate code.
+> The method has to be a `public` instance method and its return type must be `Task<string>`.
+> Mark the method with @AutoGen.FunctionAttribute attribute.
 
-> [!TIP]
-> For the best of performance, try using json primitive types for the parameters and return type.
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=weather_report)]
 
-The source generator will generate the following code based on the method signature and documentation. It helps you save the effort of writing function definition and keep it up to date with the actual method signature.
+The source generator will generate the function definition and function call wrapper for `WeatherReport` in another partial class based on its signature and structural comments. To use the generated function definition and function call wrapper, simply create an instance of that class and call the generated method:
 
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=code_snippet_1)]
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=code_snippet_2)]
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=weather_report_consume)]

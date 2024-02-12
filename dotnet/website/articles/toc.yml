@@ -1,5 +1,3 @@
-- name: Getting Start
-
 - name: Installation
   href: Installation.md
 
@@ -18,11 +16,14 @@
 - name: Create MiddlewareAgent
   href: Middleware-agent.md
 
-- name: Use function call
-  href: Use-function-call.md
-
-- name: Create type-safe function call using AutoGen.SourceGenerator
-  href: Create-type-safe-function-call.md
+- name: Function call
+  items:
+    - name: Function call overview
+      href: Function-call-overview.md
+    - name: Create type-safe function call using AutoGen.SourceGenerator
+      href: Create-type-safe-function-call.md
+    - name: Use function call in an agent
+      href: Use-function-call.md
 
 - name: Execute code snippet
   href: Run-dotnet-code.md
