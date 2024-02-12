@@ -23,8 +23,13 @@ else:
     skip = False or skip_openai
 
 if not skip:
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai", "azure"]}
+    openai_config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+    )
+    aoai_config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"api_type": ["azure"], "api_version": ["2024-02-15-preview"]},
     )
 
 
@@ -33,7 +38,8 @@ if not skip:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_config_list() -> None:
-    assert len(config_list) > 0
+    assert len(openai_config_list) > 0
+    assert len(aoai_config_list) > 0
 
 
 @pytest.mark.skipif(
@@ -41,9 +47,8 @@ def test_config_list() -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_chat() -> None:
-    for gpt_config in config_list:
-        _test_gpt_assistant_chat([gpt_config])
-    _test_gpt_assistant_chat(None)
+    for gpt_config in [openai_config_list, aoai_config_list, None]:
+        _test_gpt_assistant_chat(gpt_config)
 
 
 def _test_gpt_assistant_chat(gpt_config) -> None:
@@ -114,9 +119,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_get_assistant_instructions() -> None:
-    for config in config_list:
-        _test_get_assistant_instructions([config])
-    _test_get_assistant_instructions(None)
+    for gpt_config in [openai_config_list, aoai_config_list, None]:
+        _test_get_assistant_instructions(gpt_config)
 
 
 def _test_get_assistant_instructions(gpt_config) -> None:
@@ -144,9 +148,8 @@ def _test_get_assistant_instructions(gpt_config) -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
-    for config in config_list:
-        _test_gpt_assistant_instructions_overwrite([config])
-    _test_gpt_assistant_instructions_overwrite(None)
+    for gpt_config in [openai_config_list, aoai_config_list, None]:
+        _test_gpt_assistant_instructions_overwrite(gpt_config)
 
 
 def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
@@ -209,7 +212,7 @@ def test_gpt_assistant_existing_no_instructions() -> None:
         name,
         instructions=instructions,
         llm_config={
-            "config_list": config_list,
+            "config_list": openai_config_list,
         },
     )
 
@@ -220,7 +223,7 @@ def test_gpt_assistant_existing_no_instructions() -> None:
         assistant = GPTAssistantAgent(
             name,
             llm_config={
-                "config_list": config_list,
+                "config_list": openai_config_list,
                 "assistant_id": assistant_id,
             },
         )
@@ -243,7 +246,7 @@ def test_get_assistant_files() -> None:
     and assert that the retrieved instructions match the set instructions.
     """
     current_file_path = os.path.abspath(__file__)
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
+    openai_client = OpenAIWrapper(config_list=openai_config_list)._clients[0]._oai_client
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = f"For test_get_assistant_files {uuid.uuid4()}"
 
@@ -251,7 +254,7 @@ def test_get_assistant_files() -> None:
         name,
         instructions="This is a test",
         llm_config={
-            "config_list": config_list,
+            "config_list": openai_config_list,
             "tools": [{"type": "retrieval"}],
             "file_ids": [file.id],
         },
@@ -292,7 +295,7 @@ def test_assistant_retrieval() -> None:
         "description": "This is a test function 2",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
+    openai_client = OpenAIWrapper(config_list=openai_config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
 
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
@@ -307,7 +310,7 @@ def test_assistant_retrieval() -> None:
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
-            "config_list": config_list,
+            "config_list": openai_config_list,
         }
 
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
@@ -368,7 +371,7 @@ def test_assistant_mismatch_retrieval() -> None:
         "description": "This is a test function 3",
     }
 
-    openai_client = OpenAIWrapper(config_list=config_list)._clients[0]._oai_client
+    openai_client = OpenAIWrapper(config_list=openai_config_list)._clients[0]._oai_client
     current_file_path = os.path.abspath(__file__)
     file_1 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
@@ -382,7 +385,7 @@ def test_assistant_mismatch_retrieval() -> None:
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
-            "config_list": config_list,
+            "config_list": openai_config_list,
         }
 
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
@@ -418,7 +421,7 @@ def test_assistant_mismatch_retrieval() -> None:
                     {"type": "function", "function": function_1_schema},
                 ],
                 "file_ids": [file_2.id],
-                "config_list": config_list,
+                "config_list": openai_config_list,
             }
             assistant_file_ids_mismatch = GPTAssistantAgent(
                 name,
@@ -436,7 +439,7 @@ def test_assistant_mismatch_retrieval() -> None:
                     {"type": "function", "function": function_3_schema},
                 ],
                 "file_ids": [file_2.id, file_1.id],
-                "config_list": config_list,
+                "config_list": openai_config_list,
             }
             assistant_tools_mistaching = GPTAssistantAgent(
                 name,
@@ -554,7 +557,7 @@ def test_gpt_assistant_tools_overwrite() -> None:
     assistant_org = GPTAssistantAgent(
         name,
         llm_config={
-            "config_list": config_list,
+            "config_list": openai_config_list,
             "tools": original_tools,
         },
     )
@@ -566,7 +569,7 @@ def test_gpt_assistant_tools_overwrite() -> None:
         assistant = GPTAssistantAgent(
             name,
             llm_config={
-                "config_list": config_list,
+                "config_list": openai_config_list,
                 "assistant_id": assistant_id,
                 "tools": new_tools,
             },
