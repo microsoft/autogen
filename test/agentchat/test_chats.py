@@ -274,7 +274,10 @@ def test_chats_exceptions():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    try:
+    with pytest.raises(
+        AssertionError,
+        match="summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None.",
+    ):
         user.initiate_chats(
             [
                 {
@@ -291,14 +294,11 @@ def test_chats_exceptions():
                 },
             ]
         )
-    except AssertionError as e:
-        print(e)
-        assert (
-            str(e)
-            == "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
-        )
 
-    try:
+    with pytest.raises(
+        AssertionError,
+        match="llm client must be set in either the recipient or sender when summary_method is reflection_with_llm.",
+    ):
         user.initiate_chats(
             [
                 {
@@ -314,12 +314,6 @@ def test_chats_exceptions():
                     "summary_method": "reflection_with_llm",
                 },
             ]
-        )
-    except AssertionError as e:
-        print(e)
-        assert (
-            str(e)
-            == "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
         )
 
 

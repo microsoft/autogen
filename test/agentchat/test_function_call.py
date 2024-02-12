@@ -256,30 +256,24 @@ def test_update_function():
     assert "greet_user" not in messages2
     print("Chat summary and cost", res2.summary, res2.cost)
 
-    try:
+    with pytest.raises(
+        AssertionError,
+        match="summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None.",
+    ):
         user_proxy.initiate_chat(
             assistant,
             message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
             summary_method="llm",
         )
-    except AssertionError as e:
-        print(e)
-        assert (
-            str(e)
-            == "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
-        )
 
-    try:
+    with pytest.raises(
+        AssertionError,
+        match="llm client must be set in either the recipient or sender when summary_method is reflection_with_llm.",
+    ):
         user_proxy.initiate_chat(
             recipient=user_proxy,
             message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
             summary_method="reflection_with_llm",
-        )
-    except AssertionError as e:
-        print(e)
-        assert (
-            str(e)
-            == "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
         )
 
 
