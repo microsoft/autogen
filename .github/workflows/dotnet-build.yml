@@ -6,7 +6,7 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "main", "dotnet" ]
+    branches: [ "dotnet" ]
     paths:
       - 'dotnet/**'
   push:
