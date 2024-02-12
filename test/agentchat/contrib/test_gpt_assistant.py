@@ -24,7 +24,7 @@ else:
 
 if not skip:
     config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai", "azure"]}
     )
 
 
@@ -41,6 +41,12 @@ def test_config_list() -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_chat() -> None:
+    for gpt_config in config_list:
+        _test_gpt_assistant_chat([gpt_config])
+    _test_gpt_assistant_chat(None)
+
+
+def _test_gpt_assistant_chat(gpt_config) -> None:
     ossinsight_api_schema = {
         "name": "ossinsight_data_api",
         "parameters": {
@@ -64,7 +70,7 @@ def test_gpt_assistant_chat() -> None:
     name = f"For test_gpt_assistant_chat {uuid.uuid4()}"
     analyst = GPTAssistantAgent(
         name=name,
-        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": config_list},
+        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": gpt_config},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
     try:
@@ -90,7 +96,7 @@ def test_gpt_assistant_chat() -> None:
     # check the question asked
     ask_ossinsight_mock.assert_called_once()
     question_asked = ask_ossinsight_mock.call_args[0][0].lower()
-    for word in "microsoft autogen stars github".split(" "):
+    for word in "microsoft autogen star github".split(" "):
         assert word in question_asked
 
     # check the answer
@@ -108,6 +114,12 @@ def test_gpt_assistant_chat() -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_get_assistant_instructions() -> None:
+    for config in config_list:
+        _test_get_assistant_instructions([config])
+    _test_get_assistant_instructions(None)
+
+
+def _test_get_assistant_instructions(gpt_config) -> None:
     """
     Test function to create a new GPTAssistantAgent, set its instructions, retrieve the instructions,
     and assert that the retrieved instructions match the set instructions.
@@ -117,7 +129,7 @@ def test_get_assistant_instructions() -> None:
         name,
         instructions="This is a test",
         llm_config={
-            "config_list": config_list,
+            "config_list": gpt_config,
         },
     )
 
@@ -132,6 +144,12 @@ def test_get_assistant_instructions() -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
+    for config in config_list:
+        _test_gpt_assistant_instructions_overwrite([config])
+    _test_gpt_assistant_instructions_overwrite(None)
+
+
+def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
     """
     Test that the instructions of a GPTAssistantAgent can be overwritten or not depending on the value of the
     `overwrite_instructions` parameter when creating a new assistant with the same ID.
@@ -151,7 +169,7 @@ def test_gpt_assistant_instructions_overwrite() -> None:
         name,
         instructions=instructions1,
         llm_config={
-            "config_list": config_list,
+            "config_list": gpt_config,
         },
     )
 
@@ -161,7 +179,7 @@ def test_gpt_assistant_instructions_overwrite() -> None:
             name,
             instructions=instructions2,
             llm_config={
-                "config_list": config_list,
+                "config_list": gpt_config,
                 "assistant_id": assistant_id,
             },
             overwrite_instructions=True,

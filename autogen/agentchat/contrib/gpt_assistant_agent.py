@@ -53,14 +53,14 @@ class GPTAssistantAgent(ConversableAgent):
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
         """
         # Use AutoGen OpenAIWrapper to create a client
-        model_name = "gpt-4-1106-preview"
-        if len(llm_config["config_list"]) > 1:
+        openai_client_cfg = None
+        if llm_config and llm_config.get("config_list") is not None and len(llm_config["config_list"]) > 0:
+            openai_client_cfg = llm_config["config_list"][0].copy()
+
+        oai_wrapper = OpenAIWrapper(base_config=openai_client_cfg)
+        if len(oai_wrapper._clients) > 1:
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
 
-        if len(llm_config["config_list"]) > 0:
-            model_name = llm_config["config_list"][0].pop("model", "gpt-4-1106-preview")
-
-        oai_wrapper = OpenAIWrapper(**llm_config)
         self._openai_client = oai_wrapper._clients[0]._oai_client
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
@@ -84,7 +84,7 @@ class GPTAssistantAgent(ConversableAgent):
                     name=name,
                     instructions=instructions,
                     tools=llm_config.get("tools", []),
-                    model=model_name,
+                    model=llm_config.get("model", "gpt-4-1106-preview"),
                     file_ids=llm_config.get("file_ids", []),
                 )
             else:
