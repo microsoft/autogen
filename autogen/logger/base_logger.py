@@ -23,7 +23,6 @@ class BaseLogger(ABC):
         """
         ...
 
-
     @abstractmethod
     def log_chat_completion(
         invocation_id: uuid.UUID,
@@ -97,6 +96,6 @@ class BaseLogger(ABC):
     @abstractmethod
     def get_connection() -> Union[sqlite3.Connection]:
         """
-            Return a connection to the logging database.
+        Return a connection to the logging database.
         """
         ...

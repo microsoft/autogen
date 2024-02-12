@@ -2,8 +2,10 @@ import datetime
 import inspect
 from typing import Any, Dict, List, Tuple, Union
 
+
 def get_current_ts():
     return datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")
+
 
 def to_dict(
     obj: Union[int, float, str, bool, Dict[Any, Any], List[Any], Tuple[Any, ...], Any],

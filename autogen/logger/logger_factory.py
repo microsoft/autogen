@@ -2,9 +2,10 @@ from typing import Dict
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
 
+
 class LoggerFactory:
     @staticmethod
-    def get_logger(logger_type: str="sqlite", config:Dict={}) -> BaseLogger:
+    def get_logger(logger_type: str = "sqlite", config: Dict = {}) -> BaseLogger:
         if logger_type == "sqlite":
             return SqliteLogger(config)
         else:

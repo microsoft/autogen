@@ -121,7 +121,6 @@ class SqliteLogger(BaseLogger):
         finally:
             return this._session_id
 
-
     def _get_current_db_version(self):
         self.cur.execute("SELECT version_number FROM version ORDER BY id DESC LIMIT 1")
         result = self.cur.fetchone()
@@ -201,9 +200,8 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_chat_completion error: {e}")
 
-
     def log_new_agent(self, agent: ConversableAgent, init_args: Dict) -> None:
-        from autogen import Agent # TODO: can we move this to top??
+        from autogen import Agent
 
         if self.con is None:
             return
@@ -236,7 +234,6 @@ class SqliteLogger(BaseLogger):
             self.con.commit()
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_new_agent error: {e}")
-
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict) -> None:
         if self.con is None:
@@ -308,5 +305,5 @@ class SqliteLogger(BaseLogger):
         return data
 
     def get_connection(self) -> sqlite3.Connection:
-      if self.con:
-          return self.con
+        if self.con:
+            return self.con

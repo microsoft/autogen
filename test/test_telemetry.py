@@ -84,7 +84,7 @@ def get_sample_chat_completion(response):
         "response": response,
         "is_cached": 0,
         "cost": 0.347,
-        "start_time": get_current_ts()
+        "start_time": get_current_ts(),
     }
 
 
