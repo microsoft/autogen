@@ -331,10 +331,7 @@ class ConversableAgent(LLMAgent):
         chat_queue,
         chat_reply_func="auto",
         position: int = 2,
-        config: Optional[Any] = None,
-        reset_config: Optional[Callable] = None,
-        *,
-        ignore_async_in_sync_chat: bool = False,
+        **kwargs,
     ):
         """Register a nested chat reply function.
         Args:
@@ -353,9 +350,7 @@ class ConversableAgent(LLMAgent):
             ) -> Tuple[bool, Union[str, Dict, None]]:
             ```
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
-            config: Ref to `register_reply` for details.
-            reset_config: Ref to `register_reply` for details.
-            ignore_async_in_sync_chat: Ref to `register_reply` for details.
+            kwargs: Ref to `register_reply` for details.
         """
         from functools import partial
 
@@ -365,7 +360,12 @@ class ConversableAgent(LLMAgent):
 
         reply_func = partial(chat_reply_func, chat_queue)
         self.register_reply(
-            trigger, reply_func, position, config, reset_config, ignore_async_in_sync_chat=ignore_async_in_sync_chat
+            trigger,
+            reply_func,
+            position,
+            kwargs.get("config"),
+            kwargs.get("reset_config"),
+            ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
         )
         # self._exclude_reply_list.append(reply_func)
 
