@@ -203,7 +203,11 @@ class SqliteLogger(BaseLogger):
         if self.con is None:
             return
 
-        args = to_dict(init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"), no_recursive=(Agent))
+        args = to_dict(
+            init_args,
+            exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"),
+            no_recursive=(Agent),
+        )
 
         # We do an upsert since both the superclass and subclass may call this method (in that order)
         query = """
@@ -236,7 +240,9 @@ class SqliteLogger(BaseLogger):
         if self.con is None:
             return
 
-        args = to_dict(init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"))
+        args = to_dict(
+            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+        )
 
         query = """
         INSERT INTO oai_wrappers (wrapper_id, session_id, init_args, timestamp) VALUES (?, ?, ?, ?)
@@ -260,7 +266,9 @@ class SqliteLogger(BaseLogger):
         if self.con is None:
             return
 
-        args = to_dict(init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"))
+        args = to_dict(
+            init_args, exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint")
+        )
 
         query = """
         INSERT INTO oai_clients (client_id, wrapper_id, session_id, class, init_args, timestamp) VALUES (?, ?, ?, ?, ?, ?)
