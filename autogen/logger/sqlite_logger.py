@@ -12,7 +12,7 @@ from autogen.logger.logger_utils import get_current_ts, to_dict
 
 from openai import OpenAI, AzureOpenAI
 from openai.types.chat import ChatCompletion
-from typing import Dict, TYPE_CHECKING, Union
+from typing import Dict, List, TYPE_CHECKING, Union
 
 
 if TYPE_CHECKING:
@@ -146,12 +146,6 @@ class SqliteLogger(BaseLogger):
                 latest_version = int(script.split("_")[0])
                 self.cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version))
                 self.con.commit()
-
-    def stop_logging(self) -> None:
-        if self.con:
-            self.con.close()
-            self.con = None
-            self.cur = None
 
     def log_chat_completion(
         self,

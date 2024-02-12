@@ -14,7 +14,7 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
-from ..telemetry import log_new_agent
+from ..telemetry import logging_enabled, log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,
@@ -146,7 +146,8 @@ class ConversableAgent(LLMAgent):
                 self.llm_config.update(llm_config)
             self.client = OpenAIWrapper(**self.llm_config)
 
-        log_new_agent(self, locals())
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None

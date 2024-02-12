@@ -14,7 +14,7 @@ from autogen.cache.cache import Cache
 from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
-import autogen.telemetry
+from autogen.telemetry import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
 from autogen.logger.logger_utils import get_current_ts
 
 TOOL_ENABLED = False
@@ -348,7 +348,9 @@ class OpenAIWrapper:
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
-        autogen.telemetry.log_new_wrapper(self, locals())
+
+        if logging_enabled():
+            log_new_wrapper(self, locals())
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
         if type(config_list) is list and len(config_list) == 0:
             logger.warning("openai client was provided with an empty config_list, which may not be intended.")
@@ -411,11 +413,12 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
-                autogen.telemetry.log_new_client(client, self, openai_config)
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
-                autogen.telemetry.log_new_client(client, self, openai_config)
+
+            if logging_enabled():
+                log_new_client(client, self, openai_config)
 
     def register_model_client(self, model_client_cls: ModelClient, **kwargs):
         """Register a model client.
@@ -585,17 +588,18 @@ class OpenAIWrapper:
                             cache.set(key, response)
                         total_usage = client.get_usage(response)
 
-                        # Log the cache hit
-                        autogen.telemetry.log_chat_completion(
-                            invocation_id=invocation_id,
-                            client_id=id(client),
-                            wrapper_id=id(self),
-                            request=params,
-                            response=response,
-                            is_cached=1,
-                            cost=response.cost,
-                            start_time=request_ts,
-                        )
+                        if logging_enabled():
+                            # Log the cache hit
+                            log_chat_completion(
+                                invocation_id=invocation_id,
+                                client_id=id(client),
+                                wrapper_id=id(self),
+                                request=params,
+                                response=response,
+                                is_cached=1,
+                                cost=response.cost,
+                                start_time=request_ts,
+                            )
 
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
@@ -617,16 +621,17 @@ class OpenAIWrapper:
                     ) from err
             except APIError as err:
                 error_code = getattr(err, "code", None)
-                autogen.telemetry.log_chat_completion(
-                    invocation_id=invocation_id,
-                    client_id=id(client),
-                    wrapper_id=id(self),
-                    request=params,
-                    response=f"error_code:{error_code}, config {i} failed",
-                    is_cached=0,
-                    cost=0,
-                    start_time=request_ts,
-                )
+                if logging_enabled():
+                    log_chat_completion(
+                        invocation_id=invocation_id,
+                        client_id=id(client),
+                        wrapper_id=id(self),
+                        request=params,
+                        response=f"error_code:{error_code}, config {i} failed",
+                        is_cached=0,
+                        cost=0,
+                        start_time=request_ts,
+                    )
 
                 if error_code == "content_filter":
                     # raise the error for content_filter
@@ -645,17 +650,17 @@ class OpenAIWrapper:
                     with cache_client as cache:
                         cache.set(key, response)
 
-                # Log the telemetry
-                autogen.telemetry.log_chat_completion(
-                    invocation_id=invocation_id,
-                    client_id=id(client),
-                    wrapper_id=id(self),
-                    request=params,
-                    response=response,
-                    is_cached=0,
-                    cost=response.cost,
-                    start_time=request_ts,
-                )
+                if logging_enabled():
+                    log_chat_completion(
+                        invocation_id=invocation_id,
+                        client_id=id(client),
+                        wrapper_id=id(self),
+                        request=params,
+                        response=response,
+                        is_cached=0,
+                        cost=response.cost,
+                        start_time=request_ts,
+                    )
 
                 response.message_retrieval_function = client.message_retrieval
                 # check the filter

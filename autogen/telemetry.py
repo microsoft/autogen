@@ -12,13 +12,19 @@ if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
 autogen_logger = None
-
+is_logging = False
 
 def start_logging(logger_type: str = "sqlite", config: Dict = {}) -> str:
     global autogen_logger
+    global is_logging
+
     if autogen_logger is None:
         autogen_logger = LoggerFactory.get_logger(logger_type=logger_type, config=config)
-    return autogen_logger.start_logging()
+
+    session_id = autogen_logger.start_logging()
+    is_logging = True
+
+    return session_id
 
 
 def log_chat_completion(
@@ -49,8 +55,14 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
 
 
 def stop_logging() -> None:
+    global is_logging
     autogen_logger.stop_logging()
+    is_logging = False
 
 
 def get_connection() -> Union[sqlite3.Connection]:
     return autogen_logger.get_connection()
+
+
+def logging_enabled() -> bool:
+    return is_logging
