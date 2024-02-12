@@ -27,3 +27,6 @@
 
 - name: Execute code snippet
   href: Run-dotnet-code.md
+
+- name: Consume LLM server from LM Studio
+  href: Consume-LLM-server-from-LM-Studio.md

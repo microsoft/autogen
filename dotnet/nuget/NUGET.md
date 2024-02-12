@@ -1,4 +1,7 @@
-#### Update on 0.0.6 (2024-01-23)
+## AutoGen
+### Update on 0.0.7 (2024-02-11)
+- Add `AutoGen.LMStudio` to support comsume openai-like API from LMStudio local server
+### Update on 0.0.6 (2024-01-23)
 - Add `MiddlewareAgent`
 - Use `MiddlewareAgent` to implement existing agent hooks (RegisterPreProcess, RegisterPostProcess, RegisterReply)
 - Remove `AutoReplyAgent`, `PreProcessAgent`, `PostProcessAgent` because they are replaced by `MiddlewareAgent`
