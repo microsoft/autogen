@@ -26,8 +26,11 @@ this._con = None
 this._cur = None
 logger = logging.getLogger(__name__)
 
+__all__=("SqliteLogger")
 
 class SqliteLogger(BaseLogger):
+    schema_version = 1
+
     def __init__(self, config):
         self.con = None
         self.cur = None
@@ -110,8 +113,7 @@ class SqliteLogger(BaseLogger):
 
             current_verion = self._get_current_db_version()
             if current_verion is None:
-                query = "INSERT INTO version (id, version_number) VALUES (1, 1);"
-                self.cur.execute(query)
+                self.cur.execute("INSERT INTO version (id, version_number) VALUES (1, ?);", SqliteLogger.schema_version)
                 self.con.commit()
 
             self._apply_migration(dbname)

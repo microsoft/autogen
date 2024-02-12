@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from autogen.logger.logger_factory import LoggerFactory
 import sqlite3
-from typing import Dict, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING, Union
 import uuid
 
 from openai import OpenAI, AzureOpenAI
@@ -15,7 +15,7 @@ autogen_logger = None
 is_logging = False
 
 
-def start_logging(logger_type: str = "sqlite", config: Dict = {}) -> str:
+def start_logging(logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None) -> str:
     global autogen_logger
     global is_logging
 

@@ -2,6 +2,7 @@ from typing import Dict
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
 
+__all__ = ("LoggerFactory")
 
 class LoggerFactory:
     @staticmethod

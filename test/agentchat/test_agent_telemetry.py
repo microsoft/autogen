@@ -9,13 +9,6 @@ import sqlite3
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import skip_openai
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
-
 
 teacher_message = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -33,7 +26,7 @@ log_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, sess
 
 agents_query = """SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents"""
 
-if not skip:
+if not skip_openai:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
@@ -185,7 +178,7 @@ def verify_keys_are_matching(cur):
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
+    sys.platform in ["darwin", "win32"] or skip_openai,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_two_agents_logging(setup_test):
@@ -209,7 +202,7 @@ def test_two_agents_logging(setup_test):
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
+    sys.platform in ["darwin", "win32"] or skip_openai,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_group_chat_logging(setup_test):
