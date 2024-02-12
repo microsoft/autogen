@@ -93,7 +93,7 @@ def test_timeout() -> None:
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_silent_pip_install() -> None:
-    executor = EmbeddedIPythonCodeExecutor()
+    executor = EmbeddedIPythonCodeExecutor(timeout=600)
     code_blocks = [CodeBlock(code="!pip install matplotlib numpy", language="python")]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and code_result.output.strip() == ""
