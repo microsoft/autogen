@@ -122,7 +122,7 @@ class WikipediaRenderer(PageTextRenderer):
         return (
             content_type is not None
             and "text/html" in content_type.lower()
-            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}.wikipedia.org\/", url)
+            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}\.wikipedia.org\/", url)
         )
 
     def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
