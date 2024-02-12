@@ -64,22 +64,22 @@ class PageTextRenderer:
         raise NotImplementedError()
 
     # Helper functions
-    def _read_all_text(self, response):
+    def _read_all_text(self, response) -> str:
         """Read the entire response, and return as a string."""
         text = ""
         for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
             text += chunk
         return text
 
-    def _read_all_html(self, response):
+    def _read_all_html(self, response) -> BeautifulSoup:
         """Read the entire response, and return as a beautiful soup object."""
         return BeautifulSoup(self._read_all_text(response), "html.parser")
 
-    def _read_all_bytesio(self, response):
+    def _read_all_bytesio(self, response) -> io.BytesIO:
         """Read the entire response, and return an in-memory bytes stream."""
         return io.BytesIO(response.raw.read())
 
-    def _fix_newlines(self, rendered_text):
+    def _fix_newlines(self, rendered_text) -> str:
         re.sub(r"\r\n", "\n", rendered_text)
         return re.sub(r"\n{2,}", "\n\n", rendered_text).strip()  # Remove excessive blank lines
 
@@ -119,7 +119,7 @@ class WikipediaRenderer(PageTextRenderer):
     """Handle Wikipedia pages separately, focusing only on the main document content."""
 
     def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
-        return (
+        return bool(
             content_type is not None
             and "text/html" in content_type.lower()
             and re.search(r"^https?:\/\/[a-zA-Z]{2,3}\.wikipedia.org\/", url)
@@ -372,9 +372,9 @@ class SimpleTextBrowser:
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
 
-        self._page_renderers = []
-        self._error_renderers = []
-        self._page_content = ""
+        self._page_renderers: List[PageTextRenderer] = []
+        self._error_renderers: List[PageTextRenderer] = []
+        self._page_content: str = ""
 
         # Register renderers for successful browsing operations
         # Later registrations are tried first / take higher priority than earlier registrations
