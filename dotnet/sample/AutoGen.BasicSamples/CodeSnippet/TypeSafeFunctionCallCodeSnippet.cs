@@ -5,6 +5,39 @@ using System.Text.Json;
 using AutoGen;
 using Azure.AI.OpenAI;
 
+#region weather_report
+public partial class TypeSafeFunctionCall
+{
+    /// <summary>
+    /// Get weather report
+    /// </summary>
+    /// <param name="city">city</param>
+    /// <param name="date">date</param>
+    [Function]
+    public async Task<string> WeatherReport(string city, string date)
+    {
+        return $"Weather report for {city} on {date} is sunny";
+    }
+}
+#endregion weather_report
+
+public partial class TypeSafeFunctionCall
+{
+    public async Task Consume()
+    {
+        #region weather_report_consume
+        var functionInstance = new TypeSafeFunctionCall();
+
+        // Get the generated function definition
+        FunctionDefinition functionDefiniton = functionInstance.WeatherReportFunction;
+
+        // Get the generated function wrapper
+        Func<string, Task<string>> functionWrapper = functionInstance.WeatherReportWrapper;
+
+        // ...
+        #endregion weather_report_consume
+    }
+}
 #region code_snippet_3
 // file: FunctionCall.cs
 
