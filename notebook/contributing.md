@@ -60,7 +60,9 @@ When specifying the config list, to ensure consistency it is best to use approxi
 ```python
 import autogen
 
-config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+config_list = autogen.config_list_from_json(
+    env_or_file="OAI_CONFIG_LIST",
+)
 ```
 
 Then after the code cell where this is used, include the following markdown snippet:
