@@ -374,7 +374,7 @@ When debugging or diagnosing an LLM-based system, it is often convenient to log 
 
 ### For openai >= 1
 
-Logging example: [View Notebook](../../../notebook/agentchat_logging.ipynb)
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
 
 #### Start logging:
 ```python
