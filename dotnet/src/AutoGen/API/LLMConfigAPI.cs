@@ -36,10 +36,14 @@ namespace AutoGen
             return deploymentNames.Select(deploymentName => new AzureOpenAIConfig(endpoint, deploymentName, apiKey));
         }
 
-        public static IEnumerable<ILLMConfig> ConfigListFromJson(
+        /// <summary>
+        /// Get a list of LLMConfig objects from a JSON file.
+        /// </summary>
+        internal static IEnumerable<ILLMConfig> ConfigListFromJson(
             string filePath,
             IEnumerable<string>? filterModels = null)
         {
+            // Disable this API from documentation for now.
             throw new NotImplementedException();
         }
     }
