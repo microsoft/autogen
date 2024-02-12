@@ -136,6 +136,24 @@ class ConversableAgent(LLMAgent):
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
 
+        if llm_config is None:
+            raise ValueError("Please specify the value for 'llm_config'.")
+
+        if isinstance(llm_config, dict):
+            config_list = None
+            if "config_list" in llm_config:
+                config_list = llm_config["config_list"]
+            if config_list is None or len(config_list) == 0:
+                raise ValueError("Please specify at least one configuration in 'llm_config'.")
+
+            # We know that there's at least one entry in the configuration.
+            # Verify that model is specified as well.
+            model = None
+            if "model" in llm_config["config_list"][0]:
+                model = llm_config["config_list"][0]["model"]
+            if model is None or len(model) == 0:
+                raise ValueError("Please specify a value for the 'model' in 'llm_config'.")
+
         if llm_config is False:
             self.llm_config = False
             self.client = None
