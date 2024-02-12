@@ -232,6 +232,98 @@ def test_chats():
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_chats_exceptions():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    financial_tasks = [
+        """What are the full names of NVDA and TESLA.""",
+        """Get their stock price.""",
+        """Analyze pros and cons. Keep it short.""",
+    ]
+
+    financial_assistant_1 = AssistantAgent(
+        name="Financial_assistant_1",
+        llm_config={"config_list": config_list},
+    )
+    financial_assistant_2 = AssistantAgent(
+        name="Financial_assistant_2",
+        llm_config={"config_list": config_list},
+    )
+    user = UserProxyAgent(
+        name="User",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
+    user_2 = UserProxyAgent(
+        name="User",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
+    try:
+        user.initiate_chats(
+            [
+                {
+                    "recipient": financial_assistant_1,
+                    "message": financial_tasks[0],
+                    "silent": False,
+                    "summary_method": "last_msg",
+                },
+                {
+                    "recipient": financial_assistant_2,
+                    "message": financial_tasks[2],
+                    "summary_method": "llm",
+                    "clear_history": False,
+                },
+            ]
+        )
+    except AssertionError as e:
+        print(e)
+        assert (
+            str(e)
+            == "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
+        )
+
+    try:
+        user.initiate_chats(
+            [
+                {
+                    "recipient": financial_assistant_1,
+                    "message": financial_tasks[0],
+                    "silent": False,
+                    "summary_method": "last_msg",
+                },
+                {
+                    "recipient": user_2,
+                    "message": financial_tasks[2],
+                    "clear_history": False,
+                    "summary_method": "reflection_with_llm",
+                },
+            ]
+        )
+    except AssertionError as e:
+        print(e)
+        assert (
+            str(e)
+            == "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
+        )
+
+
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats_w_func():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -293,7 +385,8 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    test_chats()
-    test_chats_group()
+    # test_chats()
+    test_chats_exceptions()
+    # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()

@@ -794,6 +794,9 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        _chat_info = context.copy()
+        _chat_info["recipient"] = recipient
+        self._consolidate_chat_info(_chat_info)
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
@@ -903,10 +906,6 @@ class ConversableAgent(LLMAgent):
                 warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
         elif isinstance(summary_method, Callable):
             summary = summary_method(recipient, self)
-        else:
-            warnings.warn(
-                f"Unsupported summary method: {summary_method}. Returning an empty string as a summary.", UserWarning
-            )
         return summary
 
     def _reflection_with_llm(
@@ -936,6 +935,22 @@ class ConversableAgent(LLMAgent):
             raise ValueError("No OpenAIWrapper client is found.")
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
+
+    def _consolidate_chat_info(self, chat_info: Union[Dict, List[Dict]]):
+        if isinstance(chat_info, dict):
+            chat_info = [chat_info]
+        for c in chat_info:
+            assert "recipient" in c, "recipient must be provided."
+            summary_method = c.get("summary_method")
+            assert (
+                summary_method is None
+                or isinstance(summary_method, Callable)
+                or summary_method in ("last_msg", "reflection_with_llm")
+            ), "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
+            if summary_method == "reflection_with_llm":
+                assert (
+                    self.client is not None or c["recipient"].client is not None
+                ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
 
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
@@ -971,6 +986,7 @@ class ConversableAgent(LLMAgent):
 
         Returns: a dictionary of ChatResult object from the finished chats of particular agents.
         """
+        self._consolidate_chat_info(chat_queue)
         receipts_set = set()
         for chat_info in chat_queue:
             assert "recipient" in chat_info, "recipient must be provided."
