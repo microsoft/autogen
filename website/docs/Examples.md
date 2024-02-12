@@ -74,7 +74,8 @@ Links to notebook examples:
 
 1. **Long Context Handling**
 
-   - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb)
+   <!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
+   - Long Context Handling as A Capability - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb)
 
 1. **Evaluation and Assessment**
 
@@ -88,7 +89,7 @@ Links to notebook examples:
 ## Enhanced Inferences
 ### Utilities
 - API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
-- Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/llm_endpoint_configuration)
+- Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/llm_configuration)
 - Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
 
 ### Inference Hyperparameters Tuning
