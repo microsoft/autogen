@@ -22,6 +22,3 @@ Select the demo app to run:
 6. CAP AutoGen GroupChat
 Enter your choice (1-6):
 ```
-
-**TODO**
-![Todo List](Todo.md)
