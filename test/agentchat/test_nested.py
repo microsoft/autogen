@@ -155,7 +155,6 @@ def test_nested_chess():
         ),
         # llm_config={"temperature":1, "cache_seed": 1, "config_list": config_list_gpt35},
         llm_config={"config_list": config_list_gpt4},
-        # llm_config={"temperature":1, "cache_seed": 1, "config_list": config_list_gpt4},
         max_consecutive_auto_reply=max_turn,
     )
 
@@ -183,19 +182,14 @@ def test_nested_chess():
         useful_msg = messages[-1].copy()
         useful_msg["content"] = useful_msg.get("content", "") + f"The current board is:\n {board} ."
         oai_messages = [messages[-1]]
-        # _, message = recipient.generate_oai_reply(messages + board_state_msg, sender)
         _, message = recipient.generate_oai_reply(oai_messages + board_state_msg, sender)
         c["message"] = message
-        # c["carryover"] = f"Current board:\n{board}"  # NOTE: in the old code, this is added as system message
         chat_queue[0] = c
-        # print("nessss")
         res = recipient.initiate_chats(chat_queue)
         last_res = list(res.values())[-1]
-        # return True, message + "My Move is:\n" + last_res.summary
         return True, last_res.summary
 
     def board_reply(recipient, messages, sender, config):
-        # print("resplyssss")
         if recipient.reply_num >= max_turn:
             return True, None
         org_msg = messages[-1].copy()
