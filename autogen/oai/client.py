@@ -365,7 +365,7 @@ class OpenAIWrapper:
                 if "model" in config:
                     model = config["model"]
                 if model is None or len(model) == 0:
-                    raise ValueError("Please specify a value for the 'model' in 'config_list'.")
+                    raise ValueError("Please specify a non-empty 'model' value for every item in 'config_list'.")
                 self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(
                     {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}

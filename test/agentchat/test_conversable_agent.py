@@ -794,7 +794,7 @@ def test_register_for_llm_without_model_name():
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": "", "api_key": ""}]})
         assert False, "Expected ConversableAgent to throw ValueError."
     except ValueError as e:
-        assert e.args[0] == "Please specify a value for the 'model' in 'config_list'."
+        assert e.args[0] == "Please specify a non-empty 'model' value for every item in 'config_list'."
 
 
 def test_register_for_execution():

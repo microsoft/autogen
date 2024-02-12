@@ -78,8 +78,8 @@ class ConversableAgent(LLMAgent):
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        llm_config: Optional[Union[Dict, Literal[False]]] = False,
+        default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
     ):
         """
@@ -121,7 +121,7 @@ class ConversableAgent(LLMAgent):
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
-            default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
