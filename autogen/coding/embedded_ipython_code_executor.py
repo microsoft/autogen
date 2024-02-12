@@ -14,7 +14,7 @@ from ..agentchat.agent import LLMAgent
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = ("EmbeddedIPythonCodeExecutor",)
+__all__ = ("EmbeddedIPythonCodeExecutor", "IPythonCodeResult")
 
 
 class IPythonCodeResult(CodeResult):
