@@ -254,7 +254,6 @@ def test_chat_tools_stream() -> None:
             },
         },
     ]
-    print(f"{config_list=}")
     client = OpenAIWrapper(config_list=config_list)
     response = client.create(
         # the intention is to trigger two tool invocations as a response to a single message
@@ -294,7 +293,8 @@ def test_completion_stream() -> None:
 
 
 if __name__ == "__main__":
-    test_aoai_chat_completion_stream()
-    test_chat_completion_stream()
-    test_chat_functions_stream()
-    test_completion_stream()
+    # test_aoai_chat_completion_stream()
+    # test_chat_completion_stream()
+    # test_chat_functions_stream()
+    # test_completion_stream()
+    test_chat_tools_stream()
