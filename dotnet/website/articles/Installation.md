@@ -1,10 +1,12 @@
 ### Install AutoGen
 
-First, select an AutoGen feed from the following to consume.
-
-> ![NOTE]
+Firstly, select one of the following package feed to consume AutoGen packages:
+> [!NOTE]
 > The nightly build feed is the only available feed for now and it's for Microsoft internal use only. We will provide a public feed on github package soon.
-- Nightly Build feed(Internal only): https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+
+- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
+- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
+- ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
 
 Then, add the AutoGen feed to your project. You can do this by either adding a local `NuGet.config`(recommended) or adding the feed to your global `NuGet.config` file.
 
