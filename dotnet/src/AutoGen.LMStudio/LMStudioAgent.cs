@@ -11,6 +11,12 @@ using Azure.Core;
 
 namespace AutoGen.LMStudio;
 
+/// <summary>
+/// agent that consumes local server from LM Studio
+/// </summary>
+/// <example>
+/// [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+/// </example>
 public class LMStudioAgent : IAgent
 {
     private readonly GPTAgent innerAgent;
