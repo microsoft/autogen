@@ -1,3 +1,5 @@
+**Composable Actor Platform (CAP) for Autogen**
+
 **Python Instructions**
 0) cd py
 1) pip install -r ./py/requirements.txt
@@ -9,9 +11,7 @@ Notes:
 2) For option 2, type something in and see who receives the message.  Quit to quit.
 3) For any option that display an chart (like option 4), docker code execution will need to be disabled to see it. (set environment variable AUTOGEN_USE_DOCKER to False)
 
-
 Reference:
-
 ```
 Select the demo app to run:
 1. CAP Hello World
@@ -22,14 +22,6 @@ Select the demo app to run:
 6. CAP AutoGen GroupChat
 Enter your choice (1-6):
 ```
-
-Autogen Integration:  
-**Autogen Pair**  
-   
-![Autogen Pair](docs/autogen-pair.png)
-
-**Autogen - CAN Interaction**  
-![Autogen - CAN  Pair](docs/can-autogen-interaction.png)
 
 **TODO**
 ![Todo List](Todo.md)
