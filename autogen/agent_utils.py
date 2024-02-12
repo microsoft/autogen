@@ -44,7 +44,7 @@ def gather_usage_summary(agents: List) -> Tuple[Dict[str, any], Dict[str, any]]:
 
     for agent in agents:
         if getattr(agent, "client", None):
-            aggregate_summary(total_usage_summary, agent.client.total_usage_summary)
-            aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
+            aggregate_summary(total_usage_summary, total_usage_summary)
+            aggregate_summary(actual_usage_summary, actual_usage_summary)
 
     return total_usage_summary, actual_usage_summary
