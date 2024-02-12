@@ -147,7 +147,7 @@ def test_log_oai_wrapper(db_connection):
 
     cur = db_connection.cursor()
 
-    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key"}]}
+    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key", "base_url": "some url"}]}
     init_args = {"llm_config": llm_config, "base_config": {}}
     wrapper = OpenAIWrapper(**llm_config)
 
@@ -164,6 +164,7 @@ def test_log_oai_wrapper(db_connection):
         saved_init_args = json.loads(row["init_args"])
         assert "config_list" in saved_init_args
         assert "api_key" not in saved_init_args["config_list"][0]
+        assert "base_url" not in saved_init_args["config_list"][0]
         assert "base_config" in saved_init_args
 
 
