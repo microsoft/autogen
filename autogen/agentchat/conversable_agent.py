@@ -14,7 +14,7 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
-from ..telemetry import logging_enabled, log_new_agent
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,

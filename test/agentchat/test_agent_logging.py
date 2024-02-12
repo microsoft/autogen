@@ -1,6 +1,6 @@
 import pytest
 import autogen
-import autogen.telemetry
+import autogen.runtime_logging
 import json
 import sys
 import uuid
@@ -42,8 +42,8 @@ if not skip_openai:
 
 @pytest.fixture(scope="function")
 def setup_test():
-    autogen.telemetry.start_logging(config={"dbname": ":memory:"})
-    con = autogen.telemetry.get_connection()
+    autogen.runtime_logging.start(config={"dbname": ":memory:"})
+    con = autogen.runtime_logging.get_connection()
     con.row_factory = sqlite3.Row
 
     teacher = autogen.AssistantAgent(
@@ -64,7 +64,7 @@ def setup_test():
 
     yield con, teacher, student
 
-    autogen.telemetry.stop_logging()
+    autogen.runtime_logging.stop()
 
 
 def fetch_rows(cur, query):

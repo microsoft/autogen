@@ -14,7 +14,7 @@ from autogen.cache.cache import Cache
 from autogen.oai.openai_utils import get_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
-from autogen.telemetry import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
+from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
 from autogen.logger.logger_utils import get_current_ts
 
 TOOL_ENABLED = False

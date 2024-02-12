@@ -1,5 +1,4 @@
-import autogen
-import autogen.telemetry
+import autogen.runtime_logging
 import uuid
 import json
 import pytest
@@ -67,12 +66,12 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def db_connection():
-    autogen.telemetry.start_logging(config={"dbname": ":memory:"})
-    con = autogen.telemetry.get_connection()
+    autogen.runtime_logging.start(config={"dbname": ":memory:"})
+    con = autogen.runtime_logging.get_connection()
     con.row_factory = sqlite3.Row
     yield con
 
-    autogen.telemetry.stop_logging()
+    autogen.runtime_logging.stop()
 
 
 def get_sample_chat_completion(response):
@@ -100,7 +99,7 @@ def test_log_completion(response, expected_logged_response, db_connection):
     cur = db_connection.cursor()
 
     sample_completion = get_sample_chat_completion(response)
-    autogen.telemetry.log_chat_completion(**sample_completion)
+    autogen.runtime_logging.log_chat_completion(**sample_completion)
 
     query = """
         SELECT invocation_id, client_id, wrapper_id, request, response, is_cached,
@@ -128,7 +127,7 @@ def test_log_new_agent(db_connection):
     agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
     init_args = {"foo": "bar", "baz": {"other_key": "other_val"}, "a": None}
 
-    autogen.telemetry.log_new_agent(agent, init_args)
+    autogen.runtime_logging.log_new_agent(agent, init_args)
 
     query = """
         SELECT session_id, name, class, init_args FROM agents
@@ -152,7 +151,7 @@ def test_log_oai_wrapper(db_connection):
     init_args = {"llm_config": llm_config, "base_config": {}}
     wrapper = OpenAIWrapper(**llm_config)
 
-    autogen.telemetry.log_new_wrapper(wrapper, init_args)
+    autogen.runtime_logging.log_new_wrapper(wrapper, init_args)
 
     query = """
         SELECT session_id, init_args FROM oai_wrappers
@@ -179,7 +178,7 @@ def test_log_oai_client(db_connection):
     }
     client = AzureOpenAI(**openai_config)
 
-    autogen.telemetry.log_new_client(client, Mock(), openai_config)
+    autogen.runtime_logging.log_new_client(client, Mock(), openai_config)
 
     query = """
         SELECT session_id, init_args, class FROM oai_clients
@@ -257,11 +256,11 @@ def test_to_dict():
 
 
 @patch("logging.Logger.error")
-def test_telemetry_exception_will_not_crash_only_logs_error(mock_logger_error, db_connection):
+def test_logging_exception_will_not_crash_only_print_error(mock_logger_error, db_connection):
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_REQUEST)
     sample_completion["is_cached"] = {"foo": "bar"}
 
-    autogen.telemetry.log_chat_completion(**sample_completion)
+    autogen.runtime_logging.log_chat_completion(**sample_completion)
 
     args, _ = mock_logger_error.call_args
     error_message = args[0]

@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Union, Tuple
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-from ..telemetry import logging_enabled, log_new_agent
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 
 logger = logging.getLogger(__name__)

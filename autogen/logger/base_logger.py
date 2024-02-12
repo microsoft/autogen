@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class BaseLogger(ABC):
     @abstractmethod
-    def start_logging(self) -> str:
+    def start(self) -> str:
         """
         Open a connection to the logging database, and start recording.
 
@@ -35,7 +35,7 @@ class BaseLogger(ABC):
         start_time: str,
     ) -> None:
         """
-        Log a chat completion to the telemetry database.
+        Log a chat completion to database.
 
         In AutoGen, chat completions are somewhat complicated because they are handled by the `autogen.oai.OpenAIWrapper` class.
         One invocation to `create` can lead to multiple underlying OpenAI calls, depending on the llm_config list used, and
@@ -87,9 +87,9 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def stop_logging() -> None:
+    def stop() -> None:
         """
-        Close the connection to the telemetry database, and stop logging.
+        Close the connection to the logging database, and stop logging.
         """
         ...
 

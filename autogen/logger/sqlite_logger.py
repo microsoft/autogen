@@ -26,7 +26,8 @@ this._con = None
 this._cur = None
 logger = logging.getLogger(__name__)
 
-__all__=("SqliteLogger")
+__all__ = ("SqliteLogger",)
+
 
 class SqliteLogger(BaseLogger):
     schema_version = 1
@@ -36,8 +37,8 @@ class SqliteLogger(BaseLogger):
         self.cur = None
         self.config = config
 
-    def start_logging(self) -> str:
-        dbname = self.config["dbname"] if "dbname" in self.config else "telemetry.db"
+    def start(self) -> str:
+        dbname = self.config["dbname"] if "dbname" in self.config else "logs.db"
         this._session_id = str(uuid.uuid4())
 
         try:
@@ -104,8 +105,8 @@ class SqliteLogger(BaseLogger):
 
             query = """
             CREATE TABLE IF NOT EXISTS version (
-                id INTEGER PRIMARY KEY CHECK (id = 1),                  -- id of the telemetry database
-                version_number INTEGER NOT NULL                         -- version of the telemetry database
+                id INTEGER PRIMARY KEY CHECK (id = 1),                  -- id of the logging database
+                version_number INTEGER NOT NULL                         -- version of the logging database
             );
             """
             self.cur.execute(query)
@@ -119,7 +120,7 @@ class SqliteLogger(BaseLogger):
             self._apply_migration(dbname)
 
         except sqlite3.Error as e:
-            logger.error(f"[SqliteLogger] start_logging error: {e}")
+            logger.error(f"[SqliteLogger] start logging error: {e}")
         finally:
             return this._session_id
 
@@ -281,13 +282,13 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_new_client error: {e}")
 
-    def stop_logging(self) -> None:
+    def stop(self) -> None:
         if self.con:
             self.con.close()
             self.con = None
             self.cur = None
 
-    def get_log(self, dbname: str = "telemetry.db", table: str = "chat_completions") -> List[Dict]:
+    def get_log(self, dbname: str = "logs.db", table: str = "chat_completions") -> List[Dict]:
         """
         Return a dict string of the database.
         """

@@ -15,14 +15,14 @@ autogen_logger = None
 is_logging = False
 
 
-def start_logging(logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None) -> str:
+def start(logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None) -> str:
     global autogen_logger
     global is_logging
 
     if autogen_logger is None:
         autogen_logger = LoggerFactory.get_logger(logger_type=logger_type, config=config)
 
-    session_id = autogen_logger.start_logging()
+    session_id = autogen_logger.start()
     is_logging = True
 
     return session_id
@@ -55,9 +55,9 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
     autogen_logger.log_new_client(client, wrapper, init_args)
 
 
-def stop_logging() -> None:
+def stop() -> None:
     global is_logging
-    autogen_logger.stop_logging()
+    autogen_logger.stop()
     is_logging = False
 
 
