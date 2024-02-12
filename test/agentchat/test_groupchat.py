@@ -672,6 +672,38 @@ def test_clear_agents_history():
     ]
 
 
+def test_get_all_agents_in_manager():
+    def agent(name: str) -> autogen.ConversableAgent:
+        return autogen.ConversableAgent(
+            name=name,
+            max_consecutive_auto_reply=10,
+            human_input_mode="NEVER",
+            llm_config=False,
+        )
+
+    def team(name: str) -> autogen.ConversableAgent:
+        member1 = agent(f"member1_{name}")
+        member2 = agent(f"member2_{name}")
+
+        gc = autogen.GroupChat(agents=[member1, member2], messages=[])
+
+        return autogen.GroupChatManager(groupchat=gc, name=name, llm_config=False)
+
+    user = agent("user")
+    team1 = team("team1")
+    team2 = team("team2")
+
+    gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
+    gc_manager = autogen.GroupChatManager(groupchat=gc, llm_config=False)
+
+    agents = gc_manager.all_agents()
+    team1_member1 = gc_manager.agent_by_name("member1_team1")
+
+    assert len(agents) == 5
+    assert team1_member1 is not None
+    assert team1_member1.name == "member1_team1"
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
