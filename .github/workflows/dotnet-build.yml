@@ -46,6 +46,7 @@ jobs:
   openai-test:
     name: Run openai test
     runs-on: ubuntu-latest
+    environment: dotnet
     defaults:
       run:
         working-directory: dotnet
