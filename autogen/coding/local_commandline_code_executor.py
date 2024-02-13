@@ -44,7 +44,7 @@ class LocalCommandlineCodeExecutor(BaseModel):
     the working directory, and a unique file is generated and saved in the
     working directory for each code block.
     The code blocks are executed in the order they are received.
-    Command line code is sanitized in order to prevent self destructive
+    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
     commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
