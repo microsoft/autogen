@@ -4,8 +4,8 @@ Demo App
 import os
 import sys
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(parent_dir)
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) # noqa: E402
+sys.path.append(parent_dir) # noqa: E402
 
 import Config
 import argparse
