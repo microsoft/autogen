@@ -33,12 +33,22 @@ public class FunctionCallMiddleware : IMiddleware
     {
         // if the last message is a function call message, invoke the function and return the result instead of sending to the agent.
         var lastMessage = context.Messages.Last();
-        if (lastMessage is not null && lastMessage is { FunctionName: string functionName, FunctionArguments: string functionArguments })
+        if (lastMessage is not null && lastMessage is { Content: null, FunctionName: string functionName, FunctionArguments: string functionArguments })
         {
             if (this.functionMap?.TryGetValue(functionName, out var func) is true)
             {
                 var result = await func(functionArguments);
-                return new Message(role: Role.Function, content: result, from: lastMessage.From)
+                return new Message(role: Role.Function, content: result, from: agent.Name)
+                {
+                    FunctionName = functionName,
+                    FunctionArguments = functionArguments,
+                };
+            }
+            else if (this.functionMap is not null)
+            {
+                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
+
+                return new Message(role: Role.Function, content: errorMessage, from: agent.Name)
                 {
                     FunctionName = functionName,
                     FunctionArguments = functionArguments,
@@ -46,13 +56,7 @@ public class FunctionCallMiddleware : IMiddleware
             }
             else
             {
-                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-
-                return new Message(role: Role.Function, content: errorMessage, from: lastMessage.From)
-                {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
+                throw new InvalidOperationException("FunctionMap is not available");
             }
         }
 

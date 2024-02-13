@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using AutoGen.Core.Middleware;
@@ -44,7 +45,7 @@ public partial class MiddlewareTest
         // if the reply from echo is not terminate message, return the original reply
         var autoAskUserInputMW = new HumanInputMiddleware(
             mode: HumanInputMode.AUTO,
-            isTermination: async (message) => message.Content == "terminate",
+            isTermination: async (messages, ct) => messages.Last()?.Content == "terminate",
             getInput: () => "input",
             exitKeyword: "exit");
         var autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
@@ -58,7 +59,7 @@ public partial class MiddlewareTest
         // if the reply from echo is terminate message, and user input is exit, return the TERMINATE message
         autoAskUserInputMW = new HumanInputMiddleware(
             mode: HumanInputMode.AUTO,
-            isTermination: async (message) => message.Content == "terminate",
+            isTermination: async (messages, ct) => messages.Last().Content == "terminate",
             getInput: () => "exit",
             exitKeyword: "exit");
         autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
@@ -93,7 +94,7 @@ public partial class MiddlewareTest
         var functionCallMessage = new Message(Role.User, content: null, from: "user", functionCall: functionCall);
         var reply = await testAgent.SendAsync(functionCallMessage);
         reply.Content!.Should().Be("[FUNC] hello");
-        reply.From.Should().Be("user"); // the from should be the user because the function call message is from the user
+        reply.From.Should().Be("echo");
 
         // test 2
         // middleware should invoke function call if agent reply is a function call message
