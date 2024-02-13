@@ -56,6 +56,7 @@ setuptools.setup(
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
         "websockets": ["websockets>=12.0,<13"],
+        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
