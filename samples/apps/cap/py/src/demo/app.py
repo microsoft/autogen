@@ -4,31 +4,31 @@ Demo App
 import os
 import sys
 
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) # noqa: E402
-sys.path.append(parent_dir) # noqa: E402
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # noqa: E402
+sys.path.append(parent_dir)  # noqa: E402
 
-import Config
-import argparse
-import time
-import DebugLog as DebugLog
-from demo.app_agents import (
+import Config  # noqa: E402
+import argparse  # noqa: E402
+import time  # noqa: E402
+import DebugLog as DebugLog  # noqa: E402
+from demo.app_agents import (  # noqa: E402
     FidelityAgent,
     FinancialPlannerAgent,
     PersonalAssistant,
     QuantAgent,
     UserInterfaceAgent,
 )
-from LocalActorNetwork import LocalActorNetwork
-from termcolor import colored
-from autogen import (
+from LocalActorNetwork import LocalActorNetwork  # noqa: E402
+from termcolor import colored  # noqa: E402
+from autogen import (  # noqa: E402
     GroupChat,
     GroupChatManager,
     AssistantAgent,
     config_list_from_json,
     UserProxyAgent,
 )
-from ag_adapter.AG2CAP import AG2CAP
-from ag_adapter.CAP2AG import CAP2AG
+from ag_adapter.AG2CAP import AG2CAP  # noqa: E402
+from ag_adapter.CAP2AG import CAP2AG  # noqa: E402
 
 ####################################################################################################
 
