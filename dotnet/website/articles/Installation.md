@@ -2,7 +2,7 @@
 
 Firstly, select one of the following package feed to consume AutoGen packages:
 > [!NOTE]
-> The nightly build feed is the only available feed for now and it's for Microsoft internal use only. We will provide a public feed on github package soon.
+> There's only nightly-build feed available for now, the stable-version will be published to nuget once it's available
 
 - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
 - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
