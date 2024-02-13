@@ -24,5 +24,8 @@ Then you can start with the following code snippet to create a conversable agent
 - Exclusive for dotnet
     - [x] Source generator for type-safe function definition generation
 
+### Examples
+You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
+
 ### Update log
 [!INCLUDE [Update log](../../nuget/NUGET.md)]

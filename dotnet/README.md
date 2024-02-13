@@ -55,6 +55,9 @@ await userProxyAgent.InitiateChatAsync(
     maxRound: 10);
 ```
 
+#### Samples
+You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples).
+
 #### Functionality
 - ConversableAgent
     - [x] function call
