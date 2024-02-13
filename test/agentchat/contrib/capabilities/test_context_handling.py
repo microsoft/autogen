@@ -102,6 +102,71 @@ def test_transform_chat_history_with_agents():
         assert False, f"Chat initiation failed with error {str(e)}"
 
 
+def test_transform_messages_retain_order():
+    """
+    Test that the order of messages is retained after transformation.
+    Test that the messages are properly truncating.
+    """
+    messages = [
+        {"role": "system", "content": "System message"},
+        {"role": "user", "content": "Hi"},
+        {"role": "user", "content": "user sending the 2nd test message"},
+        {"role": "assistant", "content": "assistant sending the 3rd test message"},
+        {"role": "assistant", "content": "assistant sending the 4th test message"},
+    ]
+
+    transform_chat_history = TransformChatHistory(max_messages=3, max_tokens_per_message=10, max_tokens=100)
+    transformed_messages = transform_chat_history._transform_messages(messages)
+
+    assert transformed_messages[0]["role"] == "system"
+    assert transformed_messages[0]["content"] == "System message"
+    assert transformed_messages[1]["role"] == "user"
+    assert transformed_messages[1]["content"] == "user sending the 2nd test message"
+    assert transformed_messages[2]["role"] == "assistant"
+    assert transformed_messages[2]["content"] == "assistant sending the 3rd test message"
+    assert transformed_messages[3]["role"] == "assistant"
+    assert transformed_messages[3]["content"] == "assistant sending the 4th test message"
+
+
+def test_truncate_str_to_tokens():
+    """
+    Test the truncate_str_to_tokens function.
+    """
+    from autogen.agentchat.contrib.capabilities.context_handling import truncate_str_to_tokens
+
+    # Test case 1: Truncate string with fewer tokens than max_tokens
+    text = "This is a test"
+    max_tokens = 5
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert truncated_text == text
+
+    # Test case 2: Truncate string with more tokens than max_tokens
+    text = "This is a test"
+    max_tokens = 3
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert truncated_text == "This is a"
+
+    # Test case 3: Truncate empty string
+    text = ""
+    max_tokens = 5
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert truncated_text == ""
+
+    # Test case 4: Truncate string with exact number of tokens as max_tokens
+    text = "This is a test"
+    max_tokens = 4
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert truncated_text == "This is a test"
+
+    # Test case 5: Truncate string with no tokens found
+    text = "This is a test"
+    max_tokens = 0
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert truncated_text == ""
+
+
 if __name__ == "__main__":
     test_transform_chat_history()
     test_transform_chat_history_with_agents()
+    test_truncate_str_to_tokens()
+    test_transform_messages_retain_order()
