@@ -1,5 +1,7 @@
 from typing import Callable, Dict, List, Literal, Optional, Union
 
+from autogen.io.base import IOStream
+
 from .conversable_agent import ConversableAgent
 
 
@@ -35,6 +37,7 @@ class UserProxyAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
         description: Optional[str] = None,
+        iostream: Optional[IOStream] = None,
     ):
         """
         Args:
@@ -92,4 +95,5 @@ class UserProxyAgent(ConversableAgent):
             description=description
             if description is not None
             else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
+            iostream=iostream,
         )
