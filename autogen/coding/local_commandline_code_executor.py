@@ -115,19 +115,19 @@ If you want the user to save the code in a file before executing it, put # filen
     def sanitize_code(lang: str, code: str) -> None:
         """
         Sanitize the code block to prevent dangerous commands.
-        This approach acknowledges that while Docker or similar 
-        containerization/sandboxing technologies provide a robust layer of security, 
-        not all users may have Docker installed or may choose not to use it. 
-        Therefore, having a baseline level of protection helps mitigate risks for users who, 
-        either out of choice or necessity, run code outside of a sandboxed environment. 
-        
+        This approach acknowledges that while Docker or similar
+        containerization/sandboxing technologies provide a robust layer of security,
+        not all users may have Docker installed or may choose not to use it.
+        Therefore, having a baseline level of protection helps mitigate risks for users who,
+        either out of choice or necessity, run code outside of a sandboxed environment.
+
         """
         dangerous_patterns = [
-            (r'\brm\b.*\b-rf\b', "Use of 'rm -rf' command is not allowed."),
-            (r'\bmv\b.*\s/dev/null', "Moving files to /dev/null is not allowed."),
-            (r'\bdd\b', "Use of 'dd' command is not allowed."),
-            (r'>\s*/dev/sd[a-z]', "Overwriting disk blocks directly is not allowed."),
-            (r':\(\)\{\s*:\|\:&\s*\};:', "Fork bombs are not allowed."),
+            (r"\brm\s+-rf\b", "Use of 'rm -rf' command is not allowed."),
+            (r"\bmv\b.*?\s+/dev/null", "Moving files to /dev/null is not allowed."),
+            (r"\bdd\b", "Use of 'dd' command is not allowed."),
+            (r">\s*/dev/sd[a-z][1-9]?", "Overwriting disk blocks directly is not allowed."),
+            (r":\(\)\{\s*:\|\:&\s*\};:", "Fork bombs are not allowed."),
         ]
         if lang in ["bash", "shell", "sh"]:
             for pattern, message in dangerous_patterns:
