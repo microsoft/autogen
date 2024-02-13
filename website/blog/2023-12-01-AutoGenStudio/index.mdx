@@ -13,7 +13,7 @@ tags: [AutoGen, UI, web, UX]
 ![AutoGen Studio Playground View: Solving a task with multiple agents that generate a pdf document with images.](img/autogenstudio_home.png)
 <p align="center"><em>AutoGen Studio: Solving a task with multiple agents that generate a pdf document with images.</em></p>
 
-## TLDR
+## TL;DR
 
 To help you rapidly prototype multi-agent solutions for your tasks, we are introducing AutoGen Studio, an interface powered by [AutoGen](https://github.com/microsoft/autogen/tree/main/autogen). It allows you to:
 
@@ -202,7 +202,7 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 - Please initiate a discussion on the roadmap issue or a new issue to discuss your proposed contribution.
 - Please review the autogenstudio dev branch here [dev branch].(https://github.com/microsoft/autogen/tree/autogenstudio) and use as a base for your contribution. This way, your contribution will be aligned with the latest changes in the AutoGen Studio project.
 - Submit a pull request with your contribution!
-- If you are modifying AutoGen Studio in vscode, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it.
+- If you are modifying AutoGen Studio in vscode, it has its own devcontainer to simplify dev work. See instructions in `.devcontainer/README.md` on how to use it.
 - Please use the tag `studio` for any issues, questions, and PRs related to Studio.
 
 
@@ -223,6 +223,14 @@ A: We are constantly working to improve AutoGen Studio. For the latest updates, 
 **Q: Can I use Other Models with AutoGen Studio?**
 Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model name`, `api key`, `base url`, `model type` and `api version`. For Azure OpenAI models, you can find these details in the Azure portal. Note that for Azure OpenAI, the `model name` is the deployment id or engine, and the `model type` is "azure".
 For other OSS models, we recommend using a server such as vllm to instantiate an openai compliant endpoint.
+
+**Q: The Server Starts But I Can't Access the UI**
+A: If you are running the server on a remote machine (or a local machine that fails to resolve localhost correstly), you may need to specify the host address. By default, the host address is set to `localhost`.  You can specify the host address using the `--host <host>` argument. For example, to start the server on port 8081 and local address such that it is accessible from other machines on the network, you can run the following command:
+
+```bash
+autogenstudio ui --port 8081 --host 0.0.0.0
+```
+
 
 
 <br />

@@ -3,6 +3,7 @@
 - [Set your API endpoints](#set-your-api-endpoints)
   - [Use the constructed configuration list in agents](#use-the-constructed-configuration-list-in-agents)
   - [Unexpected keyword argument 'base_url'](#unexpected-keyword-argument-base_url)
+  - [How does an agent decide which model to pick out of the list?](#how-does-an-agent-decide-which-model-to-pick-out-of-the-list)
   - [Can I use non-OpenAI models?](#can-i-use-non-openai-models)
 - [Handle Rate Limit Error and Timeout Error](#handle-rate-limit-error-and-timeout-error)
 - [How to continue a finished conversation](#how-to-continue-a-finished-conversation)
@@ -20,32 +21,15 @@
 
 ## Set your API endpoints
 
-There are multiple ways to construct configurations for LLM inference in the `oai` utilities:
-
-- `get_config_list`: Generates configurations for API calls, primarily from provided API keys.
-- `config_list_openai_aoai`: Constructs a list of configurations using both Azure OpenAI and OpenAI endpoints, sourcing API keys from environment variables or local files.
-- `config_list_from_json`: Loads configurations from a JSON structure, either from an environment variable or a local JSON file, with the flexibility of filtering configurations based on given criteria.
-- `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
-- `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
-
-We suggest that you take a look at this [notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_openai_utils.ipynb) for full code examples of the different methods to configure your model endpoints.
+This documentation has been moved [here](/docs/llm_configuration).
 
 ### Use the constructed configuration list in agents
 
-Make sure the "config_list" is included in the `llm_config` in the constructor of the LLM-based agent. For example,
-```python
-assistant = autogen.AssistantAgent(
-    name="assistant",
-    llm_config={"config_list": config_list}
-)
-```
+This documentation has been moved [here](/docs/llm_configuration).
 
-The `llm_config` is used in the [`create`](/docs/reference/oai/client#create) function for LLM inference.
-When `llm_config` is not provided, the agent will rely on other openai settings such as `openai.api_key` or the environment variable `OPENAI_API_KEY`, which can also work when you'd like to use a single endpoint.
-You can also explicitly specify that by:
-```python
-assistant = autogen.AssistantAgent(name="assistant", llm_config={"api_key": ...})
-```
+### How does an agent decide which model to pick out of the list?
+
+This documentation has been moved [here](/docs/llm_configuration#how-does-an-agent-decide-which-model-to-pick-out-of-the-list).
 
 ### Unexpected keyword argument 'base_url'
 
@@ -53,7 +37,10 @@ In version >=1, OpenAI renamed their `api_base` parameter to `base_url`. So for 
 
 ### Can I use non-OpenAI models?
 
-Yes. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+Yes. You currently have two options:
+
+- Autogen can work with any API endpoint which complies with OpenAI-compatible RESTful APIs - e.g. serving local LLM via FastChat or LM Studio. Please check https://microsoft.github.io/autogen/blog/2023/07/14/Local-LLMs for an example.
+- You can supply your own custom model implementation and use it with Autogen. Please check https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models for more information.
 
 ## Handle Rate Limit Error and Timeout Error
 

@@ -8,14 +8,11 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
 
-try:
-    import docker
-except ImportError:
-    docker = None
+import docker
 
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
@@ -40,7 +37,7 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List, None]) -> str:
+def content_str(content: Union[str, List[Dict[str, Any]], None]) -> str:
     """Converts `content` into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
@@ -81,7 +78,7 @@ def content_str(content: Union[str, List, None]) -> str:
     return rst
 
 
-def infer_lang(code):
+def infer_lang(code: str) -> str:
     """infer the language for the code.
     TODO: make it robust.
     """
@@ -226,14 +223,12 @@ def _cmd(lang):
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
-def is_docker_running():
+def is_docker_running() -> bool:
     """Check if docker is running.
 
     Returns:
         bool: True if docker is running; False otherwise.
     """
-    if docker is None:
-        return False
     try:
         client = docker.from_env()
         client.ping()
@@ -242,7 +237,7 @@ def is_docker_running():
         return False
 
 
-def in_docker_container():
+def in_docker_container() -> bool:
     """Check if the code is running in a docker container.
 
     Returns:
@@ -320,7 +315,7 @@ def execute_code(
     work_dir: Optional[str] = None,
     use_docker: Union[List[str], str, bool] = SENTINEL,
     lang: Optional[str] = "python",
-) -> Tuple[int, str, str]:
+) -> Tuple[int, str, Optional[str]]:
     """Execute code in a docker container.
     This function is not tested on MacOS.
 
@@ -394,29 +389,20 @@ def execute_code(
             sys.executable if lang.startswith("python") else _cmd(lang),
             f".\\{filename}" if WIN32 else filename,
         ]
-        if WIN32:
-            logger.warning("SIGALRM is not supported on Windows. No timeout will be enforced.")
-            result = subprocess.run(
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                subprocess.run,
                 cmd,
                 cwd=work_dir,
                 capture_output=True,
                 text=True,
             )
-        else:
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    subprocess.run,
-                    cmd,
-                    cwd=work_dir,
-                    capture_output=True,
-                    text=True,
-                )
-                try:
-                    result = future.result(timeout=timeout)
-                except TimeoutError:
-                    if original_filename is None:
-                        os.remove(filepath)
-                    return 1, TIMEOUT_MSG, None
+            try:
+                result = future.result(timeout=timeout)
+            except TimeoutError:
+                if original_filename is None:
+                    os.remove(filepath)
+                return 1, TIMEOUT_MSG, None
         if original_filename is None:
             os.remove(filepath)
         if result.returncode:
