@@ -59,37 +59,37 @@ public class MiddlewareStreamingAgent : IStreamingAgent
     {
         _middlewares.Add(new DelegateStreamingMiddleware(middlewareName, new DelegateStreamingMiddleware.MiddlewareDelegate(func)));
     }
-}
 
-internal class DelegateStreamingAgent : IStreamingAgent
-{
-    private IStreamingMiddleware middleware;
-    private IStreamingAgent innerAgent;
-
-    public string? Name => innerAgent.Name;
-
-    public DelegateStreamingAgent(IStreamingMiddleware middleware, IStreamingAgent next)
+    private class DelegateStreamingAgent : IStreamingAgent
     {
-        this.middleware = middleware;
-        this.innerAgent = next;
-    }
+        private IStreamingMiddleware middleware;
+        private IStreamingAgent innerAgent;
 
-    public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var stream = await GenerateStreamingReplyAsync(messages, options, cancellationToken);
-        var result = default(Message);
+        public string? Name => innerAgent.Name;
 
-        await foreach (var message in stream.WithCancellation(cancellationToken))
+        public DelegateStreamingAgent(IStreamingMiddleware middleware, IStreamingAgent next)
         {
-            result = message;
+            this.middleware = middleware;
+            this.innerAgent = next;
         }
 
-        return result ?? throw new InvalidOperationException("No message returned from the streaming agent.");
-    }
+        public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            var stream = await GenerateStreamingReplyAsync(messages, options, cancellationToken);
+            var result = default(Message);
 
-    public Task<IAsyncEnumerable<Message>> GenerateStreamingReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var context = new MiddlewareContext(messages, options);
-        return middleware.InvokeAsync(context, innerAgent, cancellationToken);
+            await foreach (var message in stream.WithCancellation(cancellationToken))
+            {
+                result = message;
+            }
+
+            return result ?? throw new InvalidOperationException("No message returned from the streaming agent.");
+        }
+
+        public Task<IAsyncEnumerable<Message>> GenerateStreamingReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            var context = new MiddlewareContext(messages, options);
+            return middleware.InvokeAsync(context, innerAgent, cancellationToken);
+        }
     }
 }

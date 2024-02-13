@@ -88,9 +88,6 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    /// <param name="agent"></param>
-    /// <param name="func"></param>
-    /// <returns></returns>
     public static MiddlewareAgent RegisterMiddleware(
         this IAgent agent,
         Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
@@ -103,6 +100,24 @@ public static class MiddlewareExtension
 
         var middlewareAgent = new MiddlewareAgent(agent);
         middlewareAgent.Use(func, middlewareName);
+
+        return middlewareAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareAgent RegisterMiddleware(
+        this IAgent agent,
+        IMiddleware middleware)
+    {
+        if (agent.Name == null)
+        {
+            throw new Exception("Agent name is null.");
+        }
+
+        var middlewareAgent = new MiddlewareAgent(agent);
+        middlewareAgent.Use(middleware);
 
         return middlewareAgent;
     }

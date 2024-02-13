@@ -1,26 +1,21 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// IMiddleware.cs
+// IStreamingMiddleware.cs
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutoGen.Core.Middleware;
 
 /// <summary>
-/// The middleware interface
+/// The streaming middleware interface
 /// </summary>
-public interface IMiddleware
+public interface IStreamingMiddleware
 {
-    /// <summary>
-    /// the name of the middleware
-    /// </summary>
     public string? Name { get; }
 
-    /// <summary>
-    /// The method to invoke the middleware
-    /// </summary>
-    public Task<Message> InvokeAsync(
+    public Task<IAsyncEnumerable<Message>> InvokeAsync(
         MiddlewareContext context,
-        IAgent agent,
+        IStreamingAgent agent,
         CancellationToken cancellationToken = default);
 }

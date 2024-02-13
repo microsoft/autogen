@@ -66,27 +66,27 @@ public class MiddlewareAgent : IAgent
     {
         this.middlewares.Add(middleware);
     }
-}
 
-internal class DelegateAgent : IAgent
-{
-    private readonly IAgent innerAgent;
-    private readonly IMiddleware middleware;
-
-    public DelegateAgent(IMiddleware middleware, IAgent innerAgent)
+    private class DelegateAgent : IAgent
     {
-        this.middleware = middleware;
-        this.innerAgent = innerAgent;
-    }
+        private readonly IAgent innerAgent;
+        private readonly IMiddleware middleware;
 
-    public string? Name { get => this.innerAgent.Name; }
+        public DelegateAgent(IMiddleware middleware, IAgent innerAgent)
+        {
+            this.middleware = middleware;
+            this.innerAgent = innerAgent;
+        }
 
-    public Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
-        GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        var context = new MiddlewareContext(messages, options);
-        return this.middleware.InvokeAsync(context, this.innerAgent, cancellationToken);
+        public string? Name { get => this.innerAgent.Name; }
+
+        public Task<Message> GenerateReplyAsync(
+            IEnumerable<Message> messages,
+            GenerateReplyOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            var context = new MiddlewareContext(messages, options);
+            return this.middleware.InvokeAsync(context, this.innerAgent, cancellationToken);
+        }
     }
 }
