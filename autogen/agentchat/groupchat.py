@@ -666,7 +666,7 @@ class GroupChatManager(ConversableAgent):
                     elif agent.name == word[:-1]:  # for the case when agent name is followed by dot or other sign
                         agent_to_memory_clear = agent
                         break
-        # preserve last tool call message if function inside of tool response
+        # preserve last tool call message if clear history called inside of tool response
         if "tool_responses" in reply and not nr_messages_to_preserve:
             nr_messages_to_preserve = 1
             logger.warning(
