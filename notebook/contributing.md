@@ -52,7 +52,7 @@ Then after the code cell where this is used, include the following markdown snip
 ```
 \:\:\:tip
 
-Learn more about the various ways to configure LLM endpoints [here](/docs/llm_endpoint_configuration).
+Learn more about the various ways to configure LLM endpoints [here](/docs/llm_configuration).
 
 \:\:\:
 ```
