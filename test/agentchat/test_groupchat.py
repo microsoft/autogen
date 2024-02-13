@@ -695,7 +695,6 @@ def test_get_all_agents_in_groupchat():
     team2 = team("team2")
 
     gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
-    gc_manager = autogen.GroupChatManager(groupchat=gc, llm_config=False)
 
     agents = gc.all_agents()
     team1_member1 = agents.get("member1_team1")
