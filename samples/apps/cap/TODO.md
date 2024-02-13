@@ -8,13 +8,11 @@
 - ~~make groupchat work~~
 - ~~actors instead of agents~~
 - clean up for PR into autogen
-  - Create folder structure under Autogen examples
-  - CAN -> CAP (Composable Actor Protocol)
+  - ~~Create folder structure under Autogen examples~~
+  - ~~CAN -> CAP (Composable Actor Protocol)~~
 - CAP actor lookup should use zmq
 - Add min C# actors & reorganize
 - Hybrid GroupChat with C# ProductManager
-- Cleanup
-  - #1
 - C++ Msg Layer
 - Rust Msg Layer
 - Node Msg Layer
