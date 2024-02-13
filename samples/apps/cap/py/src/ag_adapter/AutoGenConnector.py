@@ -9,8 +9,8 @@ class AutoGenConnector:
     to/from the CAP system.
     """
 
-    def __init__(self, can_sender: ActorConnector):
-        self._can_channel: ActorConnector = can_sender
+    def __init__(self, cap_sender: ActorConnector):
+        self._can_channel: ActorConnector = cap_sender
 
     def close(self):
         """

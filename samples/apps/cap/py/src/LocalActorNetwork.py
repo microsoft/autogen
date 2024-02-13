@@ -1,10 +1,8 @@
 from DebugLog import Debug, Warn
 import zmq
-from abc import ABC, abstractmethod
-
 from ActorConnector import ActorConnector
 from Broker import Broker
-from CANConstants import Termination_Topic
+from CAPConstants import Termination_Topic
 
 class LocalActorNetwork():
     def __init__(self, name="Local Agent Network"):

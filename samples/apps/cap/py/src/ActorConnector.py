@@ -5,7 +5,7 @@ import zmq
 import time
 import uuid
 from DebugLog import Debug, Error
-from CANConstants import xsub_url, xpub_url
+from CAPConstants import xsub_url, xpub_url
 
 class ActorConnector():
     def __init__(self, context, topic):

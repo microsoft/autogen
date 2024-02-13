@@ -3,7 +3,7 @@ from autogen import Agent, ConversableAgent
 import time
 from typing import Callable, Dict, List, Optional, Union
 
-class AG2CAN(ConversableAgent):
+class AG2CAP(ConversableAgent):
     """
     A conversable agent proxy that sends messages to CAN when called
     """

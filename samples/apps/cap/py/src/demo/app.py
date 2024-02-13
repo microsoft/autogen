@@ -27,18 +27,18 @@ from autogen import (
     config_list_from_json,
     UserProxyAgent,
 )
-from ag_adapter.AG2CAN import AG2CAN
-from ag_adapter.CAN2AG import CAN2AG
+from ag_adapter.AG2CAP import AG2CAP
+from ag_adapter.CAP2AG import CAP2AG
 
 ####################################################################################################
 
 
 def simple_actor_demo():
     """
-    Demonstrates the usage of the CAN platform by registering an agent, connecting to other agents,
+    Demonstrates the usage of the CAP platform by registering an agent, connecting to other agents,
     sending a message, and performing cleanup operations.
     """
-    # CAN Platform
+    # CAP Platform
 
     network = LocalActorNetwork()
     # Register an agent
@@ -126,7 +126,7 @@ def ag_demo():
 ####################################################################################################
 
 
-def can_ag_pair_demo():
+def cap_ag_pair_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
     user_proxy = UserProxyAgent(
@@ -137,13 +137,13 @@ def can_ag_pair_demo():
     # Composable Agent Network adapter
 
     network = LocalActorNetwork()
-    user_proxy_adptr = CAN2AG(
+    user_proxy_adptr = CAP2AG(
         ag_agent=user_proxy, 
         the_other_name="assistant", 
         init_chat=True, 
         self_recursive=True
     )
-    assistant_adptr = CAN2AG(
+    assistant_adptr = CAP2AG(
         ag_agent=assistant, 
         the_other_name="user_proxy", 
         init_chat=False, 
@@ -217,7 +217,7 @@ def ag_groupchat_demo():
 ####################################################################################################
 
 
-def can_ag_group_demo():
+def cap_ag_group_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     gpt4_config = {
         "cache_seed": 73,
@@ -247,46 +247,46 @@ def can_ag_group_demo():
     # Composable Agent Network adapter
 
     network = LocalActorNetwork()
-    user_proxy_can2ag = CAN2AG(
+    user_proxy_cap2ag = CAP2AG(
         ag_agent=user_proxy,
         the_other_name="chat_manager",
         init_chat=True,
         self_recursive=False
     )
 
-    coder_can2ag = CAN2AG(
+    coder_cap2ag = CAP2AG(
         ag_agent=coder,
         the_other_name="chat_manager",
         init_chat=False,
         self_recursive=False
     )
 
-    pm_can2ag = CAN2AG(
+    pm_cap2ag = CAP2AG(
         ag_agent=pm,
         the_other_name="chat_manager",
         init_chat=False,
         self_recursive=False
     )
-    network.register(user_proxy_can2ag)
-    network.register(coder_can2ag)
-    network.register(pm_can2ag)
+    network.register(user_proxy_cap2ag)
+    network.register(coder_cap2ag)
+    network.register(pm_cap2ag)
 
-    user_proxy_ag2can = AG2CAN(network, agent_name=user_proxy.name, agent_description=user_proxy.description)
-    coder_ag2can = AG2CAN(network, agent_name=coder.name, agent_description=coder.description)
-    pm_ag2can = AG2CAN(network, agent_name=pm.name, agent_description=pm.description)
+    user_proxy_ag2cap = AG2CAP(network, agent_name=user_proxy.name, agent_description=user_proxy.description)
+    coder_ag2cap = AG2CAP(network, agent_name=coder.name, agent_description=coder.description)
+    pm_ag2cap = AG2CAP(network, agent_name=pm.name, agent_description=pm.description)
     groupchat = GroupChat(
-        agents=[user_proxy_ag2can, coder_ag2can, pm_ag2can], messages=[], max_round=12
+        agents=[user_proxy_ag2cap, coder_ag2cap, pm_ag2cap], messages=[], max_round=12
     )
 
     manager = GroupChatManager(groupchat=groupchat, llm_config=gpt4_config)
 
-    manager_can2ag = CAN2AG(
+    manager_cap2ag = CAP2AG(
         ag_agent=manager,
         the_other_name=user_proxy.name,
         init_chat=False,
         self_recursive=True
     )
-    network.register(manager_can2ag)
+    network.register(manager_cap2ag)
 
     time.sleep(0.01)
     network.connect()
@@ -299,7 +299,7 @@ def can_ag_group_demo():
 
     while True:
         time.sleep(0.5)
-        if not user_proxy_can2ag.run and not coder_can2ag.run and not pm_can2ag.run and not manager_can2ag.run:
+        if not user_proxy_cap2ag.run and not coder_cap2ag.run and not pm_cap2ag.run and not manager_cap2ag.run:
             break
         
     network.disconnect()
@@ -346,11 +346,11 @@ def main():
         elif choice == "3":
             ag_demo()
         elif choice == "4":
-            can_ag_pair_demo()
+            cap_ag_pair_demo()
         elif choice == "5":
             ag_groupchat_demo()
         elif choice == "6":
-            can_ag_group_demo()
+            cap_ag_group_demo()
         else:
             print("Quitting...")
             break

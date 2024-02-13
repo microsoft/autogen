@@ -7,10 +7,10 @@ to retrieve information.
 from DebugLog import Debug, Info, shorten
 from LocalActorNetwork import LocalActorNetwork
 from ActorConnector import ActorConnector
-from CANActor import CANActor
+from CAPActor import CAPActor
 
 
-class FidelityAgent(CANActor):
+class FidelityAgent(CAPActor):
     """
     This class represents the fidelity agent, who knows how to connect to fidelity to get account,
     portfolio, and order information.
@@ -31,7 +31,7 @@ class FidelityAgent(CANActor):
         super().__init__(agent_name, description)
 
 
-class FinancialPlannerAgent(CANActor):
+class FinancialPlannerAgent(CAPActor):
     """
     This class represents the financial planner agent, who knows how to connect to a financial
     planner and get financial planning information.
@@ -53,7 +53,7 @@ class FinancialPlannerAgent(CANActor):
         super().__init__(agent_name, description)
 
 
-class QuantAgent(CANActor):
+class QuantAgent(CAPActor):
     """
     This class represents the quant agent, who knows how to connect to a quant and get
     quant information.
@@ -73,7 +73,7 @@ class QuantAgent(CANActor):
         super().__init__(agent_name, description)
 
 
-class UserInterfaceAgent(CANActor):
+class UserInterfaceAgent(CAPActor):
     """
     This class represents the user interface agent, who knows how to connect to a user
     interface and get user interface information.
@@ -94,7 +94,7 @@ class UserInterfaceAgent(CANActor):
         super().__init__(UserInterfaceAgent.cls_agent_name, description)
 
 
-class PersonalAssistant(CANActor):
+class PersonalAssistant(CAPActor):
     """
     This class represents the personal assistant, who knows how to connect to the other agents and
     get information from them.

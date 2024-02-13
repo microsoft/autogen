@@ -2,9 +2,9 @@ from DebugLog import Debug, Info
 import zmq
 import threading
 import traceback
-from CANConstants import Termination_Topic, xpub_url
+from CAPConstants import Termination_Topic, xpub_url
 
-class CANActor():
+class CAPActor():
     def __init__(self, agent_name, description):
         self.agent_name = agent_name
         self.agent_description = description

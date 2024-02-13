@@ -1,7 +1,7 @@
 from DebugLog import Debug
 import zmq
 import threading
-from CANConstants import xsub_url, xpub_url
+from CAPConstants import xsub_url, xpub_url
 
 class Broker:
     def __init__(self, context = zmq.Context()):

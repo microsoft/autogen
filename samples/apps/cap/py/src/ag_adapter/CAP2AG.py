@@ -4,10 +4,10 @@ from proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, T
 from autogen import Agent
 from enum import Enum
 from typing import Dict, List, Optional, Union
-from ag_adapter.AG2CAN import AG2CAN
-from CANActor import CANActor
+from ag_adapter.AG2CAP import AG2CAP
+from CAPActor import CAPActor
 
-class CAN2AG(CANActor):
+class CAP2AG(CAPActor):
     """
     A CAN actor that acts as an adapter for the AutoGen system.
     """
@@ -20,7 +20,7 @@ class CAN2AG(CANActor):
                  self_recursive=True):
         super().__init__(ag_agent.name, ag_agent.description)
         self._the_ag_agent = ag_agent
-        self._ag2can_other_agent:AG2CAN = None
+        self._ag2can_other_agent:AG2CAP = None
         self._other_agent_name = the_other_name
         self._init_chat = init_chat
         self.STATE = self.States.INIT
@@ -34,7 +34,7 @@ class CAN2AG(CANActor):
         Connect to the AutoGen system.
         """
         self._network = network
-        self._ag2can_other_agent =  AG2CAN(self._network, self._other_agent_name)
+        self._ag2can_other_agent =  AG2CAP(self._network, self._other_agent_name)
         Debug(self._can2ag_name, "connected to {network}")
 
     def disconnect(self, network: LocalActorNetwork):
