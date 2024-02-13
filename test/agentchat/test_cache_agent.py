@@ -6,6 +6,7 @@ import pytest
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
 from autogen.cache import Cache
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST, here
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai, skip_redis  # noqa: E402
@@ -107,23 +108,11 @@ def test_disk_cache():
 
 
 def run_conversation(cache_seed, human_input_mode="NEVER", max_consecutive_auto_reply=5, cache=None):
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    here = os.path.abspath(os.path.dirname(__file__))
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
-            },
+            "tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
         },
     )
     llm_config = {
@@ -159,7 +148,7 @@ def run_conversation(cache_seed, human_input_mode="NEVER", max_consecutive_auto_
 
     # track how long this takes
     user.initiate_chat(assistant, message=coding_task, cache=cache)
-    return user.chat_messages[list(user.chat_messages.keys())[-0]]
+    return user.chat_messages[assistant]
 
 
 def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_auto_reply=5):
@@ -170,16 +159,7 @@ def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
-            },
+            "tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
         },
     )
     llm_config = {
