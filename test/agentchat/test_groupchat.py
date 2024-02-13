@@ -760,11 +760,11 @@ def test_clear_agents_history():
     agent1_history = list(agent1._oai_messages.values())[0]
     assert agent1_history == [
         {
-            'tool_calls': [
-                {'id': 'call_test_id', 'function': {'arguments': '', 'name': 'test_tool'}, 'type': 'function'},
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"},
             ],
-            'content': None,
-            'role': 'assistant',
+            "content": None,
+            "role": "assistant",
         },
     ]
 
