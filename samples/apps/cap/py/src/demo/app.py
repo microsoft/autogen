@@ -67,6 +67,7 @@ def simple_actor_demo():
 
 ####################################################################################################
 
+
 def complex_actor_demo():
     """
     This function demonstrates the usage of a complex actor system.
@@ -110,15 +111,16 @@ def complex_actor_demo():
 
 ####################################################################################################
 
+
 def ag_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
     user_proxy = UserProxyAgent(
-        "user_proxy", code_execution_config={"work_dir": "coding"},
-        is_termination_msg=lambda x: "TERMINATE" in x.get("content")    )
-    user_proxy.initiate_chat(
-        assistant, message="Plot a chart of MSFT daily closing prices for last 1 Month."
+        "user_proxy",
+        code_execution_config={"work_dir": "coding"},
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
     )
+    user_proxy.initiate_chat(assistant, message="Plot a chart of MSFT daily closing prices for last 1 Month.")
 
 
 ####################################################################################################
@@ -130,26 +132,17 @@ def cap_ag_pair_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
     user_proxy = UserProxyAgent(
-        "user_proxy", code_execution_config={"work_dir": "coding"},
-        is_termination_msg=lambda x: "TERMINATE" in x.get("content")
+        "user_proxy",
+        code_execution_config={"work_dir": "coding"},
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
     )
 
     # Composable Agent Network adapter
 
     network = LocalActorNetwork()
-    user_proxy_adptr = CAP2AG(
-        ag_agent=user_proxy, 
-        the_other_name="assistant", 
-        init_chat=True, 
-        self_recursive=True
-    )
-    assistant_adptr = CAP2AG(
-        ag_agent=assistant, 
-        the_other_name="user_proxy", 
-        init_chat=False, 
-        self_recursive=True
-    )
-    
+    user_proxy_adptr = CAP2AG(ag_agent=user_proxy, the_other_name="assistant", init_chat=True, self_recursive=True)
+    assistant_adptr = CAP2AG(ag_agent=assistant, the_other_name="user_proxy", init_chat=False, self_recursive=True)
+
     network.register(user_proxy_adptr)
     network.register(assistant_adptr)
     time.sleep(0.01)
@@ -160,9 +153,7 @@ def cap_ag_pair_demo():
 
     user_proxy = network.lookup_agent("user_proxy")
     time.sleep(0.01)
-    user_proxy.send_txt_msg(
-        "Plot a chart of MSFT daily closing prices for last 1 Month."
-    )
+    user_proxy.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
     # Hang around for a while
 
@@ -196,7 +187,7 @@ def ag_groupchat_demo():
             "use_docker": False,
         },
         human_input_mode="TERMINATE",
-        is_termination_msg=lambda x: "TERMINATE" in x.get("content")
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
     )
     coder = AssistantAgent(name="Coder", llm_config=gpt4_config)
     pm = AssistantAgent(
@@ -247,26 +238,11 @@ def cap_ag_group_demo():
     # Composable Agent Network adapter
 
     network = LocalActorNetwork()
-    user_proxy_cap2ag = CAP2AG(
-        ag_agent=user_proxy,
-        the_other_name="chat_manager",
-        init_chat=True,
-        self_recursive=False
-    )
+    user_proxy_cap2ag = CAP2AG(ag_agent=user_proxy, the_other_name="chat_manager", init_chat=True, self_recursive=False)
 
-    coder_cap2ag = CAP2AG(
-        ag_agent=coder,
-        the_other_name="chat_manager",
-        init_chat=False,
-        self_recursive=False
-    )
+    coder_cap2ag = CAP2AG(ag_agent=coder, the_other_name="chat_manager", init_chat=False, self_recursive=False)
 
-    pm_cap2ag = CAP2AG(
-        ag_agent=pm,
-        the_other_name="chat_manager",
-        init_chat=False,
-        self_recursive=False
-    )
+    pm_cap2ag = CAP2AG(ag_agent=pm, the_other_name="chat_manager", init_chat=False, self_recursive=False)
     network.register(user_proxy_cap2ag)
     network.register(coder_cap2ag)
     network.register(pm_cap2ag)
@@ -274,18 +250,11 @@ def cap_ag_group_demo():
     user_proxy_ag2cap = AG2CAP(network, agent_name=user_proxy.name, agent_description=user_proxy.description)
     coder_ag2cap = AG2CAP(network, agent_name=coder.name, agent_description=coder.description)
     pm_ag2cap = AG2CAP(network, agent_name=pm.name, agent_description=pm.description)
-    groupchat = GroupChat(
-        agents=[user_proxy_ag2cap, coder_ag2cap, pm_ag2cap], messages=[], max_round=12
-    )
+    groupchat = GroupChat(agents=[user_proxy_ag2cap, coder_ag2cap, pm_ag2cap], messages=[], max_round=12)
 
     manager = GroupChatManager(groupchat=groupchat, llm_config=gpt4_config)
 
-    manager_cap2ag = CAP2AG(
-        ag_agent=manager,
-        the_other_name=user_proxy.name,
-        init_chat=False,
-        self_recursive=True
-    )
+    manager_cap2ag = CAP2AG(ag_agent=manager, the_other_name=user_proxy.name, init_chat=False, self_recursive=True)
     network.register(manager_cap2ag)
 
     time.sleep(0.01)
@@ -301,7 +270,7 @@ def cap_ag_group_demo():
         time.sleep(0.5)
         if not user_proxy_cap2ag.run and not coder_cap2ag.run and not pm_cap2ag.run and not manager_cap2ag.run:
             break
-        
+
     network.disconnect()
     DebugLog.Info("App", "App Exit")
 
@@ -312,9 +281,7 @@ def cap_ag_group_demo():
 def parse_args():
     # Create a parser for the command line arguments
     parser = argparse.ArgumentParser(description="Demo App")
-    parser.add_argument(
-        "--log_level", type=int, default=1, help="Set the log level (0-3)"
-    )
+    parser.add_argument("--log_level", type=int, default=1, help="Set the log level (0-3)")
     # Parse the command line arguments
     args = parser.parse_args()
     # Set the log level

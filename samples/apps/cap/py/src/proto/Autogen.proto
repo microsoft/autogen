@@ -33,4 +33,3 @@ message PrepChat {
     bool clear_history = 2;
     bool prepare_recipient = 3;
 }
-

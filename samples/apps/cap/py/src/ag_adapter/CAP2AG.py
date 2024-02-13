@@ -7,24 +7,22 @@ from typing import Dict, List, Optional, Union
 from ag_adapter.AG2CAP import AG2CAP
 from CAPActor import CAPActor
 
+
 class CAP2AG(CAPActor):
     """
     A CAN actor that acts as an adapter for the AutoGen system.
     """
-    States = Enum('States', ['INIT', 'CONVERSING'])
 
-    def __init__(self,
-                 ag_agent,
-                 the_other_name,
-                 init_chat,
-                 self_recursive=True):
+    States = Enum("States", ["INIT", "CONVERSING"])
+
+    def __init__(self, ag_agent, the_other_name, init_chat, self_recursive=True):
         super().__init__(ag_agent.name, ag_agent.description)
         self._the_ag_agent = ag_agent
-        self._ag2can_other_agent:AG2CAP = None
+        self._ag2can_other_agent: AG2CAP = None
         self._other_agent_name = the_other_name
         self._init_chat = init_chat
         self.STATE = self.States.INIT
-        self._can2ag_name: str = self.agent_name+".can2ag"
+        self._can2ag_name: str = self.agent_name + ".can2ag"
         self._self_recursive = self_recursive
         self._network = None
         self._connectors = {}
@@ -34,7 +32,7 @@ class CAP2AG(CAPActor):
         Connect to the AutoGen system.
         """
         self._network = network
-        self._ag2can_other_agent =  AG2CAP(self._network, self._other_agent_name)
+        self._ag2can_other_agent = AG2CAP(self._network, self._other_agent_name)
         Debug(self._can2ag_name, "connected to {network}")
 
     def disconnect(self, network: LocalActorNetwork):
@@ -42,7 +40,7 @@ class CAP2AG(CAPActor):
         Disconnect from the AutoGen system.
         """
         super().disconnect(network)
-#        self._the_other.close()
+        #        self._the_other.close()
         Debug(self.agent_name, "disconnected")
 
     def process_txt_msg(self, msg, msg_type, topic, sender):
@@ -64,14 +62,14 @@ class CAP2AG(CAPActor):
         request_reply: Optional[bool] = None
         silent: Optional[bool] = False
 
-        if receive_params.HasField('request_reply'):
+        if receive_params.HasField("request_reply"):
             request_reply = receive_params.request_reply
-        if receive_params.HasField('silent'):
+        if receive_params.HasField("silent"):
             silent = receive_params.silent
 
         save_name = self._ag2can_other_agent.name
         self._ag2can_other_agent.set_name(receive_params.sender)
-        if receive_params.HasField('data_map'):
+        if receive_params.HasField("data_map"):
             data = dict(receive_params.data_map.data)
         else:
             data = receive_params.data
@@ -84,19 +82,21 @@ class CAP2AG(CAPActor):
         """
         receive_params = ReceiveReq()
         receive_params.ParseFromString(msg)
-        
+
         self._ag2can_other_agent.reset_receive_called()
-        
+
         if self.STATE == self.States.INIT:
             self.STATE = self.States.CONVERSING
-            
+
             if self._init_chat:
-                self._the_ag_agent.initiate_chat(self._ag2can_other_agent, message=receive_params.data, summary_method=None)
+                self._the_ag_agent.initiate_chat(
+                    self._ag2can_other_agent, message=receive_params.data, summary_method=None
+                )
             else:
                 self._call_agent_receive(receive_params)
         else:
             self._call_agent_receive(receive_params)
-                       
+
         if not self._ag2can_other_agent.was_receive_called() and self._self_recursive:
             Warn(self._can2ag_name, "TERMINATE")
             self._ag2can_other_agent.send_terminate(self._the_ag_agent)
@@ -150,6 +150,5 @@ class CAP2AG(CAPActor):
             Warn(self._can2ag_name, f"TERMINATE received: topic=[{topic}], msg_type=[{msg_type}]")
             return False
         else:
-            Error(self._can2ag_name,
-                  f"Unhandled message type: topic=[{topic}], msg_type=[{msg_type}]")
+            Error(self._can2ag_name, f"Unhandled message type: topic=[{topic}], msg_type=[{msg_type}]")
         return True

@@ -1,36 +1,43 @@
-# Agent_Sender takes a zmq context, Topic and creates a 
-# socket that can publish to that topic. It exposes this functionality 
-# using send_msg method 
+# Agent_Sender takes a zmq context, Topic and creates a
+# socket that can publish to that topic. It exposes this functionality
+# using send_msg method
 import zmq
 import time
 import uuid
 from DebugLog import Debug, Error
 from CAPConstants import xsub_url, xpub_url
 
-class ActorConnector():
+
+class ActorConnector:
     def __init__(self, context, topic):
         self._pub_socket = context.socket(zmq.PUB)
-        self._pub_socket.setsockopt( zmq.LINGER, 0 )
+        self._pub_socket.setsockopt(zmq.LINGER, 0)
         self._pub_socket.connect(xsub_url)
 
         self._resp_socket = context.socket(zmq.SUB)
-        self._resp_socket.setsockopt( zmq.LINGER, 0 )
+        self._resp_socket.setsockopt(zmq.LINGER, 0)
         self._resp_socket.setsockopt(zmq.RCVTIMEO, 36000)
         self._resp_socket.connect(xpub_url)
         self._resp_topic = str(uuid.uuid4())
         Debug("AgentConnector", f"subscribe to: {self._resp_topic}")
         self._resp_socket.setsockopt_string(zmq.SUBSCRIBE, f"{self._resp_topic}")
         self._topic = topic
-        time.sleep(0.01) # Let the network do things.
+        time.sleep(0.01)  # Let the network do things.
 
     def send_txt_msg(self, msg):
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), "text".encode("utf8"), self._resp_topic.encode("utf8"), msg.encode("utf8")])
+        self._pub_socket.send_multipart(
+            [self._topic.encode("utf8"), "text".encode("utf8"), self._resp_topic.encode("utf8"), msg.encode("utf8")]
+        )
 
     def send_bin_msg(self, msg_type: str, msg):
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg])
+        self._pub_socket.send_multipart(
+            [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
+        )
 
     def binary_request(self, msg_type: str, msg):
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg])
+        self._pub_socket.send_multipart(
+            [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
+        )
         for i in range(5):
             try:
                 resp_topic, resp_msg_type, resp_sender_topic, resp = self._resp_socket.recv_multipart()

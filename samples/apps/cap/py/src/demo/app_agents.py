@@ -1,6 +1,6 @@
 """
 This file contains the implementation of various agents used in the application.
-Each agent represents a different role and knows how to connect to external systems 
+Each agent represents a different role and knows how to connect to external systems
 to retrieve information.
 """
 
@@ -67,8 +67,7 @@ class QuantAgent(CAPActor):
     def __init__(
         self,
         agent_name="Quant",
-        description="This is the quant agent, who knows "
-        "how to connect to a quant and get quant information.",
+        description="This is the quant agent, who knows " "how to connect to a quant and get quant information.",
     ):
         super().__init__(agent_name, description)
 
@@ -161,11 +160,7 @@ class PersonalAssistant(CAPActor):
         """
         Info(self.agent_name, f"Helping user: {shorten(msg)}")
         self.fidelity.send_txt_msg("Help me buy/sell assets for " + msg)
-        self.financial_planner.send_txt_msg(
-            f"Help me with a financial plan for {msg}'s goals."
-        )
-        self.quant.send_txt_msg(
-            "Help me with some quantitative analysis of the interest rate for " + msg
-        )
+        self.financial_planner.send_txt_msg(f"Help me with a financial plan for {msg}'s goals.")
+        self.quant.send_txt_msg("Help me with some quantitative analysis of the interest rate for " + msg)
         self.user_interface.send_txt_msg("Help me talk to " + msg)
         return True

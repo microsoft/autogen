@@ -3,10 +3,12 @@ from autogen import Agent, ConversableAgent
 import time
 from typing import Callable, Dict, List, Optional, Union
 
+
 class AG2CAP(ConversableAgent):
     """
     A conversable agent proxy that sends messages to CAN when called
     """
+
     def __init__(
         self,
         network,
@@ -23,7 +25,7 @@ class AG2CAP(ConversableAgent):
 
     def was_receive_called(self):
         return self._recv_called
-    
+
     def set_name(self, name: str):
         """
         Set the name of the agent.
@@ -63,17 +65,12 @@ class AG2CAP(ConversableAgent):
         self._check_connection()
         return self._agent_connector.send_gen_reply_req()
 
-    def _prepare_chat(
-        self,
-        recipient: "ConversableAgent",
-        clear_history: bool,
-        prepare_recipient: bool = True
-    ) -> None:
+    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
         self._check_connection()
         self._agent_connector.send_prep_chat(recipient, clear_history, prepare_recipient)
-        
+
     def send_terminate(self, recipient: "ConversableAgent") -> None:
         self._check_connection()
         self._agent_connector.send_terminate(recipient)
         self._terminate_connector.send_terminate(self)
-        time.sleep(0.01) # Let the network do things.
+        time.sleep(0.01)  # Let the network do things.

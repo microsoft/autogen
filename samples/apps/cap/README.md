@@ -6,7 +6,7 @@
 2) python ./py/src/demo/app.py
 
 Notes:
-1) Options 3,4,5&6 require OAI_CONFIG_LIST for Autogen.  
+1) Options 3,4,5&6 require OAI_CONFIG_LIST for Autogen.
    Autogen python requirements: 3.8 <= python <= 3.11
 2) For option 2, type something in and see who receives the message.  Quit to quit.
 3) For any option that display an chart (like option 4), docker code execution will need to be disabled to see it. (set environment variable AUTOGEN_USE_DOCKER to False)

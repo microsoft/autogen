@@ -1,6 +1,6 @@
 import threading
 import datetime
-import Config  
+import Config
 from termcolor import colored
 
 # Define log levels as constants
@@ -15,6 +15,7 @@ LEVEL_COLOR = ["dark_grey", "green", "yellow", "red"]
 
 console_lock = threading.Lock()
 
+
 def Log(level, context, msg):
     # Check if the current level meets the threshold
     if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
@@ -22,31 +23,36 @@ def Log(level, context, msg):
         if context in Config.IGNORED_LOG_CONTEXTS:
             return
         with console_lock:
-            timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"),"dark_grey")
+            timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
             # Translate level number to name and color
             level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
             # Center justify the context and color it blue
-            context = colored(context.ljust(14), 'blue')
+            context = colored(context.ljust(14), "blue")
             # color the msg based on the level
-            msg = colored(msg,LEVEL_COLOR[level])
+            msg = colored(msg, LEVEL_COLOR[level])
             print(f"{threading.get_ident()} {timestamp} {level_name}: [{context}] {msg}")
+
 
 def Debug(context, message):
     Log(DEBUG, context, message)
 
+
 def Info(context, message):
     Log(INFO, context, message)
+
 
 def Warn(context, message):
     Log(WARN, context, message)
 
+
 def Error(context, message):
     Log(ERROR, context, message)
-    
+
+
 def shorten(msg, num_parts=5, max_len=100):
     # Remove new lines
-    msg = msg.replace('\n', ' ')
-    
+    msg = msg.replace("\n", " ")
+
     # If the message is shorter than or equal to max_len characters, return it as is
     if len(msg) <= max_len:
         return msg
@@ -64,4 +70,4 @@ def shorten(msg, num_parts=5, max_len=100):
         parts.append(msg[start:end])
 
     # Join the parts with '...' and return the result
-    return '...'.join(parts)
+    return "...".join(parts)

@@ -3,9 +3,10 @@ from proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, T
 from autogen import Agent
 from typing import Dict, Optional, Union
 
+
 class AutoGenConnector:
     """
-    A specialized ActorConnector class for sending and receiving Autogen messages 
+    A specialized ActorConnector class for sending and receiving Autogen messages
     to/from the CAP system.
     """
 
@@ -59,10 +60,7 @@ class AutoGenConnector:
             msg.silent = silent
         self._send_msg(msg)
 
-    def send_terminate(
-        self,
-        sender: Agent
-    ):
+    def send_terminate(self, sender: Agent):
         """
         Send a Terminate message to CAP.
         """
@@ -70,12 +68,7 @@ class AutoGenConnector:
         msg.sender = sender.name
         self._send_msg(msg)
 
-    def send_prep_chat(
-        self,
-        recipient: "Agent",
-        clear_history: bool,
-        prepare_recipient: bool = True
-    ) -> None:
+    def send_prep_chat(self, recipient: "Agent", clear_history: bool, prepare_recipient: bool = True) -> None:
         """
         Send a PrepChat message to CAP.
 
