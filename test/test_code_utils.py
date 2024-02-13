@@ -552,6 +552,7 @@ class TestContentStr(unittest.TestCase):
         with self.assertRaises(TypeError):
             content_str(content)
 
+
 if __name__ == "__main__":
     # test_infer_lang()
     test_extract_code()
