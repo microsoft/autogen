@@ -57,7 +57,8 @@ def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, i
 
 def stop() -> None:
     global is_logging
-    autogen_logger.stop()
+    if autogen_logger:
+        autogen_logger.stop()
     is_logging = False
 
 

@@ -12,7 +12,7 @@ from autogen.logger.logger_utils import get_current_ts, to_dict
 
 from openai import OpenAI, AzureOpenAI
 from openai.types.chat import ChatCompletion
-from typing import Dict, List, TYPE_CHECKING, Union
+from typing import Dict, TYPE_CHECKING, Union
 
 
 if TYPE_CHECKING:

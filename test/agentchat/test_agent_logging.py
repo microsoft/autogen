@@ -2,6 +2,7 @@ import pytest
 import autogen
 import autogen.runtime_logging
 import json
+import os
 import sys
 import uuid
 import sqlite3
@@ -42,8 +43,9 @@ if not skip_openai:
 
 @pytest.fixture(scope="function")
 def setup_test():
-    autogen.runtime_logging.start(config={"dbname": ":memory:"})
-    con = autogen.runtime_logging.get_connection()
+    dbname = "testlogs.db"
+    autogen.runtime_logging.start(config={"dbname": dbname})
+    con = sqlite3.connect(dbname)
     con.row_factory = sqlite3.Row
 
     teacher = autogen.AssistantAgent(
@@ -65,6 +67,8 @@ def setup_test():
     yield con, teacher, student
 
     autogen.runtime_logging.stop()
+    if os.path.exists(dbname):
+        os.remove(dbname)
 
 
 def fetch_rows(cur, query):
@@ -127,8 +131,8 @@ def verify_agents(rows):
 
 
 def verify_oai_client_table(cur, num_of_clients):
-    cur.execute("SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients")
-    rows = cur.fetchall()
+    query = "SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients"
+    rows = fetch_rows(cur, query)
 
     assert len(rows) == num_of_clients
     session_id = rows[0]["session_id"]
@@ -144,8 +148,8 @@ def verify_oai_client_table(cur, num_of_clients):
 
 
 def verify_oai_wrapper_table(cur, num_of_wrappers):
-    cur.execute("SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers")
-    rows = cur.fetchall()
+    query = "SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers"
+    rows = fetch_rows(cur, query)
 
     assert len(rows) == num_of_wrappers
     session_id = rows[0]["session_id"]
@@ -172,8 +176,7 @@ def verify_keys_are_matching(cur):
             ON chat_completions.wrapper_id = oai_wrappers.wrapper_id
             AND chat_completions.session_id = oai_wrappers.session_id
     """
-    cur.execute(query)
-    rows = cur.fetchall()
+    rows = fetch_rows(cur, query)
     assert len(rows) == 3
 
 
