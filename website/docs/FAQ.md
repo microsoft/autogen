@@ -1,5 +1,6 @@
 # Frequently Asked Questions
 
+- [Install the correct package - `pyautogen`](#install-the-correct-package---pyautogen)
 - [Set your API endpoints](#set-your-api-endpoints)
   - [Use the constructed configuration list in agents](#use-the-constructed-configuration-list-in-agents)
   - [Unexpected keyword argument 'base_url'](#unexpected-keyword-argument-base_url)
@@ -18,6 +19,15 @@
 - [How to get each agent message?](#how-to-get-each-agent-message)
 - [When using autogen docker, is it always necessary to reinstall modules?](#when-using-autogen-docker-is-it-always-necessary-to-reinstall-modules)
 - [Agents are throwing due to docker not running, how can I resolve this?](#agents-are-throwing-due-to-docker-not-running-how-can-i-resolve-this)
+
+## Install the correct package - `pyautogen`
+
+The name of Autogen package at PyPI is `pyautogen`:
+```
+pip install pyautogen
+```
+
+Typical errors that you might face when using the wrong package are `AttributeError: module 'autogen' has no attribute 'Agent'`, `AttributeError: module 'autogen' has no attribute 'config_list_from_json'` etc.
 
 ## Set your API endpoints
 
