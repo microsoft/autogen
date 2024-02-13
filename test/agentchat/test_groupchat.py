@@ -723,6 +723,51 @@ def test_clear_agents_history():
         },
     ]
 
+    # testing clear history called from tool response
+    agent1.reset()
+    agent2.reset()
+    agent3.reset()
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply={
+            "role": "tool",
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+            "content": "Clear history. How you doing?",
+        },
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=1, enable_clear_history=True)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.send("dummy message", group_chat_manager, request_reply=True)
+    agent1.send(
+        {
+            "content": None,
+            "role": "assistant",
+            "function_call": None,
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
+            ],
+        },
+        group_chat_manager,
+        request_reply=True,
+    )
+    groupchat.max_round = 2
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    assert agent1_history == [
+        {
+            'tool_calls': [
+                {'id': 'call_test_id', 'function': {'arguments': '', 'name': 'test_tool'}, 'type': 'function'},
+            ],
+            'content': None,
+            'role': 'assistant',
+        },
+    ]
+
 
 if __name__ == "__main__":
     # test_func_call_groupchat()
