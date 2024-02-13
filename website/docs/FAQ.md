@@ -27,7 +27,7 @@ The name of Autogen package at PyPI is `pyautogen`:
 pip install pyautogen
 ```
 
-Typical errors that you might face when using the wrong package are `AttributeError: module 'autogen' has no attribute 'Agent'`, `AttributeError: module 'autogen' has no attribute 'config_list_ from_json'` etc.
+Typical errors that you might face when using the wrong package are `AttributeError: module 'autogen' has no attribute 'Agent'`, `AttributeError: module 'autogen' has no attribute 'config_list_from_json'` etc.
 
 ## Set your API endpoints
 
