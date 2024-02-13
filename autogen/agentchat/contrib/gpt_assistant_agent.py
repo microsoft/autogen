@@ -147,6 +147,7 @@ class GPTAssistantAgent(ConversableAgent):
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
         self.register_reply(Agent, GPTAssistantAgent.check_termination_and_human_reply)
         self.register_reply(Agent, GPTAssistantAgent.a_check_termination_and_human_reply)
+
     def _invoke_assistant(
         self,
         messages: Optional[List[Dict]] = None,
