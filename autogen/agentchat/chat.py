@@ -29,8 +29,94 @@ class ChatResult:
     """A list of human input solicited during the chat."""
 
 
+@dataclass
+class Link:
+    def __init__(
+        self,
+        sender,
+        recipient,
+        init_message=None,
+        sender2recipient="auto",
+        recipient2sender="auto",
+        summary_method="last_msg",
+        summary_prompt=None,
+        allow_carryover=None,
+        carryover=None,
+    ):
+        # message should be a string or a callable that takes the sender and recipient as input and returns a string.
+        # for send_func and reply_func, "auto" means the default generate_reply function in the sender or recipient will be used.
+        # when init_message is True, trigger the sender2recipient function to generate the initial message.
+        self.sender = sender
+        self.recipient = recipient
+        self.send_func = sender2recipient
+        self.reply_func = recipient2sender
+        self.init_message = init_message
+        self.summary_method = summary_method
+        self.summary_prompt = summary_prompt
+        self.allow_carryover = allow_carryover
+        self.carryover = carryover
+
+    def __repr__(self):
+        return f"Link(sender={self.sender}, recipient={self.recipient}), send_func={self.send_func}, reply_func={self.reply_func}"
+
+
+class Chat:
+    """(In preview) A class to manage chats workflow."""
+
+    def __init__(self):
+        self.links = []
+        self.finished_chats = []
+        self.existing_agents = set()
+
+    def add_link(self, link):
+        if isinstance(link, dict):
+            link = Link(**link)
+        assert isinstance(link, Link), "link should be a Link object."
+        return self
+
+    def initiate_chats(self, links: List, **kwargs):
+        if links is not None:
+            self.links += links
+        self.finished_chats = []
+        links = self.links.copy()
+        for link in links:
+            msg = (
+                link.init_message
+                if isinstance(link.init_message, str)
+                else link.init_message(link.sender, link.recipient)
+            )
+            if msg is not None:
+                chat_info = {
+                    "sender": link.sender,
+                    "recipient": link.recipient,
+                    "message": msg,
+                    "summary_method": link.summary_method,
+                    "summary_prompt": link.summary_prompt,
+                }
+                sender = chat_info["sender"]
+                _chat_carryover = link.carryover if link.carryover is not None else []
+                if isinstance(_chat_carryover, str):
+                    _chat_carryover = [_chat_carryover]
+                if link.allow_carryover:
+                    chat_info["carryover"] = _chat_carryover + [r.summary for r in self.finished_chats]
+                if "message" not in chat_info:
+                    warnings.warn(
+                        "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
+                        UserWarning,
+                    )
+                chat_res = sender.initiate_chat(**chat_info)
+                self.finished_chats.append(chat_res)
+            else:
+                warnings.warn(
+                    "No message is generated for the chat. The chat is skipped.",
+                    UserWarning,
+                )
+                # should register the chat
+        return self.finished_chats
+
+
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
-    """Initiate a list of chats.
+    """(In preview) Initiate a list of chats.
 
     args:
         chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
@@ -87,7 +173,6 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
                 "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
                 UserWarning,
             )
-        chat_info["recipient"]
         print_carryover = (
             ("\n").join([t for t in chat_info["carryover"]])
             if isinstance(chat_info["carryover"], list)
