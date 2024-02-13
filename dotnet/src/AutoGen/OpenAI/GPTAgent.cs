@@ -72,7 +72,7 @@ public class GPTAgent : IStreamingReplyAgent
         this.functionMap = functionMap;
     }
 
-    public string? Name { get; }
+    public string Name { get; }
 
     public async Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,
@@ -86,8 +86,8 @@ public class GPTAgent : IStreamingReplyAgent
         return await this.PostProcessMessage(oaiMessage);
     }
 
-    public async Task<IAsyncEnumerable<Message>> GenerateReplyStreamingAsync(
-        IEnumerable<Message> messages,
+    public async Task<IAsyncEnumerable<IMessage>> GenerateReplyStreamingAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
@@ -180,7 +180,7 @@ public class GPTAgent : IStreamingReplyAgent
         }
     }
 
-    private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<Message> messages)
+    private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)
     {
         var oaiMessages = this.ProcessMessages(messages);
         var settings = new ChatCompletionsOptions(this.modelName, oaiMessages)

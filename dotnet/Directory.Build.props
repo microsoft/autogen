@@ -13,6 +13,8 @@
     <NoWarn>$(NoWarn);$(CSNoWarn);NU5104</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
+    <EnableNetAnalyzers>true</EnableNetAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
   <PropertyGroup>

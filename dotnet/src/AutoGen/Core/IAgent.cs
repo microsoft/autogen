@@ -10,7 +10,7 @@ namespace AutoGen;
 
 public interface IAgent
 {
-    public string? Name { get; }
+    public string Name { get; }
 
     /// <summary>
     /// Generate reply
@@ -28,8 +28,8 @@ public interface IAgent
 /// </summary>
 public interface IStreamingReplyAgent : IAgent
 {
-    public Task<IAsyncEnumerable<Message>> GenerateReplyStreamingAsync(
-        IEnumerable<Message> messages,
+    public Task<IAsyncEnumerable<IMessage>> GenerateReplyStreamingAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default);
 }

@@ -45,7 +45,7 @@ public class MiddlewareAgent : IAgent
         this.Name = name ?? innerAgent.Name;
     }
 
-    public string? Name { get; }
+    public string Name { get; }
 
     public Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,

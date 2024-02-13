@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.OpenAI;
@@ -161,5 +162,98 @@ public static class MessageExtension
         var functionMessage = new ChatRequestFunctionMessage(message.FunctionName, message.Content);
 
         return functionMessage;
+    }
+
+    public static IEnumerable<ChatRequestMessage> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
+    {
+        if (message.From != agent.Name)
+        {
+            if (message is TextMessage textMessage)
+            {
+                if (textMessage.Role == Role.System)
+                {
+                    return [new ChatRequestSystemMessage(textMessage.Content)];
+                }
+                else
+                {
+                    return [new ChatRequestUserMessage(textMessage.Content)];
+                }
+            }
+            else if (message is ToolCallMessage)
+            {
+                throw new ArgumentException($"ToolCallMessage is not supported when message.From is not the same with agent");
+            }
+            else if (message is ToolCallResultMessage toolCallResult)
+            {
+                return [new ChatRequestToolMessage(toolCallResult.Result, toolCallResult.ToolCallMessage.FunctionName)];
+            }
+            else if (message is AggregateMessage aggregateMessage)
+            {
+                // if aggreate message contains a list of tool call result message, then it is a parallel tool call message
+                if (aggregateMessage.Messages.All(m => m is ToolCallResultMessage))
+                {
+                    return aggregateMessage.Messages.Select(message => new ChatRequestToolMessage((message as ToolCallResultMessage)!.Result, (message as ToolCallResultMessage)!.ToolCallMessage.FunctionName));
+                }
+
+                // otherwise, it's a multi-modal message
+                IEnumerable<ChatMessageContentItem> messageContent = aggregateMessage.Messages.Select<IMessage, ChatMessageContentItem>(m =>
+                {
+                    return m switch
+                    {
+                        TextMessage textMessage => new ChatMessageTextContentItem(textMessage.Content),
+                        ImageMessage imageMessage => new ChatMessageImageContentItem(new Uri(imageMessage.Url)),
+                        _ => throw new ArgumentException($"Unknown message type: {m.GetType()}")
+                    };
+                });
+
+                return [new ChatRequestUserMessage(messageContent)];
+            }
+            else
+            {
+                throw new ArgumentException($"Unknown message type: {message.GetType()}");
+            }
+        }
+        else
+        {
+            if (message is TextMessage textMessage)
+            {
+                if (textMessage.Role == Role.System)
+                {
+                    throw new ArgumentException("System message is not supported when message.From is the same with agent");
+                }
+
+                return [new ChatRequestAssistantMessage(textMessage.Content)];
+            }
+            else if (message is ToolCallMessage toolCallMessage)
+            {
+                // single tool call message
+                var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
+                assistantMessage.ToolCalls.Add(new ChatCompletionsFunctionToolCall(toolCallMessage.FunctionName, toolCallMessage.FunctionName, toolCallMessage.FunctionArguments));
+
+                return [assistantMessage];
+            }
+            else if (message is AggregateMessage aggregateMessage)
+            {
+                // parallel tool call messages
+                var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
+                foreach (var m in aggregateMessage.Messages)
+                {
+                    if (m is ToolCallMessage toolCall)
+                    {
+                        assistantMessage.ToolCalls.Add(new ChatCompletionsFunctionToolCall(toolCall.FunctionName, toolCall.FunctionName, toolCall.FunctionArguments));
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Unknown message type: {m.GetType()}");
+                    }
+                }
+
+                return [assistantMessage];
+            }
+            else
+            {
+                throw new ArgumentException($"Unknown message type: {message.GetType()}");
+            }
+        }
     }
 }

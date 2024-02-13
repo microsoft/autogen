@@ -106,7 +106,7 @@ public class ConversableAgent : IAgent
         return agent;
     }
 
-    public string? Name { get; }
+    public string Name { get; }
 
     public Func<IEnumerable<Message>, CancellationToken, Task<bool>>? IsTermination { get; }
 
