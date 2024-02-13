@@ -25,8 +25,8 @@ from ..code_utils import (
     extract_code,
     infer_lang,
 )
-from ..agent_utils import gather_usage_summary
-from .chat import ChatResult
+from .utils import gather_usage_summary, consolidate_chat_info
+from .chat import ChatResult, initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -799,7 +799,7 @@ class ConversableAgent(LLMAgent):
         """
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
-        self._consolidate_chat_info(_chat_info)
+        consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
@@ -844,7 +844,7 @@ class ConversableAgent(LLMAgent):
         """
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
-        self._consolidate_chat_info(_chat_info)
+        consolidate_chat_info(_chat_info, uniform_sender=self)
         self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
@@ -942,23 +942,7 @@ class ConversableAgent(LLMAgent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
-    def _consolidate_chat_info(self, chat_info: Union[Dict, List[Dict]]):
-        if isinstance(chat_info, dict):
-            chat_info = [chat_info]
-        for c in chat_info:
-            assert "recipient" in c, "recipient must be provided."
-            summary_method = c.get("summary_method")
-            assert (
-                summary_method is None
-                or isinstance(summary_method, Callable)
-                or summary_method in ("last_msg", "reflection_with_llm")
-            ), "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
-            if summary_method == "reflection_with_llm":
-                assert (
-                    self.client is not None or c["recipient"].client is not None
-                ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
-
-    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
+    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
         TODO: add async version of this method.
 
@@ -990,57 +974,18 @@ class ConversableAgent(LLMAgent):
                         If provided, we will combine this carryover with the "message" content when generating the initial chat
                         message in `generate_init_message`.
 
-        Returns: a dictionary of ChatResult object from the finished chats of particular agents.
+        Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
-        self._consolidate_chat_info(chat_queue)
-        receipts_set = set()
-        for chat_info in chat_queue:
-            assert "recipient" in chat_info, "recipient must be provided."
-            receipts_set.add(chat_info["recipient"])
-        if len(receipts_set) < len(chat_queue):
-            warnings.warn(
-                "Repetitive recipients detected: The chat history will be cleared by default if a recipient appears more than once. To retain the chat history, please set 'clear_history=False' in the configuration of the repeating agent.",
-                UserWarning,
-            )
-        self._chat_queue = chat_queue.copy()
-        self._finished_chats = {}
-        while self._chat_queue:
-            chat_info = self._chat_queue.pop(0)
-            _chat_carryover = chat_info.get("carryover", [])
-            if isinstance(_chat_carryover, str):
-                _chat_carryover = [_chat_carryover]
-            chat_info["carryover"] = _chat_carryover + [r.summary for r in self._finished_chats.values()]
-            if "message" not in chat_info:
-                warnings.warn(
-                    "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
-                    UserWarning,
-                )
-            current_agent = chat_info["recipient"]
-            print_carryover = (
-                ("\n").join([t for t in chat_info["carryover"]])
-                if isinstance(chat_info["carryover"], list)
-                else chat_info["carryover"]
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            print(
-                colored(
-                    "Start a new chat with the following message: \n"
-                    + chat_info.get("message")
-                    + "\n\nWith the following carryover: \n"
-                    + print_carryover,
-                    "blue",
-                ),
-                flush=True,
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            chat_res = self.initiate_chat(**chat_info)
-            self._finished_chats[current_agent] = chat_res
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
-    def get_chat_results(self, agent: Optional[Agent] = None) -> Union[Dict[Agent, ChatResult], ChatResult]:
+    def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
-        if agent is not None:
-            return self._finished_chats.get(agent)
+        if chat_index is not None:
+            return self._finished_chats[chat_index]
         else:
             return self._finished_chats
 
@@ -1111,9 +1056,9 @@ class ConversableAgent(LLMAgent):
         extracted_response = self._generate_oai_reply_from_client(
             client, self._oai_system_message + messages, self.client_cache
         )
-        return True, extracted_response
+        return (False, None) if extracted_response is None else (True, extracted_response)
 
-    def _generate_oai_reply_from_client(self, llm_client, messages, cache):
+    def _generate_oai_reply_from_client(self, llm_client, messages, cache) -> Union[str, Dict, None]:
         # unroll tool_responses
         all_messages = []
         for message in messages:
@@ -1135,8 +1080,8 @@ class ConversableAgent(LLMAgent):
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
         if extracted_response is None:
-            warnings.warn("Extracted_response is None.", UserWarning)
-            return False, None
+            warnings.warn("Extracted_response from {response} is None.", UserWarning)
+            return None
         # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             extracted_response = model_dump(extracted_response)
