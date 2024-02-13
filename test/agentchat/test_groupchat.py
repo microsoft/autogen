@@ -1,3 +1,4 @@
+from typing import Any, Dict, Optional
 import pytest
 from unittest import mock
 import builtins
@@ -672,7 +673,7 @@ def test_clear_agents_history():
     ]
 
 
-def test_get_all_agents_in_manager():
+def test_get_all_agents_in_groupchat():
     def agent(name: str) -> autogen.ConversableAgent:
         return autogen.ConversableAgent(
             name=name,
@@ -696,12 +697,67 @@ def test_get_all_agents_in_manager():
     gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
     gc_manager = autogen.GroupChatManager(groupchat=gc, llm_config=False)
 
-    agents = gc_manager.all_agents()
-    team1_member1 = gc_manager.agent_by_name("member1_team1")
+    agents = gc.all_agents()
+    team1_member1 = agents.get("member1_team1")
 
-    assert len(agents) == 5
+    assert len(agents) == 7
     assert team1_member1 is not None
     assert team1_member1.name == "member1_team1"
+
+
+def test_nested_teams_chat():
+    """Tests chat capabilities of nested teams"""
+    team1_msg = {"content": "Hello from team 1"}
+    team2_msg = {"content": "Hello from team 2"}
+
+    def agent(name: str, auto_reply: Optional[Dict[str, Any]] = None) -> autogen.ConversableAgent:
+        return autogen.ConversableAgent(
+            name=name,
+            max_consecutive_auto_reply=10,
+            human_input_mode="NEVER",
+            llm_config=False,
+            default_auto_reply=auto_reply,
+        )
+
+    def team(name: str, auto_reply: Optional[Dict[str, Any]] = None) -> autogen.ConversableAgent:
+        member1 = agent(f"member1_{name}", auto_reply=auto_reply)
+        member2 = agent(f"member2_{name}", auto_reply=auto_reply)
+
+        gc = autogen.GroupChat(agents=[member1, member2], messages=[])
+
+        return autogen.GroupChatManager(groupchat=gc, name=name, llm_config=False)
+
+    def chat(groupchat_manager: autogen.GroupChatManager):
+        agents = groupchat_manager.groupchat.all_agents()
+
+        team1_member1 = agents.get("member1_team1")
+        team2_member2 = agents.get("member2_team2")
+
+        assert team1_member1 is not None
+        assert team2_member2 is not None
+
+        team1_member1.send(team1_msg, team2_member2, request_reply=True)
+
+    user = agent("user")
+    team1 = team("team1", auto_reply=team1_msg)
+    team2 = team("team2", auto_reply=team2_msg)
+
+    gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
+    gc_manager = autogen.GroupChatManager(groupchat=gc, llm_config=False)
+
+    chat(gc_manager)
+
+    agents = gc.all_agents()
+    team1_member1 = agents.get("member1_team1")
+    team2_member2 = agents.get("member2_team2")
+
+    assert team1_member1 and team2_member2
+
+    msg = team1_member1.chat_messages[team2_member2][0]
+    reply = team1_member1.chat_messages[team2_member2][1]
+
+    assert msg["content"] == team1_msg["content"]
+    assert reply["content"] == team2_msg["content"]
 
 
 if __name__ == "__main__":

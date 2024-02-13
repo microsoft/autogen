@@ -178,6 +178,18 @@ class GroupChat:
         """Returns the agent with a given name."""
         return self.agents[self.agent_names.index(name)]
 
+    def all_agents(self) -> Dict[str, Agent]:
+        """Returns all agents in the group chat manager."""
+        agents = dict()
+        for agent in self.agents:
+            if not isinstance(agent, GroupChatManager):
+                agents[agent.name] = agent
+            else:
+                agents[agent.name] = agent
+                # Recursive call for nested teams
+                agents.update(agent.groupchat.all_agents())
+        return agents
+
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
         if agents is None:
@@ -464,7 +476,7 @@ class GroupChatManager(ConversableAgent):
             **kwargs,
         )
         # Store groupchat
-        self._groupchat = groupchat
+        self.groupchat = groupchat
 
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
@@ -478,35 +490,19 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
-    def agent_by_name(self, name: str) -> Optional[Agent]:
-        """Returns the agent in the group chat manager with a given name. Returns None if
-        agent is not found.
-        """
-        return self.all_agents().get(name)
-
-    def all_agents(self) -> Dict[str, Agent]:
-        """Returns all agents in the group chat manager."""
-        agents = dict()
-        for agent in self._groupchat.agents:
-            if not isinstance(agent, GroupChatManager):
-                agents[agent.name] = agent
-            else:
-                agents.update(agent.all_agents())
-        return agents
-
     def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
         """The list of messages in the group chat as a conversation to summarize.
         The agent is ignored.
         """
-        return self._groupchat.messages
+        return self.groupchat.messages
 
     def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
         super()._prepare_chat(recipient, clear_history, prepare_recipient)
 
         if clear_history:
-            self._groupchat.reset()
+            self.groupchat.reset()
 
-        for agent in self._groupchat.agents:
+        for agent in self.groupchat.agents:
             if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
                 agent._prepare_chat(self, clear_history, False)
 
@@ -636,7 +632,7 @@ class GroupChatManager(ConversableAgent):
         """
         super()._raise_exception_on_async_reply_functions()
 
-        for agent in self._groupchat.agents:
+        for agent in self.groupchat.agents:
             agent._raise_exception_on_async_reply_functions()
 
     def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
