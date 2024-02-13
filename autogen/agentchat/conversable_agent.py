@@ -939,7 +939,7 @@ class ConversableAgent(LLMAgent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
-    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
+    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
         TODO: add async version of this method.
 
@@ -971,18 +971,17 @@ class ConversableAgent(LLMAgent):
                         If provided, we will combine this carryover with the "message" content when generating the initial chat
                         message in `generate_init_message`.
 
-        Returns: a dictionary of ChatResult object from the finished chats of particular agents.
+        Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
         _chat_queue = chat_queue.copy()
         for chat_info in _chat_queue:
             chat_info["sender"] = self
-        self._finished_chats = initiate_chats(_chat_queue)
-        return self._finished_chats
+        return initiate_chats(_chat_queue)
 
-    def get_chat_results(self, agent: Optional[Agent] = None) -> Union[Dict[Agent, ChatResult], ChatResult]:
+    def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
-        if agent is not None:
-            return self._finished_chats.get(agent)
+        if chat_index is not None:
+            return self._finished_chats[chat_index]
         else:
             return self._finished_chats
 

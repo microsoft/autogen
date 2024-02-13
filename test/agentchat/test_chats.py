@@ -130,14 +130,14 @@ def test_chats_group():
         ]
     )
 
-    chat_w_manager = chat_res[manager_2]
+    chat_w_manager = chat_res[-1]
     print(chat_w_manager.chat_history, chat_w_manager.summary, chat_w_manager.cost)
 
-    manager_2_res = user.get_chat_results(manager_2)
+    manager_2_res = user.get_chat_results(-1)
     all_res = user.get_chat_results()
     print(manager_2_res.summary, manager_2_res.cost)
-    print(all_res[financial_assistant].human_input)
-    print(all_res[manager_1].summary)
+    print(all_res[0].human_input)
+    print(all_res[1].summary)
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
@@ -218,16 +218,16 @@ def test_chats():
         ]
     )
 
-    chat_w_writer = chat_res[writer]
+    chat_w_writer = chat_res[-1]
     print(chat_w_writer.chat_history, chat_w_writer.summary, chat_w_writer.cost)
 
-    writer_res = user.get_chat_results(writer)
+    writer_res = user.get_chat_results(-1)
     all_res = user.get_chat_results()
     print(writer_res.summary, writer_res.cost)
-    print(all_res[financial_assistant_1].human_input)
-    print(all_res[financial_assistant_1].summary)
-    print(all_res[financial_assistant_1].chat_history)
-    print(all_res[financial_assistant_2].summary)
+    print(all_res[0].human_input)
+    print(all_res[0].summary)
+    print(all_res[0].chat_history)
+    print(all_res[1].summary)
     # print(blogpost.summary, insights_and_blogpost)
 
 
@@ -325,13 +325,13 @@ def test_chats_general():
         ]
     )
 
-    chat_w_writer = chat_res[writer]
+    chat_w_writer = chat_res[-1]
     print(chat_w_writer.chat_history, chat_w_writer.summary, chat_w_writer.cost)
 
-    print(chat_res[financial_assistant_1].human_input)
-    print(chat_res[financial_assistant_1].summary)
-    print(chat_res[financial_assistant_1].chat_history)
-    print(chat_res[financial_assistant_2].summary)
+    print(chat_res[0].human_input)
+    print(chat_res[0].summary)
+    print(chat_res[0].chat_history)
+    print(chat_res[1].summary)
     # print(blogpost.summary, insights_and_blogpost)
 
 
@@ -483,9 +483,9 @@ def test_chats_w_func():
 
 
 if __name__ == "__main__":
-    # test_chats()
+    test_chats()
     test_chats_general()
-    # test_chats_exceptions()
-    # test_chats_group()
-    # test_chats_w_func()
+    test_chats_exceptions()
+    test_chats_group()
+    test_chats_w_func()
     # test_chat_messages_for_summary()
