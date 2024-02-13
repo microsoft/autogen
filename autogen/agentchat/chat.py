@@ -3,7 +3,6 @@ from typing import Dict, List, Any
 from dataclasses import dataclass
 from .utils import consolidate_chat_info
 import warnings
-from .agent import Agent
 
 try:
     from termcolor import colored

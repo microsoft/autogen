@@ -976,7 +976,8 @@ class ConversableAgent(LLMAgent):
         _chat_queue = chat_queue.copy()
         for chat_info in _chat_queue:
             chat_info["sender"] = self
-        return initiate_chats(_chat_queue)
+        self._finished_chats = initiate_chats(_chat_queue)
+        return self._finished_chats
 
     def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
