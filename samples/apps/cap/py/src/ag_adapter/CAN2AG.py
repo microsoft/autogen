@@ -53,7 +53,7 @@ class CAN2AG(CANActor):
         if self.STATE == self.States.INIT:
             self.STATE = self.States.CONVERSING
             if self._init_chat:
-                self._the_ag_agent.initiate_chat(self._ag2can_other_agent, message=msg)
+                self._the_ag_agent.initiate_chat(self._ag2can_other_agent, message=msg, summary_method=None)
             else:
                 self._the_ag_agent.receive(msg, self._ag2can_other_agent, True)
         else:
@@ -91,7 +91,7 @@ class CAN2AG(CANActor):
             self.STATE = self.States.CONVERSING
             
             if self._init_chat:
-                self._the_ag_agent.initiate_chat(self._ag2can_other_agent, message=receive_params.data)
+                self._the_ag_agent.initiate_chat(self._ag2can_other_agent, message=receive_params.data, summary_method=None)
             else:
                 self._call_agent_receive(receive_params)
         else:
