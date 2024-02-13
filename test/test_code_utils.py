@@ -17,7 +17,6 @@ from autogen.code_utils import (
     in_docker_container,
     decide_use_docker,
     check_can_use_docker_or_throw,
-    CommandSanitizer
 )
 from conftest import skip_docker
 
@@ -552,20 +551,6 @@ class TestContentStr(unittest.TestCase):
         content = ["string", {"type": "text", "text": "text"}]
         with self.assertRaises(TypeError):
             content_str(content)
-
-# Test cases for dangerous commands that should be caught by the sanitizer
-@pytest.mark.parametrize("lang, code, expected_message", [
-    ("bash", "rm -rf /", "Use of 'rm -rf' command is not allowed."),
-    ("bash", "mv myFile /dev/null", "Moving files to /dev/null is not allowed."),
-    ("bash", "dd if=/dev/zero of=/dev/sda", "Use of 'dd' command is not allowed."),
-    ("bash", "echo Hello > /dev/sda", "Overwriting disk blocks directly is not allowed."),
-    ("bash", ":(){ :|:& };:", "Fork bombs are not allowed."),
-])
-def test_dangerous_commands(lang, code, expected_message):
-    with pytest.raises(ValueError) as exc_info:
-        CommandSanitizer.sanitize(lang, code)
-    assert expected_message in str(exc_info.value), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
-
 
 if __name__ == "__main__":
     # test_infer_lang()

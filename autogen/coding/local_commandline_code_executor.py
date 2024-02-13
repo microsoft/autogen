@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import warnings
 from typing import Any, ClassVar, List, Optional
@@ -6,7 +7,7 @@ from typing import Any, ClassVar, List, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
-from ..code_utils import execute_code, CommandSanitizer
+from ..code_utils import execute_code
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
@@ -110,6 +111,21 @@ If you want the user to save the code in a file before executing it, put # filen
         """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
+    @staticmethod
+    def sanitize_code(lang: str, code: str) -> None:
+        """Sanitize the code block to prevent dangerous commands."""
+        dangerous_patterns = [
+            (r'\brm\b.*\b-rf\b', "Use of 'rm -rf' command is not allowed."),
+            (r'\bmv\b.*\s/dev/null', "Moving files to /dev/null is not allowed."),
+            (r'\bdd\b', "Use of 'dd' command is not allowed."),
+            (r'>\s*/dev/sd[a-z]', "Overwriting disk blocks directly is not allowed."),
+            (r':\(\)\{\s*:\|\:&\s*\};:', "Fork bombs are not allowed."),
+        ]
+        if lang in ["bash", "shell", "sh"]:
+            for pattern, message in dangerous_patterns:
+                if re.search(pattern, code):
+                    raise ValueError(f"Potentially dangerous command detected: {message}")
+
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
@@ -122,7 +138,7 @@ If you want the user to save the code in a file before executing it, put # filen
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
 
-            CommandSanitizer.sanitize(lang, code)
+            LocalCommandlineCodeExecutor.sanitize_code(lang, code)
 
             print(
                 colored(
