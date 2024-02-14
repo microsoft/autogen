@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai.openai_utils import get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -47,6 +47,7 @@ if not logger.handlers:
 
 LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
+OPEN_API_BASE_URL_PREFIX = "https://api.openai.com"
 
 
 class ModelClient(Protocol):
@@ -111,6 +112,14 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
+        if (
+            not isinstance(client, openai.AzureOpenAI)
+            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
+            and not is_valid_api_key(self._oai_client.api_key)
+        ):
+            logger.warning(
+                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
+            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
