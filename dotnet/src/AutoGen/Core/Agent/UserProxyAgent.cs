@@ -15,7 +15,7 @@ public class UserProxyAgent : ConversableAgent
         string systemMessage = "You are a helpful AI assistant",
         ConversableAgentConfig? llmConfig = null,
         Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
-        HumanInputMode humanInputMode = HumanInputMode.NEVER,
+        HumanInputMode humanInputMode = HumanInputMode.ALWAYS,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null,
         string? defaultReply = null)
         : base(name: name,

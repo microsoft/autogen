@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 
-await Example08_LMStudio.RunAsync();
+await Example09_SemanticKernel.RunAsync();

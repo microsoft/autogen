@@ -181,7 +181,10 @@ public class GPTAgent : IStreamingReplyAgent
         var functions = options?.Functions ?? _functions;
         if (functions is not null && functions.Count() > 0)
         {
-            settings.Functions = functions.ToList();
+            foreach (var f in functions)
+            {
+                settings.Functions.Add(f);
+            }
             //foreach (var f in functions)
             //{
             //    settings.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
