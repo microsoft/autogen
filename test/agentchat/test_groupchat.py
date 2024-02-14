@@ -734,7 +734,7 @@ def test_clear_agents_history():
         llm_config=False,
         default_auto_reply={
             "role": "tool",
-            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "USER INTERRUPTED"}],
             "content": "Clear history. How you doing?",
         },
     )
