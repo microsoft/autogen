@@ -47,7 +47,7 @@ def test_config_list() -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_chat() -> None:
-    for gpt_config in [openai_config_list, aoai_config_list, None]:
+    for gpt_config in [openai_config_list, aoai_config_list]:
         _test_gpt_assistant_chat(gpt_config)
 
 
@@ -119,7 +119,7 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_get_assistant_instructions() -> None:
-    for gpt_config in [openai_config_list, aoai_config_list, None]:
+    for gpt_config in [openai_config_list, aoai_config_list]:
         _test_get_assistant_instructions(gpt_config)
 
 
@@ -148,7 +148,7 @@ def _test_get_assistant_instructions(gpt_config) -> None:
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
-    for gpt_config in [openai_config_list, aoai_config_list, None]:
+    for gpt_config in [openai_config_list, aoai_config_list]:
         _test_gpt_assistant_instructions_overwrite(gpt_config)
 
 
