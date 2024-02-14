@@ -22,8 +22,6 @@ if TYPE_CHECKING:
 # this is a pointer to the module object instance itself
 this = sys.modules[__name__]
 this._session_id = None
-this._con = None
-this._cur = None
 logger = logging.getLogger(__name__)
 
 __all__ = ("SqliteLogger",)

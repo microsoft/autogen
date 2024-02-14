@@ -42,6 +42,7 @@ if not skip_openai:
 
     llm_config = {"config_list": config_list}
 
+    num_of_configs = len(config_list)
 ###############################################################
 
 
@@ -143,10 +144,7 @@ def test_two_agents_logging(db_connection):
     cur.execute(OAI_CLIENTS_QUERY)
     rows = cur.fetchall()
 
-    print("***oai client table: ", len(rows))
-    for idx, row in enumerate(rows):
-        print(idx, row["client_id"], row["wrapper_id"], row["session_id"], row["class"], row["init_args"])
-    assert len(rows) == 2
+    assert len(rows) == num_of_configs * 2  # two agents
 
     session_id = rows[0]["session_id"]
     for row in rows:
@@ -161,10 +159,6 @@ def test_two_agents_logging(db_connection):
     # Verify oai wrapper table
     cur.execute(OAI_WRAPPERS_QUERY)
     rows = cur.fetchall()
-
-    print("***oai wrappers table: ", len(rows))
-    for idx, row in enumerate(rows):
-        print(id, row["wrapper_id"], row["session_id"], row["init_args"])
 
     session_id = rows[0]["session_id"]
 
@@ -229,7 +223,7 @@ def test_groupchat_logging(db_connection):
     # Verify oai clients
     cur.execute(OAI_CLIENTS_QUERY)
     rows = cur.fetchall()
-    assert len(rows) == 3
+    assert len(rows) == num_of_configs * 3  # three agents
 
     # Verify oai wrappers
     cur.execute(OAI_WRAPPERS_QUERY)
