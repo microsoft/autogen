@@ -712,6 +712,10 @@ def test_get_agent_by_name():
 
     # Testing naming conflict
     with pytest.raises(AgentNameConflict):
+        gc.agent_by_name("team1", raise_on_name_conflict=True)
+
+    # Testing name conflict with recursive search
+    with pytest.raises(AgentNameConflict):
         gc.agent_by_name("team1_member1", recursive=True, raise_on_name_conflict=True)
 
 
