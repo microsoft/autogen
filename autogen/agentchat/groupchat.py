@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Union, Tuple
 
 
 from ..code_utils import content_str
-from ..exception_utils import DuplicateAgent
+from ..exception_utils import AgentNameConflict
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
@@ -175,13 +175,15 @@ class GroupChat:
         message["content"] = content_str(message["content"])
         self.messages.append(message)
 
-    def agent_by_name(self, name: str, recursive: bool = False, raise_if_duplicate: bool = False) -> Optional[Agent]:
+    def agent_by_name(
+        self, name: str, recursive: bool = False, raise_on_name_conflict: bool = False
+    ) -> Optional[Agent]:
         """Returns the agent with a given name. If recursive is True, it will search in nested teams."""
         agents = self.nested_agents() if recursive else self.agents
         filtered_agents = [agent for agent in agents if agent.name == name]
 
-        if raise_if_duplicate and len(filtered_agents) > 1:
-            raise DuplicateAgent()
+        if raise_on_name_conflict and len(filtered_agents) > 1:
+            raise AgentNameConflict()
 
         return filtered_agents[0]
 
