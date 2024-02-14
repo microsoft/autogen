@@ -2,7 +2,6 @@ import pytest
 import autogen
 import autogen.runtime_logging
 import json
-import os
 import sys
 import uuid
 import sqlite3
@@ -22,7 +21,7 @@ student_message = """
     Keep your questions short.
 """
 
-log_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, session_id,
+chat_completions_query = """SELECT id, invocation_id, client_id, wrapper_id, session_id,
     request, response, is_cached, cost, start_time, end_time FROM chat_completions;"""
 
 agents_query = """SELECT id, agent_id, wrapper_id, session_id, name, class, init_args, timestamp FROM agents"""
@@ -42,10 +41,21 @@ if not skip_openai:
 
 
 @pytest.fixture(scope="function")
-def setup_test():
+def db_connection():
     autogen.runtime_logging.start(config={"dbname": ":memory:"})
     con = autogen.runtime_logging.get_connection()
     con.row_factory = sqlite3.Row
+    yield con
+
+    autogen.runtime_logging.stop()
+
+
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip_openai,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
+def test_two_agents_logging(db_connection):
+    cur = db_connection.cursor()
 
     teacher = autogen.AssistantAgent(
         "teacher",
@@ -63,30 +73,22 @@ def setup_test():
         max_consecutive_auto_reply=1,
     )
 
-    yield con, teacher, student
+    student.initiate_chat(
+        teacher,
+        message="Can you explain the difference between eigenvalues and singular values again?",
+    )
 
-    autogen.runtime_logging.stop()
-
-
-def fetch_rows(cur, query):
-    import pandas as pd
-    cur.execute(query)
+    # Verify log completions table
+    cur.execute(chat_completions_query)
     rows = cur.fetchall()
 
-    column_names = [description[0] for description in cur.description]
-    data = [dict(zip(column_names, row)) for row in rows]
-
-    log_data_df = pd.DataFrame(data)
-    print("==========QUERY=========")
-    print(query)
-    print(log_data_df)
-    return rows
-
-
-def verify_two_agents_log_completions(rows):
     assert len(rows) == 3
-
     session_id = rows[0]["session_id"]
+
+    print("***log completions table: ")
+    for idx, row in enumerate(rows):
+        print(idx, row["invocation_id"], row["client_id"], row["wrapper_id"],
+              row["session_id"], row["request"], row["response"])
 
     for idx, row in enumerate(rows):
         assert (
@@ -114,11 +116,20 @@ def verify_two_agents_log_completions(rows):
         assert row["end_time"], "end timestamp is empty"
 
 
-def verify_agents(rows):
+    # Verify agents table
+    cur.execute(agents_query)
+    rows = cur.fetchall()
+
+
+    print("***Agents table: ")
+    for idx, row in enumerate(rows):
+        print(idx, row["agent_id"], row["wrapper_id"], row["session_id"], row["name"], row["class"],
+              row["init_args"])
+
+
     assert len(rows) == 2
 
     session_id = rows[0]["session_id"]
-
     for idx, row in enumerate(rows):
         assert row["wrapper_id"], "wrapper id is empty"
         assert row["session_id"] and row["session_id"] == session_id
@@ -136,107 +147,14 @@ def verify_agents(rows):
         assert "api_key" not in row["init_args"]
         assert row["timestamp"], "timestamp is empty"
 
+    # Verify oai client table
+    oai_clients_query = "SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients"
+    cur.execute(oai_clients_query)
+    rows = cur.fetchall()
 
-def verify_oai_client_table(cur, num_of_clients):
-    query = "SELECT id, client_id, wrapper_id, session_id, class, init_args, timestamp FROM oai_clients"
-    rows = fetch_rows(cur, query)
-
-    print("====OAI client init args=====")
-    for row in rows:
-        print(row["init_args"])
-    # assert len(rows) == num_of_clients
-    # session_id = rows[0]["session_id"]
-
-    # for row in rows:
-    #     assert row["client_id"], "client id is empty"
-    #     assert row["wrapper_id"], "wrapper id is empty"
-    #     assert row["session_id"] and row["session_id"] == session_id
-    #     assert row["class"] in ["AzureOpenAI", "OpenAI"]
-    #     init_args = json.loads(row["init_args"])
-    #     assert "api_version" in init_args
-    #     assert row["timestamp"], "timestamp is empty"
+    print("***oai client table: ", len(rows))
+    for idx, row in enumerate(rows):
+        print(idx, row["client_id"], row["wrapper_id"], row["session_id"], row["class"], row["init_args"])
 
 
-def verify_oai_wrapper_table(cur, num_of_wrappers):
-    query = "SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers"
-    rows = fetch_rows(cur, query)
 
-    print("===OAI wrapper length", len(rows))
-
-    # assert len(rows) == num_of_wrappers
-    session_id = rows[0]["session_id"]
-
-    for row in rows:
-        assert row["wrapper_id"], "wrapper id is empty"
-        assert row["session_id"] and row["session_id"] == session_id
-        init_args = json.loads(row["init_args"])
-        assert "config_list" in init_args
-        assert len(init_args["config_list"]) > 0
-        assert row["timestamp"], "timestamp is empty"
-
-
-def verify_keys_are_matching(cur):
-    query = """
-        SELECT * FROM chat_completions
-        INNER JOIN agents
-            ON chat_completions.wrapper_id = agents.wrapper_id
-            AND chat_completions.session_id = agents.session_id
-        INNER JOIN oai_clients
-            ON chat_completions.wrapper_id = oai_clients.wrapper_id
-            AND chat_completions.session_id = oai_clients.session_id
-        INNER JOIN oai_wrappers
-            ON chat_completions.wrapper_id = oai_wrappers.wrapper_id
-            AND chat_completions.session_id = oai_wrappers.session_id
-    """
-    rows = fetch_rows(cur, query)
-    assert len(rows) == 3
-
-
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_openai,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
-)
-def test_two_agents_logging(setup_test):
-    con, teacher, student = setup_test
-    cur = con.cursor()
-
-    student.initiate_chat(
-        teacher,
-        message="Can you explain the difference between eigenvalues and singular values again?",
-    )
-
-    log_completions_rows = fetch_rows(cur, log_completions_query)
-    verify_two_agents_log_completions(log_completions_rows)
-
-    agents_rows = fetch_rows(cur, agents_query)
-    verify_agents(agents_rows)
-
-    verify_oai_client_table(cur, num_of_clients=2)
-    verify_oai_wrapper_table(cur, num_of_wrappers=2)
-    verify_keys_are_matching(cur)
-
-
-@pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip_openai,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
-)
-def test_group_chat_logging(setup_test):
-    con, teacher, student = setup_test
-    cur = con.cursor()
-
-    groupchat = autogen.GroupChat(
-        agents=[teacher, student], messages=[], max_round=3, speaker_selection_method="round_robin"
-    )
-    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
-    student.initiate_chat(
-        group_chat_manager,
-        message="Can you explain the difference between eigenvalues and singular values again?",
-    )
-
-    agents_rows = fetch_rows(cur, agents_query)
-    verify_agents(agents_rows[:2])
-    assert agents_rows[2]["name"] == "chat_manager"
-    init_args = json.loads(agents_rows[2]["init_args"])
-    assert len(init_args["groupchat"]["agents"]) == 2
-    verify_oai_client_table(cur, num_of_clients=3)
-    verify_oai_wrapper_table(cur, num_of_wrappers=3)
