@@ -155,12 +155,12 @@ public class GPTAgent : IStreamingReplyAgent
                     if (this.functionMap.TryGetValue(functionName, out var func))
                     {
                         var result = await func(functionArguments);
-                        yield return new ToolCallResultMessage(result, msg, from: this.Name);
+                        yield return new ToolCallResultMessage(result, functionName, functionArguments, from: this.Name);
                     }
                     else
                     {
                         var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                        yield return new ToolCallResultMessage(errorMessage, msg, from: this.Name);
+                        yield return new ToolCallResultMessage(errorMessage, functionName, functionArguments, from: this.Name);
                     }
                 }
 
@@ -203,8 +203,7 @@ public class GPTAgent : IStreamingReplyAgent
     private IEnumerable<ChatRequestMessage> ProcessMessages(IEnumerable<IMessage> messages)
     {
         // add system message if there's no system message in messages
-        var openAIMessages = messages.SelectMany(m => this.ToOpenAIChatRequestMessage(m))
-            .Select(m => m.Content) ?? [];
+        var openAIMessages = messages.SelectMany(m => this.ToOpenAIChatRequestMessage(m)) ?? [];
         if (!openAIMessages.Any(m => m is ChatRequestSystemMessage))
         {
             openAIMessages = new[] { new ChatRequestSystemMessage(_systemMessage) }.Concat(openAIMessages);

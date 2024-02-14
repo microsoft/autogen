@@ -124,7 +124,7 @@
     ]
   },
   {
-    "OriginalMessage": "ToolCallMessage(test, test, assistant)",
+    "OriginalMessage": "ToolCallMessage(assistant)\n\tToolCall(test, test, )",
     "ConvertedMessages": [
       {
         "Role": "assistant",
@@ -143,7 +143,7 @@
     ]
   },
   {
-    "OriginalMessage": "ToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)",
+    "OriginalMessage": "ToolCallResultMessage(user)\n\tToolCall(test, test, result)",
     "ConvertedMessages": [
       {
         "Role": "tool",
@@ -153,22 +153,22 @@
     ]
   },
   {
-    "OriginalMessage": "ParallelToolCallResultMessage(user)\n\tToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)\n\tToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)",
+    "OriginalMessage": "ToolCallResultMessage(user)\n\tToolCall(result, test, test)\n\tToolCall(result, test, test)",
     "ConvertedMessages": [
       {
         "Role": "tool",
-        "Content": "result",
-        "ToolCallId": "test"
+        "Content": "test",
+        "ToolCallId": "result"
       },
       {
         "Role": "tool",
-        "Content": "result",
-        "ToolCallId": "test"
+        "Content": "test",
+        "ToolCallId": "result"
       }
     ]
   },
   {
-    "OriginalMessage": "AggregateMessage(assistant)\n\tToolCallMessage(test, test, assistant)\n\tToolCallMessage(test, test, assistant)",
+    "OriginalMessage": "ToolCallMessage(assistant)\n\tToolCall(test, test, )\n\tToolCall(test, test, )",
     "ConvertedMessages": [
       {
         "Role": "assistant",
@@ -189,6 +189,30 @@
         ],
         "FunctionCallName": null,
         "FunctionCallArguments": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "AggregateMessage(assistant)\n\tToolCallMessage(assistant)\n\tToolCall(test, test, )\n\tToolCallResultMessage(assistant)\n\tToolCall(test, test, result)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": "",
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "test",
+            "Id": "test"
+          }
+        ],
+        "FunctionCallName": null,
+        "FunctionCallArguments": null
+      },
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
       }
     ]
   }

@@ -164,17 +164,12 @@ public static class MessageExtension
         return functionMessage;
     }
 
-    private static IMessage<TMessage> ToMessageEnvelope<TMessage>(this TMessage msg, string? from)
-        where TMessage : ChatRequestMessage
-    {
-        return new MessageEnvelope<TMessage>(msg, from);
-    }
-
-    public static IEnumerable<IMessage<ChatRequestMessage>> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
+    public static IEnumerable<ChatRequestMessage> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
     {
         if (message is IMessage<ChatRequestMessage> oaiMessage)
         {
-            return [oaiMessage];
+            // short-circuit
+            return [oaiMessage.Content];
         }
 
         if (message.From != agent.Name)
@@ -184,12 +179,13 @@ public static class MessageExtension
                 if (textMessage.Role == Role.System)
                 {
                     var msg = new ChatRequestSystemMessage(textMessage.Content);
-                    return [msg.ToMessageEnvelope(message.From)];
+
+                    return [msg];
                 }
                 else
                 {
                     var msg = new ChatRequestUserMessage(textMessage.Content);
-                    return [msg.ToMessageEnvelope(message.From)];
+                    return [msg];
                 }
             }
             else if (message is ImageMessage imageMessage)
@@ -197,7 +193,7 @@ public static class MessageExtension
                 // multi-modal
                 var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url)));
 
-                return [msg.ToMessageEnvelope(message.From)];
+                return [msg];
             }
             else if (message is ToolCallMessage)
             {
@@ -205,8 +201,12 @@ public static class MessageExtension
             }
             else if (message is ToolCallResultMessage toolCallResult)
             {
-                var msg = new ChatRequestToolMessage(toolCallResult.Result, toolCallResult.ToolCallMessage.FunctionName);
-                return [msg.ToMessageEnvelope(message.From)];
+                return toolCallResult.ToolCalls.Select(m =>
+                {
+                    var msg = new ChatRequestToolMessage(m.Result, m.FunctionName);
+
+                    return msg;
+                });
             }
             else if (message is MultiModalMessage multiModalMessage)
             {
@@ -221,44 +221,41 @@ public static class MessageExtension
                 });
 
                 var msg = new ChatRequestUserMessage(messageContent);
-                return [msg.ToMessageEnvelope(message.From)];
+                return [msg];
             }
-            else if (message is ParallelToolCallResultMessage parallelToolCallResultMessage)
+            else if (message is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
             {
-                return parallelToolCallResultMessage.ToolCallResult.Select(m =>
-                {
-                    var msg = new ChatRequestToolMessage(m.Result, m.ToolCallMessage.FunctionName);
-
-                    return msg.ToMessageEnvelope(message.From);
-                });
+                // convert as user message
+                var resultMessage = aggregateMessage.Message2;
+                return resultMessage.ToolCalls.Select(m => new ChatRequestUserMessage(m.Result));
             }
             else if (message is Message msg)
             {
                 if (msg.Role == Role.System)
                 {
                     var systemMessage = new ChatRequestSystemMessage(msg.Content ?? string.Empty);
-                    return [systemMessage.ToMessageEnvelope(message.From)];
+                    return [systemMessage];
                 }
                 else if (msg.FunctionName is null && msg.FunctionArguments is null)
                 {
                     var userMessage = msg.ToChatRequestUserMessage();
-                    return [userMessage.ToMessageEnvelope(message.From)];
+                    return [userMessage];
                 }
                 else if (msg.FunctionName is not null && msg.FunctionArguments is not null && msg.Content is not null)
                 {
                     if (msg.Role == Role.Function)
                     {
-                        return [new ChatRequestFunctionMessage(msg.FunctionName, msg.Content).ToMessageEnvelope(message.From)];
+                        return [new ChatRequestFunctionMessage(msg.FunctionName, msg.Content)];
                     }
                     else
                     {
-                        return [new ChatRequestUserMessage(msg.Content).ToMessageEnvelope(message.From)];
+                        return [new ChatRequestUserMessage(msg.Content)];
                     }
                 }
                 else
                 {
                     var userMessage = new ChatRequestUserMessage(msg.Content ?? throw new ArgumentException("Content is null"));
-                    return [userMessage.ToMessageEnvelope(message.From)];
+                    return [userMessage];
                 }
             }
             else
@@ -276,33 +273,38 @@ public static class MessageExtension
                 }
 
 
-                return [new ChatRequestAssistantMessage(textMessage.Content).ToMessageEnvelope(message.From)];
+                return [new ChatRequestAssistantMessage(textMessage.Content)];
             }
             else if (message is ToolCallMessage toolCallMessage)
             {
-                // single tool call message
                 var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
-                assistantMessage.ToolCalls.Add(new ChatCompletionsFunctionToolCall(toolCallMessage.FunctionName, toolCallMessage.FunctionName, toolCallMessage.FunctionArguments));
-
-                return [assistantMessage.ToMessageEnvelope(message.From)];
-            }
-            else if (message is AggregateMessage aggregateMessage)
-            {
-                // parallel tool call messages
-                var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
-                foreach (var m in aggregateMessage.Messages)
+                var toolCalls = toolCallMessage.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
+                foreach (var tc in toolCalls)
                 {
-                    if (m is ToolCallMessage toolCall)
-                    {
-                        assistantMessage.ToolCalls.Add(new ChatCompletionsFunctionToolCall(toolCall.FunctionName, toolCall.FunctionName, toolCall.FunctionArguments));
-                    }
-                    else
-                    {
-                        throw new ArgumentException($"Unknown message type: {m.GetType()}");
-                    }
+                    assistantMessage.ToolCalls.Add(tc);
                 }
 
-                return [assistantMessage.ToMessageEnvelope(message.From)];
+                return [assistantMessage];
+            }
+            else if (message is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+            {
+                var toolCallMessage1 = aggregateMessage.Message1;
+                var toolCallResultMessage = aggregateMessage.Message2;
+
+                var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
+                var toolCalls = toolCallMessage1.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
+                foreach (var tc in toolCalls)
+                {
+                    assistantMessage.ToolCalls.Add(tc);
+                }
+
+                var toolCallResults = toolCallResultMessage.ToolCalls.Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
+
+                // return assistantMessage and tool call result messages
+                var messages = new List<ChatRequestMessage> { assistantMessage };
+                messages.AddRange(toolCallResults);
+
+                return messages;
             }
             else if (message is Message msg)
             {
@@ -311,13 +313,13 @@ public static class MessageExtension
                     var assistantMessage = new ChatRequestAssistantMessage(msg.Content);
                     assistantMessage.FunctionCall = new FunctionCall(msg.FunctionName, msg.FunctionArguments);
                     var functionCallMessage = new ChatRequestFunctionMessage(msg.FunctionName, msg.Content);
-                    return [assistantMessage.ToMessageEnvelope(message.From), functionCallMessage.ToMessageEnvelope(message.From)];
+                    return [assistantMessage, functionCallMessage];
                 }
                 else
                 {
                     if (msg.Role == Role.Function)
                     {
-                        return [new ChatRequestFunctionMessage(msg.FunctionName!, msg.Content!).ToMessageEnvelope(message.From)];
+                        return [new ChatRequestFunctionMessage(msg.FunctionName!, msg.Content!)];
                     }
                     else
                     {
@@ -327,7 +329,7 @@ public static class MessageExtension
                             assistantMessage.FunctionCall = new FunctionCall(msg.FunctionName, msg.FunctionArguments);
                         }
 
-                        return [assistantMessage.ToMessageEnvelope(message.From)];
+                        return [assistantMessage];
                     }
                 }
             }

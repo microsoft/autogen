@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
@@ -245,9 +246,9 @@ namespace AutoGen.Tests
 
             if (finalReply is ToolCallResultMessage toolCallResultMessage)
             {
-                toolCallResultMessage.Result.Should().Be(answer);
+                toolCallResultMessage.ToolCalls.First().Result.Should().Be(answer);
                 toolCallResultMessage.From.Should().Be(agent.Name);
-                toolCallResultMessage.ToolCallMessage.FunctionName.Should().Be(nameof(EchoAsync));
+                toolCallResultMessage.ToolCalls.First().FunctionName.Should().Be(nameof(EchoAsync));
             }
             else
             {
