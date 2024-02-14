@@ -1,4 +1,5 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Type
+from autogen import AgentNameConflict
 import pytest
 from unittest import mock
 import builtins
@@ -673,6 +674,47 @@ def test_clear_agents_history():
     ]
 
 
+def test_get_agent_by_name():
+    def agent(name: str) -> autogen.ConversableAgent:
+        return autogen.ConversableAgent(
+            name=name,
+            max_consecutive_auto_reply=10,
+            human_input_mode="NEVER",
+            llm_config=False,
+        )
+
+    def team(members: List[autogen.Agent], name: str) -> autogen.Agent:
+        gc = autogen.GroupChat(agents=members, messages=[])
+
+        return autogen.GroupChatManager(groupchat=gc, name=name, llm_config=False)
+
+    team_member1 = agent("team1_member1")
+    team_member2 = agent("team1_member2")
+    team_dup_member1 = agent("team1_member1")
+    team_dup_member2 = agent("team1_member2")
+
+    user = agent("user")
+    team1 = team([team_member1, team_member2], "team1")
+    team1_duplicate = team([team_dup_member1, team_dup_member2], "team1")
+
+    gc = autogen.GroupChat(agents=[user, team1, team1_duplicate], messages=[])
+
+    # Testing default arguments
+    assert gc.agent_by_name("user") == user
+    assert gc.agent_by_name("team1") == team1 or gc.agent_by_name("team1") == team1_duplicate
+
+    # Testing recursive search
+    assert gc.agent_by_name("user", recursive=True) == user
+    assert (
+        gc.agent_by_name("team1_member1", recursive=True) == team_member1
+        or gc.agent_by_name("team1_member1", recursive=True) == team_dup_member1
+    )
+
+    # Testing naming conflict
+    with pytest.raises(AgentNameConflict):
+        gc.agent_by_name("team1_member1", recursive=True, raise_on_name_conflict=True)
+
+
 def test_get_nested_agents_in_groupchat():
     def agent(name: str) -> autogen.ConversableAgent:
         return autogen.ConversableAgent(
@@ -697,11 +739,7 @@ def test_get_nested_agents_in_groupchat():
     gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
 
     agents = gc.nested_agents()
-    team1_member1 = gc.agent_by_name("member1_team1", recursive=True)
-
     assert len(agents) == 7
-    assert team1_member1 is not None
-    assert team1_member1.name == "member1_team1"
 
 
 def test_nested_teams_chat():

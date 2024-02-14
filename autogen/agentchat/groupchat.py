@@ -185,16 +185,14 @@ class GroupChat:
         if raise_on_name_conflict and len(filtered_agents) > 1:
             raise AgentNameConflict()
 
-        return filtered_agents[0]
+        if filtered_agents:
+            return filtered_agents[0]
 
     def nested_agents(self) -> List[Agent]:
         """Returns all agents in the group chat manager."""
-        agents = list()
-        for agent in self.agents:
-            if not isinstance(agent, GroupChatManager):
-                agents.append(agent)
-            else:
-                agents.append(agent)
+        agents = self.agents.copy()
+        for agent in agents:
+            if isinstance(agent, GroupChatManager):
                 # Recursive call for nested teams
                 agents.extend(agent.groupchat.nested_agents())
         return agents
@@ -411,10 +409,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             )
 
         # Return the result
-        try:
-            return self.agent_by_name(name)
-        except ValueError:
-            return self.next_agent(last_speaker, agents)
+        agent = self.agent_by_name(name)
+        return agent if agent else self.next_agent(last_speaker, agents)
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
@@ -485,7 +481,7 @@ class GroupChatManager(ConversableAgent):
             **kwargs,
         )
         # Store groupchat
-        self.groupchat = groupchat
+        self._groupchat = groupchat
 
         # Order of register_reply is important.
         # Allow sync chat if initiated using initiate_chat
@@ -499,19 +495,24 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    @property
+    def groupchat(self) -> GroupChat:
+        """Returns the group chat managed by the group chat manager."""
+        return self._groupchat
+
     def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
         """The list of messages in the group chat as a conversation to summarize.
         The agent is ignored.
         """
-        return self.groupchat.messages
+        return self._groupchat.messages
 
     def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
         super()._prepare_chat(recipient, clear_history, prepare_recipient)
 
         if clear_history:
-            self.groupchat.reset()
+            self._groupchat.reset()
 
-        for agent in self.groupchat.agents:
+        for agent in self._groupchat.agents:
             if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
                 agent._prepare_chat(self, clear_history, False)
 
@@ -641,7 +642,7 @@ class GroupChatManager(ConversableAgent):
         """
         super()._raise_exception_on_async_reply_functions()
 
-        for agent in self.groupchat.agents:
+        for agent in self._groupchat.agents:
             agent._raise_exception_on_async_reply_functions()
 
     def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
