@@ -462,6 +462,7 @@ class ConversableAgent(LLMAgent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
+        use_cache: bool = True,
     ) -> ChatResult:
         """Send a message to another agent.
 
@@ -502,7 +503,7 @@ class ConversableAgent(LLMAgent):
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
-            recipient.receive(message, self, request_reply, silent)
+            recipient.receive(message, self, request_reply, silent, use_cache=use_cache)
         else:
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -650,6 +651,7 @@ class ConversableAgent(LLMAgent):
         sender: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
+        use_cache: bool = True,
     ):
         """Receive a message from another agent.
 
@@ -677,7 +679,7 @@ class ConversableAgent(LLMAgent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
-        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender, use_cache=use_cache)
         if reply is not None:
             self.send(reply, sender, silent=silent)
 
@@ -1368,6 +1370,7 @@ class ConversableAgent(LLMAgent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
+        use_cache = True,
     ) -> Tuple[bool, Union[str, None]]:
         """Check if the conversation should be terminated, and if human reply is provided.
 
@@ -1480,6 +1483,7 @@ class ConversableAgent(LLMAgent):
         messages: Optional[List[Dict]] = None,
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
+        use_cache = True,
     ) -> Tuple[bool, Union[str, None]]:
         """(async) Check if the conversation should be terminated, and if human reply is provided.
 
@@ -1634,6 +1638,7 @@ class ConversableAgent(LLMAgent):
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = self.process_last_message(messages)
 
+        use_cache = kwargs.get("use_cache", True)
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
             if "exclude" in kwargs and reply_func in kwargs["exclude"]:
@@ -1641,7 +1646,7 @@ class ConversableAgent(LLMAgent):
             if inspect.iscoroutinefunction(reply_func):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
-                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"], use_cache=use_cache)
                 if final:
                     return reply
         return self._default_auto_reply
