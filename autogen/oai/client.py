@@ -275,21 +275,28 @@ class OpenAIClient:
 
         return response
 
-    def cost(self, response: Union[ChatCompletion, Completion]) -> float:
+    def cost(self, response: Union[ChatCompletion, Completion], token_cost_1k: Optional[Tuple[float]] = None) -> float:
         """Calculate the cost of the response."""
-        model = response.model
-        if model not in OAI_PRICE1K:
-            # TODO: add logging to warn that the model is not found
-            logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
-            return 0
 
+        # No cost specified. Use the default if possible
+        if token_cost_1k is None:
+            model = response.model
+            if model not in OAI_PRICE1K:
+                # TODO: add logging to warn that the model is not found
+                logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
+                return 0
+            token_cost_1k = OAI_PRICE1K[model]
+            if isinstance(token_cost_1k, tuple):
+                token_cost_1k = {"input": token_cost_1k[0], "output": token_cost_1k[1]}
+
+        # Read the token use
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
-        tmp_price1K = OAI_PRICE1K[model]
-        # First value is input token rate, second value is output token rate
-        if isinstance(tmp_price1K, tuple):
-            return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000  # type: ignore [no-any-return]
-        return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000  # type: ignore [operator]
+
+        # Compute final cost
+        if isinstance(token_cost_1k, dict):
+            return (token_cost_1k["input"] * n_input_tokens + token_cost_1k["output"] * n_output_tokens) / 1000  # type: ignore [no-any-return]
+        return token_cost_1k * (n_input_tokens + n_output_tokens) / 1000  # type: ignore [operator]
 
     @staticmethod
     def get_usage(response: Union[ChatCompletion, Completion]) -> Dict:
@@ -314,6 +321,8 @@ class OpenAIWrapper:
         "api_version",
         "api_type",
         "tags",
+        "window_size",
+        "token_cost_1k",
     }
 
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
@@ -551,6 +560,7 @@ class OpenAIWrapper:
             cache = extra_kwargs.get("cache")
             filter_func = extra_kwargs.get("filter_func")
             context = extra_kwargs.get("context")
+            token_cost_1k = extra_kwargs.get("token_cost_1k")
 
             total_usage = None
             actual_usage = None
@@ -575,7 +585,7 @@ class OpenAIWrapper:
                             response.cost  # type: ignore [attr-defined]
                         except AttributeError:
                             # update attribute if cost is not calculated
-                            response.cost = client.cost(response)
+                            response.cost = client.cost(response, token_cost_1k=token_cost_1k)
                             cache.set(key, response)
                         total_usage = client.get_usage(response)
                         # check the filter
@@ -605,7 +615,7 @@ class OpenAIWrapper:
                     raise
             else:
                 # add cost calculation before caching no matter filter is passed or not
-                response.cost = client.cost(response)
+                response.cost = client.cost(response, token_cost_1k=token_cost_1k)
                 actual_usage = client.get_usage(response)
                 total_usage = actual_usage.copy() if actual_usage is not None else total_usage
                 self._update_usage(actual_usage=actual_usage, total_usage=total_usage)
