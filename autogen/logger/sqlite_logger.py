@@ -114,7 +114,9 @@ class SqliteLogger(BaseLogger):
 
             current_verion = self._get_current_db_version()
             if current_verion is None:
-                self.cur.execute("INSERT INTO version (id, version_number) VALUES (1, ?);", SqliteLogger.schema_version)
+                self.cur.execute(
+                    "INSERT INTO version (id, version_number) VALUES (1, ?);", (SqliteLogger.schema_version,)
+                )
                 self.con.commit()
 
             self._apply_migration(dbname)
