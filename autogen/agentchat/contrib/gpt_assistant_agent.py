@@ -54,10 +54,12 @@ class GPTAssistantAgent(ConversableAgent):
         """
         # Use AutoGen OpenAIWrapper to create a client
         openai_client_cfg = None
+        model_name = "gpt-4-1106-preview"
         if llm_config and llm_config.get("config_list") is not None and len(llm_config["config_list"]) > 0:
             openai_client_cfg = llm_config["config_list"][0].copy()
+            model_name = openai_client_cfg.pop("model", "gpt-4-1106-preview")
 
-        oai_wrapper = OpenAIWrapper(base_config=openai_client_cfg)
+        oai_wrapper = OpenAIWrapper(**openai_client_cfg)
         if len(oai_wrapper._clients) > 1:
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
 
@@ -84,7 +86,7 @@ class GPTAssistantAgent(ConversableAgent):
                     name=name,
                     instructions=instructions,
                     tools=llm_config.get("tools", []),
-                    model=llm_config.get("model", "gpt-4-1106-preview"),
+                    model=model_name,
                     file_ids=llm_config.get("file_ids", []),
                 )
             else:
