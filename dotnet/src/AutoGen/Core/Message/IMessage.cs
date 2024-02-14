@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Message.cs
+// IMessage.cs
 
 namespace AutoGen;
 

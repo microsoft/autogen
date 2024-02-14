@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Message.cs
+// ToolCallMessage.cs
 
 using System.Collections.Generic;
 using System.Text;

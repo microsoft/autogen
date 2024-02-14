@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Message.cs
+// AggregateMessage.cs
 
 using System;
 using System.Collections.Generic;
