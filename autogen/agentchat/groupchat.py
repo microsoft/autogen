@@ -185,8 +185,7 @@ class GroupChat:
         if raise_on_name_conflict and len(filtered_agents) > 1:
             raise AgentNameConflict()
 
-        if filtered_agents:
-            return filtered_agents[0]
+        return filtered_agents[0] if filtered_agents else None
 
     def nested_agents(self) -> List[Agent]:
         """Returns all agents in the group chat manager."""

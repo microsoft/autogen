@@ -703,18 +703,18 @@ def test_get_agent_by_name():
     assert gc.agent_by_name("user") == user
     assert gc.agent_by_name("team1") == team1 or gc.agent_by_name("team1") == team1_duplicate
 
-    # Get agent that does not exist
-    assert gc.agent_by_name("team2") is None
-    assert gc.agent_by_name("team2", recursive=True) is None
-    assert gc.agent_by_name("team2", raise_on_name_conflict=True) is None
-    assert gc.agent_by_name("team2", recursive=True, raise_on_name_conflict=True) is None
-
     # Testing recursive search
     assert gc.agent_by_name("user", recursive=True) == user
     assert (
         gc.agent_by_name("team1_member1", recursive=True) == team_member1
         or gc.agent_by_name("team1_member1", recursive=True) == team_dup_member1
     )
+
+    # Get agent that does not exist
+    assert gc.agent_by_name("team2") is None
+    assert gc.agent_by_name("team2", recursive=True) is None
+    assert gc.agent_by_name("team2", raise_on_name_conflict=True) is None
+    assert gc.agent_by_name("team2", recursive=True, raise_on_name_conflict=True) is None
 
     # Testing naming conflict
     with pytest.raises(AgentNameConflict):
