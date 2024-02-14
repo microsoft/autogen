@@ -42,7 +42,7 @@ public class LMStudioAgent : IAgent
             functionMap: functionMap);
     }
 
-    public string? Name => innerAgent.Name;
+    public string Name => innerAgent.Name;
 
     public Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,

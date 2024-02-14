@@ -1,0 +1,195 @@
+[
+  {
+    "OriginalMessage": "TextMessage(system, You are a helpful AI assistant, )",
+    "ConvertedMessages": [
+      {
+        "Role": "system",
+        "Content": "You are a helpful AI assistant"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "TextMessage(user, Hello, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": "Hello",
+        "MultiModaItem": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "TextMessage(assistant, How can I help you?, assistant)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": "How can I help you?",
+        "TooCall": [],
+        "FunctionCallName": null,
+        "FunctionCallArguments": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "Message(system, You are a helpful AI assistant, , , )",
+    "ConvertedMessages": [
+      {
+        "Role": "system",
+        "Content": "You are a helpful AI assistant"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "Message(user, Hello, user, , )",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": "Hello",
+        "MultiModaItem": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "Message(assistant, How can I help you?, assistant, , )",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": "How can I help you?",
+        "TooCall": [],
+        "FunctionCallName": null,
+        "FunctionCallArguments": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "Message(function, result, user, , )",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": "result",
+        "MultiModaItem": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "Message(assistant, , assistant, functionName, functionArguments)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": null,
+        "TooCall": [],
+        "FunctionCallName": "functionName",
+        "FunctionCallArguments": "functionArguments"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ImageMessage(user, https://example.com/image.png, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": null,
+        "MultiModaItem": [
+          {
+            "Type": "Image",
+            "ImageUrl": {
+              "Url": "https://example.com/image.png",
+              "Detail": null
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "MultiModalMessage(, user)\n\tTextMessage(user, Hello, user)\n\tImageMessage(user, https://example.com/image.png, user)",
+    "ConvertedMessages": [
+      {
+        "Role": "user",
+        "Content": null,
+        "MultiModaItem": [
+          {
+            "Type": "Text",
+            "Text": "Hello"
+          },
+          {
+            "Type": "Image",
+            "ImageUrl": {
+              "Url": "https://example.com/image.png",
+              "Detail": null
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallMessage(test, test, assistant)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": "",
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "test",
+            "Id": "test"
+          }
+        ],
+        "FunctionCallName": null,
+        "FunctionCallArguments": null
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)",
+    "ConvertedMessages": [
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "ParallelToolCallResultMessage(user)\n\tToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)\n\tToolCallResultMessage(result, ToolCallMessage(test, test, assistant), user)",
+    "ConvertedMessages": [
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
+      },
+      {
+        "Role": "tool",
+        "Content": "result",
+        "ToolCallId": "test"
+      }
+    ]
+  },
+  {
+    "OriginalMessage": "AggregateMessage(assistant)\n\tToolCallMessage(test, test, assistant)\n\tToolCallMessage(test, test, assistant)",
+    "ConvertedMessages": [
+      {
+        "Role": "assistant",
+        "Content": "",
+        "TooCall": [
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "test",
+            "Id": "test"
+          },
+          {
+            "Type": "Function",
+            "Name": "test",
+            "Arguments": "test",
+            "Id": "test"
+          }
+        ],
+        "FunctionCallName": null,
+        "FunctionCallArguments": null
+      }
+    ]
+  }
+]

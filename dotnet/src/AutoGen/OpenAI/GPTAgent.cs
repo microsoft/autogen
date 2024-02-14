@@ -96,7 +96,7 @@ public class GPTAgent : IStreamingReplyAgent
         return this.ProcessResponse(response);
     }
 
-    private async IAsyncEnumerable<Message> ProcessResponse(StreamingResponse<StreamingChatCompletionsUpdate> response)
+    private async IAsyncEnumerable<IMessage> ProcessResponse(StreamingResponse<StreamingChatCompletionsUpdate> response)
     {
         var content = string.Empty;
         string? functionName = default;
@@ -136,8 +136,7 @@ public class GPTAgent : IStreamingReplyAgent
             // in this case we yield the message
             if (content is not null && functionName is null)
             {
-                var msg = new Message(Role.Assistant, content, from: this.Name);
-                msg.Metadata.Add(new KeyValuePair<string, object>(CHUNK_KEY, chunk!));
+                var msg = new TextMessage(Role.Assistant, content, from: this.Name);
 
                 yield return msg;
                 continue;
@@ -147,12 +146,8 @@ public class GPTAgent : IStreamingReplyAgent
             // in this case, we yield the message once after function name is available and function args has been updated
             if (functionName is not null && functionArguments is not null)
             {
-                var msg = new Message(Role.Assistant, null, from: this.Name)
-                {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
-                msg.Metadata.Add(new KeyValuePair<string, object>(CHUNK_KEY, chunk!));
+                var msg = new ToolCallMessage(functionName, functionArguments, from: this.Name);
+                yield return msg;
 
                 if (functionMap is not null && chunk?.FinishReason is not null && chunk.FinishReason == CompletionsFinishReason.FunctionCall)
                 {
@@ -160,19 +155,13 @@ public class GPTAgent : IStreamingReplyAgent
                     if (this.functionMap.TryGetValue(functionName, out var func))
                     {
                         var result = await func(functionArguments);
-                        msg.Content = result;
+                        yield return new ToolCallResultMessage(result, msg, from: this.Name);
                     }
                     else
                     {
                         var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                        msg.Content = errorMessage;
+                        yield return new ToolCallResultMessage(errorMessage, msg, from: this.Name);
                     }
-
-                    yield return msg;
-                }
-                else
-                {
-                    yield return msg;
                 }
 
                 continue;
@@ -211,68 +200,17 @@ public class GPTAgent : IStreamingReplyAgent
     }
 
 
-    private IEnumerable<ChatRequestMessage> ProcessMessages(IEnumerable<Message> messages)
+    private IEnumerable<ChatRequestMessage> ProcessMessages(IEnumerable<IMessage> messages)
     {
         // add system message if there's no system message in messages
-        if (!messages.Any(m => m.Role == Role.System))
+        var openAIMessages = messages.SelectMany(m => this.ToOpenAIChatRequestMessage(m))
+            .Select(m => m.Content) ?? [];
+        if (!openAIMessages.Any(m => m is ChatRequestSystemMessage))
         {
-            messages = new[] { new Message(Role.System, _systemMessage) }.Concat(messages);
+            openAIMessages = new[] { new ChatRequestSystemMessage(_systemMessage) }.Concat(openAIMessages);
         }
 
-        var i = 0;
-        foreach (var message in messages)
-        {
-            if (message.Role == Role.System || message.From is null)
-            {
-                if (message.Role == Role.System)
-                {
-                    // add as system message
-                    yield return message.ToChatRequestSystemMessage();
-                }
-                else
-                {
-                    // add as user message
-                    yield return message.ToChatRequestUserMessage();
-                }
-            }
-            else if (message.From != this.Name)
-            {
-                if (message.Role == Role.Function)
-                {
-                    yield return message.ToChatRequestFunctionMessage();
-                }
-                else
-                {
-                    yield return message.ToChatRequestUserMessage();
-                }
-            }
-            else
-            {
-                if (message.FunctionArguments is string functionArguments && message.FunctionName is string functionName && message.Content is string)
-                {
-                    i++;
-
-                    yield return message.ToChatRequestAssistantMessage();
-
-                    var functionResultMessage = new ChatRequestFunctionMessage(functionName, message.Content);
-
-                    yield return message.ToChatRequestFunctionMessage();
-                    i++;
-                }
-                else
-                {
-                    i++;
-                    if (message.Role == Role.Function)
-                    {
-                        yield return message.ToChatRequestFunctionMessage();
-                    }
-                    else
-                    {
-                        yield return message.ToChatRequestAssistantMessage();
-                    }
-                }
-            }
-        }
+        return openAIMessages;
     }
 
     private async Task<Message> PostProcessMessage(ChatResponseMessage oaiMessage)

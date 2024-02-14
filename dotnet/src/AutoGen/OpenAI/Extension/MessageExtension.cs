@@ -164,20 +164,40 @@ public static class MessageExtension
         return functionMessage;
     }
 
-    public static IEnumerable<ChatRequestMessage> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
+    private static IMessage<TMessage> ToMessageEnvelope<TMessage>(this TMessage msg, string? from)
+        where TMessage : ChatRequestMessage
     {
+        return new MessageEnvelope<TMessage>(msg, from);
+    }
+
+    public static IEnumerable<IMessage<ChatRequestMessage>> ToOpenAIChatRequestMessage(this IAgent agent, IMessage message)
+    {
+        if (message is IMessage<ChatRequestMessage> oaiMessage)
+        {
+            return [oaiMessage];
+        }
+
         if (message.From != agent.Name)
         {
             if (message is TextMessage textMessage)
             {
                 if (textMessage.Role == Role.System)
                 {
-                    return [new ChatRequestSystemMessage(textMessage.Content)];
+                    var msg = new ChatRequestSystemMessage(textMessage.Content);
+                    return [msg.ToMessageEnvelope(message.From)];
                 }
                 else
                 {
-                    return [new ChatRequestUserMessage(textMessage.Content)];
+                    var msg = new ChatRequestUserMessage(textMessage.Content);
+                    return [msg.ToMessageEnvelope(message.From)];
                 }
+            }
+            else if (message is ImageMessage imageMessage)
+            {
+                // multi-modal
+                var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url)));
+
+                return [msg.ToMessageEnvelope(message.From)];
             }
             else if (message is ToolCallMessage)
             {
@@ -185,18 +205,12 @@ public static class MessageExtension
             }
             else if (message is ToolCallResultMessage toolCallResult)
             {
-                return [new ChatRequestToolMessage(toolCallResult.Result, toolCallResult.ToolCallMessage.FunctionName)];
+                var msg = new ChatRequestToolMessage(toolCallResult.Result, toolCallResult.ToolCallMessage.FunctionName);
+                return [msg.ToMessageEnvelope(message.From)];
             }
-            else if (message is AggregateMessage aggregateMessage)
+            else if (message is MultiModalMessage multiModalMessage)
             {
-                // if aggreate message contains a list of tool call result message, then it is a parallel tool call message
-                if (aggregateMessage.Messages.All(m => m is ToolCallResultMessage))
-                {
-                    return aggregateMessage.Messages.Select(message => new ChatRequestToolMessage((message as ToolCallResultMessage)!.Result, (message as ToolCallResultMessage)!.ToolCallMessage.FunctionName));
-                }
-
-                // otherwise, it's a multi-modal message
-                IEnumerable<ChatMessageContentItem> messageContent = aggregateMessage.Messages.Select<IMessage, ChatMessageContentItem>(m =>
+                var messageContent = multiModalMessage.Content.Select<IMessage, ChatMessageContentItem>(m =>
                 {
                     return m switch
                     {
@@ -206,7 +220,46 @@ public static class MessageExtension
                     };
                 });
 
-                return [new ChatRequestUserMessage(messageContent)];
+                var msg = new ChatRequestUserMessage(messageContent);
+                return [msg.ToMessageEnvelope(message.From)];
+            }
+            else if (message is ParallelToolCallResultMessage parallelToolCallResultMessage)
+            {
+                return parallelToolCallResultMessage.ToolCallResult.Select(m =>
+                {
+                    var msg = new ChatRequestToolMessage(m.Result, m.ToolCallMessage.FunctionName);
+
+                    return msg.ToMessageEnvelope(message.From);
+                });
+            }
+            else if (message is Message msg)
+            {
+                if (msg.Role == Role.System)
+                {
+                    var systemMessage = new ChatRequestSystemMessage(msg.Content ?? string.Empty);
+                    return [systemMessage.ToMessageEnvelope(message.From)];
+                }
+                else if (msg.FunctionName is null && msg.FunctionArguments is null)
+                {
+                    var userMessage = msg.ToChatRequestUserMessage();
+                    return [userMessage.ToMessageEnvelope(message.From)];
+                }
+                else if (msg.FunctionName is not null && msg.FunctionArguments is not null && msg.Content is not null)
+                {
+                    if (msg.Role == Role.Function)
+                    {
+                        return [new ChatRequestFunctionMessage(msg.FunctionName, msg.Content).ToMessageEnvelope(message.From)];
+                    }
+                    else
+                    {
+                        return [new ChatRequestUserMessage(msg.Content).ToMessageEnvelope(message.From)];
+                    }
+                }
+                else
+                {
+                    var userMessage = new ChatRequestUserMessage(msg.Content ?? throw new ArgumentException("Content is null"));
+                    return [userMessage.ToMessageEnvelope(message.From)];
+                }
             }
             else
             {
@@ -222,7 +275,8 @@ public static class MessageExtension
                     throw new ArgumentException("System message is not supported when message.From is the same with agent");
                 }
 
-                return [new ChatRequestAssistantMessage(textMessage.Content)];
+
+                return [new ChatRequestAssistantMessage(textMessage.Content).ToMessageEnvelope(message.From)];
             }
             else if (message is ToolCallMessage toolCallMessage)
             {
@@ -230,7 +284,7 @@ public static class MessageExtension
                 var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
                 assistantMessage.ToolCalls.Add(new ChatCompletionsFunctionToolCall(toolCallMessage.FunctionName, toolCallMessage.FunctionName, toolCallMessage.FunctionArguments));
 
-                return [assistantMessage];
+                return [assistantMessage.ToMessageEnvelope(message.From)];
             }
             else if (message is AggregateMessage aggregateMessage)
             {
@@ -248,12 +302,49 @@ public static class MessageExtension
                     }
                 }
 
-                return [assistantMessage];
+                return [assistantMessage.ToMessageEnvelope(message.From)];
+            }
+            else if (message is Message msg)
+            {
+                if (msg.FunctionArguments is not null && msg.FunctionName is not null && msg.Content is not null)
+                {
+                    var assistantMessage = new ChatRequestAssistantMessage(msg.Content);
+                    assistantMessage.FunctionCall = new FunctionCall(msg.FunctionName, msg.FunctionArguments);
+                    var functionCallMessage = new ChatRequestFunctionMessage(msg.FunctionName, msg.Content);
+                    return [assistantMessage.ToMessageEnvelope(message.From), functionCallMessage.ToMessageEnvelope(message.From)];
+                }
+                else
+                {
+                    if (msg.Role == Role.Function)
+                    {
+                        return [new ChatRequestFunctionMessage(msg.FunctionName!, msg.Content!).ToMessageEnvelope(message.From)];
+                    }
+                    else
+                    {
+                        var assistantMessage = new ChatRequestAssistantMessage(msg.Content!);
+                        if (msg.FunctionName is not null && msg.FunctionArguments is not null)
+                        {
+                            assistantMessage.FunctionCall = new FunctionCall(msg.FunctionName, msg.FunctionArguments);
+                        }
+
+                        return [assistantMessage.ToMessageEnvelope(message.From)];
+                    }
+                }
             }
             else
             {
                 throw new ArgumentException($"Unknown message type: {message.GetType()}");
             }
         }
+    }
+
+    public static IEnumerable<IMessage> ToAutoGenMessages(this IAgent agent, IEnumerable<IMessage<ChatRequestMessage>> openaiMessages)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static IMessage ToAutoGenMessage(ChatRequestMessage openaiMessage, string? from = null)
+    {
+        throw new NotImplementedException();
     }
 }

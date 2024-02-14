@@ -236,22 +236,23 @@ namespace AutoGen.Tests
             };
             var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
             var answer = "[ECHO] Hello world";
-            Message? finalReply = default;
+            IMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
-                reply.Role.Should().Be(Role.Assistant);
                 reply.From.Should().Be(agent.Name);
-
                 finalReply = reply;
-
-                var formatted = reply.FormatMessage();
-                _output.WriteLine(formatted);
             }
 
-            finalReply!.Content.Should().Be(answer);
-            finalReply!.Role.Should().Be(Role.Assistant);
-            finalReply!.From.Should().Be(agent.Name);
-            finalReply!.FunctionName.Should().Be(nameof(EchoAsync));
+            if (finalReply is ToolCallResultMessage toolCallResultMessage)
+            {
+                toolCallResultMessage.Result.Should().Be(answer);
+                toolCallResultMessage.From.Should().Be(agent.Name);
+                toolCallResultMessage.ToolCallMessage.FunctionName.Should().Be(nameof(EchoAsync));
+            }
+            else
+            {
+                throw new Exception("unexpected message type");
+            }
         }
 
         private async Task UpperCaseTest(IAgent agent)
@@ -276,15 +277,21 @@ namespace AutoGen.Tests
             };
             var replyStream = await agent.GenerateReplyStreamingAsync(messages: new Message[] { message, helloWorld }, option);
             var answer = "ABCDEFG";
-            Message? finalReply = default;
+            TextMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
-                reply.Role.Should().Be(Role.Assistant);
-                reply.From.Should().Be(agent.Name);
+                if (reply is TextMessage textMessage)
+                {
+                    textMessage.From.Should().Be(agent.Name);
 
-                // the content should be part of the answer
-                reply.Content.Should().Be(answer.Substring(0, reply.Content!.Length));
-                finalReply = reply;
+                    // the content should be part of the answer
+                    textMessage.Content.Should().Be(answer.Substring(0, textMessage.Content!.Length));
+                    finalReply = textMessage;
+
+                    continue;
+                }
+
+                throw new Exception("unexpected message type");
             }
 
             finalReply!.Content.Should().Be(answer);
