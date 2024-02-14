@@ -187,7 +187,7 @@ def test_truncate_str_to_tokens():
     max_tokens = 8
     truncated_text = truncate_str_to_tokens(text, max_tokens)
     word_count = len(truncated_text.split())
-    assert word_count > max_tokens
+    assert word_count <= max_tokens
 
 
 if __name__ == "__main__":
