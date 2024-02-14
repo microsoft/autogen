@@ -87,8 +87,15 @@ def test_two_agents_logging(db_connection):
 
     print("***log completions table: ")
     for idx, row in enumerate(rows):
-        print(idx, row["invocation_id"], row["client_id"], row["wrapper_id"],
-              row["session_id"], row["request"], row["response"])
+        print(
+            idx,
+            row["invocation_id"],
+            row["client_id"],
+            row["wrapper_id"],
+            row["session_id"],
+            row["request"],
+            row["response"],
+        )
 
     for idx, row in enumerate(rows):
         assert (
@@ -115,17 +122,13 @@ def test_two_agents_logging(db_connection):
         assert row["start_time"], "start timestamp is empty"
         assert row["end_time"], "end timestamp is empty"
 
-
     # Verify agents table
     cur.execute(agents_query)
     rows = cur.fetchall()
 
-
     print("***Agents table: ")
     for idx, row in enumerate(rows):
-        print(idx, row["agent_id"], row["wrapper_id"], row["session_id"], row["name"], row["class"],
-              row["init_args"])
-
+        print(idx, row["agent_id"], row["wrapper_id"], row["session_id"], row["name"], row["class"], row["init_args"])
 
     assert len(rows) == 2
 
@@ -155,6 +158,3 @@ def test_two_agents_logging(db_connection):
     print("***oai client table: ", len(rows))
     for idx, row in enumerate(rows):
         print(idx, row["client_id"], row["wrapper_id"], row["session_id"], row["class"], row["init_args"])
-
-
-
