@@ -23,7 +23,7 @@ class WebSurferAgent(ConversableAgent):
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, answer questions from pages, and or generate summaries."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia. Once on a desired page, ask then to answer specific questions, generate summaries, or scroll up and down in the viewport. Asking for a specific answer is usually the fastest and preferred mechanism for getting info from pages."
 
     def __init__(
         self,

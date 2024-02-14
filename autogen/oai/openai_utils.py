@@ -49,6 +49,7 @@ OAI_PRICE1K = {
     "gpt-4-0125-preview": (0.01, 0.03),
     "gpt-4-turbo-preview": (0.01, 0.03),
     "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    "gpt-4-turbo-v": (0.01, 0.03),  # TODO: support vision pricing of images
 }
 
 

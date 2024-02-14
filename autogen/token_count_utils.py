@@ -31,6 +31,7 @@ def get_max_token_limit(model: str = "gpt-3.5-turbo-0613") -> int:
         "gpt-4-0125-preview": 128000,
         "gpt-4-turbo-preview": 128000,
         "gpt-4-vision-preview": 128000,
+        "gpt-4-turbo-v": 128000,  # Azure
     }
     return max_token_limit[model]
 
