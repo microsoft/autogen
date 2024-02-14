@@ -20,14 +20,18 @@ public class SemanticKernelAgent : IStreamingReplyAgent
 {
     private readonly Kernel _kernel;
     private readonly string _systemMessage;
+    private readonly PromptExecutionSettings? _settings;
+
     public SemanticKernelAgent(
         Kernel kernel,
         string name,
-        string systemMessage = "You are a helpful AI assistant")
+        string systemMessage = "You are a helpful AI assistant",
+        PromptExecutionSettings? settings = null)
     {
         _kernel = kernel;
         this.Name = name;
         _systemMessage = systemMessage;
+        _settings = settings;
     }
     public string Name { get; }
 
@@ -42,7 +46,7 @@ public class SemanticKernelAgent : IStreamingReplyAgent
         }
 
         var chatHistory = new ChatHistory(chatMessageContents);
-        var option = new OpenAIPromptExecutionSettings
+        var option = _settings ?? new OpenAIPromptExecutionSettings
         {
             Temperature = options?.Temperature ?? 0.7f,
             MaxTokens = options?.MaxToken ?? 1024,
@@ -101,7 +105,7 @@ public class SemanticKernelAgent : IStreamingReplyAgent
         }
 
         var chatHistory = new ChatHistory(chatMessageContents);
-        var option = new OpenAIPromptExecutionSettings
+        var option = _settings ?? new OpenAIPromptExecutionSettings
         {
             Temperature = options?.Temperature ?? 0.7f,
             MaxTokens = options?.MaxToken ?? 1024,

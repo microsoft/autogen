@@ -3,6 +3,7 @@
     <PropertyGroup>
         <AzureOpenAIVersion>1.0.0-beta.13</AzureOpenAIVersion>
         <SemanticKernelVersion>1.4.0</SemanticKernelVersion>
+        <SemanticKernelExperimentalVersion>1.4.0-alpha</SemanticKernelExperimentalVersion>
         <SystemCodeDomVersion>5.0.0</SystemCodeDomVersion>
         <MicrosoftCodeAnalysisVersion>4.3.0</MicrosoftCodeAnalysisVersion>
         <ApprovalTestVersion>6.0.0</ApprovalTestVersion>

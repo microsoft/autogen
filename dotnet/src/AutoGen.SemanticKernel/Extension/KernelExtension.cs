@@ -7,8 +7,8 @@ namespace AutoGen.SemanticKernel.Extension;
 
 public static class KernelExtension
 {
-    public static SemanticKernelAgent ToSemanticKernelAgent(this Kernel kernel, string name, string systemMessage = "You are a helpful AI assistant")
+    public static SemanticKernelAgent ToSemanticKernelAgent(this Kernel kernel, string name, string systemMessage = "You are a helpful AI assistant", PromptExecutionSettings? settings = null)
     {
-        return new SemanticKernelAgent(kernel, name, systemMessage);
+        return new SemanticKernelAgent(kernel, name, systemMessage, settings);
     }
 }
