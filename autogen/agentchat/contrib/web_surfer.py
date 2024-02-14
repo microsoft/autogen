@@ -125,6 +125,7 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+            header += "Hint: Looking for something specific on this page? Try calling 'read_page_and_answer'.\n"
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
@@ -187,10 +188,10 @@ class WebSurferAgent(ConversableAgent):
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name="answer_from_page",
+                name="read_page_and_answer",
                 description="Uses AI to read the page and directly answer a given question based on the content.",
             )
-            def _answer_from_page(
+            def _read_page_and_answer(
                 question: Annotated[Optional[str], "The question to directly answer."],
                 url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
             ) -> str:
@@ -251,7 +252,7 @@ class WebSurferAgent(ConversableAgent):
                     Optional[str], "[Optional] The url of the page to summarize. (Defaults to current page)"
                 ] = None
             ) -> str:
-                return _answer_from_page(url=url, question=None)
+                return _read_page_and_answer(url=url, question=None)
 
     def generate_surfer_reply(
         self,
