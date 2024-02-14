@@ -185,7 +185,6 @@ Please output an answer in pure JSON format according to the following schema. T
             response = self.client.create(
                 messages=self.orchestrated_messages,
                 cache=self.client_cache,
-                max_tokens=1024,
                 response_format={"type": "json_object"},
             )
             self.orchestrated_messages.pop()
