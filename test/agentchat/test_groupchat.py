@@ -673,7 +673,7 @@ def test_clear_agents_history():
     ]
 
 
-def test_get_all_agents_in_groupchat():
+def test_get_nested_agents_in_groupchat():
     def agent(name: str) -> autogen.ConversableAgent:
         return autogen.ConversableAgent(
             name=name,
@@ -696,8 +696,8 @@ def test_get_all_agents_in_groupchat():
 
     gc = autogen.GroupChat(agents=[user, team1, team2], messages=[])
 
-    agents = gc.all_agents()
-    team1_member1 = agents.get("member1_team1")
+    agents = gc.nested_agents()
+    team1_member1 = gc.agent_by_name("member1_team1", recursive=True)
 
     assert len(agents) == 7
     assert team1_member1 is not None
@@ -726,11 +726,9 @@ def test_nested_teams_chat():
 
         return autogen.GroupChatManager(groupchat=gc, name=name, llm_config=False)
 
-    def chat(groupchat_manager: autogen.GroupChatManager):
-        agents = groupchat_manager.groupchat.all_agents()
-
-        team1_member1 = agents.get("member1_team1")
-        team2_member2 = agents.get("member2_team2")
+    def chat(gc_manager: autogen.GroupChatManager):
+        team1_member1 = gc_manager.groupchat.agent_by_name("member1_team1", recursive=True)
+        team2_member2 = gc_manager.groupchat.agent_by_name("member2_team2", recursive=True)
 
         assert team1_member1 is not None
         assert team2_member2 is not None
@@ -746,9 +744,8 @@ def test_nested_teams_chat():
 
     chat(gc_manager)
 
-    agents = gc.all_agents()
-    team1_member1 = agents.get("member1_team1")
-    team2_member2 = agents.get("member2_team2")
+    team1_member1 = gc.agent_by_name("member1_team1", recursive=True)
+    team2_member2 = gc.agent_by_name("member2_team2", recursive=True)
 
     assert team1_member1 and team2_member2
 
