@@ -231,7 +231,7 @@ public class OpenAIMessageTests
                 ], from: "user"),
             message2: new ToolCallResultMessage(
                 toolCalls:
-                               [
+                [
                     new ToolCall("result", "test", "test"),
                     new ToolCall("result", "test", "test"),
                 ], from: "user"), "user");
