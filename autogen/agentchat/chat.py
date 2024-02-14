@@ -63,8 +63,8 @@ class Link:
 class Chat:
     """(In preview) A class to manage chats workflow."""
 
-    def __init__(self):
-        self.links = []
+    def __init__(self, links: List[Link] = None):
+        self.links = links if links is not None else []
         self.finished_chats = []
         self.existing_agents = set()
 
@@ -74,7 +74,7 @@ class Chat:
         assert isinstance(link, Link), "link should be a Link object."
         return self
 
-    def initiate_chats(self, links: List, **kwargs):
+    def initiate_chats(self, links: List[Link] = None, **kwargs):
         if links is not None:
             self.links += links
         self.finished_chats = []
