@@ -368,10 +368,91 @@ context.append(
 )
 response = client.create(context=context, messages=messages, **config)
 ```
+## Logging
 
-## Logging (for openai<1)
+When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them.
 
-When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
+### For openai >= 1
+
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
+
+#### Start logging:
+```python
+import autogen.runtime_logging
+
+autogen.runtime_logging.start(logger_type="sqlite", config={"dbname": "YOUR_DB_NAME"})
+```
+`logger_type` and `config` are both optional. Default logger type is SQLite logger, that's the only one available in autogen at the moment. If you want to customize the database name, you can pass in through config, default is `logs.db`.
+
+#### Stop logging:
+```python
+autogen.runtime_logging.stop()
+```
+
+#### LLM Runs
+
+AutoGen logging supports OpenAI's llm message schema. Each LLM run is saved in `chat_completions` table includes:
+- session_id: an unique identifier for the logging session
+- invocation_id: an unique identifier for the logging record
+- client_id: an unique identifier for the Azure OpenAI/OpenAI client
+- request: detailed llm request, see below for an example
+- response: detailed llm response, see below for an example
+- cost: total cost for the request and response
+- start_time
+- end_time
+
+##### Sample Request
+```json
+{
+  "messages":[
+    {
+      "content":"system_message_1",
+      "role":"system"
+    },
+    {
+      "content":"user_message_1",
+      "role":"user"
+    }
+  ],
+  "model":"gpt-4",
+  "temperature": 0.9
+}
+```
+
+##### Sample Response
+```json
+{
+  "id": "id_1",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "assistant_message_1",
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": "<timestamp>",
+  "model": "gpt-4",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "usage": {
+    "completion_tokens": 155,
+    "prompt_tokens": 53,
+    "total_tokens": 208
+  }
+}
+```
+
+Learn more about [request and response format](https://platform.openai.com/docs/api-reference/chat/create)
+
+### For openai < 1
+
+`autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
 autogen.ChatCompletion.start_logging()
 ```

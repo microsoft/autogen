@@ -4,14 +4,18 @@ import sys
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
 import inspect
+import uuid
 from flaml.automl.logger import logger_formatter
 
 from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai.openai_utils import get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
+
+from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
+from autogen.logger.logger_utils import get_current_ts
 
 TOOL_ENABLED = False
 try:
@@ -47,6 +51,7 @@ if not logger.handlers:
 
 LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
+OPEN_API_BASE_URL_PREFIX = "https://api.openai.com"
 
 
 class ModelClient(Protocol):
@@ -111,6 +116,14 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
+        if (
+            not isinstance(client, openai.AzureOpenAI)
+            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
+            and not is_valid_api_key(self._oai_client.api_key)
+        ):
+            logger.warning(
+                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
+            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -344,9 +357,17 @@ class OpenAIWrapper:
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
         """
+
+        if logging_enabled():
+            log_new_wrapper(self, locals())
         openai_config, extra_kwargs = self._separate_openai_config(base_config)
+        # This *may* work if the `llm_config` has specified the `model` attribute,
+        # so just warn here.
         if type(config_list) is list and len(config_list) == 0:
-            logger.warning("openai client was provided with an empty config_list, which may not be intended.")
+            logger.warning("OpenAI client was provided with an empty config_list, which may not be intended.")
+            # If the `llm_config` has no `model` then the call will fail. Abort now.
+            if "model" not in extra_kwargs:
+                raise ValueError("Please specify a value for the 'model' in 'llm_config'.")
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
@@ -354,6 +375,13 @@ class OpenAIWrapper:
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
+                # We require that each element of `config_list` has a non-empty value
+                # for `model` specified unless `extra_kwargs` contains "model".
+                model = None
+                if "model" in config:
+                    model = config["model"]
+                if "model" not in extra_kwargs and (model is None or len(model) == 0):
+                    raise ValueError("Please specify a non-empty 'model' value for every item in 'config_list'.")
                 self._register_default_client(config, openai_config)  # could modify the config
                 self._config_list.append(
                     {**extra_kwargs, **{k: v for k, v in config.items() if k not in self.openai_kwargs}}
@@ -361,6 +389,7 @@ class OpenAIWrapper:
         else:
             self._register_default_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
+        self.wrapper_id = id(self)
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -399,12 +428,18 @@ class OpenAIWrapper:
             logger.info(
                 f"Detected custom model client in config: {model_client_cls_name}, model client can not be used until register_model_client is called."
             )
+            # TODO: logging for custom client
         else:
             if api_type is not None and api_type.startswith("azure"):
                 self._configure_azure_openai(config, openai_config)
-                self._clients.append(OpenAIClient(AzureOpenAI(**openai_config)))
+                client = AzureOpenAI(**openai_config)
+                self._clients.append(OpenAIClient(client))
             else:
-                self._clients.append(OpenAIClient(OpenAI(**openai_config)))
+                client = OpenAI(**openai_config)
+                self._clients.append(OpenAIClient(client))
+
+            if logging_enabled():
+                log_new_client(client, self, openai_config)
 
     def register_model_client(self, model_client_cls: ModelClient, **kwargs):
         """Register a model client.
@@ -518,6 +553,7 @@ class OpenAIWrapper:
         """
         if ERROR:
             raise ERROR
+        invocation_id = str(uuid.uuid4())
         last = len(self._clients) - 1
         # Check if all configs in config list are activated
         non_activated = [
@@ -558,6 +594,8 @@ class OpenAIWrapper:
                 with cache_client as cache:
                     # Try to get the response from cache
                     key = get_key(params)
+                    request_ts = get_current_ts()
+
                     response: ModelClient.ModelClientResponseProtocol = cache.get(key, None)
 
                     if response is not None:
@@ -569,6 +607,20 @@ class OpenAIWrapper:
                             response.cost = client.cost(response)
                             cache.set(key, response)
                         total_usage = client.get_usage(response)
+
+                        if logging_enabled():
+                            # Log the cache hit
+                            log_chat_completion(
+                                invocation_id=invocation_id,
+                                client_id=id(client),
+                                wrapper_id=id(self),
+                                request=params,
+                                response=response,
+                                is_cached=1,
+                                cost=response.cost,
+                                start_time=request_ts,
+                            )
+
                         # check the filter
                         pass_filter = filter_func is None or filter_func(context=context, response=response)
                         if pass_filter or i == last:
@@ -579,6 +631,7 @@ class OpenAIWrapper:
                             return response
                         continue  # filter is not passed; try the next config
             try:
+                request_ts = get_current_ts()
                 response = client.create(params)
             except APITimeoutError as err:
                 logger.debug(f"config {i} timed out", exc_info=True)
@@ -588,6 +641,18 @@ class OpenAIWrapper:
                     ) from err
             except APIError as err:
                 error_code = getattr(err, "code", None)
+                if logging_enabled():
+                    log_chat_completion(
+                        invocation_id=invocation_id,
+                        client_id=id(client),
+                        wrapper_id=id(self),
+                        request=params,
+                        response=f"error_code:{error_code}, config {i} failed",
+                        is_cached=0,
+                        cost=0,
+                        start_time=request_ts,
+                    )
+
                 if error_code == "content_filter":
                     # raise the error for content_filter
                     raise
@@ -604,6 +669,18 @@ class OpenAIWrapper:
                     # Cache the response
                     with cache_client as cache:
                         cache.set(key, response)
+
+                if logging_enabled():
+                    log_chat_completion(
+                        invocation_id=invocation_id,
+                        client_id=id(client),
+                        wrapper_id=id(self),
+                        request=params,
+                        response=response,
+                        is_cached=0,
+                        cost=response.cost,
+                        start_time=request_ts,
+                    )
 
                 response.message_retrieval_function = client.message_retrieval
                 # check the filter
@@ -827,6 +904,3 @@ class OpenAIWrapper:
             A list of text, or a list of ChatCompletion objects if function_call/tool_calls are present.
         """
         return response.message_retrieval_function(response)
-
-
-# TODO: logging
