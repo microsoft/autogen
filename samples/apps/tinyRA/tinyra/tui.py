@@ -873,7 +873,7 @@ class TinyRA(App):
             DirectoryTreeContainer(id="directory-tree"),
             ChatDisplay(id="chat-history"),
             SkillsDisplayContainer(id="skills"),
-            Static(id="status"),
+            # Static(id="status"),
             ChatInput(id="chat-input"),
             Footer(),
             id="main-grid",
@@ -923,13 +923,13 @@ class TinyRA(App):
         Returns:
             The solution to the autogen quick start.
         """
-        status_widget = self.query_one("#status", Static)
-        status_widget.update(f"Starting autogen in a worker process for {msg_idx}...")
+        # status_widget = self.query_one("#status", Static)
+        # status_widget.update(f"Starting autogen in a worker process for {msg_idx}...")
 
         # fetch the relevant chat history
         chat_history = fetch_chat_history()
         task = chat_history[msg_idx]["content"]
-        chat_history = chat_history[:msg_idx]
+        chat_history = chat_history[0:msg_idx]
 
         def summarize(text):
             if len(text) > 100:
@@ -968,14 +968,14 @@ class TinyRA(App):
 
         for msg in chat_history:
             if msg["role"] == "user":
-                user.a_send(msg["content"], assistant, request_reply=False, silent=True)
+                await user.a_send(msg["content"], assistant, request_reply=False, silent=True)
             else:
-                assistant.a_send(msg["content"], user, request_reply=False, silent=True)
+                await assistant.a_send(msg["content"], user, request_reply=False, silent=True)
 
         await user.a_initiate_chat(assistant, message=task, clear_history=False)
 
         last_message = assistant.chat_messages[user][-1]["content"]
-        status_widget.update(f"Completed. Last message from conv: {last_message}")
+        # status_widget.update(f"Completed. Last message from conv: {last_message}")
 
         await a_insert_chat_message("assistant", last_message, msg_idx + 2)
 
