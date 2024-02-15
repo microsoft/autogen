@@ -26,22 +26,40 @@ The following points are best practices for authoring notebooks to ensure consis
 
 You don't need to explain in depth how to install AutoGen. Unless there are specific instructions for the notebook just use the following markdown snippet:
 
-````
-\:\:\:info Requirements
-
+``````
+````{=mdx}
+:::info Requirements
 Install `pyautogen`:
 ```bash
 pip install pyautogen
 ```
 
 For more information, please refer to the [installation guide](/docs/installation/).
-
-\:\:\:
+:::
 ````
+``````
+
+Or if extras are needed:
+
+``````
+````{=mdx}
+:::info Requirements
+Some extra dependencies are needed for this notebook, which can be installed via pip:
+
+```bash
+pip install pyautogen[retrievechat] flaml[automl]
+```
+
+For more information, please refer to the [installation guide](/docs/installation/).
+:::
+````
+``````
 
 When specifying the config list, to ensure consistency it is best to use approximately the following code:
 
 ```python
+import autogen
+
 config_list = autogen.config_list_from_json(
     env_or_file="OAI_CONFIG_LIST",
 )
@@ -49,10 +67,10 @@ config_list = autogen.config_list_from_json(
 
 Then after the code cell where this is used, include the following markdown snippet:
 
-```
-\:\:\:tip
-
-Learn more about the various ways to configure LLM endpoints [here](/docs/llm_configuration).
-
-\:\:\:
-```
+``````
+````{=mdx}
+:::tip
+Learn more about configuring LLMs for agents [here](/docs/llm_configuration).
+:::
+````
+``````
