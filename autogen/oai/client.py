@@ -339,7 +339,7 @@ class OpenAIWrapper:
                 "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
                 "api_type": "azure",
                 "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-                "api_version": "2023-03-15-preview",
+                "api_version": "2024-02-15-preview",
             },
             {
                 "model": "gpt-3.5-turbo",
@@ -534,7 +534,7 @@ class OpenAIWrapper:
         ```
 
             - allow_format_str_template (bool | None): Whether to allow format string template in the config. Default to false.
-            - api_version (str | None): The api version. Default to None. E.g., "2023-08-01-preview".
+            - api_version (str | None): The api version. Default to None. E.g., "2024-02-15-preview".
         Raises:
             - RuntimeError: If all declared custom model clients are not registered
             - APIError: If any model client create call raises an APIError

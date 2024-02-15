@@ -1,3 +1,8 @@
+class AgentNameConflict(Exception):
+    def __init__(self, msg="Found multiple agents with the same name.", *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+
+
 class NoEligibleSpeakerException(Exception):
     """Exception raised for early termination of a GroupChat."""
 
