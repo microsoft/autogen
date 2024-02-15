@@ -6,10 +6,10 @@ import json
 
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
-# Try importing the telemetry module (only available in some branches)
+# Try importing the runtime_logging module (only available in some branches)
 TELEMETRY_ENABLED = False
 try:
-    import autogen.telemetry
+    import autogen.runtime_logging
 
     TELEMETRY_ENABLED = True
 except ImportError:
@@ -66,9 +66,9 @@ def init():
     if AUTOGEN_VERSION < packaging.version.parse("0.2.0b1"):
         autogen.Completion.start_logging(compact=False)
 
-    # Start telemetry
+    # Start logging
     if TELEMETRY_ENABLED:
-        autogen.telemetry.start_logging()
+        autogen.runtime_logging.start(config={"dbname": "telemetry.db"})
 
 
 def finalize(agents):
@@ -103,6 +103,6 @@ def finalize(agents):
             fh.write(json.dumps(autogen.Completion.logged_history, indent=4))
         autogen.Completion.stop_logging()
 
-    # Start telemetry
+    # Stop logging
     if TELEMETRY_ENABLED:
-        autogen.telemetry.stop_logging()
+        autogen.runtime_logging.stop()

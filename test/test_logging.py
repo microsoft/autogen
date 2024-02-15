@@ -1,19 +1,12 @@
-import autogen
-import autogen.telemetry
+import autogen.runtime_logging
 import uuid
 import json
 import pytest
 import sqlite3
-from conftest import skip_openai
 
-try:
-    import openai
-except ImportError:
-    skip = True
-    AzureOpenAI = object
-else:
-    skip = False or skip_openai
-    from openai import AzureOpenAI
+from autogen.logger.logger_utils import get_current_ts, to_dict
+from openai import AzureOpenAI
+from unittest.mock import patch, Mock
 
 
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -73,12 +66,12 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def db_connection():
-    autogen.telemetry.start_logging(dbname=":memory:")
-    con = autogen.telemetry.get_connection()
+    autogen.runtime_logging.start(config={"dbname": ":memory:"})
+    con = autogen.runtime_logging.get_connection()
     con.row_factory = sqlite3.Row
     yield con
 
-    autogen.telemetry.stop_logging()
+    autogen.runtime_logging.stop()
 
 
 def get_sample_chat_completion(response):
@@ -90,7 +83,7 @@ def get_sample_chat_completion(response):
         "response": response,
         "is_cached": 0,
         "cost": 0.347,
-        "start_time": autogen.telemetry.get_current_ts(),
+        "start_time": get_current_ts(),
     }
 
 
@@ -106,7 +99,7 @@ def test_log_completion(response, expected_logged_response, db_connection):
     cur = db_connection.cursor()
 
     sample_completion = get_sample_chat_completion(response)
-    autogen.telemetry.log_chat_completion(**sample_completion)
+    autogen.runtime_logging.log_chat_completion(**sample_completion)
 
     query = """
         SELECT invocation_id, client_id, wrapper_id, request, response, is_cached,
@@ -124,17 +117,6 @@ def test_log_completion(response, expected_logged_response, db_connection):
         assert row["start_time"] == sample_completion["start_time"]
 
 
-def test_log_chat_completion_with_unsupported_response_type_raises_exception(db_connection):
-    class NewResponseType:
-        def __init__(self):
-            self.val = "foo"
-
-    sample_completion = get_sample_chat_completion(NewResponseType())
-    with pytest.raises(TypeError) as e:
-        autogen.telemetry.log_chat_completion(**sample_completion)
-    assert "invalid type of response" in str(e.value)
-
-
 def test_log_new_agent(db_connection):
     from autogen import AssistantAgent
 
@@ -145,7 +127,7 @@ def test_log_new_agent(db_connection):
     agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
     init_args = {"foo": "bar", "baz": {"other_key": "other_val"}, "a": None}
 
-    autogen.telemetry.log_new_agent(agent, init_args)
+    autogen.runtime_logging.log_new_agent(agent, init_args)
 
     query = """
         SELECT session_id, name, class, init_args FROM agents
@@ -160,17 +142,16 @@ def test_log_new_agent(db_connection):
         assert row["init_args"] == json.dumps(init_args)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed")
 def test_log_oai_wrapper(db_connection):
     from autogen import OpenAIWrapper
 
     cur = db_connection.cursor()
 
-    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key"}]}
+    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key", "base_url": "some url"}]}
     init_args = {"llm_config": llm_config, "base_config": {}}
     wrapper = OpenAIWrapper(**llm_config)
 
-    autogen.telemetry.log_new_wrapper(wrapper, init_args)
+    autogen.runtime_logging.log_new_wrapper(wrapper, init_args)
 
     query = """
         SELECT session_id, init_args FROM oai_wrappers
@@ -183,13 +164,11 @@ def test_log_oai_wrapper(db_connection):
         saved_init_args = json.loads(row["init_args"])
         assert "config_list" in saved_init_args
         assert "api_key" not in saved_init_args["config_list"][0]
+        assert "base_url" not in saved_init_args["config_list"][0]
         assert "base_config" in saved_init_args
 
 
-@pytest.mark.skipif(skip, reason="openai not installed")
 def test_log_oai_client(db_connection):
-    from unittest.mock import Mock
-
     cur = db_connection.cursor()
 
     openai_config = {
@@ -200,7 +179,7 @@ def test_log_oai_client(db_connection):
     }
     client = AzureOpenAI(**openai_config)
 
-    autogen.telemetry.log_new_client(client, Mock(), openai_config)
+    autogen.runtime_logging.log_new_client(client, Mock(), openai_config)
 
     query = """
         SELECT session_id, init_args, class FROM oai_clients
@@ -217,6 +196,23 @@ def test_log_oai_client(db_connection):
 
 
 def test_to_dict():
+    from autogen import Agent
+
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+
     class Foo:
         def __init__(self):
             self.a = 1.234
@@ -233,19 +229,40 @@ def test_to_dict():
         def build(self):
             self.foo_val = [Foo()]
             self.o = {"key_1": None, "key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
+            self.agents = [agent1, agent2]
+            self.first_agent = agent1
 
     bar = Bar()
     bar.build()
-    expected_result = {
-        "foo_val": [
-            {
-                "a": 1.234,
-                "b": "some string",
-                "c": {"some_key": [7, 8, 9]},
-                "d": None,
-                "test_function": "self.test_function = lambda x, y: x + y",
-            }
-        ],
-        "o": {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]},
-    }
-    assert autogen.telemetry._to_dict(bar, exclude=["key_1", "extra_key"]) == expected_result
+
+    expected_foo_val_field = [
+        {
+            "a": 1.234,
+            "b": "some string",
+            "c": {"some_key": [7, 8, 9]},
+            "d": None,
+            "test_function": "self.test_function = lambda x, y: x + y",
+        }
+    ]
+
+    expected_o_field = {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
+
+    result = to_dict(bar, exclude=("key_1", "extra_key"), no_recursive=(Agent))
+    assert result["foo_val"] == expected_foo_val_field
+    assert result["o"] == expected_o_field
+    assert len(result["agents"]) == 2
+    for agent in result["agents"]:
+        assert "autogen.agentchat.conversable_agent.ConversableAgent" in agent
+    assert "autogen.agentchat.conversable_agent.ConversableAgent" in result["first_agent"]
+
+
+@patch("logging.Logger.error")
+def test_logging_exception_will_not_crash_only_print_error(mock_logger_error, db_connection):
+    sample_completion = get_sample_chat_completion(SAMPLE_CHAT_REQUEST)
+    sample_completion["is_cached"] = {"foo": "bar"}
+
+    autogen.runtime_logging.log_chat_completion(**sample_completion)
+
+    args, _ = mock_logger_error.call_args
+    error_message = args[0]
+    assert error_message.startswith("[SqliteLogger] log_chat_completion error:")

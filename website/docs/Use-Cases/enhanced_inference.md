@@ -374,26 +374,32 @@ When debugging or diagnosing an LLM-based system, it is often convenient to log 
 
 ### For openai >= 1
 
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
+
 #### Start logging:
 ```python
-import autogen
-import autogen.telemetry
+import autogen.runtime_logging
 
-autogen.telemetry.start_logging(dbname="YOUR_DB_NAME")
+autogen.runtime_logging.start(logger_type="sqlite", config={"dbname": "YOUR_DB_NAME"})
 ```
-dbname is optional, default is `telemetry.db`
+`logger_type` and `config` are both optional. Default logger type is SQLite logger, that's the only one available in autogen at the moment. If you want to customize the database name, you can pass in through config, default is `logs.db`.
 
 #### Stop logging:
 ```python
-autogen.telemetry.stop_logging()
+autogen.runtime_logging.stop()
 ```
 
 #### LLM Runs
 
 AutoGen logging supports OpenAI's llm message schema. Each LLM run is saved in `chat_completions` table includes:
-- request
-- response
-- total cost
+- session_id: an unique identifier for the logging session
+- invocation_id: an unique identifier for the logging record
+- client_id: an unique identifier for the Azure OpenAI/OpenAI client
+- request: detailed llm request, see below for an example
+- response: detailed llm response, see below for an example
+- cost: total cost for the request and response
+- start_time
+- end_time
 
 ##### Sample Request
 ```json
@@ -408,7 +414,8 @@ AutoGen logging supports OpenAI's llm message schema. Each LLM run is saved in `
       "role":"user"
     }
   ],
-  "model":"gpt-4"
+  "model":"gpt-4",
+  "temperature": 0.9
 }
 ```
 
