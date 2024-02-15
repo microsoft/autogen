@@ -6,6 +6,8 @@ import pytest
 import autogen
 from autogen.agentchat.conversable_agent import ConversableAgent
 
+from conftest import MOCK_OPEN_AI_API_KEY
+
 try:
     from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 except ImportError:
@@ -28,7 +30,7 @@ class TestMultimodalConversableAgent(unittest.TestCase):
             llm_config={
                 "timeout": 600,
                 "seed": 42,
-                "config_list": [{"model": "gpt-4-vision-preview", "api_key": "sk-fake"}],
+                "config_list": [{"model": "gpt-4-vision-preview", "api_key": MOCK_OPEN_AI_API_KEY}],
             },
         )
 

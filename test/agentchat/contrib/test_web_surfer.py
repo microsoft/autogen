@@ -7,7 +7,7 @@ from autogen.oai.openai_utils import filter_config
 from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -48,10 +48,12 @@ if not skip_oai:
 def test_web_surfer() -> None:
     with pytest.MonkeyPatch.context() as mp:
         # we mock the API key so we can register functions (llm_config must be present for this to work)
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         page_size = 4096
         web_surfer = WebSurferAgent(
-            "web_surfer", llm_config={"config_list": []}, browser_config={"viewport_size": page_size}
+            "web_surfer",
+            llm_config={"model": "gpt-4", "config_list": []},
+            browser_config={"viewport_size": page_size},
         )
 
         # Sneak a peak at the function map, allowing us to call the functions for testing here

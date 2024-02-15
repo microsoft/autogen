@@ -1,6 +1,7 @@
 from typing import Callable, Dict, Literal, Optional, Union
 
 from .conversable_agent import ConversableAgent
+from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
 class AssistantAgent(ConversableAgent):
@@ -45,7 +46,7 @@ Reply "TERMINATE" in the end when everything is done.
             name (str): agent name.
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
-            llm_config (dict): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
@@ -67,6 +68,8 @@ Reply "TERMINATE" in the end when everything is done.
             description=description,
             **kwargs,
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # Update the provided description if None, and we are using the default system_message,
         # then use the default description.

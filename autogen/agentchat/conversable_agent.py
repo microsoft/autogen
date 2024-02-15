@@ -14,6 +14,7 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,
@@ -24,8 +25,8 @@ from ..code_utils import (
     extract_code,
     infer_lang,
 )
-from ..agent_utils import gather_usage_summary
-from .chat import ChatResult
+from .utils import gather_usage_summary, consolidate_chat_info
+from .chat import ChatResult, initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -66,6 +67,7 @@ class ConversableAgent(LLMAgent):
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     DEFAULT_summary_prompt = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
+    DEFAULT_summary_method = "last_msg"
     llm_config: Union[Dict, Literal[False]]
 
     def __init__(
@@ -78,7 +80,7 @@ class ConversableAgent(LLMAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
     ):
         """
@@ -116,11 +118,11 @@ class ConversableAgent(LLMAgent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
                     If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
-            llm_config (dict or False): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
-            default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
@@ -142,7 +144,17 @@ class ConversableAgent(LLMAgent):
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
+            if "model" not in self.llm_config and (
+                not self.llm_config.get("config_list")
+                or any(not config.get("model") for config in self.llm_config["config_list"])
+            ):
+                raise ValueError(
+                    "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+                )
             self.client = OpenAIWrapper(**self.llm_config)
+
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None
@@ -766,12 +778,20 @@ class ConversableAgent(LLMAgent):
             cache (Cache or None): the cache client to be used for this conversation.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
-                "summary_method": a string specify the method to get a summary from the chat.
-                    Supported methods are "last_msg" and "reflection_with_llm".
-                    when set "last_msg", it returns the last message of the dialog as the summary.
-                    when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                    "llm" requires the llm_config to be set in either the sender or the recipient so that an llm client is available.
-                    When both the sender and the recipient have an llm client, the recipient's llm client will be used.
+                "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                        - Supported string are "last_msg" and "reflection_with_llm":
+                            when set "last_msg", it returns the last message of the dialog as the summary.
+                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
+                            `llm_config` must be set in either the recipient or sender.
+                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                        ```python
+                        def my_summary_method(
+                            sender: ConversableAgent,
+                            recipient: ConversableAgent,
+                        ):
+                            return recipient.last_message(sender)["content"]
+                        ```
                 "summary_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract a summary when summary_method is "reflection_with_llm".
                     Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
@@ -785,6 +805,9 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        _chat_info = context.copy()
+        _chat_info["recipient"] = recipient
+        consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
@@ -792,7 +815,7 @@ class ConversableAgent(LLMAgent):
         self._prepare_chat(recipient, clear_history)
         self.send(self.generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
-            context.get("summary_method"),
+            context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
             prompt=context.get("summary_prompt"),
             cache=cache,
@@ -827,13 +850,16 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        _chat_info = context.copy()
+        _chat_info["recipient"] = recipient
+        consolidate_chat_info(_chat_info, uniform_sender=self)
         self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
-            context.get("summary_method"),
+            context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
             prompt=context.get("summary_prompt"),
             cache=cache,
@@ -851,24 +877,34 @@ class ConversableAgent(LLMAgent):
 
     def _summarize_chat(
         self,
-        method,
-        agent: Optional[Agent] = None,
+        summary_method,
+        recipient: Optional[Agent] = None,
         prompt: Optional[str] = None,
         cache: Optional[Cache] = None,
     ) -> str:
         """Get a chat summary from an agent participating in a chat.
 
         Args:
-            method (str): the method to get the summary.
-            agent: the participating agent in a chat.
+            summary_method (str or callable): the summary_method to get the summary.
+                The callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                ```python
+                def my_summary_method(
+                    sender: ConversableAgent,
+                    recipient: ConversableAgent,
+                ):
+                    return recipient.last_message(sender)["content"]
+                ```
+            recipient: the recipient agent in a chat.
             prompt (str): the prompt used to get a summary when summary_method is "reflection_with_llm".
 
         Returns:
             str: a chat summary from the agent.
         """
-        agent = self if agent is None else agent
+        agent = self if recipient is None else recipient
         summary = ""
-        if method == "reflection_with_llm":
+        if summary_method is None:
+            return summary
+        if summary_method == "reflection_with_llm":
             prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
             if not isinstance(prompt, str):
                 raise ValueError("The summary_prompt must be a string.")
@@ -877,13 +913,13 @@ class ConversableAgent(LLMAgent):
                 summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
                 warnings.warn(f"Cannot extract summary using reflection_with_llm: {e}", UserWarning)
-        elif method == "last_msg" or method is None:
+        elif summary_method == "last_msg" or summary_method is None:
             try:
                 summary = agent.last_message(self)["content"].replace("TERMINATE", "")
             except (IndexError, AttributeError) as e:
                 warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
-        else:
-            warnings.warn(f"Unsupported summary method: {method}", UserWarning)
+        elif isinstance(summary_method, Callable):
+            summary = summary_method(recipient, self)
         return summary
 
     def _reflection_with_llm(
@@ -914,7 +950,7 @@ class ConversableAgent(LLMAgent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
-    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[Agent, ChatResult]:
+    def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
         TODO: add async version of this method.
 
@@ -925,12 +961,20 @@ class ConversableAgent(LLMAgent):
                 - "context": any context information, e.g., the request message. The following fields are reserved:
                     "message" needs to be provided if the `generate_init_message` method is not overridden.
                           Otherwise, input() will be called to get the initial message.
-                    "summary_method" can be used to specify the method to extract a summary from the chat.
-                        Supported methods are "last_msg" and "reflection_with_llm".
-                        when set "last_msg", it returns the last message of the dialog as the summary.
-                        when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                        `llm_config` must be set in either the recipient or sender.
-                        "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                    "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                        - Supported string are "last_msg" and "reflection_with_llm":
+                            when set "last_msg", it returns the last message of the dialog as the summary.
+                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
+                            `llm_config` must be set in either the recipient or sender.
+                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                        ```python
+                        def my_summary_method(
+                            sender: ConversableAgent,
+                            recipient: ConversableAgent,
+                        ):
+                            return recipient.last_message(sender)["content"]
+                        ```
                     "summary_prompt" can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
                         Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
                         "Identify and extract the final solution to the originally asked question based on the conversation."
@@ -938,53 +982,18 @@ class ConversableAgent(LLMAgent):
                         If provided, we will combine this carryover with the "message" content when generating the initial chat
                         message in `generate_init_message`.
 
-        Returns: a dictionary of ChatResult object from the finished chats of particular agents.
+        Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
-        receipts_set = set()
-        for chat_info in chat_queue:
-            assert "recipient" in chat_info, "recipient must be provided."
-            receipts_set.add(chat_info["recipient"])
-        assert len(receipts_set) == len(chat_queue), "recipients must be different."
-
-        self._chat_queue = chat_queue
-        self._finished_chats = {}
-        while self._chat_queue:
-            chat_info = self._chat_queue.pop(0)
-            _chat_carryover = chat_info.get("carryover", [])
-            if isinstance(_chat_carryover, str):
-                _chat_carryover = [_chat_carryover]
-            chat_info["carryover"] = _chat_carryover + [r.summary for r in self._finished_chats.values()]
-            if "message" not in chat_info:
-                warnings.warn(
-                    "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
-                    UserWarning,
-                )
-            current_agent = chat_info["recipient"]
-            print_carryover = (
-                ("\n").join([t for t in chat_info["carryover"]])
-                if isinstance(chat_info["carryover"], list)
-                else chat_info["carryover"]
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            print(
-                colored(
-                    "Start a new chat with the following message: \n"
-                    + chat_info.get("message")
-                    + "\n\nWith the following carryover: \n"
-                    + print_carryover,
-                    "blue",
-                ),
-                flush=True,
-            )
-            print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-            chat_res = self.initiate_chat(**chat_info)
-            self._finished_chats[current_agent] = chat_res
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
-    def get_chat_results(self, agent: Optional[Agent] = None) -> Union[Dict[Agent, ChatResult], ChatResult]:
+    def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
-        if agent is not None:
-            return self._finished_chats.get(agent)
+        if chat_index is not None:
+            return self._finished_chats[chat_index]
         else:
             return self._finished_chats
 
@@ -1055,9 +1064,9 @@ class ConversableAgent(LLMAgent):
         extracted_response = self._generate_oai_reply_from_client(
             client, self._oai_system_message + messages, self.client_cache
         )
-        return True, extracted_response
+        return (False, None) if extracted_response is None else (True, extracted_response)
 
-    def _generate_oai_reply_from_client(self, llm_client, messages, cache):
+    def _generate_oai_reply_from_client(self, llm_client, messages, cache) -> Union[str, Dict, None]:
         # unroll tool_responses
         all_messages = []
         for message in messages:
@@ -1079,8 +1088,8 @@ class ConversableAgent(LLMAgent):
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
         if extracted_response is None:
-            warnings.warn("Extracted_response is None.", UserWarning)
-            return False, None
+            warnings.warn("Extracted_response from {response} is None.", UserWarning)
+            return None
         # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):
             extracted_response = model_dump(extracted_response)
@@ -1971,11 +1980,20 @@ class ConversableAgent(LLMAgent):
         Args:
             **context: any context information. It has the following reserved fields:
                 "message": a str of message.
-                "summary_method": a string specify the method to get a summary from the chat.
-                    Supported methods are "last_msg" and "reflection_with_llm".
-                    when set "last_msg", it returns the last message of the dialog as the summary.
-                    when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                    "llm" requires the llm_config to be set in either the sender or the recipient so that an llm client is available.
+                "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                        - Supported string are "last_msg" and "reflection_with_llm":
+                            when set "last_msg", it returns the last message of the dialog as the summary.
+                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
+                            `llm_config` must be set in either the recipient or sender.
+                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
+                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                        ```python
+                        def my_summary_method(
+                            sender: ConversableAgent,
+                            recipient: ConversableAgent,
+                        ):
+                            return recipient.last_message(sender)["content"]
+                        ```
                     When both the sender and the recipient have an llm client, the recipient's llm client will be used.
                 "summary_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract a summary when summary_method is "reflection_with_llm".

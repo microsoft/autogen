@@ -25,7 +25,7 @@ __all__ = (
 
 
 class CommandlineCodeResult(CodeResult):
-    """A code result class for command line code executor."""
+    """(Experimental) A code result class for command line code executor."""
 
     code_file: Optional[str] = Field(
         default=None,
@@ -34,7 +34,7 @@ class CommandlineCodeResult(CodeResult):
 
 
 class LocalCommandlineCodeExecutor(BaseModel):
-    """A code executor class that executes code through a local command line
+    """(Experimental) A code executor class that executes code through a local command line
     environment.
 
     **This will execute LLM generated code on the local machine.**
@@ -105,11 +105,11 @@ If you want the user to save the code in a file before executing it, put # filen
 
     @property
     def code_extractor(self) -> CodeExtractor:
-        """Export a code extractor that can be used by an agent."""
+        """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
-        """Execute the code blocks and return the result.
+        """(Experimental) Execute the code blocks and return the result.
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
@@ -158,5 +158,5 @@ If you want the user to save the code in a file before executing it, put # filen
         return CommandlineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
 
     def restart(self) -> None:
-        """Restart the code executor."""
+        """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
