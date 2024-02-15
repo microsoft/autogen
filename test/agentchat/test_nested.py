@@ -116,6 +116,7 @@ def test_nested_chess():
         board: chess.Board = chess.Board()
         correct_move_messages: Dict[autogen.Agent, List[Dict]] = defaultdict(list)
         _reply_num: int = 0
+        context: Optional[Dict] = None
 
         def set_correct_move_messages(self, sender, message, uci_move):
             self.correct_move_messages[sender].extend([message, self._message_to_dict(uci_move)])
@@ -158,6 +159,15 @@ def test_nested_chess():
         max_consecutive_auto_reply=max_turn,
     )
 
+    def player2board_init_message(recipient, messages, sender, config):
+        board = recipient.board
+        board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
+        useful_msg = messages[-1].copy()
+        useful_msg["content"] = useful_msg.get("content", "") + f"The current board is:\n {board} ."
+        oai_messages = [messages[-1]]
+        _, message = recipient.generate_oai_reply(oai_messages + board_state_msg, sender)
+        return message
+
     def player2board_reply(recipient, messages, sender, config):
         board = config if config else ""
         # add a system message about the current state of the board.
@@ -171,23 +181,6 @@ def test_nested_chess():
             return True, rep
         else:
             return True, None
-
-    def board_chat_func(chat_queue, recipient, messages, sender, config):
-        # TODO: better way to handle this
-        if chat_queue[0]["recipient"].reply_num >= max_turn:
-            return True, None
-        c = chat_queue[0]  # board = config
-        board = c["recipient"].board
-        board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
-        useful_msg = messages[-1].copy()
-        useful_msg["content"] = useful_msg.get("content", "") + f"The current board is:\n {board} ."
-        oai_messages = [messages[-1]]
-        _, message = recipient.generate_oai_reply(oai_messages + board_state_msg, sender)
-        c["message"] = message
-        chat_queue[0] = c
-        res = recipient.initiate_chats(chat_queue)
-        last_res = list(res.values())[-1]
-        return True, last_res.summary
 
     def board_reply(recipient, messages, sender, config):
         if recipient.reply_num >= max_turn:
@@ -205,7 +198,7 @@ def test_nested_chess():
             recipient.board.push_uci(uci_move)
         except ValueError as e:
             # invalid move
-            return True, f"Error: {e}"
+            return True, f"Error: {e}" + "\n\nTry again as if nothing happened."
         else:
             # valid move
             m = chess.Move.from_uci(uci_move)
@@ -217,25 +210,39 @@ def test_nested_chess():
                 )
             except NameError as e:
                 print(f"Error displaying board: {e}")
-            # better way to handle this
-            recipient.set_correct_move_messages(sender, message, uci_move)
-            recipient.correct_move_messages[sender][-1]["role"] = "assistant"
-            return True, org_msg.get("content", "")  # + "\n Move:" + uci_move
+        # better way to handle this
+        recipient.set_correct_move_messages(sender, message, uci_move)
+        recipient.correct_move_messages[sender][-1]["role"] = "assistant"
+        return True, org_msg.get("content", "")  # + "\n Move:" + uci_move
 
-    board_agent.register_reply([white_player_name, black_player_name], board_reply, 0)
     player_white.register_nested_chats(
         black_player_name,
-        [{"recipient": board_agent, "summary_method": "last_msg"}],
-        board_chat_func,
+        [
+            {
+                "sender": player_white,
+                "recipient": board_agent,
+                "init_message": player2board_init_message,
+                "summary_method": "last_msg",
+            }
+        ],
+        config=board_agent.board,
     )
     player_black.register_nested_chats(
         white_player_name,
-        [{"recipient": board_agent, "summary_method": "last_msg"}],
-        board_chat_func,
+        [
+            {
+                "sender": player_black,
+                "recipient": board_agent,
+                "init_message": player2board_init_message,
+                "summary_method": "last_msg",
+            }
+        ],
+        config=board_agent.board,
     )
     player_white.register_reply(BoardAgent, player2board_reply)
     player_black.register_reply(BoardAgent, player2board_reply)
-    player_white.initiate_chat(player_black, message="Your turn.")
+    board_agent.register_reply([white_player_name, black_player_name], board_reply, 0)
+    autogen.initiate_chats([{"sender": player_white, "recipient": player_black, "message": "Your turn."}])
 
 
 if __name__ == "__main__":

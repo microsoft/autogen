@@ -313,17 +313,20 @@ class ConversableAgent(LLMAgent):
 
     @staticmethod
     def simple_chat_reply(chat_queue, recipient, messages, sender, config):
-        msg_content = messages[-1].get("content", "")
-        if not msg_content:
-            return True, None
-        else:
-            # TODO: how to handle message if there are multiple chats (doing this for the first chat for now)
-            first_chat_info = chat_queue[0]
-            first_chat_info["message"] = msg_content + "\n" + first_chat_info.get("message", "")
-            chat_queue[0] = first_chat_info
-            res = recipient.initiate_chats(chat_queue)
-            last_res = list(res.values())[-1]
-            return True, last_res.summary
+        messages[-1].get("content", "")
+        for i, c in enumerate(chat_queue):
+            init_message = c.get("init_message")
+            if callable(init_message):
+                init_message = init_message(recipient, messages, sender, config)
+                if init_message is None:
+                    return True, None
+            if init_message is None and i == 0:
+                init_message = messages[-1].get("content", "")
+            if init_message:
+                c["message"] = init_message
+        res = recipient.initiate_chats(chat_queue)
+        last_res = res[-1]
+        return True, last_res.summary
 
     def register_nested_chats(
         self,
