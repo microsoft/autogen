@@ -22,3 +22,11 @@ class CarryoverType(Exception):
     ):
         self.message = message
         super().__init__(self.message)
+
+
+class UndefinedNextAgent(Exception):
+    """Exception raised when the provided next agents list does not overlap with agents in the group."""
+
+    def __init__(self, message="The provided agents list does not overlap with agents in the group"):
+        self.message = message
+        super().__init__(self.message)

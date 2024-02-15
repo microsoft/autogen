@@ -1379,8 +1379,6 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        if self.human_input_mode in ["ALWAYS", "TERMINATE"]:
-            _raise_if_sender_is_none(sender)
         if config is None:
             config = self
         if messages is None:
@@ -1390,6 +1388,7 @@ class ConversableAgent(LLMAgent):
         reply = ""
         no_human_input_msg = ""
         if self.human_input_mode == "ALWAYS":
+            _raise_if_sender_is_none(sender)
             reply = self.get_human_input(
                 f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
@@ -1402,6 +1401,7 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
+                    _raise_if_sender_is_none(sender)
                     terminate = self._is_termination_msg(message)
                     reply = self.get_human_input(
                         f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
@@ -1416,9 +1416,12 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
+                    _raise_if_sender_is_none(sender)
                     reply = self.get_human_input(
                         f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
                     )
+                    print("here")
+                    assert False
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
                     reply = reply or "exit"
@@ -1492,8 +1495,6 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        if self.human_input_mode in ["ALWAYS", "TERMINATE"]:
-            _raise_if_sender_is_none(sender)
         if config is None:
             config = self
         if messages is None:
@@ -1504,6 +1505,7 @@ class ConversableAgent(LLMAgent):
         no_human_input_msg = ""
 
         if self.human_input_mode == "ALWAYS":
+            _raise_if_sender_is_none(sender)
             reply = await self.a_get_human_input(
                 f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
@@ -1516,6 +1518,7 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
+                    _raise_if_sender_is_none(sender)
                     terminate = self._is_termination_msg(message)
                     reply = await self.a_get_human_input(
                         f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
@@ -1530,6 +1533,7 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
+                    _raise_if_sender_is_none(sender)
                     reply = await self.a_get_human_input(
                         f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
                     )
@@ -1638,7 +1642,6 @@ class ConversableAgent(LLMAgent):
                 continue
             if inspect.iscoroutinefunction(reply_func):
                 continue
-            _raise_if_sender_is_none(sender)
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
@@ -1699,7 +1702,7 @@ class ConversableAgent(LLMAgent):
             if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
 
-            _raise_if_sender_is_none(sender)
+            # _raise_if_sender_is_none(sender)
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
@@ -1711,7 +1714,7 @@ class ConversableAgent(LLMAgent):
                     return reply
         return self._default_auto_reply
 
-    def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Agent) -> bool:
+    def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Optional[Agent]) -> bool:
         """Check if the sender matches the trigger.
 
         Args:
@@ -1728,6 +1731,7 @@ class ConversableAgent(LLMAgent):
         if trigger is None:
             return sender is None
         elif isinstance(trigger, str):
+            _raise_if_sender_is_none(sender)
             return trigger == sender.name
         elif isinstance(trigger, type):
             return isinstance(sender, trigger)
@@ -1736,7 +1740,7 @@ class ConversableAgent(LLMAgent):
             return trigger == sender
         elif isinstance(trigger, Callable):
             rst = trigger(sender)
-            assert rst in [True, False], f"trigger {trigger} must return a boolean value."
+            assert isinstance(rst, bool), f"trigger {trigger} must return a boolean value."
             return rst
         elif isinstance(trigger, list):
             return any(self._match_trigger(t, sender) for t in trigger)

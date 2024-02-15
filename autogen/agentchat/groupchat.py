@@ -10,7 +10,7 @@ from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
-from ..exception_utils import NoEligibleSpeakerException
+from ..exception_utils import NoEligibleSpeakerException, UndefinedNextAgent
 
 logger = logging.getLogger(__name__)
 
@@ -174,6 +174,10 @@ class GroupChat:
         """Return the next agent in the list."""
         if agents is None:
             agents = self.agents
+        else:
+            intersection = set(agents).intersection(set(self.agents))
+            if not len(intersection):
+                raise UndefinedNextAgent()
 
         # What index is the agent? (-1 if not present)
         idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
@@ -186,6 +190,9 @@ class GroupChat:
             for i in range(len(self.agents)):
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
+
+        # Too keep mypy happy
+        raise UndefinedNextAgent()
 
     def select_speaker_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
