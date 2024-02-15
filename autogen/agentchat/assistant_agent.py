@@ -46,7 +46,7 @@ Reply "TERMINATE" in the end when everything is done.
             name (str): agent name.
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
-            llm_config (dict): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
