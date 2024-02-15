@@ -51,7 +51,9 @@ def test_web_surfer() -> None:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         page_size = 4096
         web_surfer = WebSurferAgent(
-            "web_surfer", llm_config={"config_list": []}, browser_config={"viewport_size": page_size}
+            "web_surfer",
+            llm_config={"model": "gpt-4", "config_list": []},
+            browser_config={"viewport_size": page_size},
         )
 
         # Sneak a peak at the function map, allowing us to call the functions for testing here

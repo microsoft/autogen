@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Union, Tuple
 from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-from ..telemetry import log_new_agent
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 
 logger = logging.getLogger(__name__)
@@ -474,7 +474,8 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
-        log_new_agent(self, locals())
+        if logging_enabled():
+            log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
 
