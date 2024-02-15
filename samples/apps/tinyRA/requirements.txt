@@ -1,3 +1,4 @@
 textual
 tiktoken
 pyautogen
+aiosqlite

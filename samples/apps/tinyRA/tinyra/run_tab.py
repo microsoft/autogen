@@ -87,7 +87,7 @@ for msg in history:
         assistant.send(msg["content"], user, request_reply=False, silent=False)
 print("Chat history loaded with {} messages".format(len(history)))
 user.initiate_chat(assistant, message=task, clear_history=False)
-
+user.stop_reply_at_receive(assistant)
 # print("Computing final output...")
 
 tui.insert_chat_message("info", "Almost done. Computing final output...", msgid + 1)
@@ -101,11 +101,12 @@ The task was: {task}
 There is no need to use the word TERMINATE in this response.
 """,
     assistant,
-    request_reply=False,
+    request_reply=True,
     silent=True,
 )
-response = assistant.generate_reply(assistant.chat_messages[user], user)
-assistant.send(response, user, request_reply=False, silent=True)
+# TODO: set auto reply to false
+# response = assistant.generate_reply(assistant.chat_messages[user], user)
+# assistant.send(response, user, request_reply=False, silent=True)
 
 last_message = assistant.chat_messages[user][-1]["content"]
 

@@ -1,1 +1,1 @@
-from .tui import run_tinyra
+from .tui import run_app

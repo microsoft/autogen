@@ -11,17 +11,21 @@ import subprocess
 
 from typing import List, Dict
 
+from textual import work
 from textual.app import App, ComposeResult
-from textual.containers import ScrollableContainer
+from textual.containers import ScrollableContainer, Grid
 from textual.events import Mount
-from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree
+from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
 from textual.reactive import reactive
+from textual.screen import Screen
+from textual.widgets import Button
 
 import sqlite3
 import tiktoken
+import aiosqlite
 
 from autogen import config_list_from_json
-from autogen import AssistantAgent, UserProxyAgent
+from autogen import Agent, AssistantAgent, UserProxyAgent
 
 
 # get the path of the current script
@@ -163,10 +167,57 @@ def insert_chat_message(role: str, content: str, row_id: int = None) -> int:
                 conn.commit()
                 return row_id
             else:
-                data = (role, content, row_id)
-                c.execute("UPDATE chat_history SET role = ?, content = ? WHERE id = ?", data)
-                conn.commit()
+                c.execute("SELECT * FROM chat_history WHERE id = ?", (row_id,))
+                if c.fetchone() is None:
+                    data = (role, content)
+                    c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
+                    row_id = c.lastrowid
+                    conn.commit()
+                    return row_id
+                else:
+                    data = (role, content, row_id)
+                    c.execute("UPDATE chat_history SET role = ?, content = ? WHERE id = ?", data)
+                    conn.commit()
+                    return row_id
     except sqlite3.Error as e:
+        print(f"Error inserting or updating chat message: {e}")
+
+
+async def a_insert_chat_message(role: str, content: str, row_id: int = None) -> int:
+    """
+    Insert a chat message into the database.
+
+    Args:
+        role: the role of the message
+        content: the content of the message
+        row_id: the id of the row to update. If None, a new row is inserted.
+
+    Returns:
+        The id of the inserted (or modified) row.
+    """
+    try:
+        async with aiosqlite.connect(CHATDB) as conn:
+            c = await conn.cursor()
+            if row_id is None:
+                data = (role, content)
+                await c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
+                row_id = c.lastrowid
+                await conn.commit()
+                return row_id
+            else:
+                await c.execute("SELECT * FROM chat_history WHERE id = ?", (row_id,))
+                if await c.fetchone() is None:
+                    data = (role, content)
+                    await c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
+                    row_id = c.lastrowid
+                    await conn.commit()
+                    return row_id
+                else:
+                    data = (role, content, row_id)
+                    await c.execute("UPDATE chat_history SET role = ?, content = ? WHERE id = ?", data)
+                    await conn.commit()
+                    return row_id
+    except aiosqlite.Error as e:
         print(f"Error inserting or updating chat message: {e}")
 
 
@@ -362,7 +413,6 @@ async def handle_autogen(msg_id: int) -> None:
         subprocess.CalledProcessError: If the subprocess execution fails.
 
     """
-    import subprocess
 
     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
     subprocess.run(["bash", script_path, "tab", str(msg_id)], check=True)
@@ -766,7 +816,25 @@ class ChatInput(Static):
         input.focus()
 
     def compose(self) -> ComposeResult:
-        yield Input()
+        yield Input(id="chat-input-box")
+
+
+class QuitScreen(Screen):
+    """Screen with a dialog to quit."""
+
+    def compose(self) -> ComposeResult:
+        yield Grid(
+            Label("Are you sure you want to quit?", id="question"),
+            Button("Quit", variant="error", id="quit"),
+            Button("Cancel", variant="primary", id="cancel"),
+            id="dialog",
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "quit":
+            self.app.exit()
+        else:
+            self.app.pop_screen()
 
 
 class TinyRA(App):
@@ -790,12 +858,8 @@ class TinyRA(App):
 
     BINDINGS = [
         ("ctrl+t", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+z", "request_quit", "Quit TinyRA"),
-        ("ctrl+r", "handle_again", "Retry Last User Msg"),
-        ("ctrl+g", "memorize_autogen", "Memorize"),
+        ("ctrl+o", "request_quit", "Quit TinyRA"),
     ]
-
-    # TODO: Add a key binding for help
 
     CSS_PATH = "tui.css"
 
@@ -804,18 +868,23 @@ class TinyRA(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        yield Header(show_clock=True)
-        yield DirectoryTreeContainer(id="directory-tree")
-        yield ChatDisplay(id="chat-history")
-        yield SkillsDisplayContainer(id="skills")
-        yield ChatInput(id="chat-input")
-        yield Footer()
+        yield Grid(
+            Header(show_clock=True),
+            DirectoryTreeContainer(id="directory-tree"),
+            ChatDisplay(id="chat-history"),
+            SkillsDisplayContainer(id="skills"),
+            Static(id="status"),
+            ChatInput(id="chat-input"),
+            Footer(),
+            id="main-grid",
+        )
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        content = self.query_one(Input).value.strip()
-        insert_chat_message("user", content)
-        self.query_one(Input).value = ""
-        self.run_worker(handle_user_input())
+    def action_request_quit(self) -> None:
+        self.push_screen(QuitScreen())
+
+    def action_toggle_dark(self) -> None:
+        """An action to toggle dark mode."""
+        self.dark = not self.dark
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
@@ -836,32 +905,82 @@ class TinyRA(App):
             # TODO: Not implemented
             pass
 
-    def action_request_quit(self) -> None:
-        self.app.exit()
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        user_input = self.query_one("#chat-input-box", Input).value.strip()
+        self.query_one(Input).value = ""
+        self.handle_input(user_input)
 
-    def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
-        self.dark = not self.dark
+    @work()
+    async def handle_input(self, user_input: str) -> None:
+        row_id = insert_chat_message("user", user_input)
+        self.generate_response(msg_idx=row_id - 1)
 
-    def action_evoke_autogen(self) -> None:
-        insert_chat_message("user", "Evoke @autogen")
-        self.run_worker(handle_user_input())
+    @work()
+    async def generate_response(self, msg_idx: int, limit_history=None) -> None:
+        """
+        Solve the autogen quick start.
 
-    def action_handle_again(self) -> None:
-        self.run_worker(handle_user_input())
+        Returns:
+            The solution to the autogen quick start.
+        """
+        status_widget = self.query_one("#status", Static)
+        status_widget.update(f"Starting autogen in a worker process for {msg_idx}...")
 
-    def action_memorize_autogen(self) -> None:
-        insert_chat_message("user", "lets @memorize")
-        self.run_worker(handle_user_input())
+        # fetch the relevant chat history
+        chat_history = fetch_chat_history()
+        task = chat_history[msg_idx]["content"]
+        chat_history = chat_history[:msg_idx]
+
+        def summarize(text):
+            if len(text) > 100:
+                return text[:100] + "..."
+            return text
+
+        async def post_update_to_main(recipient, messages, sender, **kwargs):
+            last_assistant_message = None
+            for msg in reversed(messages):
+                if msg["role"] == "assistant":
+                    last_assistant_message = msg
+                    break
+
+            # update_message = "Computing response..."
+            if last_assistant_message:
+                summary = summarize(last_assistant_message["content"])
+                update_message = f"{summary}..."
+                await a_insert_chat_message("info", update_message, msg_idx + 2)
+            else:
+                num_messages = len(messages)
+                await a_insert_chat_message("info", f"Num messages...{num_messages}", msg_idx + 2)
+            return False, None
+
+        assistant = AssistantAgent(
+            "assistant",
+            llm_config=LLM_CONFIG,
+        )
+        user = UserProxyAgent(
+            "user",
+            code_execution_config={"work_dir": os.path.join(DATA_PATH, "work_dir")},
+            human_input_mode="NEVER",
+            is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+        )
+        assistant.register_reply(Agent, AssistantAgent.a_generate_oai_reply, 2)
+        assistant.register_reply(Agent, post_update_to_main, 1)
+
+        for msg in chat_history:
+            if msg["role"] == "user":
+                user.a_send(msg["content"], assistant, request_reply=False, silent=True)
+            else:
+                assistant.a_send(msg["content"], user, request_reply=False, silent=True)
+
+        await user.a_initiate_chat(assistant, message=task, clear_history=False)
+
+        last_message = assistant.chat_messages[user][-1]["content"]
+        status_widget.update(f"Completed. Last message from conv: {last_message}")
+
+        await a_insert_chat_message("assistant", last_message, msg_idx + 2)
 
 
-def main() -> None:
-    """Run the app."""
-    app = TinyRA()
-    app.run()
-
-
-def run_tinyra() -> None:
+def run_app() -> None:
     """
     Run the TinyRA app.
     """
@@ -888,9 +1007,9 @@ def run_tinyra() -> None:
             os.remove(CHATDB)
         return
 
-    script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
-    subprocess.run(["bash", script_path], check=True)
+    app = TinyRA()
+    app.run()
 
 
 if __name__ == "__main__":
-    main()
+    run_app()
