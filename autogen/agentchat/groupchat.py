@@ -3,7 +3,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Literal, Optional, Union, Tuple
 
 
 from ..code_utils import content_str
@@ -14,6 +14,8 @@ from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 from ..exception_utils import NoEligibleSpeakerException, UndefinedNextAgent
 
 logger = logging.getLogger(__name__)
+
+VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
 
 
 @dataclass
@@ -58,10 +60,10 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
-    speaker_selection_method: Optional[str] = "auto"
+    speaker_selection_method: Literal["auto", "manual", "random", "round_robin"] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
-    speaker_transitions_type: Optional[str] = None
+    speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
