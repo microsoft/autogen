@@ -93,7 +93,9 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
+    def cost(
+        self, response: ModelClientResponseProtocol, token_cost_1k: Optional[Union[float, Dict[str, float]]] = None
+    ) -> float:
         ...  # pragma: no cover
 
     @staticmethod
@@ -275,7 +277,11 @@ class OpenAIClient:
 
         return response
 
-    def cost(self, response: Union[ChatCompletion, Completion], token_cost_1k: Optional[Tuple[float]] = None) -> float:
+    def cost(
+        self,
+        response: Union[ChatCompletion, Completion],
+        token_cost_1k: Optional[Union[float, Dict[str, float]]] = None,
+    ) -> float:
         """Calculate the cost of the response."""
 
         # No cost specified. Use the default if possible

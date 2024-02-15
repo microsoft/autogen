@@ -49,7 +49,7 @@ def test_custom_model_client():
         def message_retrieval(self, response):
             return [response.choices[0].message.content]
 
-        def cost(self, response) -> float:
+        def cost(self, response, token_cost_1k=None) -> float:
             """Calculate the cost of the response."""
             response.cost = TEST_COST
             return TEST_COST
@@ -97,7 +97,7 @@ def test_registering_with_wrong_class_name_raises_error():
         def message_retrieval(self, response):
             return []
 
-        def cost(self, response) -> float:
+        def cost(self, response, token_cost_1k=None) -> float:
             return 0
 
         @staticmethod
@@ -127,7 +127,7 @@ def test_not_all_clients_registered_raises_error():
         def message_retrieval(self, response):
             return []
 
-        def cost(self, response) -> float:
+        def cost(self, response, token_cost_1k=None) -> float:
             return 0
 
         @staticmethod
@@ -179,7 +179,7 @@ def test_registering_with_extra_config_args():
         def message_retrieval(self, response):
             return []
 
-        def cost(self, response) -> float:
+        def cost(self, response, token_cost_1k=None) -> float:
             """Calculate the cost of the response."""
             return 0
 
