@@ -173,7 +173,7 @@ def test_log_oai_client(db_connection):
 
     openai_config = {
         "api_key": "some_key",
-        "api_version": "2023-12-01-preview",
+        "api_version": "2024-02-15-preview",
         "azure_deployment": "gpt-4",
         "azure_endpoint": "https://foobar.openai.azure.com/",
     }
