@@ -11,7 +11,6 @@ import re
 from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
-from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
 from autogen.agentchat.contrib.functions import file_utils as futils
 from orchestrator import Orchestrator
@@ -19,29 +18,23 @@ from orchestrator import Orchestrator
 testbed_utils.init()
 ##############################
 
-
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
-
 
 # Read the prompt
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
 
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-)
-llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
+config_list = autogen.config_list_from_json( "OAI_CONFIG_LIST",)
+llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 llm_config["temperature"] = 0.1
 
+summarizer_llm_config = llm_config
+final_llm_config = llm_config
 
-########################################################################
-
-client = autogen.OpenAIWrapper(**llm_config)
-
-
+client = autogen.OpenAIWrapper(**final_llm_config)
 def response_preparer(inner_messages):
     tokens = 0
 
@@ -72,7 +65,7 @@ Your team then worked diligently to address that request. Here is a transcript o
         {
             "role": "user",
             "content": f"""
-Read the above conversation and output a FINAL ANSWER to the question. If the conversation is inconclusive or fails to directly address the question, your final answer should be a believable best educated guess based on the context (answers like 'Unable to determine.' are to be avoided!)
+Read the above conversation and output a FINAL ANSWER to the question. Similar to when answering questions on an important exam, definitive answers are best, but educated guesses (based on the context) are preferrable over failing to provide any answer (e.g., avoid giving responses like: 'Unable to determine', 'I don't know', '', etc.)
 
 The question is repeated here for convenience:
 
@@ -87,14 +80,15 @@ If you are asked for a comma separated list, apply the above rules depending of 
     )
     tokens += count_token(messages[-1])
 
-    limit = 4096
-    try:
-        limit = get_max_token_limit(llm_config["config_list"][0]["model"])
-    except ValueError:
-        pass  # limit is unknown
-    except TypeError:
-        pass  # limit is unknown
+#    limit = 4096
+#    try:
+#        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
+#    except ValueError:
+#        pass  # limit is unknown
+#    except TypeError:
+#        pass  # limit is unknown
 
+    limit = 128000
     if tokens + 256 > limit:
         print(f"The transcript token count ({tokens}) exceeds the response_preparer token limit ({limit}).")
         while tokens + 256 > limit:  # Leave room for an answer
@@ -109,8 +103,6 @@ If you are asked for a comma separated list, apply the above rules depending of 
     else:
         return extracted_response
 
-
-########################################################################
 
 assistant = autogen.AssistantAgent(
     "assistant",
@@ -136,7 +128,7 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 web_surfer = WebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
-    summarizer_llm_config=llm_config,
+    summarizer_llm_config=summarizer_llm_config,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
     code_execution_config=False,
     browser_config={
@@ -154,8 +146,6 @@ maestro = Orchestrator(
     agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
 )
-
-########################################################################
 
 filename = "__FILE_NAME__".strip()
 
@@ -185,27 +175,23 @@ if len(filename) > 0:
         filename_prompt += " It is an image with the following description:\n\n "
 
         img_prompt = f"""
-Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
 
 {PROMPT}
         """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v(
-            "data:image/jpeg;base64," + encode_image(relpath), img_prompt
-        )
+        filename_prompt += futils.caption_image_using_gpt4v( "data:image/jpeg;base64," + encode_image(relpath), img_prompt)
         ocr = futils.read_text_from_image(relpath).strip()
         if ocr != "":
-            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
     elif re.search(r"\.png$", filename.lower()):
         filename_prompt += " It is an image with the following description:\n\n "
 
         img_prompt = f"""
-Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
 
 {PROMPT}
         """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v(
-            "data:image/jpeg;base64," + encode_image(relpath), img_prompt
-        )
+        filename_prompt += futils.caption_image_using_gpt4v( "data:image/png;base64," + encode_image(relpath), img_prompt)
 
         from PIL import Image
 
@@ -218,16 +204,16 @@ Describe the image in detail, paying close attention to aspects that might be he
 
         ocr = futils.read_text_from_image(jpg_name).strip()
         if ocr != "":
-            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
     elif content_type is not None and "text/" in content_type.lower():
         with open(relpath, "rt") as fh:
             filename_prompt += "Here are the file's contents:\n\n" + fh.read().strip()
 
-question = f"""
-{PROMPT}
+question = f"""{PROMPT}
 
 {filename_prompt}
 """.strip()
+
 
 try:
     # Initiate one turn of the conversation
@@ -242,7 +228,6 @@ except:
 
 print()
 print(response_preparer(maestro.orchestrated_messages))
-
 
 ##############################
 testbed_utils.finalize(agents=[assistant, user_proxy, web_surfer, maestro])

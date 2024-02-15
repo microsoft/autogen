@@ -23,7 +23,7 @@ class WebSurferAgent(ConversableAgent):
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia. Once on a desired page, ask then to answer specific questions, generate summaries, or scroll up and down in the viewport. Asking for a specific answer is usually the fastest and preferred mechanism for getting info from pages."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, or even just scroll up or down in the viewport."
 
     def __init__(
         self,
@@ -187,10 +187,10 @@ class WebSurferAgent(ConversableAgent):
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name="answer_from_page",
+                name="read_page_and_answer",
                 description="Uses AI to read the page and directly answer a given question based on the content.",
             )
-            def _answer_from_page(
+            def _read_page_and_answer(
                 question: Annotated[Optional[str], "The question to directly answer."],
                 url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
             ) -> str:
@@ -198,18 +198,20 @@ class WebSurferAgent(ConversableAgent):
                     self.browser.visit_page(url)
 
                 # We are likely going to need to fix this later, but summarize only as many tokens that fit in the buffer
-                limit = 4096
-                try:
-                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
-                except ValueError:
-                    pass  # limit is unknown
-                except TypeError:
-                    pass  # limit is unknown
+#                limit = 4096
+#                try:
+#                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
+#                except ValueError:
+#                    pass  # limit is unknown
+#                except TypeError:
+#                    pass  # limit is unknown
+#
+#                if limit < 16000:
+#                    logger.warning(
+#                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
+#                    )
 
-                if limit < 16000:
-                    logger.warning(
-                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
-                    )
+                limit = 32000
 
                 buffer = ""
                 for line in re.split(r"([\r\n]+)", self.browser.page_content):
@@ -251,7 +253,7 @@ class WebSurferAgent(ConversableAgent):
                     Optional[str], "[Optional] The url of the page to summarize. (Defaults to current page)"
                 ] = None
             ) -> str:
-                return _answer_from_page(url=url, question=None)
+                return _read_page_and_answer(url=url, question=None)
 
     def generate_surfer_reply(
         self,

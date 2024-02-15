@@ -44,9 +44,10 @@ class Orchestrator(ConversableAgent):
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
     def _print_consideration(self, message):
-        print(self.name + " (consideration)\n")
-        print(message.strip() + "\n")
-        print("\n", "-" * 80, flush=True, sep="")
+        #print(self.name + " (consideration)\n")
+        #print(message.strip() + "\n")
+        #print("\n", "-" * 80, flush=True, sep="")
+        pass
 
     def _print_thought(self, message):
         print(self.name + " (thought)\n")
@@ -152,7 +153,7 @@ To make make progress on the request, please answer the following qusetions, inc
     - Is the request fully satisfied? (True if complete, or False if there is more to do)
     - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
     - Who should speak next? (select from: {names})
-    - What instruction or question would you give this team member? (Phrased as if speaking directly to them)
+    - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
 
 Remember, the teams roles are as follows:
 

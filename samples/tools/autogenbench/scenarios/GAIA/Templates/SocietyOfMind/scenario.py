@@ -85,7 +85,7 @@ Your team then worked diligently to address that request. Here is a transcript o
         {
             "role": "user",
             "content": f"""
-Read the above conversation and output a FINAL ANSWER to the question. If the conversation is inconclusive or fails to directly address the question, your final answer should be a believable best educated guess based on the context (answers like 'Unable to determine.' are to be avoided!)
+Read the above conversation and output a FINAL ANSWER to the question. If the conversation is inconclusive or fails to directly address the question, your FINAL ANSWER should be your best educated guess based on information in the conversation (e.g., highest likelihood of being correct among available options). Similar to when answering questions on exams, educated guesses are preferrable over leaving the question blank, responding 'I don't know', responding 'Unable to determine', or other non-answers.
 
 The question is repeated here for convenience:
 
@@ -95,19 +95,22 @@ To output the final answer, use the following template: FINAL ANSWER: [YOUR FINA
 YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
 If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
-If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.""",
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.
+DO NOT OUTPUT 'I don't know', 'Unable to determine' OR OTHER NON-ANSWERS.
+""",
         }
     )
     tokens += count_token(messages[-1])
 
-    limit = 4096
-    try:
-        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
-    except ValueError:
-        pass  # limit is unknown
-    except TypeError:
-        pass  # limit is unknown
+#    limit = 4096
+#    try:
+#        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
+#    except ValueError:
+#        pass  # limit is unknown
+#    except TypeError:
+#        pass  # limit is unknown
 
+    limit = 128000
     if tokens + 256 > limit:
         print(f"The transcript token count ({tokens}) exceeds the response_preparer token limit ({limit}).")
         while tokens + 256 > limit:  # Leave room for an answer
@@ -188,27 +191,23 @@ if len(filename) > 0:
         filename_prompt += " It is an image with the following description:\n\n "
 
         img_prompt = f"""
-Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
 
 {PROMPT}
         """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v(
-            "data:image/jpeg;base64," + encode_image(relpath), img_prompt
-        ).message.content
+        filename_prompt += futils.caption_image_using_gpt4v( "data:image/jpeg;base64," + encode_image(relpath), img_prompt)
         ocr = futils.read_text_from_image(relpath).strip()
         if ocr != "":
-            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
     elif re.search(r"\.png$", filename.lower()):
         filename_prompt += " It is an image with the following description:\n\n "
 
         img_prompt = f"""
-Describe the image in detail, paying close attention to aspects that might be helpful for someone addressing the following request:
+Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
 
 {PROMPT}
         """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v(
-            "data:image/png;base64," + encode_image(relpath), img_prompt
-        ).message.content
+        filename_prompt += futils.caption_image_using_gpt4v( "data:image/png;base64," + encode_image(relpath), img_prompt)
 
         from PIL import Image
 
@@ -221,7 +220,7 @@ Describe the image in detail, paying close attention to aspects that might be he
 
         ocr = futils.read_text_from_image(jpg_name).strip()
         if ocr != "":
-            filename_prompt += "\n\nAdditionally, the image contains the following text: " + ocr
+            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
     elif content_type is not None and "text/" in content_type.lower():
         with open(relpath, "rt") as fh:
             filename_prompt += "Here are the file's contents:\n\n" + fh.read().strip()
