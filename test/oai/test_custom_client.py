@@ -11,7 +11,6 @@ else:
     skip = False
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_custom_model_client():
     TEST_COST = 20000000
     TEST_CUSTOM_RESPONSE = "This is a custom response."
@@ -87,7 +86,6 @@ def test_custom_model_client():
     assert test_hook["max_length"] == TEST_MAX_LENGTH
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_registering_with_wrong_class_name_raises_error():
     class CustomModel:
         def __init__(self, config: Dict):
@@ -118,7 +116,6 @@ def test_registering_with_wrong_class_name_raises_error():
         client.register_model_client(model_client_cls=CustomModel)
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_not_all_clients_registered_raises_error():
     class CustomModel:
         def __init__(self, config: Dict):
@@ -164,3 +161,43 @@ def test_not_all_clients_registered_raises_error():
 
     with pytest.raises(RuntimeError):
         client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+
+
+def test_registering_with_extra_config_args():
+    class CustomModel:
+        def __init__(self, config: Dict, test_hook):
+            self.test_hook = test_hook
+            self.test_hook["called"] = True
+
+        def create(self, params):
+            from types import SimpleNamespace
+
+            response = SimpleNamespace()
+            response.choices = []
+            return response
+
+        def message_retrieval(self, response):
+            return []
+
+        def cost(self, response) -> float:
+            """Calculate the cost of the response."""
+            return 0
+
+        @staticmethod
+        def get_usage(response) -> Dict:
+            return {}
+
+    config_list = [
+        {
+            "model": "local_model_name",
+            "model_client_cls": "CustomModel",
+            "device": "test_device",
+        },
+    ]
+
+    test_hook = {"called": False}
+
+    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+    client.register_model_client(model_client_cls=CustomModel, test_hook=test_hook)
+    client.create(messages=[{"role": "user", "content": "2+2="}])
+    assert test_hook["called"]
