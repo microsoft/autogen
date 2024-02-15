@@ -144,11 +144,13 @@ class ConversableAgent(LLMAgent):
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
-            # We still have a default `llm_config` because the user didn't
-            # specify anything. This won't work, so raise an error to avoid
-            # an obscure message from the OpenAI service.
-            if self.llm_config == {}:
-                raise ValueError("Please specify the value for 'llm_config'.")
+            if "model" not in self.llm_config and (
+                not self.llm_config.get("config_list")
+                or any(not config.get("model") for config in self.llm_config["config_list"])
+            ):
+                raise ValueError(
+                    "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+                )
             self.client = OpenAIWrapper(**self.llm_config)
 
         if logging_enabled():
