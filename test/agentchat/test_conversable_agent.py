@@ -15,7 +15,7 @@ import autogen
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import skip_openai
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
 try:
     import openai
@@ -473,8 +473,8 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
 
         def exec_python(cell: str) -> None:
             pass
@@ -617,10 +617,10 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -690,10 +690,10 @@ def test_register_for_llm():
 
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -761,8 +761,8 @@ def test_register_for_llm_api_style_function():
 
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
 
         with pytest.raises(ValueError) as e:
 
@@ -774,25 +774,33 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+    try:
+        ConversableAgent(name="agent", llm_config=None)
+        assert False, "Expected ConversableAgent to throw ValueError."
+    except ValueError as e:
+        assert e.args[0] == "Please specify the value for 'llm_config'."
 
-        with pytest.raises(RuntimeError) as e:
 
-            @agent.register_for_llm(description="run cell in ipython and return the execution result.")
-            def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+def test_register_for_llm_without_configuration():
+    try:
+        ConversableAgent(name="agent", llm_config={"config_list": []})
+        assert False, "Expected ConversableAgent to throw ValueError."
+    except ValueError as e:
+        assert e.args[0] == "Please specify a value for the 'model' in 'llm_config'."
 
-        assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
+
+def test_register_for_llm_without_model_name():
+    try:
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "", "api_key": ""}]})
+        assert False, "Expected ConversableAgent to throw ValueError."
+    except ValueError as e:
+        assert e.args[0] == "Please specify a non-empty 'model' value for every item in 'config_list'."
 
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -826,8 +834,8 @@ def test_register_for_execution():
 
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
         user_proxy = UserProxyAgent(name="user_proxy")
 
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
