@@ -23,7 +23,7 @@ class WebSurferAgent(ConversableAgent):
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, answer questions from pages, and or generate summaries."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, or even just scroll up or down in the viewport."
 
     def __init__(
         self,
@@ -125,7 +125,6 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
-            header += "Hint: Looking for something specific on this page? Try calling 'read_page_and_answer'.\n"
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
@@ -199,18 +198,20 @@ class WebSurferAgent(ConversableAgent):
                     self.browser.visit_page(url)
 
                 # We are likely going to need to fix this later, but summarize only as many tokens that fit in the buffer
-                limit = 4096
-                try:
-                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
-                except ValueError:
-                    pass  # limit is unknown
-                except TypeError:
-                    pass  # limit is unknown
+#                limit = 4096
+#                try:
+#                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
+#                except ValueError:
+#                    pass  # limit is unknown
+#                except TypeError:
+#                    pass  # limit is unknown
+#
+#                if limit < 16000:
+#                    logger.warning(
+#                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
+#                    )
 
-                if limit < 16000:
-                    logger.warning(
-                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
-                    )
+                limit = 32000
 
                 buffer = ""
                 for line in re.split(r"([\r\n]+)", self.browser.page_content):
