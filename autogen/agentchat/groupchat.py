@@ -10,17 +10,9 @@ from ..code_utils import content_str
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
-
+from ..exception_utils import NoEligibleSpeakerException
 
 logger = logging.getLogger(__name__)
-
-
-class NoEligibleSpeakerException(Exception):
-    """Exception raised for early termination of a GroupChat."""
-
-    def __init__(self, message="No eligible speakers."):
-        self.message = message
-        super().__init__(self.message)
 
 
 @dataclass

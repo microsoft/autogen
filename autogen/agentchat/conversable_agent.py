@@ -10,6 +10,8 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 import warnings
 from openai import BadRequestError
 
+from autogen.exception_utils import CarryoverType, SenderRequired
+
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
@@ -1377,12 +1379,13 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        # Function implementation...
-
+        if self.human_input_mode in ["ALWAYS", "TERMINATE"]:
+            _raise_if_sender_is_none(sender)
         if config is None:
             config = self
         if messages is None:
             messages = self._oai_messages[sender]
+
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
@@ -1489,13 +1492,17 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
+        if self.human_input_mode in ["ALWAYS", "TERMINATE"]:
+            _raise_if_sender_is_none(sender)
         if config is None:
             config = self
         if messages is None:
             messages = self._oai_messages[sender]
+
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
+
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
                 f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
@@ -1631,6 +1638,7 @@ class ConversableAgent(LLMAgent):
                 continue
             if inspect.iscoroutinefunction(reply_func):
                 continue
+            _raise_if_sender_is_none(sender)
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if final:
@@ -1690,6 +1698,8 @@ class ConversableAgent(LLMAgent):
             reply_func = reply_func_tuple["reply_func"]
             if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
+
+            _raise_if_sender_is_none(sender)
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
@@ -1760,7 +1770,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
@@ -2005,7 +2015,7 @@ class ConversableAgent(LLMAgent):
             elif isinstance(carryover, list):
                 context["message"] = context["message"] + "\nContext: \n" + ("\n").join([t for t in carryover])
             else:
-                raise warnings.warn(
+                raise CarryoverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
 
@@ -2060,6 +2070,8 @@ class ConversableAgent(LLMAgent):
                     func for func in self.llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
+            assert isinstance(func_sig, dict)
+
             self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
                 self.llm_config["functions"] = [
@@ -2096,6 +2108,8 @@ class ConversableAgent(LLMAgent):
                     tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
+            assert isinstance(tool_sig, dict)
+
             self._assert_valid_name(tool_sig["function"]["name"])
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
@@ -2420,3 +2434,8 @@ def register_function(
     """
     f = caller.register_for_llm(name=name, description=description)(f)
     executor.register_for_execution(name=name)(f)
+
+
+def _raise_if_sender_is_none(sender: Optional[Agent]):
+    if sender is None:
+        raise SenderRequired()
