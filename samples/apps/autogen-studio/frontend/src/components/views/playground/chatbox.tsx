@@ -52,7 +52,7 @@ const ChatBox = ({
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
     pageHeight = window.innerHeight;
-    chatMaxHeight = pageHeight - 350 + "px";
+    chatMaxHeight = pageHeight - 300 + "px";
   }
 
   const parseMessages = (messages: any) => {
@@ -78,44 +78,6 @@ const ChatBox = ({
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
   }, [initMessages]);
-
-  const deleteMessage = (messageId: string) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        msg_id: messageId,
-        session_id: session?.id,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      console.log(data);
-      if (data && data.status) {
-        message.success(data.message);
-        setMessages(parseMessages(data.data));
-
-        console.log("updated profile", data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-
-    const onError = (err: any) => {
-      setError(err);
-
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(deleteMsgUrl, payLoad, onSuccess, onError);
-  };
 
   const promptButtons = examplePrompts.map((prompt, i) => {
     return (
@@ -169,37 +131,13 @@ const ChatBox = ({
       });
     }
 
-    // if (messages.length - 1 === i) {
-    //   // items.push({
-    //   //   type: "divider",
-    //   // });
-
-    //   items.push({
-    //     label: (
-    //       <div
-    //         onClick={() => {
-    //           console.log("deleting", message);
-    //           deleteMessage(message.msg_id);
-    //         }}
-    //       >
-    //         <TrashIcon
-    //           title={"Delete message"}
-    //           className="h-4 w-4 mr-1 inline-block"
-    //         />
-    //         Delete Message
-    //       </div>
-    //     ),
-    //     key: "deletemessage",
-    //   });
-    // }
-
     const menu = (
       <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
         <div
           role="button"
           className="float-right ml-2 duration-100 hover:bg-secondary font-semibold px-2 pb-1  rounded"
         >
-          <span className="block -mt-2  "> ...</span>
+          <span className="block -mt-2 text-primary  "> ...</span>
         </div>
       </Dropdown>
     );
@@ -211,26 +149,19 @@ const ChatBox = ({
       >
         {" "}
         <div className={`  ${isUser ? "" : " w-full"} inline-flex gap-2`}>
-          <div className="">
-            {" "}
-            {/* {isUser && <UserIcon className="inline-block h-6 " />}
-            {!isUser && (
-              <span className="inline-block  text-accent  bg-primary pb-2 ml-1">
-                <Icon icon="app" size={8} />
-              </span>
-            )} */}
-          </div>
-          <div className="font-semibold text-secondary text-sm w-14">{`${
-            isUser ? "USER" : "AGENT"
+          <div className=""></div>
+          <div className="font-semibold text-secondary text-sm w-16">{`${
+            isUser ? "USER" : "AGENTS"
           }`}</div>
           <div
-            // style={{ minWidth: "70%" }}
-            className={`inline-block relative ${
+            className={`inline-block group relative ${
               isUser ? "" : " w-full "
             } p-2 rounded  ${css}`}
           >
             {" "}
-            {items.length > 0 && editable && <div className="   ">{menu}</div>}
+            {items.length > 0 && editable && (
+              <div className=" group-hover:opacity-100 opacity-0 ">{menu}</div>
+            )}
             {isUser && (
               <>
                 <div className="inline-block">{message.text}</div>
@@ -342,7 +273,6 @@ const ChatBox = ({
         if (res.status === 200) {
           res.json().then((data) => {
             if (data && data.status) {
-              console.log("******* response received ", data);
               const botMesage: IChatMessage = {
                 text: data.message,
                 sender: "bot",
@@ -395,10 +325,24 @@ const ChatBox = ({
   };
 
   return (
-    <div className="text-primary    relative  h-full rounded  ">
+    <div className="text-primary     relative  h-full rounded  ">
+      <div
+        style={{ zIndex: 100 }}
+        className=" absolute right-0  text-secondary -top-8 rounded p-2"
+      >
+        {" "}
+        <div className="text-xs"> {session?.flow_config.name}</div>
+      </div>
+      <div
+        style={{ zIndex: 100 }}
+        className=" absolute right-0  text-secondary -top-8 rounded p-2"
+      >
+        {" "}
+        <div className="text-xs"> {session?.flow_config.name}</div>
+      </div>
       <div
         ref={messageBoxInputRef}
-        className="flex h-full     flex-col rounded  scroll pr-2 overflow-auto  "
+        className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
         style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
       >
         <div className="scroll-gradient h-10">

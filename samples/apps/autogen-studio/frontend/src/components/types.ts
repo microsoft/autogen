@@ -39,6 +39,7 @@ export interface IAgentConfig {
   max_consecutive_auto_reply: number;
   system_message: string | "";
   is_termination_msg?: boolean | string;
+  default_auto_reply?: string | null;
   code_execution_config?: boolean | string | { [key: string]: any } | null;
 }
 
@@ -52,14 +53,35 @@ export interface IAgentFlowSpec {
   user_id?: string;
 }
 
+export interface IGroupChatConfig {
+  agents: Array<IAgentFlowSpec>;
+  admin_name: string;
+  messages: Array<any>;
+  max_round: number;
+  speaker_selection_method: "auto" | "round_robin" | "random";
+  allow_repeat_speaker: boolean | Array<IAgentConfig>;
+}
+
+export interface IGroupChatFlowSpec {
+  type: "groupchat";
+  config: IAgentConfig;
+  groupchat_config: IGroupChatConfig;
+  id?: string;
+  timestamp?: string;
+  user_id?: string;
+  description?: string;
+}
+
 export interface IFlowConfig {
   name: string;
   description: string;
   sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec;
-  type: "default" | "groupchat";
+  receiver: IAgentFlowSpec | IGroupChatFlowSpec;
+  type: "twoagents" | "groupchat";
   timestamp?: string;
   summary_method?: "none" | "last" | "llm";
+  id?: string;
+  user_id?: string;
 }
 
 export interface IModelConfig {
@@ -68,6 +90,9 @@ export interface IModelConfig {
   api_version?: string;
   base_url?: string;
   api_type?: string;
+  user_id?: string;
+  timestamp?: string;
+  description?: string;
 }
 
 export interface IMetadataFile {
@@ -95,7 +120,7 @@ export interface IGalleryItem {
 
 export interface ISkill {
   title: string;
-  file_name: string;
+  file_name?: string;
   content: string;
   id?: string;
   timestamp?: string;

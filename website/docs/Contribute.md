@@ -98,7 +98,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - **Purpose**: The `autogen_dev_img` is tailored for contributors to the AutoGen project. It includes a suite of tools and configurations that aid in the development and testing of new features or fixes.
 - **Usage**: This image is recommended for developers who intend to contribute code or documentation to AutoGen.
 - **Forking the Project**: It's advisable to fork the AutoGen GitHub project to your own repository. This allows you to make changes in a separate environment without affecting the main project.
-- **Updating Dockerfile.dev**: Modify your copy of `Dockerfile.dev` as needed for your development work.
+- **Updating Dockerfile**: Modify your copy of `Dockerfile` in the `dev` folder as needed for your development work.
 - **Submitting Pull Requests**: Once your changes are ready, submit a pull request from your branch to the upstream AutoGen GitHub project for review and integration. For more details on contributing, see the [AutoGen Contributing](https://microsoft.github.io/autogen/docs/Contribute) page.
 
 ### Building the Developer Docker Image
@@ -106,7 +106,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - To build the developer Docker image (`autogen_dev_img`), use the following commands:
 
   ```bash
-  docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -119,7 +119,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
   cd autogen
 
   # build your Docker image
-  docker build -f samples/dockers/Dockerfile.dev -t autogen_dev-srv_img .
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev-srv_img .
   ```
 
 ### Using the Developer Docker Image
@@ -155,23 +155,38 @@ Tests are automatically run via GitHub actions. There are two workflows:
 
 The first workflow is required to pass for all PRs (and it doesn't do any OpenAI calls). The second workflow is required for changes that affect the OpenAI tests (and does actually call LLM). The second workflow requires approval to run. When writing tests that require OpenAI calls, please use [`pytest.mark.skipif`](https://github.com/microsoft/autogen/blob/b1adac515931bf236ac59224269eeec683a162ba/test/oai/test_client.py#L19) to make them run in only when `openai` package is installed. If additional dependency for this test is required, install the dependency in the corresponding python version in [openai.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/openai.yml).
 
-#### Run non-OpenAI tests
+Make sure all tests pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
 
-To run the subset of the tests not depending on `openai` (and not calling LLMs)):
+#### Running tests locally
 
-- Install pytest:
+To run tests, install the [test] option:
 
-``` code
-pip install pytest
+```bash
+pip install -e."[test]"
 ```
 
-- Run the tests from the `test` folder using the `--skip-openai` flag.
+Then you can run the tests from the `test` folder using the following command:
 
-``` code
-pytest test --skip-openai
+```bash
+pytest test
 ```
 
-- Make sure all tests pass, this is required for [build.yml](https://github.com/microsoft/autogen/blob/main/.github/workflows/build.yml) checks to pass
+Tests for the `autogen.agentchat.contrib` module may be skipped automatically if the
+required dependencies are not installed. Please consult the documentation for
+each contrib module to see what dependencies are required.
+
+#### Skip flags for tests
+
+- `--skip-openai` for skipping tests that require access to OpenAI services.
+- `--skip-docker` for skipping tests that explicitly use docker
+- `--skip-redis` for skipping tests that require a Redis server
+
+For example, the following command will skip tests that require access to
+OpenAI and docker services:
+
+```bash
+pytest test --skip-openai --skip-docker
+```
 
 ### Coverage
 
@@ -193,6 +208,10 @@ To build and test documentation locally, install [Node.js](https://nodejs.org/en
 nvm install --lts
 ```
 
+Also, install [quarto](https://quarto.org/docs/get-started/).
+
+> Note: Support for Docusaurus 3.0 in Quarto is from version `1.4`. Ensure that your `quarto` version is `1.4` or higher.
+
 Then:
 
 ```console
@@ -201,16 +220,17 @@ pip install pydoc-markdown  # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
+quarto render ./docs
 yarn start
 ```
 
 The last command starts a local development server and opens up a browser window.
 Most changes are reflected live without having to restart the server.
 
-To build and test documentation within a docker container. Use the Dockerfile.dev as described above to build your image
+To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image
 
 ```bash
-docker build -f samples/dockers/Dockerfile.dev -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine
@@ -225,6 +245,7 @@ Once at the CLI in Docker run the following commands:
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
+quarto render ./docs
 yarn start --host 0.0.0.0 --port 3000
 ```
 

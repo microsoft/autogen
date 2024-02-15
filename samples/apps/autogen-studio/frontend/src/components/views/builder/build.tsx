@@ -5,24 +5,26 @@ import WorkflowView from "./workflow";
 import { Tabs } from "antd";
 import {
   BugAntIcon,
+  CpuChipIcon,
   Square2StackIcon,
   Square3Stack3DIcon,
 } from "@heroicons/react/24/outline";
+import ModelsView from "./models";
 
 const BuildView = () => {
   return (
     <div className=" ">
       {/* <div className="mb-4 text-2xl">Build </div> */}
-      <div className="mb-6 text-sm text-secondary">
+      <div className="mb-6 text-sm hidden text-secondary">
         {" "}
         Create skills, agents and workflows for building multiagent capabilities{" "}
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 text-primary">
         {" "}
         <Tabs
           tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
-          defaultActiveKey="3"
+          defaultActiveKey="4"
           tabPosition="left"
           items={[
             {
@@ -38,12 +40,23 @@ const BuildView = () => {
             },
             {
               label: (
+                <div className="w-full  ">
+                  {" "}
+                  <CpuChipIcon className="h-4 w-4 inline-block mr-1" />
+                  Models
+                </div>
+              ),
+              key: "2",
+              children: <ModelsView />,
+            },
+            {
+              label: (
                 <>
                   <Square2StackIcon className="h-4 w-4 inline-block mr-1" />
                   Agents
                 </>
               ),
-              key: "2",
+              key: "3",
               children: <AgentsView />,
             },
             {
@@ -53,7 +66,7 @@ const BuildView = () => {
                   Workflows
                 </>
               ),
-              key: "3",
+              key: "4",
               children: <WorkflowView />,
             },
           ]}

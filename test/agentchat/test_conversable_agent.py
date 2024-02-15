@@ -13,8 +13,9 @@ from typing_extensions import Annotated
 import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
+from autogen.agentchat.conversable_agent import register_function
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import skip_openai
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
 try:
     import openai
@@ -323,6 +324,15 @@ def test_generate_code_execution_reply():
     )
     assert agent._code_execution_config["last_n_messages"] == "auto"
 
+    # scenario 8: if last_n_messages is misconfigures, we expect to see an error
+    with pytest.raises(ValueError):
+        agent._code_execution_config = {"last_n_messages": -1, "use_docker": False}
+        agent.generate_code_execution_reply([code_message])
+
+    with pytest.raises(ValueError):
+        agent._code_execution_config = {"last_n_messages": "hello world", "use_docker": False}
+        agent.generate_code_execution_reply([code_message])
+
 
 def test_max_consecutive_auto_reply():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
@@ -463,8 +473,8 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         def exec_python(cell: str) -> None:
             pass
@@ -607,10 +617,10 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -680,10 +690,10 @@ def test_register_for_llm():
 
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": []})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": []})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -751,8 +761,8 @@ def test_register_for_llm_api_style_function():
 
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         with pytest.raises(ValueError) as e:
 
@@ -764,25 +774,33 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config=None)
 
-        with pytest.raises(RuntimeError) as e:
 
-            @agent.register_for_llm(description="run cell in ipython and return the execution result.")
-            def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+def test_register_for_llm_without_configuration():
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": []})
 
-        assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
+
+def test_register_for_llm_without_model_name():
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={"config_list": []})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -812,6 +830,47 @@ def test_register_for_execution():
         }
         assert get_origin(agent.function_map) == expected_function_map
         assert get_origin(user_proxy_1.function_map) == expected_function_map
+
+
+def test_register_functions():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        user_proxy = UserProxyAgent(name="user_proxy")
+
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        register_function(
+            exec_python,
+            caller=agent,
+            executor=user_proxy,
+            description="run cell in ipython and return the execution result.",
+        )
+
+        expected_function_map = {"exec_python": exec_python}
+        assert get_origin(user_proxy.function_map) == expected_function_map
+
+        expected = [
+            {
+                "type": "function",
+                "function": {
+                    "description": "run cell in ipython and return the execution result.",
+                    "name": "exec_python",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cell": {
+                                "type": "string",
+                                "description": "Valid Python cell to execute.",
+                            }
+                        },
+                        "required": ["cell"],
+                    },
+                },
+            }
+        ]
+        assert agent.llm_config["tools"] == expected
 
 
 @pytest.mark.skipif(
@@ -851,7 +910,7 @@ def test_function_registration_e2e_sync() -> None:
     timer_mock = unittest.mock.MagicMock()
     stopwatch_mock = unittest.mock.MagicMock()
 
-    # An example async function
+    # An example async function registered using decorators
     @user_proxy.register_for_execution()
     @coder.register_for_llm(description="create a timer for N seconds")
     def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
@@ -864,9 +923,7 @@ def test_function_registration_e2e_sync() -> None:
         timer_mock(num_seconds=num_seconds)
         return "Timer is done!"
 
-    # An example sync function
-    @user_proxy.register_for_execution()
-    @coder.register_for_llm(description="create a stopwatch for N seconds")
+    # An example sync function registered using register_function
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
         print("stopwatch is running")
         # assert False, "stopwatch's alive!"
@@ -877,6 +934,8 @@ def test_function_registration_e2e_sync() -> None:
 
         stopwatch_mock(num_seconds=num_seconds)
         return "Stopwatch is done!"
+
+    register_function(stopwatch, caller=coder, executor=user_proxy, description="create a stopwatch for N seconds")
 
     # start the conversation
     # 'await' is used to pause and resume code execution for async IO operations.
@@ -929,9 +988,7 @@ async def test_function_registration_e2e_async() -> None:
     timer_mock = unittest.mock.MagicMock()
     stopwatch_mock = unittest.mock.MagicMock()
 
-    # An example async function
-    @user_proxy.register_for_execution()
-    @coder.register_for_llm(description="create a timer for N seconds")
+    # An example async function registered using register_function
     async def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
         print("timer is running")
         for i in range(int(num_seconds)):
@@ -942,7 +999,9 @@ async def test_function_registration_e2e_async() -> None:
         timer_mock(num_seconds=num_seconds)
         return "Timer is done!"
 
-    # An example sync function
+    register_function(timer, caller=coder, executor=user_proxy, description="create a timer for N seconds")
+
+    # An example sync function registered using decorators
     @user_proxy.register_for_execution()
     @coder.register_for_llm(description="create a stopwatch for N seconds")
     def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
@@ -969,24 +1028,10 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="5")
 
 
-@pytest.mark.skipif(
-    skip,
-    reason="do not run if skipping openai",
-)
-def test_no_llm_config():
-    # We expect a TypeError when the model isn't specified
-    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
-        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
-        agent2 = ConversableAgent(
-            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
-        )
-        agent1.initiate_chat(agent2, message="hi")
-
-
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    # test_generate_code_execution_reply()
+    test_generate_code_execution_reply()
     # test_conversable_agent()
-    test_no_llm_config()
+    # test_no_llm_config()

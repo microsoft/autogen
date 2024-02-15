@@ -26,6 +26,7 @@ class GPTAssistantAgent(ConversableAgent):
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
         overwrite_instructions: bool = False,
+        overwrite_tools: bool = False,
         **kwargs,
     ):
         """
@@ -46,15 +47,23 @@ class GPTAssistantAgent(ConversableAgent):
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
                 - file_ids: files used by retrieval in run
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
+            overwrite_tools (bool): whether to overwrite the tools of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             kwargs (dict): Additional configuration options for the agent.
                 - verbose (bool): If set to True, enables more detailed output from the assistant thread.
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
         """
         # Use AutoGen OpenAIWrapper to create a client
-        oai_wrapper = OpenAIWrapper(**llm_config)
+        openai_client_cfg = None
+        model_name = "gpt-4-1106-preview"
+        if llm_config and llm_config.get("config_list") is not None and len(llm_config["config_list"]) > 0:
+            openai_client_cfg = llm_config["config_list"][0].copy()
+            model_name = openai_client_cfg.pop("model", "gpt-4-1106-preview")
+
+        oai_wrapper = OpenAIWrapper(**openai_client_cfg)
         if len(oai_wrapper._clients) > 1:
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
-        self._openai_client = oai_wrapper._clients[0]
+
+        self._openai_client = oai_wrapper._clients[0]._oai_client
         openai_assistant_id = llm_config.get("assistant_id", None)
         if openai_assistant_id is None:
             # try to find assistant by name first
@@ -77,7 +86,7 @@ class GPTAssistantAgent(ConversableAgent):
                     name=name,
                     instructions=instructions,
                     tools=llm_config.get("tools", []),
-                    model=llm_config.get("model", "gpt-4-1106-preview"),
+                    model=model_name,
                     file_ids=llm_config.get("file_ids", []),
                 )
             else:
@@ -108,6 +117,32 @@ class GPTAssistantAgent(ConversableAgent):
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
 
+            # Check if tools are specified in llm_config
+            specified_tools = llm_config.get("tools", None)
+
+            if specified_tools is None:
+                # Check if the current assistant has tools defined
+                if self._openai_assistant.tools:
+                    logger.warning(
+                        "No tools were provided for given assistant. Using existing tools from assistant API."
+                    )
+                else:
+                    logger.info(
+                        "No tools were provided for the assistant, and the assistant currently has no tools set."
+                    )
+            elif overwrite_tools is True:
+                # Tools are specified and overwrite_tools is True; update the assistant's tools
+                logger.warning(
+                    "overwrite_tools is True. Provided tools will be used and will modify the assistant in the API"
+                )
+                self._openai_assistant = self._openai_client.beta.assistants.update(
+                    assistant_id=openai_assistant_id,
+                    tools=llm_config.get("tools", []),
+                )
+            else:
+                # Tools are specified but overwrite_tools is False; do not update the assistant's tools
+                logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
+
         self._verbose = kwargs.pop("verbose", False)
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
@@ -117,6 +152,8 @@ class GPTAssistantAgent(ConversableAgent):
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
         self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
+        self.register_reply(Agent, GPTAssistantAgent.check_termination_and_human_reply)
+        self.register_reply(Agent, GPTAssistantAgent.a_check_termination_and_human_reply)
 
     def _invoke_assistant(
         self,

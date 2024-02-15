@@ -1,7 +1,11 @@
+import shutil
+import time
 import pytest
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 import sys
 import os
+from autogen.cache.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -134,12 +138,6 @@ def test_usage_summary():
     # check print
     client.print_usage_summary()
 
-    # check update
-    client._update_usage_summary(response, use_cache=True)
-    assert (
-        client.total_usage_summary["total_cost"] == response.cost * 2
-    ), "total_cost should be equal to response.cost * 2"
-
     # check clear
     client.clear_usage_summary()
     assert client.actual_usage_summary is None, "actual_usage_summary should be None"
@@ -148,13 +146,155 @@ def test_usage_summary():
     # actual usage and all usage should be different
     response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.total_usage_summary["total_cost"] > 0, "total_cost should be greater than 0"
+    client.clear_usage_summary()
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
     assert client.actual_usage_summary is None, "No actual cost should be recorded"
+
+    # check update
+    response = client.create(prompt="1+3=", model=model, cache_seed=42)
+    assert (
+        client.total_usage_summary["total_cost"] == response.cost * 2
+    ), "total_cost should be equal to response.cost * 2"
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_legacy_cache():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+    )
+
+    # Clear cache.
+    if os.path.exists(LEGACY_CACHE_DIR):
+        shutil.rmtree(LEGACY_CACHE_DIR)
+
+    # Test default cache seed.
+    client = OpenAIWrapper(config_list=config_list)
+    start_time = time.time()
+    cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+    end_time = time.time()
+    duration_with_cold_cache = end_time - start_time
+
+    start_time = time.time()
+    warm_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+    end_time = time.time()
+    duration_with_warm_cache = end_time - start_time
+    assert cold_cache_response == warm_cache_response
+    assert duration_with_warm_cache < duration_with_cold_cache
+    assert os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(LEGACY_DEFAULT_CACHE_SEED)))
+
+    # Test with cache seed set through constructor
+    client = OpenAIWrapper(config_list=config_list, cache_seed=13)
+    start_time = time.time()
+    cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+    end_time = time.time()
+    duration_with_cold_cache = end_time - start_time
+
+    start_time = time.time()
+    warm_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+    end_time = time.time()
+    duration_with_warm_cache = end_time - start_time
+    assert cold_cache_response == warm_cache_response
+    assert duration_with_warm_cache < duration_with_cold_cache
+    assert os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(13)))
+
+    # Test with cache seed set through create method
+    client = OpenAIWrapper(config_list=config_list)
+    start_time = time.time()
+    cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache_seed=17)
+    end_time = time.time()
+    duration_with_cold_cache = end_time - start_time
+
+    start_time = time.time()
+    warm_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache_seed=17)
+    end_time = time.time()
+    duration_with_warm_cache = end_time - start_time
+    assert cold_cache_response == warm_cache_response
+    assert duration_with_warm_cache < duration_with_cold_cache
+    assert os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(17)))
+
+    # Test using a different cache seed through create method.
+    start_time = time.time()
+    cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache_seed=21)
+    end_time = time.time()
+    duration_with_cold_cache = end_time - start_time
+    assert duration_with_warm_cache < duration_with_cold_cache
+    assert os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(21)))
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_cache():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
+    )
+
+    # Clear cache.
+    if os.path.exists(LEGACY_CACHE_DIR):
+        shutil.rmtree(LEGACY_CACHE_DIR)
+    cache_dir = ".cache_test"
+    assert cache_dir != LEGACY_CACHE_DIR
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
+
+    # Test cache set through constructor.
+    with Cache.disk(cache_seed=49, cache_path_root=cache_dir) as cache:
+        client = OpenAIWrapper(config_list=config_list, cache=cache)
+        start_time = time.time()
+        cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+        end_time = time.time()
+        duration_with_cold_cache = end_time - start_time
+
+        start_time = time.time()
+        warm_cache_response = client.create(messages=[{"role": "user", "content": "random()"}])
+        end_time = time.time()
+        duration_with_warm_cache = end_time - start_time
+        assert cold_cache_response == warm_cache_response
+        assert duration_with_warm_cache < duration_with_cold_cache
+        assert os.path.exists(os.path.join(cache_dir, str(49)))
+        # Test legacy cache is not used.
+        assert not os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(49)))
+        assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
+
+    # Test cache set through method.
+    client = OpenAIWrapper(config_list=config_list)
+    with Cache.disk(cache_seed=312, cache_path_root=cache_dir) as cache:
+        start_time = time.time()
+        cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache=cache)
+        end_time = time.time()
+        duration_with_cold_cache = end_time - start_time
+
+        start_time = time.time()
+        warm_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache=cache)
+        end_time = time.time()
+        duration_with_warm_cache = end_time - start_time
+        assert cold_cache_response == warm_cache_response
+        assert duration_with_warm_cache < duration_with_cold_cache
+        assert os.path.exists(os.path.join(cache_dir, str(312)))
+        # Test legacy cache is not used.
+        assert not os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(312)))
+        assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
+
+    # Test different cache seed.
+    with Cache.disk(cache_seed=123, cache_path_root=cache_dir) as cache:
+        start_time = time.time()
+        cold_cache_response = client.create(messages=[{"role": "user", "content": "random()"}], cache=cache)
+        end_time = time.time()
+        duration_with_cold_cache = end_time - start_time
+        assert duration_with_warm_cache < duration_with_cold_cache
+        # Test legacy cache is not used.
+        assert not os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(123)))
+        assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
 if __name__ == "__main__":
     # test_aoai_chat_completion()
     # test_oai_tool_calling_extraction()
     # test_chat_completion()
-    test_completion()
+    # test_completion()
     # # test_cost()
     # test_usage_summary()
+    test_legacy_cache()
+    test_cache()

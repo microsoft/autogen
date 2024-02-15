@@ -2,8 +2,10 @@ import {
   IAgentConfig,
   IAgentFlowSpec,
   IFlowConfig,
+  IGroupChatFlowSpec,
   ILLMConfig,
   IModelConfig,
+  ISkill,
   IStatus,
 } from "./types";
 
@@ -196,6 +198,25 @@ export const guid = () => {
 };
 
 /**
+ * Takes a string and returns the first n characters followed by asterisks.
+ * @param {string} str - The string to obscure
+ * @param {number} n - Number of characters to show before obscuring
+ * @returns {string} The obscured string with first n characters in clear text
+ */
+export const obscureString = (str: string, n: number = 3) => {
+  if (n < 0 || n > str.length) {
+    console.log("n cannot be less than 0 or greater than the string length.");
+    return str;
+  }
+  // First n characters in clear text
+  var clearText = str.substring(0, n);
+  // Remaining characters replaced with asterisks
+  var obscured = clearText + "*".repeat(str.length - n);
+
+  return obscured;
+};
+
+/**
  * Converts a number of seconds into a human-readable string representing the duration in days, hours, minutes, and seconds.
  * @param {number} seconds - The number of seconds to convert.
  * @returns {string} A well-formatted duration string.
@@ -222,7 +243,7 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
-export const sampleWorkflowConfig = () => {
+export const sampleWorkflowConfig = (type = "twoagents") => {
   const llm_model_config: IModelConfig[] = [
     {
       model: "gpt-4-1106-preview",
@@ -240,7 +261,8 @@ export const sampleWorkflowConfig = () => {
     name: "userproxy",
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 5,
-    system_message: "",
+    system_message: "You are a helpful assistant.",
+    default_auto_reply: "TERMINATE",
     llm_config: false,
     code_execution_config: {
       work_dir: null,
@@ -258,7 +280,7 @@ export const sampleWorkflowConfig = () => {
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
     system_message:
-      "You are a helpful assistant that can use available functions when needed to solve problems. At each point, do your best to determine if the user's request has been addressed. IF THE REQUEST HAS NOT BEEN ADDRESSED, RESPOND WITH CODE TO ADDRESS IT. IF A FAILURE OCCURRED (e.g., due to a missing library) AND SOME ADDITIONAL CODE WAS WRITTEN (e.g. code to install the library), ENSURE THAT THE ORIGINAL CODE TO ADDRESS THE TASK STILL GETS EXECUTED. If the request HAS been addressed, respond with a summary of the result. The summary must be written as a coherent helpful response to the user request e.g. 'Sure, here is result to your request ' or 'The tallest mountain in Africa is ..' etc.  The summary MUST end with the word TERMINATE. If the user request is  pleasantry or greeting, you should respond with a pleasantry or greeting and TERMINATE.",
+      "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
   };
 
   const assistantFlowSpec: IAgentFlowSpec = {
@@ -271,9 +293,41 @@ export const sampleWorkflowConfig = () => {
     description: "Default Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: assistantFlowSpec,
-    type: "default",
+    type: "twoagents",
   };
 
+  const groupChatAssistantConfig = Object.assign({}, assistantConfig);
+  groupChatAssistantConfig.name = "groupchat_assistant";
+  groupChatAssistantConfig.system_message =
+    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
+
+  const groupChatFlowSpec: IGroupChatFlowSpec = {
+    type: "groupchat",
+    config: groupChatAssistantConfig,
+    groupchat_config: {
+      agents: [assistantFlowSpec, assistantFlowSpec],
+      admin_name: "groupchat_assistant",
+      messages: [],
+      max_round: 10,
+      speaker_selection_method: "auto",
+      allow_repeat_speaker: false,
+    },
+    description: "Default Group  Workflow",
+  };
+
+  const groupChatWorkFlowConfig: IFlowConfig = {
+    name: "Default Group Workflow",
+    description: "Default Group  Workflow",
+    sender: userProxyFlowSpec,
+    receiver: groupChatFlowSpec,
+    type: "groupchat",
+  };
+
+  if (type === "twoagents") {
+    return workFlowConfig;
+  } else if (type === "groupchat") {
+    return groupChatWorkFlowConfig;
+  }
   return workFlowConfig;
 };
 
@@ -294,8 +348,13 @@ export const getModels = () => {
 };
 
 export const getSampleSkill = () => {
-  const catSkill = `
-  # this is a sample skill. Replace with your own skill function
+  const content = `
+  ## This is a sample skill. Replace with your own skill function
+  ## In general, a good skill must have 3 sections:
+  ## 1. Imports (import libraries needed for your skill)
+  ## 2. Function definition  AND docstrings (this helps the LLM understand what the function does and how to use it)
+  ## 3. Function body (the actual code that implements the function)
+
   import numpy as np
   import matplotlib.pyplot as plt
   from matplotlib import font_manager as fm
@@ -334,7 +393,14 @@ export const getSampleSkill = () => {
       # Save figure to file
       plt.savefig(filename, dpi=120, bbox_inches='tight', pad_inches=0.1)
       plt.close(fig)`;
-  return catSkill;
+
+  const skill: ISkill = {
+    title: "save_cat_ascii_art_to_png",
+    description: "save cat ascii art to png",
+    content: content,
+  };
+
+  return skill;
 };
 
 export const timeAgo = (dateString: string): string => {
@@ -383,7 +449,7 @@ export const examplePrompts = [
   {
     title: "Stock Price",
     prompt:
-      "Plot a chart of NVDA and TESLA stock price YTD. Save the result to a file named nvda_tesla.png",
+      "Plot a chart of NVDA and TESLA stock price for 2023. Save the result to a file named nvda_tesla.png",
   },
   {
     title: "Sine Wave",
@@ -401,3 +467,42 @@ export const examplePrompts = [
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
 ];
+
+export const fetchVersion = () => {
+  const versionUrl = getServerUrl() + "/version";
+  return fetch(versionUrl)
+    .then((response) => response.json())
+    .then((data) => {
+      return data;
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+      return null;
+    });
+};
+
+/**
+ * Recursively sanitizes JSON objects by replacing specific keys with a given value.
+ * @param {JsonValue} data - The JSON data to be sanitized.
+ * @param {string[]} keys - An array of keys to be replaced in the JSON object.
+ * @param {string} replacement - The value to use as replacement for the specified keys.
+ * @returns {JsonValue} - The sanitized JSON data.
+ */
+export const sanitizeConfig = (
+  data: any,
+  keys: string[] = ["api_key"],
+  replacement: string = "********"
+): any => {
+  if (Array.isArray(data)) {
+    return data.map((item) => sanitizeConfig(item, keys, replacement));
+  } else if (typeof data === "object" && data !== null) {
+    Object.keys(data).forEach((key) => {
+      if (keys.includes(key)) {
+        data[key] = replacement;
+      } else {
+        data[key] = sanitizeConfig(data[key], keys, replacement);
+      }
+    });
+  }
+  return data;
+};
