@@ -598,6 +598,7 @@ class OpenAIWrapper:
 
                         if logging_enabled():
                             # Log the cache hit
+                            # TODO: log the config_id and pass_filter etc.
                             log_chat_completion(
                                 invocation_id=invocation_id,
                                 client_id=id(client),
@@ -659,6 +660,7 @@ class OpenAIWrapper:
                         cache.set(key, response)
 
                 if logging_enabled():
+                    # TODO: log the config_id and pass_filter etc.
                     log_chat_completion(
                         invocation_id=invocation_id,
                         client_id=id(client),
