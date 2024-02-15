@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sys
 from typing import Any, List, Optional, Dict, Callable, Tuple, Union
 import logging
@@ -12,11 +11,8 @@ from pydantic import BaseModel
 from typing import Protocol
 
 from autogen.cache.cache import Cache
-from autogen.oai import completion
-
-from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, get_key, OAI_PRICE1K
+from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
-from autogen._pydantic import model_dump
 
 import autogen.telemetry
 
@@ -54,6 +50,7 @@ if not logger.handlers:
 
 LEGACY_DEFAULT_CACHE_SEED = 41
 LEGACY_CACHE_DIR = ".cache"
+OPEN_API_BASE_URL_PREFIX = "https://api.openai.com"
 
 
 class ModelClient(Protocol):
@@ -116,6 +113,14 @@ class OpenAIClient:
 
     def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
+        if (
+            not isinstance(client, openai.AzureOpenAI)
+            and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
+            and not is_valid_api_key(self._oai_client.api_key)
+        ):
+            logger.warning(
+                "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
+            )
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -430,10 +435,9 @@ class OpenAIWrapper:
             if isinstance(client, PlaceHolderClient):
                 placeholder_config = client.config
 
-                if placeholder_config in self._config_list:
-                    if placeholder_config.get("model_client_cls") == model_client_cls.__name__:
-                        self._clients[i] = model_client_cls(placeholder_config, **kwargs)
-                        return
+                if placeholder_config.get("model_client_cls") == model_client_cls.__name__:
+                    self._clients[i] = model_client_cls(placeholder_config, **kwargs)
+                    return
             elif isinstance(client, model_client_cls):
                 existing_client_class = True
 

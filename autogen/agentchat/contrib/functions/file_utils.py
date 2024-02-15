@@ -109,10 +109,17 @@ def read_text_from_pptx(file_path: str) -> str:
     presentation = Presentation(file_path)
     text = ""
 
+    slide_num = 0
     for slide in presentation.slides:
+        slide_num += 1
+
+        text += f"\n\n<!-- Slide number: {slide_num} -->\n"
+
         for shape in slide.shapes:
             if shape.has_text_frame:
-                text += shape.text
+                text += shape.text + " "
+
+        text = text.strip()
 
     return text
 
@@ -193,7 +200,11 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
     client = OpenAI()
 
     # check if the file_path_or_url is a URL
-    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
+    if (
+        file_path_or_url.startswith("http://")
+        or file_path_or_url.startswith("https://")
+        or file_path_or_url.startswith("data:")
+    ):
         image_url = file_path_or_url
 
         response = client.chat.completions.create(
