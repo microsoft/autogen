@@ -474,7 +474,7 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         def exec_python(cell: str) -> None:
             pass
@@ -618,9 +618,9 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
@@ -691,9 +691,9 @@ def test_register_for_llm():
 def test_register_for_llm_api_style_function():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
-        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
-        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         @agent3.register_for_llm(api_style="function")
         @agent2.register_for_llm(name="python", api_style="function")
@@ -762,7 +762,7 @@ def test_register_for_llm_api_style_function():
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         with pytest.raises(ValueError) as e:
 
@@ -774,33 +774,33 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    try:
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
         ConversableAgent(name="agent", llm_config=None)
-        assert False, "Expected ConversableAgent to throw ValueError."
-    except ValueError as e:
-        assert e.args[0] == "Please specify the value for 'llm_config'."
 
 
 def test_register_for_llm_without_configuration():
-    try:
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
-        assert False, "Expected ConversableAgent to throw ValueError."
-    except ValueError as e:
-        assert e.args[0] == "Please specify a value for the 'model' in 'llm_config'."
 
 
 def test_register_for_llm_without_model_name():
-    try:
-        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "", "api_key": ""}]})
-        assert False, "Expected ConversableAgent to throw ValueError."
-    except ValueError as e:
-        assert e.args[0] == "Please specify a non-empty 'model' value for every item in 'config_list'."
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -835,7 +835,7 @@ def test_register_for_execution():
 def test_register_functions():
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
-        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": ""}]})
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
         user_proxy = UserProxyAgent(name="user_proxy")
 
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
@@ -1026,20 +1026,6 @@ async def test_function_registration_e2e_async() -> None:
 
     timer_mock.assert_called_once_with(num_seconds="4")
     stopwatch_mock.assert_called_once_with(num_seconds="5")
-
-
-@pytest.mark.skipif(
-    skip,
-    reason="do not run if skipping openai",
-)
-def test_no_llm_config():
-    # We expect a TypeError when the model isn't specified
-    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
-        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
-        agent2 = ConversableAgent(
-            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
-        )
-        agent1.initiate_chat(agent2, message="hi")
 
 
 if __name__ == "__main__":
