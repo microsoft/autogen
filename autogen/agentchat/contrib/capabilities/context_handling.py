@@ -3,6 +3,7 @@ from termcolor import colored
 from typing import Dict, Optional, List
 from autogen import ConversableAgent
 from autogen import token_count_utils
+import tiktoken
 
 
 class TransformChatHistory:
@@ -98,22 +99,22 @@ class TransformChatHistory:
         return processed_messages
 
 
-def truncate_str_to_tokens(text: str, max_tokens: int) -> str:
-    """
-    Truncate a string so that number of tokens is less than max_tokens.
+def truncate_str_to_tokens(text: str, max_tokens: int, model: str = "gpt-3.5-turbo-0613") -> str:
+    """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
 
     Args:
-        content: String to process.
-        max_tokens: Maximum number of tokens to keep.
+        text: The string to truncate.
+        max_tokens: The maximum number of tokens to keep.
+        model: The target OpenAI model for tokenization alignment.
 
     Returns:
-        Truncated string.
+        The truncated string.
     """
 
-    tokens = text.split()
-    for token_count in range(max_tokens, 0, -1):
-        truncated_text_tokens = tokens[:token_count]
-        actual_token_count = token_count_utils.count_token(" ".join(truncated_text_tokens))
-        if actual_token_count <= max_tokens:
-            return " ".join(truncated_text_tokens)
-    return ""  # Return empty string if no tokens are found
+    encoding = tiktoken.encoding_for_model(model)  # Get the appropriate tokenizer
+
+    encoded_tokens = encoding.encode(text)
+    truncated_tokens = encoded_tokens[:max_tokens]
+    truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
+
+    return truncated_text

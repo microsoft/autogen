@@ -189,6 +189,12 @@ def test_truncate_str_to_tokens():
     word_count = len(truncated_text.split())
     assert word_count <= max_tokens
 
+    # Test case 7: Truncate string with exact number of tokens as max_tokens
+    text = "This\nis\na test"
+    max_tokens = 4
+    truncated_text = truncate_str_to_tokens(text, max_tokens)
+    assert "This\nis" in truncated_text
+
 
 if __name__ == "__main__":
     test_transform_chat_history()
