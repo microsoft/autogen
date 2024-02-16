@@ -101,7 +101,6 @@ class Orchestrator(ConversableAgent):
         response = self.client.create(
             messages=self.orchestrated_messages,
             cache=self.client_cache,
-            max_tokens=1024,
         )
 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
@@ -123,7 +122,7 @@ class Orchestrator(ConversableAgent):
         self._broadcast(self.orchestrated_messages[-1])
 
         # Make an initial plan
-        plan_prompt = """Based on these known and unknown facts, and the team that has been assembled, please divise an initial solution sketch. I.e., a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
+        plan_prompt = """Based on these known and unknown facts, and the team composition, please divise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
         self._print_consideration(plan_prompt)
 
         self.orchestrated_messages.append({"role": "user", "content": plan_prompt, "name": sender.name})
@@ -132,7 +131,6 @@ class Orchestrator(ConversableAgent):
         response = self.client.create(
             messages=self.orchestrated_messages,
             cache=self.client_cache,
-            max_tokens=1024,
         )
 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]

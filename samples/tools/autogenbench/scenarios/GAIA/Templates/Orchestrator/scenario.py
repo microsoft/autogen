@@ -36,7 +36,6 @@ final_llm_config = llm_config
 
 client = autogen.OpenAIWrapper(**final_llm_config)
 def response_preparer(inner_messages):
-    tokens = 0
 
     messages = [
         {
@@ -48,7 +47,6 @@ def response_preparer(inner_messages):
 Your team then worked diligently to address that request. Here is a transcript of that conversation:""",
         }
     ]
-    tokens += count_token(messages[-1])
 
     # The first message just repeats the question, so remove it
     if len(inner_messages) > 1:
@@ -59,15 +57,13 @@ Your team then worked diligently to address that request. Here is a transcript o
         message = copy.deepcopy(message)
         message["role"] = "user"
         messages.append(message)
-        tokens += count_token(messages[-1])
 
+    # ask for the final answer
     messages.append(
         {
             "role": "user",
             "content": f"""
-Read the above conversation and output a FINAL ANSWER to the question. Similar to when answering questions on an important exam, definitive answers are best, but educated guesses (based on the context) are preferrable over failing to provide any answer (e.g., avoid giving responses like: 'Unable to determine', 'I don't know', '', etc.)
-
-The question is repeated here for convenience:
+Read the above conversation and output a FINAL ANSWER to the question. The question is repeated here for convenience:
 
 {PROMPT}
 
@@ -75,34 +71,34 @@ To output the final answer, use the following template: FINAL ANSWER: [YOUR FINA
 YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
 If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
-If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.""",
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
+If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine.'
+""",
         }
     )
-    tokens += count_token(messages[-1])
-
-#    limit = 4096
-#    try:
-#        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
-#    except ValueError:
-#        pass  # limit is unknown
-#    except TypeError:
-#        pass  # limit is unknown
-
-    limit = 128000
-    if tokens + 256 > limit:
-        print(f"The transcript token count ({tokens}) exceeds the response_preparer token limit ({limit}).")
-        while tokens + 256 > limit:  # Leave room for an answer
-            mid = int(len(messages) / 2)  # Remove from the middle
-            tokens -= count_token(messages[mid])
-            del messages[mid]
 
     response = client.create(context=None, messages=messages)
     extracted_response = client.extract_text_or_completion_object(response)[0]
-    if not isinstance(extracted_response, str):
-        return str(extracted_response.model_dump(mode="dict"))  # Not sure what to do here
+
+    # No answer
+    if "unable to determine" in extracted_response.lower():
+        print("\n>>>Making an educated guess.\n")
+        messages.append({"role": "assistant", "content": extracted_response })
+        messages.append({"role": "user", "content": """
+I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
+
+To output the educated guess, use the following template: EDUCATED GUESS: [YOUR EDUCATED GUESS]
+YOUR EDUCATED GUESS should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. DO NOT OUTPUT 'I don't know', 'Unable to determine', etc.
+If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
+If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
+""".strip()})
+
+        response = client.create(context=None, messages=messages)
+        extracted_response = client.extract_text_or_completion_object(response)[0]
+        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)  
     else:
         return extracted_response
-
 
 assistant = autogen.AssistantAgent(
     "assistant",
