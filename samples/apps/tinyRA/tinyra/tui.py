@@ -20,6 +20,7 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Button
 from textual.message import Message
+from textual.events import Key
 
 import sqlite3
 import tiktoken
@@ -701,7 +702,7 @@ class ReactiveAssistantMessage(Markdown):
         # self.message = fetch_row(self.msg_id)
 
     def on_mount(self) -> None:
-        self.set_interval(0.2, self.update_message)
+        self.set_interval(1, self.update_message)
 
     def on_click(self) -> None:
         self.post_message(self.Selected(self.msg_id))
@@ -877,6 +878,10 @@ class ChatScreen(Screen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel":
+            self.app.pop_screen()
+
+    def on_key(self, event: Key) -> None:
+        if event.key == "escape":
             self.app.pop_screen()
 
 
