@@ -375,6 +375,7 @@ class SimpleTextBrowser:
         self._page_renderers: List[PageTextRenderer] = []
         self._error_renderers: List[PageTextRenderer] = []
         self._page_content: str = ""
+        self._find_on_page_query: Union[str, None] = None
 
         # Register renderers for successful browsing operations
         # Later registrations are tried first / take higher priority than earlier registrations
@@ -412,6 +413,7 @@ class SimpleTextBrowser:
             self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
+        self.find_on_page_query = None
 
     @property
     def viewport(self) -> str:
@@ -436,6 +438,57 @@ class SimpleTextBrowser:
 
     def page_up(self) -> None:
         self.viewport_current_page = max(self.viewport_current_page - 1, 0)
+
+    def find_on_page(self, query: str) -> Union[str, None]:
+        """Scroll to the first viewport that matches the query.
+        Returns the content of the first matching viewport, or None of there are no matches."""
+        self._find_on_page_query = query
+        viewport_match = self._find_next_viewport(query, 0)
+        if viewport_match is None:
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            return self.viewport
+
+    def find_next(self) -> None:
+        """Scroll to the next viewport that matches the query"""
+        starting_viewport = self.viewport_current_page + 1
+        if starting_viewport >= len(self.viewport_pages):
+            starting_viewport = 0
+
+        # Forward pass
+        viewport_match = self._find_next_viewport(self._find_on_page_query, starting_viewport)
+        if viewport_match is None:
+            # Loop around
+            viewport_match = self._find_next_viewport(self._find_on_page_query, 0)
+
+        if viewport_match is None or viewport_match == self.viewport_current_page:
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            return self.viewport
+
+    def _find_next_viewport(self, query: str, starting_viewport: int) -> Union[str, None]:
+        if query is None:
+            return None
+
+        # Normalize the query, and convert to a regular expression
+        nquery = re.sub(r"\*", "__STAR__", query)
+        nquery = " " + (" ".join(re.split(r"\W+", nquery))).strip() + " "
+        nquery = nquery.replace(" __STAR__ ", "__STAR__ ")  # Merge isolated stars with prior word
+        nquery = nquery.replace("__STAR__", ".*").lower()
+
+        if nquery.strip() == "":
+            return None
+
+        for i in range(starting_viewport, len(self.viewport_pages)):
+            bounds = self.viewport_pages[i]
+            content = self.page_content[bounds[0] : bounds[1]]
+            ncontent = " " + (" ".join(re.split(r"\W+", content))).strip().lower() + " "
+            if re.search(nquery, ncontent):
+                return i
+
+        return None
 
     def visit_page(self, path_or_uri: str) -> str:
         """Update the address, visit the page, and return the content of the viewport."""
