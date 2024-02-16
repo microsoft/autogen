@@ -72,12 +72,14 @@ class TransformChatHistory:
 
         # Truncate each message's content to a maximum token limit of each message
 
-        for msg in temp_messages[-self.max_messages :]:
+        # Process recent messages first
+        for msg in reversed(temp_messages[-self.max_messages :]):
             msg["content"] = truncate_str_to_tokens(msg["content"], self.max_tokens_per_message)
             msg_tokens = token_count_utils.count_token(msg["content"])
             if processed_messages_tokens + msg_tokens > self.max_tokens:
                 break
-            processed_messages.append(msg)
+            # append the message to the beginning of the list to preserve order
+            processed_messages = [msg] + processed_messages
             processed_messages_tokens += msg_tokens
         if system_message:
             processed_messages.insert(0, system_message)

@@ -145,6 +145,33 @@ def test_transform_messages():
     assert transformed_messages[2]["role"] == "assistant"
     assert transformed_messages[2]["content"] == "assistant sending the 4th test message"
 
+    messages = [
+        {"role": "user", "content": "Out of max messages"},
+        {"role": "assistant", "content": "first second third fourth"},
+        {"role": "user", "content": "a"},
+    ]
+    print(f"----Messages (N={len(messages)})----")
+    orignal_tokens = 0
+    for i, msg in enumerate(messages):
+        print(f"[{msg['role']}-{i}]: {msg['content']}")
+        tokens = token_count_utils.count_token(msg["content"])
+        print("Number of tokens: ", tokens)
+        orignal_tokens += tokens
+    print("-----Total tokens: ", orignal_tokens, "-----")
+
+    allowed_max_tokens = 2
+    transform_chat_history = TransformChatHistory(max_messages=2, max_tokens=allowed_max_tokens)
+    transformed_messages = transform_chat_history._transform_messages(messages)
+
+    print("Max allowed tokens: ", allowed_max_tokens)
+
+    print("Transformed contents")
+    for msg in transformed_messages:
+        print(msg["content"])
+        print("Number of tokens: ", token_count_utils.count_token(msg["content"]))
+    assert len(transformed_messages) == 1
+    assert transformed_messages[0]["role"] == "user"
+
 
 def test_truncate_str_to_tokens():
     """
