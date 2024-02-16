@@ -87,12 +87,13 @@ class TransformChatHistory:
         if num_truncated > 0 or total_tokens > processed_messages_tokens:
             print(
                 colored(
-                    f"Truncated {num_truncated} messages from {len(messages)} to {len(processed_messages)}.", "yellow"
+                    f"Truncated {num_truncated} messages. Reduced from {len(messages)} to {len(processed_messages)}.",
+                    "yellow",
                 )
             )
             print(
                 colored(
-                    f"Truncated {total_tokens - processed_messages_tokens} tokens. Tokens truncated to {processed_messages_tokens}",
+                    f"Truncated {total_tokens - processed_messages_tokens} tokens. Tokens reduced from {total_tokens} to {processed_messages_tokens}",
                     "yellow",
                 )
             )
