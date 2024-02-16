@@ -313,21 +313,22 @@ class ConversableAgent(LLMAgent):
 
     @staticmethod
     def simple_chat_reply(chat_queue, recipient, messages, sender, config):
-        current_chat_queue = chat_queue.copy()
         last_msg = messages[-1].get("content", "")
-        for i, c in enumerate(current_chat_queue):
-            init_message = c.get("init_message")
+        chat_queue_to_run = []
+        for i, c in enumerate(chat_queue):
+            current_c = c.copy()
+            init_message = current_c.get("message")
             if callable(init_message):
                 init_message = init_message(recipient, messages, sender, config)
-                if init_message is None:
-                    return True, None
-            if init_message is None and i == 0:
+            # By default use the last message as the init message.
+            elif init_message is None and i == 0:
                 init_message = last_msg
             if init_message:
-                c["message"] = init_message
-            else:
-                return True, None
-        res = recipient.initiate_chats(current_chat_queue)
+                current_c["message"] = init_message
+                chat_queue_to_run.append(current_c)
+        if not chat_queue_to_run:
+            return True, None
+        res = recipient.initiate_chats(chat_queue_to_run)
         last_res = res[-1]
         return True, last_res.summary
 
