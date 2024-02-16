@@ -26,6 +26,10 @@ Actually Anny can help with any OSS GitHub project (set `ANNY_GH_REPO` below).
     export ANNY_GH_REPO=microsoft/autogen  # you may choose a different repo name
     ```
     To get a Discord token, you will need to set up your Discord bot using these [instructions](https://discordpy.readthedocs.io/en/stable/discord.html).
+    (Optional) If you'd like to set up access control for Anny, e.g., only allow a subset of users to invoke it you can set the `ANNY_AUTHORIZED_USERS` var:
+    ```
+    export ANNY_AUTHORIZED_USERS=user1,user2
+    ```
 4. Start the bot: `python bot.py`
 
 Note: By default Anny will log data to `autoanny.log`.
