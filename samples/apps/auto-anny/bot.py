@@ -30,6 +30,9 @@ for var in required_env_vars:
 # read token from environment variable
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 REPO = os.environ["ANNY_GH_REPO"]
+AUTHORIZED_USERS = os.environ.get("ANNY_AUTHORIZED_USERS", None)
+if AUTHORIZED_USERS:
+    AUTHORIZED_USERS = AUTHORIZED_USERS.split(",")
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -40,6 +43,8 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 @bot.event
 async def on_message(message):
     logger.info({"message": message.content, "author": message.author, "id": message.id})
+    if AUTHORIZED_USERS and str(message.author.name) not in AUTHORIZED_USERS:
+        return
     await bot.process_commands(message)
 
 
