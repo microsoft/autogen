@@ -1,0 +1,4 @@
+zmq
+protobuf
+termcolor
+pyautogen
