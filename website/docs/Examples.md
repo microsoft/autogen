@@ -20,10 +20,12 @@ Links to notebook examples:
    - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_vis.ipynb)
    - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_research.ipynb)
    - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
-   - Automated Task Solving with agents divided into 2 groups - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_hierarchy_flow_using_select_speaker.ipynb)
    - Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
    - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_society_of_mind.ipynb)
-
+1. **Sequential Multi-Agent Chats**
+   - Automated Sequential Multi-Agent Chats
+      - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_chats.ipynb)
+      - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchats.ipynb)
 1. **Applications**
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
@@ -74,7 +76,8 @@ Links to notebook examples:
 
 1. **Long Context Handling**
 
-   - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb)
+   <!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
+   - Long Context Handling as A Capability - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb)
 
 1. **Evaluation and Assessment**
 
@@ -88,7 +91,7 @@ Links to notebook examples:
 ## Enhanced Inferences
 ### Utilities
 - API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
-- Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/llm_endpoint_configuration)
+- Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/llm_configuration)
 - Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
 
 ### Inference Hyperparameters Tuning
