@@ -173,7 +173,7 @@ def currency_calculator(
 
 autogen.agentchat.register_function(
     currency_calculator,
-    agent=chatbot,
+    caller=chatbot,
     executor=user_proxy,
     description="Currency exchange calculator.",
 )

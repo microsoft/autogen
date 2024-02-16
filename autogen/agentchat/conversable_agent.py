@@ -14,6 +14,7 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,
@@ -79,7 +80,7 @@ class ConversableAgent(LLMAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
     ):
         """
@@ -117,11 +118,11 @@ class ConversableAgent(LLMAgent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
                     If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
-            llm_config (dict or False): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
-            default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
@@ -143,7 +144,17 @@ class ConversableAgent(LLMAgent):
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
+            if "model" not in self.llm_config and (
+                not self.llm_config.get("config_list")
+                or any(not config.get("model") for config in self.llm_config["config_list"])
+            ):
+                raise ValueError(
+                    "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+                )
             self.client = OpenAIWrapper(**self.llm_config)
+
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None
@@ -818,6 +829,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
@@ -828,9 +840,10 @@ class ConversableAgent(LLMAgent):
 
         Args:
             recipient: the recipient agent.
-            clear_history (bool): whether to clear the chat history with the agent.
-            silent (bool or None): (Experimental) whether to print the messages for this conversation.
-            cache (Cache or None): the cache client to be used for this conversation.
+            clear_history (bool): whether to clear the chat history with the agent. Default is True.
+            silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+            cache (Cache or None): the cache client to be used for this conversation. Default is None.
+            max_turns (int or None): the maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
@@ -868,7 +881,19 @@ class ConversableAgent(LLMAgent):
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         self._prepare_chat(recipient, clear_history)
-        self.send(self.generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            msg2send = self.generate_init_message(**context)
+            for _ in range(max_turns):
+                if msg2send is None:
+                    break
+                self.send(msg2send, recipient, request_reply=False, silent=silent)
+                msg2send = recipient.generate_reply(messages=recipient.chat_messages[self], sender=self)
+                if msg2send is None:
+                    break
+                recipient.send(msg2send, self, request_reply=False, silent=silent)
+                msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+        else:
+            self.send(self.generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -892,6 +917,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
@@ -912,7 +938,19 @@ class ConversableAgent(LLMAgent):
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            msg2send = await self.a_generate_init_message(**context)
+            for _ in range(max_turns):
+                if msg2send is None:
+                    break
+                await self.a_send(msg2send, recipient, request_reply=False, silent=silent)
+                msg2send = await recipient.a_generate_reply(messages=recipient.chat_messages[self], sender=self)
+                if msg2send is None:
+                    break
+                await recipient.a_send(msg2send, self, request_reply=False, silent=silent)
+                msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+        else:
+            await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -1011,31 +1049,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the following fields:
-                - "recipient": the recipient agent.
-                - "context": any context information, e.g., the request message. The following fields are reserved:
-                    "message" needs to be provided if the `generate_init_message` method is not overridden.
-                          Otherwise, input() will be called to get the initial message.
-                    "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                        - Supported string are "last_msg" and "reflection_with_llm":
-                            when set "last_msg", it returns the last message of the dialog as the summary.
-                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                            `llm_config` must be set in either the recipient or sender.
-                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                        ```python
-                        def my_summary_method(
-                            sender: ConversableAgent,
-                            recipient: ConversableAgent,
-                        ):
-                            return recipient.last_message(sender)["content"]
-                        ```
-                    "summary_prompt" can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
-                        Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
-                        "Identify and extract the final solution to the originally asked question based on the conversation."
-                    "carryover" can be used to specify the carryover information to be passed to this chat.
-                        If provided, we will combine this carryover with the "message" content when generating the initial chat
-                        message in `generate_init_message`.
+                Each dictionary should contain the input arguments for `initiate_chat`.
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
