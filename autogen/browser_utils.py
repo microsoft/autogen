@@ -442,8 +442,14 @@ class SimpleTextBrowser:
     def find_on_page(self, query: str) -> Union[str, None]:
         """Scroll to the first viewport that matches the query.
         Returns the content of the first matching viewport, or None of there are no matches."""
+
+        # Repeating the same query will act like find_next
+        if query == self._find_on_page_query:
+            return self.find_next()
+
+        # Ok it's a new search start from the current viewport
         self._find_on_page_query = query
-        viewport_match = self._find_next_viewport(query, 0)
+        viewport_match = self._find_next_viewport(query, self.viewport_current_page, True)
         if viewport_match is None:
             return None
         else:
@@ -456,19 +462,14 @@ class SimpleTextBrowser:
         if starting_viewport >= len(self.viewport_pages):
             starting_viewport = 0
 
-        # Forward pass
-        viewport_match = self._find_next_viewport(self._find_on_page_query, starting_viewport)
+        viewport_match = self._find_next_viewport(self._find_on_page_query, starting_viewport, True)
         if viewport_match is None:
-            # Loop around
-            viewport_match = self._find_next_viewport(self._find_on_page_query, 0)
-
-        if viewport_match is None or viewport_match == self.viewport_current_page:
             return None
         else:
             self.viewport_current_page = viewport_match
             return self.viewport
 
-    def _find_next_viewport(self, query: str, starting_viewport: int) -> Union[str, None]:
+    def _find_next_viewport(self, query: str, starting_viewport: int, loop: bool) -> Union[str, None]:
         if query is None:
             return None
 
@@ -481,7 +482,12 @@ class SimpleTextBrowser:
         if nquery.strip() == "":
             return None
 
-        for i in range(starting_viewport, len(self.viewport_pages)):
+        idxs = list()
+        idxs.extend(range(starting_viewport, len(self.viewport_pages)))
+        if loop:
+            idxs.extend(range(0, starting_viewport))
+
+        for i in idxs:
             bounds = self.viewport_pages[i]
             content = self.page_content[bounds[0] : bounds[1]]
             ncontent = " " + (" ".join(re.split(r"\W+", content))).strip().lower() + " "
