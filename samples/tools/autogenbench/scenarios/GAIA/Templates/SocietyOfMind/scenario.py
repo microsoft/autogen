@@ -30,34 +30,16 @@ PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
 
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    #    filter_dict={"model": ["gpt-4"]},
-)
-llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
+config_list = autogen.config_list_from_json( "OAI_CONFIG_LIST",)
+llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 llm_config["temperature"] = 0.1
 
-summarizer_config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    #    filter_dict={"model": ["gpt-3.5-turbo-16k"]},
-)
-summarizer_llm_config = testbed_utils.default_llm_config(summarizer_config_list, timeout=180)
-summarizer_llm_config["temperature"] = 0.1
-
-final_config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    #    filter_dict={"model": ["gpt-4-1106-preview"]},
-)
-final_llm_config = testbed_utils.default_llm_config(final_config_list, timeout=180)
-final_llm_config["temperature"] = 0.1
-
+summarizer_llm_config = llm_config
+final_llm_config = llm_config
 
 client = autogen.OpenAIWrapper(**final_llm_config)
 
-
 def response_preparer(agent, inner_messages):
-    tokens = 0
-
     messages = [
         {
             "role": "user",
@@ -68,7 +50,6 @@ def response_preparer(agent, inner_messages):
 Your team then worked diligently to address that request. Here is a transcript of that conversation:""",
         }
     ]
-    tokens += count_token(messages[-1])
 
     # The first message just repeats the question, so remove it
     if len(inner_messages) > 1:
@@ -79,15 +60,13 @@ Your team then worked diligently to address that request. Here is a transcript o
         message = copy.deepcopy(message)
         message["role"] = "user"
         messages.append(message)
-        tokens += count_token(messages[-1])
 
+    # ask for the final answer
     messages.append(
         {
             "role": "user",
             "content": f"""
-Read the above conversation and output a FINAL ANSWER to the question. If the conversation is inconclusive or fails to directly address the question, your FINAL ANSWER should be your best educated guess based on information in the conversation (e.g., highest likelihood of being correct among available options). Similar to when answering questions on exams, educated guesses are preferrable over leaving the question blank, responding 'I don't know', responding 'Unable to determine', or other non-answers.
-
-The question is repeated here for convenience:
+Read the above conversation and output a FINAL ANSWER to the question. The question is repeated here for convenience:
 
 {PROMPT}
 
@@ -95,33 +74,32 @@ To output the final answer, use the following template: FINAL ANSWER: [YOUR FINA
 YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
 If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
-If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.
-DO NOT OUTPUT 'I don't know', 'Unable to determine' OR OTHER NON-ANSWERS.
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
+If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine.'
 """,
         }
     )
-    tokens += count_token(messages[-1])
-
-#    limit = 4096
-#    try:
-#        limit = get_max_token_limit(final_llm_config["config_list"][0]["model"])
-#    except ValueError:
-#        pass  # limit is unknown
-#    except TypeError:
-#        pass  # limit is unknown
-
-    limit = 128000
-    if tokens + 256 > limit:
-        print(f"The transcript token count ({tokens}) exceeds the response_preparer token limit ({limit}).")
-        while tokens + 256 > limit:  # Leave room for an answer
-            mid = int(len(messages) / 2)  # Remove from the middle
-            tokens -= count_token(messages[mid])
-            del messages[mid]
 
     response = client.create(context=None, messages=messages)
     extracted_response = client.extract_text_or_completion_object(response)[0]
-    if not isinstance(extracted_response, str):
-        return str(extracted_response.model_dump(mode="dict"))  # Not sure what to do here
+
+    # No answer
+    if "unable to determine" in extracted_response.lower():
+        print("\n>>>Making an educated guess.\n")
+        messages.append({"role": "assistant", "content": extracted_response })
+        messages.append({"role": "user", "content": """
+I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
+
+To output the educated guess, use the following template: EDUCATED GUESS: [YOUR EDUCATED GUESS]
+YOUR EDUCATED GUESS should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. DO NOT OUTPUT 'I don't know', 'Unable to determine', etc.
+If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
+If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
+""".strip()})
+
+        response = client.create(context=None, messages=messages)
+        extracted_response = client.extract_text_or_completion_object(response)[0]
+        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)  
     else:
         return extracted_response
 
