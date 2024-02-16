@@ -88,3 +88,25 @@ QuitScreen {
 Button {
     width: 100%;
 }
+
+ChatScreen {
+    align: center middle;
+}
+
+#sub-chat-history {
+    grid-size: 2;
+    grid-rows: 1fr 3;
+    grid-gutter: 1 2;
+    height: 80%;
+    width: 80%;
+    background: $surface;
+    border: thick $background 80%;
+    padding: 1;
+}
+
+#sub-chat-history-contents {
+    column-span: 2;
+    /* height: fr; */
+    content-align: center middle;
+    width: 1fr;
+}

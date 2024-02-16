@@ -19,6 +19,7 @@ from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTr
 from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Button
+from textual.message import Message
 
 import sqlite3
 import tiktoken
@@ -61,9 +62,11 @@ def init_database() -> None:
     c.execute(
         """
         CREATE TABLE IF NOT EXISTS chat_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            root_id INTEGER NOT NULL,
+            id INTEGER NOT NULL,
             role TEXT NOT NULL,
-            content TEXT NOT NULL
+            content TEXT NOT NULL,
+            PRIMARY KEY (root_id, id)
         )
         """
     )
@@ -101,7 +104,7 @@ ASSISTANT_SYSTEM_MESSAGE = (
     META_SYSTEM_MESSAGE
     + "\nAdditional instructions\n"
     + AssistantAgent.DEFAULT_SYSTEM_MESSAGE
-    + "\n\nDon't forget to reply with TERMINATE when the task is done or you get stuck in introductory, empty message, or apology loop"
+    + "\n\nReply with TERMINATE when the task is done. Especially if the user is chit-chatting with you."
 )
 
 WORK_DIR = os.path.join(DATA_PATH, "work_dir")
@@ -112,47 +115,54 @@ if not os.path.exists(CHATDB):
     init_database()
 
 
-def fetch_chat_history() -> List[Dict[str, str]]:
+def fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
     """
     Fetch the chat history from the database.
+
+    Args:
+        root_id: the root id of the messages to fetch. If None, all messages are fetched.
 
     Returns:
         A list of chat messages.
     """
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
-    c.execute("SELECT id, role, content FROM chat_history")
-    chat_history = [{"id": id, "role": role, "content": content} for id, role, content in c.fetchall()]
+    c.execute("SELECT root_id, id, role, content FROM chat_history WHERE root_id = ?", (root_id,))
+    chat_history = [
+        {"root_id": root_id, "id": id, "role": role, "content": content} for root_id, id, role, content in c.fetchall()
+    ]
     conn.close()
     return chat_history
 
 
-def fetch_row(id: int) -> Dict[str, str]:
+def fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
     """
     Fetch a single row from the database.
 
     Args:
         id: the id of the row to fetch
+        root_id: the root id of the row to fetch. If not specified, it's assumed to be 0.
 
     Returns:
         A single row from the database.
     """
     conn = sqlite3.connect(CHATDB)
     c = conn.cursor()
-    c.execute("SELECT role, content FROM chat_history WHERE id = ?", (id,))
-    row = [{"role": role, "content": content, "id": id} for role, content in c.fetchall()]
+    c.execute("SELECT role, content FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id))
+    row = [{"role": role, "content": content, "id": id, "root_id": root_id} for role, content in c.fetchall()]
     conn.close()
-    return row[0]
+    return row[0] if row else None
 
 
-def insert_chat_message(role: str, content: str, row_id: int = None) -> int:
+def insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
     """
     Insert a chat message into the database.
 
     Args:
         role: the role of the message
         content: the content of the message
-        row_id: the id of the row to update. If None, a new row is inserted.
+        root_id: the root id of the message
+        id: the id of the row to update. If None, a new row is inserted.
 
     Returns:
         The id of the inserted (or modified) row.
@@ -160,37 +170,39 @@ def insert_chat_message(role: str, content: str, row_id: int = None) -> int:
     try:
         with sqlite3.connect(CHATDB) as conn:
             c = conn.cursor()
-            if row_id is None:
-                data = (role, content)
-                c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
-                row_id = c.lastrowid
+            if id is None:
+                c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
+                max_id = c.fetchone()[0]
+                id = max_id + 1 if max_id is not None else 0
+                data = (root_id, id, role, content)
+                c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
                 conn.commit()
-                return row_id
+                return id
             else:
-                c.execute("SELECT * FROM chat_history WHERE id = ?", (row_id,))
+                c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
                 if c.fetchone() is None:
-                    data = (role, content)
-                    c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
-                    row_id = c.lastrowid
+                    data = (root_id, id, role, content)
+                    c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
                     conn.commit()
-                    return row_id
+                    return id
                 else:
-                    data = (role, content, row_id)
-                    c.execute("UPDATE chat_history SET role = ?, content = ? WHERE id = ?", data)
+                    data = (role, content, root_id, id)
+                    c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data)
                     conn.commit()
-                    return row_id
+                    return id
     except sqlite3.Error as e:
         print(f"Error inserting or updating chat message: {e}")
 
 
-async def a_insert_chat_message(role: str, content: str, row_id: int = None) -> int:
+async def a_insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
     """
     Insert a chat message into the database.
 
     Args:
         role: the role of the message
         content: the content of the message
-        row_id: the id of the row to update. If None, a new row is inserted.
+        root_id: the root id of the message
+        id: the id of the row to update. If None, a new row is inserted.
 
     Returns:
         The id of the inserted (or modified) row.
@@ -198,154 +210,155 @@ async def a_insert_chat_message(role: str, content: str, row_id: int = None) -> 
     try:
         async with aiosqlite.connect(CHATDB) as conn:
             c = await conn.cursor()
-            if row_id is None:
-                data = (role, content)
-                await c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
-                row_id = c.lastrowid
+            if id is None:
+                await c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
+                max_id = (await c.fetchone())[0]
+                id = max_id + 1 if max_id is not None else 0
+                data = (root_id, id, role, content)
+                await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
                 await conn.commit()
-                return row_id
+                return id
             else:
-                await c.execute("SELECT * FROM chat_history WHERE id = ?", (row_id,))
+                await c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
                 if await c.fetchone() is None:
-                    data = (role, content)
-                    await c.execute("INSERT INTO chat_history (role, content) VALUES (?, ?)", data)
-                    row_id = c.lastrowid
+                    data = (root_id, id, role, content)
+                    await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
                     await conn.commit()
-                    return row_id
+                    return id
                 else:
-                    data = (role, content, row_id)
-                    await c.execute("UPDATE chat_history SET role = ?, content = ? WHERE id = ?", data)
+                    data = (role, content, root_id, id)
+                    await c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data)
                     await conn.commit()
-                    return row_id
+                    return id
     except aiosqlite.Error as e:
         print(f"Error inserting or updating chat message: {e}")
 
 
-def num_tokens_from_messages(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo-0301") -> int:
-    """
-    Returns the number of tokens used by a list of messages.
+# def num_tokens_from_messages(messages: List[Dict[str, str]], model: str = "gpt-3.5-turbo-0301") -> int:
+#     """
+#     Returns the number of tokens used by a list of messages.
 
-    Args:
-        messages: a list of messages
-        model: the model to use for encoding
+#     Args:
+#         messages: a list of messages
+#         model: the model to use for encoding
 
-    Returns:
-        The number of tokens used by the messages.
-    """
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
-        encoding = tiktoken.get_encoding("cl100k_base")
-    if "gpt-3.5" in model or "gpt-4" in model:  # note: future models may deviate from this
-        num_tokens = 0
-        for message in messages:
-            num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
-            for key, value in message.items():
-                num_tokens += len(encoding.encode(value))
-                if key == "name":  # if there's a name, the role is omitted
-                    num_tokens += -1  # role is always required and always 1 token
-        num_tokens += 2  # every reply is primed with <im_start>assistant
-        return num_tokens
-    else:
-        raise NotImplementedError(
-            f"""num_tokens_from_messages() is not presently implemented for model {model}. Currently supports OpenAI models with prefix "gpt-3.5" and "gpt4" only."""
-        )
-
-
-def truncate_messages(
-    messages: List[Dict[str, str]], model: str, minimum_response_tokens: int = 1000
-) -> List[Dict[str, str]]:
-    """
-    Truncates messages to fit within the maximum context length of a given model.
-
-    Args:
-        messages: a list of messages
-        model: the model to truncate for
-        minimum_response_tokens: the minimum number of tokens to leave for the response
-
-    Returns:
-        A list of messages that fit within the maximum context length of the model.
-    """
-    max_context_tokens = None
-    if model == "gpt-4-32k":
-        max_context_tokens = 32000
-    elif model == "gpt-4":
-        max_context_tokens = 32000
-    elif model == "gpt-3.5-turbo":
-        max_context_tokens = 4000
-    elif model == "gpt-3.5-turbo-16k":
-        max_context_tokens = 16000
-    else:
-        raise ValueError(f"Unsupported model: {model}")
-
-    new_messages = None
-    start_idx = 1
-    while True:
-        new_messages = [messages[0]] + messages[start_idx:]
-        prompt_tokens = num_tokens_from_messages(new_messages)
-
-        if prompt_tokens <= max_context_tokens - minimum_response_tokens:
-            break
-        else:
-            start_idx += 1
-    return new_messages
+#     Returns:
+#         The number of tokens used by the messages.
+#     """
+#     try:
+#         encoding = tiktoken.encoding_for_model(model)
+#     except KeyError:
+#         encoding = tiktoken.get_encoding("cl100k_base")
+#     if "gpt-3.5" in model or "gpt-4" in model:  # note: future models may deviate from this
+#         num_tokens = 0
+#         for message in messages:
+#             num_tokens += 4  # every message follows <im_start>{role/name}\n{content}<im_end>\n
+#             for key, value in message.items():
+#                 num_tokens += len(encoding.encode(value))
+#                 if key == "name":  # if there's a name, the role is omitted
+#                     num_tokens += -1  # role is always required and always 1 token
+#         num_tokens += 2  # every reply is primed with <im_start>assistant
+#         return num_tokens
+#     else:
+#         raise NotImplementedError(
+#             f"""num_tokens_from_messages() is not presently implemented for model {model}. Currently supports OpenAI models with prefix "gpt-3.5" and "gpt4" only."""
+#         )
 
 
-async def ask_gpt(messages: List[Dict[str, str]]) -> Dict[str, str]:
-    """
-    Sends a list of messages to the GPT model and returns the response.
+# def truncate_messages(
+#     messages: List[Dict[str, str]], model: str, minimum_response_tokens: int = 1000
+# ) -> List[Dict[str, str]]:
+#     """
+#     Truncates messages to fit within the maximum context length of a given model.
 
-    Args:
-        messages (list): A list of dictionaries representing the chat history. Each dictionary should have "role" and "content" keys.
+#     Args:
+#         messages: a list of messages
+#         model: the model to truncate for
+#         minimum_response_tokens: the minimum number of tokens to leave for the response
 
-    Returns:
-        dict: The response from the GPT model with "role" and "content" keys.
-    """
-    # filer only role and content keys from the chat history
-    messages = [{k: v for k, v in m.items() if k in ["role", "content"]} for m in messages]
-    messages = [m for m in messages if m["role"] in ["assistant", "user"]]
+#     Returns:
+#         A list of messages that fit within the maximum context length of the model.
+#     """
+#     max_context_tokens = None
+#     if model == "gpt-4-32k":
+#         max_context_tokens = 32000
+#     elif model == "gpt-4":
+#         max_context_tokens = 32000
+#     elif model == "gpt-3.5-turbo":
+#         max_context_tokens = 4000
+#     elif model == "gpt-3.5-turbo-16k":
+#         max_context_tokens = 16000
+#     else:
+#         raise ValueError(f"Unsupported model: {model}")
 
-    assistant = AssistantAgent(
-        "assistant",
-        system_message=ASSISTANT_SYSTEM_MESSAGE,
-        llm_config=LLM_CONFIG,
-    )
-    user = UserProxyAgent("user", code_execution_config=False)
+#     new_messages = None
+#     start_idx = 1
+#     while True:
+#         new_messages = [messages[0]] + messages[start_idx:]
+#         prompt_tokens = num_tokens_from_messages(new_messages)
 
-    logging.debug("Messages", messages)
-    for i, message in enumerate(messages):
-        if message["role"] == "assistant":
-            await assistant.a_send(message, user, request_reply=False)
-        elif message["role"] == "user":
-            is_last_user_msg = False
-            if i == len(messages) - 1:
-                is_last_user_msg = True
-            await user.a_send(message, assistant, request_reply=is_last_user_msg)
-
-    response = assistant.chat_messages[user][-1]
-    logging.debug("Response", response)
-    return response
+#         if prompt_tokens <= max_context_tokens - minimum_response_tokens:
+#             break
+#         else:
+#             start_idx += 1
+#     return new_messages
 
 
-async def chat_completion_wrapper(row_id: int, messages: List[Dict[str, str]]) -> Dict[str, str]:
-    """
-    A wrapper around ask_gpt() that handles errors and retries.
+# async def ask_gpt(messages: List[Dict[str, str]]) -> Dict[str, str]:
+#     """
+#     Sends a list of messages to the GPT model and returns the response.
 
-    Args:
-        row_id: the id of the row to update
-        messages: a list of messages
+#     Args:
+#         messages (list): A list of dictionaries representing the chat history. Each dictionary should have "role" and "content" keys.
 
-    Returns:
-        The response from the GPT model with "role" and "content" keys.
-    """
-    while True:
-        try:
-            response = await ask_gpt(messages)
-            response["id"] = row_id
-            return response
-        except Exception as e:
-            insert_chat_message("error", f"{e}", row_id)
-            return None
+#     Returns:
+#         dict: The response from the GPT model with "role" and "content" keys.
+#     """
+#     # filer only role and content keys from the chat history
+#     messages = [{k: v for k, v in m.items() if k in ["role", "content"]} for m in messages]
+#     messages = [m for m in messages if m["role"] in ["assistant", "user"]]
+
+#     assistant = AssistantAgent(
+#         "assistant",
+#         system_message=ASSISTANT_SYSTEM_MESSAGE,
+#         llm_config=LLM_CONFIG,
+#     )
+#     user = UserProxyAgent("user", code_execution_config=False)
+
+#     logging.debug("Messages", messages)
+#     for i, message in enumerate(messages):
+#         if message["role"] == "assistant":
+#             await assistant.a_send(message, user, request_reply=False)
+#         elif message["role"] == "user":
+#             is_last_user_msg = False
+#             if i == len(messages) - 1:
+#                 is_last_user_msg = True
+#             await user.a_send(message, assistant, request_reply=is_last_user_msg)
+
+#     response = assistant.chat_messages[user][-1]
+#     logging.debug("Response", response)
+#     return response
+
+
+# async def chat_completion_wrapper(row_id: int, messages: List[Dict[str, str]]) -> Dict[str, str]:
+#     """
+#     A wrapper around ask_gpt() that handles errors and retries.
+
+#     Args:
+#         row_id: the id of the row to update
+#         messages: a list of messages
+
+#     Returns:
+#         The response from the GPT model with "role" and "content" keys.
+#     """
+#     while True:
+#         try:
+#             response = await ask_gpt(messages)
+#             response["id"] = row_id
+#             return response
+#         except Exception as e:
+#             insert_chat_message("error", f"{e}", row_id)
+#             return None
 
 
 def function_names_to_markdown_table(file_path: str) -> str:
@@ -402,242 +415,242 @@ def json_to_markdown_code_block(json_data: dict, pretty_print: bool = True) -> s
     return markdown_code_block
 
 
-async def handle_autogen(msg_id: int) -> None:
-    """
-    Handle the autogen message with the given msg_id.
+# async def handle_autogen(msg_id: int) -> None:
+#     """
+#     Handle the autogen message with the given msg_id.
 
-    Args:
-        msg_id (int): The ID of the message.
+#     Args:
+#         msg_id (int): The ID of the message.
 
-    Raises:
-        subprocess.CalledProcessError: If the subprocess execution fails.
+#     Raises:
+#         subprocess.CalledProcessError: If the subprocess execution fails.
 
-    """
+#     """
 
-    script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
-    subprocess.run(["bash", script_path, "tab", str(msg_id)], check=True)
-
-
-async def get_standalone_func(content: str) -> str:
-    """
-    Given a message, extract the python function and return it as a string.
-
-    Args:
-        content: the message content
-
-    Returns:
-        A string representing the python function.
-    """
-    messages = [
-        {
-            "role": "user",
-            "content": f"""
-        Extract and return a python function from the following text.
-        All import statements should be inside the function definitions.
-        the function should have a doc string using triple quotes.
-        Return the function as plain text without any code blocks.
-
-        {content}
-        """,
-        }
-    ]
-    row_id = insert_chat_message("info", "Generating code...")
-    response = await chat_completion_wrapper(row_id=row_id, messages=messages)
-
-    return response["content"]
+#     script_path = os.path.join(os.path.dirname(__file__), "run_tinyra.sh")
+#     subprocess.run(["bash", script_path, "tab", str(msg_id)], check=True)
 
 
-def is_cp_format(string: str) -> bool:
-    """
-    Check if the string is in the cp format.
+# async def get_standalone_func(content: str) -> str:
+#     """
+#     Given a message, extract the python function and return it as a string.
 
-    Args:
-        string: the string to check
+#     Args:
+#         content: the message content
 
-    Returns:
-        True if the string is in the cp format, False otherwise.
-    """
-    import re
+#     Returns:
+#         A string representing the python function.
+#     """
+#     messages = [
+#         {
+#             "role": "user",
+#             "content": f"""
+#         Extract and return a python function from the following text.
+#         All import statements should be inside the function definitions.
+#         the function should have a doc string using triple quotes.
+#         Return the function as plain text without any code blocks.
 
-    pattern = r"cp \d+$"
-    return bool(re.match(pattern, string))
+#         {content}
+#         """,
+#         }
+#     ]
+#     row_id = insert_chat_message("info", "Generating code...")
+#     response = await chat_completion_wrapper(row_id=row_id, messages=messages)
 
-
-async def handle_user_input() -> None:
-    """
-    Handle the user input.
-
-
-    This function is called when the user submits a message.
-
-    It handles several cases.
-    - if the message is in the cp format and if yes,
-    it copies the message with the given id to the clipboard.
-
-    - if the message is not in the cp format, it checks if the message
-    is an autogen message and if yes, it generates the code for the message.
-
-    - if the message is not an autogen message, it checks if the message
-    requires autogen and if yes, it generates the code for the message.
-
-    - if the message does not require autogen, it generates a direct response
-    for the message.
-
-    The response is generated by sending the messages to the GPT model.
-
-    It also handles the @memorize command and inserts the function to the
-    end of the file agent_utils.py.
-
-    When a response is generated, it is inserted into the chat history.
-    """
-
-    messages = fetch_chat_history()
-
-    # find the last user message
-    last_user_message = None
-    last_user_message_id = None
-    for message in reversed(messages):
-        if message["role"] == "user":
-            last_user_message = message["content"]
-            last_user_message_id = message["id"]
-            break
-
-    if is_cp_format(last_user_message):
-        import pyperclip
-
-        cp_id = int(last_user_message.split(" ")[1])
-        for message in reversed(messages):
-            if message["id"] == cp_id:
-                # copy the content of the message to the clipboard
-                pyperclip.copy(message["content"])
-                insert_chat_message("info", f"Copied msg {cp_id} to clipboard")
-    elif "@memorize" in last_user_message:
-        assistant_msg = None
-        for message in reversed(messages):
-            if message["role"] == "assistant":
-                assistant_msg = message["content"]
-                break
-        stand_alone_func = await get_standalone_func(assistant_msg)
-        # append the function to the end of the file agent_utils.py
-        with open(UTILS_FILE, "a") as f:
-            f.write("\n\n" + stand_alone_func)
-        insert_chat_message("info", f"Inserted to {UTILS_FILE}:\n" + stand_alone_func)
-
-    elif last_user_message[:8] == "@autogen":
-        insert_chat_message("info", "Generating code...")
-        await handle_autogen(last_user_message_id)
-
-    elif last_user_message and "@autogen" in last_user_message:
-        # get the second last assistant message
-        msg_id = None
-        for message in reversed(messages):
-            if message["role"] == "assistant":
-                msg_id = message["id"]
-                break
-        insert_chat_message("info", f"Generating code using last assistant message {msg_id}...")
-        await handle_autogen(msg_id)
-
-    else:
-        filtered_messages = [
-            {"role": m["role"], "content": m["content"]}
-            for m in messages
-            if m["role"] in ["assistant", "user", "system"]
-        ]
-
-        row_id = insert_chat_message("info", "Thinking...")
-        logging.info("Checking if the query requires direct response or coding")
-        requires_autogen = await check_requires_autogen(filtered_messages, row_id)
-        insert_chat_message("info", f"requires_autogen: {requires_autogen}", row_id)
-
-        if requires_autogen is None:
-            respond_directly = True
-        elif requires_autogen.get("requires_code", None) is False:
-            respond_directly = True
-        else:
-            respond_directly = False
-
-        if respond_directly:
-            system_message = {
-                "role": "system",
-                "content": META_SYSTEM_MESSAGE,
-            }
-
-            filtered_messages = [system_message] + filtered_messages
-            logging.info(f"Generating direct response for {last_user_message_id}", row_id)
-            insert_chat_message("info", "Thinking...", row_id)
-            response = await chat_completion_wrapper(
-                row_id=row_id, messages=truncate_messages(filtered_messages, MODEL)
-            )
-            if response is not None:
-                insert_chat_message(response["role"], response["content"], row_id=response["id"])
-        else:
-            logging.info(
-                f"Generating code to answer {last_user_message_id} (conf: {requires_autogen['confidence']})..."
-            )
-            insert_chat_message(
-                "info",
-                "Thinking more deeply...",
-                row_id,
-            )
-            await handle_autogen(last_user_message_id)
+#     return response["content"]
 
 
-async def check_requires_autogen(messages: List[Dict[str, str]], row_id: int) -> Dict[str, str] or None:
-    """
-    Given the last message use a gpt call to determine whether
-    the query requires autogen.
+# def is_cp_format(string: str) -> bool:
+#     """
+#     Check if the string is in the cp format.
 
-    Args:
-        messages (list): List of messages in the conversation.
-        row_id (int): The row ID of the conversation.
+#     Args:
+#         string: the string to check
 
-    Returns:
-        dict or None: A dictionary with the following keys:
-            - "requires_code": True or False indicating whether the query requires code.
-            - "confidence": A number between 0 and 1 indicating the confidence in the answer.
-            Returns None if the response is not a valid JSON object.
-    """
-    last_messages = messages[-5:]
-    query = "\n".join([f"{m['role']}: {m['content']}" for m in last_messages])
+#     Returns:
+#         True if the string is in the cp format, False otherwise.
+#     """
+#     import re
 
-    prompt = f"""
-    Below is a conversation between a user and an assistant.
-    Does correctly satisfactorily responding to the user's last message require
-    writing python or shell code? Answer smartly.
+#     pattern = r"cp \d+$"
+#     return bool(re.match(pattern, string))
 
-    Queries that require code:
-    - queries that require websearch
-    - queries that require finding something on the web
-    - queries that require printing
-    - queries that require file handling
-    - queries that require creating, modifying, reading files
-    - queries that require answering questions about a pdf file or urls
 
-    Queries that dont require code:
-    - simple chit chat
-    - simple reformatting of provided text
+# async def handle_user_input() -> None:
+#     """
+#     Handle the user input.
 
-    Respond with a json object with the following keys:
-    - "requires_code": true or false
-    - "confidence": a number between 0 and 1 indicating your confidence in the answer
 
-    <conversation>
-    {query}
-    </conversation>
+#     This function is called when the user submits a message.
 
-    Only respond with a valid json object.
-    """
-    response = await chat_completion_wrapper(row_id=row_id, messages=[{"role": "user", "content": prompt}])
-    # response = await chat_completion_wrapper()
-    response = response["content"]
-    # check if the response is valid json
-    try:
-        response = json.loads(response)
-        return response
-    except json.decoder.JSONDecodeError:
-        if '"requires_code": true' in response:
-            return {"requires_code": True, "confidence": 1.0}
-        return None
+#     It handles several cases.
+#     - if the message is in the cp format and if yes,
+#     it copies the message with the given id to the clipboard.
+
+#     - if the message is not in the cp format, it checks if the message
+#     is an autogen message and if yes, it generates the code for the message.
+
+#     - if the message is not an autogen message, it checks if the message
+#     requires autogen and if yes, it generates the code for the message.
+
+#     - if the message does not require autogen, it generates a direct response
+#     for the message.
+
+#     The response is generated by sending the messages to the GPT model.
+
+#     It also handles the @memorize command and inserts the function to the
+#     end of the file agent_utils.py.
+
+#     When a response is generated, it is inserted into the chat history.
+#     """
+
+#     messages = fetch_chat_history()
+
+#     # find the last user message
+#     last_user_message = None
+#     last_user_message_id = None
+#     for message in reversed(messages):
+#         if message["role"] == "user":
+#             last_user_message = message["content"]
+#             last_user_message_id = message["id"]
+#             break
+
+#     if is_cp_format(last_user_message):
+#         import pyperclip
+
+#         cp_id = int(last_user_message.split(" ")[1])
+#         for message in reversed(messages):
+#             if message["id"] == cp_id:
+#                 # copy the content of the message to the clipboard
+#                 pyperclip.copy(message["content"])
+#                 insert_chat_message("info", f"Copied msg {cp_id} to clipboard")
+#     elif "@memorize" in last_user_message:
+#         assistant_msg = None
+#         for message in reversed(messages):
+#             if message["role"] == "assistant":
+#                 assistant_msg = message["content"]
+#                 break
+#         stand_alone_func = await get_standalone_func(assistant_msg)
+#         # append the function to the end of the file agent_utils.py
+#         with open(UTILS_FILE, "a") as f:
+#             f.write("\n\n" + stand_alone_func)
+#         insert_chat_message("info", f"Inserted to {UTILS_FILE}:\n" + stand_alone_func)
+
+#     elif last_user_message[:8] == "@autogen":
+#         insert_chat_message("info", "Generating code...")
+#         await handle_autogen(last_user_message_id)
+
+#     elif last_user_message and "@autogen" in last_user_message:
+#         # get the second last assistant message
+#         msg_id = None
+#         for message in reversed(messages):
+#             if message["role"] == "assistant":
+#                 msg_id = message["id"]
+#                 break
+#         insert_chat_message("info", f"Generating code using last assistant message {msg_id}...")
+#         await handle_autogen(msg_id)
+
+#     else:
+#         filtered_messages = [
+#             {"role": m["role"], "content": m["content"]}
+#             for m in messages
+#             if m["role"] in ["assistant", "user", "system"]
+#         ]
+
+#         row_id = insert_chat_message("info", "Thinking...")
+#         logging.info("Checking if the query requires direct response or coding")
+#         requires_autogen = await check_requires_autogen(filtered_messages, row_id)
+#         insert_chat_message("info", f"requires_autogen: {requires_autogen}", row_id)
+
+#         if requires_autogen is None:
+#             respond_directly = True
+#         elif requires_autogen.get("requires_code", None) is False:
+#             respond_directly = True
+#         else:
+#             respond_directly = False
+
+#         if respond_directly:
+#             system_message = {
+#                 "role": "system",
+#                 "content": META_SYSTEM_MESSAGE,
+#             }
+
+#             filtered_messages = [system_message] + filtered_messages
+#             logging.info(f"Generating direct response for {last_user_message_id}", row_id)
+#             insert_chat_message("info", "Thinking...", row_id)
+#             response = await chat_completion_wrapper(
+#                 row_id=row_id, messages=truncate_messages(filtered_messages, MODEL)
+#             )
+#             if response is not None:
+#                 insert_chat_message(response["role"], response["content"], row_id=response["id"])
+#         else:
+#             logging.info(
+#                 f"Generating code to answer {last_user_message_id} (conf: {requires_autogen['confidence']})..."
+#             )
+#             insert_chat_message(
+#                 "info",
+#                 "Thinking more deeply...",
+#                 row_id,
+#             )
+#             await handle_autogen(last_user_message_id)
+
+
+# async def check_requires_autogen(messages: List[Dict[str, str]], row_id: int) -> Dict[str, str] or None:
+#     """
+#     Given the last message use a gpt call to determine whether
+#     the query requires autogen.
+
+#     Args:
+#         messages (list): List of messages in the conversation.
+#         row_id (int): The row ID of the conversation.
+
+#     Returns:
+#         dict or None: A dictionary with the following keys:
+#             - "requires_code": True or False indicating whether the query requires code.
+#             - "confidence": A number between 0 and 1 indicating the confidence in the answer.
+#             Returns None if the response is not a valid JSON object.
+#     """
+#     last_messages = messages[-5:]
+#     query = "\n".join([f"{m['role']}: {m['content']}" for m in last_messages])
+
+#     prompt = f"""
+#     Below is a conversation between a user and an assistant.
+#     Does correctly satisfactorily responding to the user's last message require
+#     writing python or shell code? Answer smartly.
+
+#     Queries that require code:
+#     - queries that require websearch
+#     - queries that require finding something on the web
+#     - queries that require printing
+#     - queries that require file handling
+#     - queries that require creating, modifying, reading files
+#     - queries that require answering questions about a pdf file or urls
+
+#     Queries that dont require code:
+#     - simple chit chat
+#     - simple reformatting of provided text
+
+#     Respond with a json object with the following keys:
+#     - "requires_code": true or false
+#     - "confidence": a number between 0 and 1 indicating your confidence in the answer
+
+#     <conversation>
+#     {query}
+#     </conversation>
+
+#     Only respond with a valid json object.
+#     """
+#     response = await chat_completion_wrapper(row_id=row_id, messages=[{"role": "user", "content": prompt}])
+#     # response = await chat_completion_wrapper()
+#     response = response["content"]
+#     # check if the response is valid json
+#     try:
+#         response = json.loads(response)
+#         return response
+#     except json.decoder.JSONDecodeError:
+#         if '"requires_code": true' in response:
+#             return {"requires_code": True, "confidence": 1.0}
+#         return None
 
 
 # TODO: Improve documentation for functions below
@@ -676,12 +689,22 @@ class ReactiveAssistantMessage(Markdown):
 
     message = reactive({"role": "assistant", "content": "loading...", "id": -1})
 
+    class Selected(Message):
+        """Assistant message selected message."""
+
+        def __init__(self, msg_id: str) -> None:
+            self.msg_id = msg_id
+            super().__init__()
+
     def set_id(self, msg_id):
         self.msg_id = msg_id
         # self.message = fetch_row(self.msg_id)
 
     def on_mount(self) -> None:
         self.set_interval(0.2, self.update_message)
+
+    def on_click(self) -> None:
+        self.post_message(self.Selected(self.msg_id))
 
     def update_message(self):
         self.message = fetch_row(self.msg_id)
@@ -837,6 +860,26 @@ class QuitScreen(Screen):
             self.app.pop_screen()
 
 
+class ChatScreen(Screen):
+    """A screen that displays a chat history"""
+
+    root_msg_id = 0
+
+    def compose(self) -> ComposeResult:
+        history = json.dumps(fetch_chat_history(self.root_msg_id), indent=2)
+        yield Grid(
+            ScrollableContainer(
+                Static(f"Here is the history for {self.root_msg_id}\n{history}", id="sub-chat-history-contents")
+            ),
+            Button("Cancel", variant="primary", id="cancel"),
+            id="sub-chat-history",
+        )
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "cancel":
+            self.app.pop_screen()
+
+
 class TinyRA(App):
     """
     A Textual app to display chat history.
@@ -858,13 +901,13 @@ class TinyRA(App):
 
     BINDINGS = [
         ("ctrl+t", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+o", "request_quit", "Quit TinyRA"),
+        ("ctrl+c", "request_quit", "Quit TinyRA"),
     ]
 
     CSS_PATH = "tui.css"
 
     TITLE = "TinyRA"
-    SUB_TITLE = "A minimalistic Research Assistant"
+    SUB_TITLE = "A minimalistic, long-lived research assistant"
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -910,10 +953,16 @@ class TinyRA(App):
         self.query_one(Input).value = ""
         self.handle_input(user_input)
 
+    def on_reactive_assistant_message_selected(self, event: ReactiveAssistantMessage.Selected) -> None:
+        """Called when a reactive assistant message is selected."""
+        new_chat_screen = ChatScreen()
+        new_chat_screen.root_msg_id = event.msg_id
+        self.push_screen(new_chat_screen)
+
     @work()
     async def handle_input(self, user_input: str) -> None:
-        row_id = insert_chat_message("user", user_input)
-        self.generate_response(msg_idx=row_id - 1)
+        id = insert_chat_message("user", user_input, root_id=0)
+        self.generate_response(msg_idx=id)
 
     @work()
     async def generate_response(self, msg_idx: int, limit_history=None) -> None:
@@ -931,6 +980,23 @@ class TinyRA(App):
         task = chat_history[msg_idx]["content"]
         chat_history = chat_history[0:msg_idx]
 
+        def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
+            # check the contents of the last N messages
+            # if all empty, terminate
+            all_empty = True
+            last_n = 2
+            for message in reversed(messages):
+                if last_n == 0:
+                    break
+                if message["role"] == "user":
+                    last_n -= 1
+                    if len(message["content"]) > 0:
+                        all_empty = False
+                        break
+            if all_empty:
+                return True, "TERMINATE"
+            return False, None
+
         def summarize(text):
             if len(text) > 100:
                 return text[:100] + "..."
@@ -947,15 +1013,26 @@ class TinyRA(App):
             if last_assistant_message:
                 summary = summarize(last_assistant_message["content"])
                 update_message = f"{summary}..."
-                await a_insert_chat_message("info", update_message, msg_idx + 2)
+                await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
             else:
                 num_messages = len(messages)
-                await a_insert_chat_message("info", f"Num messages...{num_messages}", msg_idx + 2)
+                await a_insert_chat_message("info", f"Num messages...{num_messages}", root_id=0, id=msg_idx + 1)
+            return False, None
+
+        async def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
+            last_message = messages[-1]
+            await a_insert_chat_message("user", last_message["content"], root_id=msg_idx + 1)
+            return False, None
+
+        async def post_last_assistant_msg_to_chat_history(recipient, messages, sender, **kwargs):
+            last_message = messages[-1]
+            await a_insert_chat_message("assistant", last_message["content"], root_id=msg_idx + 1)
             return False, None
 
         assistant = AssistantAgent(
             "assistant",
             llm_config=LLM_CONFIG,
+            system_message=ASSISTANT_SYSTEM_MESSAGE,
         )
         user = UserProxyAgent(
             "user",
@@ -963,8 +1040,12 @@ class TinyRA(App):
             human_input_mode="NEVER",
             is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
         )
-        assistant.register_reply(Agent, AssistantAgent.a_generate_oai_reply, 2)
+        assistant.register_reply(Agent, AssistantAgent.a_generate_oai_reply, 3)
+        # assistant.register_reply(Agent, AssistantAgent.a_get_human_input, 3)
+        assistant.register_reply(Agent, terminate_on_consecutive_empty, 2)
         assistant.register_reply(Agent, post_update_to_main, 1)
+        assistant.register_reply(Agent, post_last_user_msg_to_chat_history, 0)
+        user.register_reply(Agent, post_last_assistant_msg_to_chat_history, 0)
 
         for msg in chat_history:
             if msg["role"] == "user":
@@ -973,11 +1054,24 @@ class TinyRA(App):
                 await assistant.a_send(msg["content"], user, request_reply=False, silent=True)
 
         await user.a_initiate_chat(assistant, message=task, clear_history=False)
+        await user.a_send(
+            f"""Based on the results in above conversation, create a response for the user.
+While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
+All they want to see is the appropriate result for their task (repeated below) in a manner that would be most useful.
+The task was: {task}
 
-        last_message = assistant.chat_messages[user][-1]["content"]
-        # status_widget.update(f"Completed. Last message from conv: {last_message}")
+There is no need to use the word TERMINATE in this response.
+            """,
+            assistant,
+            request_reply=False,
+            silent=True,
+        )
+        response = await assistant.a_generate_reply(assistant.chat_messages[user], user)
+        await assistant.a_send(response, user, request_reply=False, silent=True)
 
-        await a_insert_chat_message("assistant", last_message, msg_idx + 2)
+        response = assistant.chat_messages[user][-1]["content"]
+
+        await a_insert_chat_message("assistant", response, root_id=0, id=msg_idx + 1)
 
 
 def run_app() -> None:
