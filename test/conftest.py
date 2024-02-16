@@ -4,6 +4,8 @@ skip_openai = False
 skip_redis = False
 skip_docker = False
 
+MOCK_OPEN_AI_API_KEY = "sk-mockopenaiAPIkeyinexpectedformatfortestingonly"
+
 
 # Registers command-line options like '--skip-openai' and '--skip-redis' via pytest hook.
 # When these flags are set, it indicates that tests requiring OpenAI or Redis (respectively) should be skipped.
