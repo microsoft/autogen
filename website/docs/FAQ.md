@@ -1,5 +1,6 @@
 # Frequently Asked Questions
 
+- [Install the correct package - `pyautogen`](#install-the-correct-package---pyautogen)
 - [Set your API endpoints](#set-your-api-endpoints)
   - [Use the constructed configuration list in agents](#use-the-constructed-configuration-list-in-agents)
   - [Unexpected keyword argument 'base_url'](#unexpected-keyword-argument-base_url)
@@ -18,6 +19,15 @@
 - [How to get each agent message?](#how-to-get-each-agent-message)
 - [When using autogen docker, is it always necessary to reinstall modules?](#when-using-autogen-docker-is-it-always-necessary-to-reinstall-modules)
 - [Agents are throwing due to docker not running, how can I resolve this?](#agents-are-throwing-due-to-docker-not-running-how-can-i-resolve-this)
+
+## Install the correct package - `pyautogen`
+
+The name of Autogen package at PyPI is `pyautogen`:
+```
+pip install pyautogen
+```
+
+Typical errors that you might face when using the wrong package are `AttributeError: module 'autogen' has no attribute 'Agent'`, `AttributeError: module 'autogen' has no attribute 'config_list_from_json'` etc.
 
 ## Set your API endpoints
 
@@ -54,6 +64,11 @@ Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-e
 ## How to continue a finished conversation
 
 When you call `initiate_chat` the conversation restarts by default. You can use `send` or `initiate_chat(clear_history=False)` to continue the conversation.
+
+## `max_consecutive_auto_reply` vs `max_turn` vs `max_round`
+- [`max_consecutive_auto_reply`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
+- [`max_turns` in `ConversableAgent.initiate_chat`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
+- [`max_round` in GroupChat](https://microsoft.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
 
 ## How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?
 
