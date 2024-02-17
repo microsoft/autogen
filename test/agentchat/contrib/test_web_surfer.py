@@ -14,6 +14,11 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
+BLOG_POST_FIND_ON_PAGE_QUERY = "The need for * cost saving is not specific to the math problems."
+BLOG_POST_FIND_ON_PAGE_MATCH = (
+    "The need for model selection, parameter tuning and cost saving is not specific to the math problems."
+)
+
 BING_QUERY = "Microsoft"
 
 try:
@@ -85,6 +90,25 @@ def test_web_surfer() -> None:
             response = function_map["page_down"]()
         assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
 
+        # Try to scroll too far up
+        for i in range(0, total_pages + 1):
+            response = function_map["page_up"]()
+        assert f"Viewport position: Showing page 1 of {total_pages}." in response
+
+        # Try find_on_page
+        response = function_map["find_on_page_ctrl_f"](BLOG_POST_FIND_ON_PAGE_QUERY)
+        assert BLOG_POST_FIND_ON_PAGE_MATCH in response
+
+        # Try find_next
+        response = function_map["find_on_page_ctrl_f"]("AutoGen")
+        assert "AutoGen" in response
+        response = function_map["find_next"]()
+        assert "AutoGen" in response
+
+        # Try to find something that doesn't exists
+        response = function_map["find_on_page_ctrl_f"]("7c748f9a-8dce-461f-a092-4e8d29913f2d")
+        assert "The search string '7c748f9a-8dce-461f-a092-4e8d29913f2d' was not found on this page" in response
+
         # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
         with pytest.raises(ValueError, match="Missing Bing API key."):
             response = function_map["informational_web_search"](BING_QUERY)
@@ -146,6 +170,10 @@ def test_web_surfer_oai() -> None:
         user_proxy.initiate_chat(web_surfer, message="When was it founded?")
 
         user_proxy.initiate_chat(web_surfer, message="What's this page about?")
+
+        user_proxy.initiate_chat(web_surfer, message="Find the string 'Redmond' on this page.")
+
+        user_proxy.initiate_chat(web_surfer, message="Find the next occurrence of the string.")
 
 
 @pytest.mark.skipif(

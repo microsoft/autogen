@@ -183,6 +183,43 @@ class WebSurferAgent(ConversableAgent):
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_on_page_ctrl_f",
+            description="Scroll the viewport to the first occurrence of the search string. This is equivalent to Ctrl+F.",
+        )
+        def _find_on_page_ctrl_f(
+            search_string: Annotated[
+                str, "The string to search for on the page. This search string supports wildcards like '*'"
+            ]
+        ) -> str:
+            find_result = self.browser.find_on_page(search_string)
+            header, content = _browser_state()
+
+            if find_result is None:
+                return (
+                    header.strip()
+                    + "\n=======================\nThe search string '"
+                    + search_string
+                    + "' was not found on this page."
+                )
+            else:
+                return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_next",
+            description="Scroll the viewport to next occurrence of the search string.",
+        )
+        def _find_next() -> str:
+            find_result = self.browser.find_next()
+            header, content = _browser_state()
+
+            if find_result is None:
+                return header.strip() + "\n=======================\nThe search string was not found on this page."
+            else:
+                return header.strip() + "\n=======================\n" + content
+
         if self.summarization_client is not None:
 
             @self._user_proxy.register_for_execution()
