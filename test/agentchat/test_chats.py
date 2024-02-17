@@ -28,7 +28,7 @@ def test_chat_messages_for_summary():
     assert len(messages) == 2
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats_group():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -140,7 +140,7 @@ def test_chats_group():
     print(all_res[1].summary)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,

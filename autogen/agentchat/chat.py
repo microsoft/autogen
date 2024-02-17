@@ -64,8 +64,8 @@ def __create_async_prerequisites(chat_queue: List[Dict[str, Any]]) -> List[Prere
     return prerequisites
 
 
-def __find_async_chat_order(num_chats: int, prerequisites:List[Prerequisite]) -> List[int]:
-    """Find chat order for async execution.
+def __find_async_chat_order(chat_ids: Set[int], prerequisites:List[Prerequisite]) -> List[int]:
+    """Find chat order for async execution based on the prerequisite chats
 
     args:
         num_chats: number of chats
@@ -81,7 +81,7 @@ def __find_async_chat_order(num_chats: int, prerequisites:List[Prerequisite]) ->
         if chat not in edges[pre]:
             indegree[chat] += 1
             edges[pre].add(chat)
-    bfs = [i for i in range(num_chats) if i not in indegree]
+    bfs = [i for i in chat_ids if i not in indegree]
     chat_order = []
     steps = len(indegree)
     for _ in range(steps + 1):
@@ -182,13 +182,22 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
 
 
 async def a_initiate_chats(chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
+    """(async) Initiate a list of chats.
+
+    args:
+        Please refer to `initiate_chats`.
+
+
+    returns:
+        (Dict): a dict of ChatId: ChatResult corresponding to the finished chats in the chat_queue.
+    """
     
     consolidate_chat_info(chat_queue)
     _validate_recipients(chat_queue)
-    num_chats = len(chat_queue)
+    chat_book = {chat_info["chat_id"]: chat_info for chat_info in chat_queue}
+    num_chats = chat_book.keys()
     prerequisites = __create_async_prerequisites(chat_queue)
     chat_order_by_id = __find_async_chat_order(num_chats, prerequisites)
-    chat_book = {chat_info["chat_id"] for chat_info in chat_queue}
     finished_chats = dict()
     for chat_id in chat_order_by_id:
         chat_info = chat_book[chat_id]
@@ -196,9 +205,13 @@ async def a_initiate_chats(chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatRe
         prerequisite_chat_ids = chat_info.get("prerequisites", [])
         async with condition:
             await condition.wait_for(
-                all([id in finished_chats for id in prerequisite_chat_ids])
+                lambda: all([id in finished_chats for id in prerequisite_chat_ids])
                 )
             # Do the actual work here.
+            _chat_carryover = chat_info.get("carryover", [])
+            if isinstance(_chat_carryover, str):
+                _chat_carryover = [_chat_carryover]
+            chat_info["carryover"] = _chat_carryover + [finished_chats[pre_id].summary for pre_id in prerequisite_chat_ids]
             __post_carryover_processing(chat_info)
             sender = chat_info["sender"]
             chat_res = await sender.a_initiate_chat(**chat_info)

@@ -15,7 +15,7 @@ else:
     skip = False or skip_openai
 
 KEY_LOC = "notebook"
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+OAI_CONFIG_LIST = "../OAI_CONFIG_LIST"
 here = os.path.abspath(os.path.dirname(__file__))
 
 
