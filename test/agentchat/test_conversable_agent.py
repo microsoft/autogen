@@ -5,6 +5,7 @@ import time
 from typing import Any, Callable, Dict, Literal
 import unittest
 import inspect
+from unittest.mock import MagicMock
 
 import pytest
 from unittest.mock import patch
@@ -1028,10 +1029,33 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="5")
 
 
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_max_turn():
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+
+    # create an AssistantAgent instance named "assistant"
+    assistant = autogen.AssistantAgent(
+        name="assistant",
+        max_consecutive_auto_reply=10,
+        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+    )
+
+    user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
+
+    # Use MagicMock to create a mock get_human_input function
+    user_proxy.get_human_input = MagicMock(return_value="Not funny. Try again.")
+    res = user_proxy.initiate_chat(assistant, clear_history=True, max_turns=3, message="Hello, make a joke about AI.")
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
+    print("history", res.chat_history)
+    assert len(res.chat_history) <= 6
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
     # test_max_consecutive_auto_reply()
-    test_generate_code_execution_reply()
+    # test_generate_code_execution_reply()
     # test_conversable_agent()
     # test_no_llm_config()
+    test_max_turn()
