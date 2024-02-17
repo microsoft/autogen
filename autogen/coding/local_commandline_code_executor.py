@@ -128,7 +128,7 @@ If you want the user to save the code in a file before executing it, put # filen
             )
             filename_uuid = uuid.uuid4().hex
             filename = None
-            if lang in ["bash", "shell", "sh"]:
+            if lang in ["bash", "shell", "sh", "pwsh"]:
                 filename = f"{filename_uuid}.{lang}"
                 exitcode, logs, _ = execute_code(
                     code=code,
