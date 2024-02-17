@@ -214,11 +214,13 @@ def timeout_handler(signum, frame):
 
 
 def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
+    if lang.startswith("python") or lang in ["bash", "sh", "pwsh"]:
         return lang
     if lang in ["shell"]:
         return "sh"
     if lang in ["ps1"]:
+        return "pwsh"
+    if lang in ["powershell"]:
         return "pwsh"
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
