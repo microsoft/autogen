@@ -7,7 +7,7 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.oai.openai_utils import config_list_from_json
-from conftest import skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
 try:
     from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
@@ -211,7 +211,7 @@ print(test_function(123, 4))
 ```
 """
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
         reply = agent.generate_reply(
             [{"role": "user", "content": msg}],
             sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
