@@ -907,7 +907,7 @@ export const BounceLoader = ({
   title?: string;
 }) => {
   return (
-    <div>
+    <div className="inline-block">
       <div className="inline-flex gap-2">
         <span className="  rounded-full bg-accent h-2 w-2  inline-block"></span>
         <span className="animate-bounce rounded-full bg-accent h-3 w-3  inline-block"></span>
@@ -2096,5 +2096,21 @@ export const CardHoverBar = ({
     >
       {itemRows}
     </div>
+  );
+};
+
+export const AgentRow = ({ message }: { message: any }) => {
+  return (
+    <GroupView
+      title={
+        <div className="rounded p-1 px-2 inline-block text-xs bg-secondary">
+          <span className="font-semibold">{message.sender}</span> ( to{" "}
+          {message.recipient} )
+        </div>
+      }
+      className="m"
+    >
+      <MarkdownView data={message.message?.content} className="text-sm" />
+    </GroupView>
   );
 };

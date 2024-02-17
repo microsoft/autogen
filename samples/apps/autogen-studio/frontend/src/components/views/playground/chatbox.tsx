@@ -5,9 +5,14 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PaperAirplaneIcon,
-  TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, message as ToastMessage } from "antd";
+import {
+  Button,
+  Dropdown,
+  MenuProps,
+  message as ToastMessage,
+  Tooltip,
+} from "antd";
 import * as React from "react";
 import {
   IChatMessage,
@@ -16,26 +21,53 @@ import {
   IMessage,
   IStatus,
 } from "../../types";
-import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
+import { examplePrompts, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
-import { BounceLoader, MarkdownView } from "../../atoms";
+import { AgentRow, BounceLoader, CollapseBox, MarkdownView } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 
+let socketMsgs: any[] = [];
 const ChatBox = ({
   initMessages,
   editable = true,
+  connectionId,
 }: {
   initMessages: IMessage[] | null;
   editable?: boolean;
+  connectionId: string;
 }) => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const textAreaInputRef = React.useRef<HTMLTextAreaElement>(null);
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
+  const wsClient = React.useRef<WebSocket | null>(null);
+  const [wsConnectionStatus, setWsConnectionStatus] =
+    React.useState<string>("disconnected");
+
+  const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
+
+  const MAX_RETRIES = 10;
+  const RETRY_INTERVAL = 2000;
+
+  const [retries, setRetries] = React.useState(0);
 
   const serverUrl = getServerUrl();
   const deleteMsgUrl = `${serverUrl}/messages/delete`;
+
+  let websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
+
+  // check if there is a protocol in the serverUrl e.g. /api. if use the page url
+  if (!serverUrl.includes("http")) {
+    const pageUrl = window.location.href;
+    const url = new URL(pageUrl);
+    const protocol = url.protocol;
+    const host = url.host;
+    const baseUrl = protocol + "//" + host + serverUrl;
+    websocketUrl = baseUrl.replace("http", "ws") + "/ws/";
+  } else {
+    websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
+  }
 
   const [loading, setLoading] = React.useState(false);
   const [text, setText] = React.useState("");
@@ -43,6 +75,8 @@ const ChatBox = ({
     status: true,
     message: "All good",
   });
+
+  const socketDivRef = React.useRef<HTMLDivElement>(null);
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
@@ -53,7 +87,7 @@ const ChatBox = ({
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
     pageHeight = window.innerHeight;
-    chatMaxHeight = pageHeight - 300 + "px";
+    chatMaxHeight = pageHeight - 310 + "px";
   }
 
   const parseMessages = (messages: any) => {
@@ -78,6 +112,7 @@ const ChatBox = ({
     // console.log("initMessages changed", initMessages);
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
+    socketMsgs = [];
   }, [initMessages]);
 
   const promptButtons = examplePrompts.map((prompt, i) => {
@@ -211,9 +246,8 @@ const ChatBox = ({
 
   React.useEffect(() => {
     // console.log("messages updated, scrolling");
-
     setTimeout(() => {
-      scrollChatBox();
+      scrollChatBox(messageBoxInputRef);
     }, 200);
   }, [messages]);
 
@@ -238,6 +272,76 @@ const ChatBox = ({
     }
   }, [text]);
 
+  const [waitingToReconnect, setWaitingToReconnect] = React.useState<
+    boolean | null
+  >(null);
+
+  React.useEffect(() => {
+    if (waitingToReconnect) {
+      return;
+    }
+    // Only set up the websocket once
+    const socketUrl = websocketUrl + connectionId;
+    console.log("socketUrl", socketUrl);
+    if (!wsClient.current) {
+      const client = new WebSocket(socketUrl);
+      wsClient.current = client;
+      client.onerror = (e) => {
+        console.log("ws error", e);
+      };
+
+      client.onopen = () => {
+        setWsConnectionStatus("connected");
+        console.log("ws opened");
+      };
+
+      client.onclose = () => {
+        if (wsClient.current) {
+          // Connection failed
+          console.log("ws closed by server");
+        } else {
+          // Cleanup initiated from app side, can return here, to not attempt a reconnect
+          return;
+        }
+
+        if (waitingToReconnect) {
+          return;
+        }
+
+        // Parse event code and log
+        setWsConnectionStatus("disconnected");
+
+        setWaitingToReconnect(true);
+        setWsConnectionStatus("reconnecting");
+        setTimeout(() => {
+          setWaitingToReconnect(null);
+        }, RETRY_INTERVAL);
+      };
+
+      client.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+
+        // make copy of current socket data
+        const newsocketMessages = Object.assign([], socketMessages);
+        newsocketMessages.push(data);
+        setSocketMessages(newsocketMessages);
+        socketMsgs.push(data);
+        setTimeout(() => {
+          scrollChatBox(socketDivRef);
+          scrollChatBox(messageBoxInputRef);
+        }, 200);
+        console.log("received message", data, socketMsgs.length);
+      };
+
+      return () => {
+        console.log("Cleanup");
+        // Dereference, so it will set up next time
+        wsClient.current = null;
+        client.close();
+      };
+    }
+  }, [waitingToReconnect]);
+
   const chatHistory = (messages: IChatMessage[] | null) => {
     let history = "";
     messages?.forEach((message) => {
@@ -246,15 +350,16 @@ const ChatBox = ({
     return history;
   };
 
-  const scrollChatBox = () => {
-    messageBoxInputRef.current?.scroll({
-      top: messageBoxInputRef.current.scrollHeight,
+  const scrollChatBox = (element: any) => {
+    element.current?.scroll({
+      top: element.current.scrollHeight,
       behavior: "smooth",
     });
   };
 
   const getCompletion = (query: string) => {
     setError(null);
+    socketMsgs = [];
     let messageHolder = Object.assign([], messages);
 
     const userMessage: IChatMessage = {
@@ -283,7 +388,10 @@ const ChatBox = ({
       },
       body: JSON.stringify({
         message: messagePayload,
-        flow_config: workflowConfig,
+        workflow: workflowConfig,
+        session: session,
+        user_id: user?.email,
+        connection_id: connectionId,
       }),
     };
     setLoading(true);
@@ -304,7 +412,16 @@ const ChatBox = ({
               // }
               messageHolder.push(botMesage);
               messageHolder = Object.assign([], messageHolder);
-              setMessages(messageHolder);
+              // set innerHTML of socketDivRef to <div> Agent conversation complete. Compiling results</div>
+              // if (socketDivRef.current) {
+              //   socketDivRef.current.style.height = "auto";
+              //   socketDivRef.current.innerHTML = `<div class='text-sm'> Agent conversation complete. Compiling results</div>`;
+              // }
+
+              setTimeout(() => {
+                socketMsgs = [];
+                setMessages(messageHolder);
+              }, 2000);
             } else {
               console.log("error", data);
               // setError(data);
@@ -328,6 +445,11 @@ const ChatBox = ({
         ToastMessage.error(
           "Connection error. Ensure server is up and running."
         );
+      })
+      .finally(() => {
+        setTimeout(() => {
+          scrollChatBox(messageBoxInputRef);
+        }, 500);
       });
   };
 
@@ -348,8 +470,18 @@ const ChatBox = ({
     }
   };
 
+  const getConnectionColor = (status: string) => {
+    if (status === "connected") {
+      return "bg-green-500";
+    } else if (status === "reconnecting") {
+      return "bg-orange-500";
+    } else if (status === "disconnected") {
+      return "bg-red-500";
+    }
+  };
+
   return (
-    <div className="text-primary     relative  h-full rounded  ">
+    <div className="text-primary    relative  h-full rounded  ">
       <div
         style={{ zIndex: 100 }}
         className=" absolute right-0  text-secondary -top-8 rounded p-2"
@@ -357,13 +489,7 @@ const ChatBox = ({
         {" "}
         <div className="text-xs"> {session?.flow_config.name}</div>
       </div>
-      <div
-        style={{ zIndex: 100 }}
-        className=" absolute right-0  text-secondary -top-8 rounded p-2"
-      >
-        {" "}
-        <div className="text-xs"> {session?.flow_config.name}</div>
-      </div>
+
       <div
         ref={messageBoxInputRef}
         className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
@@ -391,9 +517,55 @@ const ChatBox = ({
           </div>
         )}
         <div className="ml-2"> {messageListView}</div>
-        <div className="ml-2 h-6   mb-4 mt-2   ">
-          {loading && <BounceLoader />}
-        </div>
+
+        {socketMsgs.length > 0 && (
+          <div className={` inline-flex gap-2 duration-300 `}>
+            <div className=""></div>
+            <div className="font-semibold text-secondary text-sm w-16">
+              AGENTS
+            </div>
+            <div className="relative w-full ">
+              <div className="mb-4 w-full text-center">
+                {<BounceLoader />}{" "}
+                <span className="innline-block text-sm ml-2">
+                  {" "}
+                  agents working on task ..
+                </span>{" "}
+                <div className="  inline-block ml-2 text-xs text-secondary">
+                  {socketMsgs.length} agent messages so far{" "}
+                </div>
+              </div>
+              <div className="absolute top-0  scroll-gradient -mt-2 h-10 w-full">
+                {" "}
+                <span className="  inline-block h-6"></span>{" "}
+              </div>
+              <div
+                ref={socketDivRef}
+                style={{
+                  minHeight: "300px",
+                  maxHeight: "400px",
+                  overflowY: "auto",
+                }}
+                className={`inline-block scroll group relative   p-2 rounded w-full bg-light `}
+              >
+                <CollapseBox
+                  open={true}
+                  title={`Agent Messages (${socketMsgs.length} message${
+                    socketMsgs.length > 1 ? "s" : ""
+                  }) `}
+                >
+                  {socketMsgs?.map((message: any, i: number) => {
+                    return (
+                      <div key={i}>
+                        <AgentRow message={message} />
+                      </div>
+                    );
+                  })}
+                </CollapseBox>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {editable && (
         <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
@@ -448,6 +620,13 @@ const ChatBox = ({
           </div>{" "}
           <div>
             <div className="mt-2 text-xs text-secondary">
+              <Tooltip title={`Socket ${wsConnectionStatus}`}>
+                <div
+                  className={`w-1 h-4 rounded  inline-block mr-1 ${getConnectionColor(
+                    wsConnectionStatus
+                  )}`}
+                ></div>{" "}
+              </Tooltip>
               Blank slate? Try one of the example prompts below{" "}
             </div>
             <div
@@ -459,7 +638,7 @@ const ChatBox = ({
             </div>
           </div>
           {error && !error.status && (
-            <div className="p-2 border rounded mt-4 text-orange-500 text-sm">
+            <div className="p-2   rounded mt-4 text-orange-500 text-sm">
               {" "}
               <ExclamationTriangleIcon className="h-5 text-orange-500 inline-block mr-2" />{" "}
               {error.message}

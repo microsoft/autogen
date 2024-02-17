@@ -1,5 +1,8 @@
 import os
 from typing import List, Optional, Union, Dict
+
+from requests import Session
+
 import autogen
 from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, Message
 from .utils import get_skills_from_prompt, clear_folder, sanitize_model
@@ -17,29 +20,28 @@ class AutoGenWorkFlowManager:
         history: Optional[List[Message]] = None,
         work_dir: str = None,
         clear_work_dir: bool = True,
+        send_message_function: Optional[callable] = None,
+        connection_id: Optional[str] = None,
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
-        message history.
+        message history. 
 
         Args:
             config: The configuration settings for the sender and receiver agents.
             history: An optional list of previous messages to populate the agents' history.
 
         """
+        self.send_message_function = send_message_function
+        self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         if clear_work_dir:
             clear_folder(self.work_dir)
-
+        self.config = config
         # given the config, return an AutoGen agent object
         self.sender = self.load(config.sender)
         # given the config, return an AutoGen agent object
         self.receiver = self.load(config.receiver)
-
-        # if config.receiver.type == "groupchat":
-        #     # append self.sender to the list of agents
-        #     self.receiver._groupchat.agents = self.receiver._groupchat.agents + \
-        #         [self.sender]
         self.agent_history = []
 
         if history:
@@ -61,16 +63,19 @@ class AutoGenWorkFlowManager:
 
         message = message if isinstance(message, dict) else {
             "content": message, "role": "user"}
-        iteration = {
+        message_payload = {
             "recipient": receiver.name,
             "sender": sender.name,
             "message": message,
             "timestamp": datetime.now().isoformat(),
             "sender_type": sender_type,
+            "connection_id": self.connection_id
         }
         # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
         if request_reply != False or sender_type == "groupchat":
-            self.agent_history.append(iteration)
+            self.agent_history.append(message_payload)  # add to history
+            if self.send_message_function:  # send over the message queue
+                self.send_message_function(message_payload)
 
     def _sanitize_history_message(self, message: str) -> str:
         """
@@ -102,12 +107,14 @@ class AutoGenWorkFlowManager:
                     msg.content,
                     self.receiver,
                     request_reply=False,
+                    silent=True,
                 )
             elif msg.role == "assistant":
                 self.receiver.send(
                     msg.content,
                     self.sender,
                     request_reply=False,
+                    silent=True,
                 )
 
     def sanitize_agent_spec(self, agent_spec: AgentFlowSpec) -> AgentFlowSpec:

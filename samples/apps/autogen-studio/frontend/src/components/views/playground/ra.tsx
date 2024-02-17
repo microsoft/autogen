@@ -23,6 +23,7 @@ const RAView = () => {
   };
 
   const [config, setConfig] = React.useState(null);
+  const connectionId = useConfigStore((state) => state.connectionId);
 
   React.useEffect(() => {
     setLocalStorage("ara_config", config);
@@ -100,7 +101,7 @@ const RAView = () => {
           )}
 
           {workflowConfig !== null && session !== null && (
-            <ChatBox initMessages={messages} />
+            <ChatBox initMessages={messages} connectionId={connectionId} />
           )}
         </div>
       </div>
