@@ -11,6 +11,11 @@ from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
 BLOG_POST_STRING = "Large language models (LLMs) are powerful tools that can generate natural language texts for various applications, such as chatbots, summarization, translation, and more. GPT-4 is currently the state of the art LLM in the world. Is model selection irrelevant? What about inference parameters?"
+BLOG_POST_FIND_ON_PAGE_QUERY = "The need for * cost saving is not specific to the math problems."
+BLOG_POST_FIND_ON_PAGE_MATCH = (
+    "The need for model selection, parameter tuning and cost saving is not specific to the math problems."
+)
+
 
 WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Microsoft"
 WIKIPEDIA_TITLE = "Microsoft - Wikipedia"
@@ -142,6 +147,52 @@ def test_simple_text_browser():
     # Fetch a PDF
     viewport = browser.visit_page(PDF_URL)
     assert PDF_STRING in viewport
+
+    # Test find in page
+    browser.visit_page(BLOG_POST_URL)
+
+    find_viewport = browser.find_on_page(BLOG_POST_FIND_ON_PAGE_QUERY)
+    assert BLOG_POST_FIND_ON_PAGE_MATCH in find_viewport
+    assert find_viewport is not None
+
+    loc = browser.viewport_current_page
+    find_viewport = browser.find_on_page("LLM app*")
+    assert find_viewport is not None
+
+    # Find next using the same query
+    for i in range(0, 10):
+        find_viewport = browser.find_on_page("LLM app*")
+        assert find_viewport is not None
+
+        new_loc = browser.viewport_current_page
+        assert new_loc != loc
+        loc = new_loc
+
+    # Find next using find_next
+    for i in range(0, 10):
+        find_viewport = browser.find_next()
+        assert find_viewport is not None
+
+        new_loc = browser.viewport_current_page
+        assert new_loc != loc
+        loc = new_loc
+
+    # Bounce around
+    browser.viewport_current_page = 0
+    find_viewport = browser.find_on_page("For Further Reading")
+    assert find_viewport is not None
+    loc = browser.viewport_current_page
+
+    browser.page_up()
+    assert browser.viewport_current_page != loc
+    find_viewport = browser.find_on_page("For Further Reading")
+    assert find_viewport is not None
+    assert loc == browser.viewport_current_page
+
+    # Find something that doesn't exist
+    find_viewport = browser.find_on_page("7c748f9a-8dce-461f-a092-4e8d29913f2d")
+    assert find_viewport is None
+    assert loc == browser.viewport_current_page  # We didn't move
 
     # Clean up
     _rm_folder(downloads_folder)
