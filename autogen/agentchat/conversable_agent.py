@@ -769,7 +769,9 @@ class ConversableAgent(LLMAgent):
             clear_history (bool): whether to clear the chat history with the agent. Default is True.
             silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
             cache (Cache or None): the cache client to be used for this conversation. Default is None.
-            max_turns (int or None): the maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
+            max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn mean one conversation round trip. Note that this is different from
+            [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
+            If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
