@@ -519,13 +519,6 @@ class ConversableAgent(LLMAgent):
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
-
     async def a_send(
         self,
         message: Union[Dict, str],
@@ -577,13 +570,6 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
@@ -729,14 +715,20 @@ class ConversableAgent(LLMAgent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
+    def _prepare_chat(
+        self,
+        recipient: "ConversableAgent",
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
-        self.reply_at_receive[recipient] = True
+        self.reply_at_receive[recipient] = reply_at_receive
         if clear_history:
             self.clear_history(recipient)
             self._human_input = []
         if prepare_recipient:
-            recipient._prepare_chat(self, clear_history, False)
+            recipient._prepare_chat(self, clear_history, False, reply_at_receive)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -814,19 +806,18 @@ class ConversableAgent(LLMAgent):
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        self._prepare_chat(recipient, clear_history)
         if isinstance(max_turns, int):
-            msg2send = self.generate_init_message(**context)
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
             for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = self.generate_init_message(**context)
+                else:
+                    msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
                     break
-                self.send(msg2send, recipient, request_reply=False, silent=silent)
-                msg2send = recipient.generate_reply(messages=recipient.chat_messages[self], sender=self)
-                if msg2send is None:
-                    break
-                recipient.send(msg2send, self, request_reply=False, silent=silent)
-                msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                self.send(msg2send, recipient, request_reply=True, silent=silent)
         else:
+            self._prepare_chat(recipient, clear_history)
             self.send(self.generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
@@ -868,22 +859,21 @@ class ConversableAgent(LLMAgent):
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
         consolidate_chat_info(_chat_info, uniform_sender=self)
-        self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
         if isinstance(max_turns, int):
-            msg2send = await self.a_generate_init_message(**context)
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
             for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = await self.a_generate_init_message(**context)
+                else:
+                    msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
                     break
-                await self.a_send(msg2send, recipient, request_reply=False, silent=silent)
-                msg2send = await recipient.a_generate_reply(messages=recipient.chat_messages[self], sender=self)
-                if msg2send is None:
-                    break
-                await recipient.a_send(msg2send, self, request_reply=False, silent=silent)
-                msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                await self.a_send(msg2send, recipient, request_reply=True, silent=silent)
         else:
+            self._prepare_chat(recipient, clear_history)
             await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
@@ -983,7 +973,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the input arguments for `initiate_chat`.
+                Each dictionary should contain the input arguments for [`initiate_chat`](conversable_agent#initiate_chat)
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
