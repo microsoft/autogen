@@ -520,7 +520,7 @@ class OpenAIWrapper:
         if ERROR:
             raise ERROR
         last = len(self._clients) - 1
-        use_cache = config.pop('use_cache')
+        use_cache = config.pop('use_cache', True)
         # Check if all configs in config list are activated
         non_activated = [
             client.config["model_client_cls"] for client in self._clients if isinstance(client, PlaceHolderClient)
