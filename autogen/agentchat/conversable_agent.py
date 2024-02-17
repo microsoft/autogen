@@ -223,7 +223,7 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: [], self.process_all_messages: []}
+        self.hook_lists = {"process_last_message": [], "process_all_messages": []}
 
     @property
     def name(self) -> str:
@@ -2310,13 +2310,13 @@ class ConversableAgent(LLMAgent):
         """
         self.client.register_model_client(model_client_cls, **kwargs)
 
-    def register_hook(self, hookable_method: Callable, hook: Callable):
+    def register_hook(self, hookable_method: str, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
 
         Args:
-            hookable_method: A hookable method implemented by ConversableAgent.
+            hookable_method: A hookable method name implemented by ConversableAgent.
             hook: A method implemented by a subclass of AgentCapability.
         """
         assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
@@ -2328,7 +2328,7 @@ class ConversableAgent(LLMAgent):
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists[self.process_all_messages]
+        hook_list = self.hook_lists["process_all_messages"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
@@ -2346,7 +2346,7 @@ class ConversableAgent(LLMAgent):
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists[self.process_last_message]
+        hook_list = self.hook_lists["process_last_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
