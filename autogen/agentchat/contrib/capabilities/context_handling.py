@@ -45,7 +45,7 @@ class TransformChatHistory:
         """
         Adds TransformChatHistory capability to the given agent.
         """
-        agent.register_hook(hookable_method=agent.process_all_messages, hook=self._transform_messages)
+        agent.register_hook(hookable_method="process_all_messages", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
         """

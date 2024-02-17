@@ -65,6 +65,11 @@ Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-e
 
 When you call `initiate_chat` the conversation restarts by default. You can use `send` or `initiate_chat(clear_history=False)` to continue the conversation.
 
+## `max_consecutive_auto_reply` vs `max_turn` vs `max_round`
+- [`max_consecutive_auto_reply`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
+- [`max_turns` in `ConversableAgent.initiate_chat`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
+- [`max_round` in GroupChat](https://microsoft.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
+
 ## How do we decide what LLM is used for each agent? How many agents can be used? How do we decide how many agents in the group?
 
 Each agent can be customized. You can use LLMs, tools, or humans behind each agent. If you use an LLM for an agent, use the one best suited for its role. There is no limit of the number of agents, but start from a small number like 2, 3. The more capable is the LLM and the fewer roles you need, the fewer agents you need.
