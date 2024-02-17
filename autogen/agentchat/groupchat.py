@@ -7,10 +7,11 @@ from typing import Dict, List, Optional, Union, Tuple
 
 
 from ..code_utils import content_str
+from ..exception_utils import AgentNameConflict
 from .agent import Agent
 from .conversable_agent import ConversableAgent
-from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed, has_self_loops
-
+from ..runtime_logging import logging_enabled, log_new_agent
+from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 
 logger = logging.getLogger(__name__)
 
@@ -42,12 +43,22 @@ class GroupChat:
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
 
-    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively. Default is True, in which case all speakers are allowed to speak consecutively. If allow_repeat_speaker is a list of Agents, then only those listed agents are allowed to repeat. If set to False, then no speakers are allowed to repeat. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
-    - allowed_or_disallowed_speaker_transitions: a dictionary of keys and list as values. The keys are the source agents, and the values are the agents that the key agent can transition to. Default is None, in which case a fully connected allowed_speaker_transitions_dict is assumed. allow_repeat_speaker and allowed_or_disallowed_speaker_transitions are mutually exclusive.
-    - speaker_transitions_type: whether the speaker_transitions_type is a dictionary containing lists of allowed agents or disallowed agents. allowed means the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of allowed agents. If set to disallowed, then the allowed_or_disallowed_speaker_transitions is a dictionary containing lists of disallowed agents. Must be supplied if allowed_or_disallowed_speaker_transitions is not None.
+    - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
+        Default is True, in which case all speakers are allowed to speak consecutively.
+        If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
+        If set to False, then no speakers are allowed to repeat.
+        `allow_repeat_speaker` and `allowed_or_disallowed_speaker_transitions` are mutually exclusive.
+    - allowed_or_disallowed_speaker_transitions: dict.
+        The keys are source agents, and the values are agents that the key agent can/can't transit to,
+        depending on speaker_transitions_type. Default is None, which means all agents can transit to all other agents.
+        `allow_repeat_speaker` and `allowed_or_disallowed_speaker_transitions` are mutually exclusive.
+    - speaker_transitions_type: whether the speaker_transitions_type is a dictionary containing lists of allowed agents or disallowed agents.
+        "allowed" means the `allowed_or_disallowed_speaker_transitions` is a dictionary containing lists of allowed agents.
+        If set to "disallowed", then the `allowed_or_disallowed_speaker_transitions` is a dictionary containing lists of disallowed agents.
+        Must be supplied if `allowed_or_disallowed_speaker_transitions` is not None.
     - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
         "clear history" phrase in user prompt. This is experimental feature.
-        See description of GroupChatManager.clear_agents_history function for more info.
+        See description of `GroupChatManager.clear_agents_history` function for more info.
     """
 
     agents: List[Agent]
@@ -56,9 +67,7 @@ class GroupChat:
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Optional[str] = "auto"
-    allow_repeat_speaker: Optional[
-        Union[bool, List[Agent]]
-    ] = True  # It would be set to True if allowed_or_disallowed_speaker_transitions is None
+    allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Optional[str] = None
     enable_clear_history: Optional[bool] = False
@@ -70,16 +79,21 @@ class GroupChat:
 
     def __post_init__(self):
         # Post init steers clears of the automatically generated __init__ method from dataclass
-        # Here, we create allowed_speaker_transitions_dict from the supplied allowed_or_disallowed_speaker_transitions and is_allowed_graph, and lastly checks for validity.
+
+        if self.allow_repeat_speaker is not None and not isinstance(self.allow_repeat_speaker, (bool, list)):
+            raise ValueError("GroupChat allow_repeat_speaker should be a bool or a list of Agents.")
+
+        # Here, we create allowed_speaker_transitions_dict from the supplied allowed_or_disallowed_speaker_transitions and speaker_transitions_type, and lastly checks for validity.
 
         # Check input
         if self.speaker_transitions_type is not None:
             self.speaker_transitions_type = self.speaker_transitions_type.lower()
 
-        assert self.speaker_transitions_type in self._VALID_SPEAKER_TRANSITIONS_TYPE, (
-            f"GroupChat speaker_transitions_type is set to '{self.speaker_transitions_type}'. "
-            f"It should be one of {self._VALID_SPEAKER_TRANSITIONS_TYPE} (case insensitive). "
-        )
+        if self.speaker_transitions_type not in self._VALID_SPEAKER_TRANSITIONS_TYPE:
+            raise ValueError(
+                f"GroupChat speaker_transitions_type is set to '{self.speaker_transitions_type}'. "
+                f"It should be one of {self._VALID_SPEAKER_TRANSITIONS_TYPE} (case insensitive). "
+            )
 
         # If both self.allowed_or_disallowed_speaker_transitions is None and self.allow_repeat_speaker is None, set allow_repeat_speaker to True to ensure backward compatibility
         # Discussed in https://github.com/microsoft/autogen/pull/857#discussion_r1451541204
@@ -114,7 +128,7 @@ class GroupChat:
                 ]
 
             # If self.allow_repeat_speaker is True, add self loops to all agents
-            if self.allow_repeat_speaker:
+            if self.allow_repeat_speaker is True:
                 for agent in self.agents:
                     self.allowed_speaker_transitions_dict[agent].append(agent)
 
@@ -125,7 +139,7 @@ class GroupChat:
 
         # Create self.allowed_speaker_transitions_dict if allowed_or_disallowed_speaker_transitions is not None, using allowed_or_disallowed_speaker_transitions
         else:
-            # Process based on is_allowed_graph
+            # Process based on speaker_transitions_type
             if self.speaker_transitions_type == "allowed":
                 self.allowed_speaker_transitions_dict = self.allowed_or_disallowed_speaker_transitions
             else:
@@ -134,16 +148,10 @@ class GroupChat:
                     self.allowed_or_disallowed_speaker_transitions, self.agents
                 )
 
-        # Inferring self.allow_repeat_speaker from allowed_speaker_transitions_dict using has_self_loops
-        # Finally, self.allow_repeat_speaker shouldn't be None, so it is set from the the graph.
-        if self.allow_repeat_speaker is None:
-            self.allow_repeat_speaker = has_self_loops(self.allowed_speaker_transitions_dict)
-
         # Check for validity
         check_graph_validity(
             allowed_speaker_transitions_dict=self.allowed_speaker_transitions_dict,
             agents=self.agents,
-            allow_repeat_speaker=self.allow_repeat_speaker,
         )
 
     @property
@@ -167,9 +175,26 @@ class GroupChat:
         message["content"] = content_str(message["content"])
         self.messages.append(message)
 
-    def agent_by_name(self, name: str) -> Agent:
-        """Returns the agent with a given name."""
-        return self.agents[self.agent_names.index(name)]
+    def agent_by_name(
+        self, name: str, recursive: bool = False, raise_on_name_conflict: bool = False
+    ) -> Optional[Agent]:
+        """Returns the agent with a given name. If recursive is True, it will search in nested teams."""
+        agents = self.nested_agents() if recursive else self.agents
+        filtered_agents = [agent for agent in agents if agent.name == name]
+
+        if raise_on_name_conflict and len(filtered_agents) > 1:
+            raise AgentNameConflict()
+
+        return filtered_agents[0] if filtered_agents else None
+
+    def nested_agents(self) -> List[Agent]:
+        """Returns all agents in the group chat manager."""
+        agents = self.agents.copy()
+        for agent in agents:
+            if isinstance(agent, GroupChatManager):
+                # Recursive call for nested teams
+                agents.extend(agent.groupchat.nested_agents())
+        return agents
 
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
@@ -248,12 +273,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
 
-        if not isinstance(self.allow_repeat_speaker, (bool, list)):
-            raise ValueError("GroupChat allow_repeat_speaker should be a bool or a list of Agents.")
         # If provided a list, make sure the agent is in the list
         allow_repeat_speaker = (
             self.allow_repeat_speaker
-            if isinstance(self.allow_repeat_speaker, bool)
+            if isinstance(self.allow_repeat_speaker, bool) or self.allow_repeat_speaker is None
             else last_speaker in self.allow_repeat_speaker
         )
 
@@ -268,8 +291,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
             logger.warning(
                 f"GroupChat is underpopulated with {n_agents} agents. "
-                "It is recommended to set speaker_selection_method to 'round_robin' or allow_repeat_speaker to False."
-                "Or, use direct communication instead."
+                "Consider setting speaker_selection_method to 'round_robin' or allow_repeat_speaker to False, "
+                "or use direct communication, unless repeated speaker is desired."
             )
 
         if (
@@ -301,7 +324,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                         "Please check the function_map of the agents."
                     )
         # remove the last speaker from the list to avoid selecting the same speaker if allow_repeat_speaker is False
-        agents = agents if allow_repeat_speaker else [agent for agent in agents if agent != last_speaker]
+        agents = [agent for agent in agents if agent != last_speaker] if allow_repeat_speaker is False else agents
 
         # Filter agents with allowed_speaker_transitions_dict
 
@@ -385,10 +408,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             )
 
         # Return the result
-        try:
-            return self.agent_by_name(name)
-        except ValueError:
-            return self.next_agent(last_speaker, agents)
+        agent = self.agent_by_name(name)
+        return agent if agent else self.next_agent(last_speaker, agents)
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
@@ -458,6 +479,8 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
 
@@ -472,6 +495,17 @@ class GroupChatManager(ConversableAgent):
             reset_config=GroupChat.reset,
             ignore_async_in_sync_chat=True,
         )
+
+    @property
+    def groupchat(self) -> GroupChat:
+        """Returns the group chat managed by the group chat manager."""
+        return self._groupchat
+
+    def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
+        """The list of messages in the group chat as a conversation to summarize.
+        The agent is ignored.
+        """
+        return self._groupchat.messages
 
     def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
         super()._prepare_chat(recipient, clear_history, prepare_recipient)

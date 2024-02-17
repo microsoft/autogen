@@ -92,6 +92,7 @@ class LLMConfig:
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
+    max_tokens: Optional[int] = None
 
     def dict(self):
         result = asdict(self)
@@ -154,6 +155,7 @@ class GroupChatConfig:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     speaker_selection_method: Optional[str] = "auto"
+    # TODO: match the new group chat default and support transition spec
     allow_repeat_speaker: Optional[Union[bool, List[AgentConfig]]] = True
 
     def dict(self):
