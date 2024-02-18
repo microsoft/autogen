@@ -13,6 +13,7 @@ using Azure.AI.OpenAI;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System;
+using AutoGen;
 
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>
 namespace <#=NameSpace#>
@@ -44,6 +45,54 @@ namespace <#=NameSpace#>
 <# var argumentLists = string.Join(", ", functionContract.Parameters.Select(p => $"schema.{p.Name}")); #>
 
             return <#=functionContract.Name#>(<#=argumentLists#>);
+        }
+
+        public FunctionContract <#=functionContract.GetFunctionContractName()#>
+        {
+            get => new FunctionContract
+            {
+<#if (functionContract.Namespace != null) {#>
+                Namespace = @"<#=functionContract.Namespace#>",
+<#}#>
+<#if (functionContract.ClassName != null) {#>
+                ClassName = @"<#=functionContract.ClassName#>",
+<#}#>
+<#if (functionContract.Name != null) {#>
+                Name = @"<#=functionContract.Name#>",
+<#}#>
+<#if (functionContract.Description != null) {#>
+                Description = @"<#=functionContract.Description#>",
+<#}#>
+<#if (functionContract.ReturnType != null) {#>
+                ReturnType = typeof(<#=functionContract.ReturnType#>),
+<#}#>
+<#if (functionContract.ReturnDescription != null) {#>
+                ReturnDescription = @"<#=functionContract.ReturnDescription#>",
+<#}#>
+<#if (functionContract.Parameters != null) {#>
+                Parameters = new []
+                {
+<#foreach (var parameter in functionContract.Parameters) {#>
+                    new FunctionParameterContract
+                    {
+<#if (parameter.Name != null) {#>
+                        Name = @"<#=parameter.Name#>",
+<#}#>
+<#if (parameter.Description != null) {#>
+                        Description = @"<#=parameter.Description#>",
+<#}#>
+<#if (parameter.Type != null) {#>
+                        ParameterType = typeof(<#=parameter.Type#>),
+<#}#>
+                        IsRequired = <#=parameter.IsOptional ? "false" : "true"#>,
+<#if (parameter.DefaultValue != null) {#>
+                        DefaultValue = <#=parameter.DefaultValue#>,
+<#}#>
+                    },
+<#}#>
+                },
+<#}#>
+            };
         }
 
         public FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>

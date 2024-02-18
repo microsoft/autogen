@@ -5,15 +5,19 @@ namespace AutoGen.SourceGenerator
 {
     internal class FunctionContract
     {
+        public string? Namespace { get; set; }
+
+        public string? ClassName { get; set; }
+
         public string? Name { get; set; }
 
         public string? Description { get; set; }
 
+        public string? ReturnDescription { get; set; }
+
         public ParameterContract[]? Parameters { get; set; }
 
         public string? ReturnType { get; set; }
-
-        public bool IsAsync { get; set; }
     }
 
     internal class ParameterContract
