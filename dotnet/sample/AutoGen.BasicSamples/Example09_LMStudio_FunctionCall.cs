@@ -8,7 +8,7 @@ using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
 
-public class LLaMaFunctionCall
+public class LLaMAFunctionCall
 {
     [JsonPropertyName("name")]
     public string Name { get; set; }
@@ -93,7 +93,7 @@ You have access to the following functions. Use them if required:
                 var content = reply.Content;
                 try
                 {
-                    if (JsonSerializer.Deserialize<LLaMaFunctionCall>(content) is { } functionCall)
+                    if (JsonSerializer.Deserialize<LLaMAFunctionCall>(content) is { } functionCall)
                     {
                         var arguments = JsonSerializer.Serialize(functionCall.Arguments);
                         // invoke function wrapper
