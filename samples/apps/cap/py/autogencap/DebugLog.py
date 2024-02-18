@@ -1,6 +1,6 @@
 import threading
 import datetime
-import Config
+from autogencap.Config import *
 from termcolor import colored
 
 # Define log levels as constants
@@ -18,9 +18,9 @@ console_lock = threading.Lock()
 
 def Log(level, context, msg):
     # Check if the current level meets the threshold
-    if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
+    if level >= LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
         # Check if the context is in the list of ignored contexts
-        if context in Config.IGNORED_LOG_CONTEXTS:
+        if context in IGNORED_LOG_CONTEXTS:
             return
         with console_lock:
             timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")

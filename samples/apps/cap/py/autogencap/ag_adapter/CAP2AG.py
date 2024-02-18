@@ -1,12 +1,10 @@
-from DebugLog import Debug, Error, Info, Warn, shorten
-from LocalActorNetwork import LocalActorNetwork
-from proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from autogen import Agent
 from enum import Enum
 from typing import Dict, List, Optional, Union
-from ag_adapter.AG2CAP import AG2CAP
-from CAPActor import CAPActor
-
+from ..DebugLog import Debug, Error, Info, Warn, shorten
+from ..LocalActorNetwork import LocalActorNetwork
+from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
+from ..CAPActor import CAPActor
+from .AG2CAP import AG2CAP
 
 class CAP2AG(CAPActor):
     """

@@ -1,8 +1,8 @@
-from DebugLog import Debug, Warn
+from .DebugLog import Debug, Warn
 import zmq
-from ActorConnector import ActorConnector
-from Broker import Broker
-from CAPConstants import Termination_Topic
+from .ActorConnector import ActorConnector
+from .Broker import Broker
+from .CAPConstants import Termination_Topic
 
 
 class LocalActorNetwork:

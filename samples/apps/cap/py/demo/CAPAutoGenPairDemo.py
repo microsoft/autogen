@@ -1,8 +1,8 @@
-import DebugLog as DebugLog
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-from LocalActorNetwork import LocalActorNetwork
-from ag_adapter.CAP2AG import CAP2AG
 import time
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+from autogencap.DebugLog import Info
+from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ag_adapter.CAP2AG import CAP2AG
 
 def cap_ag_pair_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
@@ -38,4 +38,4 @@ def cap_ag_pair_demo():
         if not user_proxy_adptr.run and not assistant_adptr.run:
             break
     network.disconnect()
-    DebugLog.Info("App", "App Exit")
+    Info("App", "App Exit")

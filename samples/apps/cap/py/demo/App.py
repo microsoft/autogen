@@ -1,22 +1,16 @@
 """
 Demo App
 """
-import os
-import sys
+import argparse
+from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
+import autogencap.DebugLog as DebugLog
 
-from demo.SimpleActorDemo import simple_actor_demo
-from demo.AGDemo import ag_demo
-from demo.AGGroupChatDemo import ag_groupchat_demo
-from demo.CAPAutGenGroupDemo import cap_ag_group_demo
-from demo.CAPAutoGenPairDemo import cap_ag_pair_demo
-from demo.ComplexActorDemo import complex_actor_demo
-
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))  # noqa: E402
-sys.path.append(parent_dir)  # noqa: E402
-
-import Config  # noqa: E402
-import argparse  # noqa: E402
-import DebugLog as DebugLog  # noqa: E402
+from SimpleActorDemo import simple_actor_demo
+from AGDemo import ag_demo
+from AGGroupChatDemo import ag_groupchat_demo
+from CAPAutGenGroupDemo import cap_ag_group_demo
+from CAPAutoGenPairDemo import cap_ag_pair_demo
+from ComplexActorDemo import complex_actor_demo
 
 ####################################################################################################
 
@@ -27,10 +21,10 @@ def parse_args():
     # Parse the command line arguments
     args = parser.parse_args()
     # Set the log level
-    Config.LOG_LEVEL = args.log_level
+    LOG_LEVEL = args.log_level
     # Print log level string based on names in debug_log.py
     print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
-    Config.IGNORED_LOG_CONTEXTS.extend(["BROKER"])
+    IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
 ####################################################################################################
 

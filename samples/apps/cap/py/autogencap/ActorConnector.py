@@ -4,8 +4,8 @@
 import zmq
 import time
 import uuid
-from DebugLog import Debug, Error
-from CAPConstants import xsub_url, xpub_url
+from .DebugLog import Debug, Error
+from .CAPConstants import xsub_url, xpub_url
 
 
 class ActorConnector:

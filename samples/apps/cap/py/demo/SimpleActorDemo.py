@@ -1,9 +1,6 @@
-import sys
-print(sys.path)
-
 import time
-from demo.AppAgents import UserInterfaceAgent
-from LocalActorNetwork import LocalActorNetwork
+from AppAgents import UserInterfaceAgent
+from autogencap.LocalActorNetwork import LocalActorNetwork
 
 def simple_actor_demo():
     """

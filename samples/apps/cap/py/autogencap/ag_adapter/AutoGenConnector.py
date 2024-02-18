@@ -1,7 +1,7 @@
-from ActorConnector import ActorConnector
-from proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from autogen import Agent
 from typing import Dict, Optional, Union
+from autogen import Agent
+from ..ActorConnector import ActorConnector
+from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 
 
 class AutoGenConnector:

@@ -1,8 +1,7 @@
-from ag_adapter.AutoGenConnector import AutoGenConnector
-from autogen import Agent, ConversableAgent
 import time
 from typing import Callable, Dict, List, Optional, Union
-
+from autogen import Agent, ConversableAgent
+from .AutoGenConnector import AutoGenConnector
 
 class AG2CAP(ConversableAgent):
     """
@@ -15,7 +14,7 @@ class AG2CAP(ConversableAgent):
         agent_name: str,
         agent_description: Optional[str] = None,
     ):
-        super().__init__(name=agent_name, description=agent_description)
+        super().__init__(name=agent_name, description=agent_description, llm_config=False)
         self._agent_connector: AutoGenConnector = None
         self._network = network
         self._recv_called = False

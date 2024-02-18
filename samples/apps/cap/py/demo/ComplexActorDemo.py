@@ -1,7 +1,7 @@
-from LocalActorNetwork import LocalActorNetwork
-from demo.AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, UserInterfaceAgent
-from termcolor import colored
 import time
+from termcolor import colored
+from autogencap.LocalActorNetwork import LocalActorNetwork
+from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, UserInterfaceAgent
 
 def complex_actor_demo():
     """

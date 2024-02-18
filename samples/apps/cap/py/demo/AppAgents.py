@@ -4,10 +4,10 @@ Each agent represents a different role and knows how to connect to external syst
 to retrieve information.
 """
 
-from DebugLog import Debug, Info, shorten
-from LocalActorNetwork import LocalActorNetwork
-from ActorConnector import ActorConnector
-from CAPActor import CAPActor
+from autogencap.DebugLog import Debug, Info, shorten
+from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.ActorConnector import ActorConnector
+from autogencap.CAPActor import CAPActor
 
 
 class FidelityAgent(CAPActor):

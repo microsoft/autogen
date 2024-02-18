@@ -1,8 +1,8 @@
-from DebugLog import Debug, Info
 import zmq
 import threading
 import traceback
-from CAPConstants import Termination_Topic, xpub_url
+from .DebugLog import Debug, Info
+from .CAPConstants import Termination_Topic, xpub_url
 
 
 class CAPActor:
