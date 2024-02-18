@@ -120,7 +120,6 @@ If you want the user to save the code in a file before executing it, put # filen
         not all users may have Docker installed or may choose not to use it.
         Therefore, having a baseline level of protection helps mitigate risks for users who,
         either out of choice or necessity, run code outside of a sandboxed environment.
-
         """
         dangerous_patterns = [
             (r"\brm\s+-rf\b", "Use of 'rm -rf' command is not allowed."),
