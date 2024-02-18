@@ -18,7 +18,7 @@ from textual.screen import Screen, ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
-from textual.widgets import Button
+from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
 from textual.reactive import reactive
 from textual.message import Message
@@ -566,36 +566,93 @@ class QuitScreen(ModalScreen):
 class SettingsScreen(ModalScreen):
     """Screen with a dialog to display settings."""
 
-    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+    BINDINGS = [("escape", "app.pop_screen", "Dismiss")]
 
     def compose(self) -> ComposeResult:
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
-        self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio())
-        yield Container(
-            Container(Label("User Settings", classes="heading"), id="settings-screen-header"),
-            Grid(
-                Container(Label("User", classes="form-label"), self.widget_user_name),
-                Container(Label("Bio", classes="form-label"), self.widget_user_bio),
-                id="settings-screen-contents",
-            ),
-            Grid(
-                Button("Save", variant="primary", id="save-settings"),
-                Button("Close", variant="error", id="close-settings"),
-                id="settings-screen-footer",
-            ),
-            id="settings-screen",
-        )
+        self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio(), id="user-bio")
+
+        tools = {
+            "hello-world": {
+                "name": "Hello World",
+                "description": "A simple hello world tool",
+                "python-function": """def hello_world():\n\treturn "Hello, world!\n""",
+            },
+            "add": {
+                "name": "Add",
+                "description": "A simple add tool",
+                "python-function": """def add(a, b):\n\treturn a + b\n""",
+            },
+        }
+
+        with TabbedContent("User", "Tools", id="settings-screen"):
+            yield Container(
+                Grid(
+                    Container(Label("User", classes="form-label"), self.widget_user_name),
+                    Container(Label("Bio", classes="form-label"), self.widget_user_bio),
+                    id="settings-screen-contents",
+                ),
+                Grid(
+                    Button("Save", variant="primary", id="save-user-settings"),
+                    Button("Close", variant="error", id="close-user-settings"),
+                    classes="settings-screen-footer",
+                ),
+                id="user-settings-screen",
+            )
+            yield Container(
+                Grid(
+                    ListView(
+                        *(ListItem(Label(k), id=f"tool-{k}") for k in tools),
+                        id="tool-list",
+                    ),
+                    Grid(
+                        Container(
+                            Label("Tool Name", classes="form-label"),
+                            Input(id="tool-name-input"),
+                        ),
+                        Container(
+                            Label("Code", classes="form-label"),
+                            TextArea.code_editor("", language="python", id="tool-code-textarea"),
+                        ),
+                        id="tool-code-container",
+                    ),
+                    id="tool-screen-contents",
+                ),
+                Container(
+                    Button("Close", variant="primary", id="close-tool-settings"),
+                    id="tools-screen-footer",
+                    classes="settings-screen-footer",
+                ),
+                id="tools-setting-screen",
+            )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "close-settings":
+        if event.button.id in ["close-user-settings", "close-tool-settings"]:
             self.app.pop_screen()
-        elif event.button.id == "save-settings":
+        elif event.button.id == "save-user-settings":
             new_user_name = self.widget_user_name.value
             new_user_bio = self.widget_user_bio.text
 
             APP_CONFIG.update_configuration(user_name=new_user_name, user_bio=new_user_bio)
 
             self.app.pop_screen()
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        tool_name = event.item.id[5:]
+        tools = {
+            "hello-world": {
+                "name": "Hello World",
+                "description": "A simple hello world tool",
+                "python-function": """def hello_world():\n\treturn "Hello, world!\n""",
+            },
+            "add": {
+                "name": "Add",
+                "description": "A simple add tool",
+                "python-function": """def add(a, b):\n\treturn a + b\n""",
+            },
+        }
+        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_name]["python-function"]
+        self.query_one("#tool-name-input", Input).value = tools[tool_name]["name"]
 
 
 class ChatScreen(Screen):
@@ -656,8 +713,6 @@ class TinyRA(App):
             Header(show_clock=True),
             DirectoryTreeContainer(id="directory-tree"),
             ChatDisplay(id="chat-history"),
-            SkillsDisplayContainer(id="skills"),
-            # Static(id="status"),
             ChatInput(id="chat-input"),
             Footer(),
             id="main-grid",

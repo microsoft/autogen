@@ -7,7 +7,6 @@
 
 #directory-tree{
     row-span: 10;
-    /* height: 100%; */
     column-span: 2;
     padding: 1;
 }
@@ -15,28 +14,19 @@
 #chat-history {
     padding: 1;
     row-span: 9;
-    column-span: 6;
-}
-
-#status{
-    row-span: 2;
-    column-span: 6;
-    padding: 1;
-    border: solid red;
+    column-span: 8;
 }
 
 #chat-input{
     row-span: 1;
-    column-span: 6;
+    column-span: 8;
 }
 
 #skills{
-    /* border: solid green; */
     row-span: 10;
     column-span: 2;
     height: 100%;
     padding: 1;
-    /* border: solid red; */
 }
 
 .message{
@@ -136,20 +126,20 @@ SettingsScreen {
 
 #settings-screen {
     grid-size: 2 10;
-    height: 80%;
-    width: 80%;
+    height: 90%;
+    width: 90%;
     background: $surface;
-    border: thick $background 80%;
+    border: thick $background 90%;
     padding: 1;
 }
 
-#settings-screen-header {
+/* #settings-screen-header {
     column-span: 2;
     height: 3;
     /* content-align: center middle; */
-    align: center middle;
+    /* align: center middle; */
     /* border: solid red; */
-}
+/* } */
 
 #settings-screen-contents {
     grid-size: 1 2;
@@ -158,13 +148,13 @@ SettingsScreen {
     /* border: solid red; */
 }
 
-#settings-screen-footer {
+.settings-screen-footer {
     grid-size: 2 1;
     align: center middle;
     height: 5;
 }
 
-#settings-screen-footer Button {
+.settings-screen-footer Button {
     width: 40%;
 }
 
@@ -175,4 +165,32 @@ SettingsScreen {
 .form-label{
     text-style: bold;
     margin-bottom: 1;
+}
+
+#tool-screen-contents{
+    grid-size: 4 1;
+    /* border: solid red; */
+
+}
+
+#tool-list {
+    column-span: 1;
+    height: 100%;
+    padding: 1;
+    /* border: solid red; */
+}
+
+#tool-list ListItem {
+    padding: 1;
+    margin: 1;
+}
+
+#tool-code-container{
+    grid-size: 1 2;
+    grid-rows: 25% 60%;
+    grid-gutter: 1 2;
+    column-span: 3;
+    height: 100%;
+    padding: 1;
+    border: solid red;
 }
