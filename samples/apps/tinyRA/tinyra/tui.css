@@ -173,10 +173,24 @@ SettingsScreen {
 
 }
 
-#tool-list {
+#tool-list-container {
     column-span: 1;
     height: 100%;
     padding: 1;
+    content-align: center middle;
+    /* border: solid red; */
+}
+
+#tool-list {
+    /* padding: 1; */
+    margin: 0;
+    /* border: solid red; */
+}
+
+#new-tool-settings {
+    /* width: 30%; */
+    /* padding: 1; */
+    margin: 1;
     /* border: solid red; */
 }
 
@@ -192,5 +206,5 @@ SettingsScreen {
     column-span: 3;
     height: 100%;
     padding: 1;
-    border: solid red;
+    /* border: solid red; */
 }

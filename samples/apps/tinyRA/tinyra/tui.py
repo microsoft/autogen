@@ -28,6 +28,13 @@ from autogen import config_list_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent
 
 
+class Tool:
+    def __init__(self, name, code, description):
+        self.name = name
+        self.code = code
+        self.description = description
+
+
 class AppConfiguration:
     def __init__(
         self,
@@ -124,6 +131,17 @@ class AppConfiguration:
                 (user_name, user_bio),
             )
 
+        # Create tools table if it doesn't exist
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tools (
+                name TEXT NOT NULL,
+                code TEXT NOT NULL,
+                description TEXT
+            )
+            """
+        )
+
         # Commit the changes and close the connection
         conn.commit()
         conn.close()
@@ -161,6 +179,29 @@ class AppConfiguration:
 
     def get_data_path(self):
         return self._data_path
+
+    def update_tool(self, tool: Tool):
+        conn = sqlite3.connect(self._database_path)
+        c = conn.cursor()
+        c.execute("SELECT * FROM tools WHERE name = ?", (tool.name,))
+        if c.fetchone() is None:
+            c.execute(
+                "INSERT INTO tools (name, code, description) VALUES (?, ?, ?)", (tool.name, tool.code, tool.description)
+            )
+        else:
+            c.execute(
+                "UPDATE tools SET code = ?, description = ? WHERE name = ?", (tool.code, tool.description, tool.name)
+            )
+        conn.commit()
+        conn.close()
+
+    def get_tools(self) -> List[Tool]:
+        conn = sqlite3.connect(self._database_path)
+        c = conn.cursor()
+        c.execute("SELECT name, code, description FROM tools")
+        tools = {name: Tool(name, code, description) for name, code, description in c.fetchall()}
+        conn.close()
+        return tools
 
 
 APP_CONFIG = AppConfiguration()
@@ -572,18 +613,7 @@ class SettingsScreen(ModalScreen):
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio(), id="user-bio")
 
-        tools = {
-            "hello-world": {
-                "name": "Hello World",
-                "description": "A simple hello world tool",
-                "python-function": """def hello_world():\n\treturn "Hello, world!\n""",
-            },
-            "add": {
-                "name": "Add",
-                "description": "A simple add tool",
-                "python-function": """def add(a, b):\n\treturn a + b\n""",
-            },
-        }
+        tools = APP_CONFIG.get_tools()
 
         with TabbedContent("User", "Tools", id="settings-screen"):
             yield Container(
@@ -601,9 +631,13 @@ class SettingsScreen(ModalScreen):
             )
             yield Container(
                 Grid(
-                    ListView(
-                        *(ListItem(Label(k), id=f"tool-{k}") for k in tools),
-                        id="tool-list",
+                    Container(
+                        ListView(
+                            *(ListItem(Label(k), id=f"tool-{k}") for k in tools),
+                            id="tool-list",
+                        ),
+                        Button("+", variant="primary", id="new-tool-settings"),
+                        id="tool-list-container",
                     ),
                     Grid(
                         Container(
@@ -618,7 +652,8 @@ class SettingsScreen(ModalScreen):
                     ),
                     id="tool-screen-contents",
                 ),
-                Container(
+                Grid(
+                    Button("Update Tool", variant="primary", id="save-tool-settings"),
                     Button("Close", variant="primary", id="close-tool-settings"),
                     id="tools-screen-footer",
                     classes="settings-screen-footer",
@@ -636,23 +671,23 @@ class SettingsScreen(ModalScreen):
             APP_CONFIG.update_configuration(user_name=new_user_name, user_bio=new_user_bio)
 
             self.app.pop_screen()
+        elif event.button.id == "new-tool-settings":
+            tools = APP_CONFIG.get_tools()
+            num_tools = len(tools)
+            new_tool_name = f"tool-{num_tools + 1}"
+            APP_CONFIG.update_tool(Tool(new_tool_name, "", "No description available"))
+        elif event.button.id == "save-tool-settings":
+            tool_name = self.query_one("#tool-name-input", Input).value
+            tool_code = self.query_one("#tool-code-textarea", TextArea).text
+            tool_description = "No description available"
+            tool = Tool(tool_name, tool_code, tool_description)
+            APP_CONFIG.update_tool(tool)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_name = event.item.id[5:]
-        tools = {
-            "hello-world": {
-                "name": "Hello World",
-                "description": "A simple hello world tool",
-                "python-function": """def hello_world():\n\treturn "Hello, world!\n""",
-            },
-            "add": {
-                "name": "Add",
-                "description": "A simple add tool",
-                "python-function": """def add(a, b):\n\treturn a + b\n""",
-            },
-        }
-        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_name]["python-function"]
-        self.query_one("#tool-name-input", Input).value = tools[tool_name]["name"]
+        tools = APP_CONFIG.get_tools()
+        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_name].code
+        self.query_one("#tool-name-input", Input).value = tools[tool_name].name
 
 
 class ChatScreen(Screen):
