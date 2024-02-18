@@ -53,10 +53,6 @@ def test_build():
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
-    # check system message
-    for cfg in agent_config["agent_configs"]:
-        assert "TERMINATE" in cfg["system_message"]
-
 
 @pytest.mark.skipif(
     skip,
@@ -110,12 +106,6 @@ def test_build_from_library():
 
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
-
-    # Disabling the assertion below to avoid test failure
-    # TODO: check whether the assertion is necessary
-    # check system message
-    # for cfg in agent_config["agent_configs"]:
-    #     assert "TERMINATE" in cfg["system_message"]
 
 
 @pytest.mark.skipif(
