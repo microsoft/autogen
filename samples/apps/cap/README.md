@@ -2,8 +2,8 @@
 
 **Python Instructions**
 0) cd py
-1) pip install -r requirements.txt
-2) python ./src/demo/App.py
+1) pip install -r autogencap/requirements.txt
+2) python ./demo/App.py
 
 Notes:
 1) Options 3,4,5&6 require OAI_CONFIG_LIST for Autogen.
