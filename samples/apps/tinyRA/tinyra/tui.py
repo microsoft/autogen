@@ -563,8 +563,8 @@ class QuitScreen(Screen):
             self.app.pop_screen()
 
 
-class HelpScreen(Screen):
-    """Screen with a dialog to display help."""
+class SettingsScreen(Screen):
+    """Screen with a dialog to display settings."""
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
@@ -572,24 +572,24 @@ class HelpScreen(Screen):
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio())
         yield Container(
-            Grid(Label("Configuration", classes="heading"), id="help-screen-header"),
+            Grid(Label("Configuration", classes="heading"), id="settings-screen-header"),
             Grid(
                 Container(Label("User", classes="form-label"), self.widget_user_name),
                 Container(Label("Bio", classes="form-label"), self.widget_user_bio),
-                id="help-screen-contents",
+                id="settings-screen-contents",
             ),
             Grid(
-                Button("Save", variant="primary", id="save"),
-                Button("Close", variant="error", id="close-help"),
-                id="help-screen-footer",
+                Button("Save", variant="primary", id="save-settings"),
+                Button("Close", variant="error", id="close-settings"),
+                id="settings-screen-footer",
             ),
-            id="help-screen",
+            id="settings-screen",
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "close-help":
+        if event.button.id == "close-settings":
             self.app.pop_screen()
-        elif event.button.id == "save":
+        elif event.button.id == "save-settings":
             new_user_name = self.widget_user_name.value
             new_user_bio = self.widget_user_bio.text
 
@@ -643,7 +643,7 @@ class TinyRA(App):
 
     BINDINGS = [
         ("ctrl+c", "request_quit", "Quit"),
-        ("ctrl+t", "request_help", "Help"),
+        ("ctrl+s", "request_settings", "Settings"),
     ]
 
     CSS_PATH = "tui.css"
@@ -666,7 +666,7 @@ class TinyRA(App):
 
     def on_mount(self) -> None:
         self.install_screen(QuitScreen(), name="quit-screen")
-        self.install_screen(HelpScreen(), name="help-screen")
+        self.install_screen(SettingsScreen(), name="settings-screen")
 
     def action_request_quit(self) -> None:
         # check if there is already a quit screen
@@ -677,8 +677,8 @@ class TinyRA(App):
         """An action to toggle dark mode."""
         self.dark = not self.dark
 
-    def action_request_help(self) -> None:
-        self.push_screen("help-screen")
+    def action_request_settings(self) -> None:
+        self.push_screen("settings-screen")
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
