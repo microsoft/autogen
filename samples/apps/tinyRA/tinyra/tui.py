@@ -661,15 +661,21 @@ class TinyRA(App):
             id="main-grid",
         )
 
+    def on_mount(self) -> None:
+        self.install_screen(QuitScreen(), name="quit-screen")
+        self.install_screen(HelpScreen(), name="help-screen")
+
     def action_request_quit(self) -> None:
-        self.push_screen(QuitScreen())
+        # check if there is already a quit screen
+        # check if a quit screen is already on the stack
+        self.push_screen("quit-screen")
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
         self.dark = not self.dark
 
     def action_request_help(self) -> None:
-        self.push_screen(HelpScreen())
+        self.push_screen("help-screen")
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
