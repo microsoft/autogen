@@ -112,7 +112,7 @@ If you want the user to save the code in a file before executing it, put # filen
         return MarkdownCodeExtractor()
 
     @staticmethod
-    def sanitize_code(lang: str, code: str) -> None:
+    def sanitize_command(lang: str, code: str) -> None:
         """
         Sanitize the code block to prevent dangerous commands.
         This approach acknowledges that while Docker or similar
@@ -146,7 +146,7 @@ If you want the user to save the code in a file before executing it, put # filen
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
 
-            LocalCommandlineCodeExecutor.sanitize_code(lang, code)
+            LocalCommandlineCodeExecutor.sanitize_command(lang, code)
 
             print(
                 colored(

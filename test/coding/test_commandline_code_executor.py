@@ -188,5 +188,5 @@ def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
 ])
 def test_dangerous_commands(lang, code, expected_message):
     with pytest.raises(ValueError) as exc_info:
-        LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+        LocalCommandlineCodeExecutor.sanitize_code(lang, code)
     assert expected_message in str(exc_info.value), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
