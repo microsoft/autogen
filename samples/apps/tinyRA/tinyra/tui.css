@@ -116,9 +116,7 @@ HelpScreen {
 }
 
 #help-screen {
-    grid-size: 2;
-    /* grid-rows: 1fr 3; */
-    grid-gutter: 1 2;
+    grid-size: 2 10;
     height: 80%;
     width: 80%;
     background: $surface;
@@ -126,9 +124,29 @@ HelpScreen {
     padding: 1;
 }
 
-.multi-line_input {
-    width: 100%;
-    height: 100%;
-    padding: 1;
-    margin: 1;
+#help-screen-header {
+    column-span: 2;
+    height: 3;
+    content-align: center middle;
+    align: center middle;
+    /* border: solid red; */
+}
+
+#help-screen-contents {
+    grid-size: 1 2;
+    grid-gutter: 1 2;
+    grid-rows: 25% 65%;
+    height: 80%;
+    /* border: solid red; */
+}
+
+#help-screen-footer {
+    grid-size: 2 1;
+    align: center middle;
+    height: 5;
+    /* border: solid red; */
+}
+
+#help-screen-footer Button {
+    width: 40%;
 }

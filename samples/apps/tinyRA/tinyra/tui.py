@@ -15,7 +15,7 @@ from typing import List, Dict
 from textual import work
 from textual.app import App, ComposeResult
 from textual.screen import Screen
-from textual.containers import ScrollableContainer, Grid
+from textual.containers import ScrollableContainer, Grid, Container
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
 from textual.widgets import Button
@@ -565,16 +565,23 @@ class HelpScreen(Screen):
     """Screen with a dialog to display help."""
 
     def compose(self) -> ComposeResult:
-        self.widget_user_name = Input(APP_CONFIG.get_user_name(), id="user-name")
-        self.widget_user_profile_text = TextArea(APP_CONFIG.get_user_bio(), id="user-profile-text")
-        yield Grid(
-            Label("Configuration"),
-            Label("User"),
-            self.widget_user_name,
-            Label("Bio"),
-            self.widget_user_profile_text,
-            Button("Save", variant="primary", id="save"),
-            Button("Close", variant="error", id="close-help"),
+        self.widget_user_name = Input(APP_CONFIG.get_user_name())
+        self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio())
+        yield Container(
+            Grid(Label("Configuration"), id="help-screen-header"),
+            Grid(
+                Container(
+                    Label("User"),
+                    self.widget_user_name,
+                ),
+                Container(Label("Bio"), self.widget_user_bio),
+                id="help-screen-contents",
+            ),
+            Grid(
+                Button("Save", variant="primary", id="save"),
+                Button("Close", variant="error", id="close-help"),
+                id="help-screen-footer",
+            ),
             id="help-screen",
         )
 
@@ -583,7 +590,7 @@ class HelpScreen(Screen):
             self.app.pop_screen()
         elif event.button.id == "save":
             new_user_name = self.widget_user_name.value
-            new_user_bio = self.widget_user_profile_text.text
+            new_user_bio = self.widget_user_bio.text
 
             APP_CONFIG.update_configuration(user_name=new_user_name, user_bio=new_user_bio)
 
