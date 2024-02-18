@@ -14,7 +14,7 @@ from typing import List, Dict
 
 from textual import work
 from textual.app import App, ComposeResult
-from textual.screen import Screen
+from textual.screen import Screen, ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container
 from textual.widget import Widget
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
@@ -543,7 +543,7 @@ class ChatInput(Static):
         yield Input(id="chat-input-box")
 
 
-class QuitScreen(Screen):
+class QuitScreen(ModalScreen):
     """Screen with a dialog to quit."""
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
@@ -563,7 +563,7 @@ class QuitScreen(Screen):
             self.app.pop_screen()
 
 
-class SettingsScreen(Screen):
+class SettingsScreen(ModalScreen):
     """Screen with a dialog to display settings."""
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
@@ -663,21 +663,15 @@ class TinyRA(App):
             id="main-grid",
         )
 
-    def on_mount(self) -> None:
-        self.install_screen(QuitScreen(), name="quit-screen")
-        self.install_screen(SettingsScreen(), name="settings-screen")
-
     def action_request_quit(self) -> None:
-        # check if there is already a quit screen
-        # check if a quit screen is already on the stack
-        self.push_screen("quit-screen")
+        self.push_screen(QuitScreen())
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
         self.dark = not self.dark
 
     def action_request_settings(self) -> None:
-        self.push_screen("settings-screen")
+        self.push_screen(SettingsScreen())
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
