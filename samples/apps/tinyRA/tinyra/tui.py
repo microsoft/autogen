@@ -654,7 +654,7 @@ class SettingsScreen(ModalScreen):
                 ),
                 Grid(
                     Button("Update Tool", variant="primary", id="save-tool-settings"),
-                    Button("Close", variant="primary", id="close-tool-settings"),
+                    Button("Close", variant="error", id="close-tool-settings"),
                     id="tools-screen-footer",
                     classes="settings-screen-footer",
                 ),
