@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
@@ -18,7 +19,7 @@ except ImportError:
     Assistant = object
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
-DEFAULT_AZURE_API_VERSION = "2023-12-01-preview"
+DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
@@ -74,6 +75,19 @@ def get_key(config: Dict[str, Any]) -> str:
     return json.dumps(config, sort_keys=True)
 
 
+def is_valid_api_key(api_key: str):
+    """Determine if input is valid OpenAI API key.
+
+    Args:
+        api_key (str): An input string to be validated.
+
+    Returns:
+        bool: A boolean that indicates if input is valid OpenAI API key.
+    """
+    api_key_re = re.compile(r"^sk-[A-Za-z0-9]{32,}$")
+    return bool(re.fullmatch(api_key_re, api_key))
+
+
 def get_config_list(
     api_keys: List, base_urls: Optional[List] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
 ) -> List[Dict]:
@@ -98,7 +112,7 @@ def get_config_list(
 
     # Optionally, define the API type and version if they are common for all keys
     api_type = 'azure'
-    api_version = '2023-12-01-preview'
+    api_version = '2024-02-15-preview'
 
     # Call the get_config_list function to get a list of configuration dictionaries
     config_list = get_config_list(api_keys, base_urls, api_type, api_version)
