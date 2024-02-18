@@ -165,7 +165,7 @@ key_aoai.txt
 base_aoai.txt
 wolfram.txt
 
-# DB on disk for TeachableAgent
+# DB on disk for Teachability
 tmp/
 test/my_tmp/*
 
@@ -175,3 +175,6 @@ test/test_files/agenteval-in-out/out/
 # Files created by tests
 *tmp_code_*
 test/agentchat/test_agent_scripts/*
+
+# test cache
+.cache_test

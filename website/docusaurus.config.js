@@ -2,6 +2,16 @@
 const math = require("remark-math");
 const katex = require("rehype-katex");
 
+customPostCssPlugin = () => {
+  return {
+    name: "custom-postcss",
+    configurePostCss(options) {
+      options.plugins.push(require("postcss-preset-env"));
+      return options;
+    }
+  };
+}
+
 module.exports = {
   title: "AutoGen",
   tagline: "Enable Next-Gen Large Language Model Applications",
@@ -12,6 +22,16 @@ module.exports = {
   favicon: "img/ag.ico",
   organizationName: "Microsoft", // Usually your GitHub org/user name.
   projectName: "AutoGen", // Usually your repo name.
+  scripts: [
+    {
+      src: '/autogen/js/custom.js',
+      async: true,
+      defer: true,
+    },
+  ],
+  markdown: {
+    format: 'detect', // Support for MD files with .md extension
+  },
   themeConfig: {
     navbar: {
       title: "AutoGen",
@@ -39,11 +59,6 @@ module.exports = {
           position: "left",
           label: "FAQ",
         },
-        {
-          href: "https://github.com/microsoft/autogen",
-          label: "GitHub",
-          position: "right",
-        },
         // {
         //   to: 'examples',
         //   label: 'Examples',
@@ -54,6 +69,12 @@ module.exports = {
           position: "left",
           label: "Examples",
         },
+        // Uncomment below to add Notebooks to the navbar
+        // {
+        //   to: "docs/notebooks",
+        //   position: "left",
+        //   label: "Notebooks",
+        // },
         {
           label: "Resources",
           type: "dropdown",
@@ -68,6 +89,22 @@ module.exports = {
             },
           ],
         },
+        {
+          label: "Other Languages",
+          type: "dropdown",
+          position: "right",
+          items: [
+            {
+              label: "Dotnet",
+              href: "https://microsoft.github.io/autogen-for-net/",
+            }
+          ],
+        },
+        {
+          href: "https://github.com/microsoft/autogen",
+          label: "GitHub",
+          position: "right",
+        }
       ],
     },
     footer: {
@@ -100,7 +137,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+      copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
     },
   },
   presets: [
@@ -135,7 +172,6 @@ module.exports = {
   ],
 
   plugins: [
-    // ... Your other plugins.
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
       {
@@ -150,5 +186,17 @@ module.exports = {
         // When applying `zh` in language, please install `nodejieba` in your project.
       },
     ],
+    customPostCssPlugin,
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            to: "/docs/llm_configuration/",
+            from: ["/docs/llm_endpoint_configuration/"],
+          },
+        ],
+      },
+    ]
   ],
 };

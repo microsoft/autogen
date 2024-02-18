@@ -1,13 +1,22 @@
+import asyncio
 import copy
+import sys
+import time
 from typing import Any, Callable, Dict, Literal
+import unittest
+import inspect
+from unittest.mock import MagicMock
 
 import pytest
 from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
+import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
-from conftest import skip_openai
+from autogen.agentchat.conversable_agent import register_function
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
 try:
     import openai
@@ -28,7 +37,7 @@ def conversable_agent():
     )
 
 
-def test_trigger():
+def test_sync_trigger():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
     agent.register_reply(agent1, lambda recipient, messages, sender, config: (True, "hello"))
@@ -64,6 +73,114 @@ def test_trigger():
     assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
     pytest.raises(ValueError, agent.register_reply, 1, lambda recipient, messages, sender, config: (True, "hi"))
     pytest.raises(ValueError, agent._match_trigger, 1, agent1)
+
+
+@pytest.mark.asyncio
+async def test_async_trigger():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    async def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello"
+
+    async def a_reply_a1(recipient, messages, sender, config):
+        print("hello from a_reply_a1")
+        return (True, "hello a1")
+
+    agent.register_reply("a1", a_reply_a1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a1"
+
+    async def a_reply_conversable_agent(recipient, messages, sender, config):
+        print("hello from a_reply_conversable_agent")
+        return (True, "hello conversable agent")
+
+    agent.register_reply(ConversableAgent, a_reply_conversable_agent)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello conversable agent"
+
+    async def a_reply_a(recipient, messages, sender, config):
+        print("hello from a_reply_a")
+        return (True, "hello a")
+
+    agent.register_reply(lambda sender: sender.name.startswith("a"), a_reply_a)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_b(recipient, messages, sender, config):
+        print("hello from a_reply_b")
+        return (True, "hello b")
+
+    agent.register_reply(lambda sender: sender.name.startswith("b"), a_reply_b)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello a"
+
+    async def a_reply_agent2_or_agent1(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent1")
+        return (True, "hello agent2 or agent1")
+
+    agent.register_reply(["agent2", agent1], a_reply_agent2_or_agent1)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    async def a_reply_agent2_or_agent3(recipient, messages, sender, config):
+        print("hello from a_reply_agent2_or_agent3")
+        return (True, "hello agent2 or agent3")
+
+    agent.register_reply(["agent2", "agent3"], a_reply_agent2_or_agent3)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello agent2 or agent1"
+
+    with pytest.raises(ValueError):
+        agent.register_reply(1, a_reply)
+
+    with pytest.raises(ValueError):
+        agent._match_trigger(1, agent1)
+
+
+def test_async_trigger_in_sync_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent2 = ConversableAgent("a2", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    reply_mock = unittest.mock.MagicMock()
+
+    async def a_reply(recipient, messages, sender, config):
+        reply_mock()
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+
+    with pytest.raises(RuntimeError) as e:
+        agent1.initiate_chat(agent, message="hi")
+
+    assert (
+        e.value.args[0] == "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). "
+        "The following async reply functions are found: a_reply"
+    )
+
+    agent2.register_reply(agent1, a_reply, ignore_async_in_sync_chat=True)
+    reply_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_trigger_in_async_chat():
+    agent = ConversableAgent("a0", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+    agent1 = ConversableAgent("a1", max_consecutive_auto_reply=0, llm_config=False, human_input_mode="NEVER")
+
+    def a_reply(recipient, messages, sender, config):
+        print("hello from a_reply")
+        return (True, "hello from reply function")
+
+    agent.register_reply(agent1, a_reply)
+    await agent1.a_initiate_chat(agent, message="hi")
+    assert agent1.last_message(agent)["content"] == "hello from reply function"
 
 
 def test_context():
@@ -208,6 +325,15 @@ def test_generate_code_execution_reply():
     )
     assert agent._code_execution_config["last_n_messages"] == "auto"
 
+    # scenario 8: if last_n_messages is misconfigures, we expect to see an error
+    with pytest.raises(ValueError):
+        agent._code_execution_config = {"last_n_messages": -1, "use_docker": False}
+        agent.generate_code_execution_reply([code_message])
+
+    with pytest.raises(ValueError):
+        agent._code_execution_config = {"last_n_messages": "hello world", "use_docker": False}
+        agent.generate_code_execution_reply([code_message])
+
 
 def test_max_consecutive_auto_reply():
     agent = ConversableAgent("a0", max_consecutive_auto_reply=2, llm_config=False, human_input_mode="NEVER")
@@ -348,8 +474,8 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
 
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         def exec_python(cell: str) -> None:
             pass
@@ -445,6 +571,8 @@ def test__wrap_function_sync():
         == '{"currency":"EUR","amount":100.1}'
     )
 
+    assert not inspect.iscoroutinefunction(currency_calculator)
+
 
 @pytest.mark.asyncio
 async def test__wrap_function_async():
@@ -481,6 +609,8 @@ async def test__wrap_function_async():
         == '{"currency":"EUR","amount":100.1}'
     )
 
+    assert inspect.iscoroutinefunction(currency_calculator)
+
 
 def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]]:
     return {k: v._origin for k, v in d.items()}
@@ -488,14 +618,89 @@ def get_origin(d: Dict[str, Callable[..., Any]]) -> Dict[str, Callable[..., Any]
 
 def test_register_for_llm():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent3 = ConversableAgent(name="agent3", llm_config={})
-        agent2 = ConversableAgent(name="agent2", llm_config={})
-        agent1 = ConversableAgent(name="agent1", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         @agent3.register_for_llm()
         @agent2.register_for_llm(name="python")
         @agent1.register_for_llm(description="run cell in ipython and return the execution result.")
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        expected1 = [
+            {
+                "type": "function",
+                "function": {
+                    "description": "run cell in ipython and return the execution result.",
+                    "name": "exec_python",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cell": {
+                                "type": "string",
+                                "description": "Valid Python cell to execute.",
+                            }
+                        },
+                        "required": ["cell"],
+                    },
+                },
+            }
+        ]
+        expected2 = copy.deepcopy(expected1)
+        expected2[0]["function"]["name"] = "python"
+        expected3 = expected2
+
+        assert agent1.llm_config["tools"] == expected1
+        assert agent2.llm_config["tools"] == expected2
+        assert agent3.llm_config["tools"] == expected3
+
+        @agent3.register_for_llm()
+        @agent2.register_for_llm()
+        @agent1.register_for_llm(name="sh", description="run a shell script and return the execution result.")
+        async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
+            pass
+
+        expected1 = expected1 + [
+            {
+                "type": "function",
+                "function": {
+                    "name": "sh",
+                    "description": "run a shell script and return the execution result.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "script": {
+                                "type": "string",
+                                "description": "Valid shell script to execute.",
+                            }
+                        },
+                        "required": ["script"],
+                    },
+                },
+            }
+        ]
+        expected2 = expected2 + [expected1[1]]
+        expected3 = expected3 + [expected1[1]]
+
+        assert agent1.llm_config["tools"] == expected1
+        assert agent2.llm_config["tools"] == expected2
+        assert agent3.llm_config["tools"] == expected3
+
+
+def test_register_for_llm_api_style_function():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent3 = ConversableAgent(name="agent3", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent2 = ConversableAgent(name="agent2", llm_config={"config_list": [{"model": "gpt-4"}]})
+        agent1 = ConversableAgent(name="agent1", llm_config={"config_list": [{"model": "gpt-4"}]})
+
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(name="python", api_style="function")
+        @agent1.register_for_llm(
+            description="run cell in ipython and return the execution result.", api_style="function"
+        )
         def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
             pass
 
@@ -523,9 +728,11 @@ def test_register_for_llm():
         assert agent2.llm_config["functions"] == expected2
         assert agent3.llm_config["functions"] == expected3
 
-        @agent3.register_for_llm()
-        @agent2.register_for_llm()
-        @agent1.register_for_llm(name="sh", description="run a shell script and return the execution result.")
+        @agent3.register_for_llm(api_style="function")
+        @agent2.register_for_llm(api_style="function")
+        @agent1.register_for_llm(
+            name="sh", description="run a shell script and return the execution result.", api_style="function"
+        )
         async def exec_sh(script: Annotated[str, "Valid shell script to execute."]) -> str:
             pass
 
@@ -555,8 +762,8 @@ def test_register_for_llm():
 
 def test_register_for_llm_without_description():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
 
         with pytest.raises(ValueError) as e:
 
@@ -568,25 +775,33 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config=None)
-        agent.llm_config = None
-        assert agent.llm_config is None
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config=None)
 
-        with pytest.raises(RuntimeError) as e:
 
-            @agent.register_for_llm(description="run cell in ipython and return the execution result.")
-            def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
-                pass
+def test_register_for_llm_without_configuration():
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": []})
 
-        assert e.value.args[0] == "LLM config must be setup before registering a function for LLM."
+
+def test_register_for_llm_without_model_name():
+    with pytest.raises(
+        ValueError,
+        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
 
 def test_register_for_execution():
     with pytest.MonkeyPatch.context() as mp:
-        mp.setenv("OPENAI_API_KEY", "mock")
-        agent = ConversableAgent(name="agent", llm_config={})
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
         user_proxy_1 = UserProxyAgent(name="user_proxy_1")
         user_proxy_2 = UserProxyAgent(name="user_proxy_2")
 
@@ -618,18 +833,222 @@ def test_register_for_execution():
         assert get_origin(user_proxy_1.function_map) == expected_function_map
 
 
-@pytest.mark.skipif(
-    skip,
-    reason="do not run if skipping openai",
-)
-def test_no_llm_config():
-    # We expect a TypeError when the model isn't specified
-    with pytest.raises(TypeError, match=r".*Missing required arguments.*"):
-        agent1 = ConversableAgent(name="agent1", llm_config=False, human_input_mode="NEVER", default_auto_reply="")
-        agent2 = ConversableAgent(
-            name="agent2", llm_config={"api_key": "Intentionally left blank."}, human_input_mode="NEVER"
+def test_register_functions():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+        agent = ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4"}]})
+        user_proxy = UserProxyAgent(name="user_proxy")
+
+        def exec_python(cell: Annotated[str, "Valid Python cell to execute."]) -> str:
+            pass
+
+        register_function(
+            exec_python,
+            caller=agent,
+            executor=user_proxy,
+            description="run cell in ipython and return the execution result.",
         )
-        agent1.initiate_chat(agent2, message="hi")
+
+        expected_function_map = {"exec_python": exec_python}
+        assert get_origin(user_proxy.function_map) == expected_function_map
+
+        expected = [
+            {
+                "type": "function",
+                "function": {
+                    "description": "run cell in ipython and return the execution result.",
+                    "name": "exec_python",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "cell": {
+                                "type": "string",
+                                "description": "Valid Python cell to execute.",
+                            }
+                        },
+                        "required": ["cell"],
+                    },
+                },
+            }
+        ]
+        assert agent.llm_config["tools"] == expected
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+def test_function_registration_e2e_sync() -> None:
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+        },
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    coder = autogen.AssistantAgent(
+        name="chatbot",
+        system_message="For coding tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+        llm_config=llm_config,
+    )
+
+    # create a UserProxyAgent instance named "user_proxy"
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        system_message="A proxy for the user for executing code.",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"work_dir": "coding"},
+    )
+
+    # define functions according to the function description
+    timer_mock = unittest.mock.MagicMock()
+    stopwatch_mock = unittest.mock.MagicMock()
+
+    # An example async function registered using decorators
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a timer for N seconds")
+    def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
+        print("timer is running")
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        timer_mock(num_seconds=num_seconds)
+        return "Timer is done!"
+
+    # An example sync function registered using register_function
+    def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
+        print("stopwatch is running")
+        # assert False, "stopwatch's alive!"
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        stopwatch_mock(num_seconds=num_seconds)
+        return "Stopwatch is done!"
+
+    register_function(stopwatch, caller=coder, executor=user_proxy, description="create a stopwatch for N seconds")
+
+    # start the conversation
+    # 'await' is used to pause and resume code execution for async IO operations.
+    # Without 'await', an async function returns a coroutine object but doesn't execute the function.
+    # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
+    user_proxy.initiate_chat(  # noqa: F704
+        coder,
+        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+    )
+
+    timer_mock.assert_called_once_with(num_seconds="2")
+    stopwatch_mock.assert_called_once_with(num_seconds="3")
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+@pytest.mark.asyncio()
+async def test_function_registration_e2e_async() -> None:
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        filter_dict={
+            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+        },
+        file_location=KEY_LOC,
+    )
+
+    llm_config = {
+        "config_list": config_list,
+    }
+
+    coder = autogen.AssistantAgent(
+        name="chatbot",
+        system_message="For coding tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+        llm_config=llm_config,
+    )
+
+    # create a UserProxyAgent instance named "user_proxy"
+    user_proxy = autogen.UserProxyAgent(
+        name="user_proxy",
+        system_message="A proxy for the user for executing code.",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+        code_execution_config={"work_dir": "coding"},
+    )
+
+    # define functions according to the function description
+    timer_mock = unittest.mock.MagicMock()
+    stopwatch_mock = unittest.mock.MagicMock()
+
+    # An example async function registered using register_function
+    async def timer(num_seconds: Annotated[str, "Number of seconds in the timer."]) -> str:
+        print("timer is running")
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            await asyncio.sleep(0.01)
+        print()
+
+        timer_mock(num_seconds=num_seconds)
+        return "Timer is done!"
+
+    register_function(timer, caller=coder, executor=user_proxy, description="create a timer for N seconds")
+
+    # An example sync function registered using decorators
+    @user_proxy.register_for_execution()
+    @coder.register_for_llm(description="create a stopwatch for N seconds")
+    def stopwatch(num_seconds: Annotated[str, "Number of seconds in the stopwatch."]) -> str:
+        print("stopwatch is running")
+        # assert False, "stopwatch's alive!"
+        for i in range(int(num_seconds)):
+            print(".", end="")
+            time.sleep(0.01)
+        print()
+
+        stopwatch_mock(num_seconds=num_seconds)
+        return "Stopwatch is done!"
+
+    # start the conversation
+    # 'await' is used to pause and resume code execution for async IO operations.
+    # Without 'await', an async function returns a coroutine object but doesn't execute the function.
+    # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
+    await user_proxy.a_initiate_chat(  # noqa: F704
+        coder,
+        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+    )
+
+    timer_mock.assert_called_once_with(num_seconds="4")
+    stopwatch_mock.assert_called_once_with(num_seconds="5")
+
+
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_max_turn():
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+
+    # create an AssistantAgent instance named "assistant"
+    assistant = autogen.AssistantAgent(
+        name="assistant",
+        max_consecutive_auto_reply=10,
+        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+    )
+
+    user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
+
+    # Use MagicMock to create a mock get_human_input function
+    user_proxy.get_human_input = MagicMock(return_value="Not funny. Try again.")
+    res = user_proxy.initiate_chat(assistant, clear_history=True, max_turns=3, message="Hello, make a joke about AI.")
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
+    print("history", res.chat_history)
+    assert len(res.chat_history) <= 6
 
 
 if __name__ == "__main__":
@@ -638,4 +1057,5 @@ if __name__ == "__main__":
     # test_max_consecutive_auto_reply()
     # test_generate_code_execution_reply()
     # test_conversable_agent()
-    test_no_llm_config()
+    # test_no_llm_config()
+    test_max_turn()

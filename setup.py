@@ -20,7 +20,9 @@ install_requires = [
     "flaml",
     "python-dotenv",
     "tiktoken",
-    "pydantic>=1.10,<3",  # could be both V1 and V2
+    # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
+    "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
+    "docker",
 ]
 
 setuptools.setup(
@@ -33,10 +35,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
-    # package_data={
-    #     "autogen.default": ["*/*.json"],
-    # },
-    # include_package_data=True,
     install_requires=install_requires,
     extras_require={
         "test": [
@@ -46,7 +44,7 @@ setuptools.setup(
             "nbformat",
             "pre-commit",
             "pytest-asyncio",
-            "pytest>=6.1.1",
+            "pytest>=6.1.1,<8",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
@@ -54,12 +52,15 @@ setuptools.setup(
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
-        "graphs": ["networkx~=3.2.1", "matplotlib~=3.8.1"],
+        "graph": ["networkx", "matplotlib"],
+        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+        "redis": ["redis"],
+        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.8, <3.12",
+    python_requires=">=3.8,<3.13",
 )

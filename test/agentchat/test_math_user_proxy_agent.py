@@ -55,8 +55,10 @@ def test_math_user_proxy_agent():
     #     message=mathproxyagent.generate_init_message(math_problem),
     #     sender=mathproxyagent,
     # )
-    mathproxyagent.initiate_chat(assistant, problem=math_problem)
+    res = mathproxyagent.initiate_chat(assistant, problem=math_problem)
     print(conversations)
+    print("Chat summary:", res.summary)
+    print("Chat history:", res.chat_history)
 
 
 def test_add_remove_print():

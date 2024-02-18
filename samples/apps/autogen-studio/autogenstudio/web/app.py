@@ -5,7 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
-
+from openai import OpenAIError
+from ..version import VERSION
 
 from ..datamodel import (
     ChatWebRequestModel,
@@ -14,7 +15,7 @@ from ..datamodel import (
     Message,
     Session,
 )
-from ..utils import md5_hash, init_webserver_folders, DBManager, dbutils
+from ..utils import md5_hash, init_webserver_folders, DBManager, dbutils, test_model
 
 from ..chatmanager import AutoGenChatManager
 
@@ -37,15 +38,16 @@ app.add_middleware(
 )
 
 
-root_file_path = os.path.dirname(os.path.abspath(__file__))
+root_file_path = os.environ.get("AUTOGENSTUDIO_APPDIR") or os.path.dirname(os.path.abspath(__file__))
 # init folders skills, workdir, static, files etc
 folders = init_webserver_folders(root_file_path)
+ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 api = FastAPI(root_path="/api")
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
-app.mount("/", StaticFiles(directory=folders["static_folder_root"], html=True), name="ui")
+app.mount("/", StaticFiles(directory=ui_folder_path, html=True), name="ui")
 api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
 
@@ -249,7 +251,6 @@ async def get_user_skills(user_id: str):
 async def create_user_skills(req: DBWebRequestModel):
     try:
         skills = dbutils.upsert_skill(skill=req.skill, dbmanager=dbmanager)
-
         return {
             "status": True,
             "message": "Skills retrieved successfully",
@@ -345,6 +346,92 @@ async def delete_user_agent(req: DBWebRequestModel):
         }
 
 
+@api.get("/models")
+async def get_user_models(user_id: str):
+    try:
+        models = dbutils.get_models(user_id, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Models retrieved successfully",
+            "data": models,
+        }
+    except Exception as ex_error:
+        print(ex_error)
+        return {
+            "status": False,
+            "message": "Error occurred while retrieving models: " + str(ex_error),
+        }
+
+
+@api.post("/models")
+async def create_user_models(req: DBWebRequestModel):
+    """Create a new model for a user"""
+
+    try:
+        models = dbutils.upsert_model(model=req.model, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Model created successfully",
+            "data": models,
+        }
+
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while creating model: " + str(ex_error),
+        }
+
+
+@api.post("/models/test")
+async def test_user_models(req: DBWebRequestModel):
+    """Test a model to verify it works"""
+
+    try:
+        response = test_model(model=req.model)
+        return {
+            "status": True,
+            "message": "Model tested successfully",
+            "data": response,
+        }
+
+    except OpenAIError as oai_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while testing model: " + str(oai_error),
+        }
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while testing model: " + str(ex_error),
+        }
+
+
+@api.delete("/models/delete")
+async def delete_user_model(req: DBWebRequestModel):
+    """Delete a model for a user"""
+
+    try:
+        models = dbutils.delete_model(model=req.model, dbmanager=dbmanager)
+
+        return {
+            "status": True,
+            "message": "Model deleted successfully",
+            "data": models,
+        }
+
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while deleting model: " + str(ex_error),
+        }
+
+
 @api.get("/workflows")
 async def get_user_workflows(user_id: str):
     try:
@@ -366,7 +453,6 @@ async def get_user_workflows(user_id: str):
 @api.post("/workflows")
 async def create_user_workflow(req: DBWebRequestModel):
     """Create a new workflow for a user"""
-
     try:
         workflow = dbutils.upsert_workflow(workflow=req.workflow, dbmanager=dbmanager)
         return {
@@ -401,3 +487,12 @@ async def delete_user_workflow(req: DBWebRequestModel):
             "status": False,
             "message": "Error occurred while deleting workflow: " + str(ex_error),
         }
+
+
+@api.get("/version")
+async def get_version():
+    return {
+        "status": True,
+        "message": "Version retrieved successfully",
+        "data": {"version": VERSION},
+    }
