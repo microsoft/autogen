@@ -93,10 +93,9 @@ ChatScreen {
     align: center middle;
 }
 
-#sub-chat-history {
-    grid-size: 2;
-    grid-rows: 1fr 3;
-    grid-gutter: 1 2;
+#chat-screen {
+    grid-size: 2 10;
+    grid-rows: 10% 80% 10%;
     height: 80%;
     width: 80%;
     background: $surface;
@@ -104,11 +103,31 @@ ChatScreen {
     padding: 1;
 }
 
-#sub-chat-history-contents {
+#chat-screen-header {
     column-span: 2;
-    /* height: fr; */
+    height: 3;
     content-align: center middle;
-    width: 1fr;
+    align: center middle;
+    /* border: solid red; */
+}
+
+#chat-screen-contents {
+    column-span: 2;
+    height: 100%;
+    /* content-align: center middle; */
+    margin: 1;
+    border: solid $background;
+}
+
+#chat-screen-footer {
+    column-span: 2;
+    height: 5;
+    align: center middle;
+    /* border: solid red; */
+}
+
+#chat-screen-footer Button {
+    width: 40%;
 }
 
 SettingsScreen {
@@ -127,7 +146,7 @@ SettingsScreen {
 #settings-screen-header {
     column-span: 2;
     height: 3;
-    content-align: center middle;
+    /* content-align: center middle; */
     align: center middle;
     /* border: solid red; */
 }
@@ -135,8 +154,7 @@ SettingsScreen {
 #settings-screen-contents {
     grid-size: 1 2;
     grid-gutter: 1 2;
-    grid-rows: 25% 65%;
-    height: 80%;
+    grid-rows: 5 15;
     /* border: solid red; */
 }
 
@@ -144,8 +162,6 @@ SettingsScreen {
     grid-size: 2 1;
     align: center middle;
     height: 5;
-    text-style: bold;
-    /* border: solid red; */
 }
 
 #settings-screen-footer Button {

@@ -572,7 +572,7 @@ class SettingsScreen(Screen):
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio())
         yield Container(
-            Grid(Label("Configuration", classes="heading"), id="settings-screen-header"),
+            Container(Label("User Settings", classes="heading"), id="settings-screen-header"),
             Grid(
                 Container(Label("User", classes="form-label"), self.widget_user_name),
                 Container(Label("Bio", classes="form-label"), self.widget_user_bio),
@@ -602,23 +602,22 @@ class ChatScreen(Screen):
     """A screen that displays a chat history"""
 
     root_msg_id = 0
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
     def compose(self) -> ComposeResult:
         history = json.dumps(fetch_chat_history(self.root_msg_id), indent=2)
         yield Grid(
-            ScrollableContainer(
-                Static(f"Here is the history for {self.root_msg_id}\n{history}", id="sub-chat-history-contents")
+            Container(Label(f"Chat History for {self.root_msg_id}", classes="heading"), id="chat-screen-header"),
+            ScrollableContainer(Static(history), id="chat-screen-contents"),
+            Container(
+                Button("Cancel", variant="primary", id="cancel"),
+                id="chat-screen-footer",
             ),
-            Button("Cancel", variant="primary", id="cancel"),
-            id="sub-chat-history",
+            id="chat-screen",
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel":
-            self.app.pop_screen()
-
-    def on_key(self, event: Key) -> None:
-        if event.key == "escape":
             self.app.pop_screen()
 
 
