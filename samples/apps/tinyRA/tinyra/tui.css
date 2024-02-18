@@ -144,9 +144,19 @@ HelpScreen {
     grid-size: 2 1;
     align: center middle;
     height: 5;
+    text-style: bold;
     /* border: solid red; */
 }
 
 #help-screen-footer Button {
     width: 40%;
+}
+
+.heading {
+    text-style: bold;
+}
+
+.form-label{
+    text-style: bold;
+    margin-bottom: 1;
 }

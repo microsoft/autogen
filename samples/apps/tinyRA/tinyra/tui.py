@@ -568,13 +568,10 @@ class HelpScreen(Screen):
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio())
         yield Container(
-            Grid(Label("Configuration"), id="help-screen-header"),
+            Grid(Label("Configuration", classes="heading"), id="help-screen-header"),
             Grid(
-                Container(
-                    Label("User"),
-                    self.widget_user_name,
-                ),
-                Container(Label("Bio"), self.widget_user_bio),
+                Container(Label("User", classes="form-label"), self.widget_user_name),
+                Container(Label("Bio", classes="form-label"), self.widget_user_bio),
                 id="help-screen-contents",
             ),
             Grid(
