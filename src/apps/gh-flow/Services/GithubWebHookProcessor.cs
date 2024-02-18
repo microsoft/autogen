@@ -10,16 +10,14 @@ using Orleans.Runtime;
 public sealed class GithubWebHookProcessor : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger;
-    private readonly IGrainFactory _grains;
     private readonly IClusterClient _client;
     private readonly IManageGithub _ghService;
     private readonly IManageAzure _azService;
 
-    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, IGrainFactory grains,
+    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger,
     IClusterClient client, IManageGithub ghService, IManageAzure azService)
     {
         _logger = logger;
-        _grains = grains;
         _client = client;
         _ghService = ghService;
         _azService = azService;
@@ -84,7 +82,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
     private async Task HandleNewAsk(long issueNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
     {
         var streamProvider = _client.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(suffix, issueNumber.ToString());
+        var streamId = StreamId.Create("DevPersonas", suffix+issueNumber.ToString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         var eventType = (skillName, functionName) switch

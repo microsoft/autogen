@@ -9,7 +9,8 @@ using Orleans.Streams;
 using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
-public class DeveloperLead : SemanticPersona, ILeadDevelopment
+[ImplicitStreamSubscription("DevPersonas")]
+public class DeveloperLead : SemanticPersona
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -25,6 +26,14 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         _memory = memory;
         _logger = logger;
         _ghService = ghService;
+    }
+    public async override Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKey());
+        var stream = streamProvider.GetStream<Event>(streamId);
+
+        await stream.SubscribeAsync(HandleEvent);
     }
 
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
@@ -107,6 +116,12 @@ public class DeveloperLead : SemanticPersona, ILeadDevelopment
         {
             case EventType.NewAsk:
                 await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
+                break;
+            case EventType.NewAskPlan:
+                await CreatePlan(item.Message);
+                break;
+            case EventType.ChainClosed:
+                await ClosePlan();
                 break;
             default:
                 break;

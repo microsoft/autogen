@@ -8,7 +8,9 @@ using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
-public class ProductManager : SemanticPersona, IManageProduct
+
+[ImplicitStreamSubscription("DevPersonas")]
+public class ProductManager : SemanticPersona
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -26,12 +28,27 @@ public class ProductManager : SemanticPersona, IManageProduct
         _ghService = ghService;
     }
 
+    public async override Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKey());
+        var stream = streamProvider.GetStream<Event>(streamId);
+
+        await stream.SubscribeAsync(HandleEvent);
+    }
+
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
             case EventType.NewAsk:
                 await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
+                break;
+             case EventType.NewAskReadme:
+                await CreateReadme(item.Message);
+                break;
+            case EventType.ChainClosed:
+                await CloseReadme();
                 break;
             default:
                 break;

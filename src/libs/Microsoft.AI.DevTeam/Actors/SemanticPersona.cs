@@ -6,7 +6,8 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public abstract class SemanticPersona : Grain, IChatHistory
+
+public abstract class SemanticPersona : Grain, IChatHistory, IGrainWithStringKey
 {
     public SemanticPersona(
          [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state)
@@ -36,23 +37,14 @@ public abstract class SemanticPersona : Grain, IChatHistory
         context.Set("wafContext", wafContext);
     }
 
-    public async override Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        var streamProvider = this.GetStreamProvider("");
-        var streamId = StreamId.Create("MyStreamNamespace", this.GetPrimaryKey());
-        var stream = streamProvider.GetStream<Event>(streamId);
+    // public async override Task OnActivateAsync(CancellationToken cancellationToken)
+    // {
+    //     var streamProvider = this.GetStreamProvider("StreamProvider");
+    //     var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKey());
+    //     var stream = streamProvider.GetStream<Event>(streamId);
 
-        var subscriptionHandles = await stream.GetAllSubscriptionHandles();
-        if ( subscriptionHandles != null && subscriptionHandles.Count > 0)
-        {
-            subscriptionHandles.ToList().ForEach(
-                async x => await x.ResumeAsync(HandleEvent)); 
-        }
-        else
-        {
-            await stream.SubscribeAsync(HandleEvent);
-        }
-    }
+    //     await stream.SubscribeAsync(HandleEvent);
+    // }
 }
 
 public interface IChatHistory

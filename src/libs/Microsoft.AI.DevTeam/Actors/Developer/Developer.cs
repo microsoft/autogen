@@ -9,7 +9,7 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Dev : SemanticPersona, IDevelopCode
+public class Dev : SemanticPersona
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -80,6 +80,13 @@ public class Dev : SemanticPersona, IDevelopCode
         switch (item.Type)
         {
             case EventType.NewAsk:
+                await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
+                break;
+            case EventType.NewAskImplement:
+                await GenerateCode(item.Message);
+                break;
+            case EventType.ChainClosed:
+                await CloseImplementation();
                 break;
             default:
                 break;
