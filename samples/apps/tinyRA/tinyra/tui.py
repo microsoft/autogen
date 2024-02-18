@@ -546,6 +546,8 @@ class ChatInput(Static):
 class QuitScreen(Screen):
     """Screen with a dialog to quit."""
 
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+
     def compose(self) -> ComposeResult:
         yield Grid(
             Label("Are you sure you want to quit?", id="question"),
@@ -563,6 +565,8 @@ class QuitScreen(Screen):
 
 class HelpScreen(Screen):
     """Screen with a dialog to display help."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
     def compose(self) -> ComposeResult:
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
@@ -638,8 +642,7 @@ class TinyRA(App):
     """
 
     BINDINGS = [
-        # ("ctrl+t", "toggle_dark", "Toggle dark mode"),
-        ("ctrl+c", "request_quit", "Quit TinyRA"),
+        ("ctrl+c", "request_quit", "Quit"),
         ("ctrl+t", "request_help", "Help"),
     ]
 
