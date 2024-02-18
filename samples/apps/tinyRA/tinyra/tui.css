@@ -110,3 +110,25 @@ ChatScreen {
     content-align: center middle;
     width: 1fr;
 }
+
+HelpScreen {
+    align: center middle;
+}
+
+#help-screen {
+    grid-size: 2;
+    /* grid-rows: 1fr 3; */
+    grid-gutter: 1 2;
+    height: 80%;
+    width: 80%;
+    background: $surface;
+    border: thick $background 80%;
+    padding: 1;
+}
+
+.multi-line_input {
+    width: 100%;
+    height: 100%;
+    padding: 1;
+    margin: 1;
+}
