@@ -214,6 +214,13 @@ class AppConfiguration:
         conn.close()
         return tools
 
+    def delete_tool(self, tool_id: int):
+        conn = sqlite3.connect(self._database_path)
+        c = conn.cursor()
+        c.execute("DELETE FROM tools WHERE id = ?", (tool_id,))
+        conn.commit()
+        conn.close()
+
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
@@ -627,6 +634,7 @@ class SettingsScreen(ModalScreen):
         tools = APP_CONFIG.get_tools()
 
         with TabbedContent("User", "Tools", id="settings-screen"):
+            # Tab for user settings
             yield Container(
                 Grid(
                     Container(Label("User", classes="form-label"), self.widget_user_name),
@@ -640,36 +648,40 @@ class SettingsScreen(ModalScreen):
                 ),
                 id="user-settings-screen",
             )
-            yield Container(
+            # Tab for tools settings
+            yield Grid(
+                # display the list of tools
+                Container(
+                    ListView(
+                        *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
+                        id="tool-list",
+                    ),
+                    Button("+", variant="primary", id="new-tool-button"),
+                    id="tool-list-container",
+                ),
+                # display the settings for the selected tool
                 Grid(
                     Container(
-                        ListView(
-                            *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
-                            id="tool-list",
+                        Container(
+                            Label("Tool ID", classes="form-label"),
+                            Input(id="tool-id-input", disabled=True),
                         ),
-                        Button("+", variant="primary", id="new-tool-settings"),
-                        id="tool-list-container",
+                        Container(Label("Tool Name (Display)", classes="form-label"), Input(id="tool-name-input")),
+                        id="tool-info-container",
                     ),
-                    Grid(
-                        Container(
-                            Container(Label("Tool ID", classes="form-label"), Input(id="tool-id-input", disabled=True)),
-                            Container(Label("Tool Name", classes="form-label"), Input(id="tool-name-input")),
-                        ),
-                        Container(
-                            Label("Code", classes="form-label"),
-                            TextArea.code_editor("", language="python", id="tool-code-textarea"),
-                        ),
+                    Container(
+                        Label("Code", classes="form-label"),
+                        TextArea.code_editor("", language="python", id="tool-code-textarea"),
                         id="tool-code-container",
                     ),
-                    id="tool-screen-contents",
+                    Grid(
+                        Button("Save", variant="primary", id="save-tool-settings"),
+                        Button("Delete", variant="error", id="delete-tool-button"),
+                        id="tool-view-footer-grid",
+                    ),
+                    id="tool-view-grid",
                 ),
-                Grid(
-                    Button("Update Tool", variant="primary", id="save-tool-settings"),
-                    Button("Close", variant="error", id="close-tool-settings"),
-                    id="tools-screen-footer",
-                    classes="settings-screen-footer",
-                ),
-                id="tools-setting-screen",
+                id="tools-tab-grid",
             )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -682,12 +694,44 @@ class SettingsScreen(ModalScreen):
             APP_CONFIG.update_configuration(user_name=new_user_name, user_bio=new_user_bio)
 
             self.app.pop_screen()
-        elif event.button.id == "new-tool-settings":
+
+        elif event.button.id == "new-tool-button":
             tools = APP_CONFIG.get_tools()
             num_tools = len(tools)
             new_tool_name = f"tool-{num_tools + 1}"
             description = new_tool_name
-            APP_CONFIG.update_tool(Tool(new_tool_name, "", description=description))
+
+            APP_CONFIG.update_tool(Tool(name=new_tool_name, code=new_tool_name, description=description))
+
+            list_view_widget = self.query_one("#tool-list", ListView)
+            new_list_item = ListItem(Label(new_tool_name), id=f"tool-{num_tools + 1}")
+
+            list_view_widget.append(new_list_item)
+            num_items = len(list_view_widget)
+            list_view_widget.index = num_items - 1
+            list_view_widget.action_select_cursor()
+            # list_view_widget.post_message(list_view_widget.Selected(list_view_widget, new_list_item))
+            # list_view_widget.post_message(list_view_widget.Highlighted(list_view_widget, new_list_item))
+
+        elif event.button.id == "delete-tool-button":
+            # get the id of the selected tool
+            tool_id = int(self.query_one("#tool-id-input", Input).value)
+            item = self.query_one(f"#tool-{tool_id}", ListItem)
+            # delete the tool from the database
+            APP_CONFIG.delete_tool(tool_id)
+            # remove the tool from the list view
+            item.remove()
+
+            list_view_widget = self.query_one("#tool-list", ListView)
+
+            if len(list_view_widget) > 0:
+                list_view_widget.action_cursor_up()
+                list_view_widget.action_select_cursor()
+            else:
+                self.query_one("#tool-code-textarea", TextArea).text = ""
+                self.query_one("#tool-name-input", Input).value = ""
+                self.query_one("#tool-id-input", Input).value = ""
+
         elif event.button.id == "save-tool-settings":
             # get the id of the selected tool
             tool_id = int(self.query_one("#tool-id-input", Input).value)

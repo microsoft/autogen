@@ -75,9 +75,9 @@ QuitScreen {
     width: 1fr;
 }
 
-Button {
+/* Button {
     width: 100%;
-}
+} */
 
 ChatScreen {
     align: center middle;
@@ -121,6 +121,7 @@ ChatScreen {
 }
 
 SettingsScreen {
+    layout: grid;
     align: center middle;
 }
 
@@ -132,14 +133,6 @@ SettingsScreen {
     border: thick $background 90%;
     padding: 1;
 }
-
-/* #settings-screen-header {
-    column-span: 2;
-    height: 3;
-    /* content-align: center middle; */
-    /* align: center middle; */
-    /* border: solid red; */
-/* } */
 
 #settings-screen-contents {
     grid-size: 1 2;
@@ -167,44 +160,81 @@ SettingsScreen {
     margin-bottom: 1;
 }
 
-#tool-screen-contents{
-    grid-size: 4 1;
-    /* border: solid red; */
+#tools-tab-grid{
+    grid-size: 5 5;
+    grid-gutter: 1 2;
 
+    /* border: solid red; */
 }
 
 #tool-list-container {
     column-span: 1;
-    height: 100%;
-    padding: 1;
-    content-align: center middle;
+    row-span: 5;
+
+    layout: grid;
+    grid-size: 1 10;
+
     /* border: solid red; */
 }
 
 #tool-list {
-    /* padding: 1; */
-    margin: 0;
+    column-span: 2;
+    width: 100%;
+    row-span: 9;
+
     /* border: solid red; */
 }
 
-#new-tool-settings {
-    /* width: 30%; */
-    /* padding: 1; */
-    margin: 1;
+#new-tool-button {
+    row-span: 1;
+    column-span: 1;
+    width: 100%;
+
     /* border: solid red; */
 }
+
+
+#tool-view-grid {
+    column-span: 4;
+    row-span: 5;
+
+    grid-size: 10 10;
+    grid-gutter: 1;
+
+    padding: 1;
+    border: solid $secondary-background;
+
+}
+
+#tool-info-container {
+    column-span: 3;
+    row-span: 9;
+    content-align: center middle;
+    /* border: solid red; */
+}
+
+#tool-view-footer-grid {
+    column-span: 10;
+    row-span: 1;
+
+    grid-size: 2 1;
+
+    align: center middle;
+    /* border: solid red; */
+}
+
+#tool-view-footer-grid Button {
+    width: 40%;
+}
+
+#tool-code-container {
+    column-span: 7;
+    row-span: 9;
+    /* border: solid red; */
+}
+
 
 #tool-list ListItem {
     padding: 1;
     margin: 1;
-}
-
-#tool-code-container{
-    grid-size: 1 2;
-    grid-rows: 50% 50%;
-    grid-gutter: 1 2;
-    column-span: 3;
-    height: 100%;
-    padding: 1;
-    /* border: solid red; */
 }
