@@ -71,7 +71,7 @@ The output of the code is:
     /// <param name="hasMultipleCodeBlocks">true if there're multipe csharp code blocks</param>
     /// <param name="hasNugetPackages">true if there's nuget package to install</param>
     /// <param name="isTopLevelStatement">true if the code is in top level statement</param>
-    /// <param name="hasUsingDeclartion">true if the code has using keyword in front of disposable object</param>
+    /// <param name="hasUsingDeclartion">true if the code has using keyword when creating http client</param>
     /// <param name="isDotnetCodeBlock">true if the code block is csharp code block</param>
     [Function]
     public async Task<string> ReviewCodeBlock(
@@ -271,7 +271,8 @@ Here's some externel information
         {
             // review code process
             // This process will repeat until the code block satisfy the following conditions:
-            while (true)
+            var maxRetry = 5;
+            while (maxRetry-- > 0)
             {
                 var prompt = $@"You are a code reviewer who reviews code from coder. Below is the most recent reply from coder:
 
@@ -338,6 +339,8 @@ please carefully review the code block from coder and provide feedback.";
 
                 return reply;
             }
+
+            throw new Exception("Max retry reached, please fix the code and try again");
         });
 
         // create runner agent

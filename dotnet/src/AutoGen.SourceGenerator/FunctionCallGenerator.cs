@@ -215,8 +215,8 @@ namespace AutoGen.SourceGenerator
                     {
                         "string" => "string",
                         "string[]" => "array",
-                        "System.Int32" or "int" => "number",
-                        "System.Int64" or "long" => "number",
+                        "System.Int32" or "int" => "integer",
+                        "System.Int64" or "long" => "integer",
                         "System.Single" or "float" => "number",
                         "System.Double" or "double" => "number",
                         "System.Boolean" or "bool" => "boolean",
