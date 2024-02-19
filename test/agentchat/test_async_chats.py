@@ -10,6 +10,7 @@ from typing_extensions import Annotated
 from autogen import initiate_chats
 
 
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 @pytest.mark.asyncio
 async def test_async_chats():
     config_list = autogen.config_list_from_json(
