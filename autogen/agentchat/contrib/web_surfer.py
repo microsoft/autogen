@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser
+from ...browser_utils import SimpleTextBrowser, SeleniumBrowserWrapper, IS_SELENIUM_CAPABLE
 from ...code_utils import content_str
 from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
@@ -55,8 +55,15 @@ class WebSurferAgent(ConversableAgent):
 
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
+        # Determine if the user has requested the Selenium browser or not
+        browser_type = browser_config.pop('type', 'simple')
+        web_driver   = browser_config.pop('web_driver', 'edge')
+
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        if browser_type != 'text' and IS_SELENIUM_CAPABLE:
+            self.browser = SeleniumBrowserWrapper(**(browser_config if browser_config else {}))
+        else:
+            self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
 
         inner_llm_config = copy.deepcopy(llm_config)
 
