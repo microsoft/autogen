@@ -1029,10 +1029,7 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="5")
 
 
-@pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
-)
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_max_turn():
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 

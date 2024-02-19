@@ -70,7 +70,9 @@ async def test_async_max_turn():
     print("Result summary:", res.summary)
     print("Human input:", res.human_input)
     print("chat history:", res.chat_history)
-    assert len(res.chat_history) == 6
+    assert (
+        len(res.chat_history) == 6
+    ), f"Chat history should have 6 messages because max_turns is set to 3 (and user keep request try again) but has {len(res.chat_history)}."
 
 
 if __name__ == "__main__":
