@@ -150,11 +150,10 @@ print('Hello world!')
     print("Result summary:", res.summary)
     # autogen.ChatCompletion.print_usage_summary()
     # autogen.ChatCompletion.start_logging(compact=False)
-    res = user.send("""Execute temp.py""", assistant)
+    user.send("""Execute temp.py""", assistant)
     # print(autogen.ChatCompletion.logged_history)
     # autogen.ChatCompletion.print_usage_summary()
     # autogen.ChatCompletion.stop_logging()
-    print("Execution result summary:", res.summary)
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")

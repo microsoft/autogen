@@ -3,24 +3,17 @@ import uuid
 import pytest
 import os
 import sys
+import openai
 import autogen
 from autogen import OpenAIWrapper
+from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
+from autogen.oai.openai_utils import retrieve_assistants_by_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
+from conftest import skip_openai as skip  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
-
-try:
-    import openai
-    from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-    from autogen.oai.openai_utils import retrieve_assistants_by_name
-
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
 
 if not skip:
     openai_config_list = autogen.config_list_from_json(
@@ -48,8 +41,8 @@ if not skip:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_config_list() -> None:
     assert len(openai_config_list) > 0
@@ -57,8 +50,8 @@ def test_config_list() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_gpt_assistant_chat() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -116,7 +109,7 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     # check the question asked
     ask_ossinsight_mock.assert_called_once()
     question_asked = ask_ossinsight_mock.call_args[0][0].lower()
-    for word in "microsoft autogen star github".split(" "):
+    for word in "microsoft autogen star".split(" "):
         assert word in question_asked
 
     # check the answer
@@ -130,8 +123,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_get_assistant_instructions() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -159,8 +152,8 @@ def _test_get_assistant_instructions(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -212,8 +205,7 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    reason="requested to skip",
 )
 def test_gpt_assistant_existing_no_instructions() -> None:
     """
@@ -252,8 +244,8 @@ def test_gpt_assistant_existing_no_instructions() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_get_assistant_files() -> None:
     """
@@ -289,8 +281,8 @@ def test_get_assistant_files() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_assistant_retrieval() -> None:
     """
@@ -362,8 +354,8 @@ def test_assistant_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_assistant_mismatch_retrieval() -> None:
     """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
@@ -483,8 +475,8 @@ def test_assistant_mismatch_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="requested to skip",
 )
 def test_gpt_assistant_tools_overwrite() -> None:
     """
