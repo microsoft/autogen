@@ -67,8 +67,7 @@ builder.Host.UseOrleans(siloBuilder =>
     if (builder.Environment.IsDevelopment())
     {
         var connectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
-        siloBuilder.AddMemoryStreams("StreamProvider")
-                   .AddMemoryGrainStorage("PubSubStore");
+        siloBuilder.AddMemoryStreams("StreamProvider");
         siloBuilder.UseCosmosReminderService( o => 
         {
                 o.ConfigureCosmosClient(connectionString);

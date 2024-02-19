@@ -30,7 +30,7 @@ public class DeveloperLead : SemanticPersona
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKey());
+        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);
