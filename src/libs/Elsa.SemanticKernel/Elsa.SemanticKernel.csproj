@@ -21,8 +21,8 @@
         <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
         <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="7.0.0" />
         <PackageReference Include="AspNetCore.Authentication.ApiKey" Version="7.0.0" />
-        <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
-        <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="0.24.230918.1-preview" />
+        <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
+        <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="1.0.0-beta5" />
         <ProjectReference Include="..\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
 
     </ItemGroup>

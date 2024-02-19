@@ -1,8 +1,6 @@
 namespace Microsoft.AI.DevTeam.Skills;
 public static class DevLead {
-    public static SemanticFunctionConfig Plan = new SemanticFunctionConfig
-    {
-        PromptTemplate = """
+    public static string Plan =  """
         You are a Dev Lead for an application team, building the application described below. 
         Please break down the steps and modules required to develop the complete application, describe each step in detail.
         Make prescriptive architecture, language, and frameowrk choices, do not provide a range of choices. 
@@ -34,14 +32,19 @@ public static class DevLead {
         Do not output any other text. 
         Input: {{$input}}
         {{$wafContext}}
-        """,
-        Name = nameof(Plan),
-        SkillName = nameof(DevLead),
-        Description = "From a simple description of an application output a development plan for building the application.",
-        MaxTokens = 6500,
-        Temperature = 0.0,
-        TopP = 0.0,
-        PPenalty = 0.0,
-        FPenalty = 0.0
-    };
+        """;
+
+    public static string Explain = """
+        You are a Dev Lead. 
+        Please explain the code that is in the input below. You can include references or documentation links in your explanation. 
+        Also where appropriate please output a list of keywords to describe the code or its capabilities.
+        example:
+        Keywords: Azure, networking, security, authentication
+
+        If the code's purpose is not clear output an error:
+        Error: The model could not determine the purpose of the code.
+        
+        --
+        Input: {{$input}}
+        """;
 }

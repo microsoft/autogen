@@ -3,10 +3,12 @@ using System.Text.Json;
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
+using Microsoft.SemanticKernel.Plugins.Memory;
 
 
 class Program
@@ -139,25 +141,30 @@ class Program
         var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
         var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
 
+
+
+        var memoryBuilder = new MemoryBuilder();
+        var memory = memoryBuilder.WithLoggerFactory(loggerFactory)
+                    .WithQdrantMemoryStore("http://qdrant:6333", 1536)
+                    .WithAzureTextEmbeddingGenerationService(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey)
+                    .Build();
+
         var kernel = new KernelBuilder()
                             .WithLoggerFactory(loggerFactory)
                             .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-                            .WithMemory(semanticTextMemory)
                             .Build();
 
 
                             
         //Console.WriteLine($"Calling skill '{skillName}' function '{functionName}' with input '{input}'");
-        var interestingMemories = kernel.Memory.SearchAsync("waf-pages", input, 2);
+        var interestingMemories = memory.SearchAsync("waf-pages", input, 2);
         var wafContext = "Consider the following architectural guidelines:";
-        await foreach (var memory in interestingMemories)
+        await foreach (var m in interestingMemories)
         {
-            wafContext += $"\n {memory.Metadata.Text}";
+            wafContext += $"\n {m.Metadata.Text}";
         }
-        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-        var function = kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-                                                   skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-                                                   skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+        var promptTemplate = Skills.ForSkillAndFunction(skillName, functionName);
+        var function = kernel.CreateSemanticFunction(promptTemplate);
 
         var context = new ContextVariables();
         context.Set("input", input);

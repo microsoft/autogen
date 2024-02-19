@@ -1,13 +1,12 @@
 ﻿using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Text;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using Microsoft.SemanticKernel.Connectors.Memory.Qdrant;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI.TextEmbedding;
 using Microsoft.SemanticKernel.Memory;
 using System.Reflection;
+using Microsoft.SemanticKernel.Plugins.Memory;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 
 class Program
 {
@@ -24,19 +23,15 @@ class Program
                 .AddDebug();
         });
        
-        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient(kernelSettings.QdrantEndpoint, 1536));
-        var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
-        var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
-
-        var kernel = new KernelBuilder()
-                            .WithLoggerFactory(loggerFactory)
-                            .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-                            .WithMemory(semanticTextMemory)
-                            .Build();
-        await ImportDocumentAsync(kernel, WafFileName);
+        var memoryBuilder = new MemoryBuilder();
+        var memory = memoryBuilder.WithLoggerFactory(loggerFactory)
+                    .WithQdrantMemoryStore(kernelSettings.QdrantEndpoint, 1536)
+                    .WithAzureTextEmbeddingGenerationService(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey)
+                    .Build();
+        await ImportDocumentAsync(memory, WafFileName);
     }
 
-    public static async Task ImportDocumentAsync(IKernel kernel, string filename)
+    public static async Task ImportDocumentAsync(ISemanticTextMemory memory, string filename)
         {
             var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             var filePath = Path.Combine(currentDirectory, filename);
@@ -48,7 +43,7 @@ class Program
                 {
                     var text = ContentOrderTextExtractor.GetText(page);
                     var descr = text.Take(100);
-                    await kernel.Memory.SaveInformationAsync(
+                    await memory.SaveInformationAsync(
                         collection: "waf-pages",
                         text: text,
                         id: $"{Guid.NewGuid()}",

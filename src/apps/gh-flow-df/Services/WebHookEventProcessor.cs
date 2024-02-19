@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Orchestration;
 using Newtonsoft.Json;
 using Octokit.Webhooks;
@@ -96,10 +97,8 @@ public class SKWebHookEventProcessor : WebhookEventProcessor
 
     private async Task<string> RunSkill(string skillName, string functionName, string input)
     {
-        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillName, functionName);
-        var function = _kernel.CreateSemanticFunction(skillConfig.PromptTemplate, skillConfig.Name, skillConfig.SkillName,
-                                                   skillConfig.Description, skillConfig.MaxTokens, skillConfig.Temperature,
-                                                   skillConfig.TopP, skillConfig.PPenalty, skillConfig.FPenalty);
+        var prompt = Skills.ForSkillAndFunction(skillName, functionName);
+        var function = _kernel.CreateSemanticFunction(prompt, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
         var interestingMemories = _kernel.Memory.SearchAsync("waf-pages", input, 2);
         var wafContext = "Consider the following architectural guidelines:";

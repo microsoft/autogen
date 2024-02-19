@@ -5,7 +5,7 @@ namespace Microsoft.AI.DevTeam;
 public class Tester : SemanticPersona, ITestCode
 {
     public Tester(
-        [PersistentState("state", "messages")]IPersistentState<ChatHistory> state) : base(state)
+        [PersistentState("state", "messages")]IPersistentState<SemanticPersonaState> state) : base(state)
     {
         
     }

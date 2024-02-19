@@ -11,8 +11,8 @@ using Elsa.Workflows.Core.Models;
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Orchestration;
-using Microsoft.SemanticKernel.SkillDefinition;
 
 namespace Elsa.SemanticKernel;
 
@@ -37,17 +37,14 @@ public class SemanticKernelActivityProvider : IActivityProvider
         // get a list of skills in the assembly
         var skills = LoadSkillsFromAssemblyAsync("skills", kernel);
         SKContext context = kernel.CreateNewContext();
-        var functionsAvailable = context.Skills.GetFunctionsView();
+        var functionsAvailable = context.Functions.GetFunctionViews();
 
         // create activity descriptors for each skilland function
         var activities = new List<ActivityDescriptor>();
-        foreach (KeyValuePair<string, List<FunctionView>> skill in functionsAvailable.SemanticFunctions)
+        foreach (var function in functionsAvailable)
         {
-            Console.WriteLine($"Creating Activities for Skill: {skill.Key}");
-            foreach (FunctionView func in skill.Value)
-            {
-                activities.Add(CreateActivityDescriptorFromSkillAndFunction(func, cancellationToken));
-            }
+            Console.WriteLine($"Creating Activities for Plugin: {function.PluginName}");
+            activities.Add(CreateActivityDescriptorFromSkillAndFunction(function, cancellationToken));
         }
 
         return activities;
@@ -63,13 +60,13 @@ public class SemanticKernelActivityProvider : IActivityProvider
     {
         // Create a fully qualified type name for the activity 
         var thisNamespace = GetType().Namespace;
-        var fullTypeName = $"{thisNamespace}.{function.SkillName}.{function.Name}";
+        var fullTypeName = $"{thisNamespace}.{function.PluginName}.{function.Name}";
         Console.WriteLine($"Creating Activity: {fullTypeName}");
 
         // create inputs from the function parameters - the SemanticKernelSkill activity will be the base for each activity
         var inputs = new List<InputDescriptor>();
         foreach (var p in function.Parameters) { inputs.Add(CreateInputDescriptorFromSKParameter(p)); }
-        inputs.Add(CreateInputDescriptor(typeof(string), "SkillName", function.SkillName, "The name of the skill to use (generated, do not change)"));
+        inputs.Add(CreateInputDescriptor(typeof(string), "SkillName", function.PluginName, "The name of the skill to use (generated, do not change)"));
         inputs.Add(CreateInputDescriptor(typeof(string), "FunctionName", function.Name, "The name of the function to use (generated, do not change)"));
         inputs.Add(CreateInputDescriptor(typeof(int), "MaxRetries", KernelSettings.DefaultMaxRetries, "Max Retries to contact AI Service"));
 
@@ -80,8 +77,8 @@ public class SemanticKernelActivityProvider : IActivityProvider
             Description = function.Description,
             Name = function.Name,
             TypeName = fullTypeName,
-            Namespace = $"{thisNamespace}.{function.SkillName}",
-            DisplayName = $"{function.SkillName}.{function.Name}",
+            Namespace = $"{thisNamespace}.{function.PluginName}",
+            DisplayName = $"{function.PluginName}.{function.Name}",
             Inputs = inputs,
             Outputs = new[] {new OutputDescriptor()},
             Constructor = context =>
@@ -95,7 +92,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
                 activityInstance.Type = fullTypeName;
 
                 // Configure the activity's URL and method properties.
-                activityInstance.SkillName = new Input<string?>(function.SkillName);
+                activityInstance.SkillName = new Input<string?>(function.PluginName);
                 activityInstance.FunctionName = new Input<string?>(function.Name);
 
                 return activityInstance;
@@ -169,19 +166,11 @@ public class SemanticKernelActivityProvider : IActivityProvider
                     string field = function.FieldType.ToString();
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
-                        var skillConfig = SemanticFunctionConfig.ForSkillAndFunction(skillType.Name, function.Name);
+                        var promptTemplate = Skills.ForSkillAndFunction(skillType.Name, function.Name);
                         var skfunc = kernel.CreateSemanticFunction(
-                            skillConfig.PromptTemplate,
-                            skillConfig.Name,
-                            skillConfig.SkillName,
-                            skillConfig.Description,
-                            skillConfig.MaxTokens,
-                            skillConfig.Temperature,
-                            skillConfig.TopP,
-                            skillConfig.PPenalty,
-                            skillConfig.FPenalty);
+                            promptTemplate, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
-                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.SkillName}.{skfunc.Name}");
+                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.PluginName}.{skfunc.Name}");
                     }
                 }
             }

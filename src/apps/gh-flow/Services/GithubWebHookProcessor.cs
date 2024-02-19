@@ -211,7 +211,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 Org = org,
                 Repo = repo,
                 Number = (int)issueNumber,
-                Content = readme
+                Content = string.IsNullOrEmpty(readme)? "Sorry, something went wrong": readme
             });
         }
         else if (skillName == nameof(DevLead) && functionName == nameof(DevLead.Plan))
@@ -223,19 +223,20 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 Org = org,
                 Repo = repo,
                 Number = (int)issueNumber,
-                Content = plan
+                Content = string.IsNullOrEmpty(plan)? "Sorry, something went wrong":plan
             });
         }
         else if (skillName == nameof(Developer) && functionName == nameof(Developer.Implement))
         {
             var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
             var code = await dev.GenerateCode(input);
+            
             await _ghService.PostComment(new PostCommentRequest
             {
                 Org = org,
                 Repo = repo,
                 Number = (int)issueNumber,
-                Content = code
+                Content = string.IsNullOrEmpty(code)? "Sorry, something went wrong":code
             });
         }
         else { }// something went wrong

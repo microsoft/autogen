@@ -7,6 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-  <PackageReference Include="Microsoft.SemanticKernel" Version="0.24.230918.1-preview" />
+  <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
   </ItemGroup>
 </Project>
