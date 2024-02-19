@@ -1,4 +1,4 @@
-textual
+textual[syntax]
 tiktoken
 pyautogen
 aiosqlite
