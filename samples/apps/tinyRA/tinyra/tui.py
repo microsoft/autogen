@@ -224,7 +224,7 @@ class AppConfiguration:
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
-LLM_CONFIG = config_list_from_json("OAI_CONFIG_LIST")[0]
+LLM_CONFIG = {"config_list": [{"model": "gpt-4-1106-preview", "api_key": os.environ.get("OPENAI_API_KEY")}]}
 
 
 logging.basicConfig(
@@ -739,7 +739,17 @@ class SettingsScreen(ModalScreen):
             tool_code = self.query_one("#tool-code-textarea", TextArea).text
             tool_description = tool_name
             tool = Tool(tool_name, tool_code, tool_description, id=tool_id)
+
+            # update the database
             APP_CONFIG.update_tool(tool)
+
+            # update the list view
+            list_view_widget = self.query_one("#tool-list", ListView)
+            # access the label of the selected item
+            item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
+            item_label.update(tool_name)
+
+            # raise(ValueError(item))
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
@@ -747,6 +757,20 @@ class SettingsScreen(ModalScreen):
         self.query_one("#tool-code-textarea", TextArea).text = tools[tool_id].code
         self.query_one("#tool-name-input", Input).value = tools[tool_id].name
         self.query_one("#tool-id-input", Input).value = str(tool_id)
+
+    def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
+        list_view_widget = self.query_one("#tool-list", ListView)
+        # check if a item is already selected in the list view
+
+        if len(list_view_widget) == 0:
+            return
+
+        elif list_view_widget.highlighted_child is None:
+            list_view_widget.index = 0
+            list_view_widget.action_select_cursor()
+
+        elif list_view_widget.highlighted_child is not None:
+            list_view_widget.action_select_cursor()
 
 
 class ChatScreen(Screen):
