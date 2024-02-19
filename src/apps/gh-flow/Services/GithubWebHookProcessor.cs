@@ -74,7 +74,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
             }
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
             _logger.LogError("Processing issue comment event");
         }

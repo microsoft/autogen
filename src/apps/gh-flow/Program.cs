@@ -63,19 +63,27 @@ builder.Services.AddSingleton<IAnalyzeCode, CodeAnalyzer>();
 
 builder.Host.UseOrleans(siloBuilder =>
 {
-    
+
     if (builder.Environment.IsDevelopment())
     {
         var connectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
-        siloBuilder.AddMemoryStreams("StreamProvider")
-                   .AddMemoryGrainStorage("PubSubStore");;
-        siloBuilder.UseCosmosReminderService( o => 
+        //siloBuilder.AddMemoryStreams("StreamProvider");
+        siloBuilder.UseCosmosReminderService(o =>
         {
-                o.ConfigureCosmosClient(connectionString);
-                o.ContainerName = "reminders";
-                o.DatabaseName = "devteam";
-                o.IsResourceCreationEnabled = true;
+            o.ConfigureCosmosClient(connectionString);
+            o.ContainerName = "reminders";
+            o.DatabaseName = "devteam";
+            o.IsResourceCreationEnabled = true;
         });
+        siloBuilder.AddCosmosGrainStorage(
+           name: "PubSubStore",
+           configureOptions: o =>
+           {
+               o.ConfigureCosmosClient(connectionString);
+               o.ContainerName = "pubsubstore";
+               o.DatabaseName = "pubsub";
+               o.IsResourceCreationEnabled = true;
+           });
         siloBuilder.AddCosmosGrainStorage(
             name: "messages",
             configureOptions: o =>
@@ -85,7 +93,26 @@ builder.Host.UseOrleans(siloBuilder =>
                 o.DatabaseName = "devteam";
                 o.IsResourceCreationEnabled = true;
             });
-        siloBuilder.UseLocalhostClustering();
+        var ehConnectionString = builder.Configuration.GetValue<string>("AzureOptions:EventHubsConnectionString");
+        var storageConnectionString = builder.Configuration.GetValue<string>("AzureOptions:StorageAccountConnectionString");
+        
+        siloBuilder.UseLocalhostClustering()
+        .AddEventHubStreams("StreamProvider", (ISiloEventHubStreamConfigurator configurator) =>
+        {
+            configurator.ConfigureEventHub(builder => builder.Configure(options =>
+            {
+                options.ConfigureEventHubConnection(
+                    ehConnectionString,
+                    "sk-dev-team",
+                    "$Default");
+            }));
+            configurator.UseAzureTableCheckpointer(
+                builder => builder.Configure(options =>
+            {
+                options.ConfigureTableServiceClient(storageConnectionString);
+                options.PersistInterval = TimeSpan.FromSeconds(10);
+            }));
+        }); ;
     }
     else
     {
@@ -100,24 +127,24 @@ builder.Host.UseOrleans(siloBuilder =>
             options.ResponseTimeout = TimeSpan.FromMinutes(3);
             options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
         });
-         siloBuilder.Configure<ClientMessagingOptions>(options =>
-        {
-            options.ResponseTimeout = TimeSpan.FromMinutes(3);
-        });
-        siloBuilder.UseCosmosClustering( o =>
+        siloBuilder.Configure<ClientMessagingOptions>(options =>
+       {
+           options.ResponseTimeout = TimeSpan.FromMinutes(3);
+       });
+        siloBuilder.UseCosmosClustering(o =>
             {
                 o.ConfigureCosmosClient(cosmosDbconnectionString);
                 o.ContainerName = "devteam";
                 o.DatabaseName = "clustering";
                 o.IsResourceCreationEnabled = true;
             });
-        
-        siloBuilder.UseCosmosReminderService( o => 
+
+        siloBuilder.UseCosmosReminderService(o =>
         {
-                o.ConfigureCosmosClient(cosmosDbconnectionString);
-                o.ContainerName = "devteam";
-                o.DatabaseName = "reminders";
-                o.IsResourceCreationEnabled = true;
+            o.ConfigureCosmosClient(cosmosDbconnectionString);
+            o.ContainerName = "devteam";
+            o.DatabaseName = "reminders";
+            o.IsResourceCreationEnabled = true;
         });
         siloBuilder.AddCosmosGrainStorage(
             name: "messages",
@@ -130,8 +157,8 @@ builder.Host.UseOrleans(siloBuilder =>
             });
 
         //TODO: Add streaming here
-    }    
-   
+    }
+
 });
 
 builder.Services.Configure<JsonSerializerOptions>(options =>
@@ -189,7 +216,8 @@ static IKernel CreateKernel(IServiceProvider provider)
     return new KernelBuilder()
                         .WithLoggerFactory(loggerFactory)
                         .WithAzureChatCompletionService(openAiConfig.DeploymentOrModelId, openAIClient)
-                        .WithRetryBasic(new BasicRetryConfig {
+                        .WithRetryBasic(new BasicRetryConfig
+                        {
                             MaxRetryCount = 5,
                             UseExponentialBackoff = true
                         }).Build();

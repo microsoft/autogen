@@ -18,8 +18,7 @@
 		},
 		"ghcr.io/azure/azure-dev/azd:0": {
 			"version": "stable"
-		},
-		"ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {}
+		}
 	},
 	"postCreateCommand": "bash .devcontainer/startup.sh",
 	"hostRequirements": {

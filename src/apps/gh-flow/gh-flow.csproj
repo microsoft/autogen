@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ServerGarbageCollection>true</ServerGarbageCollection>
@@ -16,12 +16,13 @@
   <ItemGroup>
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.0.3" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="1.0.0-beta5" />
-    <PackageReference Include="Microsoft.Orleans.Server" Version="7.2.1" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="7.2.1" />
-    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Orleans.Server" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.0.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.0.0" />
   </ItemGroup>
   
 
