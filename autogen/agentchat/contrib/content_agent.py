@@ -8,7 +8,15 @@ from fileinput import filename
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 
-
+# Import the arxiv library if it is available
+IS_ARXIV_CAPABLE = False
+try:
+    import arxiv
+    IS_ARXIV_CAPABLE = True
+except ModuleNotFoundError:
+    print("The 'arxiv' library was not found in this environment, but can be installed with 'pip install arxiv'.")
+    pass
+    
 from ...browser_utils import (
     SeleniumBrowser, download_using_requests,
     get_domain, get_scheme, get_path, get_last_path, get_file_path_from_url, fix_missing_protocol, 
@@ -41,7 +49,7 @@ class ContentAgent(ConversableAgent):
         - pillow
 
     """    
-    def __init__(self, silent=True, storage_path='./content', max_depth=1, page_loading_time=5, *args, **kwargs): #request_kwargs, 
+    def __init__(self, silent=True, storage_path='./content', max_depth=1, page_loading_time=5, *args, **kwargs): 
         super().__init__(*args, **kwargs)
 
         from collections import deque
@@ -51,15 +59,16 @@ class ContentAgent(ConversableAgent):
         self.local_dir        = storage_path
         self.page_load_time   = page_loading_time
         self.silent           = silent
-        self.browser_kwargs   = kwargs.get('browser_kwargs', {"browser": "firefox"}) # {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.3; rv:122.0) Gecko/20100101 Firefox/122.0"} })
+        self.browser_kwargs   = kwargs.get('browser_kwargs', {"browser": "firefox"}) 
+        self.request_kwargs   = {'headers': { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"} }
         self.small_llm_config = kwargs['llm_config']
 
         # Define the classifiers
         self.define_classifiers()
 
-    def classifier_to_collector_reply(self, recipient, messages, sender, config): # replacement for classify_content
+    def classifier_to_collector_reply(self, recipient, messages, sender, config):
+        # Inner dialogue reply for boolean classification results
         last_message = messages[-1] if isinstance(messages, list) else messages 
-        # print(last_message)
         _, rep = recipient.generate_oai_reply([last_message], sender)
         if 'false' in rep.lower(): rep = 'False'
         elif 'true' in rep.lower(): rep = 'True'
@@ -128,7 +137,7 @@ class ContentAgent(ConversableAgent):
         parsed_url = urlparse(link)
 
         # A special case for arxiv links
-        if 'arxiv' in link:
+        if 'arxiv' in link and IS_ARXIV_CAPABLE:
             return 'pdf', self.fetch_arxiv_content(parsed_url)
         
         elif parsed_url.path.endswith('.pdf'):
@@ -214,10 +223,7 @@ class ContentAgent(ConversableAgent):
                 
         # Close down the browser
         self.browser.quit()
-
-        # # Deallocate the variable contents
-        # self.browser = None
-
+        
         return 'success'
     
     def fetch_pdf_content(self, link):
@@ -227,8 +233,8 @@ class ContentAgent(ConversableAgent):
         )
         os.makedirs(local_pdf_path, exist_ok=True)
 
-
-        response = requests.get(link, params={'headers': self.request_kwargs})
+        # This could be replaced with `download_using_requests` 
+        response = requests.get(link, params={'headers': self.request_kwargs['headers']})
 
         if response.status_code == 200:
             with open(local_pdf_path, 'wb') as f:
@@ -246,8 +252,6 @@ class ContentAgent(ConversableAgent):
             return None
 
     def fetch_arxiv_content(self, link):
-        # Import the arxiv library
-        import arxiv # todo: add try/catch 
 
         # Identify the paper identification
         arxiv_id = link.path.split('/')[-1]
