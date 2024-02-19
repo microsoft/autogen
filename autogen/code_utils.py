@@ -241,7 +241,7 @@ def _cmd(lang):
         return lang
     if lang in ["shell"]:
         return "sh"
-    if lang in ["ps1"]:
+    if lang in ["ps1", "pwsh", "powershell"]:
         return powershell_command
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
