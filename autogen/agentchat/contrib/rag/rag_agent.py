@@ -26,8 +26,8 @@ class RagAgent(ConversableAgent):
     also supports updating context automatically or triggered by the user during the conversation.
 
     There are a lot of configurations for the RAG agent. You can configure the RAG agent by providing a
-    `rag_config` dictionary. Please refer to the constructor for more details.
-
+    `rag_config` dictionary. For instance: rag_config = {"docs_path": "autogen/website/docs"}.
+    Please refer to the constructor for more details.
     """
 
     DEFAULT_RAG_SYSTEM_MESSAGE = "You're a helpful AI assistant with retrieval augmented generation capability."
@@ -242,8 +242,8 @@ class RagAgent(ConversableAgent):
                 _docs = None
             except ValueError:
                 raise ValueError(
-                    "`docs_path` is not provided for splitter."
-                    f"The collection `{self.collection_name}` doesn't exist either."
+                    "`docs_path` is not provided for splitter. "
+                    f"The collection `{self.collection_name}` doesn't exist either. "
                     "Please provide `docs_path` or create the collection first."
                 )
         elif self.get_or_create and not self.overwrite:
