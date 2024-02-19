@@ -562,7 +562,7 @@ class TestGetPowerShellCommand(unittest.TestCase):
         # Set up the mock to return a successful result for 'powershell'
         mock_subprocess_run.return_value.returncode = 0
         mock_subprocess_run.return_value.stdout = StringIO("5")
-        
+
         self.assertEqual(get_powershell_command(), "powershell")
 
     @patch("subprocess.run")
@@ -571,7 +571,7 @@ class TestGetPowerShellCommand(unittest.TestCase):
         mock_subprocess_run.side_effect = [FileNotFoundError, mock_subprocess_run.return_value]
         mock_subprocess_run.return_value.returncode = 0
         mock_subprocess_run.return_value.stdout = StringIO("7")
-        
+
         self.assertEqual(get_powershell_command(), "pwsh")
 
     @patch("subprocess.run")
