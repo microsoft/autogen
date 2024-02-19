@@ -14,25 +14,21 @@ def complex_actor_demo():
     """
     network = LocalActorNetwork()
     # Register agents
-
     network.register(PersonalAssistant())
     network.register(UserInterfaceAgent())
     network.register(FidelityAgent())
     network.register(FinancialPlannerAgent())
     network.register(QuantAgent())
     # Tell agents to connect to other agents
-
     network.connect()
     # Get a channel to the personal assistant agent
-
     pa = network.lookup_agent(PersonalAssistant.cls_agent_name)
     while True:
-        time.sleep(0.1)  # Let the network do things
+        # Let the network do things and then get the next prompt from user
+        time.sleep(0.1)  
         # Get a message from the user
-
         msg = input(colored("Enter a message: ", "light_red"))
         # Send the message to the personal assistant agent
-
         pa.send_txt_msg(msg)
         if msg.lower() == "quit":
             break

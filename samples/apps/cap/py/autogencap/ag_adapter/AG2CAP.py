@@ -36,7 +36,6 @@ class AG2CAP(ConversableAgent):
         if self._agent_connector is None:
             self._agent_connector = AutoGenConnector(self._network.lookup_agent(self.name))
             self._terminate_connector = AutoGenConnector(self._network.lookup_termination())
-            time.sleep(0.01)
 
     def receive(
         self,
@@ -72,4 +71,3 @@ class AG2CAP(ConversableAgent):
         self._check_connection()
         self._agent_connector.send_terminate(recipient)
         self._terminate_connector.send_terminate(self)
-        time.sleep(0.01)  # Let the network do things.
