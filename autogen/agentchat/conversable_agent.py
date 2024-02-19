@@ -1767,7 +1767,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
