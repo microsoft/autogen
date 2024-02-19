@@ -17,3 +17,5 @@
 - Rust Msg Layer
 - Node Msg Layer
 - Java Msg Layer
+- Investigate a standard logging framework that supports color in windows
+  - structlog?
