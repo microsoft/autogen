@@ -1393,7 +1393,6 @@ class ConversableAgent(LLMAgent):
         reply = ""
         no_human_input_msg = ""
         sender_name = "the sender" if sender is None else sender.name
-        
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
                 f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
@@ -1473,7 +1472,7 @@ class ConversableAgent(LLMAgent):
             print(colored("\n>>>>>>>> USING AUTO REPLY...", "red"), flush=True)
 
         return False, None
-    
+
     async def a_check_termination_and_human_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -1505,7 +1504,6 @@ class ConversableAgent(LLMAgent):
         reply = ""
         no_human_input_msg = ""
         sender_name = "the sender" if sender is None else sender.name
-        
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
                 f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
