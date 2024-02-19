@@ -29,10 +29,19 @@ from autogen import Agent, AssistantAgent, UserProxyAgent
 
 
 class Tool:
-    def __init__(self, name, code, description):
+    def __init__(self, name, code, description, id: int = None):
+        self.id = id
         self.name = name
         self.code = code
         self.description = description
+
+
+def string_to_function(code: str):
+    function_name = code.split("def ")[1].split("(")[0]
+    global_namespace = globals()
+    local_namespace = {}
+    exec(code, global_namespace, local_namespace)
+    return function_name, local_namespace[function_name]
 
 
 class AppConfiguration:
@@ -135,9 +144,10 @@ class AppConfiguration:
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS tools (
-                name TEXT NOT NULL,
-                code TEXT NOT NULL,
-                description TEXT
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                code TEXT NOT NULL UNIQUE,
+                description TEXT NOT NULL UNIQUE
             )
             """
         )
@@ -183,14 +193,15 @@ class AppConfiguration:
     def update_tool(self, tool: Tool):
         conn = sqlite3.connect(self._database_path)
         c = conn.cursor()
-        c.execute("SELECT * FROM tools WHERE name = ?", (tool.name,))
+        c.execute("SELECT * FROM tools WHERE id = ?", (tool.id,))
         if c.fetchone() is None:
             c.execute(
                 "INSERT INTO tools (name, code, description) VALUES (?, ?, ?)", (tool.name, tool.code, tool.description)
             )
         else:
             c.execute(
-                "UPDATE tools SET code = ?, description = ? WHERE name = ?", (tool.code, tool.description, tool.name)
+                "UPDATE tools SET name = ?, code = ?, description = ? WHERE id = ?",
+                (tool.name, tool.code, tool.description, tool.id),
             )
         conn.commit()
         conn.close()
@@ -198,8 +209,8 @@ class AppConfiguration:
     def get_tools(self) -> List[Tool]:
         conn = sqlite3.connect(self._database_path)
         c = conn.cursor()
-        c.execute("SELECT name, code, description FROM tools")
-        tools = {name: Tool(name, code, description) for name, code, description in c.fetchall()}
+        c.execute("SELECT id, name, code, description FROM tools")
+        tools = {id: Tool(name, code, description, id=id) for id, name, code, description in c.fetchall()}
         conn.close()
         return tools
 
@@ -633,7 +644,7 @@ class SettingsScreen(ModalScreen):
                 Grid(
                     Container(
                         ListView(
-                            *(ListItem(Label(k), id=f"tool-{k}") for k in tools),
+                            *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
                             id="tool-list",
                         ),
                         Button("+", variant="primary", id="new-tool-settings"),
@@ -641,8 +652,8 @@ class SettingsScreen(ModalScreen):
                     ),
                     Grid(
                         Container(
-                            Label("Tool Name", classes="form-label"),
-                            Input(id="tool-name-input"),
+                            Container(Label("Tool ID", classes="form-label"), Input(id="tool-id-input", disabled=True)),
+                            Container(Label("Tool Name", classes="form-label"), Input(id="tool-name-input")),
                         ),
                         Container(
                             Label("Code", classes="form-label"),
@@ -675,19 +686,23 @@ class SettingsScreen(ModalScreen):
             tools = APP_CONFIG.get_tools()
             num_tools = len(tools)
             new_tool_name = f"tool-{num_tools + 1}"
-            APP_CONFIG.update_tool(Tool(new_tool_name, "", "No description available"))
+            description = new_tool_name
+            APP_CONFIG.update_tool(Tool(new_tool_name, "", description=description))
         elif event.button.id == "save-tool-settings":
+            # get the id of the selected tool
+            tool_id = int(self.query_one("#tool-id-input", Input).value)
             tool_name = self.query_one("#tool-name-input", Input).value
             tool_code = self.query_one("#tool-code-textarea", TextArea).text
-            tool_description = "No description available"
-            tool = Tool(tool_name, tool_code, tool_description)
+            tool_description = tool_name
+            tool = Tool(tool_name, tool_code, tool_description, id=tool_id)
             APP_CONFIG.update_tool(tool)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
-        tool_name = event.item.id[5:]
+        tool_id = int(event.item.id[5:])
         tools = APP_CONFIG.get_tools()
-        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_name].code
-        self.query_one("#tool-name-input", Input).value = tools[tool_name].name
+        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_id].code
+        self.query_one("#tool-name-input", Input).value = tools[tool_id].name
+        self.query_one("#tool-id-input", Input).value = str(tool_id)
 
 
 class ChatScreen(Screen):
@@ -832,9 +847,11 @@ class TinyRA(App):
             return False, None
 
         def summarize(text):
-            if len(text) > 100:
-                return text[:100] + "..."
-            return text
+            if text:
+                if len(text) > 100:
+                    return text[:100] + "..."
+                return text
+            return "Working..."
 
         async def post_update_to_main(recipient, messages, sender, **kwargs):
             last_assistant_message = None
@@ -845,7 +862,10 @@ class TinyRA(App):
 
             # update_message = "Computing response..."
             if last_assistant_message:
-                summary = summarize(last_assistant_message["content"])
+                if last_assistant_message.get("content"):
+                    summary = summarize(last_assistant_message["content"])
+                elif last_assistant_message.get("tool_calls"):
+                    summary = summarize("Using tools...")
                 update_message = f"{summary}..."
                 await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
             else:
@@ -860,7 +880,9 @@ class TinyRA(App):
 
         async def post_last_assistant_msg_to_chat_history(recipient, messages, sender, **kwargs):
             last_message = messages[-1]
-            await a_insert_chat_message("assistant", last_message["content"], root_id=msg_idx + 1)
+            logging.info(json.dumps(last_message, indent=2))
+            content = last_message["content"] or json.dumps(last_message["tool_calls"], indent=2)
+            await a_insert_chat_message("assistant", content, root_id=msg_idx + 1)
             return False, None
 
         assistant = AssistantAgent(
@@ -872,14 +894,30 @@ class TinyRA(App):
             "user",
             code_execution_config={"work_dir": os.path.join(APP_CONFIG.get_data_path(), "work_dir")},
             human_input_mode="NEVER",
-            is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+            is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
         )
-        assistant.register_reply(Agent, AssistantAgent.a_generate_oai_reply, 3)
-        # assistant.register_reply(Agent, AssistantAgent.a_get_human_input, 3)
-        assistant.register_reply(Agent, terminate_on_consecutive_empty, 2)
-        assistant.register_reply(Agent, post_update_to_main, 1)
-        assistant.register_reply(Agent, post_last_user_msg_to_chat_history, 0)
-        user.register_reply(Agent, post_last_assistant_msg_to_chat_history, 0)
+
+        assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
+        assistant.register_reply([Agent, None], post_update_to_main)
+        assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
+
+        user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=False)
+        user.register_reply(
+            [Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=False
+        )
+        user.register_reply([Agent, None], post_last_assistant_msg_to_chat_history)
+
+        # register tools for assistant and user
+        tools = APP_CONFIG.get_tools()
+        for tool in tools.values():
+            name = tool.name
+            description = name  # TODO: add description
+            code = tool.code
+            # convert a code string to function and return a callable
+
+            function_name, tool_instance = string_to_function(code)
+            assistant.register_for_llm(name=function_name, description=description)(tool_instance)
+            user.register_for_execution()(tool_instance)
 
         for msg in chat_history:
             if msg["role"] == "user":

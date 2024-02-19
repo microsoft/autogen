@@ -201,7 +201,7 @@ SettingsScreen {
 
 #tool-code-container{
     grid-size: 1 2;
-    grid-rows: 25% 60%;
+    grid-rows: 50% 50%;
     grid-gutter: 1 2;
     column-span: 3;
     height: 100%;
