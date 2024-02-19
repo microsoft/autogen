@@ -555,17 +555,17 @@ class TestContentStr(unittest.TestCase):
         with self.assertRaises(TypeError):
             content_str(content)
 
+
 class TestGetPowerShellCommand(unittest.TestCase):
-    
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_get_powershell_command_powershell(self, mock_subprocess_run):
         # Set up the mock to return a successful result for 'powershell'
         mock_subprocess_run.return_value.returncode = 0
         mock_subprocess_run.return_value.stdout = StringIO("5")
         
         self.assertEqual(get_powershell_command(), "powershell")
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     def test_get_powershell_command_pwsh(self, mock_subprocess_run):
         # Set up the mock to return a successful result for 'pwsh'
         mock_subprocess_run.side_effect = [FileNotFoundError, mock_subprocess_run.return_value]
@@ -573,21 +573,21 @@ class TestGetPowerShellCommand(unittest.TestCase):
         mock_subprocess_run.return_value.stdout = StringIO("7")
         
         self.assertEqual(get_powershell_command(), "pwsh")
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     def test_get_powershell_command_no_shell(self, mock_subprocess_run):
         # Set up the mock to simulate 'powershell' and 'pwsh' not found
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-        
-        with patch('sys.stdout', new=StringIO()) as fake_out:
+
+        with patch("sys.stdout", new=StringIO()) as fake_out:
             get_powershell_command()
             self.assertEqual(fake_out.getvalue().strip(), "Neither powershell nor pwsh is installed.")
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     def test_get_powershell_command_no_shell_no_output(self, mock_subprocess_run):
         # Set up the mock to simulate 'powershell' and 'pwsh' not found without printing error message
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-        
+
         self.assertIsNone(get_powershell_command())
 
 
