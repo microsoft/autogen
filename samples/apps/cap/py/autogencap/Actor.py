@@ -2,10 +2,10 @@ import zmq
 import threading
 import traceback
 from .DebugLog import Debug, Info
-from .CAPConstants import Termination_Topic, xpub_url
+from .Constants import Termination_Topic, xpub_url
 
 
-class CAPActor:
+class Actor:
     def __init__(self, agent_name, description):
         self.agent_name = agent_name
         self.agent_description = description

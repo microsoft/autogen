@@ -3,10 +3,10 @@ from typing import Dict, List, Optional, Union
 from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from ..CAPActor import CAPActor
+from ..Actor import Actor
 from .AG2CAP import AG2CAP
 
-class CAP2AG(CAPActor):
+class CAP2AG(Actor):
     """
     A CAN actor that acts as an adapter for the AutoGen system.
     """

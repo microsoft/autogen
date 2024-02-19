@@ -7,10 +7,10 @@ to retrieve information.
 from autogencap.DebugLog import Debug, Info, shorten
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ActorConnector import ActorConnector
-from autogencap.CAPActor import CAPActor
+from autogencap.Actor import Actor
 
 
-class FidelityAgent(CAPActor):
+class FidelityAgent(Actor):
     """
     This class represents the fidelity agent, who knows how to connect to fidelity to get account,
     portfolio, and order information.
@@ -31,7 +31,7 @@ class FidelityAgent(CAPActor):
         super().__init__(agent_name, description)
 
 
-class FinancialPlannerAgent(CAPActor):
+class FinancialPlannerAgent(Actor):
     """
     This class represents the financial planner agent, who knows how to connect to a financial
     planner and get financial planning information.
@@ -53,7 +53,7 @@ class FinancialPlannerAgent(CAPActor):
         super().__init__(agent_name, description)
 
 
-class QuantAgent(CAPActor):
+class QuantAgent(Actor):
     """
     This class represents the quant agent, who knows how to connect to a quant and get
     quant information.
@@ -72,7 +72,7 @@ class QuantAgent(CAPActor):
         super().__init__(agent_name, description)
 
 
-class UserInterfaceAgent(CAPActor):
+class UserInterfaceAgent(Actor):
     """
     This class represents the user interface agent, who knows how to connect to a user
     interface and get user interface information.
@@ -93,7 +93,7 @@ class UserInterfaceAgent(CAPActor):
         super().__init__(UserInterfaceAgent.cls_agent_name, description)
 
 
-class PersonalAssistant(CAPActor):
+class PersonalAssistant(Actor):
     """
     This class represents the personal assistant, who knows how to connect to the other agents and
     get information from them.

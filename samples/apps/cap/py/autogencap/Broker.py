@@ -1,7 +1,7 @@
 from .DebugLog import Debug
 import zmq
 import threading
-from .CAPConstants import xsub_url, xpub_url
+from .Constants import xsub_url, xpub_url
 
 
 class Broker:
