@@ -3,7 +3,7 @@ class AgentNameConflict(Exception):
         super().__init__(msg, *args, **kwargs)
 
 
-class NoEligibleSpeakerException(Exception):
+class NoEligibleSpeaker(Exception):
     """Exception raised for early termination of a GroupChat."""
 
     def __init__(self, message="No eligible speakers."):

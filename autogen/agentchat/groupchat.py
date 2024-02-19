@@ -12,11 +12,9 @@ from .agent import Agent
 from .conversable_agent import ConversableAgent
 from ..runtime_logging import logging_enabled, log_new_agent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
-from ..exception_utils import NoEligibleSpeakerException, UndefinedNextAgent
+from ..exception_utils import NoEligibleSpeaker, UndefinedNextAgent
 
 logger = logging.getLogger(__name__)
-
-VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
 
 
 @dataclass
@@ -334,9 +332,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # this condition means last_speaker is a sink in the graph, then no agents are eligible
         if last_speaker not in self.allowed_speaker_transitions_dict and is_last_speaker_in_group:
-            raise NoEligibleSpeakerException(
-                f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict."
-            )
+            raise NoEligibleSpeaker(f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict.")
         # last_speaker is not in the group, so all agents are eligible
         elif last_speaker not in self.allowed_speaker_transitions_dict and not is_last_speaker_in_group:
             graph_eligible_agents = []
@@ -564,7 +560,7 @@ class GroupChatManager(ConversableAgent):
                 else:
                     # admin agent is not found in the participants
                     raise
-            except NoEligibleSpeakerException:
+            except NoEligibleSpeaker:
                 # No eligible speaker, terminate the conversation
                 break
 
