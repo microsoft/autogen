@@ -32,11 +32,11 @@ class ChatResult:
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     """Initiate a list of chats.
 
-    args:
+    Args:
         chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
                 Each dictionary should contain the input arguments for `ConversableAgent.initiate_chat`.
                 More specifically, each dictionary could include the following fields:
-                recipient: the recipient agent.
+                - recipient: the recipient agent.
                 - "sender": the sender agent.
                 - "recipient": the recipient agent.
                 - clear_history (bool): whether to clear the chat history with the agent. Default is True.
@@ -59,17 +59,17 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
                     ):
                         return recipient.last_message(sender)["content"]
                     ```
-                "summary_prompt" can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
+                - "summary_prompt": This filed can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
                     Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
                     "Identify and extract the final solution to the originally asked question based on the conversation."
-                "carryover" can be used to specify the carryover information to be passed to this chat.
+                - "carryover": It can be used to specify the carryover information to be passed to this chat.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
                     message in `generate_init_message`.
 
-
-    returns:
+    Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
+
     consolidate_chat_info(chat_queue)
     receipts_set = set()
     for chat_info in chat_queue:
