@@ -439,14 +439,6 @@ def SeleniumBrowser(**kwargs): # Function that loads the web driver
     browser      = kwargs.get('browser', 'edge')
     download_dir = kwargs.get('download_dir', None)
 
-    try:
-        from selenium import webdriver
-    except ImportError as e:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.fatal("Failed to import selenium. Try running 'pip install selenium'.  You may need to run 'sudo easy_install selenium' on Linux or MacOS")
-        raise e
-
     def get_headless_options(download_dir):
         options = Options()
         options.headless = True
