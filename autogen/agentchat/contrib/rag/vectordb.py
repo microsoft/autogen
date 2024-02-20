@@ -130,13 +130,16 @@ class VectorDB(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None) -> GetResults:
+    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None, include=None, **kwargs) -> GetResults:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 
         Args:
             ids: List[Any] | A list of document ids.
             collection_name: str | The name of the collection. Default is None.
+            include: List[str] | The fields to include. Default is None.
+                If None, will include ["metadatas", "documents"]
+            kwargs: dict | Additional keyword arguments.
 
         Returns:
             GetResults | The query results.
