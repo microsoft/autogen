@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import warnings
 from typing import Any, ClassVar, List, Optional
@@ -43,6 +44,8 @@ class LocalCommandlineCodeExecutor(BaseModel):
     the working directory, and a unique file is generated and saved in the
     working directory for each code block.
     The code blocks are executed in the order they are received.
+    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
+    commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
     For shell scripts, use the language "bash", "shell", or "sh" for the code
@@ -108,6 +111,28 @@ If you want the user to save the code in a file before executing it, put # filen
         """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
+    @staticmethod
+    def sanitize_command(lang: str, code: str) -> None:
+        """
+        Sanitize the code block to prevent dangerous commands.
+        This approach acknowledges that while Docker or similar
+        containerization/sandboxing technologies provide a robust layer of security,
+        not all users may have Docker installed or may choose not to use it.
+        Therefore, having a baseline level of protection helps mitigate risks for users who,
+        either out of choice or necessity, run code outside of a sandboxed environment.
+        """
+        dangerous_patterns = [
+            (r"\brm\s+-rf\b", "Use of 'rm -rf' command is not allowed."),
+            (r"\bmv\b.*?\s+/dev/null", "Moving files to /dev/null is not allowed."),
+            (r"\bdd\b", "Use of 'dd' command is not allowed."),
+            (r">\s*/dev/sd[a-z][1-9]?", "Overwriting disk blocks directly is not allowed."),
+            (r":\(\)\{\s*:\|\:&\s*\};:", "Fork bombs are not allowed."),
+        ]
+        if lang in ["bash", "shell", "sh"]:
+            for pattern, message in dangerous_patterns:
+                if re.search(pattern, code):
+                    raise ValueError(f"Potentially dangerous command detected: {message}")
+
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
@@ -119,6 +144,9 @@ If you want the user to save the code in a file before executing it, put # filen
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
+
+            LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+
             print(
                 colored(
                     f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
