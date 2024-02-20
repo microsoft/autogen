@@ -313,6 +313,17 @@ class RagAgent(ConversableAgent):
         return not (contain_code or update_context_case1 or update_context_case2)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
+        """
+        Merge the documents in the query results.
+
+        Args:
+            query_results: QueryResults | The query results.
+            key: str | The key to merge.
+            unique_pos: List[int] | The unique positions.
+
+        Returns:
+            Tuple[List[str], List[int]] | The unique values and the unique positions.
+        """
         _data = query_results.__getattribute__(key)
         if _data is not None:
             raw = merge_and_get_unique_in_turn_same_length(*_data)
@@ -333,6 +344,12 @@ class RagAgent(ConversableAgent):
     def merge_documents(self, query_results: QueryResults) -> QueryResults:
         """
         Merge the documents in the query results.
+
+        Args:
+            query_results: QueryResults | The query results.
+
+        Returns:
+            QueryResults | The merged query results.
         """
         keys = QueryResults.__annotations__.keys()
         positions = None
@@ -356,6 +373,13 @@ class RagAgent(ConversableAgent):
     def sort_query_results(self, query_results: QueryResults, order: List[int]) -> QueryResults:
         """
         Sort the query results based on the order.
+
+        Args:
+            query_results: QueryResults | The query results.
+            order: List[int] | The order.
+
+        Returns:
+            QueryResults | The sorted query results.
         """
         keys = QueryResults.__annotations__.keys()
         sorted_values = {}
@@ -367,6 +391,12 @@ class RagAgent(ConversableAgent):
     def merge_document_ids(self, query_results: QueryResults) -> List[ItemID]:
         """
         Merge the document ids in the query results.
+
+        Args:
+            query_results: QueryResults | The query results.
+
+        Returns:
+            List[ItemID] | The merged document ids.
         """
         ids = merge_and_get_unique_in_turn_same_length(*query_results.ids)
         return ids
@@ -374,11 +404,28 @@ class RagAgent(ConversableAgent):
     def sort_get_results_ids(self, get_results: GetResults, order: List[int]) -> List[ItemID]:
         """
         Sort the get results based on the order.
+
+        Args:
+            get_results: GetResults | The get results.
+            order: List[int] | The order.
+
+        Returns:
+            List[ItemID] | The sorted document ids.
         """
         sorted_ids = [get_results.ids[i] for i in order]
         return sorted_ids
 
     def retrieve_rerank(self, raw_message: str, refined_questions: List[str]) -> QueryResults:
+        """
+        Retrieve and rerank the documents based on the refined questions.
+
+        Args:
+            raw_message: str | The raw message.
+            refined_questions: List[str] | The refined questions.
+
+        Returns:
+            QueryResults | The query results.
+        """
         length_used_doc_ids = len(self.used_doc_ids)
         queries = [
             Query(
@@ -415,6 +462,12 @@ class RagAgent(ConversableAgent):
         """Check if the message is to update the context.
         if yes, then return True and the new query string.
         if no, then return False and the input message.
+
+        Args:
+            message: str | The message.
+
+        Returns:
+            Tuple[bool, str] | The flag and the new message.
         """
         if isinstance(message, dict):
             message = message.get("content", "")
@@ -429,6 +482,9 @@ class RagAgent(ConversableAgent):
 
     @timer
     def perform_rag(self, raw_message: str) -> None:
+        """
+        Perform retrieval augmented generation for the given message.
+        """
         logger.debug(f"Performing RAG for message: {raw_message}", color="green")
         refined_questions, selected_prompt_rag = self.prompt_generator(raw_message, self.rag_promptgen_n)
         if self.received_raw_message not in refined_questions:
@@ -439,7 +495,16 @@ class RagAgent(ConversableAgent):
         self.reranked_query_results = reranked_query_results
 
     def query_results_to_context(self, query_results: QueryResults, token_limits: int = -1) -> str:
-        """Convert the query results to a context string."""
+        """
+        Convert the query results to a context string.
+
+        Args:
+            query_results: QueryResults | The query results.
+            token_limits: int | The token limits.
+
+        Returns:
+            str | The context string.
+        """
         context = ""
         context_tokens = 0
         token_limits = self.max_token_limit * self.max_token_ratio_for_context if token_limits == -1 else token_limits
@@ -465,6 +530,16 @@ class RagAgent(ConversableAgent):
 
     @timer
     def process_message(self, message: str, tokens_in_history: int = 0) -> str:
+        """
+        Process the message and generate a reply.
+
+        Args:
+            message: str | The message.
+            tokens_in_history: int | The tokens in history.
+
+        Returns:
+            str | The reply.
+        """
         llm_message = ""
         token_limits = (self.max_token_limit - tokens_in_history) * self.max_token_ratio_for_context
         if self.first_time:
@@ -489,12 +564,29 @@ class RagAgent(ConversableAgent):
 
     @staticmethod
     def count_messages_tokens(messages: List[Dict[str, str]]) -> int:
-        """Count the total number of tokens in the messages."""
+        """
+        Count the total number of tokens in the messages.
+
+        Args:
+            messages: List[Dict[str, str]] | The messages.
+
+        Returns:
+            int | The total number of tokens.
+        """
         return sum([count_token(msg["content"]) for msg in messages])
 
     @staticmethod
     def remove_old_context(messages: List[Dict[str, str]], token_limit: int = 1000) -> List[Dict[str, str]]:
-        """Remove old context from the history."""
+        """
+        Remove old context from the history.
+
+        Args:
+            messages: List[Dict[str, str]] | The messages.
+            token_limit: int | The token limit.
+
+        Returns:
+            List[Dict[str, str]] | The new messages.
+        """
         total_tokens = 0
         new_messages = []
         for msg in messages:
@@ -516,6 +608,16 @@ class RagAgent(ConversableAgent):
     def _generate_llm_reply(
         self, message_to_llm: str, tokens_in_history: int = 0
     ) -> Tuple[str, Dict, Union[str, Dict], int]:
+        """
+        Generate a reply for the LLM agent.
+
+        Args:
+            message_to_llm: str | The message to the LLM agent.
+            tokens_in_history: int | The tokens in history.
+
+        Returns:
+            Tuple[str, Dict, Union[str, Dict], int] | The LLM reply, the proxy reply, the tokens in history.
+        """
         if message_to_llm:
             self._user_proxy.send(message_to_llm, self._assistant, request_reply=True, silent=True)
             llm_reply = self._user_proxy.chat_messages[self._assistant][-1]
@@ -535,7 +637,8 @@ class RagAgent(ConversableAgent):
             logger.debug(f"Inner proxy reply: {proxy_reply}")
         return llm_reply, proxy_reply, tokens_in_history
 
-    def reset(self):
+    def reset(self) -> None:
+        """Reset the agent."""
         super().reset()
         self.used_doc_ids = set()
         self.received_raw_message = None
@@ -547,7 +650,17 @@ class RagAgent(ConversableAgent):
         sender: Optional[Agent] = None,
         config: Optional[OpenAIWrapper] = None,
     ) -> Tuple[bool, Optional[Union[str, Dict[str, str]]]]:
-        """Generate a reply for the RAG agent."""
+        """
+        Generate a reply for the RAG agent.
+
+        Args:
+            messages: List[Dict[str, str]] | The messages.
+            sender: Agent | The sender.
+            config: OpenAIWrapper | The OpenAI wrapper.
+
+        Returns:
+            Tuple[bool, Optional[Union[str, Dict[str, str]]]] | The flag and the reply.
+        """
         if config is None:
             config = self
         if messages is None:
@@ -620,7 +733,17 @@ class RagAgent(ConversableAgent):
         else:
             return True, None if proxy_reply is None else proxy_reply["content"]
 
-    def run_code(self, code, **kwargs):
+    def run_code(self, code, **kwargs) -> Tuple[int, str, None]:
+        """
+        Run the code.
+
+        Args:
+            code: str | The code.
+            kwargs: Dict | The keyword arguments.
+
+        Returns:
+            Tuple[int, str, None] | The exit code, the log, and the result.
+        """
         lang = kwargs.get("lang", None)
         if code.startswith("!") or code.startswith("pip") or lang in ["bash", "shell", "sh"]:
             return (
