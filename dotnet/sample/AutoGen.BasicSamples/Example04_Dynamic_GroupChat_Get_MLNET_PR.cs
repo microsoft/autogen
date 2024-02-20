@@ -36,7 +36,6 @@ The output of the code is:
         public bool HasNugetPackages { get; set; }
         public bool IsTopLevelStatement { get; set; }
         public bool IsDotnetCodeBlock { get; set; }
-        public bool HasUsingDeclartion { get; set; }
     }
 
     struct StepProgressReviewResult
@@ -71,14 +70,12 @@ The output of the code is:
     /// <param name="hasMultipleCodeBlocks">true if there're multipe csharp code blocks</param>
     /// <param name="hasNugetPackages">true if there's nuget package to install</param>
     /// <param name="isTopLevelStatement">true if the code is in top level statement</param>
-    /// <param name="hasUsingDeclartion">true if the code has using keyword in front of disposable object</param>
     /// <param name="isDotnetCodeBlock">true if the code block is csharp code block</param>
     [Function]
     public async Task<string> ReviewCodeBlock(
         bool hasMultipleCodeBlocks,
         bool hasNugetPackages,
         bool isTopLevelStatement,
-        bool hasUsingDeclartion,
         bool isDotnetCodeBlock)
     {
         var obj = new CodeReviewResult
@@ -87,7 +84,6 @@ The output of the code is:
             HasNugetPackages = hasNugetPackages,
             IsTopLevelStatement = isTopLevelStatement,
             IsDotnetCodeBlock = isDotnetCodeBlock,
-            HasUsingDeclartion = hasUsingDeclartion,
         };
 
         return JsonSerializer.Serialize(obj);
@@ -113,7 +109,7 @@ The output of the code is:
 
         // get OpenAI Key and create config
         var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gpt3Config = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
+        var gptConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
 
         var steps = new[]
         {
@@ -134,7 +130,7 @@ The output of the code is:
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = gpt3Config,
+                ConfigList = gptConfig,
                 FunctionDefinitions = new[]
                 {
                     instance.ReviewCurrentStepProgressFunction,
@@ -178,7 +174,7 @@ The output of the code is:
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = gpt3Config,
+                ConfigList = gptConfig,
                 FunctionDefinitions = new[]
                 {
                     instance.SaveContextFunction,
@@ -201,7 +197,7 @@ The output of the code is:
 
 Here're some rules to follow on writing dotnet code:
 - put code between ```csharp and ```
-- Avoid adding `using` keyword when creating disposable object. e.g `var httpClient = new HttpClient()`
+- When creating http client, use `var httpClient = new HttpClient()`. Don't use `using var httpClient = new HttpClient()` because it will cause error when running the code.
 - Try to use `var` instead of explicit type.
 - Try avoid using external library, use .NET Core library instead.
 - Use top level statement to write code.
@@ -220,7 +216,7 @@ Here's some externel information
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0.4f,
-                ConfigList = gpt3Config,
+                ConfigList = gptConfig,
             })
             .RegisterPrintFormatMessageHook();
 
@@ -235,7 +231,7 @@ Here's some externel information
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = gpt3Config,
+                ConfigList = gptConfig,
                 FunctionDefinitions = new[]
                 {
                     instance.ReviewCodeBlockFunction,
@@ -254,7 +250,7 @@ Here's some externel information
            llmConfig: new ConversableAgentConfig
            {
                Temperature = 0,
-               ConfigList = gpt3Config,
+               ConfigList = gptConfig,
                FunctionDefinitions = new[]
                {
                     dotnetInteractiveFunctions.InstallNugetPackagesFunction,
@@ -271,7 +267,8 @@ Here's some externel information
         {
             // review code process
             // This process will repeat until the code block satisfy the following conditions:
-            while (true)
+            var maxRetry = 5;
+            while (maxRetry-- > 0)
             {
                 var prompt = $@"You are a code reviewer who reviews code from coder. Below is the most recent reply from coder:
 
@@ -293,12 +290,6 @@ please carefully review the code block from coder and provide feedback.";
                 if (reviewResultObj.IsDotnetCodeBlock is false)
                 {
                     var fixCodeBlockPrompt = @"The code block is not csharp code block, please write dotnet code only";
-                    reviews.Add(fixCodeBlockPrompt);
-                }
-
-                if (reviewResultObj.HasUsingDeclartion is true)
-                {
-                    var fixCodeBlockPrompt = @"Avoid adding using declaration, please remove using declaration, e.g var httpClient = new HttpClient()";
                     reviews.Add(fixCodeBlockPrompt);
                 }
 
@@ -338,6 +329,8 @@ please carefully review the code block from coder and provide feedback.";
 
                 return reply;
             }
+
+            throw new Exception("Max retry reached, please fix the code and try again");
         });
 
         // create runner agent
@@ -350,7 +343,7 @@ please carefully review the code block from coder and provide feedback.";
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = gpt3Config,
+                ConfigList = gptConfig,
             })
             .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
             .RegisterPostProcess(async (_, reply, _) =>
