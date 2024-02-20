@@ -214,7 +214,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #region create_admin
         var admin = new AssistantAgent(
             name: "admin",
-            systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE]",
+            systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
