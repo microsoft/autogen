@@ -12,7 +12,7 @@ renderer:
   relative_sidebar_path: sidebar.json
   sidebar_top_level_label: Reference
   markdown:
-    escape_html_in_docstring: true
+    escape_html_in_docstring: false
     descriptive_class_title: false
     header_level_by_type:
       Module: 1
