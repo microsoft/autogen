@@ -33,6 +33,9 @@ try:
     from selenium import webdriver
     from selenium.webdriver.common.by import By
     from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.edge.options import Options as EdgeOptions
+    from selenium.webdriver.firefox.options import Options as FirefoxOptions
+    from selenium.webdriver.chrome.options import Options as ChromeOptions
 
     IS_SELENIUM_CAPABLE = True
 except ImportError as e:
@@ -439,8 +442,7 @@ def SeleniumBrowser(**kwargs): # Function that loads the web driver
     browser      = kwargs.get('browser', 'edge')
     download_dir = kwargs.get('download_dir', None)
 
-    def get_headless_options(download_dir):
-        options = Options()
+    def get_headless_options(download_dir, options):
         options.headless = True
         options.add_argument('--headless')
         options.add_argument("--window-size=1920,5200")
@@ -449,15 +451,13 @@ def SeleniumBrowser(**kwargs): # Function that loads the web driver
             options.set_preference("download.default_directory",download_dir)
         return options
 
-    if browser.lower()=='firefox':
-        from selenium.webdriver.firefox.options import Options
-        driver = webdriver.Firefox(options=get_headless_options(download_dir))
+    if browser.lower()=='edge':
+        driver = webdriver.Edge(options=get_headless_options(download_dir, EdgeOptions()))
+    elif browser.lower()=='firefox':
+        driver = webdriver.Firefox(options=get_headless_options(download_dir, FirefoxOptions()))
     elif browser.lower()=='chrome':
-        from selenium.webdriver.chrome.options import Options
-        driver = webdriver.Chrome(options=get_headless_options(download_dir))
-    elif browser.lower()=='edge':
-        from selenium.webdriver.edge.options import Options
-        driver = webdriver.Edge(options=get_headless_options(download_dir))
+        driver = webdriver.Chrome(options=get_headless_options(download_dir, ChromeOptions()))
+        
     driver.capabilities['se:downloadsEnablead'] = True
     
     return driver 
