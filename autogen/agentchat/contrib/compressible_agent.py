@@ -67,8 +67,7 @@ Reply "TERMINATE" in the end when everything is done.
         description: Optional[str] = None,
         **kwargs,
     ):
-        """Create a CompressibleAgent.
-
+        """
         Args:
             name (str): agent name.
             system_message (str): system message for the ChatCompletion inference.
