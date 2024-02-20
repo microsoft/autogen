@@ -121,8 +121,9 @@ class ChromaVectorDB(VectorDB):
             None
         """
         self.client.delete_collection(collection_name)
-        if self.active_collection.name == collection_name:
-            self.active_collection = None
+        if self.active_collection:
+            if self.active_collection.name == collection_name:
+                self.active_collection = None
 
     def _batch_insert(self, collection, embeddings=None, ids=None, metadata=None, documents=None, upsert=False):
         batch_size = int(CHROMADB_MAX_BATCH_SIZE)

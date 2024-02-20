@@ -3,7 +3,7 @@ from pydantic.dataclasses import dataclass
 from dataclasses import asdict
 
 
-Metadata = Mapping[str, Union[str, int, float, bool, None]]
+Metadata = Union[Mapping[str, Union[str, int, float, bool, None]], None]
 Vector = Union[Sequence[float], Sequence[int]]
 ItemID = Union[str, int]
 
