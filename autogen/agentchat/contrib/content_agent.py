@@ -12,7 +12,6 @@ import json
 import traceback
 import requests
 from collections import deque
-from fileinput import filename
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 
@@ -78,7 +77,6 @@ class ContentAgent(ConversableAgent):
         return True, rep
     
     def define_classifiers(self):
-        f
 
         # Define the system messages for the classifiers
         self.metadata_classifier_system_msg = "Help the user identify if the metadata contains potentially useful information such as: author, title, description, a date, etc. Respond True for useful, False for not."
@@ -336,7 +334,7 @@ class ContentAgent(ConversableAgent):
         return relevant_content
         
     def collect_images(self, soup, local_path, verbose=False):
-        import os
+
         def get_basename(filename):
             return os.path.splitext(os.path.basename(filename))[0]
 
