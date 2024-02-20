@@ -466,10 +466,6 @@ class ReactiveMessage(Markdown):
     def __init__(self, id=None, role=None, content=None, **kwargs):
         super().__init__(**kwargs)
         self.message = {"role": role, "content": content, "id": id}
-        self.msg_id = id
-
-    def set_id(self, msg_id):
-        self.msg_id = msg_id
 
     def on_mount(self) -> None:
         self.set_interval(1, self.update_message)
@@ -477,10 +473,10 @@ class ReactiveMessage(Markdown):
         chat_display.scroll_end()
 
     def on_click(self) -> None:
-        self.post_message(self.Selected(self.msg_id))
+        self.post_message(self.Selected(self.message.get("id")))
 
     def update_message(self):
-        message = fetch_row(self.msg_id)
+        message = fetch_row(self.message.get("id"))
 
         if message is None:
             self.remove()
@@ -509,9 +505,8 @@ def message_display_handler(message: Dict[str, str]):
     role = message["role"]
     id = message["id"]
     content = message["content"]
-    text = ReactiveMessage(id=id, role=role, content=content, classes=f"{role.lower()}-message message")
-    text.set_id(id)
-    return text
+    message_widget = ReactiveMessage(id=id, role=role, content=content, classes=f"{role.lower()}-message message")
+    return message_widget
 
 
 class DirectoryTreeContainer(ScrollableContainer):
