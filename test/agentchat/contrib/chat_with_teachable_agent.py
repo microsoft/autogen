@@ -18,10 +18,10 @@ except ImportError:
 
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
-filter_dict = {"model": ["gpt-4-1106-preview"]}
+filter_dict = {"model": ["gpt-4-0125-preview"]}
 # filter_dict = {"model": ["gpt-3.5-turbo-1106"]}
 # filter_dict = {"model": ["gpt-4-0613"]}
-# filter_dict = {"model": ["gpt-3.5-turbo-0613"]}
+# filter_dict = {"model": ["gpt-3.5-turbo"]}
 # filter_dict = {"model": ["gpt-4"]}
 # filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
@@ -59,7 +59,7 @@ def interact_freely_with_user():
     # Create the agents.
     print(colored("\nLoading previous memory (if any) from disk.", "light_cyan"))
     teachable_agent = create_teachable_agent(reset_db=False)
-    user = UserProxyAgent("user", human_input_mode="ALWAYS")
+    user = UserProxyAgent("user", human_input_mode="ALWAYS", code_execution_config={})
 
     # Start the chat.
     teachable_agent.initiate_chat(user, message="Greetings, I'm a teachable user assistant! What's on your mind today?")

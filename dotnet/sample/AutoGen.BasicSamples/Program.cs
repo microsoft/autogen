@@ -1,4 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-await Example04_Dynamic_GroupChat_Get_MLNET_PR.RunAsync();
+using AutoGen.BasicSample;
+
+await Example09_LMStudio_FunctionCall.RunAsync();
