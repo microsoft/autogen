@@ -10,7 +10,7 @@
     column-span: 3;
     padding: 1;
 
-    grid-size: 1 10;
+    grid-size: 2 10;
 
     align: center middle;
 }
@@ -26,16 +26,20 @@
 
 #directory-tree{
     row-span: 9;
+    column-span: 2;
     padding: 1;
 }
 
 #directory-tree-footer{
+    column-span: 2;
     row-span: 1;
+
+    grid-size: 2 1;
     align: center middle;
 }
 
-#empty-work-dir-button{
-    width: 40%;
+#directory-tree-footer Button {
+    column-span: 1;
 }
 
 

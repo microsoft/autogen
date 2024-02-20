@@ -228,6 +228,20 @@ class AppConfiguration:
         conn.commit()
         conn.close()
 
+    def delete_file_or_dir(self, file_path: str):
+        # do not delete the work dir
+        work_dir = os.path.join(self._data_path, "work_dir")
+        logging.info(f"Work dir is: {work_dir}")
+        if file_path == work_dir:
+            return
+
+        logging.info(f"Deleting {file_path}")
+
+        if os.path.isfile(file_path):
+            os.remove(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
+
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
@@ -531,6 +545,10 @@ class DirectoryTreeContainer(ScrollableContainer):
     def watch_dir_contents(self):
         self.query_one(DirectoryTree).reload()
 
+    def on_tree_node_highlighted(self, event: DirectoryTree.NodeHighlighted) -> None:
+        logging.info(f"Highlighted {event.node}")
+        self.highlighted_node = event.node
+
 
 class ChatDisplay(ScrollableContainer):
     """
@@ -820,6 +838,7 @@ class TinyRA(App):
             Grid(
                 DirectoryTreeContainer(id="directory-tree"),
                 Grid(
+                    Button("Delete", variant="error", id="delete-file-button"),
                     Button("Empty Work Dir", variant="error", id="empty-work-dir-button"),
                     id="directory-tree-footer",
                 ),
@@ -854,6 +873,15 @@ class TinyRA(App):
                     os.remove(file_path)
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)
+        elif event.button.id == "delete-file-button":
+            dir_tree = self.query_one("#directory-tree > DirectoryTree", DirectoryTree)
+            highlighted_node = dir_tree.cursor_node
+
+            if highlighted_node is not None:
+                dir_tree.action_cursor_up()
+                file_path = str(highlighted_node.data.path)
+
+                APP_CONFIG.delete_file_or_dir(file_path)
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
