@@ -1,15 +1,8 @@
 """
 Demo App
 """
-import sys
-import os
-
-# Add autogencap to system path incase autogencap is not pip installed
-# Since this library has not been published to PyPi, it is not easy to install using pip
-absparent = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(absparent)
-
 import argparse
+import _paths
 from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
 import autogencap.DebugLog as DebugLog
 from SimpleActorDemo import simple_actor_demo
