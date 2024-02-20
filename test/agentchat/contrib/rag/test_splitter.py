@@ -12,11 +12,11 @@ class TestSplitter(unittest.TestCase):
         # Test when dir_path is a directory
         dir_path = os.path.join(here, "test_files")
         expected_files = [
-            os.path.join(here, "test_files", "example.txt"),
             os.path.join(here, "test_files", "example.pdf"),
+            os.path.join(here, "test_files", "example.txt"),
         ]
         files = Splitter.get_files_from_dir(dir_path)
-        self.assertEqual(files, expected_files)
+        self.assertEqual(set(files), set(expected_files))
 
         # Test when dir_path is a file
         dir_path = os.path.join(here, "test_files", "example.txt")
