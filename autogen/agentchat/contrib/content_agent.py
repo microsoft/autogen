@@ -62,6 +62,7 @@ class ContentAgent(ConversableAgent):
         self.browser_kwargs   = kwargs.get('browser_kwargs', {"browser": "firefox"}) 
         self.request_kwargs   = {'headers': { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"} }
         self.small_llm_config = kwargs['llm_config']
+        self.process_history  = {}
 
         # Define the classifiers
         self.define_classifiers()
@@ -224,6 +225,9 @@ class ContentAgent(ConversableAgent):
         # Close down the browser
         self.browser.quit()
         
+        # Log the processed link, motivated by the unit test
+        self.process_history[link] = sd
+
         return 'success'
     
     def fetch_pdf_content(self, link):
