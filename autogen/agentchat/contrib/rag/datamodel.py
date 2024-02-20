@@ -5,7 +5,7 @@ from dataclasses import asdict
 
 Metadata = Union[Mapping[str, Union[str, int, float, bool, None]], None]
 Vector = Union[Sequence[float], Sequence[int]]
-ItemID = Union[str, int]
+ItemID = str
 
 
 @dataclass
@@ -25,7 +25,7 @@ class Chunk(object):
 
     def __post_init__(self):
         if self.id is None:
-            self.id = abs(hash(self.content))
+            self.id = str(abs(hash(self.content)))
 
     def dict(self):
         result = asdict(self)
