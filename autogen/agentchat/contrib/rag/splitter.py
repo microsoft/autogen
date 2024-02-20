@@ -7,6 +7,7 @@ from typing import List, Tuple, Union, Callable
 from autogen.token_count_utils import count_token
 from .datamodel import Chunk
 from .utils import logger, lazy_import, timer
+from .constants import RAG_MINIMUM_MESSAGE_LENGTH
 
 PLAIN_TEXT_EXTENSION = [
     ".txt",
@@ -217,13 +218,19 @@ class TextLineSplitter(Splitter):
             overlap = 0
         chunks = []
         lines = text.split("\n")
+        num_lines = len(lines)
+        if num_lines < 3 and must_break_at_empty_line:
+            logger.warning(
+                "The input text has less than 3 lines. Set `must_break_at_empty_line` to `False`", color="yellow"
+            )
+            must_break_at_empty_line = False
         lines_tokens = [count_token(line) for line in lines]
         sum_tokens = sum(lines_tokens)
         while sum_tokens > chunk_size:
             if chunk_mode == "one_line":
                 estimated_line_cut = 2
             else:
-                estimated_line_cut = int(chunk_size / sum_tokens * len(lines)) + 1
+                estimated_line_cut = max(int(chunk_size / sum_tokens * len(lines)), 2)
             cnt = 0
             prev = ""
             for cnt in reversed(range(estimated_line_cut)):
@@ -238,7 +245,9 @@ class TextLineSplitter(Splitter):
                     color="yellow",
                 )
                 if not must_break_at_empty_line:
-                    split_len = int(chunk_size / (lines_tokens[0] * 0.9 * len(lines[0]) + 0.1))
+                    split_len = max(
+                        int(chunk_size / (lines_tokens[0] * 0.9 * len(lines[0]) + 0.1)), RAG_MINIMUM_MESSAGE_LENGTH
+                    )
                     prev = lines[0][:split_len]
                     lines[0] = lines[0][split_len:]
                     lines_tokens[0] = count_token(lines[0])
@@ -247,12 +256,16 @@ class TextLineSplitter(Splitter):
                         "Failed to split docs with must_break_at_empty_line being True, set to False.", color="yellow"
                     )
                     must_break_at_empty_line = False
-            chunks.append(prev) if len(prev) > 10 else None  # don't add chunks less than 10 characters
+            (
+                chunks.append(prev) if len(prev) >= RAG_MINIMUM_MESSAGE_LENGTH else None
+            )  # don't add chunks less than RAG_MINIMUM_MESSAGE_LENGTH characters
             lines = lines[cnt - overlap if cnt > overlap else cnt :]
             lines_tokens = lines_tokens[cnt - overlap if cnt > overlap else cnt :]
             sum_tokens = sum(lines_tokens)
         text_to_chunk = "\n".join(lines).strip()
-        chunks.append(text_to_chunk) if len(text_to_chunk) > 10 else None  # don't add chunks less than 10 characters
+        (
+            chunks.append(text_to_chunk) if len(text_to_chunk) >= RAG_MINIMUM_MESSAGE_LENGTH else None
+        )  # don't add chunks less than RAG_MINIMUM_MESSAGE_LENGTH characters
         return chunks
 
     @staticmethod
