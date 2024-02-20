@@ -221,6 +221,13 @@ class AppConfiguration:
         conn.commit()
         conn.close()
 
+    def clear_chat_history(self):
+        conn = sqlite3.connect(self._database_path)
+        c = conn.cursor()
+        c.execute("DELETE FROM chat_history")
+        conn.commit()
+        conn.close()
+
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
@@ -427,8 +434,10 @@ def message2markdown(message: Dict[str, str]) -> str:
     role = message["role"]
     if role == "user":
         display_name = APP_CONFIG.get_user_name()
-    else:
+    elif role == "assistant" or role == "info":
         display_name = "TinyRA"
+    else:
+        display_name = "."
 
     if role == "info":
         display_id = "\U0001F4AD" * 3
@@ -440,12 +449,12 @@ def message2markdown(message: Dict[str, str]) -> str:
     return f"[{display_id}] {display_name}: {content}"
 
 
-class ReactiveAssistantMessage(Markdown):
+class ReactiveMessage(Markdown):
     """
     A reactive markdown widget for displaying assistant messages.
     """
 
-    message = reactive({"role": "assistant", "content": "loading...", "id": -1})
+    message = reactive({"role": None, "content": None, "id": None})
 
     class Selected(Message):
         """Assistant message selected message."""
@@ -454,25 +463,38 @@ class ReactiveAssistantMessage(Markdown):
             self.msg_id = msg_id
             super().__init__()
 
+    def __init__(self, id=None, role=None, content=None, **kwargs):
+        super().__init__(**kwargs)
+        self.message = {"role": role, "content": content, "id": id}
+        self.msg_id = id
+
     def set_id(self, msg_id):
         self.msg_id = msg_id
-        # self.message = fetch_row(self.msg_id)
 
     def on_mount(self) -> None:
         self.set_interval(1, self.update_message)
+        chat_display = self.app.query_one(ChatDisplay)
+        chat_display.scroll_end()
 
     def on_click(self) -> None:
         self.post_message(self.Selected(self.msg_id))
 
     def update_message(self):
-        self.message = fetch_row(self.msg_id)
+        message = fetch_row(self.msg_id)
+
+        if message is None:
+            self.remove()
+            return
+
         self.classes = f"{self.message['role'].lower()}-message message"
 
-    def watch_message(self) -> str:
-        self.update(message2markdown(self.message))
+        self.message = message
+
+    async def watch_message(self) -> str:
+        await self.update(message2markdown(self.message))
 
 
-def message_display_handler(message: Dict[str, str]) -> Markdown or ReactiveAssistantMessage:
+def message_display_handler(message: Dict[str, str]):
     """
     Given a message, return a widget for displaying the message.
     If the message is from the user, return a markdown widget.
@@ -485,22 +507,11 @@ def message_display_handler(message: Dict[str, str]) -> Markdown or ReactiveAssi
         A markdown widget or a reactive markdown widget.
     """
     role = message["role"]
-    if role == "user":
-        text = Markdown(message2markdown(message), classes=f"{role.lower()}-message message")
-    else:
-        id = message["id"]
-        text = ReactiveAssistantMessage(classes=f"{role.lower()}-message message")
-        text.set_id(id)
+    id = message["id"]
+    content = message["content"]
+    text = ReactiveMessage(id=id, role=role, content=content, classes=f"{role.lower()}-message message")
+    text.set_id(id)
     return text
-
-
-class SkillsDisplayContainer(ScrollableContainer):
-    """
-    A container for displaying the available skills.
-    """
-
-    def compose(self) -> ComposeResult:
-        yield SkillsDisplay()
 
 
 class DirectoryTreeContainer(ScrollableContainer):
@@ -526,65 +537,23 @@ class DirectoryTreeContainer(ScrollableContainer):
         self.query_one(DirectoryTree).reload()
 
 
-class SkillsDisplay(Markdown):
-    """
-    A markdown widget for displaying the available skills.
-    """
-
-    skills = reactive(get_available_functions)
-
-    def watch_skills(self) -> None:
-        self.update(self.skills)
-
-    def on_mount(self) -> None:
-        self.set_interval(5, self.update_skills)
-
-    def update_skills(self):
-        self.skills = get_available_functions()
-
-
 class ChatDisplay(ScrollableContainer):
     """
     A container for displaying the chat history.
-
-    The chat history is fetched from the database and displayed.
-    Its updated every second.
 
     When a new message is detected, it is mounted to the container.
     """
 
     limit_history = 100
-    chat_history = reactive(fetch_chat_history)
-    old_chat_history = reactive(fetch_chat_history)
 
-    async def on_mount(self) -> None:
-        self.set_interval(1.0, self.update_chat_history)
-        logging.info("Waiting 2 sec for message mounting to complete.")
-        await asyncio.sleep(2)
-        logging.info("Scrolling to end of container.")
-        self.scroll_end()
+    # num_messages = reactive(len(fetch_chat_history()))
 
-    def update_chat_history(self) -> None:
-        self.chat_history = fetch_chat_history()
-
-    async def watch_chat_history(self) -> None:
-        len_old = len(self.old_chat_history)
-        len_new = len(self.chat_history)
-        if len_new > len_old:
-            logging.info("New message detected. Mounting them.")
-            # add widgets for new messages
-            for i in range(len_old, len_new):
-                logging.info(f"Mounting message {i}")
-                text = message_display_handler(self.chat_history[i])
-                self.mount(text)
-
-                # text.scroll_visible(animate=False)
-                self.scroll_end()
-                logging.info(f"Scrolling to message {i}")
-        self.old_chat_history = self.chat_history
+    # async def watch_num_messages(self) -> None:
+    # self.scroll_end()
 
     def compose(self) -> ComposeResult:
-        for message in self.chat_history[-self.limit_history :]:
+        chat_history = fetch_chat_history()
+        for message in chat_history[-self.limit_history :]:
             widget = message_display_handler(message)
             yield widget
 
@@ -633,7 +602,7 @@ class SettingsScreen(ModalScreen):
 
         tools = APP_CONFIG.get_tools()
 
-        with TabbedContent("User", "Tools", id="settings-screen"):
+        with TabbedContent("User", "Tools", "History", id="settings-screen"):
             # Tab for user settings
             yield Container(
                 Grid(
@@ -682,6 +651,24 @@ class SettingsScreen(ModalScreen):
                     id="tool-view-grid",
                 ),
                 id="tools-tab-grid",
+            )
+            # Tab for history settings
+            # helps clear the chat history
+            # shows statistics about the chat history
+            yield Grid(
+                Container(
+                    Markdown(
+                        f"""
+Number of messages: {len(fetch_chat_history())}
+Number of tools: {len(tools)}"""
+                    ),
+                    id="history-contents",
+                ),
+                Container(
+                    Button("Clear History", variant="error", id="clear-history-button"),
+                    id="history-footer",
+                ),
+                id="history-settings",
             )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -749,7 +736,14 @@ class SettingsScreen(ModalScreen):
             item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
             item_label.update(tool_name)
 
-            # raise(ValueError(item))
+        elif event.button.id == "clear-history-button":
+            APP_CONFIG.clear_chat_history()
+
+            # remove all the messages from the chat display
+            # chat_display = self.app.query_one(ChatDisplay)
+            # chat_display.clear()
+
+            self.app.pop_screen()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
@@ -804,7 +798,6 @@ class TinyRA(App):
     - Header
     - DirectoryTreeContainer
     - ChatDisplay
-    - SkillsDisplayContainer
     - ChatInput
     - Footer
 
@@ -870,7 +863,7 @@ class TinyRA(App):
         self.query_one(Input).value = ""
         self.handle_input(user_input)
 
-    def on_reactive_assistant_message_selected(self, event: ReactiveAssistantMessage.Selected) -> None:
+    def on_reactive_message_selected(self, event: ReactiveMessage.Selected) -> None:
         """Called when a reactive assistant message is selected."""
         new_chat_screen = ChatScreen()
         new_chat_screen.root_msg_id = event.msg_id
@@ -878,7 +871,23 @@ class TinyRA(App):
 
     @work()
     async def handle_input(self, user_input: str) -> None:
-        id = insert_chat_message("user", user_input, root_id=0)
+        chat_display_widget = self.query_one(ChatDisplay)
+
+        # display the user input in the chat display
+        id = await a_insert_chat_message("user", user_input, root_id=0)
+        user_message = fetch_row(id)
+        reactive_message = message_display_handler(user_message)
+        chat_display_widget.mount(reactive_message)
+
+        # display the assistant response in the chat display
+        assistant_message = {
+            "role": "info",
+            "content": "Computing response...",
+            "id": id + 1,
+        }
+        reactive_message = message_display_handler(assistant_message)
+        chat_display_widget.mount(reactive_message)
+
         self.generate_response(msg_idx=id)
 
     @work()
