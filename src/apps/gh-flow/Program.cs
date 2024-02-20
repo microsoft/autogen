@@ -64,100 +64,10 @@ builder.Services.AddSingleton<IAnalyzeCode, CodeAnalyzer>();
 builder.Host.UseOrleans(siloBuilder =>
 {
 
-    if (builder.Environment.IsDevelopment())
-    {
-        var connectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
-        //siloBuilder.AddMemoryStreams("StreamProvider");
-        siloBuilder.UseCosmosReminderService(o =>
-        {
-            o.ConfigureCosmosClient(connectionString);
-            o.ContainerName = "reminders";
-            o.DatabaseName = "devteam";
-            o.IsResourceCreationEnabled = true;
-        });
-        siloBuilder.AddCosmosGrainStorage(
-           name: "PubSubStore",
-           configureOptions: o =>
-           {
-               o.ConfigureCosmosClient(connectionString);
-               o.ContainerName = "pubsubstore";
-               o.DatabaseName = "pubsub";
-               o.IsResourceCreationEnabled = true;
-           });
-        siloBuilder.AddCosmosGrainStorage(
-            name: "messages",
-            configureOptions: o =>
-            {
-                o.ConfigureCosmosClient(connectionString);
-                o.ContainerName = "persistence";
-                o.DatabaseName = "devteam";
-                o.IsResourceCreationEnabled = true;
-            });
-        var ehConnectionString = builder.Configuration.GetValue<string>("AzureOptions:EventHubsConnectionString");
-        var storageConnectionString = builder.Configuration.GetValue<string>("AzureOptions:StorageAccountConnectionString");
-        
-        siloBuilder.UseLocalhostClustering()
-        .AddEventHubStreams("StreamProvider", (ISiloEventHubStreamConfigurator configurator) =>
-        {
-            configurator.ConfigureEventHub(builder => builder.Configure(options =>
-            {
-                options.ConfigureEventHubConnection(
-                    ehConnectionString,
-                    "sk-dev-team",
-                    "$Default");
-            }));
-            configurator.UseAzureTableCheckpointer(
-                builder => builder.Configure(options =>
-            {
-                options.ConfigureTableServiceClient(storageConnectionString);
-                options.PersistInterval = TimeSpan.FromSeconds(10);
-            }));
-        }); ;
-    }
-    else
-    {
-        var cosmosDbconnectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
-        siloBuilder.Configure<ClusterOptions>(options =>
-        {
-            options.ClusterId = "ai-dev-cluster";
-            options.ServiceId = "ai-dev-cluster";
-        });
-        siloBuilder.Configure<SiloMessagingOptions>(options =>
-        {
-            options.ResponseTimeout = TimeSpan.FromMinutes(3);
-            options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
-        });
-        siloBuilder.Configure<ClientMessagingOptions>(options =>
-       {
-           options.ResponseTimeout = TimeSpan.FromMinutes(3);
-       });
-        siloBuilder.UseCosmosClustering(o =>
-            {
-                o.ConfigureCosmosClient(cosmosDbconnectionString);
-                o.ContainerName = "devteam";
-                o.DatabaseName = "clustering";
-                o.IsResourceCreationEnabled = true;
-            });
-
-        siloBuilder.UseCosmosReminderService(o =>
-        {
-            o.ConfigureCosmosClient(cosmosDbconnectionString);
-            o.ContainerName = "devteam";
-            o.DatabaseName = "reminders";
-            o.IsResourceCreationEnabled = true;
-        });
-        siloBuilder.AddCosmosGrainStorage(
-            name: "messages",
-            configureOptions: o =>
-            {
-                o.ConfigureCosmosClient(cosmosDbconnectionString);
-                o.ContainerName = "devteam";
-                o.DatabaseName = "persistence";
-                o.IsResourceCreationEnabled = true;
-            });
-
-        //TODO: Add streaming here
-    }
+    siloBuilder.UseLocalhostClustering()
+               .AddMemoryStreams("StreamProvider")
+               .AddMemoryGrainStorage("PubSubStore")
+               .AddMemoryGrainStorage("messages");
 
 });
 
@@ -167,9 +77,8 @@ builder.Services.Configure<JsonSerializerOptions>(options =>
 });
 var app = builder.Build();
 
-app.UseRouting();
-
-app.UseEndpoints(endpoints =>
+app.UseRouting()
+   .UseEndpoints(endpoints =>
 {
     endpoints.MapGitHubWebhooks();
 });

@@ -44,7 +44,7 @@ public class ProductManager : SemanticPersona
             case EventType.NewAsk:
                 await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
                 break;
-             case EventType.NewAskReadme:
+            case EventType.NewAskReadme:
                 await CreateReadme(item.Message);
                 break;
             case EventType.ChainClosed:
@@ -57,18 +57,18 @@ public class ProductManager : SemanticPersona
 
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
     {
-            // TODO: Create branch and PR
-             var pmIssue = await _ghService.CreateIssue(new CreateIssueRequest
-             {
-                 Label = $"{nameof(PM)}.{nameof(PM.Readme)}",
-                 Org = org,
-                 Repo = repo,
-                 Input = input,
-                 ParentNumber = parentNumber
-             });
+        //TODO: Create branch and PR
+        var pmIssue = await _ghService.CreateIssue(new CreateIssueRequest
+        {
+            Label = $"{nameof(PM)}.{nameof(PM.Readme)}",
+            Org = org,
+            Repo = repo,
+            Input = input,
+            ParentNumber = parentNumber
+        });
 
-             _state.State.ParentIssueNumber = parentNumber;
-            await _state.WriteStateAsync();
+        _state.State.ParentIssueNumber = parentNumber;
+        await _state.WriteStateAsync();
 
     }
     public async Task<string> CreateReadme(string ask)
