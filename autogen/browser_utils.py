@@ -346,7 +346,7 @@ def fix_missing_protocol(img_url, source_url): # Correct a url if it's missing t
     if img_url.startswith('//'):  # If the URL starts with "//"
         img_url = f"{protocol}:{img_url}" # Add "https:" before it
     
-    elif not bool(domain): # domain not in img_url:
+    elif not bool(get_domain(img_url)): # domain not in img_url:
         img_url = f"{protocol}://{domain}/{img_url}"
     
     return img_url
