@@ -817,9 +817,19 @@ class TinyRA(App):
         """Create child widgets for the app."""
         yield Grid(
             Header(show_clock=True),
-            DirectoryTreeContainer(id="directory-tree"),
-            ChatDisplay(id="chat-history"),
-            ChatInput(id="chat-input"),
+            Grid(
+                DirectoryTreeContainer(id="directory-tree"),
+                Grid(
+                    Button("Empty Work Dir", variant="error", id="empty-work-dir-button"),
+                    id="directory-tree-footer",
+                ),
+                id="directory-tree-grid",
+            ),
+            Container(
+                ChatDisplay(id="chat-history"),
+                ChatInput(id="chat-input"),
+                id="chat-container",
+            ),
             Footer(),
             id="main-grid",
         )
@@ -833,6 +843,17 @@ class TinyRA(App):
 
     def action_request_settings(self) -> None:
         self.push_screen(SettingsScreen())
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "empty-work-dir-button":
+            # loop through each file in the work dir and delete it
+            work_dir = os.path.join(APP_CONFIG.get_data_path(), "work_dir")
+            for file in os.listdir(work_dir):
+                file_path = os.path.join(work_dir, file)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""

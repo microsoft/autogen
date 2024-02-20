@@ -1,25 +1,53 @@
 #main-grid {
     layout: grid;
     grid-size: 10 10;
+    grid-gutter: 1;
     padding: 1;
 }
 
+#directory-tree-grid {
+    row-span: 10;
+    column-span: 3;
+    padding: 1;
+
+    grid-size: 1 10;
+
+    align: center middle;
+}
+
+#chat-container{
+    row-span: 10;
+    column-span: 7;
+    padding: 1;
+
+    layout: grid;
+    grid-size: 10 10;
+}
 
 #directory-tree{
-    row-span: 10;
-    column-span: 2;
+    row-span: 9;
     padding: 1;
 }
 
+#directory-tree-footer{
+    row-span: 1;
+    align: center middle;
+}
+
+#empty-work-dir-button{
+    width: 40%;
+}
+
+
 #chat-history {
-    padding: 1;
+    padding: 2;
     row-span: 9;
-    column-span: 8;
+    column-span: 10;
 }
 
 #chat-input{
+    column-span: 10;
     row-span: 1;
-    column-span: 8;
 }
 
 #skills{
