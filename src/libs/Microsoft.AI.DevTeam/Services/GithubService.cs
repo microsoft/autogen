@@ -110,9 +110,9 @@ public class GithubService : IManageGithub
             var newIssue = new NewIssue($"{request.Label} chain for #{request.ParentNumber}")
             {
                 Body = request.Input,
-
             };
             newIssue.Labels.Add(request.Label);
+            newIssue.Labels.Add($"Parent.{request.ParentNumber}");
             var issue = await _ghClient.Issue.Create(request.Org, request.Repo, newIssue);
             var commentBody = $" - [ ] #{issue.Number} - tracks {request.Label}";
             var comment = await _ghClient.Issue.Comment.Create(request.Org, request.Repo, (int)request.ParentNumber, commentBody);

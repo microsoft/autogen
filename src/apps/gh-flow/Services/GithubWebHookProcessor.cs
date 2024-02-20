@@ -37,7 +37,8 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            //if(labels.ContainsKey("Parent"))
+            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
+            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
             // TODO: confert the non-parent label to skill and function
         //             Issue 1
         //     Sub issue 2
@@ -74,12 +75,12 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             if (issuesEvent.Action == IssuesAction.Opened)
             {
                 _logger.LogInformation("Processing HandleNewAsk");
-                await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
+                await HandleNewAsk(issueNumber,parentNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
             else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
             {
                 _logger.LogInformation("Processing HandleClosingIssue");
-                await HandleClosingIssue(issueNumber, skillName, functionName, suffix, org, repo);
+                await HandleClosingIssue(issueNumber, parentNumber, suffix, org, repo);
             }
         }
         catch (System.Exception)
@@ -101,15 +102,17 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var issueNumber = issueCommentEvent.Issue.Number;
             var input = issueCommentEvent.Issue.Body;
             // Assumes the label follows the following convention: Skill.Function example: PM.Readme
-            var labels = issueCommentEvent.Issue.Labels.First().Name.Split(".");
-            
-            var skillName = labels[0];
-            var functionName = labels[1];
+            var labels = issueCommentEvent.Issue.Labels
+                                    .Select(l => l.Name.Split('.'))
+                                    .Where(parts => parts.Length == 2)
+                                    .ToDictionary(parts => parts[0], parts => parts[1]);
+            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
+            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
             var suffix = $"{org}-{repo}";
             // we only resond to non-bot comments
             if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
             {
-                await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
+                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
         }
         catch (System.Exception ex)
@@ -119,22 +122,27 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
        
     }
 
-    private async Task HandleClosingIssue(long issueNumber, string skillName, string functionName, string suffix, string org, string repo)
+    private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string suffix, string org, string repo)
     {
         var streamProvider = _client.GetStreamProvider("StreamProvider");
         var streamId = StreamId.Create(suffix, issueNumber.ToString());
         var stream = streamProvider.GetStream<Event>(streamId);
+        var data = new Dictionary<string, string>
+        {
+            { "org", org },
+            { "repo", repo },
+            { "issueNumber", issueNumber.ToString() },
+            { "parentNumber", parentNumber?.ToString()}
+        };
 
         await stream.OnNextAsync(new Event
         {
             Type = EventType.ChainClosed,
-            Org = org,
-            Repo = repo,
-            IssueNumber = issueNumber
+            Data = data
         });
     }
 
-    private async Task HandleNewAsk(long issueNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
+    private async Task HandleNewAsk(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
     {
         try
         {
@@ -151,20 +159,19 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 (nameof(Developer), nameof(Developer.Implement)) => EventType.NewAskImplement,
                 _ => EventType.NewAsk
             };
+             var data = new Dictionary<string, string>
+            {
+                { "org", org },
+                { "repo", repo },
+                { "issueNumber", issueNumber.ToString() },
+                { "parentNumber", parentNumber?.ToString()}
+            };
             await stream.OnNextAsync(new Event
             {
                 Type = eventType,
                 Message = input,
-                Org = org,
-                Repo = repo,
-                IssueNumber = issueNumber
+                Data = data
             });
-
-            // else if (skillName == "Repo" && functionName == "Ingest")
-            // {
-            //     var ingestor = _grains.GetGrain<IIngestRepo>(suffix);
-            //     await ingestor.IngestionFlow(org, repo, "main");
-            // }
         }
         catch (System.Exception)
         {

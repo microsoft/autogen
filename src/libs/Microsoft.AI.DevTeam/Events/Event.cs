@@ -7,11 +7,7 @@ public class Event
     [Id(1)]
     public string Message { get; set; }
     [Id(2)]
-    public string Org { get; set; }
-    [Id(3)]
-    public string Repo { get; set; }
-    [Id(4)]
-    public long IssueNumber { get; set; }
+    public Dictionary<string,string> Data { get; set; }
 }
 
 public enum EventType

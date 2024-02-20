@@ -115,7 +115,7 @@ public class DeveloperLead : SemanticPersona
         switch (item.Type)
         {
             case EventType.NewAsk:
-                await CreateIssue(item.Org, item.Repo, item.IssueNumber, item.Message);
+                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
                 break;
             case EventType.NewAskPlan:
                 await CreatePlan(item.Message);
