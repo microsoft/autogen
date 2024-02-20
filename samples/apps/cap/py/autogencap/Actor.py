@@ -11,7 +11,7 @@ class Actor:
         self.agent_description = description
         self.run = False
 
-    def connect(self, network: "LocalActorNetwork"):
+    def connect(self, network):
         Debug(self.agent_name, f"is connecting to {network}")
         Debug(self.agent_name, "connected")
 
@@ -67,7 +67,7 @@ class Actor:
         self._thread = threading.Thread(target=self.recv_thread)
         self._thread.start()
 
-    def disconnect(self, network: "LocalActorNetwork"):
+    def disconnect(self, network):
         Debug(self.agent_name, f"is disconnecting from {network}")
         Debug(self.agent_name, "disconnected")
         self.stop_recv_thread()
