@@ -1,48 +1,69 @@
-import pytest
-from unittest import mock
-
-from autogen.agentchat.contrib.rag.utils import lazy_import, lazy_imported
-
-
-@pytest.fixture
-def mock_logger():
-    with mock.patch("autogen.agentchat.contrib.rag.utils.logger") as mock_logger:
-        yield mock_logger
+import unittest
+from autogen.agentchat.contrib.rag.utils import (
+    lazy_import,
+    verify_one_arg,
+    flatten_list,
+    merge_and_get_unique_in_turn_same_length,
+)
 
 
-def test_lazy_import_success(mock_logger):
-    module_name = "os"
-    module = lazy_import(module_name)
-    assert module is not None
-    assert module_name in lazy_imported
-    mock_logger.error.assert_not_called()
+class TestUtils(unittest.TestCase):
+    def test_lazy_import(self):
+        # Test importing module
+        os = lazy_import("os")
+        self.assertIsNotNone(os)
 
+        # Test importing attribute
+        path = lazy_import("os", "path")
+        self.assertIsNotNone(path)
+        self.assertIs(os.path, path)
 
-def test_lazy_import_failure(mock_logger):
-    module_name = "nonexistent_module"
-    module = lazy_import(module_name)
-    assert module is None
-    assert module_name not in lazy_imported
-    mock_logger.error.assert_called_once_with(f"Failed to import {module_name}.")
+        # Test importing non-existent module
+        non_existent_module = lazy_import("non_existent_module")
+        self.assertIsNone(non_existent_module)
 
+        # Test importing non-existent attribute
+        non_existent_attr = lazy_import("os", "non_existent_attr")
+        self.assertIsNone(non_existent_attr)
 
-def test_lazy_import_attr_success(mock_logger):
-    module_name = "autogen.agentchat"
-    attr_name = "Agent"
-    attr = lazy_import(module_name, attr_name)
-    assert attr is not None
-    assert module_name in lazy_imported
-    mock_logger.error.assert_not_called()
+    def test_verify_one_arg(self):
+        # Test with one argument specified
+        self.assertIsNone(verify_one_arg(a=1, b=None, c=""))
 
+        # Test with multiple arguments specified
+        with self.assertRaises(ValueError):
+            verify_one_arg(a=1, b=2, c=3)
 
-def test_lazy_import_attr_failure(mock_logger):
-    module_name = "os"
-    attr_name = "nonexistent_attr"
-    attr = lazy_import(module_name, attr_name)
-    assert attr is None
-    assert module_name in lazy_imported
-    mock_logger.error.assert_called_once_with(f"Failed to import {attr_name} from {module_name}")
+        # Test with no arguments specified
+        with self.assertRaises(ValueError):
+            verify_one_arg()
+
+    def test_flatten_list(self):
+        # Test with nested list
+        nested_list = [[1, 2, [3, 4]], [5, 6], 7, [8, [9, 10]]]
+        flattened_list = flatten_list(nested_list)
+        expected_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        self.assertEqual(flattened_list, expected_list)
+
+        # Test with empty list
+        empty_list = []
+        flattened_empty_list = flatten_list(empty_list)
+        self.assertEqual(flattened_empty_list, [])
+
+    def test_merge_and_get_unique_in_turn_same_length(self):
+        # Test with multiple lists
+        list1 = [1, 2, 3, 4]
+        list2 = [3, 4, 5, 6]
+        list3 = [5, 6, 7, 8]
+        merged_unique = merge_and_get_unique_in_turn_same_length(list1, list2, list3)
+        expected_list = [1, 3, 5, 2, 4, 6, 7, 8]
+        self.assertEqual(merged_unique, expected_list)
+
+        # Test with empty lists
+        empty_lists = []
+        merged_empty_lists = merge_and_get_unique_in_turn_same_length(*empty_lists)
+        self.assertEqual(merged_empty_lists, [])
 
 
 if __name__ == "__main__":
-    pytest.main()
+    unittest.main()

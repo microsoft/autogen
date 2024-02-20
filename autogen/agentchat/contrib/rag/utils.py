@@ -103,8 +103,10 @@ def verify_one_arg(**kwargs: Any) -> None:
         _args = list(kwargs.keys())
         if len(_args) > 1:
             raise ValueError(f"Exactly one of {_args} must be specified.")
-        else:
+        elif len(_args) == 1:
             raise ValueError(f"{_args[0]} must be specified.")
+        else:
+            raise ValueError("At least one argument must be specified.")
 
 
 def timer(func) -> Any:
@@ -169,6 +171,8 @@ def merge_and_get_unique_in_turn_same_length(*lists: List[Any]) -> List[Any]:
     print(merged_unique)  # [1, 3, 5, 2, 4, 6, 7, 8]
     ```
     """
+    if not lists:
+        return []
     seen = set()
     result = deque()
     list_length = len(lists[0])  # Assuming all lists have the same length
