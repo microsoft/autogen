@@ -161,7 +161,7 @@ class ContentAgent(ConversableAgent):
         # We can instantiate the browser now that we know where the files and downloads will go
         self.browser = SeleniumBrowser(browser=self.browser_kwargs['browser'], download_dir=sd['local_path'])
 
-        if 'github' in link and 'README.md' not in link:
+        if 'github.com' in link and 'README.md' not in link:
             # Small patch to facilitate github repos
             link = os.path.join(link, 'README.md')
 
@@ -216,7 +216,7 @@ class ContentAgent(ConversableAgent):
                     # Check if we find any useful relevant links that we should catalog
                     if ('project' in link['text'] or 'paper' in link['text'] or 'code' in link['text']) and 'marktekpost' in link['href'].lower():
                         self.additional_links.append(link['href'])
-                    elif 'arxiv' in link['href'] or ( 'github' in link['href'] and (link['href'][:-3] != ".md" or os.path.basename(link['href'])=='README.md') ):
+                    elif 'arxiv' in link['href'] or ( 'github.com' in link['href'] and (link['href'][:-3] != ".md" or os.path.basename(link['href'])=='README.md') ):
                         self.additional_links.append(link['href'])
                 
         # Parse and store the images
@@ -226,7 +226,7 @@ class ContentAgent(ConversableAgent):
         self.browser.quit()
         
         # Log the processed link, motivated by the unit test
-        self.process_history[link] = sd
+        self.process_history[ sd['url'] ] = sd
 
         return 'success'
     
