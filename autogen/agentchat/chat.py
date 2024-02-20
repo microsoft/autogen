@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Dict, List, Any, Set
+from typing import Dict, List, Any, Set, Tuple
 from dataclasses import dataclass
 from .utils import consolidate_chat_info
 import warnings
@@ -15,7 +15,7 @@ except ImportError:
 
 
 logger = logging.getLogger(__name__)
-Prerequisite = tuple[int, int]
+Prerequisite = Tuple[int, int]
 
 
 @dataclass
