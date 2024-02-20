@@ -13,7 +13,7 @@ from .retriever import RetrieverFactory, Retriever
 from .reranker import RerankerFactory, Reranker
 from .encoder import Encoder, EmbeddingFunction, EmbeddingFunctionFactory
 from .splitter import SplitterFactory, Splitter
-from .utils import logger, timer
+from .utils import logger, timer, merge_and_get_unique_in_turn_same_length
 from .constants import RAG_MINIMUM_MESSAGE_LENGTH
 
 
@@ -313,11 +313,9 @@ class RagAgent(ConversableAgent):
         return not (contain_code or update_context_case1 or update_context_case2)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
-        raw = []
         _data = query_results.__getattribute__(key)
         if _data is not None:
-            for k in _data:
-                raw.extend(k)
+            raw = merge_and_get_unique_in_turn_same_length(*_data)
         else:
             return None, None
         unique_value = []
@@ -370,11 +368,8 @@ class RagAgent(ConversableAgent):
         """
         Merge the document ids in the query results.
         """
-        # todo: get items in turn and merge them
-        ids = []
-        for _ids in query_results.ids:
-            ids.extend(_ids)
-        return list(set(ids))
+        ids = merge_and_get_unique_in_turn_same_length(*query_results.ids)
+        return ids
 
     def sort_get_results_ids(self, get_results: GetResults, order: List[int]) -> List[ItemID]:
         """

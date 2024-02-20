@@ -4,6 +4,7 @@ import importlib
 from typing import Any, List
 from functools import wraps
 from termcolor import colored
+from collections import deque
 
 
 class MyLogger(logging.Logger):
@@ -145,3 +146,38 @@ def flatten_list(lst) -> List[Any]:
         else:
             flattened.append(item)
     return flattened
+
+
+def merge_and_get_unique_in_turn_same_length(*lists: List[Any]) -> List[Any]:
+    """
+    To merge multiple lists, maintain the order of items, remove duplicates,
+    and retrieve items from each list in turn.
+
+    Args:
+        lists: List | Multiple lists.
+
+    Returns:
+        List | The merged list with unique items.
+
+    Example usage:
+    ```python
+    list1 = [1, 2, 3, 4]
+    list2 = [3, 4, 5, 6]
+    list3 = [5, 6, 7, 8]
+
+    merged_unique = merge_and_get_unique_in_turn_same_length(list1, list2, list3)
+    print(merged_unique)  # [1, 3, 5, 2, 4, 6, 7, 8]
+    ```
+    """
+    seen = set()
+    result = deque()
+    list_length = len(lists[0])  # Assuming all lists have the same length
+
+    for i in range(list_length):
+        for lst in lists:
+            item = lst[i]
+            if item not in seen:
+                result.append(item)
+                seen.add(item)
+
+    return list(result)
