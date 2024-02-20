@@ -5,7 +5,7 @@ from autogen.agentchat.contrib.rag.retriever import Retriever, ChromaRetriever, 
 
 class TestRetriever(unittest.TestCase):
     def test_retrieve_docs(self):
-        retriever = Retriever("chroma", "collection", "path")
+        retriever = Retriever("chroma", "collection", ".db")
         retriever.vector_db.retrieve_docs = MagicMock(return_value="query_results")
         queries = ["query1", "query2"]
         result = retriever.retrieve_docs(queries)
@@ -13,7 +13,7 @@ class TestRetriever(unittest.TestCase):
         self.assertEqual(result, "query_results")
 
     def test_get_docs_by_ids(self):
-        retriever = Retriever("chroma", "collection", "path")
+        retriever = Retriever("chroma", "collection", ".db")
         retriever.vector_db.get_docs_by_ids = MagicMock(return_value="get_results")
         ids = ["id1", "id2"]
         result = retriever.get_docs_by_ids(ids)
@@ -21,7 +21,7 @@ class TestRetriever(unittest.TestCase):
         self.assertEqual(result, "get_results")
 
     def test_convert_get_results_to_query_results(self):
-        retriever = Retriever("chroma", "collection", "path")
+        retriever = Retriever("chroma", "collection", ".db")
         retriever.vector_db.convert_get_results_to_query_results = MagicMock(return_value="query_results")
         get_result = "get_result"
         result = retriever.convert_get_results_to_query_results(get_result)
@@ -31,10 +31,10 @@ class TestRetriever(unittest.TestCase):
 
 class TestChromaRetriever(unittest.TestCase):
     def test_init(self):
-        retriever = ChromaRetriever("collection", "path")
+        retriever = ChromaRetriever("collection", ".db")
         self.assertEqual(retriever.db_type, "chroma")
         self.assertEqual(retriever.collection_name, "collection")
-        self.assertEqual(retriever.path, "path")
+        self.assertEqual(retriever.path, ".db")
         self.assertEqual(retriever.encoder, None)
         self.assertEqual(retriever.db_config, None)
         self.assertEqual(retriever.name, "chroma")
