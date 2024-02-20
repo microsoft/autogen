@@ -1,33 +1,55 @@
-from autogen.agentchat.contrib.rag.encoder import Encoder, SentenceTransformerEmbeddingFunction, EmbeddingFunction
+import unittest
+from autogen.agentchat.contrib.rag.encoder import (
+    Encoder,
+    EmbeddingFunctionFactory,
+    SentenceTransformerEmbeddingFunction,
+    EmbeddingFunction,
+    Document,
+    Chunk,
+)
 
 
-def test_sentence_transformer_embedding_function():
-    embedding_function = SentenceTransformerEmbeddingFunction()
-    assert callable(embedding_function)
-    assert hasattr(embedding_function, "__call__")
-    assert isinstance(embedding_function, EmbeddingFunction)
-    embed1 = embedding_function("hello world")
-    embed2 = embedding_function(["hello world", "goodbye world"])
-    assert isinstance(embed1, list)
-    assert isinstance(embed2, list)
-    assert isinstance(embed1[0], list)
-    assert isinstance(embed2[0], list)
-    assert isinstance(embed1[0][0], float)
-    assert isinstance(embed2[0][0], float)
-    assert len(embed1) == 1
-    assert len(embed2) == 2
-    assert len(embed1[0]) == embedding_function.dimensions
-    assert len(embed2[0]) == embedding_function.dimensions
+class TestEncoder(unittest.TestCase):
+    def test_encode_chunks(self):
+        encoder = Encoder()
+        chunks = [Chunk(content="This is chunk 1"), Chunk(content="This is chunk 2"), Chunk(content="This is chunk 3")]
+        documents = encoder.encode_chunks(chunks)
+        self.assertEqual(len(documents), len(chunks))
+        for document, chunk in zip(documents, chunks):
+            self.assertIsInstance(document, Document)
+            self.assertEqual(document.content_embedding, encoder.embedding_function(chunk.content)[0])
+            self.assertEqual(document.embedding_model, encoder.model_name)
+            self.assertEqual(document.dimensions, encoder.dimensions)
+
+    def test_embedding_function_factory(self):
+        embedding_function = EmbeddingFunctionFactory.create_embedding_function("sentence_transformer")
+        self.assertIsInstance(embedding_function, SentenceTransformerEmbeddingFunction)
+        self.assertIsInstance(embedding_function, EmbeddingFunction)
+
+    def test_sentence_transformer_embedding_function(self):
+        embedding_function = SentenceTransformerEmbeddingFunction()
+        input_text = "This is a test sentence."
+        vectors = embedding_function(input_text)
+        self.assertIsInstance(vectors, list)
+
+
+class TestEmbeddingFunction(unittest.TestCase):
+    def test_sentence_transformer_embedding_function(self):
+        embedding_function = SentenceTransformerEmbeddingFunction()
+        vectors = embedding_function("hello")
+        self.assertIsInstance(vectors, list)
+        self.assertIsInstance(vectors[0], list)
+
+
+class TestEmbeddingFunctionFactory(unittest.TestCase):
+    def test_create_embedding_function(self):
+        embedding_function = EmbeddingFunctionFactory.create_embedding_function("sentence_transformer")
+        self.assertIsInstance(embedding_function, SentenceTransformerEmbeddingFunction)
+
+    def test_create_embedding_function_invalid(self):
+        with self.assertRaises(ValueError):
+            EmbeddingFunctionFactory.create_embedding_function("invalid")
 
 
 if __name__ == "__main__":
-    test_sentence_transformer_embedding_function()
-    import chromadb.utils.embedding_functions as ef
-
-    eff = ef.SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2")
-    print(isinstance(eff, EmbeddingFunction))
-    print(type(eff))
-    r = eff(["hello world"])
-    print(len(r))
-    print(type(r))
-    print(len(r[0]))
+    unittest.main()
