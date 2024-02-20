@@ -9,6 +9,10 @@
     row-span: 10;
     column-span: 3;
 
+    margin: 2;
+    margin-top: 1;
+    margin-bottom: 1;
+
     grid-size: 2 10;
 
     align: center middle;
@@ -17,7 +21,9 @@
 #chat-container{
     row-span: 10;
     column-span: 7;
-    padding: 2;
+    margin: 2;
+    margin-top: 1;
+    margin-bottom: 1;
 
     layout: grid;
     grid-size: 10 10;
@@ -54,6 +60,8 @@
 #chat-input{
     column-span: 10;
     row-span: 1;
+    padding-left: 2;
+    padding-right: 2;
 }
 
 #skills{
@@ -65,7 +73,9 @@
 
 .message{
     padding: 1;
-    margin: 1;
+    margin: 2;
+    margin-top: 0;
+    /* background: $boost; */
 }
 
 .info-message {
@@ -80,11 +90,11 @@
 }
 
 .user-message {
-    background: $primary-background;
+    background: $boost;
 }
 
 .assistant-message {
-    border: $boost;
+    /* border: $boost; */
 }
 
 QuitScreen {
