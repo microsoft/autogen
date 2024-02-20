@@ -29,12 +29,12 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             name (str): name of the agent.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
-                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
+                1. When "ALWAYS", the agent prompts for human input every time a message is received.
                     Under this mode, the conversation stops when the human input is "exit",
                     or when is_termination_msg is True and there is no human input.
-                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
+                2. When "TERMINATE", the agent only prompts for human input only when a termination message is received or
                     the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                3. When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -42,40 +42,40 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             retrieve_config (dict or None): config for the retrieve agent.
                 To use default config, set to None. Otherwise, set to a dictionary with the following keys:
                 - task (Optional, str): the task of the retrieve chat. Possible values are "code", "qa" and "default". System
-                    prompt will be different for different tasks. The default value is `default`, which supports both code and qa.
+                    prompt will be different for different tasks. The default value is ``default``, which supports both code and qa.
                 - client (Optional, qdrant_client.QdrantClient(":memory:")): A QdrantClient instance. If not provided, an in-memory instance will be assigned. Not recommended for production.
-                    will be used. If you want to use other vector db, extend this class and override the `retrieve_docs` function.
+                    will be used. If you want to use other vector db, extend this class and override the ``retrieve_docs`` function.
                 - docs_path (Optional, Union[str, List[str]]): the path to the docs directory. It can also be the path to a single file,
                     the url to a single file or a list of directories, files and urls. Default is None, which works only if the collection is already created.
                 - extra_docs (Optional, bool): when true, allows adding documents with unique IDs without overwriting existing ones; when false, it replaces existing documents using default IDs, risking collection overwrite.,
                     when set to true it enables the system to assign unique IDs starting from "length+i" for new document chunks, preventing the replacement of existing documents and facilitating the addition of more content to the collection..
                     By default, "extra_docs" is set to false, starting document IDs from zero. This poses a risk as new documents might overwrite existing ones, potentially causing unintended loss or alteration of data in the collection.
                 - collection_name (Optional, str): the name of the collection.
-                    If key not provided, a default name `autogen-docs` will be used.
+                    If key not provided, a default name ``autogen-docs`` will be used.
                 - model (Optional, str): the model to use for the retrieve chat.
-                    If key not provided, a default model `gpt-4` will be used.
+                    If key not provided, a default model ``gpt-4`` will be used.
                 - chunk_token_size (Optional, int): the chunk token size for the retrieve chat.
-                    If key not provided, a default size `max_tokens * 0.4` will be used.
+                    If key not provided, a default size ``max_tokens * 0.4`` will be used.
                 - context_max_tokens (Optional, int): the context max token size for the retrieve chat.
-                    If key not provided, a default size `max_tokens * 0.8` will be used.
+                    If key not provided, a default size ``max_tokens * 0.8`` will be used.
                 - chunk_mode (Optional, str): the chunk mode for the retrieve chat. Possible values are
-                    "multi_lines" and "one_line". If key not provided, a default mode `multi_lines` will be used.
+                    "multi_lines" and "one_line". If key not provided, a default mode ``multi_lines`` will be used.
                 - must_break_at_empty_line (Optional, bool): chunk will only break at empty line if True. Default is True.
                     If chunk_mode is "one_line", this parameter will be ignored.
                 - embedding_model (Optional, str): the embedding model to use for the retrieve chat.
-                    If key not provided, a default model `BAAI/bge-small-en-v1.5` will be used. All available models
-                    can be found at `https://qdrant.github.io/fastembed/examples/Supported_Models/`.
+                    If key not provided, a default model ``BAAI/bge-small-en-v1.5`` will be used. All available models
+                    can be found at ``https://qdrant.github.io/fastembed/examples/Supported_Models/``.
                 - customized_prompt (Optional, str): the customized prompt for the retrieve chat. Default is None.
                 - customized_answer_prefix (Optional, str): the customized answer prefix for the retrieve chat. Default is "".
-                    If not "" and the customized_answer_prefix is not in the answer, `Update Context` will be triggered.
-                - update_context (Optional, bool): if False, will not apply `Update Context` for interactive retrieval. Default is True.
+                    If not "" and the customized_answer_prefix is not in the answer, ``Update Context`` will be triggered.
+                - update_context (Optional, bool): if False, will not apply ``Update Context`` for interactive retrieval. Default is True.
                 - custom_token_count_function (Optional, Callable): a custom function to count the number of tokens in a string.
                     The function should take a string as input and return three integers (token_count, tokens_per_message, tokens_per_name).
                     Default is None, tiktoken will be used and may not be accurate for non-OpenAI models.
                 - custom_text_split_function (Optional, Callable): a custom function to split a string into a list of strings.
-                    Default is None, will use the default function in `autogen.retrieve_utils.split_text_to_chunks`.
-                - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
-                    This only applies to files under the directories in `docs_path`. Explicitly included files and urls will be chunked regardless of their types.
+                    Default is None, will use the default function in ``autogen.retrieve_utils.split_text_to_chunks``.
+                - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is ``autogen.retrieve_utils.TEXT_FORMATS``.
+                    This only applies to files under the directories in ``docs_path``. Explicitly included files and urls will be chunked regardless of their types.
                 - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
                 - parallel (Optional, int): How many parallel workers to use for embedding. Defaults to the number of CPU cores.
                 - on_disk (Optional, bool): Whether to store the collection on disk. Default is False.

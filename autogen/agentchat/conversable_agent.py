@@ -55,7 +55,7 @@ class ConversableAgent(LLMAgent):
     For example, AssistantAgent and UserProxyAgent are subclasses of this class,
     configured with different default settings.
 
-    To modify auto reply, override `generate_reply` method.
+    To modify auto reply, override ``generate_reply`` method.
     To disable/enable human response in every turn, set `human_input_mode` to "NEVER" or "ALWAYS".
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
