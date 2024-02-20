@@ -191,26 +191,20 @@ class GroupChat:
 
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
-        if agents is None:
-            agents = self.agents
-        else:
-            intersection = set(agents).intersection(set(self.agents))
-            if not len(intersection):
-                raise UndefinedNextAgent()
+        agents = agents or self.agents
 
-        # What index is the agent? (-1 if not present)
-        idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
+        # Ensure the provided list of agents is a subset of self.agents
+        if not set(agents).issubset(set(self.agents)):
+            raise UndefinedNextAgent()
 
-        # Return the next agent
-        if agents == self.agents:
-            return agents[(idx + 1) % len(agents)]
-        else:
-            offset = idx + 1
-            for i in range(len(self.agents)):
-                if self.agents[(offset + i) % len(self.agents)] in agents:
-                    return self.agents[(offset + i) % len(self.agents)]
+        # Try to find the index of the current agent in the provided list
+        idx = self.agents.index(agent) if agent in self.agents else -1
 
-        # Too keep mypy happy
+        for i in range(1, len(self.agents) + 1):
+            next_agent = self.agents[(idx + i) % len(self.agents)]
+            if next_agent in agents:
+                return next_agent
+
         raise UndefinedNextAgent()
 
     def select_speaker_msg(self, agents: Optional[List[Agent]] = None) -> str:
