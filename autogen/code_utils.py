@@ -12,7 +12,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from autogen import oai
 
-import docker
+try:
+    import docker
+except ModuleNotFoundError:
+    pass
 
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
@@ -271,7 +274,7 @@ def in_docker_container() -> bool:
 
 
 def decide_use_docker(use_docker) -> bool:
-    if use_docker is None:
+    if use_docker:
         env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
 
         truthy_values = {"1", "true", "yes", "t"}
