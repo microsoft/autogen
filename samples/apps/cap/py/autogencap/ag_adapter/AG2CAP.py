@@ -65,7 +65,13 @@ class AG2CAP(ConversableAgent):
         self._check_connection()
         return self._agent_connector.send_gen_reply_req()
 
-    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
+    def _prepare_chat(
+        self,
+        recipient: ConversableAgent,
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
         self._check_connection()
         self._agent_connector.send_prep_chat(recipient, clear_history, prepare_recipient)
 
