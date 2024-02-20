@@ -2,6 +2,7 @@ import time
 from AppAgents import UserInterfaceAgent
 from autogencap.LocalActorNetwork import LocalActorNetwork
 
+
 def simple_actor_demo():
     """
     Demonstrates the usage of the CAP platform by registering an agent, connecting to other agents,

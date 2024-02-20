@@ -5,19 +5,19 @@ from .Constants import xsub_url, xpub_url
 
 
 class Broker:
-    def __init__(self, context:zmq.Context=zmq.Context()):
-        self._context:zmq.Context = context
-        self._xpub:zmq.Socket = self._context.socket(zmq.XPUB)
+    def __init__(self, context: zmq.Context = zmq.Context()):
+        self._context: zmq.Context = context
+        self._xpub: zmq.Socket = self._context.socket(zmq.XPUB)
         self._xpub.setsockopt(zmq.LINGER, 0)
         self._xpub.bind(xpub_url)
-        self._xsub:zmq.Socket = self._context.socket(zmq.XSUB)
+        self._xsub: zmq.Socket = self._context.socket(zmq.XSUB)
         self._xsub.setsockopt(zmq.LINGER, 0)
         self._xsub.bind(xsub_url)
-        self._run:bool = False
+        self._run: bool = False
 
     def start(self):
         self._run = True
-        self._broker_thread:threading.Thread = threading.Thread(target=self.thread_fn)
+        self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
 
     def stop(self):
@@ -31,7 +31,7 @@ class Broker:
 
     def thread_fn(self):
         try:
-            self._poller:zmq.Poller = zmq.Poller()
+            self._poller: zmq.Poller = zmq.Poller()
             self._poller.register(self._xpub, zmq.POLLIN)
             self._poller.register(self._xsub, zmq.POLLIN)
             while self._run:

@@ -4,6 +4,7 @@ from autogen import Agent, ConversableAgent
 from .AutoGenConnector import AutoGenConnector
 from ..LocalActorNetwork import LocalActorNetwork
 
+
 class AG2CAP(ConversableAgent):
     """
     A conversable agent proxy that sends messages to CAN when called
@@ -17,7 +18,7 @@ class AG2CAP(ConversableAgent):
     ):
         super().__init__(name=agent_name, description=agent_description, llm_config=False)
         self._agent_connector: AutoGenConnector = None
-        self._network:LocalActorNetwork = network
+        self._network: LocalActorNetwork = network
         self._recv_called = False
 
     def reset_receive_called(self):

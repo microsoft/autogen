@@ -4,6 +4,7 @@ from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 
+
 def cap_ag_pair_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})

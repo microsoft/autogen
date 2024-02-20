@@ -1,5 +1,6 @@
 from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent, config_list_from_json
 
+
 def ag_groupchat_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     gpt4_config = {

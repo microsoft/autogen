@@ -5,6 +5,7 @@ from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.AG2CAP import AG2CAP
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 
+
 def cap_ag_group_demo():
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     gpt4_config = {

@@ -7,6 +7,7 @@ from ..Actor import Actor
 from .AG2CAP import AG2CAP
 from autogen import ConversableAgent
 
+
 class CAP2AG(Actor):
     """
     A CAN actor that acts as an adapter for the AutoGen system.
@@ -14,7 +15,7 @@ class CAP2AG(Actor):
 
     States = Enum("States", ["INIT", "CONVERSING"])
 
-    def __init__(self, ag_agent: ConversableAgent, the_other_name: str, init_chat: bool, self_recursive: bool =True):
+    def __init__(self, ag_agent: ConversableAgent, the_other_name: str, init_chat: bool, self_recursive: bool = True):
         super().__init__(ag_agent.name, ag_agent.description)
         self._the_ag_agent: ConversableAgent = ag_agent
         self._ag2can_other_agent: AG2CAP = None
@@ -42,7 +43,7 @@ class CAP2AG(Actor):
         #        self._the_other.close()
         Debug(self.agent_name, "disconnected")
 
-    def process_txt_msg(self, msg:str, msg_type:str, topic:str, sender:str):
+    def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
         """
         Process a text message received from the AutoGen system.
         """

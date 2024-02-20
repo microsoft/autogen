@@ -3,6 +3,7 @@ Demo App
 """
 import sys
 import os
+
 # Add autogencap to system path incase autogencap is not pip installed
 # Since this library has not been published to PyPi, it is not easy to install using pip
 absparent = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -20,6 +21,7 @@ from ComplexActorDemo import complex_actor_demo
 
 ####################################################################################################
 
+
 def parse_args():
     # Create a parser for the command line arguments
     parser = argparse.ArgumentParser(description="Demo App")
@@ -27,12 +29,13 @@ def parse_args():
     # Parse the command line arguments
     args = parser.parse_args()
     # Set the log level
-    LOG_LEVEL = args.log_level
     # Print log level string based on names in debug_log.py
     print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
     IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
+
 ####################################################################################################
+
 
 def main():
     parse_args()

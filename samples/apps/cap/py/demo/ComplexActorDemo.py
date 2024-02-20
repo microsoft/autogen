@@ -3,6 +3,7 @@ from termcolor import colored
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, UserInterfaceAgent
 
+
 def complex_actor_demo():
     """
     This function demonstrates the usage of a complex actor system.
@@ -25,7 +26,7 @@ def complex_actor_demo():
     pa = network.lookup_agent(PersonalAssistant.cls_agent_name)
     while True:
         # Let the network do things and then get the next prompt from user
-        time.sleep(0.1)  
+        time.sleep(0.1)
         # Get a message from the user
         msg = input(colored("Enter a message: ", "light_red"))
         # Send the message to the personal assistant agent
