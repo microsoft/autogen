@@ -1,3 +1,11 @@
+from ..conversable_agent import ConversableAgent
+from ..assistant_agent import AssistantAgent
+from ...browser_utils import (
+    SeleniumBrowser, download_using_requests,
+    get_domain, get_scheme, get_path, get_last_path, get_file_path_from_url, fix_missing_protocol, 
+    extract_pdf_text
+)
+
 import os
 import re
 import json
@@ -17,14 +25,7 @@ except ModuleNotFoundError:
     print("The 'arxiv' library was not found in this environment, but can be installed with 'pip install arxiv'.")
     pass
     
-from ...browser_utils import (
-    SeleniumBrowser, download_using_requests,
-    get_domain, get_scheme, get_path, get_last_path, get_file_path_from_url, fix_missing_protocol, 
-    extract_pdf_text # perhaps there is a more logical location to hold this 
-)
 
-
-from autogen.agentchat.conversable_agent import ConversableAgent
 
 class ContentAgent(ConversableAgent):
     """
@@ -54,7 +55,6 @@ class ContentAgent(ConversableAgent):
         self.browser_kwargs   = kwargs.pop('browser_kwargs', {"browser": "firefox"}) 
         super().__init__(*args, **kwargs)
 
-        from collections import deque
         self.additional_links = deque()
         self.link_depth       = 0
         self.max_depth        = max_depth
@@ -78,7 +78,7 @@ class ContentAgent(ConversableAgent):
         return True, rep
     
     def define_classifiers(self):
-        from autogen.agentchat.assistant_agent import AssistantAgent
+        f
 
         # Define the system messages for the classifiers
         self.metadata_classifier_system_msg = "Help the user identify if the metadata contains potentially useful information such as: author, title, description, a date, etc. Respond True for useful, False for not."
