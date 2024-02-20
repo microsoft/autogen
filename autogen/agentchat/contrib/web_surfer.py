@@ -5,7 +5,9 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
-from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
+from ..agent import Agent
+from .. import ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat
+from ...oai.client import OpenAIWrapper
 from ...browser_utils import SimpleTextBrowser, SeleniumBrowserWrapper, IS_SELENIUM_CAPABLE
 from ...code_utils import content_str
 from datetime import datetime
