@@ -158,17 +158,16 @@ public class GithubService : IManageGithub
 
     }
 
-    public async Task PostComment(PostCommentRequest request)
+    public async Task PostComment(string org, string repo, long issueNumber, string comment)
     {
         try
         {
-            await _ghClient.Issue.Comment.Create(request.Org, request.Repo, request.Number, request.Content);
+            await _ghClient.Issue.Comment.Create(org, repo, (int)issueNumber, comment);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error posting comment");
         }
-
     }
 
     public async Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent, bool> filter)
@@ -232,7 +231,7 @@ public interface IManageGithub
     Task CreateBranch(CreateBranchRequest request);
     Task CommitToBranch(CommitRequest request);
 
-    Task PostComment(PostCommentRequest request);
+    Task PostComment(string org, string repo, long issueNumber, string comment);
     Task<IEnumerable<FileResponse>> GetFiles(string org, string repo, string branch, Func<RepositoryContent, bool> filter);
     Task<string> GetMainLanguage(string org, string repo);
 }

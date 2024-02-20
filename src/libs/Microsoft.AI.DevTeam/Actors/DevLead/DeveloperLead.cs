@@ -48,6 +48,7 @@ public class DeveloperLead : SemanticPersona
         });
         
          _state.State.ParentIssueNumber = parentNumber;
+         _state.State.CommentId = devLeadIssue.CommentId;
         await _state.WriteStateAsync();
     }
     public async Task<string> CreatePlan(string ask)
@@ -86,21 +87,34 @@ public class DeveloperLead : SemanticPersona
         }
     }
 
-    public async Task ClosePlan()
+    public async Task ClosePlan(string org, string repo, long issueNumber, long parentNumber)
     {
-        //   var devLead = _grains.GetGrain<ILeadDevelopment>(issueNumber, suffix);
-        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        // var conductor = _grains.GetGrain<IOrchestrateWorkflows>(parentIssue.IssueNumber, suffix);
-        // var plan = await devLead.GetLatestPlan();
-        // await conductor.ImplementationFlow(plan, org, repo, parentIssue.IssueNumber);
+        var plan = await GetLatestPlan();
+        var suffix = $"{org}-{repo}";
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create("developers", suffix+parentNumber.ToString());
+        var stream = streamProvider.GetStream<Event>(streamId);
 
-        // await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
-        // {
-        //     Org = org,
-        //     Repo = repo,
-        //     CommentId = parentIssue.CommentId
-        // });
+        var eventTasks = plan.steps.SelectMany(s => s.subtasks.Select(st => stream.OnNextAsync(new Event {
+            Type = EventType.NewAsk,
+            Data = new Dictionary<string, string>
+            {
+                { "org", org },
+                { "repo", repo },
+                { "parentNumber", parentNumber.ToString()}
+            },
+            Message = st.prompt
+        })));
+        
+        Task.WaitAll(eventTasks.ToArray());
+        //await conductor.ImplementationFlow(plan, org, repo, parentIssue.IssueNumber);
+
+        await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+        {
+            Org = org,
+            Repo = repo,
+            CommentId = _state.State.CommentId
+        });
     }
 
     public Task<DevLeadPlanResponse> GetLatestPlan()
@@ -118,10 +132,11 @@ public class DeveloperLead : SemanticPersona
                 await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
                 break;
             case EventType.NewAskPlan:
-                await CreatePlan(item.Message);
+                var plan = await CreatePlan(item.Message);
+                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), plan);
                 break;
             case EventType.ChainClosed:
-                await ClosePlan();
+                await ClosePlan(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), long.Parse(item.Data["parentNumber"]));
                 break;
             default:
                 break;

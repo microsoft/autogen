@@ -9,6 +9,8 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
+//[RegexImplicitStreamSubscription("")]
+[ImplicitStreamSubscription("developers")]
 public class Dev : SemanticPersona
 {
     private readonly IKernel _kernel;
@@ -28,7 +30,7 @@ public class Dev : SemanticPersona
 
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
     {
-        var devLeadIssue = await _ghService.CreateIssue(new CreateIssueRequest
+        var devIssue = await _ghService.CreateIssue(new CreateIssueRequest
         {
             Label = $"{nameof(Developer)}.{nameof(Developer.Implement)}",
             Org = org,
@@ -38,6 +40,7 @@ public class Dev : SemanticPersona
         });
         
          _state.State.ParentIssueNumber = parentNumber;
+         _state.State.CommentId = devIssue.CommentId;
         await _state.WriteStateAsync();
     }
     public async Task<string> GenerateCode(string ask)
@@ -80,10 +83,11 @@ public class Dev : SemanticPersona
         switch (item.Type)
         {
             case EventType.NewAsk:
-                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
+                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["parentNumber"]) , item.Message);
                 break;
             case EventType.NewAskImplement:
-                await GenerateCode(item.Message);
+                var code = await GenerateCode(item.Message);
+                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
                 break;
             case EventType.ChainClosed:
                 await CloseImplementation();

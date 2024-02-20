@@ -45,7 +45,8 @@ public class ProductManager : SemanticPersona
                 await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
                 break;
             case EventType.NewAskReadme:
-                await CreateReadme(item.Message);
+                var readme = await CreateReadme(item.Message);
+                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
                 break;
             case EventType.ChainClosed:
                 await CloseReadme();
@@ -68,6 +69,7 @@ public class ProductManager : SemanticPersona
         });
 
         _state.State.ParentIssueNumber = parentNumber;
+        _state.State.CommentId = pmIssue.CommentId;
         await _state.WriteStateAsync();
 
     }

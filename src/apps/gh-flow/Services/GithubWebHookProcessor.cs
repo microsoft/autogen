@@ -64,13 +64,6 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         // org+repo+3
         //     PM
 
-
-        // Connect the parent issue with child via label
-
-        // Parent:3
-        // Parent:4
-
-
             var suffix = $"{org}-{repo}";
             if (issuesEvent.Action == IssuesAction.Opened)
             {
