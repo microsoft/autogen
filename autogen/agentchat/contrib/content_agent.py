@@ -50,6 +50,8 @@ class ContentAgent(ConversableAgent):
 
     """    
     def __init__(self, silent=True, storage_path='./content', max_depth=1, page_loading_time=5, *args, **kwargs): 
+
+        self.browser_kwargs   = kwargs.pop('browser_kwargs', {"browser": "firefox"}) 
         super().__init__(*args, **kwargs)
 
         from collections import deque
@@ -59,7 +61,6 @@ class ContentAgent(ConversableAgent):
         self.local_dir        = storage_path
         self.page_load_time   = page_loading_time
         self.silent           = silent
-        self.browser_kwargs   = kwargs.get('browser_kwargs', {"browser": "firefox"}) 
         self.request_kwargs   = {'headers': { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"} }
         self.small_llm_config = kwargs['llm_config']
         self.process_history  = {}
