@@ -1,6 +1,6 @@
-**Composable Actor Platform (CAP) for Autogen**
+# Composable Actor Platform (CAP) for Autogen
 
-**Python Instructions**
+## Python Instructions
 0) cd py
 1) pip install -r autogencap/requirements.txt
 2) python ./demo/App.py

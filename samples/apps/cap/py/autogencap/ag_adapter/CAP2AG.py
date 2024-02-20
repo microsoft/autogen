@@ -5,6 +5,7 @@ from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 from ..Actor import Actor
 from .AG2CAP import AG2CAP
+from autogen import ConversableAgent
 
 class CAP2AG(Actor):
     """
@@ -13,19 +14,19 @@ class CAP2AG(Actor):
 
     States = Enum("States", ["INIT", "CONVERSING"])
 
-    def __init__(self, ag_agent, the_other_name, init_chat, self_recursive=True):
+    def __init__(self, ag_agent: ConversableAgent, the_other_name: str, init_chat: bool, self_recursive: bool =True):
         super().__init__(ag_agent.name, ag_agent.description)
-        self._the_ag_agent = ag_agent
+        self._the_ag_agent: ConversableAgent = ag_agent
         self._ag2can_other_agent: AG2CAP = None
-        self._other_agent_name = the_other_name
-        self._init_chat = init_chat
+        self._other_agent_name: str = the_other_name
+        self._init_chat: bool = init_chat
         self.STATE = self.States.INIT
         self._can2ag_name: str = self.agent_name + ".can2ag"
-        self._self_recursive = self_recursive
-        self._network = None
+        self._self_recursive: bool = self_recursive
+        self._network: LocalActorNetwork = None
         self._connectors = {}
 
-    def connect(self, network):
+    def connect(self, network: LocalActorNetwork):
         """
         Connect to the AutoGen system.
         """
@@ -41,7 +42,7 @@ class CAP2AG(Actor):
         #        self._the_other.close()
         Debug(self.agent_name, "disconnected")
 
-    def process_txt_msg(self, msg, msg_type, topic, sender):
+    def process_txt_msg(self, msg:str, msg_type:str, topic:str, sender:str):
         """
         Process a text message received from the AutoGen system.
         """
@@ -56,7 +57,7 @@ class CAP2AG(Actor):
             self._the_ag_agent.receive(msg, self._ag2can_other_agent, True)
         return True
 
-    def _call_agent_receive(self, receive_params):
+    def _call_agent_receive(self, receive_params: ReceiveReq):
         request_reply: Optional[bool] = None
         silent: Optional[bool] = False
 
@@ -74,7 +75,7 @@ class CAP2AG(Actor):
         self._the_ag_agent.receive(data, self._ag2can_other_agent, request_reply, silent)
         self._ag2can_other_agent.set_name(save_name)
 
-    def receive_msgproc(self, msg):
+    def receive_msgproc(self, msg: bytes):
         """
         Process a ReceiveReq message received from the AutoGen system.
         """
@@ -112,7 +113,7 @@ class CAP2AG(Actor):
             self._connectors[topic] = connector
             return connector
 
-    def generate_reply_msgproc(self, msg, sender_topic):
+    def generate_reply_msgproc(self, msg: GenReplyReq, sender_topic: str):
         """
         Process a GenReplyReq message received from the AutoGen system and generate a reply.
         """

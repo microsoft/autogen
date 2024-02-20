@@ -2,6 +2,7 @@ import time
 from typing import Callable, Dict, List, Optional, Union
 from autogen import Agent, ConversableAgent
 from .AutoGenConnector import AutoGenConnector
+from ..LocalActorNetwork import LocalActorNetwork
 
 class AG2CAP(ConversableAgent):
     """
@@ -10,13 +11,13 @@ class AG2CAP(ConversableAgent):
 
     def __init__(
         self,
-        network,
+        network: LocalActorNetwork,
         agent_name: str,
         agent_description: Optional[str] = None,
     ):
         super().__init__(name=agent_name, description=agent_description, llm_config=False)
         self._agent_connector: AutoGenConnector = None
-        self._network = network
+        self._network:LocalActorNetwork = network
         self._recv_called = False
 
     def reset_receive_called(self):
@@ -63,11 +64,11 @@ class AG2CAP(ConversableAgent):
         self._check_connection()
         return self._agent_connector.send_gen_reply_req()
 
-    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
+    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
         self._check_connection()
         self._agent_connector.send_prep_chat(recipient, clear_history, prepare_recipient)
 
-    def send_terminate(self, recipient: "ConversableAgent") -> None:
+    def send_terminate(self, recipient: ConversableAgent) -> None:
         self._check_connection()
         self._agent_connector.send_terminate(recipient)
         self._terminate_connector.send_terminate(self)

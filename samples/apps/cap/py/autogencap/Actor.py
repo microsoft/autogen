@@ -3,7 +3,7 @@ import threading
 import traceback
 from .DebugLog import Debug, Info
 from .Constants import Termination_Topic, xpub_url
-
+from .LocalActorNetwork import LocalActorNetwork
 
 class Actor:
     def __init__(self, agent_name, description):
@@ -11,7 +11,7 @@ class Actor:
         self.agent_description = description
         self.run = False
 
-    def connect(self, network):
+    def connect(self, network:LocalActorNetwork):
         Debug(self.agent_name, f"is connecting to {network}")
         Debug(self.agent_name, "connected")
 
@@ -52,9 +52,9 @@ class Actor:
             self.run = False
             Debug(self.agent_name, "recv thread ended")
 
-    def start_recv_thread(self, context):
-        self.run = True
-        self._socket = context.socket(zmq.SUB)
+    def start_recv_thread(self, context:zmq.Context):
+        self.run:bool = True
+        self._socket:zmq.Socket = context.socket(zmq.SUB)
         self._socket.setsockopt(zmq.LINGER, 0)
         self._socket.setsockopt(zmq.RCVTIMEO, 500)
         self._socket.connect(xpub_url)
@@ -64,15 +64,15 @@ class Actor:
         str_topic = Termination_Topic
         Debug(self.agent_name, f"subscribe to: {str_topic}")
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
-        self.thread = threading.Thread(target=self.recv_thread)
-        self.thread.start()
+        self._thread = threading.Thread(target=self.recv_thread)
+        self._thread.start()
 
-    def disconnect(self, network):
+    def disconnect(self, network:LocalActorNetwork):
         Debug(self.agent_name, f"is disconnecting from {network}")
         Debug(self.agent_name, "disconnected")
         self.stop_recv_thread()
 
     def stop_recv_thread(self):
         self.run = False
-        self.thread.join()
+        self._thread.join()
         self._socket.close()

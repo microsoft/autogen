@@ -15,7 +15,6 @@ LEVEL_COLOR = ["dark_grey", "green", "yellow", "red"]
 
 console_lock = threading.Lock()
 
-
 def Log(level, context, msg):
     # Check if the current level meets the threshold
     if level >= LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
