@@ -177,3 +177,22 @@ def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
         sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
     )
     assert "hello extract code" in reply  # type: ignore[operator]
+
+
+# Test cases for dangerous commands that should be caught by the sanitizer
+@pytest.mark.parametrize(
+    "lang, code, expected_message",
+    [
+        ("bash", "rm -rf /", "Use of 'rm -rf' command is not allowed."),
+        ("bash", "mv myFile /dev/null", "Moving files to /dev/null is not allowed."),
+        ("bash", "dd if=/dev/zero of=/dev/sda", "Use of 'dd' command is not allowed."),
+        ("bash", "echo Hello > /dev/sda", "Overwriting disk blocks directly is not allowed."),
+        ("bash", ":(){ :|:& };:", "Fork bombs are not allowed."),
+    ],
+)
+def test_dangerous_commands(lang, code, expected_message):
+    with pytest.raises(ValueError) as exc_info:
+        LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+    assert expected_message in str(
+        exc_info.value
+    ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"

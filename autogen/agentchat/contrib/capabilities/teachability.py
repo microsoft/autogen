@@ -61,7 +61,7 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
+        agent.register_hook(hookable_method="process_last_message", hook=self.process_last_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:

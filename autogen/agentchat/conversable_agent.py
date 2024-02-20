@@ -223,7 +223,7 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: [], self.process_all_messages: []}
+        self.hook_lists = {"process_last_message": [], "process_all_messages": []}
 
     @property
     def name(self) -> str:
@@ -519,13 +519,6 @@ class ConversableAgent(LLMAgent):
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
-
     async def a_send(
         self,
         message: Union[Dict, str],
@@ -577,13 +570,6 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
@@ -729,14 +715,20 @@ class ConversableAgent(LLMAgent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
+    def _prepare_chat(
+        self,
+        recipient: "ConversableAgent",
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
-        self.reply_at_receive[recipient] = True
+        self.reply_at_receive[recipient] = reply_at_receive
         if clear_history:
             self.clear_history(recipient)
             self._human_input = []
         if prepare_recipient:
-            recipient._prepare_chat(self, clear_history, False)
+            recipient._prepare_chat(self, clear_history, False, reply_at_receive)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -763,6 +755,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
@@ -773,9 +766,12 @@ class ConversableAgent(LLMAgent):
 
         Args:
             recipient: the recipient agent.
-            clear_history (bool): whether to clear the chat history with the agent.
-            silent (bool or None): (Experimental) whether to print the messages for this conversation.
-            cache (Cache or None): the cache client to be used for this conversation.
+            clear_history (bool): whether to clear the chat history with the agent. Default is True.
+            silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+            cache (Cache or None): the cache client to be used for this conversation. Default is None.
+            max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
+            [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
+            If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
@@ -812,8 +808,19 @@ class ConversableAgent(LLMAgent):
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        self._prepare_chat(recipient, clear_history)
-        self.send(self.generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
+            for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = self.generate_init_message(**context)
+                else:
+                    msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                if msg2send is None:
+                    break
+                self.send(msg2send, recipient, request_reply=True, silent=silent)
+        else:
+            self._prepare_chat(recipient, clear_history)
+            self.send(self.generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -837,6 +844,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
@@ -853,11 +861,22 @@ class ConversableAgent(LLMAgent):
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
         consolidate_chat_info(_chat_info, uniform_sender=self)
-        self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
+            for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = await self.a_generate_init_message(**context)
+                else:
+                    msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                if msg2send is None:
+                    break
+                await self.a_send(msg2send, recipient, request_reply=True, silent=silent)
+        else:
+            self._prepare_chat(recipient, clear_history)
+            await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -956,31 +975,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the following fields:
-                - "recipient": the recipient agent.
-                - "context": any context information, e.g., the request message. The following fields are reserved:
-                    "message" needs to be provided if the `generate_init_message` method is not overridden.
-                          Otherwise, input() will be called to get the initial message.
-                    "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                        - Supported string are "last_msg" and "reflection_with_llm":
-                            when set "last_msg", it returns the last message of the dialog as the summary.
-                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                            `llm_config` must be set in either the recipient or sender.
-                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                        ```python
-                        def my_summary_method(
-                            sender: ConversableAgent,
-                            recipient: ConversableAgent,
-                        ):
-                            return recipient.last_message(sender)["content"]
-                        ```
-                    "summary_prompt" can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
-                        Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
-                        "Identify and extract the final solution to the originally asked question based on the conversation."
-                    "carryover" can be used to specify the carryover information to be passed to this chat.
-                        If provided, we will combine this carryover with the "message" content when generating the initial chat
-                        message in `generate_init_message`.
+                Each dictionary should contain the input arguments for [`initiate_chat`](conversable_agent#initiate_chat)
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
@@ -2315,13 +2310,13 @@ class ConversableAgent(LLMAgent):
         """
         self.client.register_model_client(model_client_cls, **kwargs)
 
-    def register_hook(self, hookable_method: Callable, hook: Callable):
+    def register_hook(self, hookable_method: str, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
 
         Args:
-            hookable_method: A hookable method implemented by ConversableAgent.
+            hookable_method: A hookable method name implemented by ConversableAgent.
             hook: A method implemented by a subclass of AgentCapability.
         """
         assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
@@ -2333,7 +2328,7 @@ class ConversableAgent(LLMAgent):
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists[self.process_all_messages]
+        hook_list = self.hook_lists["process_all_messages"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
@@ -2351,7 +2346,7 @@ class ConversableAgent(LLMAgent):
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists[self.process_last_message]
+        hook_list = self.hook_lists["process_last_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
