@@ -194,12 +194,8 @@ if __name__ == "__main__":
     """Runs this file's tests from the command line."""
     
     test_web_surfer()
-    
-    if not skip_oai:
-        test_web_surfer_oai()
-    
-    if not skip_bing:
-        test_web_surfer_bing()
+    test_web_surfer_oai()
+    test_web_surfer_bing()
     
     if IS_SELENIUM_CAPABLE: # Test the selenium browser if installed
         
@@ -207,9 +203,5 @@ if __name__ == "__main__":
         selected_driver = 'edge' # can be 'edge', 'firefox', or 'chrome'
 
         test_web_surfer(browser_type='selenium', web_driver=selected_driver)
-        
-        if not skip_oai:
-            test_web_surfer_oai(browser_type='selenium', web_driver=selected_driver)
-        
-        if not skip_bing:
-            test_web_surfer_bing(browser_type='selenium', web_driver=selected_driver)
+        test_web_surfer_oai(browser_type='selenium', web_driver=selected_driver)
+        test_web_surfer_bing(browser_type='selenium', web_driver=selected_driver)
