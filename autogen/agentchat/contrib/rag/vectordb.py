@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Any, Callable
-from .datamodel import Document, Query, QueryResults
+from .datamodel import Document, Query, QueryResults, GetResults
 from .encoder import Encoder
 
 
@@ -128,6 +128,37 @@ class VectorDB(ABC):
             QueryResults | The query results.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None) -> GetResults:
+        """
+        Retrieve documents from the collection of the vector database based on the ids.
+
+        Args:
+            ids: List[Any] | A list of document ids.
+            collection_name: str | The name of the collection. Default is None.
+
+        Returns:
+            GetResults | The query results.
+        """
+        raise NotImplementedError
+
+    def convert_get_results_to_query_results(self, get_result: GetResults) -> QueryResults:
+        """
+        Convert a GetResults object to a QueryResults object.
+
+        Args:
+            get_result: GetResults | The GetResults object.
+
+        Returns:
+            QueryResults | The QueryResults object.
+        """
+        return QueryResults(
+            ids=[get_result.ids],
+            texts=[get_result.texts] if get_result.texts else None,
+            embeddings=[get_result.embeddings] if get_result.embeddings else None,
+            metadatas=[get_result.metadatas] if get_result.metadatas else None,
+        )
 
 
 class VectorDBFactory:

@@ -1,5 +1,5 @@
 from typing import List, Any, Callable
-from .datamodel import Document, Query, QueryResults
+from .datamodel import Document, Query, QueryResults, GetResults
 from .vectordb import VectorDB
 from .utils import logger, timer
 from .constants import CHROMADB_MAX_BATCH_SIZE
@@ -195,7 +195,6 @@ class ChromaVectorDB(VectorDB):
         collection = self.get_collection(collection_name)
         collection.delete(ids, **kwargs)
 
-    @timer
     def retrieve_docs(self, queries: List[Query], collection_name: str = None) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
@@ -221,4 +220,24 @@ class ChromaVectorDB(VectorDB):
             embeddings=results.get("embeddings"),
             metadatas=results.get("metadatas"),
             distances=results.get("distances"),
+        )
+
+    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None) -> GetResults:
+        """
+        Retrieve documents from the collection of the vector database based on the ids.
+
+        Args:
+            ids: List[Any] | A list of document ids.
+            collection_name: str | The name of the collection. Default is None.
+
+        Returns:
+            GetResults | The query results.
+        """
+        collection = self.get_collection(collection_name)
+        results = collection.get(ids)
+        return GetResults(
+            ids=results.get("ids"),
+            texts=results.get("documents"),
+            embeddings=results.get("embeddings"),
+            metadatas=results.get("metadatas"),
         )

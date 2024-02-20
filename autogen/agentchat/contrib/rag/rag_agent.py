@@ -7,7 +7,7 @@ from autogen.agentchat import Agent, AssistantAgent, UserProxyAgent, Conversable
 from autogen.oai import OpenAIWrapper
 from autogen.token_count_utils import count_token, get_max_token_limit
 from autogen.code_utils import extract_code
-from .datamodel import QueryResults, Query
+from .datamodel import QueryResults, Query, ItemID, GetResults
 from .promptgenerator import PromptGenerator
 from .retriever import RetrieverFactory, Retriever
 from .reranker import RerankerFactory, Reranker
@@ -123,6 +123,7 @@ class RagAgent(ConversableAgent):
                 - prompt_rag (str): the prompt rag. Default is None.
                 - enable_update_context (bool): whether to enable update context. Default is True.
                 - customized_trigger_words (str): the customized trigger words. Default is "question".
+                - vector_db_get_is_fast (bool): whether the vector db get is fast. Default is True.
         """
         super().__init__(
             name=name,
@@ -283,6 +284,7 @@ class RagAgent(ConversableAgent):
         self.post_process_func = self.rag_config.get("post_process_func", self.add_source_to_reply)
         self.enable_update_context = self.rag_config.get("enable_update_context", True)
         self.customized_trigger_words = self.rag_config.get("customized_trigger_words", "question")
+        self.vector_db_get_is_fast = self.rag_config.get("vector_db_get_is_fast", True)
         self.received_raw_message = None
         self.used_doc_ids = set()
         self.first_time = True
@@ -311,7 +313,6 @@ class RagAgent(ConversableAgent):
         return not (contain_code or update_context_case1 or update_context_case2)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
-        # todo: get documents with ids from database?
         raw = []
         _data = query_results.__getattribute__(key)
         if _data is not None:
@@ -365,6 +366,23 @@ class RagAgent(ConversableAgent):
                 sorted_values[key] = [[query_results.__getattribute__(key)[0][i] for i in order]]
         return QueryResults(**sorted_values)
 
+    def merge_document_ids(self, query_results: QueryResults) -> List[ItemID]:
+        """
+        Merge the document ids in the query results.
+        """
+        # todo: get items in turn and merge them
+        ids = []
+        for _ids in query_results.ids:
+            ids.extend(_ids)
+        return list(set(ids))
+
+    def sort_get_results_ids(self, get_results: GetResults, order: List[int]) -> List[ItemID]:
+        """
+        Sort the get results based on the order.
+        """
+        sorted_ids = [get_results.ids[i] for i in order]
+        return sorted_ids
+
     def retrieve_rerank(self, raw_message: str, refined_questions: List[str]) -> QueryResults:
         length_used_doc_ids = len(self.used_doc_ids)
         queries = [
@@ -378,12 +396,24 @@ class RagAgent(ConversableAgent):
             for question in refined_questions
         ]
         retriever_query_results = self.retriever.retrieve_docs(queries)
-        retriever_deduplicated_query_results = self.merge_documents(retriever_query_results)
-        reranked_order = self.reranker.rerank(
-            Query(raw_message, self.rag_top_k * self.rag_promptgen_n + length_used_doc_ids),
-            retriever_deduplicated_query_results.texts[0],
-        )
-        reranked_query_results = self.sort_query_results(retriever_deduplicated_query_results, reranked_order)
+        if self.vector_db_get_is_fast:
+            retriever_deduplicated_ids = self.merge_document_ids(retriever_query_results)
+            retriever_deduplicated_get_results = self.retriever.get_docs_by_ids(retriever_deduplicated_ids)
+            reranked_order = self.reranker.rerank(
+                Query(raw_message, self.rag_top_k * self.rag_promptgen_n + length_used_doc_ids),
+                retriever_deduplicated_get_results.texts,
+            )
+            reranked_ids = self.sort_get_results_ids(retriever_deduplicated_get_results, reranked_order)
+            reranked_query_results = self.retriever.convert_get_results_to_query_results(
+                self.retriever.get_docs_by_ids(reranked_ids)
+            )
+        else:
+            retriever_deduplicated_query_results = self.merge_documents(retriever_query_results)
+            reranked_order = self.reranker.rerank(
+                Query(raw_message, self.rag_top_k * self.rag_promptgen_n + length_used_doc_ids),
+                retriever_deduplicated_query_results.texts[0],
+            )
+            reranked_query_results = self.sort_query_results(retriever_deduplicated_query_results, reranked_order)
         return reranked_query_results
 
     def check_update_context(self, message: str) -> Tuple[bool, str]:

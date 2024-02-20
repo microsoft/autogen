@@ -88,3 +88,23 @@ class Query(object):
     def dict(self):
         result = asdict(self)
         return result
+
+
+@dataclass
+class GetResults(object):
+    """GetResults is the response from the vector database for getting documents by ids.
+
+    ids: List[ItemID] | the unique identifiers of the documents.
+    texts: List[str] | the text content of the documents.
+    embeddings: List[Vector] | the vector representations of the documents.
+    metadatas: List[Metadata] | the metadata of the documents.
+    """
+
+    ids: List[ItemID]
+    texts: Optional[List[str]] = None
+    embeddings: Optional[List[Vector]] = None
+    metadatas: Optional[List[Metadata]] = None
+
+    def dict(self):
+        result = asdict(self)
+        return result
