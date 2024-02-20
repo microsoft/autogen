@@ -49,7 +49,7 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
 
     Note:
 
-    ``actual_usage_summary`` follows the same format.
+    `actual_usage_summary` follows the same format.
     If none of the agents incurred any cost (not having a client), then the total_usage_summary and actual_usage_summary will be `{'total_cost': 0}`.
     """
 

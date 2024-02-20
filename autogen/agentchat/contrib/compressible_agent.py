@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class CompressibleAgent(ConversableAgent):
-    """(Experimental) CompressibleAgent agent. While this agent retains all the default functionalities of the ``AssistantAgent``,
-        it also provides the added feature of compression when activated through the ``compress_config`` setting.
+    """(Experimental) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
+        it also provides the added feature of compression when activated through the `compress_config` setting.
 
-    ``compress_config`` is set to False by default, making this agent equivalent to the ``AssistantAgent``.
+    `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
     This agent does not work well in a GroupChat: The compressed messages will not be sent to all the agents in the group.
     The default system message is the same as AssistantAgent.
-    ``human_input_mode`` is default to "NEVER"
-    and ``code_execution_config`` is default to False.
+    `human_input_mode` is default to "NEVER"
+    and `code_execution_config` is default to False.
     This agent doesn't execute code or function call by default.
     """
 
@@ -85,9 +85,9 @@ Reply "TERMINATE" in the end when everything is done.
             compress_config (dict or True/False): config for compression before oai_reply. Default to False.
                 You should contain the following keys:
                 - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
-                    1. ``TERMINATE``: terminate the conversation ONLY when token count exceeds the max limit of current model. ``trigger_count`` is NOT used in this mode.
-                    2. ``COMPRESS``: compress the messages when the token count exceeds the limit.
-                    3. ``CUSTOMIZED``: pass in a customized function to compress the messages.
+                    1. `TERMINATE`: terminate the conversation ONLY when token count exceeds the max limit of current model. `trigger_count` is NOT used in this mode.
+                    2. `COMPRESS`: compress the messages when the token count exceeds the limit.
+                    3. `CUSTOMIZED`: pass in a customized function to compress the messages.
                 - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
                     The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
                 - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
