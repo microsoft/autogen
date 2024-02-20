@@ -54,3 +54,15 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         shell: pwsh
         run: twine upload dist/*
+
+      - name: Setup edge
+        uses: browser-actions/setup-edge@latest
+        if: ${{ matrix.browsers == 'edge' }}
+
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        if: ${{ matrix.browsers == 'firefox' }}
+
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        if: ${{ matrix.browsers == 'chrome' }}

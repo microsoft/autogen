@@ -58,11 +58,11 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Determine if the user has requested the Selenium browser or not
-        browser_type = browser_config.pop('type', 'simple')
-        web_driver   = browser_config.pop('web_driver', 'edge')
+        browser_type = browser_config.pop("type", "simple")
+        browser_config.pop("web_driver", "edge")
 
         # Create the browser
-        if browser_type != 'text' and IS_SELENIUM_CAPABLE:
+        if browser_type != "text" and IS_SELENIUM_CAPABLE:
             self.browser = SeleniumBrowserWrapper(**(browser_config if browser_config else {}))
         else:
             self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))

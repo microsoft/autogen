@@ -29,8 +29,7 @@ if not skip_oai:
     skip_oai,
     reason="do not run if oai is not installed",
 )
-def test_content_agent(browser:str) -> None:
-
+def test_content_agent(browser: str) -> None:
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}
 
     model = ["gpt-3.5-turbo"]
@@ -38,14 +37,14 @@ def test_content_agent(browser:str) -> None:
 
     # model = ['dolphin-mistral:7b-v2.6-q8_0']
     assert len(llm_config["config_list"]) > 0  # type: ignore[arg-type]
-    
+
     # Define the temporary storage location
-    temporary_content_storage = os.path.join( tempfile.gettempdir(), "test_content_agent_storage")
-    print( f"Storing temporary test files in {temporary_content_storage}" )
+    temporary_content_storage = os.path.join(tempfile.gettempdir(), "test_content_agent_storage")
+    print(f"Storing temporary test files in {temporary_content_storage}")
 
     # Define the system message for the ContentAgent
     content_agent_system_msg = "You are data collection agent specializing in content on the web."
-    
+
     # Instantiate the ContentAgent
     content_agent = ContentAgent(
         name="ContentAgent",
@@ -53,7 +52,6 @@ def test_content_agent(browser:str) -> None:
         llm_config=llm_config,
         max_consecutive_auto_reply=0,
         silent=False,
-
         # Below are the arguments specific to the ContentAgent
         storage_path=temporary_content_storage,
         browser_kwargs={"browser": browser},
@@ -74,56 +72,68 @@ def test_content_agent(browser:str) -> None:
 
     # Define the links used during the testing process
     links = [
-        "https://microsoft.github.io/autogen/docs/Examples", 
+        "https://microsoft.github.io/autogen/docs/Examples",
         "https://microsoft.github.io/autogen/docs/Getting-Started",
         "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/",
     ]
 
-
     with Cache.disk():
-        
         for link in links:
-            
-            # Collect the content from the requested link 
+            # Collect the content from the requested link
             user_proxy.initiate_chat(content_agent, message=link)
 
-            assert content_agent.process_history[link]['url'] == link, "Investigate why the correct not link was reported"
-            
-            assert os.path.exists( content_agent.process_history[link]['local_path'] ), "The content storage path was not found"
-            
-            assert len(content_agent.process_history[link]['content']) > 0, "No content was identified or stored"
-            
-            assert os.path.exists( 
-                os.path.join( content_agent.process_history[link]['local_path'], 'content.txt')
-                  ), "The file path for content.txt was not found"
+            assert (
+                content_agent.process_history[link]["url"] == link
+            ), "Investigate why the correct not link was reported"
 
-            assert os.path.exists( 
-                os.path.join( content_agent.process_history[link]['local_path'], 'metadata.txt')
-                  ), "The file path for metadata.txt was not found"
-            
-            assert os.path.exists( 
-                os.path.join( content_agent.process_history[link]['local_path'], 'index.html')
-                  ), "The file path for index.html was not found"
-            
-            assert os.path.exists( 
-                os.path.join( content_agent.process_history[link]['local_path'], 'screenshot.png')
-                  ), "The file path for screenshot.png was not found"
-            
-            assert os.path.exists( 
-                os.path.join( content_agent.process_history[link]['local_path'], 'links.txt')
-                  ), "The file path for links.txt was not found"
-            
-            assert os.path.getsize( os.path.join( content_agent.process_history[link]['local_path'], 'links.txt') ) > 0, "The file size of links.txt was zero"
-            assert os.path.getsize( os.path.join( content_agent.process_history[link]['local_path'], 'content.txt') ) > 0, "The file size of content.txt was zero"
-            assert os.path.getsize( os.path.join( content_agent.process_history[link]['local_path'], 'metadata.txt') ) > 0, "The file size of metadata.txt was zero"
-            assert os.path.getsize( os.path.join( content_agent.process_history[link]['local_path'], 'index.html') ) > 0, "The file size of index.html was zero"
-            assert os.path.getsize( os.path.join( content_agent.process_history[link]['local_path'], 'screenshot.png') ) > 0, "The file size of screenshot.png was zero"
+            assert os.path.exists(
+                content_agent.process_history[link]["local_path"]
+            ), "The content storage path was not found"
+
+            assert len(content_agent.process_history[link]["content"]) > 0, "No content was identified or stored"
+
+            assert os.path.exists(
+                os.path.join(content_agent.process_history[link]["local_path"], "content.txt")
+            ), "The file path for content.txt was not found"
+
+            assert os.path.exists(
+                os.path.join(content_agent.process_history[link]["local_path"], "metadata.txt")
+            ), "The file path for metadata.txt was not found"
+
+            assert os.path.exists(
+                os.path.join(content_agent.process_history[link]["local_path"], "index.html")
+            ), "The file path for index.html was not found"
+
+            assert os.path.exists(
+                os.path.join(content_agent.process_history[link]["local_path"], "screenshot.png")
+            ), "The file path for screenshot.png was not found"
+
+            assert os.path.exists(
+                os.path.join(content_agent.process_history[link]["local_path"], "links.txt")
+            ), "The file path for links.txt was not found"
+
+            assert (
+                os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "links.txt")) > 0
+            ), "The file size of links.txt was zero"
+            assert (
+                os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "content.txt")) > 0
+            ), "The file size of content.txt was zero"
+            assert (
+                os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "metadata.txt")) > 0
+            ), "The file size of metadata.txt was zero"
+            assert (
+                os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "index.html")) > 0
+            ), "The file size of index.html was zero"
+            assert (
+                os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "screenshot.png")) > 0
+            ), "The file size of screenshot.png was zero"
 
     print()
-    print( f"All done, feel free to browse the collected content at: {temporary_content_storage}" )
+    print(f"All done, feel free to browse the collected content at: {temporary_content_storage}")
+
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-    
+
     if not skip_oai:
         test_content_agent(browser="firefox")
