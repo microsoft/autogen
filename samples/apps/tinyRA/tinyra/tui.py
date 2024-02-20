@@ -591,10 +591,13 @@ class QuitScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
         yield Grid(
-            Label("Are you sure you want to quit?", id="question"),
-            Button("Quit", variant="error", id="quit"),
-            Button("Cancel", variant="primary", id="cancel"),
-            id="dialog",
+            Static("Are you sure you want to quit?", id="question"),
+            Grid(
+                Button("Quit", variant="error", id="quit"),
+                Button("Cancel", variant="primary", id="cancel"),
+                id="quit-screen-footer",
+            ),
+            id="quit-screen-grid",
         )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -950,21 +953,26 @@ class TinyRA(App):
         task = chat_history[msg_idx]["content"]
         chat_history = chat_history[0:msg_idx]
 
-        def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
+        async def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
             # check the contents of the last N messages
             # if all empty, terminate
-            all_empty = True
+            consecutive_are_empty = None
             last_n = 2
+
             for message in reversed(messages):
                 if last_n == 0:
                     break
                 if message["role"] == "user":
                     last_n -= 1
-                    if len(message["content"]) > 0:
-                        all_empty = False
+                    if len(message["content"]) == 0:
+                        consecutive_are_empty = True
+                    else:
+                        consecutive_are_empty = False
                         break
-            if all_empty:
+
+            if consecutive_are_empty:
                 return True, "TERMINATE"
+
             return False, None
 
         def summarize(text):
@@ -987,6 +995,8 @@ class TinyRA(App):
                     summary = summarize(last_assistant_message["content"])
                 elif last_assistant_message.get("tool_calls"):
                     summary = summarize("Using tools...")
+                else:
+                    summary = "Working..."
                 update_message = f"{summary}..."
                 await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
             else:

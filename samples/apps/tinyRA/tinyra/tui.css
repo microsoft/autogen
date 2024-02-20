@@ -8,7 +8,6 @@
 #directory-tree-grid {
     row-span: 10;
     column-span: 3;
-    padding: 1;
 
     grid-size: 2 10;
 
@@ -18,10 +17,12 @@
 #chat-container{
     row-span: 10;
     column-span: 7;
-    padding: 1;
+    padding: 2;
 
     layout: grid;
     grid-size: 10 10;
+
+    /* border-left: thick $boost 80%; */
 }
 
 #directory-tree{
@@ -47,6 +48,7 @@
     padding: 2;
     row-span: 9;
     column-span: 10;
+    /* border-left: solid $primary-background; */
 }
 
 #chat-input{
@@ -78,7 +80,7 @@
 }
 
 .user-message {
-    background: $boost;
+    background: $primary-background;
 }
 
 .assistant-message {
@@ -87,29 +89,47 @@
 
 QuitScreen {
     align: center middle;
+
 }
 
-#dialog {
-    grid-size: 2;
-    grid-rows: 1fr 3;
-    grid-gutter: 1 2;
+#quit-screen-grid {
     height: 40%;
     width: 40%;
     background: $surface;
-    border: thick $background 80%;
+    border: thick $primary-background 80%;
     padding: 1;
+
+    grid-size: 2 3;
+    grid-gutter: 1 2;
 }
 
 #question {
     column-span: 2;
-    height: 1fr;
+    row-span: 2;
+    text-style: bold;
+    width: 100%;
+    height: 100%;
     content-align: center middle;
-    width: 1fr;
+
+    /* border: solid red; */
 }
 
-/* Button {
-    width: 100%;
-} */
+#quit-screen-footer {
+    column-span: 2;
+    row-span: 1;
+    align: center middle;
+    /* border: solid red; */
+
+    grid-size: 2 1;
+    grid-gutter: 1 2;
+}
+
+#quit-screen-footer Button{
+    /* column-span: 1; */
+    /* row-span: 1; */
+    width: 40%;
+    /* border: solid red; */
+}
 
 ChatScreen {
     align: center middle;
@@ -121,7 +141,7 @@ ChatScreen {
     height: 80%;
     width: 80%;
     background: $surface;
-    border: thick $background 80%;
+    border: thick $primary-background 80%;
     padding: 1;
 }
 
@@ -162,7 +182,7 @@ SettingsScreen {
     height: 90%;
     width: 90%;
     background: $surface;
-    border: thick $background 90%;
+    border: thick $primary-background 90%;
     padding: 1;
 }
 
@@ -171,6 +191,10 @@ SettingsScreen {
     grid-gutter: 1 2;
     grid-rows: 5 15;
     /* border: solid red; */
+}
+
+#user-bio{
+    background: $boost;
 }
 
 .settings-screen-footer {
@@ -234,13 +258,14 @@ SettingsScreen {
     grid-gutter: 1;
 
     padding: 1;
-    border: solid $secondary-background;
+    border-left: solid $primary-background;
 
 }
 
 #tool-info-container {
     column-span: 3;
     row-span: 9;
+    height: 15;
     content-align: center middle;
     /* border: solid red; */
 }
