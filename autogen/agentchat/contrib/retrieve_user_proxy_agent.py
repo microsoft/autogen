@@ -77,17 +77,17 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
     ):
-        """
+        r"""
         Args:
             name (str): name of the agent.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
-                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
+                1. When "ALWAYS", the agent prompts for human input every time a message is received.
                     Under this mode, the conversation stops when the human input is "exit",
                     or when is_termination_msg is True and there is no human input.
-                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
+                2. When "TERMINATE", the agent only prompts for human input only when a termination message is received or
                     the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                3. When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -136,10 +136,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
                     This only applies to files under the directories in `docs_path`. Explicitly included files and urls will be chunked regardless of their types.
                 - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
-            **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
+            `**kwargs` (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
-        Example of overriding retrieve_docs:
-        If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
+        Example:
+
+        Example of overriding retrieve_docs - If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(

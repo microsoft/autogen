@@ -4,8 +4,7 @@ loaders:
 processors:
   - type: filter
     skip_empty_modules: true
-  - type: smart
-  - type: crossref
+  - type: google
 renderer:
   type: docusaurus
   docs_base_path: docs
@@ -13,4 +12,11 @@ renderer:
   relative_sidebar_path: sidebar.json
   sidebar_top_level_label: Reference
   markdown:
-    escape_html_in_docstring: true
+    escape_html_in_docstring: false
+    descriptive_class_title: false
+    header_level_by_type:
+      Module: 1
+      Class: 2
+      Method: 3
+      Function: 3
+      Variable: 4
