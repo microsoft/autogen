@@ -32,9 +32,44 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var issueNumber = issuesEvent.Issue.Number;
             var input = issuesEvent.Issue.Body;
             // Assumes the label follows the following convention: Skill.Function example: PM.Readme
-            var labels = issuesEvent.Issue.Labels.First().Name.Split(".");
-            var skillName = labels[0];
-            var functionName = labels[1];
+            // Also, we've introduced the Parent label, that ties the sub-issue with the parent issue
+            var labels = issuesEvent.Issue.Labels
+                                    .Select(l => l.Name.Split('.'))
+                                    .Where(parts => parts.Length == 2)
+                                    .ToDictionary(parts => parts[0], parts => parts[1]);
+            //if(labels.ContainsKey("Parent"))
+            // TODO: confert the non-parent label to skill and function
+        //             Issue 1
+        //     Sub issue 2
+        //     sub issue 3
+
+        // org+repo+1
+        //     PM org+repo+1
+        //     DevLead org+repo+1
+
+        //     NewAskReadme
+        //     PM+2
+
+        //     NewAskPlan
+        //     DevLead+3
+
+        // Dev org+repo+1
+        //     Dev+4
+        //     Dev+5
+        //     Dev+6
+
+        // org+repo+2
+        //     DevLead 
+        // org+repo+3
+        //     PM
+
+
+        // Connect the parent issue with child via label
+
+        // Parent:3
+        // Parent:4
+
+
             var suffix = $"{org}-{repo}";
             if (issuesEvent.Action == IssuesAction.Opened)
             {
@@ -67,6 +102,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var input = issueCommentEvent.Issue.Body;
             // Assumes the label follows the following convention: Skill.Function example: PM.Readme
             var labels = issueCommentEvent.Issue.Labels.First().Name.Split(".");
+            
             var skillName = labels[0];
             var functionName = labels[1];
             var suffix = $"{org}-{repo}";
@@ -134,7 +170,6 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
              _logger.LogError("Handling new ask");
         }
-        
     }
 }
 
