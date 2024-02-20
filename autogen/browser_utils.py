@@ -318,7 +318,7 @@ def get_file_path_from_url(url): # URL to Directory function
     parsed_url    = urlparse(url) if isinstance(url, str) else url
     canonical_url = parsed_url.netloc.replace("www.","")
 
-    if 'github' in url and len(parsed_url.path.split('/')) >= 2:
+    if 'github.com' in url and len(parsed_url.path.split('/')) >= 2:
         relative_path = os.path.join(canonical_url, parsed_url.path)
     elif len(parsed_url.path.split('/')) >= 1:
         relative_path = os.path.join(canonical_url, get_last_path(parsed_url))
@@ -577,26 +577,7 @@ class SeleniumBrowserWrapper: # A wrapper to bridge compatability between Simple
         self.driver.quit()
 
     def _split_pages(self) -> None:
-        # # Split only regular pages
-        # if not self.address.startswith("http:") and not self.address.startswith("https:"):
-        #     self.viewport_pages = [(0, len(self._page_content))]
-        #     return
-
-        # # Handle empty pages
-        # if len(self._page_content) == 0:
-        #     self.viewport_pages = [(0, 0)]
-        #     return
-
-        # # Break the viewport into pages
-        # self.viewport_pages = []
-        # start_idx = 0
-        # while start_idx < len(self._page_content):
-        #     end_idx = min(start_idx + self.viewport_size, len(self._page_content))  # type: ignore[operator]
-        #     # Adjust to end on a space
-        #     while end_idx < len(self._page_content) and self._page_content[end_idx - 1] not in [" ", "\t", "\r", "\n"]:
-        #         end_idx += 1
-        #     self.viewport_pages.append((start_idx, end_idx))
-        #     start_idx = end_idx
+        # This is not implemented with the selenium.webdirver wrapper
         return
 
     def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
@@ -674,12 +655,13 @@ class SeleniumBrowserWrapper: # A wrapper to bridge compatability between Simple
             
             # Example of extracting and cleaning the page content
             if "wikipedia.org" in url:
-                body_elm = self.driver.find_element_by_css_selector("div#mw-content-text")
+
+                body_elm = self.driver.find_element(By.cssSelector, 'div#mw-content-text')
                 main_title = self.driver.title
                 webpage_text = "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm.get_attribute('innerHTML'))
             else:
-                webpage_text = self.driver.find_element_by_tag_name('body').get_attribute('innerText')
-            
+                webpage_text = self.driver.find_element(By.TAG_NAME,'body').get_attribute('innerText')
+                        
             # Convert newlines, remove excessive blank lines
             webpage_text = re.sub(r"\r\n", "\n", webpage_text)
             self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
