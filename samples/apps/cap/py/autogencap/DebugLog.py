@@ -1,6 +1,6 @@
 import threading
 import datetime
-from autogencap.Config import *
+from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
 from termcolor import colored
 
 # Define log levels as constants
