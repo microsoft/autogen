@@ -3,6 +3,7 @@ import openai
 import json
 import time
 import logging
+import copy
 
 from autogen import OpenAIWrapper
 from autogen.oai.openai_utils import retrieve_assistants_by_name
@@ -62,18 +63,17 @@ class GPTAssistantAgent(ConversableAgent):
             raise ValueError("llm_config=False is not supported for GPTAssistantAgent.")
 
         # Use AutoGen OpenAIWrapper to create a client
-        openai_client_cfg = None
-        if llm_config.get("config_list") is not None and len(llm_config["config_list"]) > 0:
-            openai_client_cfg = llm_config["config_list"][0].copy()
+        model_name = "gpt-4-0125-preview"
+        openai_client_cfg = copy.deepcopy(llm_config)
+        if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
+            model_name = openai_client_cfg["config_list"][0].pop("model", "gpt-4-0125-preview")
         else:
-            openai_client_cfg = llm_config.copy()
-            openai_client_cfg.pop("config_list", None)
+            model_name = openai_client_cfg.pop("model", "gpt-4-0125-preview")
 
         if openai_client_cfg is None:
             raise ValueError("OpenAI client config is not found in llm_config.")
 
-        logger.warning("OpenAI client config of GPTAssistantAgent(%s): %s", name, openai_client_cfg)
-        model_name = openai_client_cfg.pop("model", "gpt-4-1106-preview")
+        logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
         oai_wrapper = OpenAIWrapper(**openai_client_cfg)
         if len(oai_wrapper._clients) > 1:
