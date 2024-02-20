@@ -3,7 +3,6 @@ import threading
 import traceback
 from .DebugLog import Debug, Info
 from .Constants import Termination_Topic, xpub_url
-from .LocalActorNetwork import LocalActorNetwork
 
 class Actor:
     def __init__(self, agent_name, description):
@@ -11,7 +10,7 @@ class Actor:
         self.agent_description = description
         self.run = False
 
-    def connect(self, network:LocalActorNetwork):
+    def connect(self, network:"LocalActorNetwork"):
         Debug(self.agent_name, f"is connecting to {network}")
         Debug(self.agent_name, "connected")
 
@@ -67,7 +66,7 @@ class Actor:
         self._thread = threading.Thread(target=self.recv_thread)
         self._thread.start()
 
-    def disconnect(self, network:LocalActorNetwork):
+    def disconnect(self, network:"LocalActorNetwork"):
         Debug(self.agent_name, f"is disconnecting from {network}")
         Debug(self.agent_name, "disconnected")
         self.stop_recv_thread()
