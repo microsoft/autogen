@@ -65,13 +65,12 @@ class GPTAssistantAgent(ConversableAgent):
         # Use AutoGen OpenAIWrapper to create a client
         model_name = "gpt-4-0125-preview"
         openai_client_cfg = copy.deepcopy(llm_config)
+        # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
+        # See: https://github.com/microsoft/autogen/pull/1721
         if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
             model_name = openai_client_cfg["config_list"][0].pop("model", "gpt-4-0125-preview")
         else:
             model_name = openai_client_cfg.pop("model", "gpt-4-0125-preview")
-
-        if openai_client_cfg is None:
-            raise ValueError("OpenAI client config is not found in llm_config.")
 
         logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
