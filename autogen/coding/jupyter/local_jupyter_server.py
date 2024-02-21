@@ -35,7 +35,7 @@ class LocalJupyterServer(JupyterConnectable):
         port: Optional[int] = None,
         token: Union[str, GenerateToken] = GenerateToken(),
         log_file: str = "jupyter_gateway.log",
-        log_level: str = "DEBUG",
+        log_level: str = "INFO",
         log_max_bytes: int = 1048576,
         log_backup_count: int = 3,
     ):
@@ -70,7 +70,6 @@ class LocalJupyterServer(JupyterConnectable):
                     "maxBytes": log_max_bytes,
                     "backupCount": log_backup_count,
                     "filename": log_file,
-                    "mode": "w",
                 }
             },
             "loggers": {"KernelGatewayApp": {"level": log_level, "handlers": ["file", "console"]}},
@@ -103,9 +102,10 @@ class LocalJupyterServer(JupyterConnectable):
         while True:
             result = self._subprocess.poll()
             if result is not None:
-                log_file_contents = open(log_file).read()
+                self._subprocess.stderr.seek(0)
+                stderr = self._subprocess.stderr.read()
                 raise ValueError(
-                    f"Jupyter gateway server failed to start. Please check the logs ({log_file}) for more information. {log_file_contents}"
+                    f"Jupyter gateway server failed to start with result: {result}. stderr:\n{stderr}"
                 )
             line = self._subprocess.stderr.readline()
             if "is available at" in line:
