@@ -5,11 +5,11 @@
     "type": "object",
     "properties": {
       "a": {
-        "type": "number",
+        "type": "integer",
         "description": "a"
       },
       "b": {
-        "type": "number",
+        "type": "integer",
         "description": "b"
       }
     },

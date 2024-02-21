@@ -24,4 +24,9 @@ internal static class FunctionExtension
     {
         return $"{function.GetFunctionName()}Wrapper";
     }
+
+    public static string GetFunctionContractName(this FunctionContract function)
+    {
+        return $"{function.GetFunctionName()}FunctionContract";
+    }
 }
