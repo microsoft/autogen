@@ -42,7 +42,7 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-          pip install -e ."[local-jupyter-exec]""
+          pip install -e ."[local-jupyter-exec]"
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
