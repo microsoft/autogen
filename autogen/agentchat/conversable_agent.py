@@ -26,7 +26,7 @@ from ..code_utils import (
     infer_lang,
 )
 from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult, initiate_chats
+from .chat import ChatResult, initiate_chats, a_initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -985,6 +985,13 @@ class ConversableAgent(LLMAgent):
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
+    async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = await a_initiate_chats(_chat_queue)
+        return self._finished_chats
+
     def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
         if chat_index is not None:
@@ -1766,7 +1773,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
