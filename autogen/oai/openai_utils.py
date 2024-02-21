@@ -103,7 +103,7 @@ def get_config_list(
         list: A list of configs for OepnAI API calls.
 
     Example:
-    ```
+    ```python
     # Define a list of API keys
     api_keys = ['key1', 'key2', 'key3']
 
@@ -292,32 +292,32 @@ def config_list_from_models(
         list: A list of configs for OpenAI API calls, each including model information.
 
     Example:
-    ```
-        # Define the path where the API key files are located
-        key_file_path = '/path/to/key/files'
+    ```python
+    # Define the path where the API key files are located
+    key_file_path = '/path/to/key/files'
 
-        # Define the file names for the OpenAI and Azure OpenAI API keys and bases
-        openai_api_key_file = 'key_openai.txt'
-        aoai_api_key_file = 'key_aoai.txt'
-        aoai_api_base_file = 'base_aoai.txt'
+    # Define the file names for the OpenAI and Azure OpenAI API keys and bases
+    openai_api_key_file = 'key_openai.txt'
+    aoai_api_key_file = 'key_aoai.txt'
+    aoai_api_base_file = 'base_aoai.txt'
 
-        # Define the list of models for which to create configurations
-        model_list = ['gpt-4', 'gpt-3.5-turbo']
+    # Define the list of models for which to create configurations
+    model_list = ['gpt-4', 'gpt-3.5-turbo']
 
-        # Call the function to get a list of configuration dictionaries
-        config_list = config_list_from_models(
-            key_file_path=key_file_path,
-            openai_api_key_file=openai_api_key_file,
-            aoai_api_key_file=aoai_api_key_file,
-            aoai_api_base_file=aoai_api_base_file,
-            model_list=model_list
-        )
+    # Call the function to get a list of configuration dictionaries
+    config_list = config_list_from_models(
+        key_file_path=key_file_path,
+        openai_api_key_file=openai_api_key_file,
+        aoai_api_key_file=aoai_api_key_file,
+        aoai_api_base_file=aoai_api_base_file,
+        model_list=model_list
+    )
 
-        # The `config_list` will contain configurations for the specified models, for example:
-        # [
-        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-4'},
-        #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-3.5-turbo'}
-        # ]
+    # The `config_list` will contain configurations for the specified models, for example:
+    # [
+    #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-4'},
+    #     {'api_key': '...', 'base_url': 'https://api.openai.com', 'model': 'gpt-3.5-turbo'}
+    # ]
     ```
     """
     config_list = config_list_openai_aoai(
@@ -383,40 +383,39 @@ def filter_config(config_list, filter_dict):
                       in `filter_dict`.
 
     Example:
-    ```
-        # Example configuration list with various models and API types
-        configs = [
-            {'model': 'gpt-3.5-turbo'},
-            {'model': 'gpt-4'},
-            {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
-            {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
-        ]
+    ```python
+    # Example configuration list with various models and API types
+    configs = [
+        {'model': 'gpt-3.5-turbo'},
+        {'model': 'gpt-4'},
+        {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+        {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
+    ]
 
-        # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
-        # that are also using the 'azure' API type
-        filter_criteria = {
-            'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
-            'api_type': ['azure']       # Only accept configurations for 'azure' API type
-        }
+    # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
+    # that are also using the 'azure' API type
+    filter_criteria = {
+        'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
+        'api_type': ['azure']       # Only accept configurations for 'azure' API type
+    }
 
-        # Apply the filter to the configuration list
-        filtered_configs = filter_config(configs, filter_criteria)
+    # Apply the filter to the configuration list
+    filtered_configs = filter_config(configs, filter_criteria)
 
-        # The resulting `filtered_configs` will be:
-        # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
+    # The resulting `filtered_configs` will be:
+    # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
 
 
-        # Define a filter to select a given tag
-        filter_criteria = {
-            'tags': ['gpt35_turbo'],
-        }
+    # Define a filter to select a given tag
+    filter_criteria = {
+        'tags': ['gpt35_turbo'],
+    }
 
-        # Apply the filter to the configuration list
-        filtered_configs = filter_config(configs, filter_criteria)
+    # Apply the filter to the configuration list
+    filtered_configs = filter_config(configs, filter_criteria)
 
-        # The resulting `filtered_configs` will be:
-        # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
-
+    # The resulting `filtered_configs` will be:
+    # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
     ```
 
     Note:
@@ -467,7 +466,7 @@ def config_list_from_json(
             keys representing field names and values being lists or sets of acceptable values for those fields.
 
     Example:
-    ```
+    ```python
     # Suppose we have an environment variable 'CONFIG_JSON' with the following content:
     # '[{"model": "gpt-3.5-turbo", "api_type": "azure"}, {"model": "gpt-4"}]'
 
@@ -511,7 +510,7 @@ def get_config(
     Constructs a configuration dictionary for a single model with the provided API configurations.
 
     Example:
-    ```
+    ```python
     config = get_config(
         api_key="sk-abcdef1234567890",
         base_url="https://api.openai.com",
