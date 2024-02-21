@@ -109,9 +109,7 @@ class LocalJupyterServer(JupyterConnectable):
             if result is not None:
                 stderr += self._subprocess.stderr.read()
                 print(f"token=[[[[{token}]]]]")
-                raise ValueError(
-                    f"Jupyter gateway server failed to start with exit code: {result}. stderr:\n{stderr}"
-                )
+                raise ValueError(f"Jupyter gateway server failed to start with exit code: {result}. stderr:\n{stderr}")
             line = self._subprocess.stderr.readline()
             stderr += line
             if "is available at" in line:

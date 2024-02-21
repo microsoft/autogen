@@ -25,6 +25,7 @@ if sys.platform == "win32":
     skip = True
     skip_reason = "Skipping on Windows due to kernelgateway bug"
 
+
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_create() -> None:
     config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
