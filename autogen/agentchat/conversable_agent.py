@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
@@ -173,7 +174,6 @@ class ConversableAgent(LLMAgent):
         self._default_auto_reply = default_auto_reply
         self._reply_func_list = []
         self._ignore_async_func_in_sync_chat_list = []
-        self._exclude_reply_list = []
         self._human_input = []
         self.reply_at_receive = defaultdict(bool)
         self.register_reply([Agent, None], ConversableAgent.generate_oai_reply)
@@ -323,31 +323,38 @@ class ConversableAgent(LLMAgent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @staticmethod
-    def simple_chat_reply(chat_queue, recipient, messages, sender, config):
+    def simple_nested_chat(chat_queue, recipient, messages, sender, config):
+        """A simple chat reply function.
+        This function initiate one or a sequence of chats between the "recipient" and the agents in the
+        chat_queue.
+
+        It extracts and returns a summary from the nested chat based on the "summary_method" in each chat in chat_queue.
+        """
         last_msg = messages[-1].get("content", "")
-        chat_queue_to_run = []
+        chat_to_run = []
         for i, c in enumerate(chat_queue):
             current_c = c.copy()
-            init_message = current_c.get("message")
-            if callable(init_message):
-                init_message = init_message(recipient, messages, sender, config)
-            # By default use the last message as the init message.
-            elif init_message is None and i == 0:
-                init_message = last_msg
-            if init_message:
-                current_c["message"] = init_message
-                chat_queue_to_run.append(current_c)
-        if not chat_queue_to_run:
+            message = current_c.get("message")
+            if callable(message):
+                message = message(recipient, messages, sender, config)
+            # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
+            # NOTE: This setting is prone to change.
+            if message is None and i == 0:
+                message = last_msg
+            # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
+            if message:
+                current_c["message"] = message
+                chat_to_run.append(current_c)
+        if not chat_to_run:
             return True, None
-        res = recipient.initiate_chats(chat_queue_to_run)
-        last_res = res[-1]
-        return True, last_res.summary
+        res = recipient.initiate_chats(chat_to_run)
+        return True, res[-1].summary
 
     def register_nested_chats(
         self,
         trigger,
         chat_queue,
-        chat_reply_func="auto",
+        reply_func_from_nested_chat="auto",
         position: int = 2,
         **kwargs,
     ):
@@ -355,11 +362,11 @@ class ConversableAgent(LLMAgent):
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): Ref to `register_reply` for details.
             chat_queue (list): a list of chat objects to be initiated.
-            chat_reply_func (Callable, str): the reply function for the nested chat.
+            reply_func_from_nested_chat (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
-                Default to `auto`, which means the a pre-defined reply function will be used.
+                Default to `auto`, which means the a pre-defined function will be used.
             ```python
-            def chat_reply_func(
+            def reply_func_from_nested_chat(
                 chat_queue: List[Dict],
                 recipient: ConversableAgent,
                 messages: Optional[List[Dict]] = None,
@@ -370,13 +377,11 @@ class ConversableAgent(LLMAgent):
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
             kwargs: Ref to `register_reply` for details.
         """
-        from functools import partial
+        if reply_func_from_nested_chat == "auto":
+            reply_func_from_nested_chat = self.simple_nested_chat
+        assert callable(reply_func_from_nested_chat), "reply_func_from_nested_chat must be a callable"
 
-        if chat_reply_func == "auto":
-            chat_reply_func = self.simple_chat_reply
-        assert callable(chat_reply_func), "chat_reply_func must be a callable"
-
-        reply_func = partial(chat_reply_func, chat_queue)
+        reply_func = partial(reply_func_from_nested_chat, chat_queue)
         self.register_reply(
             trigger,
             reply_func,
@@ -385,7 +390,6 @@ class ConversableAgent(LLMAgent):
             kwargs.get("reset_config"),
             ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
         )
-        # self._exclude_reply_list.append(reply_func)
 
     @property
     def system_message(self) -> str:
@@ -1832,7 +1836,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
