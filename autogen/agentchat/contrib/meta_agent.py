@@ -15,6 +15,28 @@ class MetaAgent(ConversableAgent):
         }
     }
 
+    AUTOBUILD_QUERY_TOOL = {
+        "type": "function",
+        "function": {
+            "name": "autobuild_by_name",
+            "description": "Query a previously built group of experts by name and use them to solve the execution_task you provide.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "group_name": {
+                        "type": "string",
+                        "description": "[REQUIRED] Name of the group."
+                    },
+                    "execution_task": {
+                        "type": "string",
+                        "description": "[REQUIRED] Task that need the experts to solve by conversation."
+                    },
+                }
+            },
+            "required": ["group_name", "execution_task"]
+        }
+    }
+
     # input: task
     AUTOBUILD_TOOL = {
         "type": "function",
@@ -24,27 +46,33 @@ class MetaAgent(ConversableAgent):
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "group_name": {
+                        "type": "string",
+                        "description": "[REQUIRED] Name of the group."
+                    },
                     "building_task": {
                         "type": "string",
-                        "description": "Instructions that helps the manager to build a group of experts for your task."
+                        "description": "[REQUIRED] Instructions that helps the manager to build a group of experts for your task."
                     },
                     "execution_task": {
                         "type": "string",
-                        "description": "Task that need the experts to solve by conversation."
+                        "description": "[REQUIRED] Task that need the experts to solve by conversation."
                     },
                 }
             },
-            "required": ["task"]
+            "required": ["group_name", "building_task", "execution_task"]
         }
     }
 
-    DEFAULT_SYSTEM_MESSAGE = """You are a helpful AI assistant.
-Once you receive a task from user, you should analysis it and divide the task into multiple subtasks. 
-Then you can either solve the subtask one by one by yourself, or create an agent by "meta_prompting" or a group of agents by "autobuild" to solve the subtask by following the function's instruction.
-Note that you can only create one agent or a group of agents at a time.
-"meta_prompting" and "autobuild" will return a summary of the conversation history and result from agents created by "meta_prompting" or "autobuild".
-When you receive the result, verify it carefully by code or another group of agents.
-When everything is done, please reply "TERMINATE".
+    DEFAULT_SYSTEM_MESSAGE = """As a manager, your primary objective is to delegate the resolution of tasks to other AI agents through structured dialogue and derive conclusive insights from their interaction records.
+
+Upon task assignment, assess the task to discern its complexities and, if necessary, segment it into more manageable subtasks. Subsequently, you have the option to either tackle these subtasks individually or facilitate the resolution process through the creation of a singular agent via "meta_prompting" or a group of agents using "autobuild".
+
+It is important to note that within a single response, you are limited to initiating either one solitary agent or a collective of agents.
+
+The "meta_prompting" and "autobuild" functions will yield a summary with the dialogue's essence and the derived conclusions. Upon receipt of these outcomes, it is crucial to conduct a thorough verification using programming or alternative AI agents to ensure accuracy and reliability.
+
+Upon the completion of all tasks and verifications, you should conclude the operation by responding with "TERMINATE".
 """
 
     DEFAULT_DESCRIPTION = "A helpful AI assistant that can build a group of agents at a proper time to solve a task."
@@ -96,6 +124,7 @@ When everything is done, please reply "TERMINATE".
         # self.register_function(function_map={name: lambda **args: execute_func(name, packages, code, **args)})
         if nested_mode == "autobuild":
             self.update_tool_signature(self.AUTOBUILD_TOOL, is_remove=False)
+            self.update_tool_signature(self.AUTOBUILD_QUERY_TOOL, is_remove=False)
         elif nested_mode == "meta_prompting":
             self.update_tool_signature(self.META_PROMPTING_TOOL, is_remove=False)
         else:

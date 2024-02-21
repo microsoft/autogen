@@ -116,18 +116,15 @@ Conversation history:
             description=description
         )
         self.register_function(function_map={
-            "autobuild": lambda building_task, execution_task: self._run_autobuild(building_task, execution_task),
+            "autobuild": lambda *args: self._run_autobuild(**args),
+            "autobuild_by_name": lambda **args: self._run_autobuild(**args),
             "meta_prompting": lambda **args: self._run_meta_prompting(**args)
         })
         check_nested_mode_config(nested_mode_config)
-
-        # For autobuild, the group_chat_config is optional. Default is autobuild_llm_config
-        if (nested_mode_config.get('autobuild_builder_config', None) is not None and
-                nested_mode_config.get('group_chat_llm_config', None) is None):
-            nested_mode_config['group_chat_llm_config'] = nested_mode_config['autobuild_llm_config'].copy()
         self.nested_mode_config = nested_mode_config.copy()
+        self.build_history = {}
 
-    def _run_autobuild(self, building_task: str = "", execution_task: str = "") -> str:
+    def _run_autobuild(self, group_name: str, execution_task: str, building_task: str="") -> str:
         """
         Build a group of agents by AutoBuild to solve the task.
         This function requires the nested_mode_config to contain the autobuild_init_config,
@@ -138,7 +135,11 @@ Conversation history:
         print("Execution task: ", execution_task)
 
         builder = AgentBuilder(**self.nested_mode_config['autobuild_init_config'])
-        agent_list, agent_configs = builder.build(building_task, **self.nested_mode_config['autobuild_build_config'])
+        if group_name in self.build_history:
+            agent_list, agent_configs = builder.load(config_json=self.build_history[group_name])
+        else:
+            agent_list, agent_configs = builder.build(building_task, **self.nested_mode_config['autobuild_build_config'])
+            self.build_history[group_name] = agent_configs.copy()
 
         # start nested chat
         nested_group_chat = autogen.GroupChat(
