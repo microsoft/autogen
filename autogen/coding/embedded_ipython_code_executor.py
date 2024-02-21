@@ -1,14 +1,12 @@
-import asyncio
 import base64
 import json
 import os
 from pathlib import Path
 import re
 import uuid
-from queue import Empty
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field
 from autogen.coding.jupyter.jupyter_client import JupyterClient
 
 from autogen.coding.jupyter.local_jupyter_server import LocalJupyterServer
@@ -88,7 +86,7 @@ the output will be a path to the image instead of the image itself.
         agent's system message."""
 
         def __init__(self, system_message_update: str):
-            self.system_message_update = system_message_update
+            self._system_message_update = system_message_update
 
         def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent by appending a system message
@@ -100,12 +98,16 @@ the output will be a path to the image instead of the image itself.
             Args:
                 agent (LLMAgent): The agent to add the capability to.
             """
-            agent.update_system_message(agent.system_message + self.system_message_update)
+            agent.update_system_message(agent.system_message + self._system_message_update)
 
-
-    @classmethod
-    async def create(cls, jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo], kernel_name: str = "python3", timeout: int = 60, output_dir: Union[Path, str] = Path("."), system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE):
-        self = cls()
+    def __init__(
+        self,
+        jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
+        kernel_name: str = "python3",
+        timeout: int = 60,
+        output_dir: Union[Path, str] = Path("."),
+        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
+    ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
@@ -114,7 +116,6 @@ the output will be a path to the image instead of the image itself.
 
         if not output_dir.exists():
             raise ValueError(f"Output directory {output_dir} does not exist.")
-
 
         if jupyter_server is not None:
             if isinstance(jupyter_server, JupyterConnectable):
@@ -125,13 +126,13 @@ the output will be a path to the image instead of the image itself.
                 raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
 
         self._jupyter_client = JupyterClient(self._connection_info)
-        available_kernels = asyncio.run(self._jupyter_client.list_kernel_specs())
+        available_kernels = self._jupyter_client.list_kernel_specs()
         if kernel_name not in available_kernels["kernelspecs"]:
             raise ValueError(f"Kernel {kernel_name} is not installed.")
 
-        self._kernel_id = asyncio.run(self._jupyter_client.start_kernel(kernel_name))
+        self._kernel_id = self._jupyter_client.start_kernel(kernel_name)
         self._kernel_name = kernel_name
-        self._jupyter_kernel_client = asyncio.run(self._jupyter_client.get_kernel_client(self._kernel_id))
+        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
         self._timeout = timeout
         self._output_dir = output_dir
         self._system_message_update = system_message_update
@@ -140,14 +141,14 @@ the output will be a path to the image instead of the image itself.
     def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
         """(Experimental) Export a user capability for this executor that can be added to
         an agent using the `add_to_agent` method."""
-        return EmbeddedIPythonCodeExecutor.UserCapability(self.system_message_update)
+        return EmbeddedIPythonCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
         """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
-    async def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
         """(Experimental) Execute a list of code blocks and return the result.
 
         This method executes a list of code blocks as cells in an IPython kernel
@@ -161,11 +162,12 @@ the output will be a path to the image instead of the image itself.
         Returns:
             IPythonCodeResult: The result of the code execution.
         """
-        # asyncio.run(self._jupyter_kernel_client.wait_for_ready())
+        self._jupyter_kernel_client.wait_for_ready()
         outputs = []
         output_files = []
         for code_block in code_blocks:
-            result = self._jupyter_kernel_client.execute(code_block.code, timeout_seconds=self._timeout)
+            code = self._process_code(code_block.code)
+            result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
             if result.is_ok:
                 outputs.append(result.output)
                 for data in result.data_items:
@@ -192,14 +194,14 @@ the output will be a path to the image instead of the image itself.
     def restart(self) -> None:
         """(Experimental) Restart a new session."""
         self._jupyter_client.restart_kernel(self._kernel_id)
-        self._jupyter_kernel_client = asyncio.run(self._jupyter_client.get_kernel_client(self._kernel_id))
+        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
 
     def _save_image(self, image_data_base64: str) -> str:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
         # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.png"
-        path = os.path.join(self.output_dir, filename)
+        path = os.path.join(self._output_dir, filename)
         with open(path, "wb") as f:
             f.write(image_data)
         return os.path.abspath(path)
@@ -208,21 +210,25 @@ the output will be a path to the image instead of the image itself.
         """Save html data to a file."""
         # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.html"
-        path = os.path.join(self.output_dir, filename)
+        path = os.path.join(self._output_dir, filename)
         with open(path, "w") as f:
             f.write(html_data)
         return os.path.abspath(path)
 
+    def _process_code(self, code: str) -> str:
+        """Process code before execution."""
+        # Find lines that start with `! pip install` and make sure "-qqq" flag is added.
+        lines = code.split("\n")
+        for i, line in enumerate(lines):
+            # use regex to find lines that start with `! pip install` or `!pip install`.
+            match = re.search(r"^! ?pip install", line)
+            if match is not None:
+                if "-qqq" not in line:
+                    lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
+        return "\n".join(lines)
+
+
 class EmbeddedIPythonCodeExecutor(IPythonCodeExecutor):
-
-    def __init__(self, **kwargs):
-
-        super().__init__(jupyter_server=self._jupyter_server, **kwargs)
-
-    @classmethod
-    async def create(cls, **kwargs):
-        self = cls()
-        super().__init__(self)
-        self._jupyter_server = LocalJupyterServer()
-        await super().create(jupyter_server=self._jupyter_server, **kwargs)
-        return self
+    def __init__(self, **kwargs: Any):
+        jupyter_server = LocalJupyterServer()
+        super().__init__(jupyter_server=jupyter_server, **kwargs)

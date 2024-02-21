@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import tempfile
 from typing import Dict, Union
 import uuid
@@ -33,7 +34,7 @@ def test_create() -> None:
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_init() -> None:
     executor = EmbeddedIPythonCodeExecutor(timeout=10, kernel_name="python3", output_dir=".")
-    assert executor.timeout == 10 and executor.kernel_name == "python3" and executor.output_dir == "."
+    assert executor._timeout == 10 and executor._kernel_name == "python3" and executor._output_dir == Path(".")
 
     # Try invalid output directory.
     with pytest.raises(ValueError, match="Output directory .* does not exist."):

@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from types import TracebackType
+from typing import Any, Dict, List, Optional, cast
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
 import json
 import uuid
 import datetime
-import asyncio
+import requests
 
-from tornado.escape import json_encode
-from tornado.websocket import websocket_connect, WebSocketClientConnection
-from tornado.httpclient import AsyncHTTPClient, HTTPRequest
+import websocket
+from websocket import WebSocket
 
 from .base import JupyterConnectionInfo
 
@@ -17,33 +24,28 @@ from .base import JupyterConnectionInfo
 class JupyterClient:
     def __init__(self, connection_info: JupyterConnectionInfo):
         self._connection_info = connection_info
-        self._client = AsyncHTTPClient()
 
-    def _get_headers(self):
+    def _get_headers(self) -> dict[str, str]:
         if self._connection_info.token is None:
             return {}
         return {"Authorization": f"token {self._connection_info.token}"}
 
-    def _get_api_base_url(self):
+    def _get_api_base_url(self) -> str:
         protocol = "https" if self._connection_info.use_https else "http"
         return f"{protocol}://{self._connection_info.host}:{self._connection_info.port}"
 
-    def _get_ws_base_url(self):
+    def _get_ws_base_url(self) -> str:
         return f"ws://{self._connection_info.host}:{self._connection_info.port}"
 
-    async def list_kernel_specs(self):
-        response = await self._client.fetch(
-            f"{self._get_api_base_url()}/api/kernelspecs", method="GET", headers=self._get_headers()
-        )
-        return json.loads(response.body)
+    def list_kernel_specs(self) -> dict[str, dict[str, str]]:
+        response = requests.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
+        return cast(dict[str, dict[str, str]], response.json())
 
-    async def list_kernels(self):
-        response = await self._client.fetch(
-            f"{self._get_api_base_url()}/api/kernels", method="GET", headers=self._get_headers()
-        )
-        return json.loads(response.body)
+    def list_kernels(self) -> List[dict[str, str]]:
+        response = requests.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
+        return cast(List[dict[str, str]], response.json())
 
-    async def start_kernel(self, kernel_spec_name: str) -> str:
+    def start_kernel(self, kernel_spec_name: str) -> str:
         """Start a new kernel.
 
         Args:
@@ -53,28 +55,23 @@ class JupyterClient:
             str: ID of the started kernel
         """
 
-        response = await self._client.fetch(
+        response = requests.post(
             f"{self._get_api_base_url()}/api/kernels",
-            method="POST",
-            body=json_encode({"name": kernel_spec_name}),
             headers=self._get_headers(),
+            json={"name": kernel_spec_name},
         )
-        return json.loads(response.body)["id"]
+        return cast(str, response.json()["id"])
 
-    def restart_kernel(self, kernel_id: str):
-        return self._client.fetch(
-            f"{self._get_api_base_url()}/api/kernels/{kernel_id}/restart", method="POST", headers=self._get_headers()
+    def restart_kernel(self, kernel_id: str) -> None:
+        response = requests.post(
+            f"{self._get_api_base_url()}/api/kernels/{kernel_id}/restart", headers=self._get_headers()
         )
+        response.raise_for_status()
 
-    async def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
-        ws_req = HTTPRequest(f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels", headers=self._get_headers())
-        ws = await websocket_connect(ws_req)
+    def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
+        ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
+        ws = websocket.create_connection(ws_url, header=self._get_headers())
         return JupyterKernelClient(ws)
-
-
-def _contains_pip_install(code: str) -> bool:
-    # Check if the code contains a pip install command.
-    return any({line.startswith("!pip install") or line.startswith("! pip install")} for line in code.split("\n"))
 
 
 class JupyterKernelClient:
@@ -89,11 +86,19 @@ class JupyterKernelClient:
         output: str
         data_items: List[DataItem]
 
-    def __init__(self, websocket: WebSocketClientConnection):
+    def __init__(self, websocket: WebSocket):
         self._session_id: str = uuid.uuid4().hex
-        self._websocket: WebSocketClientConnection = websocket
+        self._websocket: WebSocket = websocket
 
-    async def _send_message(self, *, content: dict, channel: str, message_type: str) -> str:
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ) -> None:
+        self._websocket.close()
+
+    def _send_message(self, *, content: Dict[str, Any], channel: str, message_type: str) -> str:
         timestamp = datetime.datetime.now().isoformat()
         message_id = uuid.uuid4().hex
         message = {
@@ -111,38 +116,37 @@ class JupyterKernelClient:
             "metadata": {},
             "buffers": {},
         }
-        await self._websocket.write_message(json.dumps(message))
+        self._websocket.send_text(json.dumps(message))
         return message_id
 
-    async def _receive_message(self, timeout_seconds: Optional[float]) -> Optional[dict]:
+    def _receive_message(self, timeout_seconds: Optional[float]) -> Optional[Dict[str, Any]]:
+        self._websocket.settimeout(timeout_seconds)
         try:
-            async with asyncio.timeout(timeout_seconds):
-                message = await self._websocket.read_message()
-                return json.loads(message)
-        except TimeoutError:
+            data = self._websocket.recv()
+            if isinstance(data, bytes):
+                data = data.decode("utf-8")
+            return cast(Dict[str, Any], json.loads(data))
+        except websocket.WebSocketTimeoutException:
             return None
 
-    async def wait_for_ready(self):
-        message_id = await self._send_message(content={}, channel="shell", message_type="kernel_info_request")
+    def wait_for_ready(self, timeout_seconds: Optional[float] = None) -> bool:
+        message_id = self._send_message(content={}, channel="shell", message_type="kernel_info_request")
         while True:
-            message = await self._receive_message(None)
+            message = self._receive_message(timeout_seconds)
+            # This means we timed out with no new messages.
             if message is None:
                 return False
-            if message.get("parent_header", {}).get("msg_id") == message_id:
-                if message["msg_type"] != "kernel_info_reply":
-                    raise ValueError(f"Unexpected message type: {message['msg_type']}")
+            if (
+                message.get("parent_header", {}).get("msg_id") == message_id
+                and message["msg_type"] == "kernel_info_reply"
+            ):
                 return True
-        return False
 
-    async def execute(self, code: str, timeout_seconds: Optional[float] = None) -> ExecutionResult:
-        silent = False
-        if _contains_pip_install(code):
-            silent = True
-
-        message_id = await self._send_message(
+    def execute(self, code: str, timeout_seconds: Optional[float] = None) -> ExecutionResult:
+        message_id = self._send_message(
             content={
                 "code": code,
-                "silent": silent,
+                "silent": False,
                 "store_history": True,
                 "user_expressions": {},
                 "allow_stdin": False,
@@ -155,10 +159,10 @@ class JupyterKernelClient:
         text_output = []
         data_output = []
         while True:
-            message = await self._receive_message(timeout_seconds)
+            message = self._receive_message(timeout_seconds)
             if message is None:
                 return JupyterKernelClient.ExecutionResult(
-                    is_ok=False, output="ERROR: Timeout waiting for output from code block.", data=[]
+                    is_ok=False, output="ERROR: Timeout waiting for output from code block.", data_items=[]
                 )
 
             # Ignore messages that are not for this execution.

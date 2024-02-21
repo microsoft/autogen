@@ -1,13 +1,19 @@
 from __future__ import annotations
+from types import TracebackType
 
-from typing import Optional, Union
+from typing import Optional, Union, cast
 import subprocess
+import signal
 import sys
 import json
 import secrets
 import socket
 import atexit
 
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 from .base import JupyterConnectable, JupyterConnectionInfo
 from .jupyter_client import JupyterClient
@@ -16,7 +22,7 @@ from .jupyter_client import JupyterClient
 def _get_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("", 0))
-        return s.getsockname()[1]
+        return cast(int, s.getsockname()[1])
 
 
 class LocalJupyterServer(JupyterConnectable):
@@ -28,10 +34,10 @@ class LocalJupyterServer(JupyterConnectable):
         ip: str = "127.0.0.1",
         port: Optional[int] = None,
         token: Union[str, GenerateToken] = GenerateToken(),
-        log_file: str = "jupyter_gateway_{port}.log",
-        log_level="DEBUG",
-        log_max_bytes=1048576,
-        log_backup_count=3,
+        log_file: str = "jupyter_gateway.log",
+        log_level: str = "DEBUG",
+        log_max_bytes: int = 1048576,
+        log_backup_count: int = 3,
     ):
         # Check Jupyter gateway server is installed
         try:
@@ -52,12 +58,10 @@ class LocalJupyterServer(JupyterConnectable):
             port = _get_free_port()
         self.port = port
 
-        if isinstance(token, LocalJupyterServer.GenerateToken) or token is LocalJupyterServer.GenerateToken:
+        if isinstance(token, LocalJupyterServer.GenerateToken):
             token = secrets.token_urlsafe(32)
 
         self.token = token
-        log_file = log_file.replace("{port}", str(port))
-
         logging_config = {
             "handlers": {
                 "file": {
@@ -93,6 +97,8 @@ class LocalJupyterServer(JupyterConnectable):
         ]
         self._subprocess = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
+        # Satisfy mypy, we know this is not None because we passed PIPE
+        assert self._subprocess.stderr is not None
         # Read stderr until we see "is available at" or the process has exited with an error
         while True:
             result = self._subprocess.poll()
@@ -113,9 +119,9 @@ class LocalJupyterServer(JupyterConnectable):
 
         atexit.register(self.stop)
 
-    def stop(self):
+    def stop(self) -> None:
         if self._subprocess.poll() is None:
-            self._subprocess.send_signal(subprocess.signal.SIGINT)
+            self._subprocess.send_signal(signal.SIGINT)
             self._subprocess.wait()
 
     @property
@@ -125,8 +131,10 @@ class LocalJupyterServer(JupyterConnectable):
     def get_client(self) -> JupyterClient:
         return JupyterClient(self.connection_info)
 
-    def __enter__(self) -> LocalJupyterServer:
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ) -> None:
         self.stop()
