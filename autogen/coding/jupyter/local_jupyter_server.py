@@ -99,15 +99,16 @@ class LocalJupyterServer(JupyterConnectable):
         # Satisfy mypy, we know this is not None because we passed PIPE
         assert self._subprocess.stderr is not None
         # Read stderr until we see "is available at" or the process has exited with an error
+        stderr = ""
         while True:
             result = self._subprocess.poll()
             if result is not None:
-                self._subprocess.stderr.seek(0)
-                stderr = self._subprocess.stderr.read()
+                stderr += self._subprocess.stderr.read()
                 raise ValueError(
                     f"Jupyter gateway server failed to start with result: {result}. stderr:\n{stderr}"
                 )
             line = self._subprocess.stderr.readline()
+            stderr += line
             if "is available at" in line:
                 break
 
