@@ -23,10 +23,11 @@ from .base import JupyterConnectionInfo
 
 class JupyterClient:
     """(Experimental) A client for communicating with a Jupyter gateway server."""
+
     def __init__(self, connection_info: JupyterConnectionInfo):
         self._connection_info = connection_info
 
-    def _get_headers(self) -> dict[str, str]:
+    def _get_headers(self) -> Dict[str, str]:
         if self._connection_info.token is None:
             return {}
         return {"Authorization": f"token {self._connection_info.token}"}
@@ -38,13 +39,13 @@ class JupyterClient:
     def _get_ws_base_url(self) -> str:
         return f"ws://{self._connection_info.host}:{self._connection_info.port}"
 
-    def list_kernel_specs(self) -> dict[str, dict[str, str]]:
+    def list_kernel_specs(self) -> Dict[str, Dict[str, str]]:
         response = requests.get(f"{self._get_api_base_url()}/api/kernelspecs", headers=self._get_headers())
-        return cast(dict[str, dict[str, str]], response.json())
+        return cast(Dict[str, Dict[str, str]], response.json())
 
-    def list_kernels(self) -> List[dict[str, str]]:
+    def list_kernels(self) -> List[Dict[str, str]]:
         response = requests.get(f"{self._get_api_base_url()}/api/kernels", headers=self._get_headers())
-        return cast(List[dict[str, str]], response.json())
+        return cast(List[Dict[str, str]], response.json())
 
     def start_kernel(self, kernel_spec_name: str) -> str:
         """Start a new kernel.
@@ -77,6 +78,7 @@ class JupyterClient:
 
 class JupyterKernelClient:
     """(Experimental) A client for communicating with a Jupyter kernel."""
+
     @dataclass
     class ExecutionResult:
         @dataclass
