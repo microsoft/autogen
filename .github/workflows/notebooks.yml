@@ -1,0 +1,49 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Run notebooks
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "autogen/**"
+      - "test/**"
+      - "notebook/**"
+      - "website/**/*.ipynb"
+      - ".github/workflows/notebooks.yml"
+      - "setup.py"
+  pull_request:
+    branches: ["main"]
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions: {}
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    env:
+      AUTOGEN_USE_DOCKER: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install -e .
+          python -c "import autogen"
+          pip install pytest nbmake pytest-xdist
+      - name: Run all notebooks
+        run: |
+          pytest --nbmake -n auto website/**/*.ipynb
