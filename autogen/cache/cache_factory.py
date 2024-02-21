@@ -28,11 +28,17 @@ class CacheFactory:
             and the provided redis_url.
 
         Examples:
-            Creating a Redis cache
-            > redis_cache = cache_factory("myseed", "redis://localhost:6379/0")
 
-            Creating a Disk cache
-            > disk_cache = cache_factory("myseed", None)
+        Creating a Redis cache
+
+        ```python
+        redis_cache = cache_factory("myseed", "redis://localhost:6379/0")
+        ```
+        Creating a Disk cache
+
+        ```python
+        disk_cache = cache_factory("myseed", None)
+        ```
         """
         if RedisCache is not None and redis_url is not None:
             return RedisCache(seed, redis_url)
