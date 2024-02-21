@@ -13,7 +13,7 @@ class JupyterConnectionInfo:
 
 @runtime_checkable
 class JupyterConnectable(Protocol):
-    """Experimental"""
+    """(Experimental)"""
     @property
     def connection_info(self) -> JupyterConnectionInfo:
         pass
