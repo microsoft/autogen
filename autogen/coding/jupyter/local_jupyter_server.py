@@ -103,8 +103,9 @@ class LocalJupyterServer(JupyterConnectable):
         while True:
             result = self._subprocess.poll()
             if result is not None:
+                log_file_contents = open(log_file).read()
                 raise ValueError(
-                    f"Jupyter gateway server failed to start. Please check the logs ({log_file}) for more information."
+                    f"Jupyter gateway server failed to start. Please check the logs ({log_file}) for more information. {log_file_contents}"
                 )
             line = self._subprocess.stderr.readline()
             if "is available at" in line:
