@@ -932,7 +932,7 @@ class ConversableAgent(LLMAgent):
                 summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
             except BadRequestError as e:
                 warnings.warn(f"Cannot extract summary using reflection_with_llm: {e}", UserWarning)
-        elif summary_method == "last_msg" or summary_method is None:
+        elif summary_method == "last_msg":
             try:
                 summary = agent.last_message(self)["content"].replace("TERMINATE", "")
             except (IndexError, AttributeError) as e:
