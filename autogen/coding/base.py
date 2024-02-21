@@ -93,6 +93,7 @@ class CodeExecutor(Protocol):
         """
         ...  # pragma: no cover
 
+
 class IPythonCodeResult(CodeResult):
     """(Experimental) A code result class for IPython code executor."""
 

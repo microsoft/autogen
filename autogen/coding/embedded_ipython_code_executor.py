@@ -15,7 +15,8 @@ from ..agentchat.agent import LLMAgent
 from .base import CodeBlock, CodeExtractor, IPythonCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = ("EmbeddedIPythonCodeExecutor")
+__all__ = "EmbeddedIPythonCodeExecutor"
+
 
 class EmbeddedIPythonCodeExecutor(BaseModel):
     """(Experimental) A code executor class that executes code statefully using an embedded

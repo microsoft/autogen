@@ -16,6 +16,7 @@ from .jupyter import JupyterConnectable, JupyterConnectionInfo, LocalJupyterServ
 
 __all__ = ("JupyterCodeExecutor", "LocalJupyterCodeExecutor")
 
+
 class JupyterCodeExecutor(CodeExecutor):
     """(Experimental) A code executor class that executes code statefully using an embedded
     IPython kernel managed by this class.
@@ -212,7 +213,6 @@ the output will be a path to the image instead of the image itself.
                 if "-qqq" not in line:
                     lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
         return "\n".join(lines)
-
 
 
 class LocalJupyterCodeExecutor(JupyterCodeExecutor):
