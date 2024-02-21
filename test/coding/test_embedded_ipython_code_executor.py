@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 import tempfile
 from typing import Dict, Union
@@ -19,6 +20,10 @@ except ImportError:
     skip = True
     skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor not installed."
 
+# Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
+if sys.platform == "win32":
+    skip = True
+    skip_reason = "Skipping on Windows due to kernelgateway bug"
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_create() -> None:

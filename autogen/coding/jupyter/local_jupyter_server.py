@@ -39,6 +39,10 @@ class LocalJupyterServer(JupyterConnectable):
         log_max_bytes: int = 1048576,
         log_backup_count: int = 3,
     ):
+        # Remove as soon as https://github.com/jupyter-server/kernel_gateway/issues/398 is fixed
+        if sys.platform == "win32":
+            raise ValueError("LocalJupyterServer is not supported on Windows due to kernelgateway bug.")
+
         # Check Jupyter gateway server is installed
         try:
             subprocess.run(
@@ -124,7 +128,10 @@ class LocalJupyterServer(JupyterConnectable):
 
     def stop(self) -> None:
         if self._subprocess.poll() is None:
-            self._subprocess.send_signal(signal.SIGINT)
+            if sys.platform == "win32":
+                self._subprocess.send_signal(signal.CTRL_C_EVENT)
+            else:
+                self._subprocess.send_signal(signal.SIGINT)
             self._subprocess.wait()
 
     @property
