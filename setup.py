@@ -55,7 +55,7 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
-        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
+        "ipython": ["jupyter_kernel_gateway", "websocket-client", "requests"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
