@@ -107,9 +107,6 @@ The tuned config can be used to perform inference.
 
 ## API unification
 
-<!-- `autogen.Completion.create` is compatible with both `openai.Completion.create` and `openai.ChatCompletion.create`, and both OpenAI API and Azure OpenAI API. So models such as "text-davinci-003", "gpt-3.5-turbo" and "gpt-4" can share a common API.
-When chat models are used and `prompt` is given as the input to `autogen.Completion.create`, the prompt will be automatically converted into `messages` to fit the chat completion API requirement. One advantage is that one can experiment with both chat and non-chat models for the same prompt in a unified API. -->
-
 `autogen.OpenAIWrapper.create()` can be used to create completions for both chat and non-chat models, and both OpenAI API and Azure OpenAI API.
 
 ```python
@@ -133,7 +130,7 @@ print(client.extract_text_or_completion_object(response))
 
 For local LLMs, one can spin up an endpoint using a package like [FastChat](https://github.com/lm-sys/FastChat), and then use the same API to send a request. See [here](/blog/2023/07/14/Local-LLMs) for examples on how to make inference with local LLMs.
 
-<!-- When only working with the chat-based models, `autogen.ChatCompletion` can be used. It also does automatic conversion from prompt to messages, if prompt is provided instead of messages. -->
+For custom model clients, one can register the client with `autogen.OpenAIWrapper.register_model_client` and then use the same API to send a request. See [here](/blog/2024/01/26/Custom-Models) for examples on how to make inference with custom model clients.
 
 ## Usage Summary
 
@@ -165,6 +162,8 @@ Usage summary including cached usage:
 Total cost: 0.00027
 * Model 'gpt-3.5-turbo': cost: 0.00027, prompt_tokens: 50, completion_tokens: 100, total_tokens: 150
 ```
+
+Note: if using a custom model client (see [here](/blog/2024/01/26/Custom-Models) for details) and if usage summary is not implemented, then the usage summary will not be available.
 
 ## Caching
 
@@ -241,13 +240,6 @@ The differences between autogen's `cache_seed` and openai's `seed`:
 
 ### Runtime error
 
-<!-- It is easy to hit error when calling OpenAI APIs, due to connection, rate limit, or timeout. Some of the errors are transient. `autogen.Completion.create` deals with the transient errors and retries automatically. Request timeout, max retry period and retry wait time can be configured via `request_timeout`, `max_retry_period` and `retry_wait_time`.
-
-- `request_timeout` (int): the timeout (in seconds) sent with a single request.
-- `max_retry_period` (int): the total time (in seconds) allowed for retrying failed requests.
-- `retry_wait_time` (int): the time interval to wait (in seconds) before retrying a failed request.
-
-Moreover,  -->
 One can pass a list of configurations of different models/endpoints to mitigate the rate limits and other runtime error. For example,
 
 ```python
@@ -258,7 +250,7 @@ client = OpenAIWrapper(
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_type": "azure",
             "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-            "api_version": "2023-08-01-preview",
+            "api_version": "2024-02-15-preview",
         },
         {
             "model": "gpt-3.5-turbo",
@@ -268,12 +260,16 @@ client = OpenAIWrapper(
         {
             "model": "llama2-chat-7B",
             "base_url": "http://127.0.0.1:8080",
+        },
+        {
+            "model": "microsoft/phi-2",
+            "model_client_cls": "CustomModelClient"
         }
     ],
 )
 ```
 
-`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, and a locally hosted llama2-chat-7B one by one,
+`client.create()` will try querying Azure OpenAI gpt-4, OpenAI gpt-3.5-turbo, a locally hosted llama2-chat-7B, and phi-2 using a custom model client class named `CustomModelClient`, one by one,
 until a valid result is returned. This can speed up the development process where the rate limit is a bottleneck. An error will be raised if the last choice fails. So make sure the last choice in the list has the best availability.
 
 For convenience, we provide a number of utility functions to load config lists.
@@ -283,7 +279,7 @@ For convenience, we provide a number of utility functions to load config lists.
 - `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
 
-We suggest that you take a look at this [notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_openai_utils.ipynb) for full code examples of the different methods to configure your model endpoints.
+We suggest that you take a look at this [notebook](/docs/llm_configuration) for full code examples of the different methods to configure your model endpoints.
 
 ### Logic error
 
@@ -372,10 +368,91 @@ context.append(
 )
 response = client.create(context=context, messages=messages, **config)
 ```
+## Logging
 
-## Logging (for openai<1)
+When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them.
 
-When debugging or diagnosing an LLM-based system, it is often convenient to log the API calls and analyze them. `autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
+### For openai >= 1
+
+Logging example: [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_logging.ipynb)
+
+#### Start logging:
+```python
+import autogen.runtime_logging
+
+autogen.runtime_logging.start(logger_type="sqlite", config={"dbname": "YOUR_DB_NAME"})
+```
+`logger_type` and `config` are both optional. Default logger type is SQLite logger, that's the only one available in autogen at the moment. If you want to customize the database name, you can pass in through config, default is `logs.db`.
+
+#### Stop logging:
+```python
+autogen.runtime_logging.stop()
+```
+
+#### LLM Runs
+
+AutoGen logging supports OpenAI's llm message schema. Each LLM run is saved in `chat_completions` table includes:
+- session_id: an unique identifier for the logging session
+- invocation_id: an unique identifier for the logging record
+- client_id: an unique identifier for the Azure OpenAI/OpenAI client
+- request: detailed llm request, see below for an example
+- response: detailed llm response, see below for an example
+- cost: total cost for the request and response
+- start_time
+- end_time
+
+##### Sample Request
+```json
+{
+  "messages":[
+    {
+      "content":"system_message_1",
+      "role":"system"
+    },
+    {
+      "content":"user_message_1",
+      "role":"user"
+    }
+  ],
+  "model":"gpt-4",
+  "temperature": 0.9
+}
+```
+
+##### Sample Response
+```json
+{
+  "id": "id_1",
+  "choices": [
+    {
+      "finish_reason": "stop",
+      "index": 0,
+      "logprobs": null,
+      "message": {
+        "content": "assistant_message_1",
+        "role": "assistant",
+        "function_call": null,
+        "tool_calls": null
+      }
+    }
+  ],
+  "created": "<timestamp>",
+  "model": "gpt-4",
+  "object": "chat.completion",
+  "system_fingerprint": null,
+  "usage": {
+    "completion_tokens": 155,
+    "prompt_tokens": 53,
+    "total_tokens": 208
+  }
+}
+```
+
+Learn more about [request and response format](https://platform.openai.com/docs/api-reference/chat/create)
+
+### For openai < 1
+
+`autogen.Completion` and `autogen.ChatCompletion` offer an easy way to collect the API call histories. For example, to log the chat histories, simply run:
 ```python
 autogen.ChatCompletion.start_logging()
 ```

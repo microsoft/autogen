@@ -25,8 +25,9 @@
     "write-heading-ids": "docusaurus write-heading-ids"
   },
   "dependencies": {
-    "@docusaurus/core": "^3.1.0",
-    "@docusaurus/preset-classic": "^3.1.0",
+    "@docusaurus/core": "^3.1.1",
+    "@docusaurus/plugin-client-redirects": "^3.1.1",
+    "@docusaurus/preset-classic": "^3.1.1",
     "@easyops-cn/docusaurus-search-local": "^0.21.1",
     "@mdx-js/react": "^3.0.0",
     "@svgr/webpack": "^5.5.0",
@@ -45,8 +46,8 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.1.0",
-    "@docusaurus/types": "^3.1.0",
+    "@docusaurus/module-type-aliases": "^3.1.1",
+    "@docusaurus/types": "^3.1.1",
     "postcss": "^8.4"
   },
   "browserslist": {

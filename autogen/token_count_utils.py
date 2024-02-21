@@ -8,7 +8,7 @@ import re
 logger = logging.getLogger(__name__)
 
 
-def get_max_token_limit(model="gpt-3.5-turbo-0613"):
+def get_max_token_limit(model: str = "gpt-3.5-turbo-0613") -> int:
     # Handle common azure model names/aliases
     model = re.sub(r"^gpt\-?35", "gpt-3.5", model)
     model = re.sub(r"^gpt4", "gpt-4", model)
@@ -28,6 +28,8 @@ def get_max_token_limit(model="gpt-3.5-turbo-0613"):
         "gpt-4-0613": 8192,
         "gpt-4-32k-0613": 32768,
         "gpt-4-1106-preview": 128000,
+        "gpt-4-0125-preview": 128000,
+        "gpt-4-turbo-preview": 128000,
         "gpt-4-vision-preview": 128000,
     }
     return max_token_limit[model]

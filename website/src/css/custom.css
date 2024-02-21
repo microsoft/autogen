@@ -73,6 +73,21 @@ blockquote {
   color: white;
 }
 
+/* This puts a 10px border on the left of Python code blocks. This is to provide
+some visual distinction between code cells and output cells. The color is the
+prism code block background color lightened by 25% */
+.language-python.theme-code-block
+{
+  border-left: 10px solid #51597b;
+}
+
+/* Small visual differentiation for the code output cell. Code background
+lightened by 15% */
+.language-text.theme-code-block
+{
+  background-color: #414863;
+}
+
 html[data-theme="dark"] {
   --ifm-breadcrumb-color-active: #0c90ff;
   --ifm-hero-text-color: white;

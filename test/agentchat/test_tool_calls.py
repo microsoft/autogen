@@ -165,31 +165,45 @@ def test_update_tool():
         },
         is_remove=False,
     )
-    user_proxy.initiate_chat(
+    res = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
     )
     messages1 = assistant.chat_messages[user_proxy][-1]["content"]
-    print(messages1)
+    print("Message:", messages1)
+    print("Summary:", res.summary)
+    assert (
+        messages1.replace("TERMINATE", "") == res.summary
+    ), "Message (removing TERMINATE) and summary should be the same"
 
     assistant.update_tool_signature("greet_user", is_remove=True)
-    user_proxy.initiate_chat(
+    res = user_proxy.initiate_chat(
         assistant,
         message="What functions do you know about in the context of this conversation? End your response with 'TERMINATE'.",
+        summary_method="reflection_with_llm",
     )
     messages2 = assistant.chat_messages[user_proxy][-1]["content"]
-    print(messages2)
+    print("Message2:", messages2)
     # The model should know about the function in the context of the conversation
     assert "greet_user" in messages1
     assert "greet_user" not in messages2
+    print("Summary2:", res.summary)
 
 
 @pytest.mark.skipif(not TOOL_ENABLED, reason="openai>=1.1.0 not installed")
 def test_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            super().__init__(name)
+            self._name = name
             self.received = []
+
+        @property
+        def name(self):
+            return self._name
+
+        @property
+        def description(self):
+            return self._name
 
         def receive(
             self,
@@ -275,8 +289,16 @@ def test_multi_tool_call():
 async def test_async_multi_tool_call():
     class FakeAgent(autogen.Agent):
         def __init__(self, name):
-            super().__init__(name)
+            self._name = name
             self.received = []
+
+        @property
+        def name(self):
+            return self._name
+
+        @property
+        def description(self):
+            return self._name
 
         async def a_receive(
             self,
@@ -366,7 +388,7 @@ async def test_async_multi_tool_call():
 
 
 if __name__ == "__main__":
-    # test_update_tool()
+    test_update_tool()
     # test_eval_math_responses()
     # test_multi_tool_call()
-    test_eval_math_responses_api_style_function()
+    # test_eval_math_responses_api_style_function()

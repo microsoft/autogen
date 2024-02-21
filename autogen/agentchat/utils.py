@@ -1,5 +1,27 @@
-from typing import List, Dict, Tuple
-from autogen import Agent
+from typing import List, Dict, Tuple, Callable
+from .agent import Agent
+
+
+def consolidate_chat_info(chat_info, uniform_sender=None) -> None:
+    if isinstance(chat_info, dict):
+        chat_info = [chat_info]
+    for c in chat_info:
+        if uniform_sender is None:
+            assert "sender" in c, "sender must be provided."
+            sender = c["sender"]
+        else:
+            sender = uniform_sender
+        assert "recipient" in c, "recipient must be provided."
+        summary_method = c.get("summary_method")
+        assert (
+            summary_method is None
+            or isinstance(summary_method, Callable)
+            or summary_method in ("last_msg", "reflection_with_llm")
+        ), "summary_method must be a string chosen from 'reflection_with_llm' or 'last_msg' or a callable, or None."
+        if summary_method == "reflection_with_llm":
+            assert (
+                sender.client is not None or c["recipient"].client is not None
+            ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
 
 
 def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str, any]]:
@@ -44,7 +66,7 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
     actual_usage_summary = {"total_cost": 0}
 
     for agent in agents:
-        if agent.client:
+        if getattr(agent, "client", None):
             aggregate_summary(total_usage_summary, agent.client.total_usage_summary)
             aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
 

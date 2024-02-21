@@ -34,7 +34,7 @@ class AutoGenChatManager:
 
         if flow_config.summary_method == "last":
             successful_code_blocks = extract_successful_code_blocks(flow.agent_history)
-            last_message = flow.agent_history[-1]["message"]["content"]
+            last_message = flow.agent_history[-1]["message"]["content"] if flow.agent_history else ""
             successful_code_blocks = "\n\n".join(successful_code_blocks)
             output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
         elif flow_config.summary_method == "llm":
@@ -43,6 +43,7 @@ class AutoGenChatManager:
             output = ""
 
         metadata["code"] = ""
+        metadata["summary_method"] = flow_config.summary_method
         end_time = time.time()
         metadata["time"] = end_time - start_time
         modified_files = get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
