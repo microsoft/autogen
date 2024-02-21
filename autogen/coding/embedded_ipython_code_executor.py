@@ -7,15 +7,12 @@ import uuid
 from typing import Any, ClassVar, List, Union
 
 from pydantic import Field
-from autogen.coding.jupyter.jupyter_client import JupyterClient
-
-from autogen.coding.jupyter.local_jupyter_server import LocalJupyterServer
 
 
 from ..agentchat.agent import LLMAgent
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-from .jupyter import JupyterConnectable, JupyterConnectionInfo
+from .jupyter import JupyterConnectable, JupyterConnectionInfo, LocalJupyterServer, JupyterClient
 
 __all__ = ("EmbeddedIPythonCodeExecutor", "IPythonCodeResult")
 
@@ -48,7 +45,7 @@ class IPythonCodeExecutor(CodeExecutor):
         output_dir (str): The directory to save output files, by default ".".
         system_message_update (str): The system message update to add to the
             agent that produces code. By default it is
-            `EmbeddedIPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
+            `IPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
@@ -117,13 +114,12 @@ the output will be a path to the image instead of the image itself.
         if not output_dir.exists():
             raise ValueError(f"Output directory {output_dir} does not exist.")
 
-        if jupyter_server is not None:
-            if isinstance(jupyter_server, JupyterConnectable):
-                self._connection_info = jupyter_server.connection_info
-            elif isinstance(jupyter_server, JupyterConnectionInfo):
-                self._connection_info = jupyter_server
-            else:
-                raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
+        if isinstance(jupyter_server, JupyterConnectable):
+            self._connection_info = jupyter_server.connection_info
+        elif isinstance(jupyter_server, JupyterConnectionInfo):
+            self._connection_info = jupyter_server
+        else:
+            raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
 
         self._jupyter_client = JupyterClient(self._connection_info)
         available_kernels = self._jupyter_client.list_kernel_specs()

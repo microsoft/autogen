@@ -22,6 +22,7 @@ from .base import JupyterConnectionInfo
 
 
 class JupyterClient:
+    """(Experimental) A client for communicating with a Jupyter gateway server."""
     def __init__(self, connection_info: JupyterConnectionInfo):
         self._connection_info = connection_info
 
@@ -75,6 +76,7 @@ class JupyterClient:
 
 
 class JupyterKernelClient:
+    """(Experimental) A client for communicating with a Jupyter kernel."""
     @dataclass
     class ExecutionResult:
         @dataclass
