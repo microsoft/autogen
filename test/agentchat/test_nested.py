@@ -1,36 +1,29 @@
 import pytest
-
-# from conftest import skip_openai
+import sys
+import os
 import autogen
 
-from pydantic import BaseModel, Field
-from typing import Any, Dict, List, Optional, Union
-from collections import defaultdict
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 
-import chess
-import chess.svg
-
-
-# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_nested():
-    import autogen
-
     config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST")
     llm_config = {"config_list": config_list}
 
-    financial_tasks = [
-        """On which days in 2024 was Microsoft Stock higher than $370? Put results in a table and don't use ``` ``` to include table.""",
-        """Investigate the possible reasons of the stock performance.""",
+    tasks = [
+        """What's Microsoft's Stock price today?""",
+        """Make a pleasant joke about it.""",
     ]
 
-    assistant = autogen.AssistantAgent(
+    inner_assistant = autogen.AssistantAgent(
         "Inner-assistant",
         llm_config=llm_config,
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
     )
 
-    code_interpreter = autogen.UserProxyAgent(
+    inner_code_interpreter = autogen.UserProxyAgent(
         "Inner-code-interpreter",
         human_input_mode="NEVER",
         code_execution_config={
@@ -42,7 +35,7 @@ def test_nested():
     )
 
     groupchat = autogen.GroupChat(
-        agents=[assistant, code_interpreter],
+        agents=[inner_assistant, inner_code_interpreter],
         messages=[],
         speaker_selection_method="round_robin",  # With two agents, this is equivalent to a 1:1 conversation.
         allow_repeat_speaker=False,
@@ -59,8 +52,8 @@ def test_nested():
         },
     )
 
-    financial_assistant_1 = autogen.AssistantAgent(
-        name="Financial_assistant_1",
+    assistant = autogen.AssistantAgent(
+        name="Assistant",
         llm_config={"config_list": config_list},
         # is_termination_msg=lambda x: x.get("content", "") == "",
     )
@@ -76,175 +69,51 @@ def test_nested():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    financial_assistant_1.register_nested_chats(
-        [autogen.Agent, None], [{"recipient": manager, "summary_method": "reflection_with_llm"}]
-    )
-    user.initiate_chat(financial_assistant_1, message=financial_tasks[0])
-
-
-# @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
-def test_nested_chess():
-    config_list_gpt4 = autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
-    )
-    autogen.config_list_from_json(
-        "OAI_CONFIG_LIST",
-        filter_dict={"model": "gpt-35-turbo-1106"},
+    writer = autogen.AssistantAgent(
+        name="Writer",
+        llm_config={"config_list": config_list},
+        system_message="""
+        You are a professional writer, known for
+        your insightful and engaging articles.
+        You transform complex concepts into compelling narratives.
+        Reply "TERMINATE" in the end when everything is done.
+        """,
     )
 
-    max_turn = 20
-
-    sys_msg_tmpl = """Your name is {name} and you are a chess player.
-    You are playing against {opponent_name}.
-    You are playing as {color}.
-    You communicate your move using universal chess interface language.
-    You also chit-chat with your opponent when you communicate a move to light up the mood.
-    You should ensure both you and the opponent are making legal moves.
-    Do not apologize for making illegal moves."""
-
-    board_sysm_msg = """You are an AI-powered chess board agent.
-    You translate the user's natural language input into legal UCI moves. Note that the user's input may contain the
-    UCI move itself, or it may contain a natural language description of the move.
-    You should only reply with a UCI move string extracted from the user's input."""
-
-    color_white = "white"
-    color_black = "black"
-    white_player_name = "PlayerWhite"
-    black_player_name = "PlayerBlack"
-
-    class BoardAgent(autogen.AssistantAgent):
-        board: chess.Board = chess.Board()
-        correct_move_messages: Dict[autogen.Agent, List[Dict]] = defaultdict(list)
-        _reply_num: int = 0
-        context: Optional[Dict] = None
-
-        def set_correct_move_messages(self, sender, message, uci_move):
-            self.correct_move_messages[sender].extend([message, self._message_to_dict(uci_move)])
-
-        def update_reply_num(self):
-            self._reply_num += 1
-
-        @property
-        def reply_num(self):
-            return self._reply_num
-
-    board_agent = BoardAgent(
-        name="BoardAgent",
-        system_message=board_sysm_msg,
-        llm_config={"temperature": 0.0, "config_list": config_list_gpt4},
-        # llm_config={"config_list": config_list_gpt4},
-        max_consecutive_auto_reply=max_turn,
+    reviewer = autogen.AssistantAgent(
+        name="Reviewer",
+        llm_config={"config_list": config_list},
+        system_message="""
+        You are a compliance reviewer, known for your thoroughness and commitment to standards.
+        Your task is to scrutinize content for any harmful elements or regulatory violations, ensuring
+        all materials align with required guidelines.
+        You must review carefully, identify potential issues, and maintain the integrity of the organization.
+        Your role demands fairness, a deep understanding of regulations, and a focus on protecting against
+        harm while upholding a culture of responsibility.
+        You also help make revisions to ensure the content is accurate, clear, and compliant.
+        Reply "TERMINATE" in the end when everything is done.
+        """,
     )
 
-    player_white = autogen.AssistantAgent(
-        white_player_name,
-        system_message=sys_msg_tmpl.format(
-            name=white_player_name,
-            opponent_name=black_player_name,
-            color=color_white,
-        ),
-        llm_config={"config_list": config_list_gpt4},
-        max_consecutive_auto_reply=max_turn,
+    def writing_message(recipient, messages, sender, config):
+        return f"Polish the content to make an engaging and nicely formatted blog post. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
+
+    nested_chat_queue = [
+        {"recipient": manager, "summary_method": "reflection_with_llm"},
+        {"recipient": writer, "message": writing_message, "summary_method": "last_msg", "max_turns": 1},
+        {
+            "recipient": reviewer,
+            "message": "Review the content provided.",
+            "summary_method": "last_msg",
+            "max_turns": 1,
+        },
+    ]
+    assistant.register_nested_chats(
+        [autogen.Agent, None],
+        nested_chat_queue,
     )
-
-    player_black = autogen.AssistantAgent(
-        black_player_name,
-        system_message=sys_msg_tmpl.format(
-            name=black_player_name,
-            opponent_name=white_player_name,
-            color=color_black,
-        ),
-        # llm_config={"temperature":1, "cache_seed": 1, "config_list": config_list_gpt35},
-        llm_config={"config_list": config_list_gpt4},
-        max_consecutive_auto_reply=max_turn,
-    )
-
-    def player2board_init_message(recipient, messages, sender, config):
-        board = recipient.board
-        board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
-        useful_msg = messages[-1].copy()
-        useful_msg["content"] = useful_msg.get("content", "") + f"The current board is:\n {board} ."
-        oai_messages = [messages[-1]]
-        _, message = recipient.generate_oai_reply(oai_messages + board_state_msg, sender)
-        return message
-
-    def player2board_reply(recipient, messages, sender, config):
-        board = config if config else ""
-        # add a system message about the current state of the board.
-        board = sender.board
-        board_state_msg = [{"role": "system", "content": f"Current board:\n{board}"}]
-        last_message = messages[-1]
-        if last_message["content"].startswith("Error"):
-            # try again
-            _, rep = recipient.generate_oai_reply(messages + board_state_msg, sender)
-            # rep = recipient.generate_reply(messages + board_state_msg, sender)
-            return True, rep
-        else:
-            return True, None
-
-    def board_reply(recipient, messages, sender, config):
-        if recipient.reply_num >= max_turn:
-            return True, None
-        org_msg = messages[-1].copy()
-        message = messages[-1]
-        # extract a UCI move from player's message
-        # TODO: better way to handle this
-        message["content"] = "Extract a UCI move from the following message \n." + message.get("content", "")
-        _, reply = recipient.generate_oai_reply([message], sender)
-        # reply = recipient.generate_reply(recipient.correct_move_messages[sender] + [message], sender)
-        uci_move = reply if isinstance(reply, str) else str(reply["content"])
-        recipient.update_reply_num()
-        try:
-            recipient.board.push_uci(uci_move)
-        except ValueError as e:
-            # invalid move
-            return True, f"Error: {e}" + "\n\nTry again as if nothing happened."
-        else:
-            # valid move
-            m = chess.Move.from_uci(uci_move)
-            try:
-                display(  # noqa: F821
-                    chess.svg.board(
-                        recipient.board, arrows=[(m.from_square, m.to_square)], fill={m.from_square: "gray"}, size=200
-                    )
-                )
-            except NameError as e:
-                print(f"Error displaying board: {e}")
-        # better way to handle this
-        recipient.set_correct_move_messages(sender, message, uci_move)
-        recipient.correct_move_messages[sender][-1]["role"] = "assistant"
-        return True, org_msg.get("content", "")  # + "\n Move:" + uci_move
-
-    player_white.register_nested_chats(
-        black_player_name,
-        [
-            {
-                "sender": player_white,
-                "recipient": board_agent,
-                "init_message": player2board_init_message,
-                "summary_method": "last_msg",
-            }
-        ],
-        config=board_agent.board,
-    )
-    player_black.register_nested_chats(
-        white_player_name,
-        [
-            {
-                "sender": player_black,
-                "recipient": board_agent,
-                "init_message": player2board_init_message,
-                "summary_method": "last_msg",
-            }
-        ],
-        config=board_agent.board,
-    )
-    player_white.register_reply(BoardAgent, player2board_reply)
-    player_black.register_reply(BoardAgent, player2board_reply)
-    board_agent.register_reply([white_player_name, black_player_name], board_reply, 0)
-    autogen.initiate_chats([{"sender": player_white, "recipient": player_black, "message": "Your turn."}])
+    user.initiate_chats([{"recipient": assistant, "message": tasks[0]}, {"recipient": assistant, "message": tasks[1]}])
 
 
 if __name__ == "__main__":
-    # test_nested()
-    test_nested_chess()
+    test_nested()
