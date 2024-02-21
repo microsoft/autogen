@@ -1,15 +1,15 @@
 # Composable Actor Platform (CAP) for AutoGen
 
 ## I just want to run the demo!
-Python Instructions:
+*Python Instructions (Windows, Linux, MacOS):*
 
 0) cd py
 1) pip install -r autogencap/requirements.txt
 2) python ./demo/App.py
 
 *Demo Notes:*
-1) Options 3,4,5&6 require OAI_CONFIG_LIST for Autogen.
-   Autogen python requirements: 3.8 <= python <= 3.11
+1) Options 3, 4, 5 & 6 require OAI_CONFIG_LIST for AutoGen.
+   AutoGen python requirements: 3.8 <= python <= 3.11
 2) For option 2, type something in and see who receives the message.  Quit to quit.
 3) To view any option that displays a chart (such as option 4), you will need to disable Docker code execution. You can do this by setting the environment variable `AUTOGEN_USE_DOCKER` to `False`.
 
