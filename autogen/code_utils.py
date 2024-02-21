@@ -213,13 +213,37 @@ def timeout_handler(signum, frame):
     raise TimeoutError("Timed out!")
 
 
+def get_powershell_command():
+    try:
+        result = subprocess.run(["powershell", "$PSVersionTable.PSVersion.Major"], capture_output=True, text=True)
+        if result.returncode == 0:
+            return "powershell"
+
+    except FileNotFoundError:
+        # This means that 'powershell' command is not found so now we try looking for 'pwsh'
+        try:
+            result = subprocess.run(
+                ["pwsh", "-Command", "$PSVersionTable.PSVersion.Major"], capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                return "pwsh"
+
+        except FileNotFoundError:
+            print("Neither powershell nor pwsh is installed.")
+            return None
+
+
+powershell_command = get_powershell_command()
+
+
 def _cmd(lang):
-    if lang.startswith("python") or lang in ["bash", "sh", "powershell"]:
+    if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
         return lang
     if lang in ["shell"]:
         return "sh"
-    if lang in ["ps1"]:
-        return "powershell"
+    if lang in ["ps1", "pwsh", "powershell"]:
+        return powershell_command
+
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
