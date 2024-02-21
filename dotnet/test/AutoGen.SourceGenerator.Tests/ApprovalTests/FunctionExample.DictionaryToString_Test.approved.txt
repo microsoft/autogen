@@ -6,6 +6,9 @@
     "properties": {
       "xargs": {
         "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        },
         "description": "an object of key-value pairs. key is string, value is string"
       }
     },

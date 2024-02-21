@@ -5,7 +5,10 @@
     "type": "object",
     "properties": {
       "args": {
-        "type": "object",
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
         "description": "an array of double values"
       }
     },
