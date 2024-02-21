@@ -95,7 +95,8 @@ class RagAgent(ConversableAgent):
                 - filter_document (str): the filter for the documents. Default is None.
                 - filter_metadata (str): the filter for the metadata. Default is None.
                 - include (str): the attributes to include in the query results. Default is None.
-                - rag_llm_config (dict): the llm config for the RAG agent. Default is the same as the llm_config.
+                - rag_llm_config (dict): the llm config for the RAG agent inner loop such as promptgenerator.
+                    Default is the same as the llm_config. Set to False to disable promptgenerator.
                 - max_token_ratio_for_context (float): the maximum token ratio for the context. Default is 0.8.
                 - splitter (str or Splitter): the splitter to use for the RAG agent. Default is "textline".
                 - docs_path (str): the path to the documents. Default is None.
@@ -123,6 +124,7 @@ class RagAgent(ConversableAgent):
                 - prompt_rag (str): the prompt rag. Default is None.
                 - enable_update_context (bool): whether to enable update context. Default is True.
                 - customized_trigger_words (str): the customized trigger words. Default is "question".
+                    If the message starts or ends with the trigger words, the context will be updated.
                 - vector_db_get_is_fast (bool): whether the vector db get is fast. Default is True.
         """
         super().__init__(
@@ -487,6 +489,7 @@ class RagAgent(ConversableAgent):
         """
         logger.debug(f"Performing RAG for message: {raw_message}", color="green")
         refined_questions, selected_prompt_rag = self.prompt_generator(raw_message, self.rag_promptgen_n)
+        logger.debug(f"Refined message for db query: {refined_questions}", color="green")
         if self.received_raw_message not in refined_questions:
             refined_questions.append(self.received_raw_message)
         reranked_query_results = self.retrieve_rerank(raw_message, refined_questions)
