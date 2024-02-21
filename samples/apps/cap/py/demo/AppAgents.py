@@ -10,6 +10,19 @@ from autogencap.ActorConnector import ActorConnector
 from autogencap.Actor import Actor
 
 
+class GreeterAgent(Actor):
+    """
+    Prints message to screen
+    """
+
+    def __init__(
+        self,
+        agent_name="Greeter",
+        description="This is the greeter agent, who knows how to greet people.",
+    ):
+        super().__init__(agent_name, description)
+
+
 class FidelityAgent(Actor):
     """
     This class represents the fidelity agent, who knows how to connect to fidelity to get account,
@@ -25,8 +38,10 @@ class FidelityAgent(Actor):
     def __init__(
         self,
         agent_name="Fidelity",
-        description="This is the fidelity agent, who knows"
-        "how to connect to fidelity to get account, portfolio, and order information.",
+        description=(
+            "This is the fidelity agent, who knows"
+            "how to connect to fidelity to get account, portfolio, and order information."
+        ),
     ):
         super().__init__(agent_name, description)
 
@@ -46,9 +61,11 @@ class FinancialPlannerAgent(Actor):
     def __init__(
         self,
         agent_name="Financial Planner",
-        description="This is the financial planner"
-        " agent, who knows how to connect to a financial planner and get financial"
-        " planning information.",
+        description=(
+            "This is the financial planner"
+            " agent, who knows how to connect to a financial planner and get financial"
+            " planning information."
+        ),
     ):
         super().__init__(agent_name, description)
 
@@ -72,10 +89,9 @@ class QuantAgent(Actor):
         super().__init__(agent_name, description)
 
 
-class UserInterfaceAgent(Actor):
+class RiskManager(Actor):
     """
-    This class represents the user interface agent, who knows how to connect to a user
-    interface and get user interface information.
+    This class represents a risk manager, who will analyze portfolio risk.
 
     Args:
         description (str, optional): A description of the agent. Defaults to "This is the user
@@ -83,14 +99,16 @@ class UserInterfaceAgent(Actor):
         user interface information."
     """
 
-    cls_agent_name = "User interface"
+    cls_agent_name = "Risk Manager"
 
     def __init__(
         self,
-        description="This is the user interface agent, who knows how to connect"
-        " to a user interface and get user interface information.",
+        description=(
+            "This is the user interface agent, who knows how to connect"
+            " to a user interface and get user interface information."
+        ),
     ):
-        super().__init__(UserInterfaceAgent.cls_agent_name, description)
+        super().__init__(RiskManager.cls_agent_name, description)
 
 
 class PersonalAssistant(Actor):
@@ -115,7 +133,7 @@ class PersonalAssistant(Actor):
         self.fidelity: ActorConnector = None
         self.financial_planner: ActorConnector = None
         self.quant: ActorConnector = None
-        self.user_interface: ActorConnector = None
+        self.risk_manager: ActorConnector = None
 
     def connect(self, network: LocalActorNetwork):
         """
@@ -128,7 +146,7 @@ class PersonalAssistant(Actor):
         self.fidelity = network.lookup_agent("Fidelity")
         self.financial_planner = network.lookup_agent("Financial Planner")
         self.quant = network.lookup_agent("Quant")
-        self.user_interface = network.lookup_agent("User interface")
+        self.risk_manager = network.lookup_agent("Risk Manager")
         Debug(self.agent_name, "connected")
 
     def disconnect(self, network: LocalActorNetwork):
@@ -142,7 +160,7 @@ class PersonalAssistant(Actor):
         self.fidelity.close()
         self.financial_planner.close()
         self.quant.close()
-        self.user_interface.close()
+        self.risk_manager.close()
         Debug(self.agent_name, "disconnected")
 
     def process_txt_msg(self, msg, msg_type, topic, sender):
@@ -158,9 +176,14 @@ class PersonalAssistant(Actor):
         Returns:
             bool: True if the message was processed successfully, False otherwise.
         """
-        Info(self.agent_name, f"Helping user: {shorten(msg)}")
-        self.fidelity.send_txt_msg("Help me buy/sell assets for " + msg)
-        self.financial_planner.send_txt_msg(f"Help me with a financial plan for {msg}'s goals.")
-        self.quant.send_txt_msg("Help me with some quantitative analysis of the interest rate for " + msg)
-        self.user_interface.send_txt_msg("Help me talk to " + msg)
+        if msg.strip().lower() != "quit" and msg.strip().lower() != "":
+            Info(self.agent_name, f"Helping user: {shorten(msg)}")
+            self.fidelity.send_txt_msg(f"I, {self.agent_name}, need your help to buy/sell assets for " + msg)
+            self.financial_planner.send_txt_msg(
+                f"I, {self.agent_name}, need your help in creating a financial plan for {msg}'s goals."
+            )
+            self.quant.send_txt_msg(
+                f"I, {self.agent_name}, need your help with quantitative analysis of the interest rate for " + msg
+            )
+            self.risk_manager.send_txt_msg(f"I, {self.agent_name}, need your help in analyzing {msg}'s portfolio risk")
         return True

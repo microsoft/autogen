@@ -1,5 +1,5 @@
 import time
-from AppAgents import UserInterfaceAgent
+from AppAgents import GreeterAgent
 from autogencap.LocalActorNetwork import LocalActorNetwork
 
 
@@ -11,13 +11,13 @@ def simple_actor_demo():
     # CAP Platform
     network = LocalActorNetwork()
     # Register an agent
-    network.register(UserInterfaceAgent())
+    network.register(GreeterAgent())
     # Tell agents to connect to other agents
     network.connect()
     # Get a channel to the agent
-    ui_sender = network.lookup_agent(UserInterfaceAgent.cls_agent_name)
+    greeter_link = network.lookup_agent("Greeter")
     # Send a message to the agent
-    ui_sender.send_txt_msg("Hello World!")
+    greeter_link.send_txt_msg("Hello World!")
     # Cleanup
-    ui_sender.close()
+    greeter_link.close()
     network.disconnect()

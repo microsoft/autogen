@@ -16,7 +16,7 @@ class Actor:
         Debug(self.agent_name, "connected")
 
     def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str) -> bool:
-        Info(self.agent_name, f"Msg: {msg}")
+        Info(self.agent_name, f"InBox: {msg}")
         return True
 
     def process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
