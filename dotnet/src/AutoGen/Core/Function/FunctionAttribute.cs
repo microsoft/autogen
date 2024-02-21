@@ -39,7 +39,7 @@ public class FunctionContract
 
     /// <summary>
     /// The description of the function.
-    /// If a structured comment is available, the description will be extracted from the <summary> section.
+    /// If a structured comment is available, the description will be extracted from the summary section.
     /// Otherwise, the description will be null.
     /// </summary>
     public string? Description { get; set; }
@@ -56,7 +56,7 @@ public class FunctionContract
 
     /// <summary>
     /// The description of the return section.
-    /// If a structured comment is available, the description will be extracted from the <returns> section.
+    /// If a structured comment is available, the description will be extracted from the <returns /> section.
     /// Otherwise, the description will be null.
     /// </summary>
     public string? ReturnDescription { get; set; }
