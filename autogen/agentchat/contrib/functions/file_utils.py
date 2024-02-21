@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 from .functions_utils import FunctionWithRequirements
-
+from openpyxl import load_workbook
+from pathlib import Path
 
 @FunctionWithRequirements(python_packages=["pdfminer.six", "requests"])
 def read_text_from_pdf(file_path: str) -> str:
@@ -227,3 +228,93 @@ def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = Non
     else:
         raise ValueError("Invalid file path or URL")
     return caption
+
+
+class XlsxRenderder:
+    """Excel file renderer"""
+    def claim_responsibility(self, file_extension) -> bool:
+        return file_extension is not None and file_extension.lower() in [".xlsx"]
+
+    def render_file(self, file_path):
+        return read_text_from_xlsx(file_path)
+
+        # If we need more information from the excel file e.g. background color
+        # wb = load_workbook('test.xlsx')
+        # ws = wb.active  # or wb['SheetName']
+
+        # for row in ws.iter_rows():
+        #     for cell in row:
+        #         fill_type = cell.fill.fill_type
+        #         if fill_type == "solid":
+        #             background_color = cell.fill.start_color.index
+        #         else:
+        #             print(f"Cell {cell.coordinate} does not have a solid background color, fill type: {fill_type}")
+
+
+class PdfRenderer:
+    """PDF file renderer"""
+    def claim_responsibility(self, file_extension) -> bool:
+        return file_extension is not None and file_extension.lower() in [".pdf"]
+
+    def render_file(self, file_path):
+        return read_text_from_pdf(str(file_path))
+
+class LocalFileBrowser:
+    """Text based local file browser"""
+
+    def __init__(
+        self,
+        start_file_path=None,
+    ):
+        self.start_file_path: str = start_file_path if start_file_path else ""
+        self._file_renderers = []
+        self.history: List[str] = list()
+        self.file_content = ""
+
+        self.set_address(self.start_file_path)
+
+    #   self.register_file_renderer(FallbackFileRenderer())
+        self.register_file_renderer(XlsxRenderder())
+        self.register_file_renderer(PdfRenderer())
+
+
+    def register_file_renderer(self, renderer) -> None:
+        """Register a file renderer."""
+        self._file_renderers.insert(0, renderer)
+
+    def set_address(self, file_path: str):
+        self.history.append(file_path)
+        if file_path == "":
+            self.file_name = ""
+            self.file_content = ""
+            return
+        file_path = Path(file_path) # TODO: check file_path format
+        self._fetch_file(file_path)
+
+
+    def _fetch_file(self, file_path: str):
+        file_extension = file_path.suffix
+        file_name = file_path.name
+
+        for renderer in self._file_renderers:
+            if renderer.claim_responsibility(file_extension):
+                res = renderer.render_file(file_path)
+
+                self.file_name = file_name
+                self.file_content = res
+                return
+
+        # Unhandled page
+        self.file_name = "Error - Unhandled _fetch_file"
+        self.file_content = f"""Error - Unhandled _fetch_file, file path: {str(file_path)}"""
+
+
+    def visit_file(self, file_path: str) -> str:
+        """Update the file path history, visit the file, and return the content of the file."""
+        self.set_address(file_path)
+        return self.file_content
+
+    @property
+    def current_file(self) -> str: # Current file or current page??
+        """Return the path of current file."""
+        return self.history[-1]
