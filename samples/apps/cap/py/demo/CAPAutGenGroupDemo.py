@@ -55,7 +55,7 @@ def cap_ag_group_demo():
     manager_cap2ag = CAP2AG(ag_agent=manager, the_other_name=user_proxy.name, init_chat=False, self_recursive=True)
     network.register(manager_cap2ag)
     network.connect()
-    user_proxy_conn = network.lookup_agent(user_proxy.name)
+    user_proxy_conn = network.lookup_actor(user_proxy.name)
     user_proxy_conn.send_txt_msg(
         "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
     )

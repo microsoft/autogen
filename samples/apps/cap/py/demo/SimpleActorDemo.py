@@ -5,18 +5,18 @@ from autogencap.LocalActorNetwork import LocalActorNetwork
 
 def simple_actor_demo():
     """
-    Demonstrates the usage of the CAP platform by registering an agent, connecting to other agents,
+    Demonstrates the usage of the CAP platform by registering an actor, connecting to the actor,
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
     network = LocalActorNetwork()
-    # Register an agent
+    # Register an actor
     network.register(GreeterAgent())
-    # Tell agents to connect to other agents
+    # Tell actor to connect to other actors
     network.connect()
-    # Get a channel to the agent
-    greeter_link = network.lookup_agent("Greeter")
-    # Send a message to the agent
+    # Get a channel to the actor
+    greeter_link = network.lookup_actor("Greeter")
+    # Send a message to the actor
     greeter_link.send_txt_msg("Hello World!")
     # Cleanup
     greeter_link.close()

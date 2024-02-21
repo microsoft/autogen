@@ -23,7 +23,7 @@ def complex_actor_demo():
     # Tell agents to connect to other agents
     network.connect()
     # Get a channel to the personal assistant agent
-    pa = network.lookup_agent(PersonalAssistant.cls_agent_name)
+    pa = network.lookup_actor(PersonalAssistant.cls_agent_name)
     info_msg = """
     This is an imaginary personal assistant agent scenario.
     Five actors are connected in a self-determined graph. The user

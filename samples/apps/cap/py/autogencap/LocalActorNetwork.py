@@ -36,7 +36,7 @@ class LocalActorNetwork:
     def agent_connector_by_topic(self, topic: str) -> ActorConnector:
         return ActorConnector(self._context, topic)
 
-    def lookup_agent(self, name: str) -> ActorConnector:
+    def lookup_actor(self, name: str) -> ActorConnector:
         agent = self.agents.get(name, None)
         if agent is None:
             Warn("Local_Agent_Network", f"{name}, not found in the network.")

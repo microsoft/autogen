@@ -143,10 +143,10 @@ class PersonalAssistant(Actor):
             network (LocalActorNetwork): The local actor network to connect to.
         """
         Debug(self.agent_name, f"is connecting to {network}")
-        self.fidelity = network.lookup_agent("Fidelity")
-        self.financial_planner = network.lookup_agent("Financial Planner")
-        self.quant = network.lookup_agent("Quant")
-        self.risk_manager = network.lookup_agent("Risk Manager")
+        self.fidelity = network.lookup_actor("Fidelity")
+        self.financial_planner = network.lookup_actor("Financial Planner")
+        self.quant = network.lookup_actor("Quant")
+        self.risk_manager = network.lookup_actor("Risk Manager")
         Debug(self.agent_name, "connected")
 
     def disconnect(self, network: LocalActorNetwork):

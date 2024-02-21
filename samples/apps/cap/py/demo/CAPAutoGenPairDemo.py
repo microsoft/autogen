@@ -25,7 +25,7 @@ def cap_ag_pair_demo():
     network.connect()
 
     # Send a message to the user_proxy
-    user_proxy = network.lookup_agent("user_proxy")
+    user_proxy = network.lookup_actor("user_proxy")
     user_proxy.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
     # Hang around for a while
