@@ -281,6 +281,8 @@ class TextLineSplitter(Splitter):
         """
         text = ""
         pypdf = lazy_import("pypdf")
+        if not pypdf:
+            raise ImportError("Please install pypdf to extract text from PDF files.")
         with open(file, "rb") as f:
             reader = pypdf.PdfReader(f)
             if reader.is_encrypted:  # Check if the PDF is encrypted

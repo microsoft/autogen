@@ -1,7 +1,20 @@
 import pytest
-from autogen.agentchat.contrib.rag.datamodel import Chunk, Document, QueryResults, Query, GetResults
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+    from autogen.agentchat.contrib.rag.datamodel import Chunk, Document, QueryResults, Query, GetResults
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_chunk():
     chunk = Chunk(content="This is a test chunk")
     assert chunk.content == "This is a test chunk"
@@ -9,6 +22,7 @@ def test_chunk():
     assert chunk.metadata is None
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_document():
     document = Document(
         content="This is a test document", content_embedding=[1, 2, 3], embedding_model="model", dimensions=3
@@ -19,6 +33,7 @@ def test_document():
     assert document.dimensions == 3
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_query_results():
     query_results = QueryResults(ids=[[1, 2, 3], [4, 5, 6]])
     assert query_results.ids == [["1", "2", "3"], ["4", "5", "6"]]
@@ -28,6 +43,7 @@ def test_query_results():
     assert query_results.distances is None
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_query():
     query = Query(text="This is a test query", k=5, filter_metadata={"source": "example"}, include=["texts"])
     assert query.text == "This is a test query"
@@ -37,6 +53,7 @@ def test_query():
     assert query.include == ["texts"]
 
 
+@pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_get_results():
     get_results = GetResults(ids=[1, 2, 3], texts=["Document 1", "Document 2", "Document 3"])
     assert get_results.ids == ["1", "2", "3"]

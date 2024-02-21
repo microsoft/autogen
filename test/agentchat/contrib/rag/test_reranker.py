@@ -1,7 +1,23 @@
 import unittest
-from autogen.agentchat.contrib.rag.reranker import TfidfReranker, RerankerFactory, Query
+import pytest
+import os
+import sys
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+
+    from autogen.agentchat.contrib.rag.reranker import TfidfReranker, RerankerFactory, Query
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestTfidfReranker(unittest.TestCase):
     def setUp(self):
         self.reranker = TfidfReranker()
@@ -35,6 +51,7 @@ class TestTfidfReranker(unittest.TestCase):
         self.assertIsInstance(reranked_docs[0][1], float)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestRerankerFactory(unittest.TestCase):
     def test_create_reranker_tfidf(self):
         reranker = RerankerFactory.create_reranker("tfidf")

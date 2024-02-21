@@ -1,10 +1,26 @@
-import os
 import unittest
-from autogen.agentchat.contrib.rag.rag_agent import RagAgent
+import pytest
+import os
+import sys
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+    import sentence_transformers
+    from autogen.agentchat.contrib.rag.rag_agent import RagAgent
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestRagAgent(unittest.TestCase):
     def test_init(self):
         agent = RagAgent(rag_config={"docs_path": os.path.join(here, "test_files")})

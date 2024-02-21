@@ -1,12 +1,28 @@
-import os
 import unittest
 from unittest.mock import patch
-from autogen.agentchat.contrib.rag.splitter import Splitter, TextLineSplitter
+import pytest
+import os
+import sys
+
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+
+    from autogen.agentchat.contrib.rag.splitter import Splitter, TextLineSplitter
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
 
 # get the path of current file
 here = os.path.abspath(os.path.dirname(__file__))
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestSplitter(unittest.TestCase):
     def test_get_files_from_dir(self):
         # Test when dir_path is a directory
@@ -51,6 +67,7 @@ class TestSplitter(unittest.TestCase):
         self.assertFalse(Splitter.is_url(string))
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestTextLineSplitter(unittest.TestCase):
     def test_split_text_to_chunks(self):
         text = "This is a long text that needs to be split into chunks."

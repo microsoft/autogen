@@ -1,14 +1,30 @@
 import unittest
-from autogen.agentchat.contrib.rag.encoder import (
-    Encoder,
-    EmbeddingFunctionFactory,
-    SentenceTransformerEmbeddingFunction,
-    EmbeddingFunction,
-    Document,
-    Chunk,
-)
+import pytest
+import os
+import sys
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+    import sentence_transformers
+    from autogen.agentchat.contrib.rag.encoder import (
+        Encoder,
+        EmbeddingFunctionFactory,
+        SentenceTransformerEmbeddingFunction,
+        EmbeddingFunction,
+        Document,
+        Chunk,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestEncoder(unittest.TestCase):
     def test_encode_chunks(self):
         encoder = Encoder()
@@ -33,6 +49,7 @@ class TestEncoder(unittest.TestCase):
         self.assertIsInstance(vectors, list)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestEmbeddingFunction(unittest.TestCase):
     def test_sentence_transformer_embedding_function(self):
         embedding_function = SentenceTransformerEmbeddingFunction()
@@ -41,6 +58,7 @@ class TestEmbeddingFunction(unittest.TestCase):
         self.assertIsInstance(vectors[0], list)
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestEmbeddingFunctionFactory(unittest.TestCase):
     def test_create_embedding_function(self):
         embedding_function = EmbeddingFunctionFactory.create_embedding_function("sentence_transformer")

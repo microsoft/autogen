@@ -49,7 +49,7 @@ setuptools.setup(
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
-        "rag": ["sentence_transformers", "unstructured"],
+        "rag": ["sentence_transformers", "chromadb", "ipython", "pypdf"],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],

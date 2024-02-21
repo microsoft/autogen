@@ -1,8 +1,24 @@
 import unittest
 from unittest.mock import MagicMock
-from autogen.agentchat.contrib.rag.retriever import Retriever, ChromaRetriever, RetrieverFactory
+import pytest
+import os
+import sys
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+    import chromadb
+    from autogen.agentchat.contrib.rag.retriever import Retriever, ChromaRetriever, RetrieverFactory
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestRetriever(unittest.TestCase):
     def test_retrieve_docs(self):
         retriever = Retriever("chroma", "collection", ".db")
@@ -29,6 +45,7 @@ class TestRetriever(unittest.TestCase):
         self.assertEqual(result, "query_results")
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestChromaRetriever(unittest.TestCase):
     def test_init(self):
         retriever = ChromaRetriever("collection", ".db")
@@ -40,6 +57,7 @@ class TestChromaRetriever(unittest.TestCase):
         self.assertEqual(retriever.name, "chroma")
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestRetrieverFactory(unittest.TestCase):
     def test_create_retriever_chroma(self):
         retriever = RetrieverFactory.create_retriever("chroma", "collection")

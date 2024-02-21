@@ -54,9 +54,11 @@ class SentenceTransformerEmbeddingFunction(EmbeddingFunction):
             None
         """
         self.model_name = model_name
-        self.sentence_transformer = lazy_import("sentence_transformers", "SentenceTransformer")(model_name)
+        self.sentence_transformer = lazy_import("sentence_transformers", "SentenceTransformer")
         if not self.sentence_transformer:
             raise ImportError(MsgWarningDependentLibrary.format("sentence_transformers", "SentenceTransformer"))
+        else:
+            self.sentence_transformer = self.sentence_transformer(model_name)
         self.dimensions = self.sentence_transformer.encode(["hello"]).shape[1]
 
     def __call__(self, input: Union[str, List[str]]) -> List[Vector]:
@@ -107,7 +109,7 @@ class Encoder:
     An encoder is responsible for encoding text, images, etc. into vectors.
     """
 
-    def __init__(self, embedding_function: EmbeddingFunction = SentenceTransformerEmbeddingFunction()):
+    def __init__(self, embedding_function: EmbeddingFunction = None):
         """
         Initialize the encoder.
 
@@ -117,7 +119,7 @@ class Encoder:
         Returns:
             None
         """
-        self._embedding_function = embedding_function
+        self._embedding_function = embedding_function if embedding_function else SentenceTransformerEmbeddingFunction()
         self._model_name = (
             embedding_function.model_name if hasattr(embedding_function, "model_name") else embedding_function.__name__
         )

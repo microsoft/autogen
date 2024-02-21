@@ -1,7 +1,26 @@
 import pytest
-from autogen.agentchat.contrib.rag.chromadb import ChromaVectorDB, Collection, Document, Query, QueryResults, GetResults
+import sys
+import os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+    import chromadb
+    import sentence_transformers
+    from autogen.agentchat.contrib.rag.chromadb import (
+        ChromaVectorDB,
+        Document,
+        Query,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
 
 
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 def test_chromadb():
     # test create collection
     db = ChromaVectorDB(".db")

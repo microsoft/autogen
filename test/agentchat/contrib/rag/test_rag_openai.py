@@ -2,7 +2,6 @@ import pytest
 import os
 import sys
 import autogen
-from autogen.agentchat.contrib.rag import RagAgent, logger
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -12,13 +11,16 @@ from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 try:
     from openai import OpenAI
+    import chromadb
+    import sentence_transformers
+    from autogen.agentchat.contrib.rag import RagAgent, logger
 except ImportError:
     skip = True
 else:
     skip = False or skip_openai
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 def test_rag_openai():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,

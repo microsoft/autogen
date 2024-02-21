@@ -1,12 +1,28 @@
 import unittest
-from autogen.agentchat.contrib.rag.utils import (
-    lazy_import,
-    verify_one_arg,
-    flatten_list,
-    merge_and_get_unique_in_turn_same_length,
-)
+import pytest
+import os
+import sys
 
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
+try:
+    from openai import OpenAI
+
+    from autogen.agentchat.contrib.rag.utils import (
+        lazy_import,
+        verify_one_arg,
+        flatten_list,
+        merge_and_get_unique_in_turn_same_length,
+    )
+except ImportError:
+    skip = True
+else:
+    skip = False or skip_openai
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
 class TestUtils(unittest.TestCase):
     def test_lazy_import(self):
         # Test importing module
