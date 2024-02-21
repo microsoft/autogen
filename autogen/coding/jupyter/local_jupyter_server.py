@@ -63,7 +63,7 @@ class LocalJupyterServer(JupyterConnectable):
         self.port = port
 
         if isinstance(token, LocalJupyterServer.GenerateToken):
-            token = secrets.token_urlsafe(32)
+            token = secrets.token_hex(32)
 
         self.token = token
         logging_config = {
