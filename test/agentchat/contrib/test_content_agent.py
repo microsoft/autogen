@@ -4,7 +4,6 @@ import re
 import tempfile
 import pytest
 from autogen.agentchat import UserProxyAgent
-from autogen.agentchat.contrib.content_agent import ContentAgent
 from autogen.oai.openai_utils import filter_config, config_list_from_json
 from autogen.cache import Cache
 
@@ -23,6 +22,7 @@ else:
 
 if not skip_oai:
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
+    from autogen.agentchat.contrib.content_agent import ContentAgent
 
 
 @pytest.mark.skipif(
