@@ -1,3 +1,4 @@
+from ..agent import Agent
 from ..conversable_agent import ConversableAgent
 from ..assistant_agent import AssistantAgent
 from ...browser_utils import (
@@ -7,11 +8,12 @@ from ...browser_utils import (
     get_scheme,
     get_path,
     get_last_path,
+    github_path_rule,
     get_file_path_from_url,
     fix_missing_protocol,
     extract_pdf_text,
 )
-
+from typing import List, Union, Any, Tuple
 import os
 import re
 import json
@@ -20,6 +22,9 @@ import requests
 from collections import deque
 from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
+from io import BytesIO
+from PIL import Image
+import base64
 
 # Import the arxiv library if it is available
 IS_ARXIV_CAPABLE = False
@@ -33,38 +38,59 @@ except ModuleNotFoundError:
 
 
 class ContentAgent(ConversableAgent):
-    """
-    ContentAgent: Custom LLM agent for collecting online content.
+    def __init__(
+        self,
+        silent: bool = True,
+        storage_path: str = "./content",
+        max_depth: int = 1,
+        page_load_time: float = 6,
+        *args,
+        **kwargs,
+    ):
+        """
+        ContentAgent: Custom LLM agent for collecting online content.
 
-    The ContentAgent class is a custom Autogen agent that can be used to collect and store online content from different web pages. It extends the ConversableAgent class and provides additional functionality for managing a list of additional links, storing collected content in local directories, and customizing request headers.
-    ContentAgent uses deque to manage a list of additional links for further exploration, with a maximum depth limit set by max_depth parameter. The collected content is stored in the specified storage path (storage_path) using local directories.
-    ContentAgent can be customized with request_kwargs and llm_config parameters during instantiation. The default User-Agent header is used for requests, but it can be overridden by providing a new dictionary of headers under request_kwargs.
+        The ContentAgent class is a custom Autogen agent that can be used to collect and store online content from different
+        web pages. It extends the ConversableAgent class and provides additional functionality for managing a list of
+        additional links, storing collected content in local directories, and customizing request headers.  ContentAgent
+        uses deque to manage a list of additional links for further exploration, with a maximum depth limit set by max_depth
+        parameter. The collected content is stored in the specified storage path (storage_path) using local directories.
+        ContentAgent can be customized with request_kwargs and llm_config parameters during instantiation. The default
+        User-Agent header is used for requests, but it can be overridden by providing a new dictionary of headers under
+        request_kwargs.
 
-    Parameters:
-        request_kwargs (dict): A dictionary containing key-value pairs used to configure request parameters such as headers and other options.
-        storage_path (str): The path where the collected content will be stored. Defaults to './content'.
-        max_depth (int): Maximum depth limit for exploring additional links from a web page. Defaults to 1.
-        page_loading_time (float): Time in seconds to wait before loading each web page. Defaults to 5.
-        *args, **kwargs: Additional arguments and keyword arguments to be passed to the parent class ConversableAgent.
+        Parameters:
+            silent (bool): If True, the agent operates in silent mode with minimal output. Defaults to True.
+            storage_path (str): The path where the collected content will be stored. Defaults to './content'.
+            max_depth (int): Maximum depth limit for exploring additional links from a web page. This defines how deep
+                            the agent will go into linked pages from the starting point. Defaults to 1.
+            page_load_time (float): Time in seconds to wait for loading each web page. This ensures that dynamic content
+                                    has time to load before the page is processed. Defaults to 6 seconds.
+            *args, **kwargs: Additional arguments and keyword arguments to be passed to the parent class `ConversableAgent`.
+                            These can be used to configure underlying behaviors of the agent that are not explicitly
+                            covered by the constructor's parameters.
 
-    Software Dependencies:
-        - beautifulsoup4
-        - pdfminer
-        - selenium
-        - arxiv
-        - pillow
+        Note:
+            The `silent` parameter can be useful for controlling the verbosity of the agent's operations, particularly
+            in environments where logging or output needs to be minimized for performance or clarity.
 
-    """
+        Software Dependencies:
+            - requests
+            - beautifulsoup4
+            - pdfminer
+            - selenium
+            - arxiv
+            - pillow
+        """
 
-    def __init__(self, silent=True, storage_path="./content", max_depth=1, page_loading_time=5, *args, **kwargs):
-        self.browser_kwargs = kwargs.pop("browser_kwargs", {"browser": "firefox"})
+        self.browser_kwargs = kwargs.pop("browser_config", {"browser": "firefox"})
         super().__init__(*args, **kwargs)
 
         self.additional_links = deque()
         self.link_depth = 0
         self.max_depth = max_depth
         self.local_dir = storage_path
-        self.page_load_time = page_loading_time
+        self.page_load_time = page_load_time
         self.silent = silent
         self.request_kwargs = {
             "headers": {
@@ -73,21 +99,66 @@ class ContentAgent(ConversableAgent):
         }
         self.small_llm_config = kwargs["llm_config"]
         self.process_history = {}
+        self.browser = None
+        self.domain_path_rules = {
+            "github.com": github_path_rule,
+            # Add more domain rules as needed
+        }
 
         # Define the classifiers
         self.define_classifiers()
 
-    def classifier_to_collector_reply(self, recipient, messages, sender, config):
-        # Inner dialogue reply for boolean classification results
+    # def classifier_to_collector_reply(self, recipient, messages, sender, config):
+    #     # Inner dialogue reply for boolean classification results
+    #     last_message = messages[-1] if isinstance(messages, list) else messages
+    #     _, rep = recipient.generate_oai_reply([last_message], sender)
+    #     if "false" in rep.lower():
+    #         rep = "False"
+    #     elif "true" in rep.lower():
+    #         rep = "True"
+    #     else:
+    #         rep = "False"
+    #     return True, rep
+    def classifier_to_collector_reply(
+        self,
+        recipient: Agent,  # Assuming no specific type is enforced; otherwise, replace Any with the specific class type
+        messages: Union[List[str], str],
+        sender: Agent,  # Replace Any if the sender has a specific type
+        config: dict,
+    ) -> Tuple[bool, str]:
+        """
+        Processes the last message in a conversation to generate a boolean classification response.
+
+        This method takes the most recent message from a conversation, uses the recipient's method to generate a reply,
+        and classifies the reply as either "True" or "False" based on its content. It is designed for scenarios where
+        the reply is expected to represent a boolean value, simplifying downstream processing.
+
+        Parameters:
+            recipient (Agent): The agent or object responsible for generating replies. Must have a method `generate_oai_reply`
+                               that accepts a list of messages, a sender, and optionally a configuration, and returns a tuple
+                               where the second element is the reply string.
+            messages (Union[List[str], str]): A list of messages or a single message string from the conversation. The last message
+                                              in this list is used to generate the reply.
+            sender (Agent): The entity that sent the message. This could be an identifier, an object, or any representation
+                            that the recipient's reply generation method expects.
+            config (dict): Configuration parameters for the reply generation process, if required by the recipient's method.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing a boolean status (always True in this implementation) and the classification result
+                            as "True" or "False" based on the content of the generated reply.
+
+        Note:
+            The classification is case-insensitive and defaults to "False" if the reply does not explicitly contain
+            "true" or "false". This behavior ensures a conservative approach to classification.
+        """
         last_message = messages[-1] if isinstance(messages, list) else messages
         _, rep = recipient.generate_oai_reply([last_message], sender)
-        if "false" in rep.lower():
-            rep = "False"
-        elif "true" in rep.lower():
-            rep = "True"
-        else:
-            rep = "False"
-        return True, rep
+
+        # Streamlined classification logic
+        rep_lower = rep.lower()
+        classified_reply = "True" if "true" in rep_lower else "False"
+
+        return True, classified_reply
 
     def define_classifiers(self):
         # Define the system messages for the classifiers
@@ -170,7 +241,7 @@ class ContentAgent(ConversableAgent):
         sd["url"] = link
 
         # Establish the downloads folder
-        sd["local_path"] = os.path.join(self.local_dir, get_file_path_from_url(link))
+        sd["local_path"] = os.path.join(self.local_dir, get_file_path_from_url(link, self.domain_path_rules))
         os.makedirs(sd["local_path"], exist_ok=True)
 
         # We can instantiate the browser now that we know where the files and downloads will go
@@ -188,7 +259,13 @@ class ContentAgent(ConversableAgent):
         sd["browser_screenshot_path"] = os.path.join(sd["local_path"], "screenshot.png")
 
         # Save a screenshot of the browser window
-        self.browser.save_full_page_screenshot(sd["browser_screenshot_path"])
+        if self.browser_kwargs["browser"] == "firefox":
+            # save_full_page_screenshot
+            self.browser.save_full_page_screenshot(sd["browser_screenshot_path"])
+        else:
+            page_height = self.browser.execute_script("return window.pageYOffset + window.innerHeight")
+            self.browser.set_window_size(1920, page_height)
+            self.browser.save_screenshot(sd["browser_screenshot_path"])
 
         sd["title"] = self.browser.title
         sd["html"] = self.browser.page_source
@@ -255,7 +332,9 @@ class ContentAgent(ConversableAgent):
         return "success"
 
     def fetch_pdf_content(self, link):
-        local_pdf_path = os.path.join(self.local_dir, os.path.join(get_file_path_from_url(link), link.split("/")[-1]))
+        local_pdf_path = os.path.join(
+            self.local_dir, os.path.join(get_file_path_from_url(link, self.domain_path_rules), link.split("/")[-1])
+        )
         os.makedirs(local_pdf_path, exist_ok=True)
 
         # This could be replaced with `download_using_requests`
@@ -281,7 +360,7 @@ class ContentAgent(ConversableAgent):
         arxiv_id = link.path.split("/")[-1]
 
         # Define the local directory
-        local_base_path = os.path.join(self.local_dir, get_file_path_from_url(link))
+        local_base_path = os.path.join(self.local_dir, get_file_path_from_url(link, self.domain_path_rules))
         os.makedirs(local_base_path, exist_ok=True)
 
         local_pdf_path = os.path.join(local_base_path, f"{arxiv_id}.pdf")
@@ -371,10 +450,6 @@ class ContentAgent(ConversableAgent):
             img_src = img.attrs["src"].lower()
 
             if "png;base64" in img_src:
-                from io import BytesIO
-                from PIL import Image
-                import base64
-
                 # Step 1: Strip the prefix to get the Base64 data
                 encoded_data = img.attrs["src"].split(",")[1]
 

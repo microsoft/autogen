@@ -245,6 +245,15 @@ jobs:
           pip install -e .[websurfer]
           python -c "import autogen"
           pip install coverage pytest
+      - name: Setup edge
+        uses: browser-actions/setup-edge@latest
+        if: ${{ matrix.browsers == 'edge' }}
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        if: ${{ matrix.browsers == 'firefox' }}
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        if: ${{ matrix.browsers == 'chrome' }}
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

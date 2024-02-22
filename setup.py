@@ -53,7 +53,7 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate", "selenium"],
+        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate", "selenium", "arxiv", "requests"],
         "redis": ["redis"],
         "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
     },

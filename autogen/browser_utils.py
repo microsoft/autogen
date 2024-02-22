@@ -7,9 +7,16 @@ import markdownify
 import io
 import uuid
 import mimetypes
-from urllib.parse import urljoin, urlparse
+import hashlib  # Used for generating a content ID from the URL (currently unused)
+import random
+import string
+import tempfile
+from math import ceil  # to determine the total number of pages
+from typing import Any, Dict, List, Optional, Union, Tuple, Callable
+from urllib.parse import ParseResult, urljoin, urlparse
 from bs4 import BeautifulSoup
-from typing import Any, Dict, List, Optional, Union, Tuple
+from PIL import Image
+from IPython.core.display_functions import display
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
@@ -31,10 +38,16 @@ except ModuleNotFoundError:
 IS_SELENIUM_CAPABLE = False
 try:
     from selenium import webdriver
+    from selenium.common.exceptions import TimeoutException
+
+    # from selenium.webdriver.support.ui import WebDriverWait # We might implement this next
     from selenium.webdriver.common.by import By
+    from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
     from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.edge.service import Service as EdgeService
     from selenium.webdriver.edge.options import Options as EdgeOptions
     from selenium.webdriver.firefox.options import Options as FirefoxOptions
+    from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
     from selenium.webdriver.chrome.options import Options as ChromeOptions
 
     IS_SELENIUM_CAPABLE = True
@@ -302,63 +315,149 @@ class SimpleTextBrowser:
             self._set_page_content(str(e))
 
 
-def get_scheme(url):
+def get_scheme(url: Union[str, ParseResult]) -> str:
+    """
+    Extracts the scheme component from a given URL.
+
+    This function supports both string URLs and ParseResult objects. For string URLs, it parses
+    the URL and extracts the scheme part. For ParseResult objects, it directly accesses the scheme attribute.
+
+    Args:
+        url (Union[str, ParseResult]): The URL from which to extract the scheme. Can be a string or a ParseResult object.
+
+    Returns:
+        str: The scheme of the URL (e.g., 'http', 'https').
+    """
     return urlparse(url).scheme if isinstance(url, str) else url.scheme
 
 
-def get_domain(url):
+def get_domain(url: Union[str, ParseResult]) -> str:
+    """
+    Retrieves the domain (network location) component from a URL.
+
+    Similar to `get_scheme`, this function can handle both string representations of URLs and
+    ParseResult objects. It extracts the network location part from the URL.
+
+    Args:
+        url (Union[str, ParseResult]): The URL from which to extract the domain. Can be a string or a ParseResult object.
+
+    Returns:
+        str: The domain of the URL (e.g., 'www.example.com').
+    """
     return urlparse(url).netloc if isinstance(url, str) else url.netloc
 
 
-def get_path(url):
+def get_path(url: Union[str, ParseResult]) -> str:
+    """
+    Extracts the path component from a URL.
+
+    This function processes both strings and ParseResult objects to return the path segment of the URL.
+    The path is the part of the URL that follows the domain but precedes any query parameters or fragment identifiers.
+
+    Args:
+        url (Union[str, ParseResult]): The URL from which to extract the path. Can be a string or a ParseResult object.
+
+    Returns:
+        str: The path of the URL (e.g., '/path/to/resource').
+    """
     return urlparse(url).path if isinstance(url, str) else url.path
 
 
-def get_last_path(url):
-    return os.path.basename(urlparse(url).path) if isinstance(url, str) else os.path.basename(url.path)
-
-
-def get_file_path_from_url(url):  # URL to Directory function
+def get_last_path(url: Union[str, ParseResult]) -> str:
     """
-    get_file_path_from_url function: This function takes a URL as input and returns the corresponding local file path as a string.
+    Retrieves the last component of the path from a URL.
 
-    Parameters:
-    url (str | ParseResult): The URL of the file for which the local path is to be obtained.
+    This function is useful for extracting the final part of the path, often representing a specific resource or page.
+    It handles both string URLs and ParseResult objects. For string URLs, it parses the URL to extract the path and then
+    retrieves the last component.
+
+    Args:
+        url (Union[str, ParseResult]): The URL from which to extract the last path component. Can be a string or a ParseResult object.
 
     Returns:
-    str: The local file path on the system as a string.
+        str: The last component of the path (e.g., 'resource.html').
     """
+    return (
+        os.path.basename(urlparse(url).path.rstrip("/"))
+        if isinstance(url, str)
+        else os.path.basename(url.path.rstrip("/"))
+    )
 
-    # Remove any trailing forward slash
-    url = url[:-1] if url[-1] == "/" else url
 
-    # Parse the URL
+def github_path_rule(parsed_url: ParseResult) -> str:
+    """Specific rule for GitHub URLs."""
+    return os.path.join(parsed_url.netloc.replace("www.", ""), parsed_url.path.lstrip("/"))
+
+
+def default_path_rule(parsed_url: ParseResult) -> str:
+    """Fallback rule for general URLs."""
+    return os.path.join(parsed_url.netloc.replace("www.", ""), get_last_path(parsed_url.path))
+
+
+def get_file_path_from_url(
+    url: Union[str, ParseResult],
+    domain_rules: Optional[Dict[str, Callable[[ParseResult], str]]] = None,
+    default_path_rule: Optional[Callable[[ParseResult], str]] = None,
+) -> str:
+    """
+    Converts a URL into a corresponding local file path, allowing for domain-specific customization.
+
+    This function takes a URL, either as a string or a ParseResult object, and generates a path that represents
+    the URL's location in a hypothetical local file system structure. It supports domain-specific rules for
+    customizable path generation, with a default rule applied to URLs from domains not explicitly configured.
+
+    Parameters:
+        url (Union[str, ParseResult]): The URL to be converted into a local file path.
+        domain_rules (Optional[Dict[str, Callable[[ParseResult], str]]]): A dictionary mapping domains to functions
+            that define how to construct file paths for URLs from those domains.
+        default_path_rule (Optional[Callable[[ParseResult], str]]): A function to construct file paths for URLs
+            from domains not covered by `domain_rules`.
+
+    Returns:
+        str: The generated local file path, which omits the protocol and optionally adjusts for specific domain structures.
+    """
+    # Parse the URL if not already
     parsed_url = urlparse(url) if isinstance(url, str) else url
     canonical_url = parsed_url.netloc.replace("www.", "")
 
-    if "github.com" in url and len(parsed_url.path.split("/")) >= 2:
-        relative_path = os.path.join(canonical_url, parsed_url.path)
-    elif len(parsed_url.path.split("/")) >= 1:
-        relative_path = os.path.join(canonical_url, get_last_path(parsed_url))
+    # Determine the appropriate path rule to use
+    if domain_rules and canonical_url in domain_rules:
+        path_rule = domain_rules[canonical_url]
+    else:
+        path_rule = (
+            default_path_rule
+            if default_path_rule
+            else lambda u: os.path.join(u.netloc.replace("www.", ""), get_last_path(u.path.rstrip("/")))
+        )
 
-    # Remove any preceding forward slash
-    relative_path = relative_path[1:] if relative_path[0] == "/" else relative_path
+    # Generate the relative path using the selected rule
+    relative_path = path_rule(parsed_url)
+
+    # Remove any preceding forward slash for consistency
+    relative_path = relative_path.lstrip("/")
 
     return relative_path
 
 
-def fix_missing_protocol(img_url, source_url):  # Correct a url if it's missing the protocol
+def fix_missing_protocol(img_url: str, source_url: str) -> str:
     """
-    Fixes a URL by adding the missing protocol (http or https) based on the provided domain.
+    Ensures that an image URL has a proper protocol specified, using the protocol of a source URL as a reference.
+
+    This function checks if the given image URL lacks a protocol (http or https) and, if so, fixes the URL by
+    prepending it with the protocol from the source URL. This is useful for fixing relative URLs or those missing
+    a scheme.
 
     Parameters:
-    - img_url (str): The input image URL to be fixed.
-    - domain (str): The domain of the image URL which is used to determine the protocol.
+        img_url (str): The image URL to be corrected. It can be a relative URL or one missing a protocol.
+        source_url (str): The source URL from which to extract the protocol and, if necessary, the domain.
 
     Returns:
-    - str: A corrected URL string with the missing protocol added.
-    """
+        str: The corrected image URL with a protocol.
 
+    Note:
+        The function handles URLs starting with "//" by directly adding the protocol. If the domain is missing
+        from `img_url`, the function constructs the full URL using the protocol and domain from `source_url`.
+    """
     protocol = get_scheme(source_url)
     domain = get_domain(source_url)
 
@@ -371,7 +470,7 @@ def fix_missing_protocol(img_url, source_url):  # Correct a url if it's missing 
     return img_url
 
 
-def extract_pdf_text(local_pdf_path):  # Returns the extracted text content from a local PDF file
+def extract_pdf_text(local_pdf_path: str):  # Returns the extracted text content from a local PDF file
     """
     Extracts the text content from a local PDF file and returns it as a string.
 
@@ -392,15 +491,19 @@ def extract_pdf_text(local_pdf_path):  # Returns the extracted text content from
 
 
 def download_using_requests(
-    driver, download_url, save_path
-):  # `requests` downloads assisted by selenium webdriver cookies
+    driver: Union[
+        webdriver.edge.webdriver.WebDriver, webdriver.firefox.webdriver.WebDriver, webdriver.chrome.webdriver.WebDriver
+    ],
+    download_url: str,
+    save_path: str,
+) -> None:
     """
     This function takes a Selenium WebDriver instance, a URL to download a file, and a path where you want to save the downloaded file.
 
     It first retrieves cookies from the given driver, converts them into a format suitable for use with the `requests` library, and then uses these cookies to successfully download the specified file using the `requests.get()` function. The `User-Agent` header is also set to match that used by the WebDriver instance.
 
     Args:
-        driver (webdriver.chrome.webdriver.WebDriver): A Selenium WebDriver instance, typically obtained from selenium.webdriver.Chrome() or another appropriate method for your browser of choice.
+        driver (webdriver.edge.webdriver.WebDriver): A Selenium WebDriver instance, typically obtained from selenium.webdriver.Edge() or another appropriate method for your browser of choice.
         download_url (str): The URL to the file you want to download.
         save_path (str): The path where you would like the downloaded file to be saved.
 
@@ -424,7 +527,7 @@ def download_using_requests(
         headers = {
             "User-Agent": user_agent
             if user_agent
-            else "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+            else "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15"
         }
 
         response = requests.get(url, cookies=session_cookies, headers=headers, stream=True)
@@ -446,6 +549,45 @@ def download_using_requests(
     download_file_with_cookies(download_url, session_cookies, save_path, user_agent=user_agent)
 
 
+def display_binary_image(binary_data):
+    """
+    display_binary_image(binary_data):
+    This function displays the binary image data in Jupyter notebook cells or shows it in non-notebook environments.
+
+    Args:
+    - binary_data (bytes): A bytes object containing the PNG image data.
+
+    Returns:
+    - Nothing, but in non-notebook environment, it displays the image.
+    """
+    img = Image.open(io.BytesIO(binary_data))
+    try:
+        __IPYTHON__
+        display(img)
+    except NameError:
+        img.show()
+
+
+def generate_png_filename(url: str):  # Function to help provide a PNG filename (with relative path)
+    """
+    Generates a PNG filename based on the provided URL, along with a small random hash.
+
+    Args:
+        url (str): The URL from which to create a filename.
+
+    Returns:
+        str: A unique PNG filename based on the URL and a random hash.
+    """
+
+    # Split the URL into its components
+    parsed_url = urlparse(url)
+
+    # Generate a 4-character random hash from lowercase letters and digits
+    random_hash = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+
+    return f"{'.'.join(parsed_url.netloc.split('.')[-2:])}-{random_hash}.png"
+
+
 def SeleniumBrowser(**kwargs):  # Function that loads the web driver
     """
     This function launches a headless Selenium browser based on the specified 'browser'. The available options are 'edge', 'firefox', and 'chrome'.
@@ -463,25 +605,82 @@ def SeleniumBrowser(**kwargs):  # Function that loads the web driver
 
     # Load the arguments from kwargs
     browser = kwargs.get("browser", "edge")
-    download_dir = kwargs.get("download_dir", None)
+    download_dir = kwargs.get("download_dir", tempfile.gettempdir())
+    if not download_dir:
+        download_dir = tempfile.gettempdir()
+
+    browser_res = kwargs.get("resolution", (1920, 5200))
 
     def get_headless_options(download_dir, options):
         options.headless = True
         options.add_argument("--headless")
-        options.add_argument("--window-size=1920,5200")
+        options.add_argument(f"--window-size={browser_res[0]},{browser_res[1]}")
         options.add_argument("--downloadsEnabled")
         if download_dir:
             options.set_preference("download.default_directory", download_dir)
         return options
 
     if browser.lower() == "edge":
-        driver = webdriver.Edge(options=get_headless_options(download_dir, EdgeOptions()))
-    elif browser.lower() == "firefox":
-        driver = webdriver.Firefox(options=get_headless_options(download_dir, FirefoxOptions()))
-    elif browser.lower() == "chrome":
-        driver = webdriver.Chrome(options=get_headless_options(download_dir, ChromeOptions()))
+        options = EdgeOptions()
+        options.use_chromium = True  # Ensure we're using the Chromium-based version of Edge
+        options.headless = True
+        options.add_argument("--headless")
+        options.add_argument(f"--window-size={browser_res[0]},{browser_res[1]}")
+        options.add_argument("--downloadsEnabled")
 
+        prefs = {
+            "download.default_directory": download_dir,
+            "download.prompt_for_download": False,  # Disable download prompt
+            "download.directory_upgrade": True,  # Enable directory upgrade
+            "safebrowsing.enabled": True,  # Enable safe browsing
+        }
+        options.add_experimental_option("prefs", prefs)
+        # Instantiate the EdgeService object
+        edge_service = EdgeService()
+        # Instantiate the Edge WebDriver with the configured options
+        driver = webdriver.Edge(options=options, service=edge_service)
+
+    elif browser.lower() == "firefox":
+        # Instantiate the Firefox Profile to specify options
+        profile = FirefoxProfile()
+        profile.set_preference("browser.download.folderList", 2)  # Custom location
+        profile.set_preference("browser.download.dir", download_dir)
+        profile.set_preference("browser.download.useDownloadDir", True)
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf")  # MIME type
+        # profile.set_preference("pdfjs.disabled", True) # Disable PDF viewer
+        profile.set_preference("javascript.enabled", False)
+        # profile.set_preference("browser.startup.homepage", "https://microsoft.com")
+        profile.update_preferences()
+        options = FirefoxOptions()
+        options.profile = profile
+        options.set_capability("se:downloadsEnabled", True)
+
+        # Instantiate the Firefox WebDriver with the configured options
+        driver = webdriver.Firefox(
+            options=get_headless_options(download_dir, options)
+        )  # , service_log_path=f'{tempfile.tempdir}/geckodriver.log')
+        driver.capabilities["moz:processID"]
+
+    elif browser.lower() == "chrome":
+        # Instantiate the Chrome Options
+        options = ChromeOptions()
+        prefs = {
+            "download.default_directory": download_dir,
+            "download.prompt_for_download": False,  # Disable download prompt
+            "download.directory_upgrade": True,  # Enable directory upgrade
+            "safebrowsing.enabled": True,  # Enable safe browsing
+        }
+        options.add_experimental_option("prefs", prefs)
+        # Instantiate the Chrome WebDriver with the configured options
+        driver = webdriver.Chrome(options=get_headless_options(download_dir, options))
+
+    else:
+        raise (f"Unknown browser type {browser}")
+
+    # Ensure that downloads are permitted
     driver.capabilities["se:downloadsEnablead"] = True
+    # Ensure that the window is at the expected size
+    driver.set_window_size(browser_res[0], browser_res[1])
 
     return driver
 
@@ -527,10 +726,12 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
-        web_driver: Optional[str] = "edge",
+        browser: Optional[str] = "edge",
+        page_load_time: Optional[int] = 6,
+        resolution: Optional[Tuple] = (1920, 1080),
+        render_text: Optional[bool] = False,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
-        self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.downloads_folder = downloads_folder
         self.history: List[str] = list()
         self.page_title: Optional[str] = None
@@ -538,11 +739,15 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         self.viewport_pages: List[Tuple[int, int]] = list()
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
-
+        self.page_load_time = page_load_time
         self._page_content = ""
+        self.window_width = resolution[0]
+        self.window_height = resolution[1]
+        self.viewport_size = resolution[1]  # We override this from SimpleTextBrowser to match the browser window height
+        self.render_text = render_text  # Just in case for functionality purposes
 
         # Initialize the WebDriver
-        self.driver = SeleniumBrowser(browser=web_driver, download_dir=downloads_folder)
+        self.driver = SeleniumBrowser(browser=browser, download_dir=downloads_folder, resolution=resolution)
         if start_page:
             self.set_address(self.start_page)
 
@@ -554,7 +759,11 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
     @property
     def viewport(self) -> str:
         """Return the content of the current viewport."""
-        return self.driver.page_source  # Selenium directly interacts with the page, no viewport concept
+        # display_binary_image(self.driver.get_screenshot_as_png())
+        # self._page_content # or self.driver.page_source
+        # Image.open(io.BytesIO(self.driver.get_screenshot_as_png()))
+        # if self._page_content and len(self._page_content) > 0
+        return self._page_content
 
     @property
     def page_content(self) -> str:
@@ -565,9 +774,24 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         """Navigate to a given URI and update history."""
         if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
             uri_or_path = urljoin(self.address, uri_or_path)
-        self.driver.get(uri_or_path)
+
         self.history.append(uri_or_path)
-        self._update_page_content()
+
+        # Handle special URIs
+        if uri_or_path == "about:blank":
+            self._set_page_content("")
+        elif uri_or_path.startswith("bing:"):
+            self._bing_search(uri_or_path[len("bing:") :].strip())
+        else:
+            if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
+                uri_or_path = urljoin(self.address, uri_or_path)
+                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
+            # Navigate to the specified URI or path
+            self._fetch_page(uri_or_path)  # Implemented, but not needed
+            # self.driver.get(uri_or_path)
+            # self.driver.implicitly_wait(self.page_load_time)
+        self.viewport_current_page = 0
+        self._split_pages()
 
     def visit_page(self, path_or_uri: str) -> str:
         """Navigate to a page and return its content."""
@@ -593,7 +817,33 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         self.driver.quit()
 
     def _split_pages(self) -> None:
-        # This is not implemented with the selenium.webdirver wrapper
+        # Page scroll position
+        int(self.driver.execute_script("return document.documentElement.scrollHeight"))
+
+        # Grab the current page height based on the scrollbar
+        self.page_height = self.driver.execute_script("return window.pageYOffset + window.innerHeight")
+
+        # Calculate the total number of pages currently rendered
+        self.page_count = ceil(self.window_height / self.page_height)
+
+        # Split only regular pages
+        if not self.address.startswith("http:") and not self.address.startswith("https:"):
+            self.viewport_pages = [(0, len(self._page_content))]
+            return
+
+        # Handle empty pages
+        if len(self._page_content) == 0:
+            self.viewport_pages = [(0, 0)]
+            return
+
+        # Break the viewport into pages
+        self.viewport_pages = []
+        start_idx = 0
+        while start_idx < self.page_height:
+            end_idx = min(start_idx + self.viewport_size, self.page_height)  # type: ignore[operator]
+            self.viewport_pages.append((start_idx, end_idx))
+            start_idx = end_idx
+
         return
 
     def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
@@ -625,7 +875,7 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
 
     def _bing_search(self, query: str) -> None:
         results = self._bing_api_call(query)
-
+        self.bing_results = results
         web_snippets: List[str] = list()
         idx = 0
         for page in results["webPages"]["value"]:
@@ -652,40 +902,152 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         )
         if len(news_snippets) > 0:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
+
         self._set_page_content(content)
+
+    def _set_page_content(self, content):
+        """Sets the text content of the current page."""
+        self._page_content = content
+
+        # Your custom HTML content
+        custom_html_content = "<html><body>" + content.replace("\n", "<br>") + "</body></html>"
+
+        # Create a temporary HTML file
+        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".html") as tmp_file:
+            tmp_file.write(custom_html_content)
+            html_file_path = tmp_file.name
+
+        # Navigate to the file
+        self.driver.get(f"file://{html_file_path}")
 
     def download(self, uri_or_path: str) -> None:  # TODO: update this based on the new method
         """Download from a given URI"""
         self.driver.get(uri_or_path)
 
-    def _fetch_page(self, url: str) -> None:
-        from selenium.common.exceptions import TimeoutException
+    def _get_headers(self):
+        def parse_list_to_dict(lst):
+            result_dict = {}
+            for item in lst:
+                key, value = item.split(": ", 1)
+                # Attempt to load JSON content if present
+                try:
+                    value_json = json.loads(value)
+                    result_dict[key] = value_json
+                except json.JSONDecodeError:
+                    # Handle non-JSON value
+                    result_dict[key] = value
+            return result_dict
 
+        headers = self.driver.execute_script(
+            "var req = new XMLHttpRequest();req.open('GET', document.location, false);req.send(null);return req.getAllResponseHeaders()"
+        )
+        headers = headers.splitlines()
+        headers = parse_list_to_dict(headers)
+        return headers
+
+    def _fetch_page(self, url: str) -> None:
         try:
             self.driver.get(url)
+            self.driver.implicitly_wait(self.page_load_time)
+            self.history.append(url)
+            headers = self._get_headers()
+
             self.page_title = self.driver.title
 
-            # Selenium WebDriver directly accesses the rendered page,
-            # so we don't need to manually fetch or process the HTML.
-            # However, you can still manipulate or extract content from the page using Selenium methods.
+            # We can't get response codes without using a proxy or using requests in a double call
+            content_type = headers.get("content-type", "")
+            for ct in ["text/html", "text/plain", "application/pdf"]:
+                if ct in content_type.lower():
+                    content_type = ct
+                    break
 
-            # Example of extracting and cleaning the page content
-            if "wikipedia.org" in url:
-                body_elm = self.driver.find_element(By.cssSelector, "div#mw-content-text")
-                main_title = self.driver.title
-                webpage_text = (
-                    "# "
-                    + main_title
-                    + "\n\n"
-                    + markdownify.MarkdownConverter().convert_soup(body_elm.get_attribute("innerHTML"))
-                )
+            if content_type == "text/html":
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, "html.parser")
+
+                # Remove javascript and style blocks
+                for script in soup(["script", "style"]):
+                    script.extract()
+
+                # Convert to markdown -- Wikipedia gets special attention to get a clean version of the page
+                if url.startswith("https://en.wikipedia.org/"):
+                    body_elm = soup.find("div", {"id": "mw-content-text"})
+                    title_elm = soup.find("span", {"class": "mw-page-title-main"})
+
+                    if body_elm:
+                        # What's the title
+                        main_title = soup.title.string
+                        if title_elm and len(title_elm) > 0:
+                            main_title = title_elm.string
+                        webpage_text = (
+                            "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+                        )
+                    else:
+                        webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+                else:
+                    webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+
+                # Convert newlines
+                webpage_text = re.sub(r"\r\n", "\n", webpage_text)
+
+                # Remove excessive blank lines
+                if self.render_text:
+                    self.page_title = soup.title.string
+                    self._set_page_content(webpage_text.strip())
+                else:
+                    self._page_content = webpage_text
+
+            elif content_type == "text/plain":
+                html = self.driver.page_source
+                soup = BeautifulSoup(html, "html.parser")
+                plain_text = soup.prettify()
+                if self.render_text:
+                    self.page_title = None
+                    self._set_page_content(plain_text)
+                else:
+                    self._page_content = plain_text
+
+            elif IS_PDF_CAPABLE and content_type == "application/pdf":
+                download_using_requests(self.driver, self.downloads_folder, os.path.basename(url))
+                plain_text = extract_pdf_text(os.path.join(self.downloads_folder, os.path.basename(url)))
+                if self.render_text:
+                    self.page_title = None
+                    self._set_page_content(plain_text)
+                else:
+                    self._page_content = plain_text
+
+            elif self.downloads_folder is not None:
+                # Try producing a safe filename
+                fname = None
+                try:
+                    fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
+                except NameError:
+                    pass
+
+                # No suitable name, so make one
+                if fname is None:
+                    extension = mimetypes.guess_extension(content_type)
+                    if extension is None:
+                        extension = ".download"
+                    fname = str(uuid.uuid4()) + extension
+
+                # Open a file for writing
+                download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
+                download_using_requests(self.driver, self.downloads_folder, fname)
+
+                # Return a page describing what just happened
+                if self.render_text:
+                    self.page_title = "Download complete."
+                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
+                else:
+                    self._page_content = f"Downloaded '{url}' to '{download_path}'."
+
+            elif self.render_text:
+                self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
+                self._set_page_content(self.page_title)
             else:
-                webpage_text = self.driver.find_element(By.TAG_NAME, "body").get_attribute("innerText")
+                self._page_content = None
 
-            # Convert newlines, remove excessive blank lines
-            webpage_text = re.sub(r"\r\n", "\n", webpage_text)
-            self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
-
-        except TimeoutException:
+        except requests.exceptions.RequestException as e:
             self.page_title = "Error"
-            self._set_page_content("Timeout while retrieving " + url)
+            self._set_page_content(str(e))

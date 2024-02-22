@@ -200,6 +200,15 @@ jobs:
       - name: Install packages and dependencies for WebSurfer
         run: |
           pip install -e .[websurfer]
+      - name: Setup edge
+        uses: browser-actions/setup-edge@latest
+        if: ${{ matrix.browsers == 'edge' }}
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        if: ${{ matrix.browsers == 'firefox' }}
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        if: ${{ matrix.browsers == 'chrome' }}
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
