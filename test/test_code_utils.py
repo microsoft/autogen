@@ -558,16 +558,16 @@ class TestContentStr(unittest.TestCase):
 
 
 class TestGetPowerShellCommand(unittest.TestCase):
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     def test_get_powershell_command_powershell(self, mock_subprocess_run):
         # Set up the mock to return a successful result for 'powershell'
         mock_subprocess_run.return_value.returncode = 0
         mock_subprocess_run.return_value.stdout = StringIO("5")
         
         self.assertEqual(get_powershell_command(), "powershell")
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     def test_get_powershell_command_pwsh(self, mock_subprocess_run):
         # Set up the mock to return a successful result for 'pwsh'
         mock_subprocess_run.side_effect = [FileNotFoundError, mock_subprocess_run.return_value]
@@ -579,8 +579,8 @@ class TestGetPowerShellCommand(unittest.TestCase):
         # mock_subprocess_run.side_effect = [FileNotFoundError, MagicMock(return_value=MagicMock(returncode=0, stdout=StringIO("7")))]
         
         # self.assertEqual(get_powershell_command(), "None")
-    
-    @patch('subprocess.run')
+
+    @patch("subprocess.run")
     @patch("logging.warning")
 
     def test_get_powershell_command_windows_no_shell(self, mock_logging_warning, mock_subprocess_run):
@@ -589,7 +589,9 @@ class TestGetPowerShellCommand(unittest.TestCase):
         
         with patch("power_shell_command_detection.WIN32", True):
             self.assertIsNone(get_powershell_command())
-            mock_logging_warning.assert_called_once_with("Neither powershell nor pwsh is installed but it is a Windows OS")
+            mock_logging_warning.assert_called_once_with(
+                "Neither powershell nor pwsh is installed but it is a Windows OS"
+            )
 
     
     @patch("subprocess.run")
