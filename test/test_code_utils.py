@@ -584,7 +584,7 @@ class TestGetPowerShellCommand(unittest.TestCase):
         # Set up the mock to simulate 'powershell' and 'pwsh' not found
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
 
-        with patch("power_shell_command_detection.WIN32", True):
+        with patch("autogen.code_utils.WIN32", True):
             self.assertIsNone(get_powershell_command())
             mock_logging_warning.assert_called_once_with(
                 "Neither powershell nor pwsh is installed but it is a Windows OS"
@@ -595,7 +595,7 @@ class TestGetPowerShellCommand(unittest.TestCase):
         # Set up the mock to simulate 'powershell' and 'pwsh' not found
         mock_subprocess_run.side_effect = FileNotFoundError
         # Mock WIN32 to False
-        with patch("power_shell_command_detection.WIN32", False):
+        with patch("autogen.code_utils.WIN32", False):
             self.assertIsNone(get_powershell_command())
 
 
