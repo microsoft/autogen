@@ -410,7 +410,6 @@ def execute_code(
             fout.write(code)
 
     if not use_docker or running_inside_docker:
-
         if lang.startswith("python"):
             cmd = [sys.executable]
         else:
@@ -476,8 +475,9 @@ def execute_code(
     # get a randomized str based on current time to wrap the exit code
     exit_code_str = f"exitcode{time.time()}"
     abs_path = pathlib.Path(work_dir).absolute()
-    cmd = ["sh", "-c"] \
-        + [f'{_cmd(lang)[0]} "{filename}"; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}']
+    cmd = ["sh", "-c"] + [
+        f'{_cmd(lang)[0]} "{filename}"; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}'
+    ]
 
     # create a docker container
     container = client.containers.run(
