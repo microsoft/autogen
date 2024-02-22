@@ -36,42 +36,22 @@ public class ProductManager : SemanticPersona
 
         await stream.SubscribeAsync(HandleEvent);
     }
-
-
-    // -> PM
-    //     -> ReadmeRequested
-    //         -> ReadmeGenerated
-    //     -> ChainClosed
-    //         -> ReadmeFinished
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
-            case EventType.NewAsk:
-                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
-                break;
-            case EventType.NewAskReadme:
+            case EventType.ReadmeRequested:
                 var readme = await CreateReadme(item.Message);
                 await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
+                // postEvent ReadmeGenerated
                 break;
             case EventType.ChainClosed:
                 await CloseReadme();
+                // postEvent ReadmeFinished
                 break;
             default:
                 break;
         }
-    }
-
-    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
-    {
-        //TODO: Create branch and PR
-        var function = $"{nameof(PM)}.{nameof(PM.Readme)}";
-        var pmIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
-
-        _state.State.ParentIssueNumber = parentNumber;
-        _state.State.CommentId = pmIssue.CommentId;
-        await _state.WriteStateAsync();
-
     }
     public async Task<string> CreateReadme(string ask)
     {

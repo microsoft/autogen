@@ -24,19 +24,6 @@ public class Hubber : Grain, IGrainWithStringKey
 
         await stream.SubscribeAsync(HandleEvent);
     }
-
-    // -> Hubber
-    // -> NewAsk
-    //     -> create PM issue
-    //     -> create DevLead issue
-    // -> ReadmeGenerated
-    //     -> post comment
-    // -> DevPlanGenerated
-    //     -> post comment
-    // -> DevPlanFinished
-    //     -> for each step, create Dev issue
-    // -> CodeGenerated
-    //     -> post comment
     public async Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
@@ -48,19 +35,26 @@ public class Hubber : Grain, IGrainWithStringKey
                 var parentNumber = long.Parse(item.Data["parentNumber"]);
                 var pmIssue = await CreateIssue(org, repo, input, "", parentNumber);
                 var devLeadIssue = await CreateIssue(org, repo, input, "", parentNumber);
-
+                // TODO: store the mapping of parent/child?
                 break;
-            case EventType.NewAskReadme:
-                
+            case EventType.ReadmeGenerated:
+                 // _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
                 break;
-            case EventType.ChainClosed:
-                
+            case EventType.DevPlanGenerated:
+                // _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
+                break;
+            case EventType.CodeGenerated:
+                // _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
+                break;
+            case EventType.DevPlanChainClosed:
+                // for each step, create Dev issue
+                //var devIssues = await CreateIssue(org, repo, input, "", parentNumber);
                 break;
             default:
                 break;
         }
     }
-    
+
     public async Task<NewIssueResponse> CreateIssue(string org, string repo, string input, string function, long parentNumber)
     {
         return await _ghService.CreateIssue(org, repo,input,function,parentNumber);

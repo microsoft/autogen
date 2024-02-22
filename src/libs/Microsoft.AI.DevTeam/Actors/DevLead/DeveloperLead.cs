@@ -35,16 +35,6 @@ public class DeveloperLead : SemanticPersona
 
         await stream.SubscribeAsync(HandleEvent);
     }
-
-    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
-    {
-        var function = $"{nameof(DevLead)}.{nameof(DevLead.Plan)}";
-        var devLeadIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
-        
-         _state.State.ParentIssueNumber = parentNumber;
-         _state.State.CommentId = devLeadIssue.CommentId;
-        await _state.WriteStateAsync();
-    }
     public async Task<string> CreatePlan(string ask)
     {
         try
@@ -117,24 +107,18 @@ public class DeveloperLead : SemanticPersona
         var response = JsonSerializer.Deserialize<DevLeadPlanResponse>(plan);
         return Task.FromResult(response);
     }
-    // -> DevLead
-    // -> DevPlanRequested
-    //    -> DevPlanGenerated
-    // -> ChainClosed
-    //     -> DevPlanFinished
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
-            case EventType.NewAsk:
-                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["issueNumber"]) , item.Message);
-                break;
-            case EventType.NewAskPlan:
+            case EventType.DevPlanRequested:
                 var plan = await CreatePlan(item.Message);
                 await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), plan);
+                // postEvent EventType.DevPlanGenerated
                 break;
             case EventType.ChainClosed:
                 await ClosePlan(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), long.Parse(item.Data["parentNumber"]));
+                // postEvent EventType.DevPlanFinished
                 break;
             default:
                 break;

@@ -27,16 +27,6 @@ public class Dev : SemanticPersona
         _logger = logger;
         _ghService = ghService;
     }
-
-    public async Task CreateIssue(string org, string repo, long parentNumber, string input)
-    {
-        var function = $"{nameof(Developer)}.{nameof(Developer.Implement)}";
-        var devIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
-       
-         _state.State.ParentIssueNumber = parentNumber;
-         _state.State.CommentId = devIssue.CommentId;
-        await _state.WriteStateAsync();
-    }
     public async Task<string> GenerateCode(string ask)
     {
         try
@@ -71,24 +61,19 @@ public class Dev : SemanticPersona
             return default;
         }
     }
-    // -> Dev
-    // -> CodeGenerationRequested
-    //     -> CodeGenerated
-    // -> ChainClosed
-    //     -> CodeFinished
+
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
-            case EventType.NewAsk:
-                await CreateIssue(item.Data["org"],  item.Data["repo"], long.Parse(item.Data["parentNumber"]) , item.Message);
-                break;
-            case EventType.NewAskImplement:
+            case EventType.CodeGenerationRequested:
                 var code = await GenerateCode(item.Message);
                 await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
+                // postEvent EventType.CodeGenerated
                 break;
             case EventType.ChainClosed:
                 await CloseImplementation();
+                // postEvent EventType.CodeFinished
                 break;
             default:
                 break;

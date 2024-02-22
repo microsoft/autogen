@@ -1,7 +1,6 @@
 ﻿using Orleans.Concurrency;
 using Orleans.Runtime;
 using Orleans.Streams;
-using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -25,26 +24,21 @@ public class AzureGenie : Grain, IGrainWithStringKey
         await stream.SubscribeAsync(HandleEvent);
     }
 
-    // -> AzureOps
-    // -> ReadmeFinished
-    //     -> store
-    // -> CodeFinished
-    //     -> store
-    //     -> run in sandbox
     public async Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
-            case EventType.NewAsk:
+            case EventType.ReadmeChainClosed:
+                //_azureService.Store();
                 break;
-            case EventType.NewAskReadme:
-                
-                break;
-            case EventType.ChainClosed:
-                
+            case EventType.CodeChainClosed:
+                // _azureService.Store();
+                // _azureService.RunInSandbox();
                 break;
             default:
                 break;
         }
     }
 }
+
+
