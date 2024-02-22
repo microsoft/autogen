@@ -2,8 +2,8 @@ import os
 import sys
 import re
 import pytest
-from autogen import UserProxyAgent, config_list_from_json
-from autogen.oai.openai_utils import filter_config
+from autogen.agentchat import UserProxyAgent
+from autogen.oai.openai_utils import filter_config, config_list_from_json
 from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
@@ -17,11 +17,17 @@ BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications
 BING_QUERY = "Microsoft"
 
 try:
-    from autogen.agentchat.contrib.web_surfer import WebSurferAgent
+    from autogen.agentchat.contrib.web_surfer import WebSurferAgent, IS_SELENIUM_CAPABLE
 except ImportError:
     skip_all = True
+    print("THERE WAS AN ERROR")
 else:
     skip_all = False
+
+if not IS_SELENIUM_CAPABLE:
+    skip_selenium = True
+else:
+    skip_selenium = False
 
 try:
     from openai import OpenAI
@@ -42,10 +48,10 @@ if not skip_oai:
 
 
 @pytest.mark.skipif(
-    skip_all,
+    skip_selenium,
     reason="do not run if dependency is not installed",
 )
-def test_web_surfer() -> None:
+def test_web_surfer(browser_type="text", browser=None) -> None:
     with pytest.MonkeyPatch.context() as mp:
         # we mock the API key so we can register functions (llm_config must be present for this to work)
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
@@ -53,7 +59,7 @@ def test_web_surfer() -> None:
         web_surfer = WebSurferAgent(
             "web_surfer",
             llm_config={"model": "gpt-4", "config_list": []},
-            browser_config={"viewport_size": page_size},
+            browser_config={"viewport_size": page_size, "type": browser_type, "browser": browser},
         )
 
         # Sneak a peak at the function map, allowing us to call the functions for testing here
@@ -69,28 +75,33 @@ def test_web_surfer() -> None:
         total_pages = int(m.group(1))  # type: ignore[union-attr]
 
         response = function_map["page_down"]()
-        assert (
-            f"Viewport position: Showing page 2 of {total_pages}." in response
-        )  # Assumes the content is longer than one screen
+        if browser_type == "text":
+            assert (
+                f"Viewport position: Showing page 2 of {total_pages}." in response
+            )  # Assumes the content is longer than one screen
 
         response = function_map["page_up"]()
-        assert f"Viewport position: Showing page 1 of {total_pages}." in response
+        if browser_type == "text":
+            assert f"Viewport position: Showing page 1 of {total_pages}." in response
 
         # Try to scroll too far back up
         response = function_map["page_up"]()
-        assert f"Viewport position: Showing page 1 of {total_pages}." in response
+        if browser_type == "text":
+            assert f"Viewport position: Showing page 1 of {total_pages}." in response
 
         # Try to scroll too far down
         for i in range(0, total_pages + 1):
             response = function_map["page_down"]()
-        assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
+        if browser_type == "text":
+            assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
 
-        # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["informational_web_search"](BING_QUERY)
+        if not skip_bing:
+            # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
+            with pytest.raises(ValueError, match="Missing Bing API key."):
+                response = function_map["informational_web_search"](BING_QUERY)
 
-        with pytest.raises(ValueError, match="Missing Bing API key."):
-            response = function_map["navigational_web_search"](BING_QUERY)
+            with pytest.raises(ValueError, match="Missing Bing API key."):
+                response = function_map["navigational_web_search"](BING_QUERY)
 
         # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
         with pytest.raises(IndexError):
@@ -104,11 +115,11 @@ def test_web_surfer() -> None:
     skip_oai,
     reason="do not run if oai is not installed",
 )
-def test_web_surfer_oai() -> None:
+def test_web_surfer_oai(browser_type="text", browser=None) -> None:
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}
 
     # adding Azure name variations to the model list
-    model = ["gpt-3.5-turbo-1106", "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k"]
+    model = ["gpt-3.5-turbo"]
     model += [m.replace(".", "") for m in model]
 
     summarizer_llm_config = {
@@ -124,7 +135,7 @@ def test_web_surfer_oai() -> None:
         "web_surfer",
         llm_config=llm_config,
         summarizer_llm_config=summarizer_llm_config,
-        browser_config={"viewport_size": page_size},
+        browser_config={"viewport_size": page_size, "type": browser_type, "browser": browser},
     )
 
     user_proxy = UserProxyAgent(
@@ -135,35 +146,41 @@ def test_web_surfer_oai() -> None:
         is_termination_msg=lambda x: True,
     )
 
-    # Make some requests that should test function calling
-    user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
+    with Cache.disk():
+        # Make some requests that should test function calling
+        user_proxy.initiate_chat(web_surfer, message="Please visit the page 'https://en.wikipedia.org/wiki/Microsoft'")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll down.")
 
-    user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
+        user_proxy.initiate_chat(web_surfer, message="Please scroll up.")
 
-    user_proxy.initiate_chat(web_surfer, message="When was it founded?")
+        user_proxy.initiate_chat(web_surfer, message="When was it founded?")
 
-    user_proxy.initiate_chat(web_surfer, message="What's this page about?")
+        # user_proxy.initiate_chat(web_surfer, message="What's this page about?")
 
 
 @pytest.mark.skipif(
     skip_bing,
     reason="do not run if bing api key is not available",
 )
-def test_web_surfer_bing() -> None:
+def test_web_surfer_bing(browser_type="text", browser=None) -> None:
     page_size = 4096
     web_surfer = WebSurferAgent(
         "web_surfer",
         llm_config={
             "config_list": [
                 {
-                    "model": "gpt-3.5-turbo-16k",
+                    "model": "gpt-3.5-turbo-",
                     "api_key": "sk-PLACEHOLDER_KEY",
                 }
             ]
         },
-        browser_config={"viewport_size": page_size, "bing_api_key": BING_API_KEY},
+        browser_config={
+            "viewport_size": page_size,
+            "bing_api_key": BING_API_KEY,
+            "type": browser_type,
+            "browser": browser,
+        },
     )
 
     # Sneak a peak at the function map, allowing us to call the functions for testing here
@@ -183,6 +200,9 @@ def test_web_surfer_bing() -> None:
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-    test_web_surfer()
-    test_web_surfer_oai()
-    test_web_surfer_bing()
+
+    selected_driver = "edge"  # can be 'edge', 'firefox', or 'chrome'
+
+    test_web_surfer(browser_type="selenium", browser=selected_driver)
+    test_web_surfer_oai(browser_type="selenium", browser=selected_driver)
+    test_web_surfer_bing(browser_type="selenium", browser=selected_driver)

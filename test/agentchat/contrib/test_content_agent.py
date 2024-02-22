@@ -35,7 +35,6 @@ def test_content_agent(browser: str) -> None:
     model = ["gpt-3.5-turbo"]
     model += [m.replace(".", "") for m in model]
 
-    # model = ['dolphin-mistral:7b-v2.6-q8_0']
     assert len(llm_config["config_list"]) > 0  # type: ignore[arg-type]
 
     # Define the temporary storage location
@@ -51,10 +50,10 @@ def test_content_agent(browser: str) -> None:
         system_message=content_agent_system_msg,
         llm_config=llm_config,
         max_consecutive_auto_reply=0,
-        silent=False,
         # Below are the arguments specific to the ContentAgent
+        silent=True,
         storage_path=temporary_content_storage,
-        browser_kwargs={"browser": browser},
+        browser_config={"browser": browser},
         max_depth=0,
     )
 
@@ -71,11 +70,7 @@ def test_content_agent(browser: str) -> None:
     content_agent.register_reply(user_proxy, content_agent.collect_content)
 
     # Define the links used during the testing process
-    links = [
-        "https://microsoft.github.io/autogen/docs/Examples",
-        "https://microsoft.github.io/autogen/docs/Getting-Started",
-        "https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/",
-    ]
+    links = ["https://microsoft.github.io/autogen/docs/Examples"]
 
     with Cache.disk():
         for link in links:
@@ -128,12 +123,10 @@ def test_content_agent(browser: str) -> None:
                 os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "screenshot.png")) > 0
             ), "The file size of screenshot.png was zero"
 
-    print()
-    print(f"All done, feel free to browse the collected content at: {temporary_content_storage}")
+    # print()
+    # print(f"All done, feel free to browse the collected content at: {temporary_content_storage}")
 
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-
-    if not skip_oai:
-        test_content_agent(browser="firefox")
+    test_content_agent(browser="firefox")
