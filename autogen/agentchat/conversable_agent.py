@@ -1787,6 +1787,7 @@ class ConversableAgent(LLMAgent):
         """
         loop = asyncio.get_running_loop()
         reply = await loop.run_in_executor(None, functools.partial(self.get_human_input, prompt))
+        reply = input(prompt)
         return reply
 
     def run_code(self, code, **kwargs):
