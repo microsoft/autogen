@@ -117,7 +117,11 @@ public class DeveloperLead : SemanticPersona
         var response = JsonSerializer.Deserialize<DevLeadPlanResponse>(plan);
         return Task.FromResult(response);
     }
-
+    // -> DevLead
+    // -> DevPlanRequested
+    //    -> DevPlanGenerated
+    // -> ChainClosed
+    //     -> DevPlanFinished
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)

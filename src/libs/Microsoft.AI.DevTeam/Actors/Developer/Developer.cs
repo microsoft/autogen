@@ -71,7 +71,11 @@ public class Dev : SemanticPersona
             return default;
         }
     }
-
+    // -> Dev
+    // -> CodeGenerationRequested
+    //     -> CodeGenerated
+    // -> ChainClosed
+    //     -> CodeFinished
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)

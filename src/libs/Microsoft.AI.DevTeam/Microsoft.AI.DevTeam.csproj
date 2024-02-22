@@ -24,4 +24,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\libs\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Actors/AzureGenie/" />
+  </ItemGroup>
 </Project>

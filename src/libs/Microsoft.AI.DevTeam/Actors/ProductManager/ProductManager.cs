@@ -37,6 +37,12 @@ public class ProductManager : SemanticPersona
         await stream.SubscribeAsync(HandleEvent);
     }
 
+
+    // -> PM
+    //     -> ReadmeRequested
+    //         -> ReadmeGenerated
+    //     -> ChainClosed
+    //         -> ReadmeFinished
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
@@ -61,7 +67,7 @@ public class ProductManager : SemanticPersona
         //TODO: Create branch and PR
         var function = $"{nameof(PM)}.{nameof(PM.Readme)}";
         var pmIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
-        
+
         _state.State.ParentIssueNumber = parentNumber;
         _state.State.CommentId = pmIssue.CommentId;
         await _state.WriteStateAsync();
