@@ -431,9 +431,10 @@ def test_check_and_update_powershell_execution_policy():
             with patch("subprocess.check_call") as mocked_check_call:
                 check_and_update_powershell_execution_policy()
                 mocked_check_call.assert_called_once_with(
-                    ["powershell", "Set-ExecutionPolicy", "Unrestricted", "-Scope", "CurrentUser"], text=True
+                    ["powershell", "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
                 )
 
+    with patch("subprocess.check_output", return_value="Restricted"):
         with patch("builtins.input", return_value="no"):
             with pytest.raises(SystemExit):
                 check_and_update_powershell_execution_policy()
