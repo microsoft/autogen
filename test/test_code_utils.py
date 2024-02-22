@@ -20,7 +20,7 @@ from autogen.code_utils import (
     in_docker_container,
     decide_use_docker,
     check_can_use_docker_or_throw,
-    check_and_update_powershell_execution_policy
+    check_and_update_powershell_execution_policy,
 )
 from conftest import skip_docker
 
@@ -337,7 +337,7 @@ def test_execute_code(use_docker=True):
         # execute code in a file using shell command directly
         if not use_docker:
             # with user input yes, ensure the powershell execution unrestricted
-            with patch('builtins.input', return_value='yes'):
+            with patch("builtins.input", return_value="yes"):
                 exit_code, msg, image = execute_code(
                     f"python {filename}",
                     lang="sh",
@@ -377,8 +377,10 @@ def test_execute_code(use_docker=True):
         if use_docker is True:
             assert isinstance(image, str)
 
+
 def test_execute_code_no_docker():
     test_execute_code(use_docker=False)
+
 
 @pytest.mark.skipif(
     skip_docker or not is_docker_running(),
@@ -424,15 +426,18 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
     reason="execution polict matters only without docker in window",
 )
 def test_check_and_update_powershell_execution_policy():
-    with patch('subprocess.check_output', return_value="Restricted"):
-        with patch('builtins.input', return_value='yes'):
-            with patch('subprocess.check_call') as mocked_check_call:
+    with patch("subprocess.check_output", return_value="Restricted"):
+        with patch("builtins.input", return_value="yes"):
+            with patch("subprocess.check_call") as mocked_check_call:
                 check_and_update_powershell_execution_policy()
-                mocked_check_call.assert_called_once_with(["powershell", "Set-ExecutionPolicy", "Unrestricted", "-Scope", "CurrentUser"], text=True)
+                mocked_check_call.assert_called_once_with(
+                    ["powershell", "Set-ExecutionPolicy", "Unrestricted", "-Scope", "CurrentUser"], text=True
+                )
 
-        with patch('builtins.input', return_value='no'):
+        with patch("builtins.input", return_value="no"):
             with pytest.raises(SystemExit):
                 check_and_update_powershell_execution_policy()
+
 
 def test_execute_code_timeout_no_docker():
     exit_code, error, image = execute_code("import time; time.sleep(2)", timeout=1, use_docker=False)
