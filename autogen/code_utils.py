@@ -235,6 +235,25 @@ def get_powershell_command():
 
 powershell_command = get_powershell_command()
 
+def check_and_update_powershell_execution_policy():
+    policy_check_command = ["powershell", "Get-ExecutionPolicy"]
+    policy = subprocess.check_output(policy_check_command, text=True).strip()
+
+    if policy == "Restricted":
+        print("Application needs permission to execute scripts using PowerShell.")
+        user_input = input("Would you like to allow this application to execute PowerShell scripts? (proceed:any key, reject:n or no): ")
+        if user_input.lower() in ["no", "n"]:
+            print("Application attempted to perform an unauthorized operation and will now exit.")
+            sys.exit()
+        else:
+            try:
+                subprocess.check_call(["powershell", "Set-ExecutionPolicy", "Unrestricted", "-Scope", "CurrentUser"], text=True)
+                print("Execution policy updated successfully. The application will continue.")
+            except subprocess.CalledProcessError as e:
+                print(f"Failed to update execution policy. Error: {e}")
+                sys.exit()
+    else:
+        return
 
 def _cmd(lang):
     if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
@@ -243,7 +262,7 @@ def _cmd(lang):
         return ["sh"]
     if lang in ["ps1", "pwsh", "powershell"]:
         if WIN32:
-            return [powershell_command, "-ExecutionPolicy", "Bypass", "-File"]
+            check_and_update_powershell_execution_policy()
         return [powershell_command]
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
