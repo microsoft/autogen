@@ -238,11 +238,13 @@ powershell_command = get_powershell_command()
 
 def _cmd(lang):
     if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
-        return lang
+        return [lang]
     if lang in ["shell"]:
-        return "sh"
+        return ["sh"]
     if lang in ["ps1", "pwsh", "powershell"]:
-        return powershell_command
+        if WIN32:
+            return [powershell_command, "-ExecutionPolicy", "Bypass", "-File"]
+        return [powershell_command]
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
@@ -408,11 +410,13 @@ def execute_code(
             fout.write(code)
 
     if not use_docker or running_inside_docker:
-        # already running in a docker container
-        cmd = [
-            sys.executable if lang.startswith("python") else _cmd(lang),
-            f".\\{filename}" if WIN32 else filename,
-        ]
+
+        if lang.startswith("python"):
+            cmd = [sys.executable]
+        else:
+            cmd = _cmd(lang)
+        cmd += [f".\\{filename}" if WIN32 else filename]
+
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 subprocess.run,
@@ -472,11 +476,9 @@ def execute_code(
     # get a randomized str based on current time to wrap the exit code
     exit_code_str = f"exitcode{time.time()}"
     abs_path = pathlib.Path(work_dir).absolute()
-    cmd = [
-        "sh",
-        "-c",
-        f'{_cmd(lang)} "{filename}"; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}',
-    ]
+    cmd = ["sh", "-c"] \
+        + [f'{_cmd(lang)[0]} "{filename}"; exit_code=$?; echo -n {exit_code_str}; echo -n $exit_code; echo {exit_code_str}']
+
     # create a docker container
     container = client.containers.run(
         image,
