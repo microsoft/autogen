@@ -21,7 +21,8 @@ public static class AgentExtension
         this IAgent agent,
         InteractiveService interactiveService,
         string codeBlockPrefix = "```csharp",
-        string codeBlockSuffix = "```")
+        string codeBlockSuffix = "```",
+        int maximumOutputToKeep = 500)
     {
         return agent.RegisterReply(async (msgs, ct) =>
         {
@@ -68,7 +69,7 @@ public static class AgentExtension
                 }
             }
 
-            return new Message(Role.Assistant, result.ToString(), from: agent.Name);
+            return new Message(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
         });
     }
 }
