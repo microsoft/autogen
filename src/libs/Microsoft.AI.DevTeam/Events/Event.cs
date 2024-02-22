@@ -13,11 +13,14 @@ public class Event
 public enum EventType
 {
     NewAsk,
-    NewAskReadme,
-    NewAskPlan,
-    NewAskImplement,
     ChainClosed,
-    ReadmeCreated,
-    PlanSubstepCreated,
-    CodeCreated
+    ReadmeChainClosed,
+    CodeChainClosed,
+    CodeGenerationRequested,
+    DevPlanRequested,
+    ReadmeGenerated,
+    DevPlanGenerated,
+    CodeGenerated,
+    DevPlanChainClosed,
+    ReadmeRequested
 }

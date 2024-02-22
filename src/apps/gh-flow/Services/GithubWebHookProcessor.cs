@@ -147,9 +147,9 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var eventType = (skillName, functionName) switch
             {
                 ("Do", "It") => EventType.NewAsk,
-                (nameof(PM), nameof(PM.Readme)) => EventType.NewAskReadme,
-                (nameof(DevLead), nameof(DevLead.Plan)) => EventType.NewAskPlan,
-                (nameof(Developer), nameof(Developer.Implement)) => EventType.NewAskImplement,
+                (nameof(PM), nameof(PM.Readme)) => EventType.ReadmeRequested,
+                (nameof(DevLead), nameof(DevLead.Plan)) => EventType.DevPlanRequested,
+                (nameof(Developer), nameof(Developer.Implement)) => EventType.CodeGenerationRequested,
                 _ => EventType.NewAsk
             };
              var data = new Dictionary<string, string>
