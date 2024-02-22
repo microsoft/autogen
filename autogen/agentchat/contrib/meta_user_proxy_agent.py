@@ -6,10 +6,12 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 
 def check_nested_mode_config(nested_mode_config: Dict):
     if "autobuild_init_config" in nested_mode_config.keys():
-        assert "autobuild_build_config" in nested_mode_config.keys(), \
-            "autobuild_build_config is required when using autobuild as nested mode."
-        assert "group_chat_llm_config" in nested_mode_config.keys(), \
-            "group_chat_llm_config is required when using autobuild as nested mode."
+        assert (
+            "autobuild_build_config" in nested_mode_config.keys()
+        ), "autobuild_build_config is required when using autobuild as nested mode."
+        assert (
+            "group_chat_llm_config" in nested_mode_config.keys()
+        ), "group_chat_llm_config is required when using autobuild as nested mode."
     elif "meta_prompting_config" in nested_mode_config.keys():
         # TODO: check meta_prompting_config
         pass
@@ -18,9 +20,7 @@ def check_nested_mode_config(nested_mode_config: Dict):
 
 
 class MetaUserProxyAgent(ConversableAgent):
-    """(In preview) A proxy agent for the meta agent, that can execute code and provide feedback to the other agents.
-
-    """
+    """(In preview) A proxy agent for the meta agent, that can execute code and provide feedback to the other agents."""
 
     SUMMARY_PROMPT = """
 Briefly summarize the conversation history derive from a group chat.
@@ -30,7 +30,9 @@ Conversation history:
 {chat_history}
 """
 
-    DEFAULT_AUTO_REPLY = "Thank you. Please keep solving the problem. If you think everything is done, please reply me with 'TERMINATE'."
+    DEFAULT_AUTO_REPLY = (
+        "Thank you. Please keep solving the problem. If you think everything is done, please reply me with 'TERMINATE'."
+    )
 
     # Default UserProxyAgent.description values, based on human_input_mode
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
@@ -52,7 +54,6 @@ Conversation history:
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
         description: Optional[str] = None,
-
     ):
         """
         Args:
@@ -100,9 +101,9 @@ Conversation history:
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
-        description = description \
-            if description is not None \
-            else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode]
+        description = (
+            description if description is not None else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode]
+        )
         super().__init__(
             name=name,
             system_message=system_message,
@@ -113,18 +114,20 @@ Conversation history:
             code_execution_config=code_execution_config,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
-            description=description
+            description=description,
         )
-        self.register_function(function_map={
-            "autobuild": lambda *args: self._run_autobuild(**args),
-            "autobuild_by_name": lambda **args: self._run_autobuild(**args),
-            "meta_prompting": lambda **args: self._run_meta_prompting(**args)
-        })
+        self.register_function(
+            function_map={
+                "autobuild": lambda *args: self._run_autobuild(**args),
+                "autobuild_by_name": lambda **args: self._run_autobuild(**args),
+                "meta_prompting": lambda **args: self._run_meta_prompting(**args),
+            }
+        )
         check_nested_mode_config(nested_mode_config)
         self.nested_mode_config = nested_mode_config.copy()
         self.build_history = {}
 
-    def _run_autobuild(self, group_name: str, execution_task: str, building_task: str="") -> str:
+    def _run_autobuild(self, group_name: str, execution_task: str, building_task: str = "") -> str:
         """
         Build a group of agents by AutoBuild to solve the task.
         This function requires the nested_mode_config to contain the autobuild_init_config,
@@ -134,21 +137,21 @@ Conversation history:
         print("Building task: ", building_task)
         print("Execution task: ", execution_task)
 
-        builder = AgentBuilder(**self.nested_mode_config['autobuild_init_config'])
+        builder = AgentBuilder(**self.nested_mode_config["autobuild_init_config"])
         if group_name in self.build_history:
             agent_list, agent_configs = builder.load(config_json=self.build_history[group_name])
         else:
-            agent_list, agent_configs = builder.build(building_task, **self.nested_mode_config['autobuild_build_config'])
+            agent_list, agent_configs = builder.build(
+                building_task, **self.nested_mode_config["autobuild_build_config"]
+            )
             self.build_history[group_name] = agent_configs.copy()
 
         # start nested chat
         nested_group_chat = autogen.GroupChat(
-            agents=agent_list,
-            messages=[],
-            **self.nested_mode_config['group_chat_config']
+            agents=agent_list, messages=[], **self.nested_mode_config["group_chat_config"]
         )
         manager = autogen.GroupChatManager(
-            groupchat=nested_group_chat, llm_config=self.nested_mode_config['group_chat_llm_config']
+            groupchat=nested_group_chat, llm_config=self.nested_mode_config["group_chat_llm_config"]
         )
         agent_list[0].initiate_chat(manager, message=execution_task)
 

@@ -8,12 +8,7 @@ class MetaAgent(ConversableAgent):
     """
 
     # input: agent's system message
-    META_PROMPTING_TOOL = {
-        "type": "function",
-        "function": {
-            "name": "meta_prompting"
-        }
-    }
+    META_PROMPTING_TOOL = {"type": "function", "function": {"name": "meta_prompting"}}
 
     AUTOBUILD_QUERY_TOOL = {
         "type": "function",
@@ -23,18 +18,15 @@ class MetaAgent(ConversableAgent):
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "group_name": {
-                        "type": "string",
-                        "description": "[REQUIRED] Name of the group."
-                    },
+                    "group_name": {"type": "string", "description": "[REQUIRED] Name of the group."},
                     "execution_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Task that need the experts to solve by conversation."
+                        "description": "[REQUIRED] Task that need the experts to solve by conversation.",
                     },
-                }
+                },
             },
-            "required": ["group_name", "execution_task"]
-        }
+            "required": ["group_name", "execution_task"],
+        },
     }
 
     # input: task
@@ -46,22 +38,19 @@ class MetaAgent(ConversableAgent):
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "group_name": {
-                        "type": "string",
-                        "description": "[REQUIRED] Name of the group."
-                    },
+                    "group_name": {"type": "string", "description": "[REQUIRED] Name of the group."},
                     "building_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Instructions that helps the manager to build a group of experts for your task."
+                        "description": "[REQUIRED] Instructions that helps the manager to build a group of experts for your task.",
                     },
                     "execution_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Task that need the experts to solve by conversation."
+                        "description": "[REQUIRED] Task that need the experts to solve by conversation.",
                     },
-                }
+                },
             },
-            "required": ["group_name", "building_task", "execution_task"]
-        }
+            "required": ["group_name", "building_task", "execution_task"],
+        },
     }
 
     DEFAULT_SYSTEM_MESSAGE = """As a manager, your primary objective is to delegate the resolution of tasks to other AI agents through structured dialogue and derive conclusive insights from their interaction records.
@@ -128,4 +117,4 @@ Upon the completion of all tasks and verifications, you should conclude the oper
         elif nested_mode == "meta_prompting":
             self.update_tool_signature(self.META_PROMPTING_TOOL, is_remove=False)
         else:
-            raise "Invalid nested_mode, should be \"autobuild\" or \"meta_prompting\"."
+            raise 'Invalid nested_mode, should be "autobuild" or "meta_prompting".'

@@ -38,7 +38,9 @@ It can provide the code execution results. Select this player when other players
 
     DEFAULT_PROXY_SYS_MESSAGE = "User console with a python code interpreter interface."
 
-    DEFAULT_PROXY_AUTO_REPLY = "There is no code for me to execute. Let other participants to continue the conversation."
+    DEFAULT_PROXY_AUTO_REPLY = (
+        "There is no code for me to execute. Let other participants to continue the conversation."
+    )
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
 or coding may help the following task become easier?
@@ -620,7 +622,12 @@ Hint:
             enhanced_sys_msg = enhanced_sys_msg.format(members=agent_name_list)
             enhanced_sys_msg += sys_msg
             agent_configs.append(
-                {"name": name, "model": self.agent_model, "system_message": enhanced_sys_msg, "description": description}
+                {
+                    "name": name,
+                    "model": self.agent_model,
+                    "system_message": enhanced_sys_msg,
+                    "description": description,
+                }
             )
 
         if coding is None:
@@ -646,10 +653,7 @@ Hint:
         return self._build_agents(use_oai_assistant, user_proxy=user_proxy, **kwargs)
 
     def _build_agents(
-        self,
-        use_oai_assistant: Optional[bool] = False,
-        user_proxy: Optional[autogen.ConversableAgent] = None,
-        **kwargs
+        self, use_oai_assistant: Optional[bool] = False, user_proxy: Optional[autogen.ConversableAgent] = None, **kwargs
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
@@ -685,14 +689,14 @@ Hint:
             print("Adding user console proxy...")
             if user_proxy is None:
                 user_proxy = autogen.UserProxyAgent(
-                        name="User_console_and_code_interpreter",
-                        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
-                        system_message=self.DEFAULT_PROXY_SYS_MESSAGE,
-                        description=self.DEFAULT_PROXY_DESCRIPTION,
-                        code_execution_config=code_execution_config,
-                        human_input_mode="NEVER",
-                        default_auto_reply=self.DEFAULT_PROXY_AUTO_REPLY,
-                    )
+                    name="User_console_and_code_interpreter",
+                    is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
+                    system_message=self.DEFAULT_PROXY_SYS_MESSAGE,
+                    description=self.DEFAULT_PROXY_DESCRIPTION,
+                    code_execution_config=code_execution_config,
+                    human_input_mode="NEVER",
+                    default_auto_reply=self.DEFAULT_PROXY_AUTO_REPLY,
+                )
             agent_list = [user_proxy] + agent_list
 
         return agent_list, self.cached_configs.copy()
