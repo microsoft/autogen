@@ -262,7 +262,7 @@ jobs:
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
           BING_API_KEY: ${{ secrets.BING_API_KEY }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_web_surfer.py test/agentchat/contrib/test_web_surfer_selenium.py test/agentchat/contrib/test_web_surfer_selenium.py test/agentchat/contrib/test_content_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/test_web_surfer.py test/agentchat/contrib/test_web_surfer_selenium.py test/agentchat/contrib/test_content_agent.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
