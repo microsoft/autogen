@@ -24,7 +24,13 @@ import {
 import { examplePrompts, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
-import { AgentRow, BounceLoader, CollapseBox, MarkdownView } from "../../atoms";
+import {
+  AgentRow,
+  BounceLoader,
+  CollapseBox,
+  LoadingBar,
+  MarkdownView,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 
 let socketMsgs: any[] = [];
@@ -248,7 +254,7 @@ const ChatBox = ({
     // console.log("messages updated, scrolling");
     setTimeout(() => {
       scrollChatBox(messageBoxInputRef);
-    }, 200);
+    }, 500);
   }, [messages]);
 
   const textAreaDefaultHeight = "50px";
@@ -525,20 +531,19 @@ const ChatBox = ({
               AGENTS
             </div>
             <div className="relative w-full ">
-              <div className="mb-4 w-full text-center">
-                {<BounceLoader />}{" "}
-                <span className="innline-block text-sm ml-2">
-                  {" "}
-                  agents working on task ..
-                </span>{" "}
-                <div className="  inline-block ml-2 text-xs text-secondary">
-                  {socketMsgs.length} agent messages so far{" "}
-                </div>
+              <div className="mb-2">
+                <LoadingBar>
+                  <div className="mb-1  inline-block ml-2 text-xs text-secondary">
+                    <span className="innline-block text-sm ml-2">
+                      {" "}
+                      agents working on task ..
+                    </span>{" "}
+                    {socketMsgs.length} agent message
+                    {socketMsgs.length > 1 && "s"} sent/received.
+                  </div>
+                </LoadingBar>
               </div>
-              <div className="absolute top-0  scroll-gradient -mt-2 h-10 w-full">
-                {" "}
-                <span className="  inline-block h-6"></span>{" "}
-              </div>
+
               <div
                 ref={socketDivRef}
                 style={{
@@ -629,6 +634,7 @@ const ChatBox = ({
               </Tooltip>
               Blank slate? Try one of the example prompts below{" "}
             </div>
+
             <div
               className={`mt-2 inline-flex gap-2 flex-wrap  ${
                 loading ? "brightness-75 pointer-events-none" : ""
