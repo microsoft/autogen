@@ -8,8 +8,6 @@ using AutoGen.DotnetInteractive;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;
 using GroupChat = AutoGen.GroupChat;
-using GroupChatExtension = AutoGen.GroupChatExtension;
-using IAgent = AutoGen.IAgent;
 using Message = AutoGen.Message;
 
 public partial class Example04_Dynamic_GroupChat_Get_MLNET_PR
@@ -118,71 +116,68 @@ The output of the code is:
             "Print the result to the console and save the result to a file named \"pr.txt\".",
         };
 
-        // Create admin agent
-        // When resolving the current step, admin will review the progress of current step.
-        // If the code solution is not available, admin will ask coder to write code.
-        // If the code solution is available but not run, admin will ask runner to run the code.
-        // If the code solution is available and run, admin will check if the code run is successful.
-        // If the code run is successful, admin will terminate the conversation. Otherwise, admin will ask coder to fix the code and repeat the process.
-        var admin = new AssistantAgent(
-            name: "admin",
-            systemMessage: @"You are admin, you review the progress of current step.",
+        var helperAgent = new AssistantAgent(
+            name: "helper",
+            systemMessage: "You are a helpful AI assistant",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gptConfig,
-                FunctionDefinitions = new[]
-                {
-                    instance.ReviewCurrentStepProgressFunction,
-                },
-            },
-            functionMap: new Dictionary<string, Func<string, Task<string>>>
-            {
-                { nameof(ReviewCurrentStepProgress), instance.ReviewCurrentStepProgressWrapper },
-            })
-            .RegisterPostProcess(async (_, reply, ct) =>
-            {
-                if (reply.FunctionName != nameof(ReviewCurrentStepProgress))
-                {
-                    return reply;
-                }
-                var reviewResult = JsonSerializer.Deserialize<StepProgressReviewResult>(reply.Content!);
-                if (reviewResult.IsCodeSolutionAvailable is false)
-                {
-                    return new Message(Role.Assistant, "coder, write code please");
-                }
-
-                if (reviewResult.IsCodeSolutionRunSuccessfully is false)
-                {
-                    return new Message(Role.Assistant, "coder, fix the code please");
-                }
-
-                if (reviewResult.IsLatestCodeSolutionHasBeenRun is false)
-                {
-                    return new Message(Role.Assistant, "runner, run the code please");
-                }
-
-                return new Message(Role.Assistant, GroupChatExtension.TERMINATE);
             })
             .RegisterPrintFormatMessageHook();
 
-        // create context manage agent
-        // context manager create context for current step and collect code block and its output when a step is resolved.
-        var contextManagerAgent = new AssistantAgent(
-            name: "context_manager",
-            systemMessage: @"You are context manager, you collect information from conversation context",
+        var userProxy = new UserProxyAgent(name: "user")
+            .RegisterPrintFormatMessageHook();
+
+        // Create admin agent
+        var admin = new AssistantAgent(
+            name: "admin",
+            systemMessage: """
+            You are a manager who takes coding task from user and resolve tasks by splitting them into steps and assign each step to different agents.
+            Here's available agents who you can assign task to:
+            - coder: write dotnet code to resolve task
+            - runner: run dotnet code from coder
+            - reviewer: review code from coder
+
+            You can use the following json format to assign task to agents:
+            ```task
+            {
+                "to": "{agent_name}",
+                "task": "{a short description of the task}",
+                "context": "{previous context from scratchpad}"
+            }
+            ```
+
+            If you need to ask user for extra information, you can use the following format:
+            ```ask
+            {
+                "question": "{question}"
+            }
+            ```
+
+            The conversation might be very long so it will be helpful to note down the summary of each step to your scratchpad once it's resolved. You can use the following json format to write down the note:
+            ```scratchpad
+            // anything you want to note down
+            ```
+            Once the task is resolved, summarize each steps and results and send the summary to the user using the following format:
+            ```summary
+            {
+                "task": "{task}",
+                "steps": [
+                    {
+                        "step": "{step}",
+                        "result": "{result}"
+                    }
+                ]
+            }
+            ```
+
+            Your reply must contain one of [task|ask|summary] to indicate the type of your message. You can use scratchpad as many times as you want.
+            """,
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gptConfig,
-                FunctionDefinitions = new[]
-                {
-                    instance.SaveContextFunction,
-                },
-            },
-            functionMap: new Dictionary<string, Func<string, Task<string>>>
-            {
-                { nameof(SaveContext), instance.SaveContextWrapper },
             })
             .RegisterPrintFormatMessageHook();
 
@@ -227,19 +222,25 @@ Here's some externel information
         // - The code block is not using declaration
         var codeReviewAgent = new AssistantAgent(
             name: "code_reviewer",
-            systemMessage: @"You review code block from coder",
+            systemMessage: """
+            You are a code reviewer who reviews code from coder. You need to check if the code satisfy the following conditions:
+            - There's only one code block
+            - The code block is csharp code block
+            - The code block is top level statement
+            - The code block is not using declaration when creating http client
+
+            Put your comment between ```review and ```, if the code satisfies all conditions, writes APPROVED in result. Otherwise, put REJECTED along with comments. make sure your comment is clear and easy to understand.
+            
+            e.g.
+            ```review
+            result: [APPROVED|REJECTED]
+            comment: [your comment]
+            ```
+            """,
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
                 ConfigList = gptConfig,
-                FunctionDefinitions = new[]
-                {
-                    instance.ReviewCodeBlockFunction,
-                },
-            },
-            functionMap: new Dictionary<string, Func<string, Task<string>>>()
-            {
-                { nameof(ReviewCodeBlock), instance.ReviewCodeBlockWrapper },
             })
             .RegisterPrintFormatMessageHook();
 
@@ -346,49 +347,128 @@ please carefully review the code block from coder and provide feedback.";
                 ConfigList = gptConfig,
             })
             .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
-            .RegisterPostProcess(async (_, reply, _) =>
+            .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
-                if (reply.Content is { Length: > 400 })
-                {
-                    reply.Content = reply.Content.Substring(0, 200) + "...(too long to be printed)";
-                }
-
-                return reply;
+                var mostRecentCoderMessage = msgs.LastOrDefault(x => x.From == "coder") ?? throw new Exception("No coder message found");
+                return await agent.GenerateReplyAsync(new[] { mostRecentCoderMessage }, option, ct);
             })
             .RegisterPrintFormatMessageHook();
 
+        var adminToCoderTransition = Transition.Create(admin, dotnetCoder, async (from, to, messages) =>
+        {
+            // the last message should be from admin
+            var lastMessage = messages.Last();
+            if (lastMessage.From != admin.Name)
+            {
+                return false;
+            }
+
+            // check if the last admin message create a task for coder
+            var prompt = $@"Please determine if admin's message creates a task to coder,
+If the message contains a task for coder, says: true, the task for coder is xx
+Otherwise, says: false, the message doesn't contain a task for coder
+
+### admin's message ###
+{lastMessage.Content}";
+
+            var result = await helperAgent.SendAsync(prompt);
+
+            return result.Content.ToLower().Contains("true");
+        });
+        var coderToAdminTransition = Transition.Create(dotnetCoder, admin);
+        var adminToRunnerTransition = Transition.Create(admin, runner, async (from, to, messages) =>
+        {
+            // the last message should be from admin
+            var lastMessage = messages.Last();
+            if (lastMessage.From != admin.Name)
+            {
+                return false;
+            }
+
+            // check if the last admin message create a task for runner
+            var prompt = $@"Please determine if admin's message creates a task for runner.
+
+If the message contains a task for runner, says: true, the task for runner is xx
+otherwise, says: false, the message doesn't contain a task for runner
+### admin's message ###
+{lastMessage.Content}";
+
+            var result = await helperAgent.SendAsync(prompt);
+
+            return result.Content.ToLower().Contains("true");
+        });
+
+        var runnerToAdminTransition = Transition.Create(runner, admin);
+
+        var adminToReviewerTransition = Transition.Create(admin, codeReviewAgent, async (from, to, messages) =>
+        {
+            // the last message should be from admin
+            var lastMessage = messages.Last();
+            if (lastMessage.From != admin.Name)
+            {
+                return false;
+            }
+
+            // check if the last admin message create a task for code reviewer
+            var prompt = @$"Please determine if admin's message creates a task for reviewer'.
+
+If the message contains a task for code reviewer, says: true, the task for code reviewer is xx
+otherwise, says: false, the message doesn't contain a task for code reviewer
+
+### admin's message ###
+{lastMessage.Content}";
+
+            var result = await helperAgent.SendAsync(prompt);
+
+            return result.Content.ToLower().Contains("true");
+        });
+
+        var reviewerToAdminTransition = Transition.Create(codeReviewAgent, admin);
+
+        var adminToUserTransition = Transition.Create(admin, userProxy, async (from, to, messages) =>
+        {
+            // the last message should be from admin
+            var lastMessage = messages.Last();
+            if (lastMessage.From != admin.Name)
+            {
+                return false;
+            }
+
+            // check if the last admin message create a task for user
+            var prompt = @$"Please determine if admin's message contains a summary for user or has a question to user.
+
+If the message contains a summary for user, says: true, the summary is xx
+otherwise, says: false, the message doesn't contain a summary for user
+
+### admin's message ###
+{lastMessage.Content}";
+
+            var result = await helperAgent.SendAsync(prompt);
+
+            return result.Content.ToLower().Contains("true");
+        });
+
+        var userToAdminTransition = Transition.Create(userProxy, admin);
+
+        var workflow = new Workflow(
+            [
+                adminToCoderTransition,
+                coderToAdminTransition,
+                adminToRunnerTransition,
+                runnerToAdminTransition,
+                adminToReviewerTransition,
+                reviewerToAdminTransition,
+                adminToUserTransition,
+                userToAdminTransition,
+            ]);
         // create group chat
         var groupChat = new GroupChat(
             admin: admin,
-            members: new IAgent[] { coder, runner });
+            members: [dotnetCoder, runner, codeReviewAgent, userProxy],
+            workflow: workflow);
 
-        admin.AddInitializeMessage("Welcome to the group chat! Work together to resolve my task.", groupChat);
-        coder.AddInitializeMessage("Hey I'm Coder, I write dotnet code.", groupChat);
-        runner.AddInitializeMessage("Hey I'm Runner, I run dotnet code from coder.", groupChat);
-
-        // start group chat
         var groupChatManager = new GroupChatManager(groupChat);
-        var previousContext = "No previous context";
-        foreach (var step in steps)
-        {
-            var createContextForCurrentStepPrompt = @$"Create context for current step
-previous context: {previousContext}
-
-current step to resolve: {step}";
-
-            Console.WriteLine(createContextForCurrentStepPrompt);
-
-            IEnumerable<Message> chatHistoryForCurrentStep = new[]
-            {
-                new Message(Role.Assistant, createContextForCurrentStepPrompt)
-                {
-                    From = "admin",
-                },
-            };
-            chatHistoryForCurrentStep = await admin.SendAsync(groupChatManager, chatHistoryForCurrentStep, maxRound: 20);
-            var previousContextMessage = await contextManagerAgent.SendAsync(message: "Save context from conversation above", chatHistory: chatHistoryForCurrentStep);
-            previousContext = previousContextMessage.Content;
-        }
+        await userProxy.SendAsync(groupChatManager, "Get the most recent PR from mlnet repo and save in pr.txt");
 
         File.Exists(prFile).Should().BeTrue();
     }
