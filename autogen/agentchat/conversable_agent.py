@@ -26,7 +26,7 @@ from ..code_utils import (
     infer_lang,
 )
 from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult, initiate_chats
+from .chat import ChatResult, initiate_chats, a_initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -985,6 +985,13 @@ class ConversableAgent(LLMAgent):
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
+    async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = await a_initiate_chats(_chat_queue)
+        return self._finished_chats
+
     def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
         if chat_index is not None:
@@ -1388,13 +1395,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._oai_messages[sender] if sender else []
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1407,9 +1415,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1420,7 +1428,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1498,13 +1506,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
+            messages = self._oai_messages[sender] if sender else []
+        message = messages[-1] if messages else {}
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1517,9 +1526,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1530,7 +1539,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1766,7 +1775,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
