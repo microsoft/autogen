@@ -434,7 +434,6 @@ def test_check_and_update_powershell_execution_policy():
                     ["powershell", "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
                 )
 
-    with patch("subprocess.check_output", return_value="Restricted"):
         with patch("builtins.input", return_value="no"):
             with pytest.raises(SystemExit):
                 check_and_update_powershell_execution_policy()
