@@ -36,7 +36,7 @@ class JupyterCodeExecutor(CodeExecutor):
         output_dir (str): The directory to save output files, by default ".".
         system_message_update (str): The system message update to add to the
             agent that produces code. By default it is
-            `IPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
+            `JupyterCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
