@@ -59,15 +59,9 @@ public class ProductManager : SemanticPersona
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
     {
         //TODO: Create branch and PR
-        var pmIssue = await _ghService.CreateIssue(new CreateIssueRequest
-        {
-            Label = $"{nameof(PM)}.{nameof(PM.Readme)}",
-            Org = org,
-            Repo = repo,
-            Input = input,
-            ParentNumber = parentNumber
-        });
-
+        var function = $"{nameof(PM)}.{nameof(PM.Readme)}";
+        var pmIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
+        
         _state.State.ParentIssueNumber = parentNumber;
         _state.State.CommentId = pmIssue.CommentId;
         await _state.WriteStateAsync();

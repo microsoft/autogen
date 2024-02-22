@@ -2,5 +2,5 @@ namespace Microsoft.AI.DevTeam;
 
 public interface IManageSandbox : IGrainWithIntegerCompoundKey
 {
-    Task ScheduleCommitSandboxRun(CommitRequest commitRequest, MarkTaskCompleteRequest markTaskCompleteRequest, SandboxRequest sandboxRequest);
+    Task ScheduleCommitSandboxRun(string org, string repo, long parentIssueNumber, long issueNumber);
 }

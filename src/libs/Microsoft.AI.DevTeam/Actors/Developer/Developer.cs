@@ -30,15 +30,9 @@ public class Dev : SemanticPersona
 
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
     {
-        var devIssue = await _ghService.CreateIssue(new CreateIssueRequest
-        {
-            Label = $"{nameof(Developer)}.{nameof(Developer.Implement)}",
-            Org = org,
-            Repo = repo,
-            Input = input,
-            ParentNumber = parentNumber
-        });
-        
+        var function = $"{nameof(Developer)}.{nameof(Developer.Implement)}";
+        var devIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
+       
          _state.State.ParentIssueNumber = parentNumber;
          _state.State.CommentId = devIssue.CommentId;
         await _state.WriteStateAsync();

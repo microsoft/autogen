@@ -11,7 +11,6 @@ public class Hubber : Grain, IGrainWithStringKey
 {
     private readonly IManageGithub _ghService;
 
-
     public Hubber( IManageGithub ghService)
     {
         _ghService = ghService;
@@ -43,8 +42,31 @@ public class Hubber : Grain, IGrainWithStringKey
                 break;
         }
     }
-    public async Task ScheduleCommitSandboxRun(CommitRequest commitRequest, MarkTaskCompleteRequest markTaskCompleteRequest, SandboxRequest sandboxRequest)
+
+//     GithubAgent
+// -> create issue
+// -> comment to issue
+// -> create branch
+// -> create PR
+// -> commit to branch
+    public async Task CreateIssue()
     {
-        
+        // await _ghService.CreateIssue();
+    }
+     public async Task PostComment(string org, string repo,long issueNumber, string comment )
+    {
+        await _ghService.PostComment(org, repo, issueNumber, comment);
+    }
+     public async Task CreateBranch()
+    {
+        // await _ghService.CreateBranch();
+    }
+     public async Task CreatePullRequest()
+    {
+        // await _ghService.CreatePR();
+    }
+     public async Task CommitToBranch()
+    {
+        // await _ghService.CommitToBranch()
     }
 }

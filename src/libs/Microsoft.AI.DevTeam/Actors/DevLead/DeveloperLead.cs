@@ -38,14 +38,8 @@ public class DeveloperLead : SemanticPersona
 
     public async Task CreateIssue(string org, string repo, long parentNumber, string input)
     {
-        var devLeadIssue = await _ghService.CreateIssue(new CreateIssueRequest
-        {
-            Label = $"{nameof(DevLead)}.{nameof(DevLead.Plan)}",
-            Org = org,
-            Repo = repo,
-            Input = input,
-            ParentNumber = parentNumber
-        });
+        var function = $"{nameof(DevLead)}.{nameof(DevLead.Plan)}";
+        var devLeadIssue = await _ghService.CreateIssue(org, repo, input, function, parentNumber);
         
          _state.State.ParentIssueNumber = parentNumber;
          _state.State.CommentId = devLeadIssue.CommentId;
@@ -109,12 +103,12 @@ public class DeveloperLead : SemanticPersona
         Task.WaitAll(eventTasks.ToArray());
         //await conductor.ImplementationFlow(plan, org, repo, parentIssue.IssueNumber);
 
-        await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
-        {
-            Org = org,
-            Repo = repo,
-            CommentId = _state.State.CommentId
-        });
+        // await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+        // {
+        //     Org = org,
+        //     Repo = repo,
+        //     CommentId = _state.State.CommentId
+        // });
     }
 
     public Task<DevLeadPlanResponse> GetLatestPlan()
