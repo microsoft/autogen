@@ -39,30 +39,6 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
             var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
             long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
-            // TODO: confert the non-parent label to skill and function
-        //             Issue 1
-        //     Sub issue 2
-        //     sub issue 3
-
-        // org+repo+1
-        //     PM org+repo+1
-        //     DevLead org+repo+1
-
-        //     NewAskReadme
-        //     PM+2
-
-        //     NewAskPlan
-        //     DevLead+3
-
-        // Dev org+repo+1
-        //     Dev+4
-        //     Dev+5
-        //     Dev+6
-
-        // org+repo+2
-        //     DevLead 
-        // org+repo+3
-        //     PM
 
             var suffix = $"{org}-{repo}";
             if (issuesEvent.Action == IssuesAction.Opened)

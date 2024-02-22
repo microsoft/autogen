@@ -1,4 +1,3 @@
-using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;

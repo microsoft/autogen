@@ -11,7 +11,6 @@ using Microsoft.SemanticKernel.Plugins.Memory;
 using Microsoft.SemanticKernel.Reliability.Basic;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
-using Orleans.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
