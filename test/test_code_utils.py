@@ -574,10 +574,6 @@ class TestGetPowerShellCommand(unittest.TestCase):
 
         self.assertEqual(get_powershell_command(), "pwsh")
 
-        # mock_subprocess_run.side_effect = [FileNotFoundError, MagicMock(return_value=MagicMock(returncode=0, stdout=StringIO("7")))]
-
-        # self.assertEqual(get_powershell_command(), "None")
-
     @patch("subprocess.run")
     @patch("logging.warning")
     def test_get_powershell_command_windows_no_shell(self, mock_logging_warning, mock_subprocess_run):
