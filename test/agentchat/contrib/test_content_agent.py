@@ -29,7 +29,8 @@ if not skip_oai:
     skip_oai,
     reason="do not run if oai is not installed",
 )
-def test_content_agent(browser: str) -> None:
+def test_content_agent() -> None:
+    browser = "edge"
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}
 
     model = ["gpt-3.5-turbo"]
@@ -129,4 +130,4 @@ def test_content_agent(browser: str) -> None:
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-    test_content_agent(browser="firefox")
+    test_content_agent()
