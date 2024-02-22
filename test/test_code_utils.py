@@ -335,13 +335,24 @@ def test_execute_code(use_docker=True):
         assert exit_code == 0 and msg == "hello world\n", msg
 
         # execute code in a file using shell command directly
-        exit_code, msg, image = execute_code(
-            f"python {filename}",
-            lang="sh",
-            use_docker=use_docker,
-            work_dir=tempdir,
-        )
-        assert exit_code == 0 and msg == "hello world\n", msg
+        if not use_docker:
+            # with user input yes, ensure the powershell execution unrestricted
+            with patch('builtins.input', return_value='yes'):
+                exit_code, msg, image = execute_code(
+                    f"python {filename}",
+                    lang="sh",
+                    use_docker=use_docker,
+                    work_dir=tempdir,
+                )
+                assert exit_code == 0 and msg == "hello world\n", msg
+        else:
+            exit_code, msg, image = execute_code(
+                f"python {filename}",
+                lang="sh",
+                use_docker=use_docker,
+                work_dir=tempdir,
+            )
+            assert exit_code == 0 and msg == "hello world\n", msg
 
     with tempfile.TemporaryDirectory() as tempdir:
         # execute code for assertion error
@@ -366,6 +377,8 @@ def test_execute_code(use_docker=True):
         if use_docker is True:
             assert isinstance(image, str)
 
+def test_execute_code_no_docker():
+    test_execute_code(use_docker=False)
 
 @pytest.mark.skipif(
     skip_docker or not is_docker_running(),
@@ -405,9 +418,6 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
     with pytest.raises(AssertionError):
         execute_code(code=None, filename=None)
 
-
-def test_execute_code_no_docker():
-    test_execute_code(use_docker=False)
 
 @pytest.mark.skipif(
     skip_docker or not is_docker_running() and sys.platform != "win32",
