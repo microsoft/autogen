@@ -2,7 +2,7 @@
 using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
-public class Sandbox : Grain, IManageSandbox, IRemindable
+public class Sandbox : Grain, IRemindable
 {
     private const string ReminderName = "SandboxRunReminder";
     private readonly IManageGithub _ghService;

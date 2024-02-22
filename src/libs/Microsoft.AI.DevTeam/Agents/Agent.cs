@@ -6,10 +6,9 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-
-public abstract class SemanticPersona : Grain, IChatHistory, IGrainWithStringKey
+public abstract class Agent : Grain, IChatHistory, IGrainWithStringKey
 {
-    public SemanticPersona(
+    public Agent(
          [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state)
     {
         _state = state;

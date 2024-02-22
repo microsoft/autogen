@@ -11,7 +11,7 @@ namespace Microsoft.AI.DevTeam;
 
 //[RegexImplicitStreamSubscription("")]
 [ImplicitStreamSubscription("developers")]
-public class Dev : SemanticPersona
+public class Dev : Agent
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;

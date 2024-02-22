@@ -3,7 +3,7 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Architect : SemanticPersona, IArchitectSolutions
+public class Architect : Agent
 {
     public Architect( [PersistentState("state", "messages")]IPersistentState<SemanticPersonaState> state) : base(state)
     {
@@ -28,10 +28,4 @@ public class Architect : SemanticPersona, IArchitectSolutions
                 break;
         }
     }
-}
-
-public interface IArchitectSolutions : IGrainWithIntegerCompoundKey
-{
-    Task<string> ReviewPlan(string plan);
-    Task<string> GenerateProjectStructure(string ask);
 }

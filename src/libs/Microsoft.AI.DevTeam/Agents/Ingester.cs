@@ -6,7 +6,7 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Ingester : SemanticPersona, IIngestRepo
+public class Ingester : Agent
 {
     protected override string MemorySegment => "code-analysis";
     private readonly IManageGithub _ghService;
@@ -21,24 +21,24 @@ public class Ingester : SemanticPersona, IIngestRepo
         _codeAnalyzer = codeAnalyzer;
     }
 
-    public async Task IngestionFlow(string org, string repo, string branch)
-    {
-        var suffix = $"{org}-{repo}";
-        var language = await _ghService.GetMainLanguage(org, repo);
-        var files = await _ghService.GetFiles(org, repo, branch, Language.Filters[language]);
+    // public async Task IngestionFlow(string org, string repo, string branch)
+    // {
+    //     var suffix = $"{org}-{repo}";
+    //     var language = await _ghService.GetMainLanguage(org, repo);
+    //     var files = await _ghService.GetFiles(org, repo, branch, Language.Filters[language]);
 
-        var dev = GrainFactory.GetGrain<IDevelopCode>(0, suffix);
+    //     //var dev = GrainFactory.GetGrain<IDevelopCode>(0, suffix);
         
-        foreach (var file in files)
-        {
-            var codeAnalysis = await _codeAnalyzer.Analyze(file.Content);
-            codeAnalysis.ToList().ForEach(async c =>
-                await _memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
+    //     foreach (var file in files)
+    //     {
+    //         var codeAnalysis = await _codeAnalyzer.Analyze(file.Content);
+    //         codeAnalysis.ToList().ForEach(async c =>
+    //             await _memory.SaveInformationAsync(MemorySegment, c.CodeBlock, Guid.NewGuid().ToString(), c.Meaning));
 
-            // TODO: do something with the result
-            await dev.BuildUnderstanding(file.Content);
-        }
-    }
+    //         // TODO: do something with the result
+    //         //await dev.BuildUnderstanding(file.Content);
+    //     }
+    // }
 
     public override Task HandleEvent(Event item, StreamSequenceToken? token)
     {

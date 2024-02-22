@@ -3,7 +3,7 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Tester : SemanticPersona, ITestCode
+public class Tester : Agent
 {
     public Tester(
         [PersistentState("state", "messages")]IPersistentState<SemanticPersonaState> state) : base(state)
@@ -25,10 +25,4 @@ public class Tester : SemanticPersona, ITestCode
     {
         throw new NotImplementedException();
     }
-}
-
-public interface ITestCode  : IGrainWithIntegerCompoundKey
-{
-    Task<string> TestCode(string ask);
-    Task<string> ReviewPlan(string plan);
 }
