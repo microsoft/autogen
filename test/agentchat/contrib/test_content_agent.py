@@ -124,9 +124,6 @@ def test_content_agent() -> None:
                 os.path.getsize(os.path.join(content_agent.process_history[link]["local_path"], "screenshot.png")) > 0
             ), "The file size of screenshot.png was zero"
 
-    # print()
-    # print(f"All done, feel free to browse the collected content at: {temporary_content_storage}")
-
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""

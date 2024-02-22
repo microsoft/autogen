@@ -108,17 +108,6 @@ class ContentAgent(ConversableAgent):
         # Define the classifiers
         self.define_classifiers()
 
-    # def classifier_to_collector_reply(self, recipient, messages, sender, config):
-    #     # Inner dialogue reply for boolean classification results
-    #     last_message = messages[-1] if isinstance(messages, list) else messages
-    #     _, rep = recipient.generate_oai_reply([last_message], sender)
-    #     if "false" in rep.lower():
-    #         rep = "False"
-    #     elif "true" in rep.lower():
-    #         rep = "True"
-    #     else:
-    #         rep = "False"
-    #     return True, rep
     def classifier_to_collector_reply(
         self,
         recipient: Agent,  # Assuming no specific type is enforced; otherwise, replace Any with the specific class type

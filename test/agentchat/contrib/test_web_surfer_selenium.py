@@ -66,13 +66,12 @@ def test_web_surfer() -> None:
         assert f"Address: {BLOG_POST_URL}".strip() in response
         assert f"Title: {BLOG_POST_TITLE}".strip() in response
 
-        if not skip_bing:
-            # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
-            with pytest.raises(ValueError, match="Missing Bing API key."):
-                response = function_map["informational_web_search"](BING_QUERY)
+        # Test web search -- we don't have a key in this case, so we expect it to raise an error (but it means the code path is correct)
+        with pytest.raises(ValueError, match="Missing Bing API key."):
+            response = function_map["informational_web_search"](BING_QUERY)
 
-            with pytest.raises(ValueError, match="Missing Bing API key."):
-                response = function_map["navigational_web_search"](BING_QUERY)
+        with pytest.raises(ValueError, match="Missing Bing API key."):
+            response = function_map["navigational_web_search"](BING_QUERY)
 
         # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
         with pytest.raises(IndexError):
@@ -128,8 +127,6 @@ def test_web_surfer_oai() -> None:
 
         user_proxy.initiate_chat(web_surfer, message="When was it founded?")
 
-        # user_proxy.initiate_chat(web_surfer, message="What's this page about?")
-
 
 @pytest.mark.skipif(
     skip_bing,
@@ -163,7 +160,6 @@ def test_web_surfer_bing() -> None:
     response = function_map["informational_web_search"](BING_QUERY)
     assert f"Address: bing: {BING_QUERY}" in response
     assert f"Title: {BING_QUERY} - Search" in response
-    # assert "Viewport position: Showing page 1 of 1." in response
     assert f"A Bing search for '{BING_QUERY}' found " in response
 
     # Test informational queries

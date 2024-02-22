@@ -595,12 +595,10 @@ def SeleniumBrowser(**kwargs):  # Function that loads the web driver
     Parameters:
         browser (str): A string specifying which browser to launch. Defaults to 'firefox'.
         download_dir (str): A path to where downloaded files are stored.  Defaults to None
+        resolution (tuple): A tuple of size 2 for screen resolution in the order of width and height.  Defaults to (1920,1080)
 
     Returns:
         webdriver: An instance of the Selenium WebDriver based on the specified browser.  User can open a new page by `webdriver.get('https://www.microsoft.com')`.
-
-    Raises:
-        ImportError: If selenium package is not installed, it raises an ImportError with a message suggesting to install it using pip.
     """
 
     # Load the arguments from kwargs
@@ -609,7 +607,7 @@ def SeleniumBrowser(**kwargs):  # Function that loads the web driver
     if not download_dir:
         download_dir = tempfile.gettempdir()
 
-    browser_res = kwargs.get("resolution", (1920, 5200))
+    browser_res = kwargs.get("resolution", (1920, 1080))
 
     def get_headless_options(download_dir, options):
         options.headless = True
@@ -647,19 +645,14 @@ def SeleniumBrowser(**kwargs):  # Function that loads the web driver
         profile.set_preference("browser.download.dir", download_dir)
         profile.set_preference("browser.download.useDownloadDir", True)
         profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "application/pdf")  # MIME type
-        # profile.set_preference("pdfjs.disabled", True) # Disable PDF viewer
         profile.set_preference("javascript.enabled", False)
-        # profile.set_preference("browser.startup.homepage", "https://microsoft.com")
         profile.update_preferences()
         options = FirefoxOptions()
         options.profile = profile
         options.set_capability("se:downloadsEnabled", True)
 
         # Instantiate the Firefox WebDriver with the configured options
-        driver = webdriver.Firefox(
-            options=get_headless_options(download_dir, options)
-        )  # , service_log_path=f'{tempfile.tempdir}/geckodriver.log')
-        driver.capabilities["moz:processID"]
+        driver = webdriver.Firefox(options=get_headless_options(download_dir, options))
 
     elif browser.lower() == "chrome":
         # Instantiate the Chrome Options
@@ -759,10 +752,6 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
     @property
     def viewport(self) -> str:
         """Return the content of the current viewport."""
-        # display_binary_image(self.driver.get_screenshot_as_png())
-        # self._page_content # or self.driver.page_source
-        # Image.open(io.BytesIO(self.driver.get_screenshot_as_png()))
-        # if self._page_content and len(self._page_content) > 0
         return self._page_content
 
     @property
@@ -787,9 +776,8 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
                 uri_or_path = urljoin(self.address, uri_or_path)
                 self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
             # Navigate to the specified URI or path
-            self._fetch_page(uri_or_path)  # Implemented, but not needed
-            # self.driver.get(uri_or_path)
-            # self.driver.implicitly_wait(self.page_load_time)
+            self._fetch_page(uri_or_path)
+
         self.viewport_current_page = 0
         self._split_pages()
 
@@ -863,7 +851,6 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         request_kwargs["params"]["q"] = query
         request_kwargs["params"]["textDecorations"] = False
         request_kwargs["params"]["textFormat"] = "raw"
-
         request_kwargs["stream"] = False
 
         # Make the request
@@ -920,9 +907,9 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         # Navigate to the file
         self.driver.get(f"file://{html_file_path}")
 
-    def download(self, uri_or_path: str) -> None:  # TODO: update this based on the new method
+    def download(self, uri_or_path: str) -> None:
         """Download from a given URI"""
-        self.driver.get(uri_or_path)
+        download_using_requests(self.driver, self.downloads_folder, os.path.basename(uri_or_path.rstrip("/")))
 
     def _get_headers(self):
         def parse_list_to_dict(lst):
