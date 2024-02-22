@@ -24,7 +24,9 @@ Links to notebook examples:
    - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_society_of_mind.ipynb)
 1. **Sequential Multi-Agent Chats**
    - Solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_chats.ipynb)
+   - Async-solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_async_chats.ipynb)
    - Solving Multiple Tasks in a Sequence of Chats Initiated by Different Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchats.ipynb)
+
 1. **Applications**
 
    - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
