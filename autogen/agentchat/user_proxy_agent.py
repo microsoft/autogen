@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Literal, Optional, Union
 from autogen.io.base import IOStream
 
 from .conversable_agent import ConversableAgent
+from ..runtime_logging import logging_enabled, log_new_agent
 
 
 class UserProxyAgent(ConversableAgent):
@@ -97,3 +98,6 @@ class UserProxyAgent(ConversableAgent):
             else self.DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS[human_input_mode],
             iostream=iostream,
         )
+
+        if logging_enabled():
+            log_new_agent(self, locals())
