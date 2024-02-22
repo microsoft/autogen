@@ -344,8 +344,8 @@ const SessionsView = ({}: any) => {
             }}
             className="mb-4 overflow-y-auto scroll rounded relative "
           >
-            <LoadingOverlay loading={loading} />
             {sessionRows}
+            <LoadingOverlay loading={loading} />
           </div>
           {(!sessions || sessions.length == 0) && !loading && (
             <div className="text-xs text-gray-500">

@@ -1,5 +1,7 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentArrowUpIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
@@ -320,45 +322,34 @@ const SkillsView = ({}: any) => {
     );
   };
 
+  const uploadSkill = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+    fileInput.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result;
+        if (content) {
+          try {
+            const skill = JSON.parse(content as string);
+            if (skill) {
+              setNewSkill(skill);
+              setShowNewSkillModal(true);
+            }
+          } catch (e) {
+            message.error("Invalid skill file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    fileInput.click();
+  };
+
   return (
     <div className=" text-primary ">
-      {/* <Modal
-        title={
-          <div>
-            <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
-          </div>
-        }
-        width={800}
-        open={showNewSkillModal}
-        onOk={() => {
-          saveSkill();
-          setShowNewSkillModal(false);
-        }}
-        onCancel={() => {
-          setShowNewSkillModal(false);
-        }}
-      >
-        <>
-          <div className="mb-2">
-            Provide code for a new skill or create from current conversation.
-          </div>
-          <Input
-            className="mb-2"
-            placeholder="Skill Title"
-            onChange={(e) => {
-              setNewSkillTitle(e.target.value);
-            }}
-          />
-          <TextArea
-            value={skillCode}
-            onChange={(e) => {
-              setSkillCode(e.target.value);
-            }}
-            rows={10}
-          />
-        </>
-      </Modal> */}
-
       <SkillModal
         skill={selectedSkill}
         setSkill={setSelectedSkill}
@@ -382,20 +373,31 @@ const SkillsView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1 font-semibold mb-2 ">
+            <div className="flex-1   font-semibold mb-2 ">
               {" "}
               Skills ({skillRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewSkillModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Skill
-            </LaunchButton>
+            <div>
+              <LaunchButton
+                className="text-sm p-2 px-3"
+                onClick={() => {
+                  setShowNewSkillModal(true);
+                }}
+              >
+                {" "}
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Skill
+              </LaunchButton>
+              <LaunchButton
+                className="text-sm p-2 ml-2 px-3"
+                onClick={() => {
+                  uploadSkill();
+                }}
+              >
+                {" "}
+                <ArrowUpTrayIcon className="w-5 h-5 inline-block" />
+              </LaunchButton>
+            </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">
             {" "}

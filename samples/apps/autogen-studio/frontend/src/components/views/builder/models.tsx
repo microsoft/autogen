@@ -1,5 +1,6 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -424,6 +425,32 @@ const ModelsView = ({}: any) => {
     );
   };
 
+  const uploadModel = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const model = JSON.parse(contents);
+            if (model) {
+              setNewModel(model);
+              setShowNewModelModal(true);
+            }
+          } catch (e) {
+            message.error("Invalid model file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   return (
     <div className="text-primary  ">
       <ModelModal
@@ -457,16 +484,27 @@ const ModelsView = ({}: any) => {
               {" "}
               Models ({modelRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewModelModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Model
-            </LaunchButton>
+            <div>
+              <LaunchButton
+                className="text-sm p-2 px-3"
+                onClick={() => {
+                  setShowNewModelModal(true);
+                }}
+              >
+                {" "}
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Model
+              </LaunchButton>
+              <LaunchButton
+                className="text-sm p-2 ml-2 px-3"
+                onClick={() => {
+                  uploadModel();
+                }}
+              >
+                {" "}
+                <ArrowUpTrayIcon className="w-5 h-5 inline-block" />
+              </LaunchButton>
+            </div>
           </div>
 
           <div className="text-xs mb-2 pb-1  ">

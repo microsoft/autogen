@@ -432,6 +432,10 @@ export const getSampleSkill = () => {
 };
 
 export const timeAgo = (dateString: string): string => {
+  // if dateStr is empty, return empty string
+  if (!dateString) {
+    return "";
+  }
   // Parse the date string into a Date object
   const timestamp = new Date(dateString);
 
@@ -523,17 +527,16 @@ export const fetchVersion = () => {
  */
 export const sanitizeConfig = (
   data: any,
-  keys: string[] = ["api_key"],
-  replacement: string = "********"
+  keys: string[] = ["api_key", "id"]
 ): any => {
   if (Array.isArray(data)) {
-    return data.map((item) => sanitizeConfig(item, keys, replacement));
+    return data.map((item) => sanitizeConfig(item, keys));
   } else if (typeof data === "object" && data !== null) {
     Object.keys(data).forEach((key) => {
       if (keys.includes(key)) {
-        data[key] = replacement;
+        delete data[key];
       } else {
-        data[key] = sanitizeConfig(data[key], keys, replacement);
+        data[key] = sanitizeConfig(data[key], keys);
       }
     });
   }

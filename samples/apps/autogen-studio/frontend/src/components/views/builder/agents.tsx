@@ -1,5 +1,6 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
@@ -252,7 +253,7 @@ const AgentsView = ({}: any) => {
           <>
             Agent Specification{" "}
             <span className="text-accent font-normal">
-              {agent?.config.name}
+              {agent?.config?.name || ""}
             </span>{" "}
           </>
         }
@@ -280,6 +281,38 @@ const AgentsView = ({}: any) => {
         {/* {JSON.stringify(localAgent)} */}
       </Modal>
     );
+  };
+
+  const uploadAgent = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const agent = JSON.parse(contents);
+            // TBD validate that it is a valid agent
+            if (!agent.config) {
+              throw new Error(
+                "Invalid agent file. An agent must have a config"
+              );
+            }
+            setNewAgent(agent);
+            setShowNewAgentModal(true);
+          } catch (err) {
+            message.error(
+              "Invalid agent file. Please upload a valid agent file."
+            );
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   };
 
   return (
@@ -315,16 +348,31 @@ const AgentsView = ({}: any) => {
               {" "}
               Agents ({agentRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewAgentModal(true);
-              }}
-            >
+            <div>
               {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Agent
-            </LaunchButton>
+              <LaunchButton
+                className="text-sm p-2 px-3"
+                onClick={() => {
+                  setShowNewAgentModal(true);
+                }}
+              >
+                {" "}
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Agent
+              </LaunchButton>
+              <LaunchButton
+                className="text-sm p-2 ml-2 px-3"
+                onClick={() => {
+                  uploadAgent();
+                }}
+              >
+                {" "}
+                <ArrowUpTrayIcon
+                  title="upload workflow"
+                  className="w-5 h-5 inline-block"
+                />
+              </LaunchButton>
+            </div>
           </div>
 
           <div className="text-xs mb-2 pb-1  ">

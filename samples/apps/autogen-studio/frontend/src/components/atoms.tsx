@@ -1109,31 +1109,31 @@ export const AgentFlowSpecView = ({
     setFlowSpec(updatedFlowSpec);
   };
 
-  const llm_config: ILLMConfig = localFlowSpec.config.llm_config || {
+  const llm_config: ILLMConfig = localFlowSpec?.config?.llm_config || {
     config_list: [],
     temperature: 0.1,
   };
 
-  const nameValidation = checkAndSanitizeInput(flowSpec.config.name);
+  const nameValidation = checkAndSanitizeInput(flowSpec?.config?.name);
 
   return (
     <>
       <div className="text-accent ">{title}</div>
       <GroupView
-        title=<div className="px-2">{flowSpec.config.name}</div>
+        title=<div className="px-2">{flowSpec?.config?.name}</div>
         className="mb-4 bg-primary  "
       >
         <ControlRowView
           title="Agent Name"
           className="mt-4"
           description="Name of the agent"
-          value={flowSpec.config.name}
+          value={flowSpec?.config?.name}
           control={
             <>
               <Input
                 className="mt-2"
                 placeholder="Agent Name"
-                value={flowSpec.config.name}
+                value={flowSpec?.config?.name}
                 onChange={(e) => {
                   onControlChange(e.target.value, "name");
                 }}
@@ -1173,7 +1173,7 @@ export const AgentFlowSpecView = ({
           title="Max Consecutive Auto Reply"
           className="mt-4"
           description="Max consecutive auto reply messages before termination."
-          value={flowSpec.config.max_consecutive_auto_reply}
+          value={flowSpec.config?.max_consecutive_auto_reply}
           control={
             <Slider
               min={1}

@@ -291,6 +291,31 @@ const WorkflowView = ({}: any) => {
     );
   };
 
+  const uploadWorkflow = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const workflow = JSON.parse(contents);
+            // TBD validate that it is a valid workflow
+            setNewWorkflow(workflow);
+            setShowNewWorkflowModal(true);
+          } catch (err) {
+            message.error("Invalid workflow file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const workflowTypes: MenuProps["items"] = [
     {
       key: "twoagents",
@@ -311,51 +336,12 @@ const WorkflowView = ({}: any) => {
         </div>
       ),
     },
-    {
-      type: "divider",
-    },
-    {
-      key: "uploadworkflow",
-      label: (
-        <div>
-          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
-          Upload Workflow
-        </div>
-      ),
-    },
   ];
 
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    if (key === "uploadworkflow") {
-      // upload workflow
-      const input = document.createElement("input");
-      input.type = "file";
-      input.accept = ".json";
-      input.onchange = (e: any) => {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const text = e.target?.result;
-          if (text) {
-            try {
-              const workflow = JSON.parse(text as string);
-              // TBD validate that it is a valid workflow
-              setNewWorkflow(workflow);
-              setShowNewWorkflowModal(true);
-            } catch (err) {
-              message.error("Invalid workflow file");
-            }
-          }
-        };
-        reader.readAsText(file);
-      };
-      input.click();
-      return;
-    } else {
-      const newConfig = sampleWorkflowConfig(key);
-      setNewWorkflow(newConfig);
-      setShowNewWorkflowModal(true);
-    }
+    const newConfig = sampleWorkflowConfig(key);
+    setNewWorkflow(newConfig);
+    setShowNewWorkflowModal(true);
   };
 
   return (
@@ -408,6 +394,19 @@ const WorkflowView = ({}: any) => {
                   </LaunchButton>
                 </div>
               </Dropdown>
+
+              <LaunchButton
+                className="text-sm p-2 ml-2 px-3"
+                onClick={() => {
+                  uploadWorkflow();
+                }}
+              >
+                {" "}
+                <ArrowUpTrayIcon
+                  title="upload workflow"
+                  className="w-5 h-5 inline-block"
+                />
+              </LaunchButton>
             </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">
