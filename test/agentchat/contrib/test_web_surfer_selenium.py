@@ -17,17 +17,12 @@ BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications
 BING_QUERY = "Microsoft"
 
 try:
-    from autogen.agentchat.contrib.web_surfer import WebSurferAgent, IS_SELENIUM_CAPABLE
+    from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 except ImportError:
     skip_all = True
     print("THERE WAS AN ERROR")
 else:
     skip_all = False
-
-if not IS_SELENIUM_CAPABLE:
-    skip_selenium = True
-else:
-    skip_selenium = False
 
 try:
     from openai import OpenAI
@@ -48,7 +43,7 @@ if not skip_oai:
 
 
 @pytest.mark.skipif(
-    skip_selenium,
+    skip_all,
     reason="do not run if dependency is not installed",
 )
 def test_web_surfer() -> None:
