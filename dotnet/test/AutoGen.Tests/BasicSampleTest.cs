@@ -40,7 +40,7 @@ namespace AutoGen.Tests
         [ApiKeyFact("OPENAI_API_KEY")]
         public async Task DynamicGroupChatGetMLNetPRTestAsync()
         {
-            await Example04_Dynamic_GroupChat_Get_MLNET_PR.RunAsync();
+            await Example04_Dynamic_GroupChat_Coding_Task.RunAsync();
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]

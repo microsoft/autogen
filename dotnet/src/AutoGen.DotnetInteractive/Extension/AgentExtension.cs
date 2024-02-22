@@ -68,7 +68,7 @@ public static class AgentExtension
                 }
             }
 
-            return new Message(Role.Assistant, result.ToString());
+            return new Message(Role.Assistant, result.ToString(), from: agent.Name);
         });
     }
 }

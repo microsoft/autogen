@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 
-await Example04_Dynamic_GroupChat_Get_MLNET_PR.RunAsync();
+await Example04_Dynamic_GroupChat_Coding_Task.RunAsync();
