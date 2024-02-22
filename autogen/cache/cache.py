@@ -14,16 +14,6 @@ class Cache:
     Attributes:
         config (Dict[str, Any]): A dictionary containing cache configuration.
         cache: The cache instance created based on the provided configuration.
-
-    Methods:
-        redis(cache_seed=42, redis_url="redis://localhost:6379/0"): Static method to create a Redis cache instance.
-        disk(cache_seed=42, cache_path_root=".cache"): Static method to create a Disk cache instance.
-        __init__(self, config): Initializes the Cache with the given configuration.
-        __enter__(self): Context management entry, returning the cache instance.
-        __exit__(self, exc_type, exc_value, traceback): Context management exit.
-        get(self, key, default=None): Retrieves an item from the cache.
-        set(self, key, value): Sets an item in the cache.
-        close(self): Closes the cache.
     """
 
     ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root"]
