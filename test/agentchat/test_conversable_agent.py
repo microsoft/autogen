@@ -472,6 +472,29 @@ async def test_a_generate_reply_raises_on_messages_and_sender_none(conversable_a
         await conversable_agent.a_generate_reply(messages=None, sender=None)
 
 
+def test_generate_reply_with_messages_and_sender_none(conversable_agent):
+    messages = [{"role": "user", "content": "hello"}]
+    try:
+        response = conversable_agent.generate_reply(messages=messages, sender=None)
+        assert response is not None, "Response should not be None"
+    except AssertionError as e:
+        pytest.fail(f"Unexpected AssertionError: {e}")
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+
+
+@pytest.mark.asyncio
+async def test_a_generate_reply_with_messages_and_sender_none(conversable_agent):
+    messages = [{"role": "user", "content": "hello"}]
+    try:
+        response = await conversable_agent.a_generate_reply(messages=messages, sender=None)
+        assert response is not None, "Response should not be None"
+    except AssertionError as e:
+        pytest.fail(f"Unexpected AssertionError: {e}")
+    except Exception as e:
+        pytest.fail(f"Unexpected exception: {e}")
+
+
 def test_update_function_signature_and_register_functions() -> None:
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)

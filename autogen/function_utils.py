@@ -225,21 +225,22 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
         TypeError: If the function is not annotated
 
     Examples:
-        ```
-        def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1) -> None:
-            pass
 
-        get_function_schema(f, description="function f")
+    ```python
+    def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1) -> None:
+        pass
 
-        #   {'type': 'function',
-        #    'function': {'description': 'function f',
-        #        'name': 'f',
-        #        'parameters': {'type': 'object',
-        #           'properties': {'a': {'type': 'str', 'description': 'Parameter a'},
-        #               'b': {'type': 'int', 'description': 'b'},
-        #               'c': {'type': 'float', 'description': 'Parameter c'}},
-        #           'required': ['a']}}}
-            ```
+    get_function_schema(f, description="function f")
+
+    #   {'type': 'function',
+    #    'function': {'description': 'function f',
+    #        'name': 'f',
+    #        'parameters': {'type': 'object',
+    #           'properties': {'a': {'type': 'str', 'description': 'Parameter a'},
+    #               'b': {'type': 'int', 'description': 'b'},
+    #               'c': {'type': 'float', 'description': 'Parameter c'}},
+    #           'required': ['a']}}}
+    ```
 
     """
     typed_signature = get_typed_signature(f)
