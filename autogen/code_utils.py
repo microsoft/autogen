@@ -251,7 +251,7 @@ def check_and_update_powershell_execution_policy():
         else:
             try:
                 subprocess.check_call(
-                    ["powershell", "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
+                    [powershell_command, "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
                 )
                 print("Execution policy updated successfully. The application will continue.")
             except subprocess.CalledProcessError as e:
