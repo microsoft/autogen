@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using AutoGen;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 
 #region weather_report
@@ -29,7 +30,7 @@ public partial class TypeSafeFunctionCall
         var functionInstance = new TypeSafeFunctionCall();
 
         // Get the generated function definition
-        FunctionDefinition functionDefiniton = functionInstance.WeatherReportFunction;
+        FunctionDefinition functionDefiniton = functionInstance.WeatherReportFunctionContract.ToOpenAIFunctionDefinition();
 
         // Get the generated function wrapper
         Func<string, Task<string>> functionWrapper = functionInstance.WeatherReportWrapper;

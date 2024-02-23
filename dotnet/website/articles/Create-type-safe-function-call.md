@@ -26,6 +26,8 @@ Then, create a `public partial` class to host the methods you want to use in Aut
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=weather_report)]
 
-The source generator will generate the function definition and function call wrapper for `WeatherReport` in another partial class based on its signature and structural comments. To use the generated function definition and function call wrapper, simply create an instance of that class and call the generated method:
+The source generator will generate the @AutoGen.FunctionContract and function call wrapper for `WeatherReport` in another partial class based on its signature and structural comments. The @AutoGen.FunctionContract is introduced by [#1736](https://github.com/microsoft/autogen/pull/1736) and contains all the necessary metadata such as function name, parameters, and return type. It is LLM independent and can be used to generate openai function definition or semantic kernel function. The function call wrapper is a helper class that provides a type-safe way to call the function.
+
+The following code shows how to generate openai function definition from the @AutoGen.FunctionContract and call the function using the function call wrapper.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/TypeSafeFunctionCallCodeSnippet.cs?name=weather_report_consume)]
