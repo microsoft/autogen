@@ -217,5 +217,6 @@ the output will be a path to the image instead of the image itself.
 
 class LocalJupyterCodeExecutor(JupyterCodeExecutor):
     def __init__(self, **kwargs: Any):
+        """Creates a LocalJupyterServer and passes it to JupyterCodeExecutor, see JupyterCodeExecutor for args"""
         jupyter_server = LocalJupyterServer()
         super().__init__(jupyter_server=jupyter_server, **kwargs)
