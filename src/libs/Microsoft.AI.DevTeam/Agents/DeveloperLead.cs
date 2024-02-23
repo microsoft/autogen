@@ -18,9 +18,7 @@ public class DeveloperLead : Agent
 
     private readonly IManageGithub _ghService;
 
-    protected override string MemorySegment => "dev-lead-memory";
-
-    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger, IManageGithub ghService) : base(state)
+    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<AgentState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger, IManageGithub ghService) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
@@ -35,34 +33,29 @@ public class DeveloperLead : Agent
 
         await stream.SubscribeAsync(HandleEvent);
     }
+
+    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+        switch (item.Type)
+        {
+            case EventType.DevPlanRequested:
+                var plan = await CreatePlan(item.Message);
+                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), plan);
+                // postEvent EventType.DevPlanGenerated
+                break;
+            case EventType.ChainClosed:
+                await ClosePlan(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), long.Parse(item.Data["parentNumber"]));
+                // postEvent EventType.DevPlanFinished
+                break;
+            default:
+                break;
+        }
+    }
     public async Task<string> CreatePlan(string ask)
     {
         try
         {
-            var function = _kernel.CreateSemanticFunction(DevLead.Plan, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.4, TopP = 1 });
-            var context = new ContextVariables();
-            context.Set("input", ask);
-            if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = ask,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.User
-            });
-            await AddWafContext(_memory, ask, context);
-            context.Set("input", ask);
-
-            var result = await _kernel.RunAsync(context, function);
-            var resultMessage = result.ToString();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = resultMessage,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.Agent
-            });
-            await _state.WriteStateAsync();
-
-            return resultMessage;
+            return await CallFunction(DevLead.Plan, ask, _kernel, _memory);
         }
         catch (Exception ex)
         {
@@ -106,23 +99,6 @@ public class DeveloperLead : Agent
         var plan = _state.State.History.Last().Message;
         var response = JsonSerializer.Deserialize<DevLeadPlanResponse>(plan);
         return Task.FromResult(response);
-    }
-    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
-    {
-        switch (item.Type)
-        {
-            case EventType.DevPlanRequested:
-                var plan = await CreatePlan(item.Message);
-                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), plan);
-                // postEvent EventType.DevPlanGenerated
-                break;
-            case EventType.ChainClosed:
-                await ClosePlan(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), long.Parse(item.Data["parentNumber"]));
-                // postEvent EventType.DevPlanFinished
-                break;
-            default:
-                break;
-        }
     }
 }
 

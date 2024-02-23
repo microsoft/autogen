@@ -16,50 +16,21 @@ public class Dev : Agent
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
     private readonly ILogger<Dev> _logger;
-    private readonly IManageGithub _ghService;
 
-    protected override string MemorySegment => "dev-memory";
-
-    public Dev([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger, IManageGithub ghService) : base(state)
+    public Dev([PersistentState("state", "messages")] IPersistentState<AgentState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
-        _ghService = ghService;
     }
-    public async Task<string> GenerateCode(string ask)
+
+    public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            var function = _kernel.CreateSemanticFunction(Developer.Implement, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
-            var context = new ContextVariables();
-            if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = ask,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.User
-            });
-            await AddWafContext(_memory, ask, context);
-            context.Set("input", ask);
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKeyString());
+        var stream = streamProvider.GetStream<Event>(streamId);
 
-            var result = await _kernel.RunAsync(context, function);
-            var resultMessage = result.ToString();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = resultMessage,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.Agent
-            });
-            await _state.WriteStateAsync();
-
-            return resultMessage;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generating code");
-            return default;
-        }
+        await stream.SubscribeAsync(HandleEvent);
     }
 
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
@@ -68,7 +39,7 @@ public class Dev : Agent
         {
             case EventType.CodeGenerationRequested:
                 var code = await GenerateCode(item.Message);
-                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
+                //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
                 // postEvent EventType.CodeGenerated
                 break;
             case EventType.ChainClosed:
@@ -79,8 +50,19 @@ public class Dev : Agent
                 break;
         }
     }
-
-
+    public async Task<string> GenerateCode(string ask)
+    {
+        try
+        {
+            return await CallFunction(Developer.Implement, ask, _kernel, _memory);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating code");
+            return default;
+        }
+    }
+    
     public Task<string> ReviewPlan(string plan)
     {
         throw new NotImplementedException();
@@ -165,4 +147,13 @@ public class Dev : Agent
             return default;
         }
     }
+}
+
+[GenerateSerializer]
+public class UnderstandingResult
+{
+    [Id(0)]
+    public string NewUnderstanding { get; set; }
+    [Id(1)]
+    public string Explanation { get; set; }
 }

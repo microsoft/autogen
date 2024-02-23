@@ -16,16 +16,11 @@ public class ProductManager : Agent
     private readonly ISemanticTextMemory _memory;
     private readonly ILogger<ProductManager> _logger;
 
-    private readonly IManageGithub _ghService;
-
-    protected override string MemorySegment => "pm-memory";
-
-    public ProductManager([PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger, IManageGithub ghService) : base(state)
+    public ProductManager([PersistentState("state", "messages")] IPersistentState<AgentState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger) : base(state)
     {
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
-        _ghService = ghService;
     }
 
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
@@ -42,7 +37,7 @@ public class ProductManager : Agent
         {
             case EventType.ReadmeRequested:
                 var readme = await CreateReadme(item.Message);
-                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
+                //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
                 // postEvent ReadmeGenerated
                 break;
             case EventType.ChainClosed:
@@ -57,29 +52,7 @@ public class ProductManager : Agent
     {
         try
         {
-            var function = _kernel.CreateSemanticFunction(PM.Readme, new OpenAIRequestSettings { MaxTokens = 10000, Temperature = 0.6, TopP = 1 });
-            var context = new ContextVariables();
-            context.Set("input", ask);
-            if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = ask,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.User
-            });
-            await AddWafContext(_memory, ask, context);
-            context.Set("input", ask);
-
-            var result = await _kernel.RunAsync(context, function);
-            var resultMessage = result.ToString();
-            _state.State.History.Add(new ChatHistoryItem
-            {
-                Message = resultMessage,
-                Order = _state.State.History.Count + 1,
-                UserType = ChatUserType.Agent
-            });
-            await _state.WriteStateAsync();
-            return resultMessage;
+            return await CallFunction(DevLead.Plan, ask, _kernel, _memory);
         }
         catch (Exception ex)
         {

@@ -1,3 +1,5 @@
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
@@ -5,62 +7,52 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public abstract class Agent : Grain, IChatHistory, IGrainWithStringKey
+public abstract class Agent : Grain, IGrainWithStringKey
 {
     public Agent(
-         [PersistentState("state", "messages")] IPersistentState<SemanticPersonaState> state)
+         [PersistentState("state", "messages")] IPersistentState<AgentState> state)
     {
         _state = state;
     }
-    protected virtual string MemorySegment { get; set; }
-    protected List<ChatHistoryItem> History { get; set; }
-    protected readonly IPersistentState<SemanticPersonaState> _state;
+    protected readonly IPersistentState<AgentState> _state;
 
     public abstract Task HandleEvent(Event item, StreamSequenceToken? token);
 
-    public async Task<string> GetLastMessage()
+    protected async Task<ContextVariables> CreateWafContext(ISemanticTextMemory memory, string ask)
     {
-        return _state.State.History.Last().Message;
-    }
-
-    protected async Task AddWafContext(ISemanticTextMemory memory, string ask, ContextVariables context)
-    {
+        var context = new ContextVariables();
         var interestingMemories = memory.SearchAsync("waf-pages", ask, 2);
         var wafContext = "Consider the following architectural guidelines:";
         await foreach (var m in interestingMemories)
         {
             wafContext += $"\n {m.Metadata.Text}";
         }
-
+        context.Set("input", ask);
         context.Set("wafContext", wafContext);
+        return context;
     }
 
-    // public async override Task OnActivateAsync(CancellationToken cancellationToken)
-    // {
-    //     var streamProvider = this.GetStreamProvider("StreamProvider");
-    //     var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKey());
-    //     var stream = streamProvider.GetStream<Event>(streamId);
+    protected void AddToHistory(string message, ChatUserType userType)
+    {
+        if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
+        _state.State.History.Add(new ChatHistoryItem
+        {
+            Message = message,
+            Order = _state.State.History.Count + 1,
+            UserType = userType
+        });
+    }
 
-    //     await stream.SubscribeAsync(HandleEvent);
-    // }
-}
-
-public interface IChatHistory
-{
-    Task<string> GetLastMessage();
-}
-
-public interface IUnderstand
-{
-    Task<UnderstandingResult> BuildUnderstanding(string content);
-}
-
-[GenerateSerializer]
-public class UnderstandingResult {
-    [Id(0)]
-    public string NewUnderstanding { get; set; }
-    [Id(1)]
-    public string Explanation { get; set; }
+    protected async Task<string> CallFunction(string template, string ask, IKernel kernel, ISemanticTextMemory memory)
+    {
+        var function = kernel.CreateSemanticFunction(template, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
+        var context = await CreateWafContext(memory, ask);
+        var result = (await kernel.RunAsync(context, function)).ToString();
+        AddToHistory(ask, ChatUserType.User);
+        AddToHistory(result, ChatUserType.Agent);
+        await _state.WriteStateAsync();
+        return result;
+    }
 }
 
 [Serializable]
@@ -72,7 +64,7 @@ public class ChatHistoryItem
 
 }
 
-public class SemanticPersonaState
+public class AgentState
 {
     public List<ChatHistoryItem> History { get; set; }
     public string Understanding { get; set; }

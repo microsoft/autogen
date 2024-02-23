@@ -78,7 +78,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
             long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
             var suffix = $"{org}-{repo}";
-            // we only resond to non-bot comments
+            // we only respond to non-bot comments
             if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
             {
                 await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
