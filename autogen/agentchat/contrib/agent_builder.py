@@ -446,8 +446,19 @@ Hint:
             agent_description_list.append(resp_agent_description)
 
         for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_description_list)):
+            enhanced_sys_msg = """You are now working in a group chat with different expert and a group chat manager.
+            Here is the members' name: {members}
+            The group chat manager will select the speaker who can speak at the current time, but if there is someone you want to talk to, you can @mention him/her with "I would like to hear the opinion from ...".
+            Here is your profile: """
+            enhanced_sys_msg = enhanced_sys_msg.format(members=agent_name_list)
+            enhanced_sys_msg += sys_msg
             agent_configs.append(
-                {"name": name, "model": self.agent_model, "system_message": sys_msg, "description": description}
+                {
+                    "name": name,
+                    "model": self.agent_model,
+                    "system_message": enhanced_sys_msg,
+                    "description": description,
+                }
             )
 
         if coding is None:
