@@ -237,7 +237,7 @@ powershell_command = get_powershell_command()
 
 
 def check_and_update_powershell_execution_policy():
-    policy_check_command = [powershell_command, "Get-ExecutionPolicy", "-Scope", "CurrentUser"]
+    policy_check_command = ["powershell", "Get-ExecutionPolicy", "-Scope", "CurrentUser"]
     policy = subprocess.check_output(policy_check_command, text=True).strip()
 
     if policy == "Restricted":
@@ -251,7 +251,7 @@ def check_and_update_powershell_execution_policy():
         else:
             try:
                 subprocess.check_call(
-                    [powershell_command, "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
+                    ["powershell", "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
                 )
                 print("Execution policy updated successfully. The application will continue.")
             except subprocess.CalledProcessError as e:
