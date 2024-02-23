@@ -304,3 +304,14 @@ class DBWebRequestModel(object):
     model: Optional[Model] = None
     message: Optional[Message] = None
     connection_id: Optional[str] = None
+
+
+@dataclass
+class SocketMessage(object):
+    connection_id: str
+    data: Dict[str, Any]
+    type: str
+
+    def dict(self):
+        result = asdict(self)
+        return result
