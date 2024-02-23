@@ -248,7 +248,7 @@ export const LoadBox = ({
 export const LoadingBar = ({ children }: IProps) => {
   return (
     <>
-      <div className="rounded bg-secondary mt-4 p-3">
+      <div className="rounded bg-secondary  p-3">
         <span className="inline-block h-6 w-6 relative mr-2">
           <Cog8ToothIcon className="animate-ping text-accent absolute inline-flex h-full w-full rounded-ful  opacity-75" />
           <Cog8ToothIcon className="relative text-accent animate-spin  inline-flex rounded-full h-6 w-6" />
@@ -957,6 +957,7 @@ export const CsvLoader = ({
   const [data, setData] = useState<DataRow[]>([]);
   const [columns, setColumns] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [pageSize, setPageSize] = useState<number>(50);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1006,8 +1007,11 @@ export const CsvLoader = ({
         dataSource={data}
         columns={columns}
         loading={isLoading}
-        pagination={{ pageSize: 50 }}
+        pagination={{ pageSize: pageSize }}
         scroll={{ y: 450, x: scrollX }}
+        onChange={(pagination) => {
+          setPageSize(pagination.pageSize || 50);
+        }}
       />
     </div>
   );
