@@ -193,12 +193,12 @@ sorry, the answer should be 2, not 3
         private async Task RunMathChatAsync(IAgent teacher, IAgent student, IAgent admin)
         {
             var group = new GroupChat(
-                admin,
-                new[]
-                {
+                [
+                    admin,
                     teacher,
                     student,
-                });
+                ],
+                admin);
 
             admin.AddInitializeMessage($@"Welcome to the group chat! I'm admin", group);
             teacher.AddInitializeMessage($@"Hey I'm Teacher", group);

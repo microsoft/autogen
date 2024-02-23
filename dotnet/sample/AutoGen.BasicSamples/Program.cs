@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 
-await Example09_LMStudio_FunctionCall.RunAsync();
+await Example04_Dynamic_GroupChat_Coding_Task.RunAsync();
