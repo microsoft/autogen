@@ -267,7 +267,7 @@ def _cmd(lang):
     if lang in ["shell"]:
         return ["sh"]
     if lang in ["ps1", "pwsh", powershell_command]:
-        if WIN32:
+        if WIN32 and powershell_command == "powershell" and not is_docker_running():
             check_and_update_powershell_execution_policy()
         return [powershell_command]
 

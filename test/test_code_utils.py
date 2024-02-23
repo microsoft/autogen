@@ -423,7 +423,7 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
 
 @pytest.mark.skipif(
     skip_docker or not is_docker_running() and sys.platform != "win32",
-    reason="execution polict matters only without docker in window",
+    reason="execution policy matters only without docker in window",
 )
 def test_check_and_update_powershell_execution_policy():
     with patch("subprocess.check_output", return_value="Restricted"):
