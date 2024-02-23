@@ -1,11 +1,29 @@
-from abc import ABC, abstractmethod
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Protocol, runtime_checkable
 
 from .datamodel import Document, GetResults, Query, QueryResults
 from .encoder import Encoder
 
 
-class VectorDB(ABC):
+def convert_get_results_to_query_results(get_result: GetResults) -> QueryResults:
+    """
+    Convert a GetResults object to a QueryResults object.
+
+    Args:
+        get_result: GetResults | The GetResults object.
+
+    Returns:
+        QueryResults | The QueryResults object.
+    """
+    return QueryResults(
+        ids=[get_result.ids],
+        texts=[get_result.texts] if get_result.texts else None,
+        embeddings=[get_result.embeddings] if get_result.embeddings else None,
+        metadatas=[get_result.metadatas] if get_result.metadatas else None,
+    )
+
+
+@runtime_checkable
+class VectorDB(Protocol):
     """
     Abstract class for vector database. A vector database is responsible for storing and retrieving documents.
     """
@@ -24,9 +42,8 @@ class VectorDB(ABC):
         Returns:
             None
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """
         Create a collection in the vector database.
@@ -43,9 +60,8 @@ class VectorDB(ABC):
         Returns:
             Any | The collection object.
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def get_collection(self, collection_name: str = None) -> Any:
         """
         Get the collection from the vector database.
@@ -57,9 +73,8 @@ class VectorDB(ABC):
         Returns:
             Any | The collection object.
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def delete_collection(self, collection_name: str) -> None:
         """
         Delete the collection from the vector database.
@@ -70,9 +85,8 @@ class VectorDB(ABC):
         Returns:
             None
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def insert_docs(self, docs: List[Document], collection_name: str = None, upsert: bool = False) -> None:
         """
         Insert documents into the collection of the vector database.
@@ -85,9 +99,8 @@ class VectorDB(ABC):
         Returns:
             None
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def update_docs(self, docs: List[Document], collection_name: str = None) -> None:
         """
         Update documents in the collection of the vector database.
@@ -99,9 +112,8 @@ class VectorDB(ABC):
         Returns:
             None
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def delete_docs(self, ids: List[Any], collection_name: str = None, **kwargs) -> None:
         """
         Delete documents from the collection of the vector database.
@@ -114,9 +126,8 @@ class VectorDB(ABC):
         Returns:
             None
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def retrieve_docs(self, queries: List[Query], collection_name: str = None) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
@@ -128,9 +139,8 @@ class VectorDB(ABC):
         Returns:
             QueryResults | The query results.
         """
-        raise NotImplementedError
+        ...
 
-    @abstractmethod
     def get_docs_by_ids(self, ids: List[Any], collection_name: str = None, include=None, **kwargs) -> GetResults:
         """
         Retrieve documents from the collection of the vector database based on the ids.
@@ -145,7 +155,7 @@ class VectorDB(ABC):
         Returns:
             GetResults | The query results.
         """
-        raise NotImplementedError
+        ...
 
     def convert_get_results_to_query_results(self, get_result: GetResults) -> QueryResults:
         """
@@ -157,12 +167,7 @@ class VectorDB(ABC):
         Returns:
             QueryResults | The QueryResults object.
         """
-        return QueryResults(
-            ids=[get_result.ids],
-            texts=[get_result.texts] if get_result.texts else None,
-            embeddings=[get_result.embeddings] if get_result.embeddings else None,
-            metadatas=[get_result.metadatas] if get_result.metadatas else None,
-        )
+        ...
 
 
 class VectorDBFactory:

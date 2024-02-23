@@ -1,4 +1,4 @@
-PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
+PROMPT_DEFAULT = """You're a retrieval augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user. You should follow the following steps to answer a question:
 Step 1, you estimate the user's intent based on the question and context. The intent can be a code generation task or
 a question answering task.
@@ -18,7 +18,7 @@ User's question is: {input_question}
 Context is: {input_context}
 """
 
-PROMPT_CODE = """You're a retrieve augmented coding assistant. You answer user's questions based on your own knowledge and the
+PROMPT_CODE = """You're a retrieval augmented coding assistant. You answer user's questions based on your own knowledge and the
 context provided by the user.
 If you can't answer the question with or without the current context, you should reply exactly `UPDATE CONTEXT`.
 For code generation, you must obey the following rules:
@@ -33,7 +33,7 @@ User's question is: {input_question}
 Context is: {input_context}
 """
 
-PROMPT_QA = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
+PROMPT_QA = """You're a retrieval augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user.
 If you can't answer the question with or without the current context, you should reply exactly `UPDATE CONTEXT`.
 You must give as short an answer as possible.

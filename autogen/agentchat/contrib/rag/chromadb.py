@@ -3,7 +3,7 @@ from typing import Any, Callable, List
 from .constants import CHROMADB_MAX_BATCH_SIZE
 from .datamodel import Document, GetResults, Query, QueryResults
 from .utils import logger, timer
-from .vectordb import VectorDB
+from .vectordb import convert_get_results_to_query_results
 
 try:
     import chromadb
@@ -15,7 +15,7 @@ except ImportError:
     raise ImportError("Please install chromadb: `pip install chromadb`")
 
 
-class ChromaVectorDB(VectorDB):
+class ChromaVectorDB:
     """
     A vector database that uses ChromaDB as the backend.
     """
@@ -247,3 +247,15 @@ class ChromaVectorDB(VectorDB):
             embeddings=results.get("embeddings"),
             metadatas=results.get("metadatas"),
         )
+
+    def convert_get_results_to_query_results(self, get_result: GetResults) -> QueryResults:
+        """
+        Convert a GetResults object to a QueryResults object.
+
+        Args:
+            get_result: GetResults | The GetResults object.
+
+        Returns:
+            QueryResults | The QueryResults object.
+        """
+        return convert_get_results_to_query_results(get_result)

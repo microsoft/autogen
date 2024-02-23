@@ -558,7 +558,9 @@ class RagAgent(ConversableAgent):
         if self.first_time:
             self.perform_rag(message)
             context = self.query_results_to_context(self.reranked_query_results, token_limits)
-            llm_message = self.selected_prompt_rag.format(input_question=message, input_context=context)
+            llm_message = self.selected_prompt_rag.format(
+                input_question=self.received_raw_message, input_context=context
+            )
         else:
             is_update, new_message = self.check_update_context(message)
             logger.debug(
@@ -570,7 +572,9 @@ class RagAgent(ConversableAgent):
                 )
                 self.perform_rag(new_message)
                 context = self.query_results_to_context(self.reranked_query_results, token_limits)
-                llm_message = self.selected_prompt_rag.format(input_question=new_message, input_context=context)
+                llm_message = self.selected_prompt_rag.format(
+                    input_question=self.received_raw_message, input_context=context
+                )
             else:
                 llm_message = ""
         return llm_message
