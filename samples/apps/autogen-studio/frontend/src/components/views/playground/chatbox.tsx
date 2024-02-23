@@ -431,6 +431,7 @@ const ChatBox = ({
               console.log("error", data);
               // setError(data);
               ToastMessage.error(data.message);
+              setLoading(false);
             }
           });
         } else {
@@ -438,6 +439,7 @@ const ChatBox = ({
             console.log("error", data);
             // setError(data);
             ToastMessage.error(data.message);
+            setLoading(false);
           });
           ToastMessage.error(
             "Connection error. Ensure server is up and running."
@@ -455,7 +457,6 @@ const ChatBox = ({
         setTimeout(() => {
           scrollChatBox(messageBoxInputRef);
         }, 500);
-        setLoading(false);
       });
   };
 
@@ -541,8 +542,12 @@ const ChatBox = ({
                       {" "}
                       agents working on task ..
                     </span>{" "}
-                    {socketMsgs.length} agent message
-                    {socketMsgs.length > 1 && "s"} sent/received.
+                    {socketMsgs.length > 0 && (
+                      <span>
+                        {socketMsgs.length} agent message
+                        {socketMsgs.length > 1 && "s"} sent/received.
+                      </span>
+                    )}
                   </div>
                 </LoadingBar>
               </div>
