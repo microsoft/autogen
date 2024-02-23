@@ -1,16 +1,19 @@
 from contextlib import contextmanager
-from typing import Any, Iterator, Optional
+from functools import partial
+import threading
+from time import sleep
+from typing import Any, Callable, Dict, Iterator, Optional
 
 from .base import IOStream
 
 # Check if the websockets module is available
 try:
     import websockets
-    from websockets.sync.client import connect as ws_connect, Connection  # type: ignore[attr-defined]
+    from websockets.sync.server import ServerConnection, WebSocketServer, serve as ws_serve  # type: ignore[attr-defined]
 except ImportError as e:  # pragma: no cover
     websockets = None  # type: ignore[assignment]
-    ws_connect = None  # type: ignore[assignment]
-    _import_error = e
+    ws_serve = None  # type: ignore[assignment]
+    _import_error: Optional[ImportError] = e
 else:
     _import_error = None  # type: ignore[assignment]
 
@@ -21,11 +24,11 @@ __all__ = ("IOWebsockets",)
 class IOWebsockets(IOStream):
     """A websocket input/output stream."""
 
-    def __init__(self, websocket: "Connection") -> None:
+    def __init__(self, websocket: "ServerConnection") -> None:
         """Initialize the websocket input/output stream.
 
         Args:
-            uri (str, optional): The URI of the websocket server. Defaults to "ws://localhost:8765".
+            websocket (ServerConnection): The websocket server.
 
         Raises:
             ImportError: If the websockets module is not available.
@@ -35,24 +38,71 @@ class IOWebsockets(IOStream):
 
         self._websocket = websocket
 
-    @classmethod
+    @staticmethod
+    def _handler(websocket: "ServerConnection", on_connect: Callable[["IOWebsockets"], None]) -> None:
+        """The handler function for the websocket server."""
+        print(f" - _handler(): Client connected on {websocket}", flush=True)
+        # create a new IOWebsockets instance using the websocket that is create when a client connects
+        iowebsocket = IOWebsockets(websocket)
+        # call the on_connect function
+        on_connect(iowebsocket)
+
     @contextmanager
-    def connect(cls, uri: Optional[str] = None) -> Iterator["IOWebsockets"]:
+    @staticmethod
+    def run_server_in_thread(
+        *,
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        on_connect: Callable[["IOWebsockets"], None],
+    ) -> Iterator[str]:
         """Factory function to create a websocket input/output stream.
 
         Args:
-            uri (str, optional): The URI of the websocket server. Defaults to "ws://localhost:8765".
+            host (str, optional): The host to bind the server to. Defaults to "127.0.0.1".
+            port (int, optional): The port to bind the server to. Defaults to 8765.
+            on_connect (Callable[[IOWebsockets], None]): The function to be executed on client connection. Typically creates agents and initiate chat.
 
         Yields:
-            IOWebsockets: The websocket input/output stream.
+            str: The URI of the websocket server.
         """
-        url = uri or "ws://localhost:8765"
+        server_dict: Dict[str, WebSocketServer] = {}
 
-        with ws_connect(url) as ws:
-            yield cls(ws)
+        def _run_server() -> None:
+            # print(f" - _run_server(): starting server on ws://{host}:{port}", flush=True)
+            with ws_serve(
+                handler=partial(IOWebsockets._handler, on_connect=on_connect), host=host, port=port
+            ) as server:
+                # print(f" - _run_server(): server {server} started on ws://{host}:{port}", flush=True)
+
+                server_dict["server"] = server
+
+                # runs until the server is shutdown
+                server.serve_forever()
+
+                return
+
+        # start server in a separate thread
+        thread = threading.Thread(target=_run_server)
+        thread.start()
+        try:
+            while "server" not in server_dict:
+                sleep(0.1)
+
+            yield f"ws://{host}:{port}"
+
+        finally:
+            # print(f" - run_server_in_thread(): shutting down server on ws://{host}:{port}", flush=True)
+            # gracefully stop server
+            if "server" in server_dict:
+                # print(f" - run_server_in_thread(): shutting down server {server_dict['server']}", flush=True)
+                server_dict["server"].shutdown()
+
+            # wait for the thread to stop
+            if thread:
+                thread.join()
 
     @property
-    def websocket(self) -> "Connection":
+    def websocket(self) -> "ServerConnection":
         """The URI of the websocket server."""
         return self._websocket
 
@@ -79,7 +129,9 @@ class IOWebsockets(IOStream):
             str: The line read from the input stream.
 
         """
-        self._websocket.send(prompt)
+        if prompt != "":
+            self._websocket.send(prompt)
+
         msg = self._websocket.recv()
 
         return msg.decode("utf-8") if isinstance(msg, bytes) else msg

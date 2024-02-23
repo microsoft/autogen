@@ -229,7 +229,8 @@ def get_powershell_command():
                 return "pwsh"
 
         except FileNotFoundError:
-            print("Neither powershell nor pwsh is installed.")
+            if WIN32:
+                logging.warning("Neither powershell nor pwsh is installed but it is a Windows OS")
             return None
 
 
