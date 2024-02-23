@@ -10,7 +10,7 @@ using Orleans.Streams;
 namespace Microsoft.AI.DevTeam;
 
 [ImplicitStreamSubscription("DevPersonas")]
-public class ProductManager : Agent
+public class ProductManager : AiAgent
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;

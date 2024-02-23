@@ -8,7 +8,7 @@ namespace Microsoft.AI.DevTeam;
 
 [StatelessWorker]
 [ImplicitStreamSubscription("Hubber")]
-public class Hubber : Grain, IGrainWithStringKey
+public class Hubber : Agent
 {
     private readonly IManageGithub _ghService;
 
@@ -25,7 +25,7 @@ public class Hubber : Grain, IGrainWithStringKey
 
         await stream.SubscribeAsync(HandleEvent);
     }
-    public async Task HandleEvent(Event item, StreamSequenceToken? token)
+    public override async Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
@@ -47,6 +47,13 @@ public class Hubber : Grain, IGrainWithStringKey
                     CreateIssue(item.Data["org"], item.Data["repo"], p, $"{nameof(Developer)}.{nameof(Developer.Implement)}", long.Parse(item.Data["parentNumber"])));
                 Task.WaitAll(devTasks.ToArray());
                 break;
+            case EventType.ReadmeStored:
+                
+                break;
+            case EventType.SandboxRunFinished:
+                // _azureService.Store();
+                // _azureService.RunInSandbox();
+                break;
             default:
                 break;
         }
@@ -66,10 +73,10 @@ public class Hubber : Grain, IGrainWithStringKey
     }
     public async Task CreatePullRequest()
     {
-        // await _ghService.CreatePR();
+        //await _ghService.CreatePR();
     }
     public async Task CommitToBranch()
     {
-        // await _ghService.CommitToBranch()
+        //await _ghService.CommitToBranch()
     }
 }

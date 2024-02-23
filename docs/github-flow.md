@@ -8,6 +8,7 @@
     NewAsk
         -> create PM issue
         -> create DevLead issue
+        -> create a branch
 ```
 ```
     ReadmeGenerated
@@ -25,14 +26,23 @@
     CodeGenerated
         -> post comment
 ```
+```
+    ReadmeFinished
+        -> commit to branch
+```
+```
+    SandboxRunFinished
+        -> commit to branch
+```
 
 ### AzureOps agent handles:
 ```
-    ReadmeFinished
+    ReadmeChainClosed
         -> store
+        -> ReadmeStored
 ```
 ```
-    CodeFinished
+    CodeChainClosed
         -> store
         -> run in sandbox
 ```

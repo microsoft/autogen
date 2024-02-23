@@ -10,7 +10,7 @@ using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription("DevPersonas")]
-public class DeveloperLead : Agent
+public class DeveloperLead : AiAgent
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;

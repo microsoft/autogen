@@ -7,17 +7,14 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-public abstract class Agent : Grain, IGrainWithStringKey
+public abstract class AiAgent : Agent
 {
-    public Agent(
+     public AiAgent(
          [PersistentState("state", "messages")] IPersistentState<AgentState> state)
     {
         _state = state;
     }
     protected readonly IPersistentState<AgentState> _state;
-
-    public abstract Task HandleEvent(Event item, StreamSequenceToken? token);
-
     protected async Task<ContextVariables> CreateWafContext(ISemanticTextMemory memory, string ask)
     {
         var context = new ContextVariables();
@@ -53,6 +50,21 @@ public abstract class Agent : Grain, IGrainWithStringKey
         await _state.WriteStateAsync();
         return result;
     }
+
+}
+
+public abstract class Agent : Grain, IGrainWithStringKey
+{
+    public abstract Task HandleEvent(Event item, StreamSequenceToken? token);
+    protected async Task PublishEvent(string ns, string id, Event item)
+    {
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create(ns, id);
+        var stream = streamProvider.GetStream<Event>(streamId);
+        await stream.OnNextAsync(item);
+    }
+
+    
 }
 
 [Serializable]

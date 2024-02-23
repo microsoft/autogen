@@ -6,7 +6,7 @@ namespace Microsoft.AI.DevTeam;
 
 [StatelessWorker]
 [ImplicitStreamSubscription("AzureGenie")]
-public class AzureGenie : Grain, IGrainWithStringKey
+public class AzureGenie : Agent
 {
     private readonly IManageAzure _azureService;
 
@@ -24,12 +24,13 @@ public class AzureGenie : Grain, IGrainWithStringKey
         await stream.SubscribeAsync(HandleEvent);
     }
 
-    public async Task HandleEvent(Event item, StreamSequenceToken? token)
+    public override async Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
         {
             case EventType.ReadmeChainClosed:
                 //_azureService.Store();
+                // postEvent ReadmeStored
                 break;
             case EventType.CodeChainClosed:
                 // _azureService.Store();

@@ -11,7 +11,7 @@ namespace Microsoft.AI.DevTeam;
 
 //[RegexImplicitStreamSubscription("")]
 [ImplicitStreamSubscription("developers")]
-public class Dev : Agent
+public class Dev : AiAgent
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -50,6 +50,7 @@ public class Dev : Agent
                 break;
         }
     }
+
     public async Task<string> GenerateCode(string ask)
     {
         try
@@ -62,7 +63,7 @@ public class Dev : Agent
             return default;
         }
     }
-    
+
     public Task<string> ReviewPlan(string plan)
     {
         throw new NotImplementedException();
