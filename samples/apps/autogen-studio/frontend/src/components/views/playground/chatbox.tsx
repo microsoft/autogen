@@ -326,17 +326,18 @@ const ChatBox = ({
 
       client.onmessage = (message) => {
         const data = JSON.parse(message.data);
-
-        // make copy of current socket data
-        const newsocketMessages = Object.assign([], socketMessages);
-        newsocketMessages.push(data);
-        setSocketMessages(newsocketMessages);
-        socketMsgs.push(data);
-        setTimeout(() => {
-          scrollChatBox(socketDivRef);
-          scrollChatBox(messageBoxInputRef);
-        }, 200);
-        console.log("received message", data, socketMsgs.length);
+        if (data && data.type === "agent_message") {
+          // make copy of current socket data
+          const newsocketMessages = Object.assign([], socketMessages);
+          newsocketMessages.push(data.data);
+          setSocketMessages(newsocketMessages);
+          socketMsgs.push(data.data);
+          setTimeout(() => {
+            scrollChatBox(socketDivRef);
+            scrollChatBox(messageBoxInputRef);
+          }, 200);
+          // console.log("received message", data, socketMsgs.length);
+        }
       };
 
       return () => {
@@ -487,7 +488,10 @@ const ChatBox = ({
   };
 
   return (
-    <div className="text-primary    relative  h-full rounded  ">
+    <div
+      style={{ height: "calc(100vh - 160px)" }}
+      className="text-primary    relative  h-full rounded  "
+    >
       <div
         style={{ zIndex: 100 }}
         className=" absolute right-0  text-secondary -top-8 rounded p-2"
@@ -499,7 +503,7 @@ const ChatBox = ({
       <div
         ref={messageBoxInputRef}
         className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
-        style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
+        style={{ minHeight: "30px", height: "calc(100vh - 310px)" }}
       >
         <div className="scroll-gradient h-10">
           {" "}
@@ -627,7 +631,7 @@ const ChatBox = ({
             <div className="mt-2 text-xs text-secondary">
               <Tooltip title={`Socket ${wsConnectionStatus}`}>
                 <div
-                  className={`w-1 h-4 rounded  inline-block mr-1 ${getConnectionColor(
+                  className={`w-1 h-3 rounded  inline-block mr-1 ${getConnectionColor(
                     wsConnectionStatus
                   )}`}
                 ></div>{" "}

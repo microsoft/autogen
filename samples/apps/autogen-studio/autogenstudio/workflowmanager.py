@@ -4,7 +4,7 @@ from typing import List, Optional, Union, Dict
 from requests import Session
 
 import autogen
-from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, Message
+from .datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, Message, SocketMessage
 from .utils import get_skills_from_prompt, clear_folder, sanitize_model
 from datetime import datetime
 
@@ -69,13 +69,16 @@ class AutoGenWorkFlowManager:
             "message": message,
             "timestamp": datetime.now().isoformat(),
             "sender_type": sender_type,
-            "connection_id": self.connection_id
+            "connection_id": self.connection_id,
+            "message_type": "agent_message"
         }
         # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
         if request_reply != False or sender_type == "groupchat":
             self.agent_history.append(message_payload)  # add to history
             if self.send_message_function:  # send over the message queue
-                self.send_message_function(message_payload)
+                socket_msg = SocketMessage(
+                    type="agent_message", data=message_payload, connection_id=self.connection_id)
+                self.send_message_function(socket_msg.dict())
 
     def _sanitize_history_message(self, message: str) -> str:
         """
