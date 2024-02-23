@@ -9,13 +9,13 @@ from .base import IOStream
 # Check if the websockets module is available
 try:
     import websockets
-    from websockets.sync.server import ServerConnection, WebSocketServer, serve as ws_serve  # type: ignore[attr-defined]
+    from websockets.sync.server import ServerConnection, WebSocketServer, serve as ws_serve
 except ImportError as e:  # pragma: no cover
     websockets = None  # type: ignore[assignment]
     ws_serve = None  # type: ignore[assignment]
     _import_error: Optional[ImportError] = e
 else:
-    _import_error = None  # type: ignore[assignment]
+    _import_error = None
 
 
 __all__ = ("IOWebsockets",)

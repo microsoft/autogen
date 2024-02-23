@@ -1,13 +1,13 @@
 from contextlib import AbstractContextManager, contextmanager
+from tempfile import TemporaryDirectory
 import threading
 from time import sleep
-from typing import Iterator
+from typing import Dict, Iterator
 from unittest.mock import MagicMock
 
 import pytest
 import autogen
-from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.agentchat.user_proxy_agent import UserProxyAgent
+from autogen.cache.cache import Cache
 
 from conftest import skip_openai
 from autogen.io import IOWebsockets
@@ -17,7 +17,6 @@ OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 # Check if the websockets module is available
 try:
-    from websockets.sync.server import ServerConnection
     from websockets.sync.client import connect as ws_connect
 except ImportError:  # pragma: no cover
     skip_test = True
@@ -94,7 +93,9 @@ class TestConsoleIOWithWebsockets:
     def test_chat(self) -> None:
         print("Testing setup", flush=True)
 
-        def on_connect(iostream: IOWebsockets) -> None:
+        success_dict = {"success": False}
+
+        def on_connect(iostream: IOWebsockets, success_dict: Dict[str, bool] = success_dict) -> None:
             try:
                 print(f" - on_connect(): Connected to client using IOWebsockets {iostream}", flush=True)
 
@@ -133,12 +134,20 @@ class TestConsoleIOWithWebsockets:
                     iostream=iostream,
                 )
 
-                print(f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'", flush=True)
-                user_proxy.initiate_chat(  # noqa: F704
-                    agent,
-                    message=initial_msg,
-                )
+                # we will use a temporary directory as the cache path root to ensure fresh completion each time
+                with TemporaryDirectory() as cache_path_root:
+                    with Cache.disk(cache_path_root=cache_path_root) as cache:
+                        print(
+                            f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'",
+                            flush=True,
+                        )
+                        user_proxy.initiate_chat(  # noqa: F704
+                            agent,
+                            message=initial_msg,
+                            cache=cache,
+                        )
 
+                success_dict["success"] = True
                 return
             except Exception as e:
                 print(f" - on_connect(): Exception occurred: {e}", flush=True)
@@ -152,7 +161,7 @@ class TestConsoleIOWithWebsockets:
 
                 print(" - Sending message to server.", flush=True)
                 # websocket.send("2+2=?")
-                websocket.send("Please write a poem about a tree.")
+                websocket.send("Please write a poem about spring in a city of your choice.")
 
                 while True:
                     message = websocket.recv()
@@ -168,4 +177,5 @@ class TestConsoleIOWithWebsockets:
                         print(" - Received TERMINATE message. Exiting.", flush=True)
                         break
 
+        assert success_dict["success"]
         print("Test passed.", flush=True)

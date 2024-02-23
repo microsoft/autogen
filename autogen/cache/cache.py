@@ -19,7 +19,7 @@ class Cache:
     ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root"]
 
     @staticmethod
-    def redis(cache_seed=42, redis_url="redis://localhost:6379/0"):
+    def redis(cache_seed=42, redis_url="redis://localhost:6379/0") -> "Cache":
         """
         Create a Redis cache instance.
 
@@ -33,7 +33,7 @@ class Cache:
         return Cache({"cache_seed": cache_seed, "redis_url": redis_url})
 
     @staticmethod
-    def disk(cache_seed=42, cache_path_root=".cache"):
+    def disk(cache_seed=42, cache_path_root=".cache") -> "Cache":
         """
         Create a Disk cache instance.
 
