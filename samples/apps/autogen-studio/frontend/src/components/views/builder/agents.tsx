@@ -6,7 +6,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Modal, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -315,6 +315,28 @@ const AgentsView = ({}: any) => {
     input.click();
   };
 
+  const agentsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadagent",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Agent
+        </div>
+      ),
+    },
+  ];
+
+  const agentsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadagent") {
+      uploadAgent();
+      return;
+    }
+  };
+
   return (
     <div className="text-primary  ">
       <AgentModal
@@ -349,29 +371,21 @@ const AgentsView = ({}: any) => {
               Agents ({agentRows.length}){" "}
             </div>
             <div>
-              {" "}
-              <LaunchButton
-                className="text-sm p-2 px-3"
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: agentsMenuItems,
+                  onClick: agentsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
                 onClick={() => {
                   setShowNewAgentModal(true);
                 }}
               >
-                {" "}
                 <PlusIcon className="w-5 h-5 inline-block mr-1" />
                 New Agent
-              </LaunchButton>
-              <LaunchButton
-                className="text-sm p-2 ml-2 px-3"
-                onClick={() => {
-                  uploadAgent();
-                }}
-              >
-                {" "}
-                <ArrowUpTrayIcon
-                  title="upload workflow"
-                  className="w-5 h-5 inline-block"
-                />
-              </LaunchButton>
+              </Dropdown.Button>
             </div>
           </div>
 

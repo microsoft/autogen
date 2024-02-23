@@ -10,7 +10,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from openai import OpenAIError
-import websockets
 from ..version import VERSION
 
 from ..datamodel import (
@@ -36,8 +35,6 @@ def message_handler():
         message = message_queue.get()
         for connection in active_connections:
             socket_client_id = websocket_manager.socket_store[connection]
-            print("socket id", socket_client_id,
-                  "connection id", message["connection_id"])
             if message["connection_id"] == socket_client_id:
                 asyncio.run(websocket_manager.send_message(
                     message, connection))

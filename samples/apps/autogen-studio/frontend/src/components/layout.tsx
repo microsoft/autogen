@@ -25,7 +25,7 @@ const Layout = ({
 }: Props) => {
   const layoutContent = (
     <div
-      style={{ height: "calc(100vh - 64px)" }}
+      // style={{ height: "calc(100vh - 64px)" }}
       className={`  h-full flex flex-col`}
     >
       {showHeader && <Header meta={meta} link={link} />}

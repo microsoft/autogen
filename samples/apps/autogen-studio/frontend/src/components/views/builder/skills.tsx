@@ -1,13 +1,12 @@
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
-  DocumentArrowUpIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Input, Modal, message, MenuProps, Dropdown } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -23,12 +22,9 @@ import {
   BounceLoader,
   Card,
   CardHoverBar,
-  CodeBlock,
-  LaunchButton,
   LoadingOverlay,
   MonacoEditor,
 } from "../../atoms";
-import TextArea from "antd/es/input/TextArea";
 
 const SkillsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -348,6 +344,28 @@ const SkillsView = ({}: any) => {
     fileInput.click();
   };
 
+  const skillsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadskill",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Skill
+        </div>
+      ),
+    },
+  ];
+
+  const skillsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadskill") {
+      uploadSkill();
+      return;
+    }
+  };
+
   return (
     <div className=" text-primary ">
       <SkillModal
@@ -378,25 +396,21 @@ const SkillsView = ({}: any) => {
               Skills ({skillRows.length}){" "}
             </div>
             <div>
-              <LaunchButton
-                className="text-sm p-2 px-3"
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: skillsMenuItems,
+                  onClick: skillsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
                 onClick={() => {
                   setShowNewSkillModal(true);
                 }}
               >
-                {" "}
                 <PlusIcon className="w-5 h-5 inline-block mr-1" />
                 New Skill
-              </LaunchButton>
-              <LaunchButton
-                className="text-sm p-2 ml-2 px-3"
-                onClick={() => {
-                  uploadSkill();
-                }}
-              >
-                {" "}
-                <ArrowUpTrayIcon className="w-5 h-5 inline-block" />
-              </LaunchButton>
+              </Dropdown.Button>
             </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">

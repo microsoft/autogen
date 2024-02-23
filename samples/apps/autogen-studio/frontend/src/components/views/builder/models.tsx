@@ -7,7 +7,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Dropdown, Input, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -18,13 +18,7 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  BounceLoader,
-  Card,
-  CardHoverBar,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import TextArea from "antd/es/input/TextArea";
 
 const ModelsView = ({}: any) => {
@@ -451,6 +445,28 @@ const ModelsView = ({}: any) => {
     input.click();
   };
 
+  const modelsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadmodel",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Model
+        </div>
+      ),
+    },
+  ];
+
+  const modelsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadmodel") {
+      uploadModel();
+      return;
+    }
+  };
+
   return (
     <div className="text-primary  ">
       <ModelModal
@@ -485,25 +501,21 @@ const ModelsView = ({}: any) => {
               Models ({modelRows.length}){" "}
             </div>
             <div>
-              <LaunchButton
-                className="text-sm p-2 px-3"
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: modelsMenuItems,
+                  onClick: modelsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
                 onClick={() => {
                   setShowNewModelModal(true);
                 }}
               >
-                {" "}
                 <PlusIcon className="w-5 h-5 inline-block mr-1" />
                 New Model
-              </LaunchButton>
-              <LaunchButton
-                className="text-sm p-2 ml-2 px-3"
-                onClick={() => {
-                  uploadModel();
-                }}
-              >
-                {" "}
-                <ArrowUpTrayIcon className="w-5 h-5 inline-block" />
-              </LaunchButton>
+              </Dropdown.Button>
             </div>
           </div>
 

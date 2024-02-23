@@ -336,12 +336,31 @@ const WorkflowView = ({}: any) => {
         </div>
       ),
     },
+    {
+      type: "divider",
+    },
+    {
+      key: "uploadworkflow",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Workflow
+        </div>
+      ),
+    },
   ];
 
+  const showWorkflow = (config: IFlowConfig) => {
+    setSelectedWorkflow(config);
+    setShowWorkflowModal(true);
+  };
+
   const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    const newConfig = sampleWorkflowConfig(key);
-    setNewWorkflow(newConfig);
-    setShowNewWorkflowModal(true);
+    if (key === "uploadworkflow") {
+      uploadWorkflow();
+      return;
+    }
+    showWorkflow(sampleWorkflowConfig(key));
   };
 
   return (
@@ -375,38 +394,18 @@ const WorkflowView = ({}: any) => {
               Workflows ({workflowRows.length}){" "}
             </div>
             <div className=" ">
-              <Dropdown
+              <Dropdown.Button
+                type="primary"
                 menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
                 placement="bottomRight"
                 trigger={["click"]}
-              >
-                <div
-                  className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
-                  role="button"
-                  onClick={(e) => {
-                    // add agent to flowSpec?.groupchat_config.agents
-                  }}
-                >
-                  <LaunchButton className=" text-sm p-2 px-3">
-                    {" "}
-                    <PlusIcon className="w-5 h-5 inline-block mr-1" />
-                    New Workflow
-                  </LaunchButton>
-                </div>
-              </Dropdown>
-
-              <LaunchButton
-                className="text-sm p-2 ml-2 px-3"
                 onClick={() => {
-                  uploadWorkflow();
+                  showWorkflow(sampleWorkflowConfig());
                 }}
               >
-                {" "}
-                <ArrowUpTrayIcon
-                  title="upload workflow"
-                  className="w-5 h-5 inline-block"
-                />
-              </LaunchButton>
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Workflow
+              </Dropdown.Button>
             </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">

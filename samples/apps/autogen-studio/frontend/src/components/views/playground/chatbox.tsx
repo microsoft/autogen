@@ -215,9 +215,7 @@ const ChatBox = ({
             isUser ? "USER" : "AGENTS"
           }`}</div>
           <div
-            className={`inline-block group relative ${
-              isUser ? "" : " w-full "
-            } p-2 rounded  ${css}`}
+            className={`inline-block group relative w-full p-2 rounded  ${css}`}
           >
             {" "}
             {items.length > 0 && editable && (
@@ -404,7 +402,6 @@ const ChatBox = ({
     setLoading(true);
     fetch(textUrl, postData)
       .then((res) => {
-        setLoading(false);
         if (res.status === 200) {
           res.json().then((data) => {
             if (data && data.status) {
@@ -428,6 +425,7 @@ const ChatBox = ({
               setTimeout(() => {
                 socketMsgs = [];
                 setMessages(messageHolder);
+                setLoading(false);
               }, 2000);
             } else {
               console.log("error", data);
@@ -457,6 +455,7 @@ const ChatBox = ({
         setTimeout(() => {
           scrollChatBox(messageBoxInputRef);
         }, 500);
+        setLoading(false);
       });
   };
 
@@ -528,14 +527,14 @@ const ChatBox = ({
         )}
         <div className="ml-2"> {messageListView}</div>
 
-        {socketMsgs.length > 0 && (
+        {loading && (
           <div className={` inline-flex gap-2 duration-300 `}>
             <div className=""></div>
             <div className="font-semibold text-secondary text-sm w-16">
               AGENTS
             </div>
-            <div className="relative w-full ">
-              <div className="mb-2">
+            <div className="relative w-full  ">
+              <div className="mb-2  ">
                 <LoadingBar>
                   <div className="mb-1  inline-block ml-2 text-xs text-secondary">
                     <span className="innline-block text-sm ml-2">
@@ -548,30 +547,32 @@ const ChatBox = ({
                 </LoadingBar>
               </div>
 
-              <div
-                ref={socketDivRef}
-                style={{
-                  minHeight: "300px",
-                  maxHeight: "400px",
-                  overflowY: "auto",
-                }}
-                className={`inline-block scroll group relative   p-2 rounded w-full bg-light `}
-              >
-                <CollapseBox
-                  open={true}
-                  title={`Agent Messages (${socketMsgs.length} message${
-                    socketMsgs.length > 1 ? "s" : ""
-                  }) `}
+              {socketMsgs.length > 0 && (
+                <div
+                  ref={socketDivRef}
+                  style={{
+                    minHeight: "300px",
+                    maxHeight: "400px",
+                    overflowY: "auto",
+                  }}
+                  className={`inline-block scroll group relative   p-2 rounded w-full bg-light `}
                 >
-                  {socketMsgs?.map((message: any, i: number) => {
-                    return (
-                      <div key={i}>
-                        <AgentRow message={message} />
-                      </div>
-                    );
-                  })}
-                </CollapseBox>
-              </div>
+                  <CollapseBox
+                    open={true}
+                    title={`Agent Messages (${socketMsgs.length} message${
+                      socketMsgs.length > 1 ? "s" : ""
+                    }) `}
+                  >
+                    {socketMsgs?.map((message: any, i: number) => {
+                      return (
+                        <div key={i}>
+                          <AgentRow message={message} />
+                        </div>
+                      );
+                    })}
+                  </CollapseBox>
+                </div>
+              )}
             </div>
           </div>
         )}

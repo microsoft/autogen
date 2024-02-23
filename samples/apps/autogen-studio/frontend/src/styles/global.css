@@ -292,6 +292,12 @@ iiz__zoom-img {
 .ant-btn {
   @apply text-primary !important;
 }
+:where(
+    .css-dev-only-do-not-override-1qhpsh8
+  ).ant-btn-compact-item.ant-btn-primary:not([disabled])
+  + .ant-btn-compact-item.ant-btn-primary:not([disabled]):before {
+  @apply bg-secondary !important;
+}
 .ant-btn-primary {
   @apply bg-accent text-white !important;
 }
