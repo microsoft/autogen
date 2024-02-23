@@ -19,7 +19,7 @@ try:
     skip_reason = ""
 except ImportError:
     skip = True
-    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor not installed."
+    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed."
 
 # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
 if sys.platform == "win32":
