@@ -1,12 +1,12 @@
-from .datamodel import Chunk, Document, QueryResults, Query
-from .encoder import Encoder, EmbeddingFunction, EmbeddingFunctionFactory
+from .datamodel import Chunk, Document, Query, QueryResults
+from .encoder import EmbeddingFunction, EmbeddingFunctionFactory, Encoder
 from .promptgenerator import PromptGenerator
+from .rag_agent import RagAgent
 from .reranker import Reranker, RerankerFactory
 from .retriever import Retriever, RetrieverFactory
 from .splitter import Splitter, SplitterFactory, TextLineSplitter
+from .utils import logger, timer
 from .vectordb import VectorDB, VectorDBFactory
-from .utils import timer, logger
-from .rag_agent import RagAgent
 
 __all__ = [
     "Chunk",

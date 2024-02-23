@@ -1,8 +1,8 @@
-import unittest
-import pytest
 import os
 import sys
+import unittest
 
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -10,7 +10,7 @@ from conftest import skip_openai  # noqa: E402
 try:
     from openai import OpenAI
 
-    from autogen.agentchat.contrib.rag.reranker import TfidfReranker, RerankerFactory, Query
+    from autogen.agentchat.contrib.rag.reranker import Query, RerankerFactory, TfidfReranker
 except ImportError:
     skip = True
 else:
@@ -24,18 +24,18 @@ class TestTfidfReranker(unittest.TestCase):
         self.docs = ["This is document 1", "This is document 2", "This is document 3"]
         self.query = Query("query", k=2)
 
-    def test_vecotrize(self):
-        self.reranker.vecotrize(self.docs)
+    def test_vectorize(self):
+        self.reranker.vectorize(self.docs)
         self.assertIsNotNone(self.reranker.corpus_tfidf)
 
     def test_rerank_return_docs(self):
-        self.reranker.vecotrize(self.docs)
+        self.reranker.vectorize(self.docs)
         reranked_docs = self.reranker.rerank(self.query, docs=self.docs, return_docs=True)
         self.assertEqual(len(reranked_docs), self.query.k)
         self.assertIsInstance(reranked_docs[0], str)
 
     def test_rerank_return_scores(self):
-        self.reranker.vecotrize(self.docs)
+        self.reranker.vectorize(self.docs)
         reranked_docs = self.reranker.rerank(self.query, docs=self.docs, return_scores=True)
         self.assertEqual(len(reranked_docs), self.query.k)
         self.assertIsInstance(reranked_docs[0], tuple)
@@ -43,7 +43,7 @@ class TestTfidfReranker(unittest.TestCase):
         self.assertIsInstance(reranked_docs[0][1], float)
 
     def test_rerank_return_docs_and_scores(self):
-        self.reranker.vecotrize(self.docs)
+        self.reranker.vectorize(self.docs)
         reranked_docs = self.reranker.rerank(self.query, docs=self.docs, return_docs=True, return_scores=True)
         self.assertEqual(len(reranked_docs), self.query.k)
         self.assertIsInstance(reranked_docs[0], tuple)

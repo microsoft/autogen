@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict
-from .datamodel import Query, QueryResults, ItemID, GetResults
+from typing import Dict, List
+
+from .datamodel import GetResults, ItemID, Query, QueryResults
 from .encoder import Encoder
-from .vectordb import VectorDBFactory
 from .utils import timer
+from .vectordb import VectorDBFactory
 
 
 class Retriever(ABC):

@@ -1,7 +1,7 @@
-from typing import Any, Dict, List, Optional, Union, Mapping, Sequence
-from pydantic.dataclasses import dataclass
 from dataclasses import asdict
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
+from pydantic.dataclasses import dataclass
 
 Metadata = Union[Mapping[str, Union[str, int, float, bool, None]], None]
 Vector = Union[Sequence[float], Sequence[int]]

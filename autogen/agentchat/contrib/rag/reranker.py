@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Union
+from typing import List, Optional, Tuple, Union
+
 from .datamodel import Query
 from .utils import lazy_import, timer
 
@@ -42,7 +43,7 @@ class TfidfReranker(Reranker):
         self.vectorizer = TfidfVectorizer()
         self.docs = None
 
-    def vecotrize(self, docs: List[str]) -> None:
+    def vectorize(self, docs: List[str]) -> None:
         """
         Vectorize the documents.
 
@@ -76,7 +77,7 @@ class TfidfReranker(Reranker):
             List[Union[int, Tuple[Union[int, str], float]]] | The reranked documents or the reranked documents with scores.
         """
         if docs and self.docs != docs:
-            self.vecotrize(docs)
+            self.vectorize(docs)
         if not docs and not self.docs:
             raise ValueError("Please provide documents to fit the reranker.")
         query_tfidf = self.vectorizer.transform([query.text])

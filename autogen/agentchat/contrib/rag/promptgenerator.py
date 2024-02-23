@@ -1,8 +1,10 @@
 import re
-from typing import List, Union, Callable, Optional, Dict, Literal
+from typing import Callable, Dict, List, Literal, Optional, Union
+
 from autogen.agentchat import AssistantAgent
+
+from .prompts import PROMPTS_GENERATOR, PROMPTS_RAG
 from .utils import logger, timer
-from .prompts import PROMPTS_RAG, PROMPTS_GENERATOR
 
 
 def extract_refined_questions(input_text: str) -> List[str]:

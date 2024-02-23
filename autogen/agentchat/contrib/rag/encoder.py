@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import List, Union, Callable
-from .datamodel import Document, Vector, Chunk
-from .utils import lazy_import, logger, timer
+from typing import Callable, List, Union
 
+from .datamodel import Chunk, Document, Vector
+from .utils import lazy_import, logger, timer
 
 MsgWarningEmbeddingFunction = (
     "The embedding function is not an instance of EmbeddingFunction. Please make sure the embedding "

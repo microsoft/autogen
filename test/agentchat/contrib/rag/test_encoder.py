@@ -1,22 +1,23 @@
-import unittest
-import pytest
 import os
 import sys
+import unittest
 
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
 try:
-    from openai import OpenAI
     import sentence_transformers
+    from openai import OpenAI
+
     from autogen.agentchat.contrib.rag.encoder import (
-        Encoder,
-        EmbeddingFunctionFactory,
-        SentenceTransformerEmbeddingFunction,
-        EmbeddingFunction,
-        Document,
         Chunk,
+        Document,
+        EmbeddingFunction,
+        EmbeddingFunctionFactory,
+        Encoder,
+        SentenceTransformerEmbeddingFunction,
     )
 except ImportError:
     skip = True

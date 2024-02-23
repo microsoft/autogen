@@ -1,20 +1,23 @@
 import copy
 from functools import partial
-from termcolor import colored
-from typing import Callable, Dict, Optional, Union, List, Tuple, Literal
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+
 from IPython import get_ipython
-from autogen.agentchat import Agent, AssistantAgent, UserProxyAgent, ConversableAgent
+from termcolor import colored
+
+from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
+from autogen.code_utils import extract_code
 from autogen.oai import OpenAIWrapper
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.code_utils import extract_code
-from .datamodel import QueryResults, Query, ItemID, GetResults
-from .promptgenerator import PromptGenerator
-from .retriever import RetrieverFactory, Retriever
-from .reranker import RerankerFactory, Reranker
-from .encoder import Encoder, EmbeddingFunction, EmbeddingFunctionFactory
-from .splitter import SplitterFactory, Splitter
-from .utils import logger, timer, merge_and_get_unique_in_turn_same_length
+
 from .constants import RAG_MINIMUM_MESSAGE_LENGTH
+from .datamodel import GetResults, ItemID, Query, QueryResults
+from .encoder import EmbeddingFunction, EmbeddingFunctionFactory, Encoder
+from .promptgenerator import PromptGenerator
+from .reranker import Reranker, RerankerFactory
+from .retriever import Retriever, RetrieverFactory
+from .splitter import Splitter, SplitterFactory
+from .utils import logger, merge_and_get_unique_in_turn_same_length, timer
 
 
 class RagAgent(ConversableAgent):
@@ -295,7 +298,7 @@ class RagAgent(ConversableAgent):
         self._is_termination_msg = self._is_termination_msg_rag if is_termination_msg is None else is_termination_msg
         self.register_reply([Agent, None], RagAgent.generate_rag_reply, position=2)
 
-    def _is_termination_msg_rag(self, message):
+    def _is_termination_msg_rag(self, message) -> bool:
         """Check if a message is a termination message.
         For code generation, terminate when no code block is detected. Currently only detect python code blocks.
         For question answering, terminate when don't update context, i.e., answer is given.

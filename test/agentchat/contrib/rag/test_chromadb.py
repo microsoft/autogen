@@ -1,14 +1,16 @@
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
 try:
-    from openai import OpenAI
     import chromadb
     import sentence_transformers
+    from openai import OpenAI
+
     from autogen.agentchat.contrib.rag.chromadb import (
         ChromaVectorDB,
         Document,

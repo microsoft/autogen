@@ -1,8 +1,8 @@
-import unittest
-import pytest
 import os
 import sys
+import unittest
 
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -11,10 +11,10 @@ try:
     from openai import OpenAI
 
     from autogen.agentchat.contrib.rag.utils import (
-        lazy_import,
-        verify_one_arg,
         flatten_list,
+        lazy_import,
         merge_and_get_unique_in_turn_same_length,
+        verify_one_arg,
     )
 except ImportError:
     skip = True

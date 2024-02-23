@@ -1,13 +1,16 @@
-import os
-import requests
 import glob
-from urllib.parse import urlparse
+import os
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Union, Callable
+from typing import Callable, List, Tuple, Union
+from urllib.parse import urlparse
+
+import requests
+
 from autogen.token_count_utils import count_token
-from .datamodel import Chunk
-from .utils import logger, lazy_import, timer
+
 from .constants import RAG_MINIMUM_MESSAGE_LENGTH
+from .datamodel import Chunk
+from .utils import lazy_import, logger, timer
 
 PLAIN_TEXT_EXTENSION = [
     ".txt",

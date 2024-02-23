@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Any, Callable
-from .datamodel import Document, Query, QueryResults, GetResults
+from typing import Any, Callable, List
+
+from .datamodel import Document, GetResults, Query, QueryResults
 from .encoder import Encoder
 
 

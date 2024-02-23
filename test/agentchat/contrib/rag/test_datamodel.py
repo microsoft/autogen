@@ -1,13 +1,15 @@
-import pytest
-import sys
 import os
+import sys
+
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
-    from autogen.agentchat.contrib.rag.datamodel import Chunk, Document, QueryResults, Query, GetResults
+
+    from autogen.agentchat.contrib.rag.datamodel import Chunk, Document, GetResults, Query, QueryResults
 except ImportError:
     skip = True
 else:

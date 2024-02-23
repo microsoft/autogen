@@ -1,8 +1,9 @@
-from typing import List, Any, Callable
-from .datamodel import Document, Query, QueryResults, GetResults
-from .vectordb import VectorDB
-from .utils import logger, timer
+from typing import Any, Callable, List
+
 from .constants import CHROMADB_MAX_BATCH_SIZE
+from .datamodel import Document, GetResults, Query, QueryResults
+from .utils import logger, timer
+from .vectordb import VectorDB
 
 try:
     import chromadb

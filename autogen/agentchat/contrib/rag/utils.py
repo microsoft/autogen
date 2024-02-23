@@ -1,10 +1,11 @@
-import time
-import logging
 import importlib
-from typing import Any, List
-from functools import wraps
-from termcolor import colored
+import logging
+import time
 from collections import deque
+from functools import wraps
+from typing import Any, List
+
+from termcolor import colored
 
 
 class MyLogger(logging.Logger):
