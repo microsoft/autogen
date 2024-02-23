@@ -15,17 +15,18 @@ try:
     from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
     from autogen.coding.jupyter_code_executor import LocalJupyterCodeExecutor
 
+    # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
+    if sys.platform == "win32":
+        classes_to_test = [EmbeddedIPythonCodeExecutor]
+    else:
+        classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
+
     skip = False
     skip_reason = ""
 except ImportError:
     skip = True
     skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed."
-
-# Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
-if sys.platform == "win32":
-    classes_to_test = [EmbeddedIPythonCodeExecutor]
-else:
-    classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
+    classes_to_test = []
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)
