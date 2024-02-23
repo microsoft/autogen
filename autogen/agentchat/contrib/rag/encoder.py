@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import Callable, List, Union
+from typing import Callable, List, Protocol, Union, runtime_checkable
 
 from .datamodel import Chunk, Document, Vector
 from .utils import lazy_import, logger, timer
@@ -12,7 +11,8 @@ MsgErrorEmbeddingFunction = "The embedding function is not callable."
 MsgWarningDependentLibrary = "Please install {} to use {}."
 
 
-class EmbeddingFunction(ABC):
+@runtime_checkable
+class EmbeddingFunction(Protocol):
     """
     Abstract class for embedding function. An embedding function is responsible for embedding text, images, etc. into vectors.
 
@@ -23,7 +23,6 @@ class EmbeddingFunction(ABC):
     model_name: str = None
     dimensions: int = None
 
-    @abstractmethod
     def __call__(self, input: Union[str, List[str]]) -> List[Vector]:
         """
         Embed input into vectors.
@@ -34,7 +33,7 @@ class EmbeddingFunction(ABC):
         Returns:
             A list of vectors.
         """
-        raise NotImplementedError
+        ...
 
 
 class SentenceTransformerEmbeddingFunction(EmbeddingFunction):

@@ -1,16 +1,15 @@
-from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Protocol, Tuple, Union, runtime_checkable
 
 from .datamodel import Query
 from .utils import lazy_import, timer
 
 
-class Reranker(ABC):
+@runtime_checkable
+class Reranker(Protocol):
     """
     Abstract class for reranker. A reranker is responsible for reranking documents based on the query.
     """
 
-    @abstractmethod
     def rerank(
         self,
         query: Query,
@@ -28,10 +27,10 @@ class Reranker(ABC):
         Returns:
             List[Tuple[str, float]] | The reranked documents with scores.
         """
-        raise NotImplementedError
+        ...
 
 
-class TfidfReranker(Reranker):
+class TfidfReranker:
     """
     A simple TFIDF reranker.
     """
