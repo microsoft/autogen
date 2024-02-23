@@ -575,20 +575,24 @@ class TestGetPowerShellCommand(unittest.TestCase):
         self.assertEqual(get_powershell_command(), "pwsh")
 
     @patch("subprocess.run")
-    def test_get_powershell_command_no_shell(self, mock_subprocess_run):
+    @patch("logging.warning")
+    def test_get_powershell_command_windows_no_shell(self, mock_logging_warning, mock_subprocess_run):
         # Set up the mock to simulate 'powershell' and 'pwsh' not found
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
 
-        with patch("sys.stdout", new=StringIO()) as fake_out:
-            get_powershell_command()
-            self.assertEqual(fake_out.getvalue().strip(), "Neither powershell nor pwsh is installed.")
+        with patch("autogen.code_utils.WIN32", True):
+            self.assertIsNone(get_powershell_command())
+            mock_logging_warning.assert_called_once_with(
+                "Neither powershell nor pwsh is installed but it is a Windows OS"
+            )
 
     @patch("subprocess.run")
-    def test_get_powershell_command_no_shell_no_output(self, mock_subprocess_run):
-        # Set up the mock to simulate 'powershell' and 'pwsh' not found without printing error message
-        mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-
-        self.assertIsNone(get_powershell_command())
+    def test_get_powershell_command_no_windows_no_shell(self, mock_subprocess_run):
+        # Set up the mock to simulate 'powershell' and 'pwsh' not found
+        mock_subprocess_run.side_effect = FileNotFoundError
+        # Mock WIN32 to False
+        with patch("autogen.code_utils.WIN32", False):
+            self.assertIsNone(get_powershell_command())
 
 
 if __name__ == "__main__":
