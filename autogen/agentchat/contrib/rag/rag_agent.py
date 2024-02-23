@@ -126,9 +126,11 @@ class RagAgent(ConversableAgent):
                 - prompt_select (str): the prompt select. Default is None.
                 - prompt_rag (str): the prompt rag. Default is None.
                 - enable_update_context (bool): whether to enable update context. Default is True.
-                - customized_trigger_words (str): the customized trigger words. Default is "question".
-                    If the message starts or ends with the trigger words, the context will be updated.
-                - vector_db_get_is_fast (bool): whether the vector db get is fast. Default is True.
+                - customized_trigger_words (Union[str, List[str]]): the customized trigger words, case insensitive.
+                    Default is "question". If the message starts or ends with the trigger words, the context will be updated.
+                - vector_db_get_is_fast (bool): whether the vector db get is fast. If True, will save some memory w/o
+                    introducing much latency. Default is True.
+                - source_in_reply (bool): whether to add the source to the reply. Default is True.
         """
         super().__init__(
             name=name,
@@ -288,7 +290,11 @@ class RagAgent(ConversableAgent):
         self.ipython = get_ipython()
         self.post_process_func = self.rag_config.get("post_process_func", self.add_source_to_reply)
         self.enable_update_context = self.rag_config.get("enable_update_context", True)
-        self.customized_trigger_words = self.rag_config.get("customized_trigger_words", "question")
+        self.customized_trigger_words = self.rag_config.get("customized_trigger_words", ["question"])
+        if isinstance(self.customized_trigger_words, str):
+            self.customized_trigger_words = [self.customized_trigger_words.lower()]
+        else:
+            self.customized_trigger_words = [word.lower() for word in self.customized_trigger_words]
         self.vector_db_get_is_fast = self.rag_config.get("vector_db_get_is_fast", True)
         self.received_raw_message = None
         self.used_doc_ids = set()
@@ -478,7 +484,8 @@ class RagAgent(ConversableAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        trigger_words = ["update context", self.customized_trigger_words.lower()]
+        trigger_words = ["update context"]
+        trigger_words.extend(self.customized_trigger_words)
         for word in trigger_words:
             length_word = len(word) * 2
             if word in message[-length_word:].lower() or word in message[:length_word].lower():
