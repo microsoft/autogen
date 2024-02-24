@@ -161,7 +161,11 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 def test_infer_lang():
     assert infer_lang("print('hello world')") == "python"
-    assert infer_lang("pip install autogen") == "sh"
+    if sys.platform == "win32":
+        assert infer_lang("pip install autogen") == get_powershell_command()
+    else:
+        assert infer_lang("pip install autogen") == "sh"
+    
 
     # test infer lang for unknown code/invalid code
     assert infer_lang("dummy text") == UNKNOWN
