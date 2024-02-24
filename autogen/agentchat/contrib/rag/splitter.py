@@ -150,6 +150,32 @@ class Splitter(ABC):
         except ValueError:
             return False
 
+    @staticmethod
+    def deduplicate_chunks(chunks: List[Chunk], batch_size: int = 1000) -> List[Chunk]:
+        """
+        Deduplicate chunks by id.
+
+        Args:
+            chunks: List[Chunk] | The list of chunks.
+            batch_size: int | The size of each batch for processing (default is 1000).
+
+        Returns:
+            List[Chunk] | The deduplicated list of chunks.
+        """
+        seen_ids = set()
+        dedup_chunks = []
+
+        # Batch processing
+        for i in range(0, len(chunks), batch_size):
+            batch_dedup_chunks = []
+            batch = chunks[i : i + batch_size]
+            for chunk in batch:
+                if chunk.id not in seen_ids:
+                    batch_dedup_chunks.append(chunk)
+                    seen_ids.add(chunk.id)
+            dedup_chunks.extend(batch_dedup_chunks)
+        return dedup_chunks
+
 
 class TextLineSplitter(Splitter):
     """
@@ -374,7 +400,8 @@ class TextLineSplitter(Splitter):
             self.overlap,
             self.custom_text_split_function,
         )
-        return [Chunk(content=chunk, metadata={"source": source}) for chunk, source in zip(chunks, sources)]
+        chunks = [Chunk(content=chunk, metadata={"source": source}) for chunk, source in zip(chunks, sources)]
+        return self.deduplicate_chunks(chunks)
 
 
 class SplitterFactory:

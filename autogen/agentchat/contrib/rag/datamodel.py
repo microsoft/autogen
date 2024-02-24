@@ -25,7 +25,7 @@ class Chunk(object):
 
     def __post_init__(self):
         if self.id is None:
-            self.id = str(abs(hash(self.content)))
+            self.id = str(abs(hash(self.content + str(self.metadata))))
 
     def dict(self):
         result = asdict(self)
