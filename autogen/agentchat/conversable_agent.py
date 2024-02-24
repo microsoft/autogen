@@ -335,7 +335,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
         """
-        last_msg = messages[-1].get("content", "")
+        last_msg = messages[-1].get("content")
         chat_to_run = []
         for i, c in enumerate(chat_queue):
             current_c = c.copy()
@@ -344,7 +344,7 @@ class ConversableAgent(LLMAgent):
                 message = message(recipient, messages, sender, config)
             # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
             # NOTE: This setting is prone to change.
-            if message is None and i == 0:
+            if message is None and i == 0 and last_msg:
                 message = last_msg
             # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
             if message:
