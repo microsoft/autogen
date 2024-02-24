@@ -83,6 +83,8 @@ def infer_lang(code: str) -> str:
     TODO: make it robust.
     """
     if code.startswith("python ") or code.startswith("pip") or code.startswith("python3 "):
+        if WIN32:
+            return powershell_command
         return "sh"
 
     # check if code is a valid python code
@@ -391,7 +393,7 @@ def execute_code(
 
     timeout = timeout or DEFAULT_TIMEOUT
     original_filename = filename
-    if WIN32 and lang in ["sh", "shell"] and (not use_docker):
+    if WIN32 and lang in ["sh", "shell", "pwsh", "powershell"] and (not use_docker):
         lang = "ps1"
     if filename is None:
         code_hash = md5(code.encode()).hexdigest()

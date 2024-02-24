@@ -1808,7 +1808,7 @@ class ConversableAgent(LLMAgent):
                 ),
                 flush=True,
             )
-            if lang in ["bash", "shell", "sh"]:
+            if lang in ["bash", "shell", "sh", "pwsh", "powershell"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
             elif lang in ["python", "Python"]:
                 if code.startswith("# filename: "):
