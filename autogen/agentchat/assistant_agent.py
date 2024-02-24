@@ -6,6 +6,7 @@ from autogen.runtime_logging import logging_enabled, log_new_agent
 import sys
 from autogen.code_utils import get_powershell_command
 
+
 class AssistantAgent(ConversableAgent):
     """(In preview) Assistant agent, designed to solve a task with LLM.
 
