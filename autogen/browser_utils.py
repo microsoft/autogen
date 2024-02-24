@@ -7,6 +7,7 @@ import markdownify
 import io
 import uuid
 import mimetypes
+import time
 from urllib.parse import urljoin, urlparse, parse_qs
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
@@ -364,7 +365,7 @@ class SimpleTextBrowser:
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.downloads_folder = downloads_folder
-        self.history: List[str] = list()
+        self.history: List[Tuple[str,float]] = list()
         self.page_title: Optional[str] = None
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
@@ -395,10 +396,10 @@ class SimpleTextBrowser:
     @property
     def address(self) -> str:
         """Return the address of the current page."""
-        return self.history[-1]
+        return self.history[-1][0]
 
     def set_address(self, uri_or_path: str) -> None:
-        self.history.append(uri_or_path)
+        self.history.append((uri_or_path, time.time()))
 
         # Handle special URIs
         if uri_or_path == "about:blank":
@@ -408,7 +409,7 @@ class SimpleTextBrowser:
         else:
             if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
                 uri_or_path = urljoin(self.address, uri_or_path)
-                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
+                self.history[-1][0] = uri_or_path  # Update the address with the fully-qualified path
             self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
@@ -502,32 +503,57 @@ class SimpleTextBrowser:
     def _bing_search(self, query: str) -> None:
         results = self._bing_api_call(query)
 
+        def _prev_visit(url):
+            for i in range(len(self.history)-1,-1,-1):
+                if self.history[i][0] == url:
+                    # Todo make this more human-friendly
+                    return f"You previously visited this page {round(time.time() - self.history[i][1])} seconds ago.\n"
+            return ""
+
         web_snippets: List[str] = list()
         idx = 0
         for page in results["webPages"]["value"]:
             idx += 1
-            web_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['snippet']}")
+            web_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['snippet']}")
             if "deepLinks" in page:
                 for dl in page["deepLinks"]:
                     idx += 1
                     web_snippets.append(
-                        f"{idx}. [{dl['name']}]({dl['url']})\n{dl['snippet'] if 'snippet' in dl else ''}"  # type: ignore[index]
+                        f"{idx}. [{dl['name']}]({dl['url']})\n{_prev_visit(dl['url'])}{dl['snippet'] if 'snippet' in dl else ''}"
                     )
 
         news_snippets = list()
         if "news" in results:
             for page in results["news"]["value"]:
                 idx += 1
-                news_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['description']}")
+                datePublished = ""
+                if "datePublished" in page:
+                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
+                news_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['description']}{datePublished}")
+
+
+        video_snippets = list()
+        if "videos" in results:
+            for page in results["videos"]["value"]:
+                if not page['contentUrl'].startswith("https://www.youtube.com/watch?v="):
+                    continue
+                idx += 1
+                datePublished = ""
+                if "datePublished" in page:
+                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
+                video_snippets.append(f"{idx}. [{page['name']}]({page['contentUrl']})\n{_prev_visit(page['contentUrl'])}{page['description']}{datePublished}")
 
         self.page_title = f"{query} - Search"
 
         content = (
-            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets)} results:\n\n## Web Results\n"
+            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets) + len(video_snippets)} results:\n\n## Web Results\n"
             + "\n\n".join(web_snippets)
         )
         if len(news_snippets) > 0:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
+        if len(video_snippets) > 0:
+            content += "\n\n## Video Results:\n" + "\n\n".join(video_snippets)
+ 
         self._set_page_content(content)
 
     def _fetch_page(self, url: str) -> None:

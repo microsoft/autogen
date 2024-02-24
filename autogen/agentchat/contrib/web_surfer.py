@@ -2,6 +2,7 @@ import json
 import copy
 import logging
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
@@ -125,6 +126,12 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+
+            address = self.browser.address
+            for i in range(len(self.browser.history)-2,-1,-1): # Start from the second last
+                if self.browser.history[i][0] == address:
+                    header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
+
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
