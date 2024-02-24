@@ -12,7 +12,7 @@ from .constants import RAG_MINIMUM_MESSAGE_LENGTH
 from .datamodel import Chunk
 from .utils import lazy_import, logger, timer
 
-PLAIN_TEXT_EXTENSION = [
+PLAIN_TEXT_EXTENSIONS = [
     ".txt",
     ".json",
     ".csv",
@@ -28,7 +28,8 @@ PLAIN_TEXT_EXTENSION = [
     ".yaml",
     ".yml",
 ]
-PDF_EXTENSION = [".pdf"]
+PDF_EXTENSIONS = [".pdf"]
+SUPPORTED_EXTENSIONS = PLAIN_TEXT_EXTENSIONS + PDF_EXTENSIONS
 
 
 class Splitter(ABC):
@@ -50,14 +51,14 @@ class Splitter(ABC):
 
     @staticmethod
     def get_files_from_dir(
-        dir_path: Union[str, List[str]], types: list = PLAIN_TEXT_EXTENSION + PDF_EXTENSION, recursive: bool = True
+        dir_path: Union[str, List[str]], types: list = SUPPORTED_EXTENSIONS, recursive: bool = True
     ) -> List[str]:
         """
         Get all the files in a given directory, a url, a file path or a list of them.
 
         Args:
             dir_path: Union[str, List[str]] | The directory path, file path, or a list of them.
-            types: list | The list of file types to include. Default is PLAIN_TEXT_EXTENSION + PDF_EXTENSION.
+            types: list | The list of file types to include. Default is SUPPORTED_EXTENSIONS.
             recursive: bool | Whether to search recursively. Default is True.
 
         Returns:
