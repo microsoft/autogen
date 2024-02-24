@@ -323,12 +323,17 @@ class ConversableAgent(LLMAgent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @staticmethod
-    def simple_nested_chat(chat_queue, recipient, messages, sender, config):
+    def reply_func_from_nested_chats(
+        chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
+    ) -> Tuple[bool, str]:
         """A simple chat reply function.
         This function initiate one or a sequence of chats between the "recipient" and the agents in the
         chat_queue.
 
         It extracts and returns a summary from the nested chat based on the "summary_method" in each chat in chat_queue.
+
+        Returns:
+            Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
         """
         last_msg = messages[-1].get("content", "")
         chat_to_run = []
@@ -352,21 +357,21 @@ class ConversableAgent(LLMAgent):
 
     def register_nested_chats(
         self,
-        trigger,
-        chat_queue,
-        reply_func_from_nested_chat="auto",
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
+        chat_queue: List[Dict[str, Any]],
+        reply_func_from_nested_chats=reply_func_from_nested_chats,
         position: int = 2,
         **kwargs,
-    ):
+    ) -> None:
         """Register a nested chat reply function.
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): Ref to `register_reply` for details.
             chat_queue (list): a list of chat objects to be initiated.
-            reply_func_from_nested_chat (Callable, str): the reply function for the nested chat.
+            reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
-                Default to `auto`, which means the a pre-defined function will be used.
+                Default to a built-in reply function based on nested chats.
             ```python
-            def reply_func_from_nested_chat(
+            def reply_func_from_nested_chats(
                 chat_queue: List[Dict],
                 recipient: ConversableAgent,
                 messages: Optional[List[Dict]] = None,
@@ -377,11 +382,9 @@ class ConversableAgent(LLMAgent):
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
             kwargs: Ref to `register_reply` for details.
         """
-        if reply_func_from_nested_chat == "auto":
-            reply_func_from_nested_chat = self.simple_nested_chat
-        assert callable(reply_func_from_nested_chat), "reply_func_from_nested_chat must be a callable"
+        assert callable(reply_func_from_nested_chats), "reply_func_from_nested_chats must be a callable"
 
-        reply_func = partial(reply_func_from_nested_chat, chat_queue)
+        reply_func = partial(reply_func_from_nested_chats, chat_queue)
         self.register_reply(
             trigger,
             reply_func,
