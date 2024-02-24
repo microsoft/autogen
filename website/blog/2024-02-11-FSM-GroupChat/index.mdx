@@ -16,7 +16,8 @@ Recently, FSM Group Chat is released that allows the user to input a transition 
 ## Possible use-cases for transition graph
 1. One-pass workflow, i.e., we want each agent to only have one pass at the problem, Agent A -> B -> C.
 2. Decision tree flow, like a decision tree, we start with a root node (agent), and flow down the decision tree with agents being nodes. For example, if the query is a SQL query, hand over to the SQL agent, else if the query is a RAG query, hand over to the RAG agent.
-3. Sequential Team Ops. Suppose we have a team of 3 developer agent, each responsible for a different GitHub repo. We also have a team of business analyst that discuss and debate the overall goal of the user. We could have the manager agent of the developer team speak to the manager agent of the business analysis team. That way, the discussions are more focussed team-wise, and better outcomes can be expected.
+3. Sequential Team Ops. Suppose we have a team of 3 developer agents, each responsible for a different GitHub repo. We also have a team of business analyst that discuss and debate the overall goal of the user. We could have the manager agent of the developer team speak to the manager agent of the business analysis team. That way, the discussions are more focussed team-wise, and better outcomes can be expected.
+
 Note that we are not enforcing a directed acyclic graph; the user can specify the graph to be acyclic, but cyclic workflows can also be useful to iteratively work on a problem, and layering additional analysis onto the solution.
 
 
