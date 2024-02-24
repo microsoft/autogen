@@ -165,7 +165,6 @@ def test_infer_lang():
         assert infer_lang("pip install autogen") == get_powershell_command()
     else:
         assert infer_lang("pip install autogen") == "sh"
-    
 
     # test infer lang for unknown code/invalid code
     assert infer_lang("dummy text") == UNKNOWN
