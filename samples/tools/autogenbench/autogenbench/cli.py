@@ -1,4 +1,5 @@
 import sys
+from .version import __version__
 from .run_cmd import run_cli
 from .clone_cmd import clone_cli
 from .tabulate_cmd import tabulate_cli
@@ -9,6 +10,7 @@ def main(args=None):
         args = sys.argv[:]  # Shallow copy
 
     invocation_cmd = "autogenbench"
+    version_string = f"AutoGenBench version {__version__}"
 
     commands = [
         {
@@ -26,6 +28,11 @@ def main(args=None):
             "description": "tabulate the results of a previous run",
             "function": tabulate_cli,
         },
+        {
+            "command": "--version",
+            "description": f"print the version of {invocation_cmd}",
+            "function": lambda _args: print(f"{version_string}"),
+        },
         {"command": "--help", "description": "print this message", "function": None},
     ]
 
@@ -40,6 +47,8 @@ def main(args=None):
         commands_details += f"    {padded_cmd}: {c['description']}\n"
 
     usage_text = f"""
+{version_string}
+
 usage: {invocation_cmd} COMMAND ARGS
 
 Where, COMMAND is one of: {commands_list}
@@ -49,6 +58,8 @@ and ARGS are specific to the command.
 """.strip()
 
     help_text = f"""
+{version_string}
+
 usage: {invocation_cmd} COMMAND ARGS
 
 {invocation_cmd} is a tool for running and managing AutoGen benchmark scenarios. A typically session might resemble:
