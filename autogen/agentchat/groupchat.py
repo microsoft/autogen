@@ -207,6 +207,7 @@ class GroupChat:
             if next_agent in agents:
                 return next_agent
 
+        # Explicitly handle cases where no valid next agent exists in the provided subset.
         raise UndefinedNextAgent()
 
     def select_speaker_msg(self, agents: Optional[List[Agent]] = None) -> str:
