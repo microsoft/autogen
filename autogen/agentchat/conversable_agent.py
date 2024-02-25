@@ -340,12 +340,12 @@ class ConversableAgent(LLMAgent):
         for i, c in enumerate(chat_queue):
             current_c = c.copy()
             message = current_c.get("message")
-            if callable(message):
-                message = message(recipient, messages, sender, config)
             # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
             # NOTE: This setting is prone to change.
-            if message is None and i == 0 and last_msg:
+            if message is None and i == 0:
                 message = last_msg
+            if callable(message):
+                message = message(recipient, messages, sender, config)
             # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
             if message:
                 current_c["message"] = message
@@ -357,16 +357,16 @@ class ConversableAgent(LLMAgent):
 
     def register_nested_chats(
         self,
-        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         chat_queue: List[Dict[str, Any]],
-        reply_func_from_nested_chats=reply_func_from_nested_chats,
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
+        reply_func_from_nested_chats: Callable = reply_func_from_nested_chats,
         position: int = 2,
         **kwargs,
     ) -> None:
         """Register a nested chat reply function.
         Args:
-            trigger (Agent class, str, Agent instance, callable, or list): Ref to `register_reply` for details.
             chat_queue (list): a list of chat objects to be initiated.
+            trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
                 Default to a built-in reply function based on nested chats.
