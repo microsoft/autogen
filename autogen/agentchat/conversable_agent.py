@@ -26,7 +26,7 @@ from ..code_utils import (
     infer_lang,
 )
 from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult, initiate_chats
+from .chat import ChatResult, initiate_chats, a_initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -223,7 +223,11 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {"process_last_message": [], "process_all_messages": []}
+        self.hook_lists = {
+            "process_last_received_message": [],
+            "process_all_messages_before_reply": [],
+            "process_message_before_send": [],
+        }
 
     @property
     def name(self) -> str:
@@ -467,6 +471,15 @@ class ConversableAgent(LLMAgent):
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
+    def _process_message_before_send(
+        self, message: Union[Dict, str], recipient: Agent, silent: bool
+    ) -> Union[Dict, str]:
+        """Process the message before sending it to the recipient."""
+        hook_list = self.hook_lists["process_message_before_send"]
+        for hook in hook_list:
+            message = hook(message, recipient, silent)
+        return message
+
     def send(
         self,
         message: Union[Dict, str],
@@ -509,6 +522,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: a ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -561,6 +575,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -985,6 +1000,13 @@ class ConversableAgent(LLMAgent):
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
+    async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = await a_initiate_chats(_chat_queue)
+        return self._finished_chats
+
     def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
         """A summary from the finished chats of particular agents."""
         if chat_index is not None:
@@ -1388,13 +1410,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._oai_messages[sender] if sender else []
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1407,9 +1430,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1420,7 +1443,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1498,13 +1521,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
+            messages = self._oai_messages[sender] if sender else []
+        message = messages[-1] if messages else {}
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1517,9 +1541,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1530,7 +1554,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1625,11 +1649,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1686,11 +1710,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1766,7 +1790,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
@@ -2324,11 +2348,11 @@ class ConversableAgent(LLMAgent):
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
 
-    def process_all_messages(self, messages: List[Dict]) -> List[Dict]:
+    def process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists["process_all_messages"]
+        hook_list = self.hook_lists["process_all_messages_before_reply"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
@@ -2339,14 +2363,14 @@ class ConversableAgent(LLMAgent):
             processed_messages = hook(processed_messages)
         return processed_messages
 
-    def process_last_message(self, messages):
+    def process_last_received_message(self, messages):
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists["process_last_message"]
+        hook_list = self.hook_lists["process_last_received_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
