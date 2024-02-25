@@ -61,7 +61,7 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.register_hook(hookable_method="process_last_message", hook=self.process_last_message)
+        agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -82,7 +82,7 @@ class Teachability(AgentCapability):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def process_last_message(self, text):
+    def process_last_received_message(self, text):
         """
         Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.
