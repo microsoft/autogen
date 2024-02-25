@@ -26,7 +26,7 @@ Links to notebook examples:
 1. **Sequential Multi-Agent Chats**
    - Solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_chats.ipynb)
    - Async-solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_async_chats.ipynb)
-   - Solving Multiple Tasks in a Sequence of Chats Initiated by Different Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchats.ipynb)
+   - Solving Multiple Tasks in a Sequence of Chats Initiated by Different Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchats_sequential_chats.ipynb)
 
 1. **Nested Chats**
    - Solving Complex Tasks with Nested Chats - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nestedchat.ipynb)
