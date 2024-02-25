@@ -4,21 +4,20 @@ import os
 from pathlib import Path
 import re
 import uuid
-from queue import Empty
-from typing import Any, ClassVar, List
+from typing import Any, ClassVar, List, Union
 
-from jupyter_client import KernelManager  # type: ignore[attr-defined]
-from jupyter_client.kernelspec import KernelSpecManager
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field
+
 
 from ..agentchat.agent import LLMAgent
-from .base import CodeBlock, CodeExtractor, IPythonCodeResult
+from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult, IPythonCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
+from .jupyter import JupyterConnectable, JupyterConnectionInfo, LocalJupyterServer, JupyterClient
 
-__all__ = "EmbeddedIPythonCodeExecutor"
+__all__ = ("JupyterCodeExecutor", "LocalJupyterCodeExecutor")
 
 
-class EmbeddedIPythonCodeExecutor(BaseModel):
+class JupyterCodeExecutor(CodeExecutor):
     """(Experimental) A code executor class that executes code statefully using an embedded
     IPython kernel managed by this class.
 
@@ -37,7 +36,7 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
         output_dir (str): The directory to save output files, by default ".".
         system_message_update (str): The system message update to add to the
             agent that produces code. By default it is
-            `EmbeddedIPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
+            `JupyterCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
@@ -68,14 +67,6 @@ Because you have limited conversation memory, if your code creates an image,
 the output will be a path to the image instead of the image itself.
 """
 
-    timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
-    kernel_name: str = Field(default="python3", description="The kernel name to use. Make sure it is installed.")
-    output_dir: str = Field(default=".", description="The directory to save output files.")
-    system_message_update: str = Field(
-        default=DEFAULT_SYSTEM_MESSAGE_UPDATE,
-        description="The system message update to the agent that produces code to be executed by this executor.",
-    )
-
     class UserCapability:
         """(Experimental) An AgentCapability class that gives agent ability use a stateful
         IPython code executor. This capability can be added to an agent using
@@ -83,7 +74,7 @@ the output will be a path to the image instead of the image itself.
         agent's system message."""
 
         def __init__(self, system_message_update: str):
-            self.system_message_update = system_message_update
+            self._system_message_update = system_message_update
 
         def add_to_agent(self, agent: LLMAgent) -> None:
             """Add this capability to an agent by appending a system message
@@ -95,37 +86,49 @@ the output will be a path to the image instead of the image itself.
             Args:
                 agent (LLMAgent): The agent to add the capability to.
             """
-            agent.update_system_message(agent.system_message + self.system_message_update)
+            agent.update_system_message(agent.system_message + self._system_message_update)
 
-    @field_validator("output_dir")
-    @classmethod
-    def _output_dir_must_exist(cls, value: str) -> str:
-        if not os.path.exists(value):
-            raise ValueError(f"Output directory {value} does not exist.")
-        return value
+    def __init__(
+        self,
+        jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
+        kernel_name: str = "python3",
+        timeout: int = 60,
+        output_dir: Union[Path, str] = Path("."),
+        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
+    ):
+        if timeout < 1:
+            raise ValueError("Timeout must be greater than or equal to 1.")
 
-    def __init__(self, **kwargs: Any):
-        super().__init__(**kwargs)
-        # Check if the kernel is installed.
-        if self.kernel_name not in KernelSpecManager().find_kernel_specs():
-            raise ValueError(
-                f"Kernel {self.kernel_name} is not installed. "
-                "Please first install it with "
-                f"`python -m ipykernel install --user --name {self.kernel_name}`."
-            )
-        self._kernel_manager = KernelManager(kernel_name=self.kernel_name)
-        self._kernel_manager.start_kernel()
-        self._kernel_client = self._kernel_manager.client()
-        self._kernel_client.start_channels()
-        self._timeout = self.timeout
-        self._kernel_name = self.kernel_name
-        self._output_dir = Path(self.output_dir)
+        if isinstance(output_dir, str):
+            output_dir = Path(output_dir)
+
+        if not output_dir.exists():
+            raise ValueError(f"Output directory {output_dir} does not exist.")
+
+        if isinstance(jupyter_server, JupyterConnectable):
+            self._connection_info = jupyter_server.connection_info
+        elif isinstance(jupyter_server, JupyterConnectionInfo):
+            self._connection_info = jupyter_server
+        else:
+            raise ValueError("jupyter_server must be a JupyterConnectable or JupyterConnectionInfo.")
+
+        self._jupyter_client = JupyterClient(self._connection_info)
+        available_kernels = self._jupyter_client.list_kernel_specs()
+        if kernel_name not in available_kernels["kernelspecs"]:
+            raise ValueError(f"Kernel {kernel_name} is not installed.")
+
+        self._kernel_id = self._jupyter_client.start_kernel(kernel_name)
+        self._kernel_name = kernel_name
+        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
+        self._timeout = timeout
+        self._output_dir = output_dir
+        self._system_message_update = system_message_update
 
     @property
-    def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
+    def user_capability(self) -> "JupyterCodeExecutor.UserCapability":
         """(Experimental) Export a user capability for this executor that can be added to
         an agent using the `add_to_agent` method."""
-        return EmbeddedIPythonCodeExecutor.UserCapability(self.system_message_update)
+        return JupyterCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
@@ -146,72 +149,46 @@ the output will be a path to the image instead of the image itself.
         Returns:
             IPythonCodeResult: The result of the code execution.
         """
-        self._kernel_client.wait_for_ready()
+        self._jupyter_kernel_client.wait_for_ready()
         outputs = []
         output_files = []
         for code_block in code_blocks:
             code = self._process_code(code_block.code)
-            self._kernel_client.execute(code, store_history=True)
-            while True:
-                try:
-                    msg = self._kernel_client.get_iopub_msg(timeout=self._timeout)
-                    msg_type = msg["msg_type"]
-                    content = msg["content"]
-                    if msg_type in ["execute_result", "display_data"]:
-                        for data_type, data in content["data"].items():
-                            if data_type == "text/plain":
-                                # Output is a text.
-                                outputs.append(data)
-                            elif data_type.startswith("image/"):
-                                # Output is an image.
-                                path = self._save_image(data)
-                                outputs.append(f"Image data saved to {path}")
-                                output_files.append(path)
-                            elif data_type == "text/html":
-                                # Output is an html.
-                                path = self._save_html(data)
-                                outputs.append(f"HTML data saved to {path}")
-                                output_files.append(path)
-                            else:
-                                # Output raw data.
-                                outputs.append(json.dumps(data))
-                    elif msg_type == "stream":
-                        # Output is a text.
-                        outputs.append(content["text"])
-                    elif msg_type == "error":
-                        # Output is an error.
-                        return IPythonCodeResult(
-                            exit_code=1,
-                            output=f"ERROR: {content['ename']}: {content['evalue']}\n{content['traceback']}",
-                        )
-                    if msg_type == "status" and content["execution_state"] == "idle":
-                        break
-                # handle time outs.
-                except Empty:
-                    return IPythonCodeResult(
-                        exit_code=1,
-                        output=f"ERROR: Timeout waiting for output from code block: {code_block.code}",
-                    )
-        # We return the full output.
+            result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
+            if result.is_ok:
+                outputs.append(result.output)
+                for data in result.data_items:
+                    if data.mime_type == "image/png":
+                        path = self._save_image(data.data)
+                        outputs.append(f"Image data saved to {path}")
+                        output_files.append(path)
+                    elif data.mime_type == "text/html":
+                        path = self._save_html(data.data)
+                        outputs.append(f"HTML data saved to {path}")
+                        output_files.append(path)
+                    else:
+                        outputs.append(json.dumps(data.data))
+            else:
+                return IPythonCodeResult(
+                    exit_code=1,
+                    output=f"ERROR: {result.output}",
+                )
+
         return IPythonCodeResult(
             exit_code=0, output="\n".join([str(output) for output in outputs]), output_files=output_files
         )
 
     def restart(self) -> None:
         """(Experimental) Restart a new session."""
-        self._kernel_client.stop_channels()
-        self._kernel_manager.shutdown_kernel()
-        self._kernel_manager = KernelManager(kernel_name=self.kernel_name)
-        self._kernel_manager.start_kernel()
-        self._kernel_client = self._kernel_manager.client()
-        self._kernel_client.start_channels()
+        self._jupyter_client.restart_kernel(self._kernel_id)
+        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
 
     def _save_image(self, image_data_base64: str) -> str:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
         # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.png"
-        path = os.path.join(self.output_dir, filename)
+        path = os.path.join(self._output_dir, filename)
         with open(path, "wb") as f:
             f.write(image_data)
         return os.path.abspath(path)
@@ -220,7 +197,7 @@ the output will be a path to the image instead of the image itself.
         """Save html data to a file."""
         # Randomly generate a filename.
         filename = f"{uuid.uuid4().hex}.html"
-        path = os.path.join(self.output_dir, filename)
+        path = os.path.join(self._output_dir, filename)
         with open(path, "w") as f:
             f.write(html_data)
         return os.path.abspath(path)
@@ -236,3 +213,10 @@ the output will be a path to the image instead of the image itself.
                 if "-qqq" not in line:
                     lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
         return "\n".join(lines)
+
+
+class LocalJupyterCodeExecutor(JupyterCodeExecutor):
+    def __init__(self, **kwargs: Any):
+        """Creates a LocalJupyterServer and passes it to JupyterCodeExecutor, see JupyterCodeExecutor for args"""
+        jupyter_server = LocalJupyterServer()
+        super().__init__(jupyter_server=jupyter_server, **kwargs)
