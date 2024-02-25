@@ -1,15 +1,13 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 using Orleans.Streams;
 using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
-[ImplicitStreamSubscription("DevPersonas")]
+[ImplicitStreamSubscription(Consts.MainNamespace)]
 public class DeveloperLead : AiAgent
 {
     private readonly IKernel _kernel;
@@ -28,7 +26,7 @@ public class DeveloperLead : AiAgent
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKeyString());
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);
@@ -40,8 +38,16 @@ public class DeveloperLead : AiAgent
         {
             case EventType.DevPlanRequested:
                 var plan = await CreatePlan(item.Message);
-                await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), plan);
-                // postEvent EventType.DevPlanGenerated
+                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
+                     Type = EventType.DevPlanGenerated,
+                        Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "plan", plan }
+                        },
+                       Message = plan
+                });
                 break;
             case EventType.ChainClosed:
                 await ClosePlan(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), long.Parse(item.Data["parentNumber"]));
@@ -69,7 +75,7 @@ public class DeveloperLead : AiAgent
         var plan = await GetLatestPlan();
         var suffix = $"{org}-{repo}";
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("developers", suffix+parentNumber.ToString());
+        var streamId = StreamId.Create(Consts.MainNamespace, suffix+parentNumber.ToString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         var eventTasks = plan.steps.SelectMany(s => s.subtasks.Select(st => stream.OnNextAsync(new Event {

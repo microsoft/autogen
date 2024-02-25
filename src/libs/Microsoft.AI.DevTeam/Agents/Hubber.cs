@@ -1,13 +1,13 @@
 ﻿using System.Text.Json;
 using Microsoft.AI.DevTeam.Skills;
+using Octokit;
 using Orleans.Concurrency;
 using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-[StatelessWorker]
-[ImplicitStreamSubscription("Hubber")]
+[ImplicitStreamSubscription(Consts.MainNamespace)]
 public class Hubber : Agent
 {
     private readonly IManageGithub _ghService;
@@ -20,7 +20,7 @@ public class Hubber : Agent
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("Hubber", this.GetPrimaryKeyString());
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);
@@ -30,7 +30,7 @@ public class Hubber : Agent
         switch (item.Type)
         {
             case EventType.NewAsk:
-                var parentNumber = long.Parse(item.Data["parentNumber"]);
+                var parentNumber = long.Parse(item.Data["issueNumber"]);
                 var pmIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(PM)}.{nameof(PM.Readme)}", parentNumber);
                 var devLeadIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(DevLead)}.{nameof(DevLead.Plan)}", parentNumber);
                 // TODO: store the mapping of parent/child?
@@ -48,11 +48,11 @@ public class Hubber : Agent
                 Task.WaitAll(devTasks.ToArray());
                 break;
             case EventType.ReadmeStored:
-                
+                await CommitToBranch();
+                await CreatePullRequest();
                 break;
             case EventType.SandboxRunFinished:
-                // _azureService.Store();
-                // _azureService.RunInSandbox();
+                await CommitToBranch();
                 break;
             default:
                 break;

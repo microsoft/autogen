@@ -1,15 +1,13 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-[ImplicitStreamSubscription("DevPersonas")]
+[ImplicitStreamSubscription(Consts.MainNamespace)]
 public class ProductManager : AiAgent
 {
     private readonly IKernel _kernel;
@@ -26,7 +24,7 @@ public class ProductManager : AiAgent
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKeyString());
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);
@@ -37,6 +35,16 @@ public class ProductManager : AiAgent
         {
             case EventType.ReadmeRequested:
                 var readme = await CreateReadme(item.Message);
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
+                     Type = EventType.ReadmeGenerated,
+                        Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "readme", readme }
+                        },
+                       Message = readme
+                });
                 //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
                 // postEvent ReadmeGenerated
                 break;
@@ -52,7 +60,7 @@ public class ProductManager : AiAgent
     {
         try
         {
-            return await CallFunction(DevLead.Plan, ask, _kernel, _memory);
+            return await CallFunction(PM.Readme, ask, _kernel, _memory);
         }
         catch (Exception ex)
         {

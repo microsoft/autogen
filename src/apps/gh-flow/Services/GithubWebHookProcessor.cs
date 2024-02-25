@@ -94,7 +94,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
     private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string suffix, string org, string repo)
     {
         var streamProvider = _client.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(suffix, issueNumber.ToString());
+        var streamId = StreamId.Create(Consts.MainNamespace, suffix+issueNumber.ToString());
         var stream = streamProvider.GetStream<Event>(streamId);
         var data = new Dictionary<string, string>
         {
@@ -117,7 +117,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         {
             _logger.LogInformation("Handling new ask");
             var streamProvider = _client.GetStreamProvider("StreamProvider");
-            var streamId = StreamId.Create("DevPersonas", suffix+issueNumber.ToString());
+            var streamId = StreamId.Create(Consts.MainNamespace, suffix+issueNumber.ToString());
             var stream = streamProvider.GetStream<Event>(streamId);
 
             var eventType = (skillName, functionName) switch

@@ -1,11 +1,9 @@
-﻿using Orleans.Concurrency;
-using Orleans.Runtime;
+﻿using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-[StatelessWorker]
-[ImplicitStreamSubscription("AzureGenie")]
+[ImplicitStreamSubscription(Consts.MainNamespace)]
 public class AzureGenie : Agent
 {
     private readonly IManageAzure _azureService;
@@ -18,7 +16,7 @@ public class AzureGenie : Agent
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("AzureGenie", this.GetPrimaryKeyString());
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);

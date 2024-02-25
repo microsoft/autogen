@@ -10,8 +10,8 @@
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
-   <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
-    <PackageReference Include="Octokit" Version="7.1.0" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
+    <PackageReference Include="Octokit" Version="10.0.0" />
     <PackageReference Include="GitHubJwt" Version="0.0.6" />
     <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0-beta.1" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />
@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\libs\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
+    <ProjectReference
+      Include="..\..\libs\Microsoft.AI.DevTeam.Skills\Microsoft.AI.DevTeam.Skills.csproj" />
   </ItemGroup>
 
 </Project>

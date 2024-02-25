@@ -10,7 +10,7 @@ using Orleans.Streams;
 namespace Microsoft.AI.DevTeam;
 
 //[RegexImplicitStreamSubscription("")]
-[ImplicitStreamSubscription("developers")]
+[ImplicitStreamSubscription(Consts.MainNamespace)]
 public class Dev : AiAgent
 {
     private readonly IKernel _kernel;
@@ -27,7 +27,7 @@ public class Dev : AiAgent
     public async override Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create("DevPersonas", this.GetPrimaryKeyString());
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
         var stream = streamProvider.GetStream<Event>(streamId);
 
         await stream.SubscribeAsync(HandleEvent);
