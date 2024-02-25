@@ -225,7 +225,7 @@ class ConversableAgent(LLMAgent):
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {
             "process_last_received_message": [],
-            "process_all_received_messages": [],
+            "process_all_messages_before_reply": [],
             "process_message_before_send": [],
         }
 
@@ -1649,7 +1649,7 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_received_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
@@ -1710,7 +1710,7 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_received_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
@@ -2348,11 +2348,11 @@ class ConversableAgent(LLMAgent):
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
 
-    def process_all_received_messages(self, messages: List[Dict]) -> List[Dict]:
+    def process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists["process_all_received_messages"]
+        hook_list = self.hook_lists["process_all_messages_before_reply"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
