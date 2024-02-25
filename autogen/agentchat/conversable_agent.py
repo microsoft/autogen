@@ -323,7 +323,7 @@ class ConversableAgent(LLMAgent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @staticmethod
-    def reply_func_from_nested_chats(
+    def _default_reply_func_from_nested_chats(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
     ) -> Tuple[bool, str]:
         """A simple chat reply function.
@@ -359,7 +359,7 @@ class ConversableAgent(LLMAgent):
         self,
         chat_queue: List[Dict[str, Any]],
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
-        reply_func_from_nested_chats: Callable = reply_func_from_nested_chats,
+        reply_func_from_nested_chats: Callable = _default_reply_func_from_nested_chats,
         position: int = 2,
         **kwargs,
     ) -> None:
