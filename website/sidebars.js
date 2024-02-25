@@ -34,6 +34,11 @@
           type: 'doc',
           id: 'getting-started/conversation-patterns',
           label: 'Conversation Patterns',
+        },
+        {
+          type: 'doc',
+          id: 'getting-started/what-is-next',
+          label: 'What is Next?',
         }
       ],
     },
