@@ -65,22 +65,22 @@ class PageTextRenderer:
         raise NotImplementedError()
 
     # Helper functions
-    def _read_all_text(self, response):
+    def _read_all_text(self, response) -> str:
         """Read the entire response, and return as a string."""
         text = ""
         for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
             text += chunk
         return text
 
-    def _read_all_html(self, response):
+    def _read_all_html(self, response) -> BeautifulSoup:
         """Read the entire response, and return as a beautiful soup object."""
         return BeautifulSoup(self._read_all_text(response), "html.parser")
 
-    def _read_all_bytesio(self, response):
+    def _read_all_bytesio(self, response) -> io.BytesIO:
         """Read the entire response, and return an in-memory bytes stream."""
         return io.BytesIO(response.raw.read())
 
-    def _fix_newlines(self, rendered_text):
+    def _fix_newlines(self, rendered_text) -> str:
         re.sub(r"\r\n", "\n", rendered_text)
         return re.sub(r"\n{2,}", "\n\n", rendered_text).strip()  # Remove excessive blank lines
 
@@ -120,10 +120,10 @@ class WikipediaRenderer(PageTextRenderer):
     """Handle Wikipedia pages separately, focusing only on the main document content."""
 
     def claim_responsibility(self, url, status_code, content_type, **kwargs) -> bool:
-        return (
+        return bool(
             content_type is not None
             and "text/html" in content_type.lower()
-            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}.wikipedia.org\/", url)
+            and re.search(r"^https?:\/\/[a-zA-Z]{2,3}\.wikipedia.org\/", url)
         )
 
     def render_page(self, response, url, status_code, content_type) -> TextRendererResult:
@@ -239,7 +239,7 @@ class YouTubeRenderer(PageTextRenderer):
                 webpage_text += f"\n### Transcript\n{transcript_text}\n"
 
         return TextRendererResult(
-            title="",
+            title=title if title else soup.title.string,
             page_content=self._fix_newlines(webpage_text),
         )
 
@@ -373,9 +373,12 @@ class SimpleTextBrowser:
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
 
-        self._page_renderers = []
-        self._error_renderers = []
-        self._page_content = ""
+        self._page_renderers: List[PageTextRenderer] = []
+        self._error_renderers: List[PageTextRenderer] = []
+        self._page_content: str = ""
+
+        self._find_on_page_query: Union[str, None] = None
+        self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
         # Register renderers for successful browsing operations
         # Later registrations are tried first / take higher priority than earlier registrations
@@ -399,6 +402,7 @@ class SimpleTextBrowser:
         return self.history[-1][0]
 
     def set_address(self, uri_or_path: str) -> None:
+        # TODO: Handle anchors
         self.history.append((uri_or_path, time.time()))
 
         # Handle special URIs
@@ -408,11 +412,16 @@ class SimpleTextBrowser:
             self._bing_search(uri_or_path[len("bing:") :].strip())
         else:
             if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
-                uri_or_path = urljoin(self.address, uri_or_path)
-                self.history[-1][0] = uri_or_path  # Update the address with the fully-qualified path
+                if len(self.history) > 1:
+                    prior_address = self.history[-2][0]
+                    uri_or_path = urljoin(prior_address, uri_or_path)
+                    # Update the address with the fully-qualified path
+                    self.history[-1] = (uri_or_path, self.history[-1][1]) 
             self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
+        self.find_on_page_query = None
+        self.find_on_page_viewport = None
 
     @property
     def viewport(self) -> str:
@@ -437,6 +446,78 @@ class SimpleTextBrowser:
 
     def page_up(self) -> None:
         self.viewport_current_page = max(self.viewport_current_page - 1, 0)
+
+    def find_on_page(self, query: str) -> Union[str, None]:
+        """Searches for the query from the current viewport forward, looping back to the start if necessary."""
+
+        # Did we get here via a previous find_on_page search with the same query?
+        # If so, map to find_next
+        if query == self._find_on_page_query and self.viewport_current_page == self._find_on_page_last_result:
+            return self.find_next()
+
+        # Ok it's a new search start from the current viewport
+        self._find_on_page_query = query
+        viewport_match = self._find_next_viewport(query, self.viewport_current_page)
+        if viewport_match is None:
+            self._find_on_page_last_result = None
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            self._find_on_page_last_result = viewport_match
+            return self.viewport
+
+    def find_next(self) -> None:
+        """Scroll to the next viewport that matches the query"""
+
+        if self._find_on_page_query is None:
+            return None
+
+        starting_viewport = self._find_on_page_last_result
+        if starting_viewport is None:
+            starting_viewport = 0
+        else:
+            starting_viewport += 1
+            if starting_viewport >= len(self.viewport_pages):
+                starting_viewport = 0
+
+        viewport_match = self._find_next_viewport(self._find_on_page_query, starting_viewport)
+        if viewport_match is None:
+            self._find_on_page_last_result = None
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            self._find_on_page_last_result = viewport_match
+            return self.viewport
+
+    def _find_next_viewport(self, query: str, starting_viewport: int) -> Union[int, None]:
+        """Search for matches between the starting viewport looping when reaching the end."""
+
+        if query is None:
+            return None
+
+        # Normalize the query, and convert to a regular expression
+        nquery = re.sub(r"\*", "__STAR__", query)
+        nquery = " " + (" ".join(re.split(r"\W+", nquery))).strip() + " "
+        nquery = nquery.replace(" __STAR__ ", "__STAR__ ")  # Merge isolated stars with prior word
+        nquery = nquery.replace("__STAR__", ".*").lower()
+
+        if nquery.strip() == "":
+            return None
+
+        idxs = list()
+        idxs.extend(range(starting_viewport, len(self.viewport_pages)))
+        idxs.extend(range(0, starting_viewport))
+
+        for i in idxs:
+            bounds = self.viewport_pages[i]
+            content = self.page_content[bounds[0] : bounds[1]]
+
+            # TODO: Remove markdown links and images
+            ncontent = " " + (" ".join(re.split(r"\W+", content))).strip().lower() + " "
+            if re.search(nquery, ncontent):
+                return i
+
+        return None
 
     def visit_page(self, path_or_uri: str) -> str:
         """Update the address, visit the page, and return the content of the viewport."""

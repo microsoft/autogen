@@ -8,14 +8,10 @@ import autogen
 from conftest import MOCK_OPEN_AI_API_KEY
 
 try:
-    from autogen.agentchat.contrib.llava_agent import (
-        LLaVAAgent,
-        _llava_call_binary_with_config,
-        llava_call,
-        llava_call_binary,
-    )
+    from autogen.agentchat.contrib.llava_agent import LLaVAAgent, _llava_call_binary_with_config, llava_call
 except ImportError:
     skip = True
+
 else:
     skip = False
 

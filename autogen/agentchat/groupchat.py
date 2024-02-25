@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Union, Tuple
 
 from ..code_utils import content_str
+from ..exception_utils import AgentNameConflict
 from .agent import Agent
 from .conversable_agent import ConversableAgent
 from ..runtime_logging import logging_enabled, log_new_agent
@@ -175,9 +176,26 @@ class GroupChat:
         message["content"] = content_str(message["content"])
         self.messages.append(message)
 
-    def agent_by_name(self, name: str) -> Agent:
-        """Returns the agent with a given name."""
-        return self.agents[self.agent_names.index(name)]
+    def agent_by_name(
+        self, name: str, recursive: bool = False, raise_on_name_conflict: bool = False
+    ) -> Optional[Agent]:
+        """Returns the agent with a given name. If recursive is True, it will search in nested teams."""
+        agents = self.nested_agents() if recursive else self.agents
+        filtered_agents = [agent for agent in agents if agent.name == name]
+
+        if raise_on_name_conflict and len(filtered_agents) > 1:
+            raise AgentNameConflict()
+
+        return filtered_agents[0] if filtered_agents else None
+
+    def nested_agents(self) -> List[Agent]:
+        """Returns all agents in the group chat manager."""
+        agents = self.agents.copy()
+        for agent in agents:
+            if isinstance(agent, GroupChatManager):
+                # Recursive call for nested teams
+                agents.extend(agent.groupchat.nested_agents())
+        return agents
 
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
@@ -401,10 +419,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             )
 
         # Return the result
-        try:
-            return self.agent_by_name(name)
-        except ValueError:
-            return self.next_agent(last_speaker, agents)
+        agent = self.agent_by_name(name)
+        return agent if agent else self.next_agent(last_speaker, agents)
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
@@ -491,21 +507,32 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    @property
+    def groupchat(self) -> GroupChat:
+        """Returns the group chat managed by the group chat manager."""
+        return self._groupchat
+
     def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
         """The list of messages in the group chat as a conversation to summarize.
         The agent is ignored.
         """
         return self._groupchat.messages
 
-    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
-        super()._prepare_chat(recipient, clear_history, prepare_recipient)
+    def _prepare_chat(
+        self,
+        recipient: ConversableAgent,
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
+        super()._prepare_chat(recipient, clear_history, prepare_recipient, reply_at_receive)
 
         if clear_history:
             self._groupchat.reset()
 
         for agent in self._groupchat.agents:
             if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
-                agent._prepare_chat(self, clear_history, False)
+                agent._prepare_chat(self, clear_history, False, reply_at_receive)
 
     def run_chat(
         self,

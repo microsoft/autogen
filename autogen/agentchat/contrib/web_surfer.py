@@ -24,7 +24,7 @@ class WebSurferAgent(ConversableAgent):
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, or even just scroll up or down in the viewport."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, download files, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
 
     def __init__(
         self,
@@ -125,12 +125,13 @@ class WebSurferAgent(ConversableAgent):
             current_page = self.browser.viewport_current_page
             total_pages = len(self.browser.viewport_pages)
 
-            header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
-
             address = self.browser.address
             for i in range(len(self.browser.history)-2,-1,-1): # Start from the second last
                 if self.browser.history[i][0] == address:
                     header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
+                    break
+
+            header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
 
             return (header, self.browser.viewport)
 
@@ -172,6 +173,15 @@ class WebSurferAgent(ConversableAgent):
 
         @self._user_proxy.register_for_execution()
         @self._assistant.register_for_llm(
+            name="download_file", description="Download a file at a given URL and, if possible, return its text."
+        )
+        def _visit_page(url: Annotated[str, "The relative or absolute url of the file to be downloaded."]) -> str:
+            self.browser.visit_page(url)
+            header, content = _browser_state()
+            return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
             name="page_up",
             description="Scroll the viewport UP one page-length in the current webpage and return the new viewport content.",
         )
@@ -189,6 +199,43 @@ class WebSurferAgent(ConversableAgent):
             self.browser.page_down()
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_on_page_ctrl_f",
+            description="Scroll the viewport to the first occurrence of the search string. This is equivalent to Ctrl+F.",
+        )
+        def _find_on_page_ctrl_f(
+            search_string: Annotated[
+                str, "The string to search for on the page. This search string supports wildcards like '*'"
+            ]
+        ) -> str:
+            find_result = self.browser.find_on_page(search_string)
+            header, content = _browser_state()
+
+            if find_result is None:
+                return (
+                    header.strip()
+                    + "\n=======================\nThe search string '"
+                    + search_string
+                    + "' was not found on this page."
+                )
+            else:
+                return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="find_next",
+            description="Scroll the viewport to next occurrence of the search string.",
+        )
+        def _find_next() -> str:
+            find_result = self.browser.find_next()
+            header, content = _browser_state()
+
+            if find_result is None:
+                return header.strip() + "\n=======================\nThe search string was not found on this page."
+            else:
+                return header.strip() + "\n=======================\n" + content
 
         if self.summarization_client is not None:
 
