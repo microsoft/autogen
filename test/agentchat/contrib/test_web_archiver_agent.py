@@ -22,7 +22,7 @@ else:
 
 if not skip_oai:
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
-    from autogen.agentchat.contrib.content_agent import ContentAgent
+    from autogen.agentchat.contrib.web_archiver_agent import WebArchiverAgent
 
 
 @pytest.mark.skipif(
@@ -42,16 +42,16 @@ def test_content_agent() -> None:
     temporary_content_storage = os.path.join(tempfile.gettempdir(), "test_content_agent_storage")
     print(f"Storing temporary test files in {temporary_content_storage}")
 
-    # Define the system message for the ContentAgent
+    # Define the system message for the WebArchiverAgent
     content_agent_system_msg = "You are data collection agent specializing in content on the web."
 
-    # Instantiate the ContentAgent
-    content_agent = ContentAgent(
-        name="ContentAgent",
+    # Instantiate the WebArchiverAgent
+    content_agent = WebArchiverAgent(
+        name="WebArchiverAgent",
         system_message=content_agent_system_msg,
         llm_config=llm_config,
         max_consecutive_auto_reply=0,
-        # Below are the arguments specific to the ContentAgent
+        # Below are the arguments specific to the WebArchiverAgent
         silent=True,
         storage_path=temporary_content_storage,
         browser_config={"browser": browser},

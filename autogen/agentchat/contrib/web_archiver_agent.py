@@ -13,7 +13,7 @@ from ...browser_utils import (
     fix_missing_protocol,
     extract_pdf_text,
 )
-from typing import List, Union, Any, Tuple
+from typing import List, Union, Any, Tuple, Dict
 import os
 import re
 import json
@@ -37,7 +37,7 @@ except ModuleNotFoundError:
     pass
 
 
-class ContentAgent(ConversableAgent):
+class WebArchiverAgent(ConversableAgent):
     def __init__(
         self,
         silent: bool = True,
@@ -48,14 +48,14 @@ class ContentAgent(ConversableAgent):
         **kwargs,
     ):
         """
-        ContentAgent: Custom LLM agent for collecting online content.
+        WebArchiverAgent: Custom LLM agent for collecting online content.
 
-        The ContentAgent class is a custom Autogen agent that can be used to collect and store online content from different
+        The WebArchiverAgent class is a custom Autogen agent that can be used to collect and store online content from different
         web pages. It extends the ConversableAgent class and provides additional functionality for managing a list of
-        additional links, storing collected content in local directories, and customizing request headers.  ContentAgent
+        additional links, storing collected content in local directories, and customizing request headers.  WebArchiverAgent
         uses deque to manage a list of additional links for further exploration, with a maximum depth limit set by max_depth
         parameter. The collected content is stored in the specified storage path (storage_path) using local directories.
-        ContentAgent can be customized with request_kwargs and llm_config parameters during instantiation. The default
+        WebArchiverAgent can be customized with request_kwargs and llm_config parameters during instantiation. The default
         User-Agent header is used for requests, but it can be overridden by providing a new dictionary of headers under
         request_kwargs.
 
@@ -106,13 +106,13 @@ class ContentAgent(ConversableAgent):
         }
 
         # Define the classifiers
-        self.define_classifiers()
+        self._define_classifiers()
 
     def classifier_to_collector_reply(
         self,
-        recipient: Agent,  # Assuming no specific type is enforced; otherwise, replace Any with the specific class type
+        recipient: Agent,
         messages: Union[List[str], str],
-        sender: Agent,  # Replace Any if the sender has a specific type
+        sender: Agent,
         config: dict,
     ) -> Tuple[bool, str]:
         """
@@ -149,7 +149,16 @@ class ContentAgent(ConversableAgent):
 
         return True, classified_reply
 
-    def define_classifiers(self):
+    def _define_classifiers(self):
+        """
+        Defines the agents used for classification tasks.
+
+        Parameters:
+        - None
+
+        Returns:
+        - None
+        """
         # Define the system messages for the classifiers
         self.metadata_classifier_system_msg = "Help the user identify if the metadata contains potentially useful information such as: author, title, description, a date, etc. Respond True for useful, False for not."
         self.content_classifier_system_msg = "You are to classify web data as content or other (such as an adversitement) based on the page title.  Respond True if it is content, False if not."
@@ -178,52 +187,39 @@ class ContentAgent(ConversableAgent):
         )
         self.content_classifier.register_reply(self, self.classifier_to_collector_reply, 1)
 
-    # Main entry point
-    def collect_content(self, recipient, messages, sender, config):
-        content_type, content = "", ""
-        all_links = []
-        for message in messages:
-            if message.get("role") == "user":
-                links = re.findall(
-                    r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-                    message.get("content"),
-                )
-                for link in links:
-                    all_links.append(link)
+    def _fetch_content(self, link: str) -> Tuple[str, str]:
+        """
+        Fetches content from a given URL.
 
-        # Process the links provided by the user
-        for link in all_links:
-            content_type, content = self.fetch_content(link)
+        Parameters:
+        - link (str): The URL from which to fetch content.
 
-        # Inform self that it has completed the root level of link(s)
-        self.link_depth = 1
-        if self.link_depth <= self.max_depth:
-            while len(self.additional_links) > 0:
-                additional_link = self.additional_links.pop()
-                content_type, content = self.fetch_content(additional_link)
-                all_links.append(all_links)
-
-        self.link_depth = 0
-        return (
-            True,
-            f"Success: archived the following links in your chosen location {self.local_dir}/ <-- {', '.join(all_links)}",
-        )
-
-    def fetch_content(self, link):
+        Returns:
+        - Tuple[str, str]: Content type and fetched content or error message.
+        """
         # Parse the link
         parsed_url = urlparse(link)
 
         # A special case for arxiv links
         if "arxiv" in link and IS_ARXIV_CAPABLE:
-            return "pdf", self.fetch_arxiv_content(parsed_url)
+            return "pdf", self._fetch_arxiv_content(parsed_url)
 
         elif parsed_url.path.endswith(".pdf"):
-            return "pdf", self.fetch_pdf_content(link)
+            return "pdf", self._fetch_pdf_content(link)
 
         else:
-            return "html", self.fetch_html_content(link)
+            return "html", self._fetch_html_content(link)
 
-    def fetch_html_content(self, link):
+    def _fetch_html_content(self, link: str) -> str:
+        """
+        Handles the fetching of HTML content from a web page.
+
+        Parameters:
+        - link (str): The URL of the web page.
+
+        Returns:
+        - str: Success (errors are handled at the higher level)
+        """
         # Handle web page content (html)
 
         sd = {}  # submission_data
@@ -266,7 +262,7 @@ class ContentAgent(ConversableAgent):
         # Store the BS object
         sd["soup"] = BeautifulSoup(sd["html"], "html.parser")
 
-        sd["content"] = self.identify_content(sd["soup"])
+        sd["content"] = self._identify_content(sd["soup"])
 
         # Save the content to a text file on disk
         with open(os.path.join(sd["local_path"], "content.txt"), "w") as f:
@@ -277,7 +273,7 @@ class ContentAgent(ConversableAgent):
         sd["soup"].url = link
 
         # Parse and store the Metadata
-        sd["meta"] = self.identify_metadata(sd["soup"])  # [ data.attrs for data in sd['soup'].find_all("meta") ]
+        sd["meta"] = self._identify_metadata(sd["soup"])  # [ data.attrs for data in sd['soup'].find_all("meta") ]
 
         # Open a file to write the metadata to
         with open(os.path.join(sd["local_path"], "metadata.txt"), "w") as f:
@@ -310,7 +306,7 @@ class ContentAgent(ConversableAgent):
                         self.additional_links.append(link["href"])
 
         # Parse and store the images
-        self.collect_images(sd["soup"], sd["local_path"])
+        self._collect_images(sd["soup"], sd["local_path"])
 
         # Close down the browser
         self.browser.quit()
@@ -320,7 +316,16 @@ class ContentAgent(ConversableAgent):
 
         return "success"
 
-    def fetch_pdf_content(self, link):
+    def _fetch_pdf_content(self, link: str) -> str:
+        """
+        Fetches PDF content from a given URL.
+
+        Parameters:
+        - link (str): The URL from which to fetch the PDF content.
+
+        Returns:
+        - str: Extracted content or None in a failure event
+        """
         local_pdf_path = os.path.join(
             self.local_dir, os.path.join(get_file_path_from_url(link, self.domain_path_rules), link.split("/")[-1])
         )
@@ -344,7 +349,16 @@ class ContentAgent(ConversableAgent):
         else:
             return None
 
-    def fetch_arxiv_content(self, link):
+    def _fetch_arxiv_content(self, link: str) -> str:
+        """
+        Fetches content specifically from arXiv URLs.
+
+        Parameters:
+        - link (str): The arXiv URL from which to fetch content.
+
+        Returns:
+        - str: Extracted text content
+        """
         # Identify the paper identification
         arxiv_id = link.path.split("/")[-1]
 
@@ -373,7 +387,16 @@ class ContentAgent(ConversableAgent):
 
         return text
 
-    def identify_content(self, soup):
+    def _identify_content(self, soup: BeautifulSoup) -> List[str]:
+        """
+        Identifies the title of the web page from the BeautifulSoup object.
+
+        Parameters:
+        - soup (BeautifulSoup): BeautifulSoup object of the web page.
+
+        Returns:
+        - list: A list of all text content classified as relevant
+        """
         # Get the page title for use with the queries
         page_title = soup.find("head").find("title").string
 
@@ -397,7 +420,17 @@ class ContentAgent(ConversableAgent):
 
         return relevant_content
 
-    def identify_metadata(self, soup, verbose=False):
+    def _identify_metadata(self, soup: BeautifulSoup, verbose: bool = False) -> List[Dict]:
+        """
+        Extracts metadata from the web page using BeautifulSoup.
+
+        Parameters:
+        - soup (BeautifulSoup): BeautifulSoup object of the web page.
+        - verbose (bool): Flag to enable verbose logging.
+
+        Returns:
+        - List[Dict]: A list of dictionaries representing the relevant Metadata extracted from the page.
+        """
         soup.find("head").find("title").string
         relevant_content = []
         for data in soup.find_all("meta"):
@@ -430,7 +463,19 @@ class ContentAgent(ConversableAgent):
 
         return relevant_content
 
-    def collect_images(self, soup, local_path, verbose=False):
+    def _collect_images(self, soup: BeautifulSoup, local_path: str, verbose: bool = False) -> None:
+        """
+        Collects and saves images from the web page to a local path.
+
+        Parameters:
+        - soup (BeautifulSoup): BeautifulSoup object of the web page.
+        - local_path (str): The local directory path where images will be saved.
+        - verbose (bool): Flag to enable verbose logging.
+
+        Returns:
+        - None
+        """
+
         def get_basename(filename):
             return os.path.splitext(os.path.basename(filename))[0]
 
@@ -481,3 +526,64 @@ class ContentAgent(ConversableAgent):
                     except Exception:
                         print(image_url, img.attrs["src"])
                         traceback.print_exc()
+
+    # Main entry point
+    def collect_content(
+        self,
+        recipient: Agent,
+        messages: Union[List[str], str],
+        sender: Agent,
+        config: dict,
+    ) -> Tuple[bool, str]:
+        """
+        Collects and archives content from links found in messages.
+
+        This function scans messages for URLs, fetches content from these URLs,
+        and archives them to a specified local directory. It supports recursive
+        link fetching up to a defined depth.
+
+        Parameters:
+        - recipient (Agent): The agent designated to receive the content.
+        - messages (Union[List[str], str]): A list of messages or a single message containing URLs.
+        - sender (Agent): The agent sending the content.
+        - config (dict): Configuration parameters for content fetching and archiving.
+
+        Returns:
+        - Tuple[bool, str]: A tuple where the first element is a boolean indicating
+          success or failure, and the second element is a string message detailing
+          the outcome or providing error logs in case of failure.
+        """
+
+        try:
+            content_type, content = "", ""
+            all_links = []
+            for message in messages:
+                if message.get("role") == "user":
+                    links = re.findall(
+                        r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+                        message.get("content"),
+                    )
+                    for link in links:
+                        all_links.append(link)
+
+            # Process the links provided by the user
+            for link in all_links:
+                content_type, content = self._fetch_content(link)
+
+            # Inform self that it has completed the root level of link(s)
+            self.link_depth = 1
+            if self.link_depth <= self.max_depth:
+                while len(self.additional_links) > 0:
+                    additional_link = self.additional_links.pop()
+                    content_type, content = self._fetch_content(additional_link)
+                    all_links.append(all_links)
+
+            self.link_depth = 0
+            return (
+                True,
+                f"Success: archived the following links in your chosen location {self.local_dir}/ <-- {', '.join(all_links)}",
+            )
+        except Exception:
+            # Return traceback information in case of an exception
+            error_log = traceback.format_exc()
+            return False, f"Failed to collect content due to an error: {error_log}"
