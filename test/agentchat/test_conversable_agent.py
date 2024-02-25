@@ -1074,6 +1074,24 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
+def test_process_before_send():
+    print_mock = unittest.mock.MagicMock()
+
+    def send_to_frontend(message, recipient, silent):
+        if not silent:
+            print(f"Message sent to {recipient.name}: {message}")
+            print_mock(message=message)
+        return message
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("process_message_before_send", send_to_frontend)
+    dummy_agent_1.send("hello", dummy_agent_2)
+    print_mock.assert_called_once_with(message="hello")
+    dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
+    print_mock.assert_called_once_with(message="hello")
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1081,4 +1099,5 @@ if __name__ == "__main__":
     # test_generate_code_execution_reply()
     # test_conversable_agent()
     # test_no_llm_config()
-    test_max_turn()
+    # test_max_turn()
+    test_process_before_send()

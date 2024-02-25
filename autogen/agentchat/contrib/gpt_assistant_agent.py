@@ -3,6 +3,7 @@ import openai
 import json
 import time
 import logging
+import copy
 
 from autogen import OpenAIWrapper
 from autogen.oai.openai_utils import retrieve_assistants_by_name
@@ -52,12 +53,26 @@ class GPTAssistantAgent(ConversableAgent):
                 - verbose (bool): If set to True, enables more detailed output from the assistant thread.
                 - Other kwargs: Except verbose, others are passed directly to ConversableAgent.
         """
+
+        self._verbose = kwargs.pop("verbose", False)
+        super().__init__(
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
+        )
+
+        if llm_config is False:
+            raise ValueError("llm_config=False is not supported for GPTAssistantAgent.")
+
         # Use AutoGen OpenAIWrapper to create a client
-        openai_client_cfg = None
-        model_name = "gpt-4-1106-preview"
-        if llm_config and llm_config.get("config_list") is not None and len(llm_config["config_list"]) > 0:
-            openai_client_cfg = llm_config["config_list"][0].copy()
-            model_name = openai_client_cfg.pop("model", "gpt-4-1106-preview")
+        model_name = "gpt-4-0125-preview"
+        openai_client_cfg = copy.deepcopy(llm_config)
+        # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
+        # See: https://github.com/microsoft/autogen/pull/1721
+        if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
+            model_name = openai_client_cfg["config_list"][0].pop("model", "gpt-4-0125-preview")
+        else:
+            model_name = openai_client_cfg.pop("model", "gpt-4-0125-preview")
+
+        logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
         oai_wrapper = OpenAIWrapper(**openai_client_cfg)
         if len(oai_wrapper._clients) > 1:
@@ -142,11 +157,6 @@ class GPTAssistantAgent(ConversableAgent):
             else:
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
                 logger.warning("overwrite_tools is False. Using existing tools from assistant API.")
-
-        self._verbose = kwargs.pop("verbose", False)
-        super().__init__(
-            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
-        )
 
         # lazily create threads
         self._openai_threads = {}
