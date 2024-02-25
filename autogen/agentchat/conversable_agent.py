@@ -323,7 +323,7 @@ class ConversableAgent(LLMAgent):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
 
     @staticmethod
-    def _default_reply_func_from_nested_chats(
+    def _summary_from_nested_chats(
         chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
     ) -> Tuple[bool, str]:
         """A simple chat reply function.
@@ -359,7 +359,7 @@ class ConversableAgent(LLMAgent):
         self,
         chat_queue: List[Dict[str, Any]],
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
-        reply_func_from_nested_chats: Callable = _default_reply_func_from_nested_chats,
+        reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
         position: int = 2,
         **kwargs,
     ) -> None:
@@ -369,7 +369,7 @@ class ConversableAgent(LLMAgent):
             trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
-                Default to a built-in reply function based on nested chats.
+                Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
             ```python
             def reply_func_from_nested_chats(
                 chat_queue: List[Dict],
@@ -382,6 +382,8 @@ class ConversableAgent(LLMAgent):
             position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
             kwargs: Ref to `register_reply` for details.
         """
+        if reply_func_from_nested_chats == "summary_from_nested_chats":
+            reply_func_from_nested_chats = self._summary_from_nested_chats
         assert callable(reply_func_from_nested_chats), "reply_func_from_nested_chats must be a callable"
 
         reply_func = partial(reply_func_from_nested_chats, chat_queue)
