@@ -570,9 +570,6 @@ class ConversableAgent(LLMAgent):
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
-
-        Returns:
-            ChatResult: an ChatResult object.
         """
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
