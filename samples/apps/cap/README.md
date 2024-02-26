@@ -26,7 +26,7 @@ Enter your choice (1-6):
 ```
 
 ## What is Composable Actor Platform (CAP)?
-AutoGen is about Agents and Agent Orchestration.  CAP for AutoGen deals with the space between these components.  CAP is a message based, actor platform that allows actors to be composed into arbitrary graphs.
+AutoGen is about Agents and Agent Orchestration.  CAP extends AutoGen to allows Agents to communicate via a message bus.  CAP, therefore, deals with the space between these components.  CAP is a message based, actor platform that allows actors to be composed into arbitrary graphs.
 
 Actors can register themselves with CAP, find other agents, construct arbitrary graphs, send and receive messages independently and many, many, many other things.
 ```python
