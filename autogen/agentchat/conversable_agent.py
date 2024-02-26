@@ -156,7 +156,7 @@ class ConversableAgent(LLMAgent):
                 raise ValueError(
                     "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
                 )
-            self.client = OpenAIWrapper(**self.llm_config)
+            self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
 
         if logging_enabled():
             log_new_agent(self, locals())
@@ -2116,7 +2116,7 @@ class ConversableAgent(LLMAgent):
         if len(self.llm_config["functions"]) == 0:
             del self.llm_config["functions"]
 
-        self.client = OpenAIWrapper(**self.llm_config)
+        self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
 
     def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
         """update a tool_signature in the LLM configuration for tool_call.
@@ -2154,7 +2154,7 @@ class ConversableAgent(LLMAgent):
         if len(self.llm_config["tools"]) == 0:
             del self.llm_config["tools"]
 
-        self.client = OpenAIWrapper(**self.llm_config)
+        self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
 
     def can_execute_function(self, name: Union[List[str], str]) -> bool:
         """Whether the agent can execute the function."""
