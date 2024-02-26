@@ -11,7 +11,7 @@ from AGGroupChatDemo import ag_groupchat_demo
 from CAPAutGenGroupDemo import cap_ag_group_demo
 from CAPAutoGenPairDemo import cap_ag_pair_demo
 from ComplexActorDemo import complex_actor_demo
-
+from RemoteAGDemo import remote_ag_demo
 ####################################################################################################
 
 
@@ -34,13 +34,15 @@ def main():
     parse_args()
     while True:
         print("Select the demo app to run:")
+        print("(enter anything else to quit)")
         print("1. CAP Hello World")
         print("2. CAP Complex Agent (e.g. Name or Quit)")
         print("3. AutoGen Pair")
         print("4. CAP AutoGen Pair")
         print("5. AutoGen GroupChat")
         print("6. CAP AutoGen GroupChat")
-        choice = input("Enter your choice (1-6): ")
+        print("7. CAP AutoGen in different processes")
+        choice = input("Enter your choice (1-7): ")
 
         if choice == "1":
             simple_actor_demo()
@@ -54,6 +56,8 @@ def main():
             ag_groupchat_demo()
         elif choice == "6":
             cap_ag_group_demo()
+        elif choice == "6":
+            remote_ag_demo()
         else:
             print("Quitting...")
             break
