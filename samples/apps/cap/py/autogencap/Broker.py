@@ -1,24 +1,35 @@
-from .DebugLog import Debug
+import time
 import zmq
 import threading
+from .DebugLog import Debug, Info, Warn
 from .Constants import xsub_url, xpub_url
-
 
 class Broker:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
-        self._xpub: zmq.Socket = self._context.socket(zmq.XPUB)
-        self._xpub.setsockopt(zmq.LINGER, 0)
-        self._xpub.bind(xpub_url)
-        self._xsub: zmq.Socket = self._context.socket(zmq.XSUB)
-        self._xsub.setsockopt(zmq.LINGER, 0)
-        self._xsub.bind(xsub_url)
         self._run: bool = False
+        self._xpub: zmq.Socket = None
+        self._xsub: zmq.Socket = None
 
-    def start(self):
+    def start(self) -> bool:
+        try:
+            self._xpub = self._context.socket(zmq.XPUB)
+            self._xpub.setsockopt(zmq.LINGER, 0)
+            self._xpub.bind(xpub_url)
+            self._xsub = self._context.socket(zmq.XSUB)
+            self._xsub.setsockopt(zmq.LINGER, 0)
+            self._xsub.bind(xsub_url)
+        except zmq.ZMQError as e:
+            Debug("BROKER", f"Unable to start.  Check details: {e}")
+            # If binding fails, close the sockets and return False
+            if self._xpub : self._xpub.close()
+            if self._xsub : self._xsub.close()
+            return False        
+        
         self._run = True
         self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
+        return True
 
     def stop(self):
         # Error("BROKER_ERR", "fix cleanup self._context.term()")
@@ -50,3 +61,29 @@ class Broker:
             self._run = False
             Debug("BROKER", "thread ended")
         return
+
+def main():
+    broker = Broker()
+    Info("BROKER", "Starting.")
+    if broker.start():
+        Info("BROKER", "Running.")
+    else:
+        Warn("BROKER", "Failed to start.")
+        return
+    status_interval = 10
+    last_time = time.time()
+    while(broker._run):
+        # print a message every n seconds
+        current_time = time.time()
+        elapsed_time = current_time - last_time
+        if elapsed_time > status_interval:
+            Info("BROKER", "Running.")
+            last_time = current_time
+        try:
+            time.sleep(0.5)
+        except KeyboardInterrupt:
+            Info("BROKER", "KeyboardInterrupt.  Stopping the broker.")
+            broker.stop()
+
+if __name__ == "__main__":
+    main()

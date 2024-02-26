@@ -24,14 +24,16 @@ class LocalActorNetwork:
         Debug("Local_Agent_Network", f"{agent.agent_name} registered in the network.")
 
     def connect(self):
-        self._broker.start()
+        if not self._broker.start():
+            self._broker = None
         for agent in self.agents.values():
             agent.connect(self)
 
     def disconnect(self):
         for agent in self.agents.values():
             agent.disconnect(self)
-        self._broker.stop()
+        if self._broker: 
+            self._broker.stop()
 
     def agent_connector_by_topic(self, topic: str) -> ActorConnector:
         return ActorConnector(self._context, topic)
