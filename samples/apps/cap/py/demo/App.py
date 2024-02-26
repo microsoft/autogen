@@ -33,30 +33,28 @@ def parse_args():
 def main():
     parse_args()
     while True:
-        print("Select the demo app to run:")
+        print("Select the Composable Actor Platform (CAP) demo app to run:")
         print("(enter anything else to quit)")
-        print("1. CAP Hello World")
-        print("2. CAP Complex Agent (e.g. Name or Quit)")
+        print("1. Hello World")
+        print("2. Complex Agent (e.g. Name or Quit)")
         print("3. AutoGen Pair")
-        print("4. CAP AutoGen Pair")
-        print("5. AutoGen GroupChat")
-        print("6. CAP AutoGen GroupChat")
-        print("7. CAP AutoGen in different processes")
-        choice = input("Enter your choice (1-7): ")
+        print("4. AutoGen GroupChat")
+        print("5. AutoGen Agents in different processes")
+        choice = input("Enter your choice (1-5): ")
 
         if choice == "1":
             simple_actor_demo()
         elif choice == "2":
             complex_actor_demo()
+        # elif choice == "3":
+        #     ag_demo()
         elif choice == "3":
-            ag_demo()
-        elif choice == "4":
             cap_ag_pair_demo()
-        elif choice == "5":
-            ag_groupchat_demo()
-        elif choice == "6":
+        # elif choice == "5":
+        #     ag_groupchat_demo()
+        elif choice == "4":
             cap_ag_group_demo()
-        elif choice == "6":
+        elif choice == "5":
             remote_ag_demo()
         else:
             print("Quitting...")

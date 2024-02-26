@@ -8,21 +8,21 @@
 2) python ./demo/App.py
 
 *Demo Notes:*
-1) Options 3, 4, 5 & 6 require OAI_CONFIG_LIST for AutoGen.
+1) Options involving AutoGen require OAI_CONFIG_LIST.
    AutoGen python requirements: 3.8 <= python <= 3.11
 2) For option 2, type something in and see who receives the message.  Quit to quit.
 3) To view any option that displays a chart (such as option 4), you will need to disable Docker code execution. You can do this by setting the environment variable `AUTOGEN_USE_DOCKER` to `False`.
 
 *Demo Reference:*
 ```
-Select the demo app to run:
-1. CAP Hello World
-2. CAP Complex Agent (e.g. Name or Quit)
-3. AutoGen Pair
-4. CAP AutoGen Pair
-5. AutoGen GroupChat
-6. CAP AutoGen GroupChat
-Enter your choice (1-6):
+    Select the Composable Actor Platform (CAP) demo app to run:
+    (enter anything else to quit)
+    1. Hello World Actor
+    2. Complex Actor Graph
+    3. AutoGen Pair
+    4. AutoGen GroupChat
+    5. AutoGen Agents in different processes
+    Enter your choice (1-5):
 ```
 
 ## What is Composable Actor Platform (CAP)?
