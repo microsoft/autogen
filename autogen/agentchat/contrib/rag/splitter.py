@@ -106,7 +106,7 @@ class Splitter(ABC):
         return files
 
     @staticmethod
-    def get_file_from_url(url: str, save_path: str = None) -> str:
+    def get_file_from_url(url: str, save_path: str = None) -> Tuple[str, str]:
         """
         Download a file from a URL.
 
@@ -115,7 +115,7 @@ class Splitter(ABC):
             save_path: str | The path to save the file. Default is None.
 
         Returns:
-            str | The path to the downloaded file.
+            Tuple[str, str] | The file path and the URL.
         """
         if save_path is None:
             os.makedirs("./tmp/download", exist_ok=True)
@@ -130,8 +130,8 @@ class Splitter(ABC):
                         f.write(chunk)
         except requests.exceptions.HTTPError as err:
             logger.warning(f"Skipping URL due to {err.response.status_code} error: {url}", color="yellow")
-            return ""
-        return save_path
+            return "", url
+        return save_path, url
 
     @staticmethod
     def is_url(string: str) -> bool:
@@ -358,7 +358,12 @@ class TextLineSplitter(Splitter):
         sources = []
 
         for file in files:
-            logger.debug(f"Processing file: {file}")
+            if isinstance(file, tuple):
+                url = file[1]
+                file = file[0]
+            else:
+                url = None
+            logger.debug(f"Processing file: {file}, url: {url}")
             _, file_extension = os.path.splitext(file)
             file_extension = file_extension.lower()
 
@@ -377,7 +382,7 @@ class TextLineSplitter(Splitter):
             else:
                 tmp_chunks = self.split_text_to_chunks(text, chunk_size, chunk_mode, must_break_at_empty_line, overlap)
             chunks += tmp_chunks
-            sources += [file] * len(tmp_chunks)
+            sources += [url if url else file] * len(tmp_chunks)
             logger.debug(f"Split {file} into {len(tmp_chunks)} chunks.", color="green")
         return chunks, sources
 
