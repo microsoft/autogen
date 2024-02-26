@@ -384,8 +384,8 @@ class ConversableAgent(LLMAgent):
         """
         if reply_func_from_nested_chats == "summary_from_nested_chats":
             reply_func_from_nested_chats = self._summary_from_nested_chats
-        assert callable(reply_func_from_nested_chats), "reply_func_from_nested_chats must be a callable"
-
+        if not callable(reply_func_from_nested_chats):
+            raise ValueError("reply_func_from_nested_chats must be a callable")
         reply_func = partial(reply_func_from_nested_chats, chat_queue)
         self.register_reply(
             trigger,
