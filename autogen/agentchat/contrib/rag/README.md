@@ -19,12 +19,12 @@ Once the knowledge base is established, we can enhance our responses to user inp
 [Roadmap for RAG #1657](https://github.com/microsoft/autogen/issues/1657)
 
 - [x] core functionalities
-- [ ] notebook example
+- [x] notebook example
+- [x] capability for any agent
 - [ ] blog
 - [ ] unstructured as splitter
 - [ ] qdrant as vectordb
 - [ ] lancedb as vectordb
-- [ ] capability for any agent
 - [ ] benchmark
 - [ ] async
 
