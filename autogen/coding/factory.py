@@ -37,5 +37,9 @@ class CodeExecutorFactory:
             from .local_commandline_code_executor import LocalCommandlineCodeExecutor
 
             return LocalCommandlineCodeExecutor(**code_execution_config.get("commandline-local", {}))
+        elif executor == "jupyter-local":
+            from .jupyter_code_executor import LocalJupyterCodeExecutor
+
+            return LocalJupyterCodeExecutor(**code_execution_config.get("jupyter-local", {}))
         else:
             raise ValueError(f"Unknown code executor {executor}")

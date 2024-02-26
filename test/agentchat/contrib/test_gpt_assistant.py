@@ -17,7 +17,21 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 if not skip:
     openai_config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        # The Retrieval tool requires at least gpt-3.5-turbo-1106 (newer versions are supported) or gpt-4-turbo-preview models.
+        # https://platform.openai.com/docs/models/overview
+        filter_dict={
+            "api_type": ["openai"],
+            "model": [
+                "gpt-4-turbo-preview",
+                "gpt-4-0125-preview",
+                "gpt-4-1106-preview",
+                "gpt-3.5-turbo",
+                "gpt-3.5-turbo-0125",
+                "gpt-3.5-turbo-1106",
+            ],
+        },
     )
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -41,7 +55,8 @@ def test_config_list() -> None:
 )
 def test_gpt_assistant_chat() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
-        _test_gpt_assistant_chat(gpt_config)
+        _test_gpt_assistant_chat({"config_list": gpt_config})
+        _test_gpt_assistant_chat(gpt_config[0])
 
 
 def _test_gpt_assistant_chat(gpt_config) -> None:
@@ -68,7 +83,7 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     name = f"For test_gpt_assistant_chat {uuid.uuid4()}"
     analyst = GPTAssistantAgent(
         name=name,
-        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": gpt_config},
+        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], **gpt_config},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
     try:
