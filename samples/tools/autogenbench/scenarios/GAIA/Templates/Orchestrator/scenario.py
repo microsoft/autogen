@@ -5,14 +5,12 @@ import json
 import autogen
 import copy
 import traceback
-import mimetypes
-import base64
 import re
 from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.agentchat.contrib.functions import file_utils as futils
+from autogen.mdconvert import MarkdownConverter, UnsupportedFormatException
 from orchestrator import Orchestrator
 
 testbed_utils.init()
@@ -31,10 +29,22 @@ config_list = autogen.config_list_from_json( "OAI_CONFIG_LIST",)
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 llm_config["temperature"] = 0.1
 
+gpt4v_azure = {
+  "model": "gpt-4-turbo-v",
+  "base_url": config_list[0]["base_url"],
+  "api_key": config_list[0]["api_key"],
+  "max_retries": 65535,
+  "api_version": "2023-12-01-preview",
+  "max_tokens": 1000,
+  "api_type": "azure",
+}
+
 summarizer_llm_config = llm_config
 final_llm_config = llm_config
 
 client = autogen.OpenAIWrapper(**final_llm_config)
+mlm_client = autogen.OpenAIWrapper(**gpt4v_azure)
+
 def response_preparer(inner_messages):
 
     messages = [
@@ -149,69 +159,26 @@ filename = "__FILE_NAME__".strip()
 
 filename_prompt = ""
 if len(filename) > 0:
-    content_type, encoding = mimetypes.guess_type(filename)
     relpath = os.path.join("coding", filename)
     filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
-    if re.search(r"\.docx?$", filename.lower()):
-        filename_prompt += " It is a word document. Its contents are:\n\n" + futils.read_text_from_docx(relpath)
-    elif re.search(r"\.xlsx?$", filename.lower()):
-        filename_prompt += " It is an excel document. Its contents are:\n\n" + futils.read_text_from_xlsx(relpath)
-    elif re.search(r"\.pptx?$", filename.lower()):
-        filename_prompt += " It is an powerpoint document. Its contents are:\n\n" + futils.read_text_from_pptx(relpath)
-    elif re.search(r"\.pdf$", filename.lower()):
-        filename_prompt += " It is a PDF. Its contents are:\n\n" + futils.read_text_from_pdf(relpath)
-    elif re.search(r"\.mp3$", filename.lower()):
-        from pydub import AudioSegment
 
-        sound = AudioSegment.from_mp3(relpath)
-        wave_fname = relpath + ".wav"
-        sound.export(wave_fname, format="wav")
-        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(wave_fname)
-    elif re.search(r"\.wav$", filename.lower()):
-        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(relpath)
-    elif re.search(r"\.jpe?g$", filename.lower()):
-        filename_prompt += " It is an image with the following description:\n\n "
-
-        img_prompt = f"""
-Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
+    mdconverter = MarkdownConverter( mlm_client=mlm_client)
+    mlm_prompt="""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
 
 {PROMPT}
-        """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v( "data:image/jpeg;base64," + encode_image(relpath), img_prompt)
-        ocr = futils.read_text_from_image(relpath).strip()
-        if ocr != "":
-            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
-    elif re.search(r"\.png$", filename.lower()):
-        filename_prompt += " It is an image with the following description:\n\n "
+""".strip()
 
-        img_prompt = f"""
-Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
+    try:
+        res = mdconverter.convert(relpath, mlm_prompt=mlm_prompt)
+        filename_prompt += " Here are the file's contents:\n\n" + res.text_content
+    except UnsupportedFormatException:
+        pass
 
-{PROMPT}
-        """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v( "data:image/png;base64," + encode_image(relpath), img_prompt)
-
-        from PIL import Image
-
-        img = Image.open(relpath)
-        # Remove transparency
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        jpg_name = relpath + ".jpg"
-        img.save(jpg_name)
-
-        ocr = futils.read_text_from_image(jpg_name).strip()
-        if ocr != "":
-            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
-    elif content_type is not None and "text/" in content_type.lower():
-        with open(relpath, "rt") as fh:
-            filename_prompt += "Here are the file's contents:\n\n" + fh.read().strip()
 
 question = f"""{PROMPT}
 
 {filename_prompt}
 """.strip()
-
 
 try:
     # Initiate one turn of the conversation
