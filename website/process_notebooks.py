@@ -34,7 +34,7 @@ try:
 except ImportError:
     if current_process().name == "MainProcess":
         print("nbclient not found.\n\nPlease install nbclient:\n\tpip install nbclient\n")
-        print("test wont work without nbclient")
+        print("test won't work without nbclient")
 
 try:
     import nbformat
@@ -42,7 +42,7 @@ try:
 except ImportError:
     if current_process().name == "MainProcess":
         print("nbformat not found.\n\nPlease install nbformat:\n\tpip install nbformat\n")
-        print("test wont work without nbclient")
+        print("test won't work without nbclient")
 
 
 try:
@@ -281,7 +281,7 @@ def test_notebook(notebook_path: Path, timeout: int = 300) -> Tuple[Path, Option
         error = get_error_info(nb)
         assert error is not None
         return notebook_path, error
-    except CellTimeoutError as err:
+    except CellTimeoutError:
         error = get_timeout_info(nb)
         assert error is not None
         return notebook_path, error
