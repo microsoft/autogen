@@ -26,11 +26,11 @@ public class AzureGenie : Agent
     {
         switch (item.Type)
         {
-            case EventType.ReadmeChainClosed:
+            case EventType.ReadmeCreated:
                 //_azureService.Store();
                 // postEvent ReadmeStored
                 break;
-            case EventType.CodeChainClosed:
+            case EventType.CodeCreated:
                 // _azureService.Store();
                 // _azureService.RunInSandbox();
                 break;

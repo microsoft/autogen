@@ -24,5 +24,8 @@ public enum EventType
     DevPlanChainClosed,
     ReadmeRequested,
     ReadmeStored,
-    SandboxRunFinished
+    SandboxRunFinished,
+    ReadmeCreated,
+    CodeCreated,
+    DevPlanCreated
 }

@@ -49,7 +49,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
             {
                 _logger.LogInformation("Processing HandleClosingIssue");
-                await HandleClosingIssue(issueNumber, parentNumber, suffix, org, repo);
+                await HandleClosingIssue(issueNumber, parentNumber,skillName, labels[skillName], suffix, org, repo);
             }
         }
         catch (System.Exception)
@@ -91,11 +91,18 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
        
     }
 
-    private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string suffix, string org, string repo)
+    private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string org, string repo)
     {
         var streamProvider = _client.GetStreamProvider("StreamProvider");
         var streamId = StreamId.Create(Consts.MainNamespace, suffix+issueNumber.ToString());
         var stream = streamProvider.GetStream<Event>(streamId);
+        var eventType = (skillName, functionName) switch
+            {
+                (nameof(PM), nameof(PM.Readme)) => EventType.ReadmeChainClosed,
+                (nameof(DevLead), nameof(DevLead.Plan)) => EventType.DevPlanChainClosed,
+                (nameof(Developer), nameof(Developer.Implement)) => EventType.CodeChainClosed,
+                _ => EventType.NewAsk
+            };
         var data = new Dictionary<string, string>
         {
             { "org", org },
@@ -106,7 +113,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
 
         await stream.OnNextAsync(new Event
         {
-            Type = EventType.ChainClosed,
+            Type = eventType,
             Data = data
         });
     }

@@ -42,7 +42,7 @@ public class Dev : AiAgent
                 //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
                 // postEvent EventType.CodeGenerated
                 break;
-            case EventType.ChainClosed:
+            case EventType.CodeChainClosed:
                 await CloseImplementation();
                 // postEvent EventType.CodeFinished
                 break;

@@ -45,17 +45,26 @@ public class ProductManager : AiAgent
                         },
                        Message = readme
                 });
-                //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), readme);
-                // postEvent ReadmeGenerated
                 break;
-            case EventType.ChainClosed:
-                await CloseReadme();
-                // postEvent ReadmeFinished
+            case EventType.ReadmeChainClosed:
+                var lastReadme = _state.State.History.Last().Message;
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
+                     Type = EventType.ReadmeCreated,
+                        Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "readme", lastReadme },
+                            { "parentNumber", item.Data["parentNumber"] }
+                        },
+                       Message = lastReadme
+                });
                 break;
             default:
                 break;
         }
     }
+
     public async Task<string> CreateReadme(string ask)
     {
         try
@@ -69,37 +78,37 @@ public class ProductManager : AiAgent
         }
     }
 
-    public async Task CloseReadme()
-    {
-        // var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
-        // var readme = await pm.GetLastMessage();
-        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        // await _azService.Store(new SaveOutputRequest
-        // {
-        //     ParentIssueNumber = parentIssue.IssueNumber,
-        //     IssueNumber = (int)issueNumber,
-        //     Output = readme,
-        //     Extension = "md",
-        //     Directory = "output",
-        //     FileName = "readme",
-        //     Org = org,
-        //     Repo = repo
-        // });
-        // await _ghService.CommitToBranch(new CommitRequest
-        // {
-        //     Dir = "output",
-        //     Org = org,
-        //     Repo = repo,
-        //     ParentNumber = parentIssue.IssueNumber,
-        //     Number = (int)issueNumber,
-        //     Branch = $"sk-{parentIssue.IssueNumber}"
-        // });
-        // await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
-        // {
-        //     Org = org,
-        //     Repo = repo,
-        //     CommentId = parentIssue.CommentId
-        // });
-    }
+    // public async Task CloseReadme()
+    // {
+    //     var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
+    //     var readme = await pm.GetLastMessage();
+    //     var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
+    //     var parentIssue = await lookup.GetMetadata((int)issueNumber);
+    //     await _azService.Store(new SaveOutputRequest
+    //     {
+    //         ParentIssueNumber = parentIssue.IssueNumber,
+    //         IssueNumber = (int)issueNumber,
+    //         Output = readme,
+    //         Extension = "md",
+    //         Directory = "output",
+    //         FileName = "readme",
+    //         Org = org,
+    //         Repo = repo
+    //     });
+    //     await _ghService.CommitToBranch(new CommitRequest
+    //     {
+    //         Dir = "output",
+    //         Org = org,
+    //         Repo = repo,
+    //         ParentNumber = parentIssue.IssueNumber,
+    //         Number = (int)issueNumber,
+    //         Branch = $"sk-{parentIssue.IssueNumber}"
+    //     });
+    //     await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+    //     {
+    //         Org = org,
+    //         Repo = repo,
+    //         CommentId = parentIssue.CommentId
+    //     });
+    // }
 }

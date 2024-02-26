@@ -41,7 +41,7 @@ public class Hubber : Agent
             case EventType.CodeGenerated:
                 await PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
                 break;
-            case EventType.DevPlanChainClosed:
+            case EventType.DevPlanCreated:
                 var plan = JsonSerializer.Deserialize<DevLeadPlanResponse>(item.Data["plan"]);
                 var devTasks = plan.steps.SelectMany(s => s.subtasks.Select(st => st.prompt)).Select(p =>
                     CreateIssue(item.Data["org"], item.Data["repo"], p, $"{nameof(Developer)}.{nameof(Developer.Implement)}", long.Parse(item.Data["parentNumber"])));
