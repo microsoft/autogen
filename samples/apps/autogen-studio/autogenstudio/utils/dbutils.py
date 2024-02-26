@@ -51,6 +51,7 @@ SESSIONS_TABLE_SQL = """
                 id TEXT NOT NULL,
                 user_id TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
+                name TEXT,
                 flow_config TEXT,
                 UNIQUE (user_id, id)
             )
@@ -459,6 +460,23 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
 
     return sessions
 
+
+def rename_session(name:str,  session: Session, dbmanager: DBManager) -> List[dict]:
+    """
+    Edit a session for a specific user in the database.
+
+    :param name: The new name of the session
+    :param session: The Session object containing session data
+    :param dbmanager: The DBManager instance to interact with the database
+    :return: A list of dictionaries, each representing a session
+    """
+
+    query = "UPDATE sessions SET name = ? WHERE id = ?"
+    args = (name, session.id)
+    dbmanager.query(query=query, args=args)
+    sessions = get_sessions(user_id=session.user_id, dbmanager=dbmanager)
+
+    return sessions
 
 def delete_session(session: Session, dbmanager: DBManager) -> List[dict]:
     """
