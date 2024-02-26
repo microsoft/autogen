@@ -41,7 +41,7 @@ repos:
               pyproject.toml |
               website/static/img/ag.svg |
               website/yarn.lock |
-              website/docs/Tutorial/.* |
+              website/docs/getting-started/code-executors.ipynb |
               notebook/.*
             )$
   - repo: https://github.com/nbQA-dev/nbQA
