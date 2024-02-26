@@ -186,6 +186,17 @@ module.exports = {
         // When applying `zh` in language, please install `nodejieba` in your project.
       },
     ],
-    customPostCssPlugin
+    customPostCssPlugin,
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        redirects: [
+          {
+            to: "/docs/llm_configuration/",
+            from: ["/docs/llm_endpoint_configuration/"],
+          },
+        ],
+      },
+    ]
   ],
 };

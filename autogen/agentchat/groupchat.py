@@ -7,10 +7,11 @@ from typing import Dict, List, Optional, Union, Tuple
 
 
 from ..code_utils import content_str
+from ..exception_utils import AgentNameConflict
 from .agent import Agent
 from .conversable_agent import ConversableAgent
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
-
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,8 @@ class GroupChat:
         Must be supplied if `allowed_or_disallowed_speaker_transitions` is not None.
     - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
         "clear history" phrase in user prompt. This is experimental feature.
-        See description of `GroupChatManager.clear_agents_history` function for more info.
+        See description of GroupChatManager.clear_agents_history function for more info.
+    - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
     """
 
     agents: List[Agent]
@@ -70,6 +72,7 @@ class GroupChat:
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Optional[str] = None
     enable_clear_history: Optional[bool] = False
+    send_introductions: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -174,9 +177,26 @@ class GroupChat:
         message["content"] = content_str(message["content"])
         self.messages.append(message)
 
-    def agent_by_name(self, name: str) -> Agent:
-        """Returns the agent with a given name."""
-        return self.agents[self.agent_names.index(name)]
+    def agent_by_name(
+        self, name: str, recursive: bool = False, raise_on_name_conflict: bool = False
+    ) -> Optional[Agent]:
+        """Returns the agent with a given name. If recursive is True, it will search in nested teams."""
+        agents = self.nested_agents() if recursive else self.agents
+        filtered_agents = [agent for agent in agents if agent.name == name]
+
+        if raise_on_name_conflict and len(filtered_agents) > 1:
+            raise AgentNameConflict()
+
+        return filtered_agents[0] if filtered_agents else None
+
+    def nested_agents(self) -> List[Agent]:
+        """Returns all agents in the group chat manager."""
+        agents = self.agents.copy()
+        for agent in agents:
+            if isinstance(agent, GroupChatManager):
+                # Recursive call for nested teams
+                agents.extend(agent.groupchat.nested_agents())
+        return agents
 
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
@@ -210,6 +230,16 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+
+    def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
+        """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
+        if agents is None:
+            agents = self.agents
+
+        return f"""Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:
+
+{self._participant_roles(agents)}
+"""
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -390,10 +420,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             )
 
         # Return the result
-        try:
-            return self.agent_by_name(name)
-        except ValueError:
-            return self.next_agent(last_speaker, agents)
+        agent = self.agent_by_name(name)
+        return agent if agent else self.next_agent(last_speaker, agents)
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
@@ -463,6 +491,8 @@ class GroupChatManager(ConversableAgent):
             system_message=system_message,
             **kwargs,
         )
+        if logging_enabled():
+            log_new_agent(self, locals())
         # Store groupchat
         self._groupchat = groupchat
 
@@ -478,21 +508,32 @@ class GroupChatManager(ConversableAgent):
             ignore_async_in_sync_chat=True,
         )
 
+    @property
+    def groupchat(self) -> GroupChat:
+        """Returns the group chat managed by the group chat manager."""
+        return self._groupchat
+
     def chat_messages_for_summary(self, agent: Agent) -> List[Dict]:
         """The list of messages in the group chat as a conversation to summarize.
         The agent is ignored.
         """
         return self._groupchat.messages
 
-    def _prepare_chat(self, recipient: ConversableAgent, clear_history: bool, prepare_recipient: bool = True) -> None:
-        super()._prepare_chat(recipient, clear_history, prepare_recipient)
+    def _prepare_chat(
+        self,
+        recipient: ConversableAgent,
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
+        super()._prepare_chat(recipient, clear_history, prepare_recipient, reply_at_receive)
 
         if clear_history:
             self._groupchat.reset()
 
         for agent in self._groupchat.agents:
             if (recipient != agent or prepare_recipient) and isinstance(agent, ConversableAgent):
-                agent._prepare_chat(self, clear_history, False)
+                agent._prepare_chat(self, clear_history, False, reply_at_receive)
 
     def run_chat(
         self,
@@ -506,6 +547,16 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        send_introductions = getattr(groupchat, "send_introductions", False)
+
+        if send_introductions:
+            # Broadcast the intro
+            intro = groupchat.introductions_msg()
+            for agent in groupchat.agents:
+                self.send(intro, agent, request_reply=False, silent=True)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
+
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.previous_cache = a.client_cache
@@ -569,6 +620,16 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        send_introductions = getattr(groupchat, "send_introductions", False)
+
+        if send_introductions:
+            # Broadcast the intro
+            intro = groupchat.introductions_msg()
+            for agent in groupchat.agents:
+                self.a_send(intro, agent, request_reply=False, silent=True)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
+
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.previous_cache = a.client_cache
