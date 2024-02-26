@@ -559,7 +559,7 @@ class RagAgent(ConversableAgent):
             self.perform_rag(message)
             context = self.query_results_to_context(self.reranked_query_results, token_limits)
             llm_message = self.selected_prompt_rag.format(
-                input_question=self.received_raw_message, input_context=context
+                input_question=self.received_raw_message, input_context=message + "\n" + context
             )
         else:
             is_update, new_message = self.check_update_context(message)
@@ -573,7 +573,7 @@ class RagAgent(ConversableAgent):
                 self.perform_rag(new_message)
                 context = self.query_results_to_context(self.reranked_query_results, token_limits)
                 llm_message = self.selected_prompt_rag.format(
-                    input_question=self.received_raw_message, input_context=context
+                    input_question=self.received_raw_message, input_context=new_message + "\n" + context
                 )
             else:
                 llm_message = ""
