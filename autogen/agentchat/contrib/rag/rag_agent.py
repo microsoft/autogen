@@ -93,7 +93,7 @@ class RagAgent(ConversableAgent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             rag_config (dict): config for the rag agent.
                 - llm_model (str): the language model to use for the RAG agent, it's used to count tokens.
-                    Default is "gpt-3.5-turbo-0613".
+                    Default is llm_config["config_list"][0]["model"] or "gpt-3.5-turbo-0613".
                 - promptgen_n (int): the number of refined messages to generate for each message. Default is 2.
                 - top_k (int): the number of documents to retrieve for each refined message. Default is 10.
                 - filter_document (str): the filter for the documents, the usage would differ for different vector database.
@@ -164,7 +164,11 @@ class RagAgent(ConversableAgent):
             description=description,
         )
         self.rag_config = {} if rag_config is None else rag_config
-        self.llm_model = self.rag_config.get("llm_model", "gpt-3.5-turbo-0613")
+        try:
+            _llm_model = llm_config["config_list"][0]["model"]
+        except (TypeError, KeyError):
+            _llm_model = "gpt-3.5-turbo-0613"
+        self.llm_model = self.rag_config.get("llm_model", _llm_model)
         self.rag_promptgen_n = self.rag_config.get("promptgen_n", 2)
         self.rag_top_k = self.rag_config.get("top_k", 10)
         self.rag_filter_document = self.rag_config.get("filter_document", None)
