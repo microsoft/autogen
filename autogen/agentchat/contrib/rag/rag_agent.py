@@ -92,45 +92,64 @@ class RagAgent(ConversableAgent):
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             rag_config (dict): config for the rag agent.
-                - llm_model (str): the language model to use for the RAG agent. Default is "gpt-3.5-turbo-0613".
-                - promptgen_n (int): the number of prompts to generate for each message. Default is 2.
-                - top_k (int): the number of documents to retrieve for each prompt. Default is 10.
-                - filter_document (str): the filter for the documents. Default is None.
-                - filter_metadata (str): the filter for the metadata. Default is None.
-                - include (str): the attributes to include in the query results. Default is None.
-                - rag_llm_config (dict): the llm config for the RAG agent inner loop such as promptgenerator.
-                    Default is the same as the llm_config. Set to False to disable promptgenerator.
-                - max_token_ratio_for_context (float): the maximum token ratio for the context. Default is 0.8.
-                - splitter (str or Splitter): the splitter to use for the RAG agent. Default is "textline".
-                - docs_path (str): the path to the documents. Default is None.
-                - recursive (bool): whether to recursively search for documents. Default is True.
-                - chunk_size (int): the chunk size. Default is 1024.
-                - chunk_mode (str): the chunk mode. Default is "multi_lines".
+                - llm_model (str): the language model to use for the RAG agent, it's used to count tokens.
+                    Default is "gpt-3.5-turbo-0613".
+                - promptgen_n (int): the number of refined messages to generate for each message. Default is 2.
+                - top_k (int): the number of documents to retrieve for each refined message. Default is 10.
+                - filter_document (str): the filter for the documents, the usage would differ for different vector database.
+                    Default is None. For chromadb, `{"$contains": "spark"}` means to retrieve documents that contain "spark".
+                - filter_metadata (str): the filter for the metadata, the usage would differ for different vector database.
+                    Default is None. For chromadb, `{"color" : "red"}` means to retrieve documents with metadata "color" equals to "red".
+                - include (str): the attributes to include in the query results. Default is ["metadatas", "documents", "distances"]
+                - rag_llm_config (dict): the llm config for the RAG agent inner loop such as promptgenerator. Default is
+                    the same as the llm_config. Set to False to disable promptgenerator (prompts selection and message refinement).
+                - max_token_ratio_for_context (float): the maximum token ratio for the context, used to control the
+                    number of tokens in the input of LLM calls. Default is 0.8.
+                - splitter (str or Splitter): the splitter to use for the RAG agent. Default is "textline" which will use
+                    the built-in `TextLineSplitter` to split the text into lines. The splitter can be set to an instance
+                    of `Splitter` as well. Extend the `Splitter` class to create a custom splitter.
+                - docs_path (str): the path to the raw files for building the knowledge base. Default is None. If not
+                    provided, it will use the existing collection if it exists, otherwise it will raise an ValueError.
+                - recursive (bool): whether to recursively search for files in the `docs_path`. Default is True.
+                - chunk_size (int): the maximum number of tokens of each chunk. Default is 1024.
+                - chunk_mode (str): the chunk mode. Default is "multi_lines". Other option is "one_line".
                 - must_break_at_empty_line (bool): whether to break at empty line. Default is True.
                 - overlap (int): the number of overlapping lines. Default is 1.
-                - token_count_function (callable): the function to count the tokens. Default is count_token.
-                - max_token_limit (int): the maximum token limit. Default is the maximum token limit for the llm model.
+                - token_count_function (callable): the function to count the tokens. Default is `autogen.token_count_utils.count_token`.
+                    Pass a custom function to count the tokens if needed.
+                - max_token_limit (int): the maximum token limit of the conversation. Default is the maximum token limit for the llm model.
                 - custom_text_split_function (callable): the custom text split function. Default is None.
                 - embedding_function (str or EmbeddingFunction): the embedding function to use. Default is "sentence_transformer".
-                - retriever (str or Retriever): the retriever to use. Default is "chroma".
-                - collection_name (str): the collection name. Default is "autogen-rag".
-                - db_path (str): the database path. Default is "./tmp/{retriever}".
-                - db_config (dict): the database config. Default is {}.
-                - overwrite (bool): whether to overwrite the collection. Default is False.
-                - get_or_create (bool): whether to get or create the collection. Default is True.
-                - upsert (bool): whether to upsert the documents. Default is True.
-                - reranker (str or Reranker): the reranker to use. Default is "tfidf".
-                - post_process_func (callable): the post process function. Default is self.add_source_to_reply.
-                - prompt_generator_post_process_func (callable): the prompt generator post process function. Default is None.
-                - prompt_refine (str): the prompt refine. Default is None.
-                - prompt_select (str): the prompt select. Default is None.
-                - prompt_rag (str): the prompt rag. Default is None.
-                - enable_update_context (bool): whether to enable update context. Default is True.
+                - retriever (str or Retriever): the retriever to use. Default is "chroma", will use the built-in `ChromaRetriever`.
+                    The retriever can be set to an instance of `Retriever` as well. Extend the `Retriever` class to create a custom retriever.
+                - collection_name (str): the collection name for the vector database. Default is "autogen-rag".
+                - db_path (str): the database path. Default is "./tmp/{retriever}". Invalid if retriever is an instance of `Retriever`.
+                - db_config (dict): the database config. Default is {}. The value will be different for different vector database.
+                - overwrite (bool): whether to overwrite the collection. Default is False. If True, will overwrite the
+                    collection if it exists or create a new collection if it doesn't exist.
+                - get_or_create (bool): whether to get or create the collection. Default is True. If True, will reuse the
+                    existing collection if it exists, otherwise will create a new collection. If False, will create a new
+                    collection if it doesn't exist, otherwise will raise an ValueError. Invalid if overwrite is True.
+                - upsert (bool): whether to upsert the documents. Default is True. If False, existing documents will not be updated.
+                - reranker (str or Reranker): the reranker to use. Default is "tfidf", which uses the built-in `TfidfReranker`.
+                    The reranker can be set to an instance of `Reranker` as well. Extend the `Reranker` class to create a custom reranker.
+                - post_process_func (callable): the post process function. Default is `add_source_to_reply` which simply
+                    adds the sources of the context to the end of the reply.
+                - prompt_generator_post_process_func (callable): the post process function for PromptGenerator. Default is None,
+                    will use the built-in `promptgenerator.extract_refined_questions`.
+                - prompt_refine (str): the prompt for refining the received message. Default is None, will use the
+                    built-in `prompts.PROMPTS_GENERATOR["refine"]`.
+                - prompt_select (str): the prompt for selecting the best prompts for replying the received message.
+                    Default is None, will use the built-in `prompts.PROMPTS_GENERATOR["select"]`.
+                - prompt_rag (str): the prompt for sending requests to LLM backend. Default is None, one of the built-in
+                    `prompts.PROMPTS_RAG` will be selected by `PromptGenerator`.
+                - enable_update_context (bool): whether to enable update context. Default is True. If True, the context will
+                    be updated if the message starts or ends with the trigger words.
                 - customized_trigger_words (Union[str, List[str]]): the customized trigger words, case insensitive.
-                    Default is "question". If the message starts or ends with the trigger words, the context will be updated.
+                    Default is ["update context", "question"]. If the message starts or ends with the trigger words,
+                    the context will be updated.
                 - vector_db_get_is_fast (bool): whether the vector db get is fast. If True, will save some memory w/o
-                    introducing much latency. Default is True.
-                - source_in_reply (bool): whether to add the source to the reply. Default is True.
+                    introducing much latency. Default is True. Set to False if the vector db has high latency.
         """
         super().__init__(
             name=name,

@@ -34,6 +34,7 @@ class Retriever(ABC):
             None
         """
         self.db_type = db_type
+        self.name = db_type
         self.collection_name = collection_name
         self.path = path
         self.encoder = encoder
@@ -109,7 +110,6 @@ class ChromaRetriever(Retriever):
         super().__init__(
             "chroma", collection_name, None if path == "-1" else path if path else "./tmp/chroma", encoder, db_config
         )
-        self.name = "chroma"
 
 
 class RetrieverFactory:
