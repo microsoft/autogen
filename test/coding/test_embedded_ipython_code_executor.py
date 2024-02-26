@@ -16,7 +16,6 @@ try:
     from autogen.coding.jupyter import DockerJupyterServer
     from autogen.coding.jupyter_code_executor import JupyterCodeExecutor, LocalJupyterCodeExecutor
 
-
     class DockerJupyterExecutor(JupyterCodeExecutor):
         def __init__(self, **kwargs):
             jupyter_server = DockerJupyterServer()
@@ -41,6 +40,7 @@ def test_create_dict() -> None:
     config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
     executor = CodeExecutorFactory.create(config)
     assert isinstance(executor, EmbeddedIPythonCodeExecutor)
+
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 @pytest.mark.parametrize("cls", classes_to_test)

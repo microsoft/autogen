@@ -10,7 +10,6 @@ import docker
 import secrets
 import io
 import atexit
-from .jupyter_client import JupyterClient
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -18,9 +17,8 @@ else:
     from typing_extensions import Self
 
 
+from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
-
-__all__ = ["DockerIPythonCodeExecutor"]
 
 
 KERNEL_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
@@ -44,6 +42,7 @@ EXPOSE 8888
 
 WORKDIR "${HOME}"
 """
+
 
 def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
     elapsed_time = 0

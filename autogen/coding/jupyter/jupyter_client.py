@@ -28,9 +28,8 @@ class JupyterClient:
     def __init__(self, connection_info: JupyterConnectionInfo):
         self._connection_info = connection_info
         self._session = requests.Session()
-        retries = Retry(total=5,
-                backoff_factor=0.1)
-        self._session.mount('http://', HTTPAdapter(max_retries=retries))
+        retries = Retry(total=5, backoff_factor=0.1)
+        self._session.mount("http://", HTTPAdapter(max_retries=retries))
 
     def _get_headers(self) -> Dict[str, str]:
         if self._connection_info.token is None:
