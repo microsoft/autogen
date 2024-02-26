@@ -220,7 +220,7 @@ pip install pydoc-markdown pyyaml termcolor # skip if you use the dev container 
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-python process_notebooks.py
+python process_notebooks.py render
 yarn start
 ```
 
@@ -245,7 +245,7 @@ Once at the CLI in Docker run the following commands:
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-python process_notebooks.py
+python process_notebooks.py render
 yarn start --host 0.0.0.0 --port 3000
 ```
 

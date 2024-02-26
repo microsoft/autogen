@@ -29,7 +29,7 @@ fi
 pydoc-markdown
 
 # Process notebooks using a Python script
-python ./process_notebooks.py
+python ./process_notebooks.py render
 
 # Start the website using yarn
 yarn start
