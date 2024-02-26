@@ -13,29 +13,38 @@ from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
 try:
     from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
-    from autogen.coding.jupyter_code_executor import LocalJupyterCodeExecutor
+    from autogen.coding.jupyter import DockerJupyterServer
+    from autogen.coding.jupyter_code_executor import JupyterCodeExecutor, LocalJupyterCodeExecutor
+
+
+    class DockerJupyterExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = DockerJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
 
     # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
     if sys.platform == "win32":
-        classes_to_test = [EmbeddedIPythonCodeExecutor]
+        classes_to_test = [EmbeddedIPythonCodeExecutor, DockerJupyterExecutor]
     else:
-        classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
+        classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor, DockerJupyterExecutor]
 
     skip = False
     skip_reason = ""
-except ImportError:
+except ImportError as e:
     skip = True
-    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed."
+    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed. " + e.msg
     classes_to_test = []
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)
-@pytest.mark.parametrize("cls", classes_to_test)
-def test_create(cls) -> None:
+def test_create_dict() -> None:
     config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
     executor = CodeExecutorFactory.create(config)
     assert isinstance(executor, EmbeddedIPythonCodeExecutor)
 
+@pytest.mark.skipif(skip, reason=skip_reason)
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_create(cls) -> None:
     config = {"executor": cls()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
