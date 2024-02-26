@@ -78,7 +78,7 @@ async def heyanny(ctx, task: str = None):
         "ghstatus": ghstatus,
         "ghgrowth": ghgrowth,
         "ghunattended": ghunattended,
-        "ghstudio": ghstudio,
+        "ghfaqs": ghfaqs,
     }
 
     if task in task_map:
@@ -96,6 +96,7 @@ Hi this is Anny an AutoGen-powered Discord bot to help with `{REPO}`. I can help
 - ghstatus: Find the most recent issues and PRs from today.
 - ghgrowth: Find the number of stars, forks, and indicators of growth.
 - ghunattended: Find the most issues and PRs from today from today that haven't received a response/comment.
+- ghfaqs: Identify the top 3 frequently asked questions (FAQs) from the issues in the last week.
 
 You can invoke me by typing `/heyanny <task>`.
 """
@@ -141,16 +142,31 @@ async def ghunattended(ctx):
     return response
 
 
-async def ghstudio(ctx):
-    # TODO: Generalize to feature name
+async def ghfaqs(ctx):
     response = await solve_task(
         f"""
-    Find issues and PRs from `{REPO}` that are related to the AutoGen Studio.
-    The title or the body of the issue or PR should give you a hint whether its related.
-    Summarize the top 5 common complaints or issues. Cite the issue/PR number and URL.
-    Explain why you think this is a common issue in 2 sentences.
-    You can access github token from the environment variable called GH_TOKEN.
-    """
+Based on the issues in the repo: `{REPO}` in the last week,
+identify the top 3 frequently asked questions (FAQs).
+
+When explaining a FAQ, cite links to the relevant issues.
+
+Advice:
+When analyzing and researching for the FAQs for the issues, consider the following:
+
+1. Access the current date using python.
+2. Then identify issues the that were created in the last week. Do not include PRs.
+3. Restrict to the recent 50 issues.
+4. Then, for each candidate print the following in a neat markdown format:
+    - ID
+    - Title
+    - URL
+    - Comments in the issue (The comments contain very valuable information)
+      But only use the first 5 comments to avoid spamming the chat.
+
+Then use the printed content to identify the top 3 FAQs.
+
+You can access github token from the environment variable called GH_TOKEN.
+"""
     )
     return response
 
