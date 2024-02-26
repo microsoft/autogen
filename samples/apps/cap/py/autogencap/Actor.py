@@ -7,24 +7,24 @@ from .Constants import Termination_Topic, xpub_url
 
 class Actor:
     def __init__(self, agent_name, description):
-        self.agent_name = agent_name
+        self.actor_name = agent_name
         self.agent_description = description
         self.run = False
 
     def connect(self, network):
-        Debug(self.agent_name, f"is connecting to {network}")
-        Debug(self.agent_name, "connected")
+        Debug(self.actor_name, f"is connecting to {network}")
+        Debug(self.actor_name, "connected")
 
     def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str) -> bool:
-        Info(self.agent_name, f"InBox: {msg}")
+        Info(self.actor_name, f"InBox: {msg}")
         return True
 
     def process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
-        Info(self.agent_name, f"Msg: topic=[{topic}], msg_type=[{msg_type}]")
+        Info(self.actor_name, f"Msg: topic=[{topic}], msg_type=[{msg_type}]")
         return True
 
     def recv_thread(self):
-        Debug(self.agent_name, "recv thread started")
+        Debug(self.actor_name, "recv thread started")
         try:
             while self.run:
                 try:
@@ -46,11 +46,11 @@ class Actor:
                     if not self.process_bin_msg(msg, msg_type, topic, sender_topic):
                         break
         except Exception as e:
-            Debug(self.agent_name, f"recv thread encountered an error: {e}")
+            Debug(self.actor_name, f"recv thread encountered an error: {e}")
             traceback.print_exc()
         finally:
             self.run = False
-            Debug(self.agent_name, "recv thread ended")
+            Debug(self.actor_name, "recv thread ended")
 
     def start_recv_thread(self, context: zmq.Context):
         self.run: bool = True
@@ -58,18 +58,18 @@ class Actor:
         self._socket.setsockopt(zmq.LINGER, 0)
         self._socket.setsockopt(zmq.RCVTIMEO, 500)
         self._socket.connect(xpub_url)
-        str_topic = f"{self.agent_name}"
-        Debug(self.agent_name, f"subscribe to: {str_topic}")
+        str_topic = f"{self.actor_name}"
+        Debug(self.actor_name, f"subscribe to: {str_topic}")
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         str_topic = Termination_Topic
-        Debug(self.agent_name, f"subscribe to: {str_topic}")
+        Debug(self.actor_name, f"subscribe to: {str_topic}")
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         self._thread = threading.Thread(target=self.recv_thread)
         self._thread.start()
 
     def disconnect(self, network):
-        Debug(self.agent_name, f"is disconnecting from {network}")
-        Debug(self.agent_name, "disconnected")
+        Debug(self.actor_name, f"is disconnecting from {network}")
+        Debug(self.actor_name, "disconnected")
         self.stop_recv_thread()
 
     def stop_recv_thread(self):

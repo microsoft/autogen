@@ -22,7 +22,7 @@ class CAP2AG(Actor):
         self._other_agent_name: str = the_other_name
         self._init_chat: bool = init_chat
         self.STATE = self.States.INIT
-        self._can2ag_name: str = self.agent_name + ".can2ag"
+        self._can2ag_name: str = self.actor_name + ".can2ag"
         self._self_recursive: bool = self_recursive
         self._network: LocalActorNetwork = None
         self._connectors = {}
@@ -41,7 +41,7 @@ class CAP2AG(Actor):
         """
         super().disconnect(network)
         #        self._the_other.close()
-        Debug(self.agent_name, "disconnected")
+        Debug(self.actor_name, "disconnected")
 
     def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
         """
@@ -110,7 +110,7 @@ class CAP2AG(Actor):
         if topic in self._connectors:
             return self._connectors[topic]
         else:
-            connector = self._network.agent_connector_by_topic(topic)
+            connector = self._network.actor_connector_by_topic(topic)
             self._connectors[topic] = connector
             return connector
 

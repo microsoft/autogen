@@ -142,12 +142,12 @@ class PersonalAssistant(Actor):
         Args:
             network (LocalActorNetwork): The local actor network to connect to.
         """
-        Debug(self.agent_name, f"is connecting to {network}")
+        Debug(self.actor_name, f"is connecting to {network}")
         self.fidelity = network.lookup_actor("Fidelity")
         self.financial_planner = network.lookup_actor("Financial Planner")
         self.quant = network.lookup_actor("Quant")
         self.risk_manager = network.lookup_actor("Risk Manager")
-        Debug(self.agent_name, "connected")
+        Debug(self.actor_name, "connected")
 
     def disconnect(self, network: LocalActorNetwork):
         """
@@ -161,7 +161,7 @@ class PersonalAssistant(Actor):
         self.financial_planner.close()
         self.quant.close()
         self.risk_manager.close()
-        Debug(self.agent_name, "disconnected")
+        Debug(self.actor_name, "disconnected")
 
     def process_txt_msg(self, msg, msg_type, topic, sender):
         """
@@ -177,13 +177,13 @@ class PersonalAssistant(Actor):
             bool: True if the message was processed successfully, False otherwise.
         """
         if msg.strip().lower() != "quit" and msg.strip().lower() != "":
-            Info(self.agent_name, f"Helping user: {shorten(msg)}")
-            self.fidelity.send_txt_msg(f"I, {self.agent_name}, need your help to buy/sell assets for " + msg)
+            Info(self.actor_name, f"Helping user: {shorten(msg)}")
+            self.fidelity.send_txt_msg(f"I, {self.actor_name}, need your help to buy/sell assets for " + msg)
             self.financial_planner.send_txt_msg(
-                f"I, {self.agent_name}, need your help in creating a financial plan for {msg}'s goals."
+                f"I, {self.actor_name}, need your help in creating a financial plan for {msg}'s goals."
             )
             self.quant.send_txt_msg(
-                f"I, {self.agent_name}, need your help with quantitative analysis of the interest rate for " + msg
+                f"I, {self.actor_name}, need your help with quantitative analysis of the interest rate for " + msg
             )
-            self.risk_manager.send_txt_msg(f"I, {self.agent_name}, need your help in analyzing {msg}'s portfolio risk")
+            self.risk_manager.send_txt_msg(f"I, {self.actor_name}, need your help in analyzing {msg}'s portfolio risk")
         return True
