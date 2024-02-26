@@ -33,7 +33,6 @@ Navigate to the `website` folder and run:
 
 ```console
 pydoc-markdown
-quarto render ./docs
 python ./process_notebooks.py
 yarn start
 ```

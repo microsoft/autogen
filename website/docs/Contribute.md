@@ -216,11 +216,11 @@ Then:
 
 ```console
 npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown  # skip if you use the dev container we provided
+pip install pydoc-markdown pyyaml termcolor # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py
 yarn start
 ```
 
@@ -245,7 +245,7 @@ Once at the CLI in Docker run the following commands:
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py
 yarn start --host 0.0.0.0 --port 3000
 ```
 
