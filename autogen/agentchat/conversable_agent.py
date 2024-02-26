@@ -129,6 +129,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
+        self._update_model_metadata = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
@@ -1065,6 +1066,31 @@ class ConversableAgent(LLMAgent):
                     ),
                     flush=True,
                 )
+
+    def update_model(self, preference_data: List[Dict[str, Any]], agent: Agent, **kwargs) -> Dict[str, Any]:
+        """Update the model using the preference data and the conversation history.
+        
+        Args:
+            preference_data (List[Dict]): a list of dictionaries containing the preference data.
+            agent (Agent): the agent to update the model.
+            **kwargs: additional keyword arguments for the update model function.
+
+        Returns:
+            Dict: a dictionary containing the update model statistics.
+
+        Raises:
+            ValueError: If no OpenAIWrapper client is found.
+            ValueError: If multiple model clients are registered.
+            NotImplementedError: If update_model is not implemented for the underlying client.
+        """
+        if self.client is None:
+            raise ValueError("No OpenAIWrapper client is found.")
+        messages = self._oai_messages[agent]
+        update_model_stats = self.client.update_model(preference_data, messages, **kwargs)
+        self._update_model_metadata[agent].append(
+            {"messages": messages, "preference_data": preference_data, "update_stats": update_model_stats}
+        )
+        return update_model_stats
 
     def generate_oai_reply(
         self,

@@ -83,8 +83,7 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, **params: Any) -> ModelClientResponseProtocol:
-        ...  # pragma: no cover
+    def create(self, **params: Any) -> ModelClientResponseProtocol: ...  # pragma: no cover
 
     def message_retrieval(
         self, response: ModelClientResponseProtocol
@@ -97,12 +96,28 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
-        ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
         """Return usage summary of the response using RESPONSE_USAGE_KEYS."""
+        ...  # pragma: no cover
+
+    def update_model(
+        self, preference_data: List[Dict[str, Any]], inference_messages: List[Dict[str, Any]], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """Optional method to learn from the preference data, if the model supports learning. Can be missing.
+
+        Learn from the preference data.
+
+        Args:
+            preference_data: The preference data.
+            inference_messages: The messages used for inference.
+            **kwargs: other arguments.
+
+        Returns:
+            Learning stats.
+        """
         ...  # pragma: no cover
 
 
@@ -502,6 +517,33 @@ class OpenAIWrapper:
                 for m in messages  # type: ignore [union-attr]
             ]
         return params
+
+    def update_model(
+        self, preference_data: List[Any], inference_messages: List[Dict[str, Any]], **kwargs: Any
+    ) -> Dict[str, Any]:
+        """Learn from the preference data.
+
+        update_model is not supported for multiple model clients as it would be ambiguous which client was responsible for the inference messages.
+
+        Args:
+            preference_data: The preference data.
+            inference_messages: The messages used for inference.
+            **kwargs: other arguments.
+
+        Returns:
+            Learning stats.
+
+        Raises:
+            ValueError: If multiple model clients are registered.
+            NotImplementedError: If update_model is not implemented for the client.
+        """
+        if len(self._clients) != 1:
+            raise ValueError("update_model is not supported for multiple model clients.")
+        client = self._clients[0]
+        if hasattr(client, "update_model") and callable(getattr(client, "update_model")):
+            return client.update_model(preference_data, inference_messages, **kwargs)
+        else:
+            raise NotImplementedError(f"update_model is not implemented for {client.__class__.__name__}.")
 
     def create(self, **config: Any) -> ModelClient.ModelClientResponseProtocol:
         """Make a completion for a given config using available clients.
