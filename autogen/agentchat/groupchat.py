@@ -3,7 +3,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Callable
 
 
 from ..code_utils import content_str
@@ -36,6 +36,20 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
+    - customized_speaker_selection_func: pass a function to customize the speaker selection. Default is False.
+        customized_speaker_selection_func:
+            Parameters:
+                - last_speaker: Agent
+                    The last speaker in the group chat.
+                - agents: List[Agents]
+                    All agents in the group chat.
+                - messages: List[Dict]
+                    All past messages in the group chat.
+            Returns:
+                - Agent
+                    The selected speaker.
+        The return agent should be one of the agents in the group chat. 
+        If the return agent is not valid, we will use default to the method specified in `speaker_selection_method`.
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
@@ -67,6 +81,7 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
+    customized_speaker_selection_func: Optional[Union[bool, Callable]] = False
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
@@ -155,6 +170,7 @@ class GroupChat:
             allowed_speaker_transitions_dict=self.allowed_speaker_transitions_dict,
             agents=self.agents,
         )
+
 
     @property
     def agent_names(self) -> List[str]:
@@ -387,6 +403,14 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
+        if self.customized_speaker_selection_func:
+            selected_agent = self.customized_speaker_selection_func(last_speaker, self.messages)
+            if selected_agent and selected_agent in self.agents:
+                return selected_agent
+            logger.warning(
+                f"Customized speaker selection failed to resolve the next speaker's name. Returned by the function: {selected_agent}. Default to `speaker_selection_method`: {self.speaker_selection_method}."
+            )
+
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
@@ -397,6 +421,14 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
+        if self.customized_speaker_selection_func:
+            selected_agent = self.customized_speaker_selection_func(last_speaker, self.messages)
+            if selected_agent and selected_agent in self.agents:
+                return selected_agent
+            logger.warning(
+                f"Customized speaker selection failed to resolve the next speaker's name. Returned by the function: {selected_agent}. Default to `speaker_selection_method`: {self.speaker_selection_method}."
+            )
+
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
