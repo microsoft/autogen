@@ -83,7 +83,8 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, **params: Any) -> ModelClientResponseProtocol: ...  # pragma: no cover
+    def create(self, **params: Any) -> ModelClientResponseProtocol:
+        ...  # pragma: no cover
 
     def message_retrieval(
         self, response: ModelClientResponseProtocol
@@ -96,7 +97,8 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float:
+        ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
