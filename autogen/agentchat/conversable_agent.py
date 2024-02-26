@@ -2064,8 +2064,8 @@ class ConversableAgent(LLMAgent):
             self._assert_valid_name(name)
             if func is None and name not in self._function_map.keys():
                 warnings.warn(f"The function {name} to remove doesn't exist", name)
-                function_map.pop(name)
         self._function_map.update(function_map)
+        self._function_map = {k: v for k, v in self._function_map.items() if v is not None}
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.
