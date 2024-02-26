@@ -343,7 +343,7 @@ class RagAgent(ConversableAgent):
             if c[0] == "python":
                 contain_code = True
                 break
-        update_context_case1, update_context_case2 = self._check_update_context(message)
+        update_context_case1, update_context_case2 = self.check_update_context(message)
         return not (contain_code or update_context_case1 or update_context_case2)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
