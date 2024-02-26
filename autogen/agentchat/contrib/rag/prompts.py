@@ -70,6 +70,9 @@ User's question is: {input_question}
 Context is: {input_context}
 """
 
+PROMPT_CAPABILITIES = """The raw message for you is: \"\"\"{text}\"\"\". After applyiny RAG, the answer is: \"\"\"{rag_reply}\"\"\".
+Now, please generate final response to the raw message."""
+
 PROMPTS_RAG = {
     "qa": PROMPT_QA,
     "code": PROMPT_CODE,
