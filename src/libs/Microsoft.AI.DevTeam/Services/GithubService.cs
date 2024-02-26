@@ -114,7 +114,7 @@ public class GithubService : IManageGithub
             newIssue.Labels.Add(function);
             newIssue.Labels.Add($"Parent.{parentNumber}");
             var issue = await _ghClient.Issue.Create(org, repo, newIssue);
-            var commentBody = $" - [ ] #{issue.Number} - tracks {function}";
+            var commentBody = $" #{issue.Number} - tracks {function}";
             var comment = await _ghClient.Issue.Comment.Create(org, repo, (int)parentNumber, commentBody);
             return new NewIssueResponse
             {

@@ -67,6 +67,7 @@ builder.Host.UseOrleans(siloBuilder =>
                .AddMemoryStreams("StreamProvider")
                .AddMemoryGrainStorage("PubSubStore")
                .AddMemoryGrainStorage("messages");
+    siloBuilder.UseDashboard(x => x.HostSelf = true);
 
 });
 
@@ -82,6 +83,7 @@ app.UseRouting()
     endpoints.MapGitHubWebhooks();
 });
 
+app.Map("/dashboard", x => x.UseOrleansDashboard());
 
 app.Run();
 

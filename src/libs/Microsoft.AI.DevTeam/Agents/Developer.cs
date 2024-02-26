@@ -39,8 +39,16 @@ public class Dev : AiAgent
         {
             case EventType.CodeGenerationRequested:
                 var code = await GenerateCode(item.Message);
-                //await _ghService.PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), code);
-                // postEvent EventType.CodeGenerated
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
+                     Type = EventType.CodeGenerated,
+                        Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "code", code }
+                        },
+                       Message = code
+                });
                 break;
             case EventType.CodeChainClosed:
                 await CloseImplementation();
