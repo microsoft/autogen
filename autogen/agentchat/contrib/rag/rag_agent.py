@@ -718,16 +718,20 @@ class RagAgent(ConversableAgent):
         tokens_in_history = self.count_messages_tokens(history)
 
         raw_message = messages[-1]["content"]
+        is_code_execution_result = raw_message.strip().lower().startswith("exitcode")
+        logger.debug(f"is_code_execution_result: {is_code_execution_result}")
         self.received_raw_message = (
             raw_message
             if self.received_raw_message is None
             else (
                 self.received_raw_message
-                if self.check_update_context(raw_message)[0] or len(raw_message) < RAG_MINIMUM_MESSAGE_LENGTH
+                if self.check_update_context(raw_message)[0]
+                or len(raw_message) < RAG_MINIMUM_MESSAGE_LENGTH
+                or is_code_execution_result
                 else raw_message
             )
         )
-        if raw_message == self.received_raw_message:
+        if raw_message == self.received_raw_message or is_code_execution_result:
             self.used_doc_ids = set()
             self.first_time = True
         logger.debug(f"Input message: {raw_message}", color="green")
