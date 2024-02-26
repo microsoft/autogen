@@ -1069,7 +1069,7 @@ class ConversableAgent(LLMAgent):
 
     def update_model(self, preference_data: List[Dict[str, Any]], agent: Agent, **kwargs) -> Dict[str, Any]:
         """Update the model using the preference data and the conversation history.
-        
+
         Args:
             preference_data (List[Dict]): a list of dictionaries containing the preference data.
             agent (Agent): the agent to update the model.
