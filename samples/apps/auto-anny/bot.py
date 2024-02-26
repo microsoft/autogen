@@ -135,6 +135,7 @@ async def ghunattended(ctx):
     Find the issues *created* in the last 24 hours from `{REPO}` that haven't
     received a response/comment. Modified issues don't count.
     Final response should contains title, number, date/time, URLs of the issues and PRs.
+    Markdown formatted response will make it look nice.
     Make sure date/time is in PST and readily readable.
     You can access github token from the environment variable called GH_TOKEN.
     """
