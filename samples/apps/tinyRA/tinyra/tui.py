@@ -17,6 +17,7 @@ from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container
 from textual.widget import Widget
+from textual.widgets import Pretty
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
 from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
@@ -245,7 +246,9 @@ class AppConfiguration:
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
-LLM_CONFIG = {"config_list": [{"model": "gpt-4-1106-preview", "api_key": os.environ.get("OPENAI_API_KEY")}]}
+LLM_CONFIG = {
+    "config_list": config_list_from_json("OAI_CONFIG_LIST"),
+}
 
 
 logging.basicConfig(
@@ -790,10 +793,10 @@ class ChatScreen(Screen):
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
     def compose(self) -> ComposeResult:
-        history = json.dumps(fetch_chat_history(self.root_msg_id), indent=2)
+        history = fetch_chat_history(self.root_msg_id)
         yield Grid(
             Container(Label(f"Chat History for {self.root_msg_id}", classes="heading"), id="chat-screen-header"),
-            ScrollableContainer(Static(history), id="chat-screen-contents"),
+            ScrollableContainer(Pretty(history), id="chat-screen-contents"),
             Container(
                 Button("Cancel", variant="primary", id="cancel"),
                 id="chat-screen-footer",
