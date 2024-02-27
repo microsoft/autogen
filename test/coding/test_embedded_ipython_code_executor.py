@@ -9,7 +9,7 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.oai.openai_utils import config_list_from_json
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker  # noqa: E402
 
 try:
     from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
@@ -23,9 +23,12 @@ try:
 
     # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
     if sys.platform == "win32":
-        classes_to_test = [EmbeddedIPythonCodeExecutor, DockerJupyterExecutor]
+        classes_to_test = [EmbeddedIPythonCodeExecutor]
     else:
-        classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor, DockerJupyterExecutor]
+        classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
+
+    if not skip_docker:
+        classes_to_test.append(DockerJupyterExecutor)
 
     skip = False
     skip_reason = ""
