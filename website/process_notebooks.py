@@ -43,7 +43,7 @@ def notebooks_target_dir(website_directory: Path) -> Path:
 
 
 def extract_yaml_from_notebook(notebook: Path) -> typing.Optional[typing.Dict]:
-    with open(notebook, "r") as f:
+    with open(notebook, "r", encoding="utf-8") as f:
         content = f.read()
 
     json_content = json.loads(content)
@@ -72,7 +72,7 @@ def extract_yaml_from_notebook(notebook: Path) -> typing.Optional[typing.Dict]:
 
 def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     """Return a reason to skip the notebook, or None if it should not be skipped."""
-    with open(notebook, "r") as f:
+    with open(notebook, "r", encoding="utf-8") as f:
         content = f.read()
 
     # Load the json and get the first cell
@@ -174,7 +174,7 @@ def process_notebook(src_notebook: Path, dest_dir: Path, quarto_bin: str, dry_ru
 # rendered_notebook is the final mdx file
 def post_process_mdx(rendered_mdx: Path) -> None:
     notebook_name = f"{rendered_mdx.stem}.ipynb"
-    with open(rendered_mdx, "r") as f:
+    with open(rendered_mdx, "r", encoding="utf-8") as f:
         content = f.read()
 
     # Check for existence of "export const quartoRawHtml", this indicates there was a front matter line in the file
@@ -225,7 +225,7 @@ def post_process_mdx(rendered_mdx: Path) -> None:
     # ---
     # content
     new_content = f"---\n{front_matter}\n---\n{content}"
-    with open(rendered_mdx, "w") as f:
+    with open(rendered_mdx, "w", encoding="utf-8") as f:
         f.write(new_content)
 
 

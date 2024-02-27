@@ -20,7 +20,8 @@ install_requires = [
     "flaml",
     "python-dotenv",
     "tiktoken",
-    "pydantic>=1.10,<3",  # could be both V1 and V2
+    # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
+    "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
     "docker",
 ]
 
@@ -54,6 +55,11 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
+        # Dependencies for EmbeddedIPythonExecutor, to be removed once upstream bug fixed
+        # https://github.com/jupyter-server/kernel_gateway/issues/398
+        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
+        # Dependencies for LocalJupyterExecutor
+        "local-jupyter-exec": ["jupyter-kernel-gateway", "websocket-client", "requests", "ipykernel"],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
