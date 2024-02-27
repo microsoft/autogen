@@ -58,7 +58,8 @@ class GroupChat:
         Must be supplied if `allowed_or_disallowed_speaker_transitions` is not None.
     - enable_clear_history: enable possibility to clear history of messages for agents manually by providing
         "clear history" phrase in user prompt. This is experimental feature.
-        See description of `GroupChatManager.clear_agents_history` function for more info.
+        See description of GroupChatManager.clear_agents_history function for more info.
+    - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
     """
 
     agents: List[Agent]
@@ -71,6 +72,7 @@ class GroupChat:
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Optional[str] = None
     enable_clear_history: Optional[bool] = False
+    send_introductions: Optional[bool] = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -228,6 +230,16 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+
+    def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
+        """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
+        if agents is None:
+            agents = self.agents
+
+        return f"""Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:
+
+{self._participant_roles(agents)}
+"""
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -535,6 +547,16 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        send_introductions = getattr(groupchat, "send_introductions", False)
+
+        if send_introductions:
+            # Broadcast the intro
+            intro = groupchat.introductions_msg()
+            for agent in groupchat.agents:
+                self.send(intro, agent, request_reply=False, silent=True)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
+
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.previous_cache = a.client_cache
@@ -598,6 +620,16 @@ class GroupChatManager(ConversableAgent):
         message = messages[-1]
         speaker = sender
         groupchat = config
+        send_introductions = getattr(groupchat, "send_introductions", False)
+
+        if send_introductions:
+            # Broadcast the intro
+            intro = groupchat.introductions_msg()
+            for agent in groupchat.agents:
+                self.a_send(intro, agent, request_reply=False, silent=True)
+            # NOTE: We do not also append to groupchat.messages,
+            # since groupchat handles its own introductions
+
         if self.client_cache is not None:
             for a in groupchat.agents:
                 a.previous_cache = a.client_cache

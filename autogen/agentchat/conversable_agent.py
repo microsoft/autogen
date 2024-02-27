@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
@@ -223,7 +224,11 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {"process_last_message": [], "process_all_messages": []}
+        self.hook_lists = {
+            "process_last_received_message": [],
+            "process_all_messages_before_reply": [],
+            "process_message_before_send": [],
+        }
 
     @property
     def name(self) -> str:
@@ -320,6 +325,80 @@ class ConversableAgent(LLMAgent):
         )
         if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
+
+    @staticmethod
+    def _summary_from_nested_chats(
+        chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
+    ) -> Tuple[bool, str]:
+        """A simple chat reply function.
+        This function initiate one or a sequence of chats between the "recipient" and the agents in the
+        chat_queue.
+
+        It extracts and returns a summary from the nested chat based on the "summary_method" in each chat in chat_queue.
+
+        Returns:
+            Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
+        """
+        last_msg = messages[-1].get("content")
+        chat_to_run = []
+        for i, c in enumerate(chat_queue):
+            current_c = c.copy()
+            message = current_c.get("message")
+            # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
+            # NOTE: This setting is prone to change.
+            if message is None and i == 0:
+                message = last_msg
+            if callable(message):
+                message = message(recipient, messages, sender, config)
+            # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
+            if message:
+                current_c["message"] = message
+                chat_to_run.append(current_c)
+        if not chat_to_run:
+            return True, None
+        res = recipient.initiate_chats(chat_to_run)
+        return True, res[-1].summary
+
+    def register_nested_chats(
+        self,
+        chat_queue: List[Dict[str, Any]],
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
+        reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
+        position: int = 2,
+        **kwargs,
+    ) -> None:
+        """Register a nested chat reply function.
+        Args:
+            chat_queue (list): a list of chat objects to be initiated.
+            trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
+            reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
+                The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
+                Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
+            ```python
+            def reply_func_from_nested_chats(
+                chat_queue: List[Dict],
+                recipient: ConversableAgent,
+                messages: Optional[List[Dict]] = None,
+                sender: Optional[Agent] = None,
+                config: Optional[Any] = None,
+            ) -> Tuple[bool, Union[str, Dict, None]]:
+            ```
+            position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
+            kwargs: Ref to `register_reply` for details.
+        """
+        if reply_func_from_nested_chats == "summary_from_nested_chats":
+            reply_func_from_nested_chats = self._summary_from_nested_chats
+        if not callable(reply_func_from_nested_chats):
+            raise ValueError("reply_func_from_nested_chats must be a callable")
+        reply_func = partial(reply_func_from_nested_chats, chat_queue)
+        self.register_reply(
+            trigger,
+            reply_func,
+            position,
+            kwargs.get("config"),
+            kwargs.get("reset_config"),
+            ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
+        )
 
     @property
     def system_message(self) -> str:
@@ -467,6 +546,15 @@ class ConversableAgent(LLMAgent):
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
+    def _process_message_before_send(
+        self, message: Union[Dict, str], recipient: Agent, silent: bool
+    ) -> Union[Dict, str]:
+        """Process the message before sending it to the recipient."""
+        hook_list = self.hook_lists["process_message_before_send"]
+        for hook in hook_list:
+            message = hook(message, recipient, silent)
+        return message
+
     def send(
         self,
         message: Union[Dict, str],
@@ -509,6 +597,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: a ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -561,6 +650,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -1634,11 +1724,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1695,11 +1785,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -2333,11 +2423,11 @@ class ConversableAgent(LLMAgent):
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
 
-    def process_all_messages(self, messages: List[Dict]) -> List[Dict]:
+    def process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists["process_all_messages"]
+        hook_list = self.hook_lists["process_all_messages_before_reply"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
@@ -2348,14 +2438,14 @@ class ConversableAgent(LLMAgent):
             processed_messages = hook(processed_messages)
         return processed_messages
 
-    def process_last_message(self, messages):
+    def process_last_received_message(self, messages):
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists["process_last_message"]
+        hook_list = self.hook_lists["process_last_received_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:
