@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
@@ -14,6 +15,7 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
+from ..runtime_logging import logging_enabled, log_new_agent
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,
@@ -25,7 +27,7 @@ from ..code_utils import (
     infer_lang,
 )
 from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult, initiate_chats
+from .chat import ChatResult, initiate_chats, a_initiate_chats
 
 
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
@@ -79,7 +81,7 @@ class ConversableAgent(LLMAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
     ):
         """
@@ -117,11 +119,11 @@ class ConversableAgent(LLMAgent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
                     If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
-            llm_config (dict or False): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 To disable llm-based auto reply, set to False.
-            default_auto_reply (str or dict or None): default auto reply when no code execution or llm-based reply is generated.
+            default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
@@ -143,7 +145,17 @@ class ConversableAgent(LLMAgent):
             self.llm_config = self.DEFAULT_CONFIG.copy()
             if isinstance(llm_config, dict):
                 self.llm_config.update(llm_config)
+            if "model" not in self.llm_config and (
+                not self.llm_config.get("config_list")
+                or any(not config.get("model") for config in self.llm_config["config_list"])
+            ):
+                raise ValueError(
+                    "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+                )
             self.client = OpenAIWrapper(**self.llm_config)
+
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # Initialize standalone client cache object.
         self.client_cache = None
@@ -212,7 +224,11 @@ class ConversableAgent(LLMAgent):
 
         # Registered hooks are kept in lists, indexed by hookable method, to be called in their order of registration.
         # New hookable methods should be added to this list as required to support new agent capabilities.
-        self.hook_lists = {self.process_last_message: [], self.process_all_messages: []}
+        self.hook_lists = {
+            "process_last_received_message": [],
+            "process_all_messages_before_reply": [],
+            "process_message_before_send": [],
+        }
 
     @property
     def name(self) -> str:
@@ -309,6 +325,80 @@ class ConversableAgent(LLMAgent):
         )
         if ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func):
             self._ignore_async_func_in_sync_chat_list.append(reply_func)
+
+    @staticmethod
+    def _summary_from_nested_chats(
+        chat_queue: List[Dict[str, Any]], recipient: Agent, messages: Union[str, Callable], sender: Agent, config: Any
+    ) -> Tuple[bool, str]:
+        """A simple chat reply function.
+        This function initiate one or a sequence of chats between the "recipient" and the agents in the
+        chat_queue.
+
+        It extracts and returns a summary from the nested chat based on the "summary_method" in each chat in chat_queue.
+
+        Returns:
+            Tuple[bool, str]: A tuple where the first element indicates the completion of the chat, and the second element contains the summary of the last chat if any chats were initiated.
+        """
+        last_msg = messages[-1].get("content")
+        chat_to_run = []
+        for i, c in enumerate(chat_queue):
+            current_c = c.copy()
+            message = current_c.get("message")
+            # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
+            # NOTE: This setting is prone to change.
+            if message is None and i == 0:
+                message = last_msg
+            if callable(message):
+                message = message(recipient, messages, sender, config)
+            # We only run chat that has a valid message. NOTE: This is prone to change dependin on applications.
+            if message:
+                current_c["message"] = message
+                chat_to_run.append(current_c)
+        if not chat_to_run:
+            return True, None
+        res = recipient.initiate_chats(chat_to_run)
+        return True, res[-1].summary
+
+    def register_nested_chats(
+        self,
+        chat_queue: List[Dict[str, Any]],
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
+        reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
+        position: int = 2,
+        **kwargs,
+    ) -> None:
+        """Register a nested chat reply function.
+        Args:
+            chat_queue (list): a list of chat objects to be initiated.
+            trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
+            reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
+                The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
+                Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
+            ```python
+            def reply_func_from_nested_chats(
+                chat_queue: List[Dict],
+                recipient: ConversableAgent,
+                messages: Optional[List[Dict]] = None,
+                sender: Optional[Agent] = None,
+                config: Optional[Any] = None,
+            ) -> Tuple[bool, Union[str, Dict, None]]:
+            ```
+            position (int): Ref to `register_reply` for details. Default to 2. It means we first check the termination and human reply, then check the registered nested chat reply.
+            kwargs: Ref to `register_reply` for details.
+        """
+        if reply_func_from_nested_chats == "summary_from_nested_chats":
+            reply_func_from_nested_chats = self._summary_from_nested_chats
+        if not callable(reply_func_from_nested_chats):
+            raise ValueError("reply_func_from_nested_chats must be a callable")
+        reply_func = partial(reply_func_from_nested_chats, chat_queue)
+        self.register_reply(
+            trigger,
+            reply_func,
+            position,
+            kwargs.get("config"),
+            kwargs.get("reset_config"),
+            ignore_async_in_sync_chat=kwargs.get("ignore_async_in_sync_chat"),
+        )
 
     @property
     def system_message(self) -> str:
@@ -456,6 +546,15 @@ class ConversableAgent(LLMAgent):
         self._oai_messages[conversation_id].append(oai_message)
         return True
 
+    def _process_message_before_send(
+        self, message: Union[Dict, str], recipient: Agent, silent: bool
+    ) -> Union[Dict, str]:
+        """Process the message before sending it to the recipient."""
+        hook_list = self.hook_lists["process_message_before_send"]
+        for hook in hook_list:
+            message = hook(message, recipient, silent)
+        return message
+
     def send(
         self,
         message: Union[Dict, str],
@@ -498,6 +597,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: a ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -507,13 +607,6 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
 
     async def a_send(
         self,
@@ -557,6 +650,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
+        message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
@@ -566,13 +660,6 @@ class ConversableAgent(LLMAgent):
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
-
-        chat_result = ChatResult(
-            chat_history=self.chat_messages[recipient],
-            cost=gather_usage_summary([self, recipient]),
-            human_input=self._human_input,
-        )
-        return chat_result
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         # print the message received
@@ -718,14 +805,20 @@ class ConversableAgent(LLMAgent):
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
 
-    def _prepare_chat(self, recipient: "ConversableAgent", clear_history: bool, prepare_recipient: bool = True) -> None:
+    def _prepare_chat(
+        self,
+        recipient: "ConversableAgent",
+        clear_history: bool,
+        prepare_recipient: bool = True,
+        reply_at_receive: bool = True,
+    ) -> None:
         self.reset_consecutive_auto_reply_counter(recipient)
-        self.reply_at_receive[recipient] = True
+        self.reply_at_receive[recipient] = reply_at_receive
         if clear_history:
             self.clear_history(recipient)
             self._human_input = []
         if prepare_recipient:
-            recipient._prepare_chat(self, clear_history, False)
+            recipient._prepare_chat(self, clear_history, False, reply_at_receive)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
@@ -752,6 +845,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
@@ -762,9 +856,12 @@ class ConversableAgent(LLMAgent):
 
         Args:
             recipient: the recipient agent.
-            clear_history (bool): whether to clear the chat history with the agent.
-            silent (bool or None): (Experimental) whether to print the messages for this conversation.
-            cache (Cache or None): the cache client to be used for this conversation.
+            clear_history (bool): whether to clear the chat history with the agent. Default is True.
+            silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+            cache (Cache or None): the cache client to be used for this conversation. Default is None.
+            max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
+            [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
+            If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
             **context: any context information. It has the following reserved fields:
                 "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
@@ -801,8 +898,19 @@ class ConversableAgent(LLMAgent):
             agent._raise_exception_on_async_reply_functions()
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        self._prepare_chat(recipient, clear_history)
-        self.send(self.generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
+            for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = self.generate_init_message(**context)
+                else:
+                    msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                if msg2send is None:
+                    break
+                self.send(msg2send, recipient, request_reply=True, silent=silent)
+        else:
+            self._prepare_chat(recipient, clear_history)
+            self.send(self.generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -826,6 +934,7 @@ class ConversableAgent(LLMAgent):
         clear_history: Optional[bool] = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
+        max_turns: Optional[int] = None,
         **context,
     ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
@@ -842,11 +951,22 @@ class ConversableAgent(LLMAgent):
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
         consolidate_chat_info(_chat_info, uniform_sender=self)
-        self._prepare_chat(recipient, clear_history)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
             agent.client_cache = cache
-        await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+        if isinstance(max_turns, int):
+            self._prepare_chat(recipient, clear_history, reply_at_receive=False)
+            for _ in range(max_turns):
+                if _ == 0:
+                    msg2send = await self.a_generate_init_message(**context)
+                else:
+                    msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
+                if msg2send is None:
+                    break
+                await self.a_send(msg2send, recipient, request_reply=True, silent=silent)
+        else:
+            self._prepare_chat(recipient, clear_history)
+            await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
         summary = self._summarize_chat(
             context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
             recipient,
@@ -945,31 +1065,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the following fields:
-                - "recipient": the recipient agent.
-                - "context": any context information, e.g., the request message. The following fields are reserved:
-                    "message" needs to be provided if the `generate_init_message` method is not overridden.
-                          Otherwise, input() will be called to get the initial message.
-                    "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                        - Supported string are "last_msg" and "reflection_with_llm":
-                            when set "last_msg", it returns the last message of the dialog as the summary.
-                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                            `llm_config` must be set in either the recipient or sender.
-                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                        ```python
-                        def my_summary_method(
-                            sender: ConversableAgent,
-                            recipient: ConversableAgent,
-                        ):
-                            return recipient.last_message(sender)["content"]
-                        ```
-                    "summary_prompt" can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
-                        Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
-                        "Identify and extract the final solution to the originally asked question based on the conversation."
-                    "carryover" can be used to specify the carryover information to be passed to this chat.
-                        If provided, we will combine this carryover with the "message" content when generating the initial chat
-                        message in `generate_init_message`.
+                Each dictionary should contain the input arguments for [`initiate_chat`](conversable_agent#initiate_chat)
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
@@ -977,6 +1073,13 @@ class ConversableAgent(LLMAgent):
         for chat_info in _chat_queue:
             chat_info["sender"] = self
         self._finished_chats = initiate_chats(_chat_queue)
+        return self._finished_chats
+
+    async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
+        _chat_queue = chat_queue.copy()
+        for chat_info in _chat_queue:
+            chat_info["sender"] = self
+        self._finished_chats = await a_initiate_chats(_chat_queue)
         return self._finished_chats
 
     def get_chat_results(self, chat_index: Optional[int] = None) -> Union[List[ChatResult], ChatResult]:
@@ -1392,13 +1495,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
+            messages = self._oai_messages[sender] if sender else []
         message = messages[-1]
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = self.get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1411,9 +1515,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1424,7 +1528,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = self.get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1502,13 +1606,14 @@ class ConversableAgent(LLMAgent):
         if config is None:
             config = self
         if messages is None:
-            messages = self._oai_messages[sender]
-        message = messages[-1]
+            messages = self._oai_messages[sender] if sender else []
+        message = messages[-1] if messages else {}
         reply = ""
         no_human_input_msg = ""
+        sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
             reply = await self.a_get_human_input(
-                f"Provide feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+                f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
             no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
             # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1521,9 +1626,9 @@ class ConversableAgent(LLMAgent):
                     # self.human_input_mode == "TERMINATE":
                     terminate = self._is_termination_msg(message)
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                         if terminate
-                        else f"Please give feedback to {sender.name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
+                        else f"Please give feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1534,7 +1639,7 @@ class ConversableAgent(LLMAgent):
                 else:
                     # self.human_input_mode == "TERMINATE":
                     reply = await self.a_get_human_input(
-                        f"Please give feedback to {sender.name}. Press enter or type 'exit' to stop the conversation: "
+                        f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
@@ -1629,11 +1734,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1690,11 +1795,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages(messages)
+        messages = self.process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_message(messages)
+        messages = self.process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -1770,7 +1875,7 @@ class ConversableAgent(LLMAgent):
             str: human input.
         """
         reply = input(prompt)
-        self._human_inputs.append(reply)
+        self._human_input.append(reply)
         return reply
 
     def run_code(self, code, **kwargs):
@@ -2314,13 +2419,13 @@ class ConversableAgent(LLMAgent):
         """
         self.client.register_model_client(model_client_cls, **kwargs)
 
-    def register_hook(self, hookable_method: Callable, hook: Callable):
+    def register_hook(self, hookable_method: str, hook: Callable):
         """
         Registers a hook to be called by a hookable method, in order to add a capability to the agent.
         Registered hooks are kept in lists (one per hookable method), and are called in their order of registration.
 
         Args:
-            hookable_method: A hookable method implemented by ConversableAgent.
+            hookable_method: A hookable method name implemented by ConversableAgent.
             hook: A method implemented by a subclass of AgentCapability.
         """
         assert hookable_method in self.hook_lists, f"{hookable_method} is not a hookable method."
@@ -2328,11 +2433,11 @@ class ConversableAgent(LLMAgent):
         assert hook not in hook_list, f"{hook} is already registered as a hook."
         hook_list.append(hook)
 
-    def process_all_messages(self, messages: List[Dict]) -> List[Dict]:
+    def process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
         """
-        hook_list = self.hook_lists[self.process_all_messages]
+        hook_list = self.hook_lists["process_all_messages_before_reply"]
         # If no hooks are registered, or if there are no messages to process, return the original message list.
         if len(hook_list) == 0 or messages is None:
             return messages
@@ -2343,14 +2448,14 @@ class ConversableAgent(LLMAgent):
             processed_messages = hook(processed_messages)
         return processed_messages
 
-    def process_last_message(self, messages):
+    def process_last_received_message(self, messages):
         """
         Calls any registered capability hooks to use and potentially modify the text of the last message,
         as long as the last message is not a function call or exit command.
         """
 
         # If any required condition is not met, return the original message list.
-        hook_list = self.hook_lists[self.process_last_message]
+        hook_list = self.hook_lists["process_last_received_message"]
         if len(hook_list) == 0:
             return messages  # No hooks registered.
         if messages is None:

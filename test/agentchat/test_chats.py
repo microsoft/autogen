@@ -2,11 +2,15 @@ from autogen import AssistantAgent, UserProxyAgent
 from autogen import GroupChat, GroupChatManager
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
-from conftest import skip_openai
+import sys
+import os
 import autogen
 from typing import Literal
 from typing_extensions import Annotated
 from autogen import initiate_chats
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 
 def test_chat_messages_for_summary():
@@ -200,7 +204,8 @@ def test_chats():
             {
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
-                "silent": True,
+                "silent": False,
+                "max_turns": 1,
                 "summary_method": "reflection_with_llm",
             },
             {
@@ -228,6 +233,7 @@ def test_chats():
     print(all_res[0].summary)
     print(all_res[0].chat_history)
     print(all_res[1].summary)
+    assert len(all_res[1].chat_history) <= 2
     # print(blogpost.summary, insights_and_blogpost)
 
 
@@ -305,7 +311,8 @@ def test_chats_general():
                 "sender": user_2,
                 "recipient": financial_assistant_2,
                 "message": financial_tasks[1],
-                "silent": True,
+                "silent": False,
+                "max_turns": 3,
                 "summary_method": "reflection_with_llm",
             },
             {
@@ -332,6 +339,7 @@ def test_chats_general():
     print(chat_res[0].summary)
     print(chat_res[0].chat_history)
     print(chat_res[1].summary)
+    assert len(chat_res[1].chat_history) <= 6
     # print(blogpost.summary, insights_and_blogpost)
 
 
@@ -398,7 +406,6 @@ def test_chats_exceptions():
                 },
             ]
         )
-
     with pytest.raises(
         AssertionError,
         match="llm client must be set in either the recipient or sender when summary_method is reflection_with_llm.",
@@ -485,7 +492,7 @@ def test_chats_w_func():
 if __name__ == "__main__":
     test_chats()
     test_chats_general()
-    test_chats_exceptions()
-    test_chats_group()
-    test_chats_w_func()
+    # test_chats_exceptions()
+    # test_chats_group()
+    # test_chats_w_func()
     # test_chat_messages_for_summary()
