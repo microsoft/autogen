@@ -2,13 +2,12 @@ import json
 from queue import Queue
 import time
 from typing import Any, List, Dict, Optional
-
-import websockets
-from .datamodel import AgentWorkFlowConfig, Message, SocketMessage
-from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files, summarize_chat_history
-from .workflowmanager import AutoGenWorkFlowManager
 import os
 from fastapi import WebSocket, WebSocketDisconnect
+import websockets
+from .datamodel import AgentWorkFlowConfig, Message, SocketMessage
+from .utils import extract_successful_code_blocks, get_modified_files, summarize_chat_history
+from .workflowmanager import AutoGenWorkFlowManager
 
 
 class AutoGenChatManager:
@@ -103,7 +102,7 @@ class AutoGenChatManager:
         :param flow_config: An instance of `AgentWorkFlowConfig`.
         :return: The output response as a string.
         """
-        print("Summary Method: ", flow_config.summary_method)
+
         output = ""
         if flow_config.summary_method == "last":
             successful_code_blocks = extract_successful_code_blocks(
