@@ -50,16 +50,16 @@ public class AzureGenie : Agent
                 var issueNumber = long.Parse(item.Data["issueNumber"]);
                 await Store(item.Data["org"], item.Data["repo"], parentNumber, issueNumber, "run", "sh", "output", item.Message);
                 await RunInSandbox(item.Data["org"], item.Data["repo"], parentNumber, issueNumber);
-                // await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
-                // {
-                //     Type = EventType.CodeCreated,
-                //     Data = new Dictionary<string, string> {
-                //             { "org", item.Data["org"] },
-                //             { "repo", item.Data["repo"] },
-                //             { "issueNumber", item.Data["issueNumber"] },
-                //             { "parentNumber", item.Data["parentNumber"]  }
-                //         }
-                // });
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                {
+                    Type = EventType.SandboxRunCreated,
+                    Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "parentNumber", item.Data["parentNumber"]  }
+                        }
+                });
             }
                 
                 break;

@@ -67,6 +67,7 @@ builder.Host.UseOrleans(siloBuilder =>
                .AddMemoryStreams("StreamProvider")
                .AddMemoryGrainStorage("PubSubStore")
                .AddMemoryGrainStorage("messages");
+    siloBuilder.UseInMemoryReminderService();
     siloBuilder.UseDashboard(x => x.HostSelf = true);
 
 });

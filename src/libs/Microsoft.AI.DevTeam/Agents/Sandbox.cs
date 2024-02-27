@@ -1,24 +1,39 @@
 ﻿using Orleans.Runtime;
+using Orleans.Streams;
 using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
-public class Sandbox : Grain, IRemindable
+[ImplicitStreamSubscription(Consts.MainNamespace)]
+public class Sandbox : Agent, IRemindable
 {
     private const string ReminderName = "SandboxRunReminder";
-    private readonly IManageGithub _ghService;
     private readonly IManageAzure _azService;
     private readonly IReminderRegistry _reminderRegistry;
     private IGrainReminder? _reminder;
 
     protected readonly IPersistentState<SandboxMetadata> _state;
 
-    public Sandbox([PersistentState("state", "messages")] IPersistentState<SandboxMetadata> state, IManageGithub ghService,
+    public Sandbox([PersistentState("state", "messages")] IPersistentState<SandboxMetadata> state,
                     IReminderRegistry reminderRegistry, IManageAzure azService)
     {
-        _ghService = ghService;
         _reminderRegistry = reminderRegistry;
         _azService = azService;
         _state = state;
+    }
+    public override async Task HandleEvent(Event item, StreamSequenceToken? token)
+    {
+       switch(item.Type)
+       {
+           case EventType.SandboxRunCreated:
+               var org = item.Data["org"];
+               var repo = item.Data["repo"];
+               var parentIssueNumber = long.Parse(item.Data["parentIssueNumber"]);
+               var issueNumber = long.Parse(item.Data["issueNumber"]);
+               await ScheduleCommitSandboxRun(org, repo, parentIssueNumber, issueNumber);
+               break;
+           default:
+               break;
+       }
     }
     public async Task ScheduleCommitSandboxRun(string org, string repo, long parentIssueNumber, long issueNumber)
     {
@@ -38,8 +53,16 @@ public class Sandbox : Grain, IRemindable
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
                 await _azService.DeleteSandbox(sandboxId);
-                await _ghService.CommitToBranch(_state.State.Org, _state.State.Repo, _state.State.ParentIssueNumber, _state.State.IssueNumber, _state.State.RootDir, _state.State.Branch);
-                await _ghService.MarkTaskComplete(_state.State.Org, _state.State.Repo, _state.State.CommentId);
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                {
+                    Type = EventType.SandboxRunFinished,
+                    Data = new Dictionary<string, string> {
+                        { "org", _state.State.Org },
+                        { "repo", _state.State.Repo },
+                        { "issueNumber", _state.State.IssueNumber.ToString() },
+                        { "parentIssueNumber", _state.State.ParentIssueNumber.ToString() }
+                    }
+                });
                 await Cleanup();
             }
         }
@@ -54,7 +77,7 @@ public class Sandbox : Grain, IRemindable
         _state.State.Org = org;
         _state.State.Repo = repo;
         _state.State.ParentIssueNumber = parentIssueNumber;
-        // TODO: Add all of the state properties
+        _state.State.IssueNumber = issueNumber;
         _state.State.IsCompleted = false;
         await _state.WriteStateAsync();
     }
@@ -66,6 +89,8 @@ public class Sandbox : Grain, IRemindable
             this.GetGrainId(), _reminder);
         await _state.WriteStateAsync();
     }
+
+    
 }
 
 
@@ -75,9 +100,5 @@ public class SandboxMetadata
     public string Repo { get; set; }
     public long ParentIssueNumber { get; set; }
     public long IssueNumber { get; set; }
-    public string RootDir { get; set; }
-    public string Branch { get; set; }
-    public int CommentId { get; set; }
-
     public bool IsCompleted { get; set; }
 }

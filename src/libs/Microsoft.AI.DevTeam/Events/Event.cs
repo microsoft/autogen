@@ -13,7 +13,6 @@ public class Event
 public enum EventType
 {
     NewAsk,
-    ChainClosed,
     ReadmeChainClosed,
     CodeChainClosed,
     CodeGenerationRequested,
@@ -27,5 +26,6 @@ public enum EventType
     SandboxRunFinished,
     ReadmeCreated,
     CodeCreated,
-    DevPlanCreated
+    DevPlanCreated,
+    SandboxRunCreated
 }

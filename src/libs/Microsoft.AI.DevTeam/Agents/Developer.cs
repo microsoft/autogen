@@ -51,8 +51,18 @@ public class Dev : AiAgent
                 });
                 break;
             case EventType.CodeChainClosed:
-                await CloseImplementation();
-                // postEvent EventType.CodeFinished
+                var lastCode = _state.State.History.Last().Message;
+                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
+                     Type = EventType.CodeCreated,
+                        Data = new Dictionary<string, string> {
+                            { "org", item.Data["org"] },
+                            { "repo", item.Data["repo"] },
+                            { "issueNumber", item.Data["issueNumber"] },
+                            { "code", lastCode },
+                            { "parentNumber", item.Data["parentNumber"] }
+                        },
+                       Message = lastCode
+                });
                 break;
             default:
                 break;
