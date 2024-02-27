@@ -3,20 +3,20 @@ import sys
 
 import pytest
 
-import autogen
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
-
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
-
 try:
     import chromadb
     import sentence_transformers
     from openai import OpenAI
 
+    import autogen
+    from autogen.agentchat.contrib.capabilities.rag_capability import Ragability
     from autogen.agentchat.contrib.rag import RagAgent, logger
+
+    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+    from conftest import skip_openai  # noqa: E402
+
+    sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+    from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 except ImportError:
     skip = True
 else:
@@ -64,7 +64,17 @@ def test_rag_openai():
         description="Assistant who has extra content retrieval power for solving difficult problems.",
     )
 
-    userproxy.initiate_chat(recipient=rag, message="What is AutoGen?")
+    _ = userproxy.initiate_chat(recipient=rag, message="What is AutoGen?")
+
+    # test Ragability
+    normal_assistant = autogen.AssistantAgent(
+        name="normal assistant", llm_config=llm_config, max_consecutive_auto_reply=3
+    )
+
+    ragability = Ragability(llm_config=llm_config, rag_config=rag_config, verbose=2)
+    ragability.add_to_agent(normal_assistant)
+
+    _ = userproxy.initiate_chat(normal_assistant, message="What is AutoGen?")
 
 
 if __name__ == "__main__":

@@ -5,17 +5,15 @@ import unittest
 import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
 
 try:
     import sentence_transformers
-    from openai import OpenAI
 
     from autogen.agentchat.contrib.rag.rag_agent import RagAgent
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 here = os.path.abspath(os.path.dirname(__file__))

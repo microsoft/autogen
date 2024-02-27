@@ -6,16 +6,13 @@ from unittest.mock import patch
 import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
 
 try:
-    from openai import OpenAI
-
     from autogen.agentchat.contrib.rag.splitter import Splitter, TextLineSplitter
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 # get the path of current file
@@ -55,7 +52,7 @@ class TestSplitter(unittest.TestCase):
         save_path = "./tmp/download/README.md"
         with patch("requests.get"):
             returned_save_path = Splitter.get_file_from_url(url, save_path)
-            self.assertEqual(returned_save_path, save_path)
+            self.assertEqual(returned_save_path, (save_path, url))
 
     def test_is_url(self):
         # Test when string is a valid URL

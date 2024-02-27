@@ -120,12 +120,14 @@ class Encoder:
         """
         self._embedding_function = embedding_function if embedding_function else SentenceTransformerEmbeddingFunction()
         self._model_name = (
-            embedding_function.model_name if hasattr(embedding_function, "model_name") else embedding_function.__name__
+            self._embedding_function.model_name
+            if hasattr(self._embedding_function, "model_name")
+            else self._embedding_function.__name__
         )
         self._dimensions = (
-            embedding_function.dimensions
-            if hasattr(embedding_function, "dimensions")
-            else len(embedding_function(["hello"])[0])
+            self._embedding_function.dimensions
+            if hasattr(self._embedding_function, "dimensions")
+            else len(self._embedding_function(["hello"])[0])
         )
         self._print_embedding_function_warning = True
 

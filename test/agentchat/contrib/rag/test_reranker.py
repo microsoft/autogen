@@ -5,7 +5,6 @@ import unittest
 import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -14,7 +13,7 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
