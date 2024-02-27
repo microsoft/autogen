@@ -4,7 +4,7 @@ from .conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 import sys
-from user_proxy_agent import UserProxyAgent
+from .user_proxy_agent import UserProxyAgent
 
 
 class AssistantAgent(ConversableAgent):

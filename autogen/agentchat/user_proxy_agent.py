@@ -22,7 +22,6 @@ class UserProxyAgent(ConversableAgent):
     platform = sys.platform
     shell_command = "sh" if platform != "win32" or code_running_in_docker else powershell_command
 
-
     # Default UserProxyAgent.description values, based on human_input_mode
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {
         "ALWAYS": "An attentive HUMAN user who can answer questions about the task, and can perform tasks such as running Python code or inputting command line commands at a Linux terminal and reporting back the execution results.",
