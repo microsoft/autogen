@@ -1,15 +1,17 @@
-# AutoGen Retrieval-Augmented Generation Agent (RagAgent)
+# AutoGen Retrieval-Augmented Generation Agent (RagAgent) and Capability (Ragability)
 
 Introducing an agent capable of performing Retrieval-Augmented Generation (RAG) for the given message.
 
 Upon receipt of a message, the agent employs RAG to generate a reply. It retrieves documents based on the message, then generates a reply using both the retrieved documents and the message itself. Additionally, it supports automatic context updates during the conversation, either autonomously or at the user`s request.
+
+We also support enabling the RAG capability for any conversable agent with `Ragability`.
 
 ## Overall Design
 The overall architecture of the agent is outlined below:
 
 ![architecture](images/autogen-rag-overall.png)
 
-It consists of two main components: raw document processing and user input response.
+It consists of two main workflows: raw document processing and user input response.
 
 Given raw documents encompassing text, code, metadata (such as tables or databases), and even images, we utilize a `Splitter` to segment the documents into `Chunks`. These Chunks are then encoded using an `Encoder` to compute embeddings, which are stored as `Documents` within a vector database. This process enables the creation of a comprehensive knowledge base for subsequent retrieval operations.
 
@@ -31,8 +33,10 @@ Once the knowledge base is established, we can enhance our responses to user inp
 ## Class Diagram
 <div align="center"><img src=https://raw.githubusercontent.com/thinkall/imgbed/master/img/autogen-class-uml.png></img></div>
 
-## Demo
-Example Code:
+## Demo Code
+
+- RagAgent
+
 ```python
 import autogen
 from autogen.agentchat.contrib.rag import RagAgent, logger
@@ -89,3 +93,20 @@ userproxy.initiate_chat(recipient=rag, message="What is AutoGen?")
 ```
 
 <div align="center"><img src=https://raw.githubusercontent.com/thinkall/imgbed/master/img/demo-rag.gif></img></div>
+
+- Ragability
+
+To make any conversable agent ragable, instantiate both the agent and the Ragability class, then pass the agent to
+ragability.add_to_agent(agent).
+
+```python
+normal_assistant = autogen.AssistantAgent(name="normal assistant", llm_config=llm_config, max_consecutive_auto_reply=3)
+
+ragability = Ragability(llm_config=llm_config, rag_config=rag_config, verbose=2)
+ragability.add_to_agent(normal_assistant)
+
+_ = userproxy.initiate_chat(normal_assistant, message=message)
+```
+
+## Notebook Example
+For more examples of RAG, please check [RAG notebook](../../../../notebook/agentchat_RAG_new.ipynb).
