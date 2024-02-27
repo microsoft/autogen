@@ -25,7 +25,7 @@ class AutoGenWorkFlowManager:
     ) -> None:
         """
         Initializes the AutoGenFlow with agents specified in the config and optional
-        message history. 
+        message history.
 
         Args:
             config: The configuration settings for the sender and receiver agents.
@@ -47,7 +47,15 @@ class AutoGenWorkFlowManager:
         if history:
             self.populate_history(history)
 
-    def process_message(self, sender: autogen.Agent, receiver: autogen.Agent, message: Dict, request_reply: bool = False, silent: bool = False, sender_type: str = "agent") -> None:
+    def process_message(
+        self,
+        sender: autogen.Agent,
+        receiver: autogen.Agent,
+        message: Dict,
+        request_reply: bool = False,
+        silent: bool = False,
+        sender_type: str = "agent",
+    ) -> None:
         """
         Processes the message and adds it to the agent history.
 
@@ -61,8 +69,7 @@ class AutoGenWorkFlowManager:
             sender_type: The type of the sender of the message.
         """
 
-        message = message if isinstance(message, dict) else {
-            "content": message, "role": "user"}
+        message = message if isinstance(message, dict) else {"content": message, "role": "user"}
         message_payload = {
             "recipient": receiver.name,
             "sender": sender.name,
@@ -70,14 +77,13 @@ class AutoGenWorkFlowManager:
             "timestamp": datetime.now().isoformat(),
             "sender_type": sender_type,
             "connection_id": self.connection_id,
-            "message_type": "agent_message"
+            "message_type": "agent_message",
         }
         # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
         if request_reply is not False or sender_type == "groupchat":
             self.agent_history.append(message_payload)  # add to history
             if self.send_message_function:  # send over the message queue
-                socket_msg = SocketMessage(
-                    type="agent_message", data=message_payload, connection_id=self.connection_id)
+                socket_msg = SocketMessage(type="agent_message", data=message_payload, connection_id=self.connection_id)
                 self.send_message_function(socket_msg.dict())
 
     def _sanitize_history_message(self, message: str) -> str:
@@ -164,14 +170,11 @@ class AutoGenWorkFlowManager:
         if agent_spec.skills:
             # get skill prompt, also write skills to a file named skills.py
             skills_prompt = ""
-            skills_prompt = get_skills_from_prompt(
-                agent_spec.skills, self.work_dir)
+            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
             if agent_spec.config.system_message:
-                agent_spec.config.system_message = agent_spec.config.system_message + \
-                    "\n\n" + skills_prompt
+                agent_spec.config.system_message = agent_spec.config.system_message + "\n\n" + skills_prompt
             else:
-                agent_spec.config.system_message = get_default_system_message(
-                    agent_spec.type) + "\n\n" + skills_prompt
+                agent_spec.config.system_message = get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
 
         return agent_spec
 
@@ -194,7 +197,8 @@ class AutoGenWorkFlowManager:
             group_chat_config["agents"] = agents
             groupchat = autogen.GroupChat(**group_chat_config)
             agent = ExtendedGroupChatManager(
-                groupchat=groupchat, **agent_spec.config.dict(), message_processor=self.process_message)
+                groupchat=groupchat, **agent_spec.config.dict(), message_processor=self.process_message
+            )
             return agent
 
         else:
@@ -213,11 +217,9 @@ class AutoGenWorkFlowManager:
             An instance of the loaded agent.
         """
         if agent_type == "assistant":
-            agent = ExtendedConversableAgent(
-                **agent_config.dict(), message_processor=self.process_message)
+            agent = ExtendedConversableAgent(**agent_config.dict(), message_processor=self.process_message)
         elif agent_type == "userproxy":
-            agent = ExtendedConversableAgent(
-                **agent_config.dict(), message_processor=self.process_message)
+            agent = ExtendedConversableAgent(**agent_config.dict(), message_processor=self.process_message)
         else:
             raise ValueError(f"Unknown agent type: {agent_type}")
 
@@ -252,8 +254,7 @@ class ExtendedConversableAgent(autogen.ConversableAgent):
         silent: Optional[bool] = False,
     ):
         if self.message_processor:
-            self.message_processor(
-                sender, self,  message, request_reply, silent, sender_type="agent")
+            self.message_processor(sender, self, message, request_reply, silent, sender_type="agent")
         super().receive(message, sender, request_reply, silent)
 
 
@@ -270,6 +271,5 @@ class ExtendedGroupChatManager(autogen.GroupChatManager):
         silent: Optional[bool] = False,
     ):
         if self.message_processor:
-            self.message_processor(
-                sender, self,  message, request_reply, silent, sender_type="groupchat")
+            self.message_processor(sender, self, message, request_reply, silent, sender_type="groupchat")
         super().receive(message, sender, request_reply, silent)

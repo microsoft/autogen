@@ -93,8 +93,7 @@ def get_file_type(file_path: str) -> str:
     CSV_EXTENSIONS = {".csv", ".xlsx"}
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
-                        ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
     VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
@@ -139,8 +138,7 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     try:
         with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(
-                file_content).decode("utf-8")
+            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}") from e
 
@@ -188,8 +186,7 @@ def get_modified_files(
                 while os.path.exists(dest_file_path):
                     base, extension = os.path.splitext(file)
                     # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(
-                        dest_dir, f"{base}_{copy_idx}{extension}")
+                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
                     copy_idx += 1
 
                 # Copying the modified file to the destination directory
@@ -200,8 +197,7 @@ def get_modified_files(
                 dest_dir_as_path = Path(dest_dir)
                 uid = dest_dir_as_path.name
 
-                relative_file_path = os.path.relpath(
-                    dest_file_path, start=dest_dir)
+                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
                 file_type = get_file_type(dest_file_path)
                 file_dict = {
                     "path": f"files/user/{uid}/{relative_file_path}",
@@ -338,8 +334,7 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get(
-                "content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         ),
     )
 
@@ -400,8 +395,7 @@ def sanitize_model(model: Model):
         model = model.dict()
     valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
     # only add key if value is not None
-    sanitized_model = {k: v for k, v in model.items() if (
-        v is not None and v != "") and k in valid_keys}
+    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
     return sanitized_model
 
 
@@ -412,9 +406,9 @@ def test_model(model: Model):
 
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
-    response = client.create(
-        messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     return response.choices[0].message.content
+
 
 # summarize_chat_history (messages, model) .. returns a summary of the chat history
 
@@ -427,12 +421,12 @@ def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Mod
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
     summarization_system_prompt = f"""
-    You are a helpful assistant that is able to review the chat between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINT but also comprehensive i.e ensure that the most important information is returned.  
+    You are a helpful assistant that is able to review the chat between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINT but also comprehensive i.e ensure that the most important information is returned.
 
-    The task requested by the user is: 
+    The task requested by the user is:
     ===
     {task}
-    === 
+    ===
     The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed). Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carreid out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
     """
     summarization_prompt = [

@@ -33,9 +33,14 @@ class AutoGenChatManager:
         if self.message_queue is not None:
             self.message_queue.put_nowait(message)
 
-    def chat(self, message: Message, history: List[Dict[str, Any]],
-             flow_config: Optional[AgentWorkFlowConfig] = None,
-             connection_id: Optional[str] = None, **kwargs) -> Message:
+    def chat(
+        self,
+        message: Message,
+        history: List[Dict[str, Any]],
+        flow_config: Optional[AgentWorkFlowConfig] = None,
+        connection_id: Optional[str] = None,
+        **kwargs,
+    ) -> Message:
         """
         Processes an incoming message according to the agent's workflow configuration
         and generates a response.
@@ -59,8 +64,11 @@ class AutoGenChatManager:
             raise ValueError("flow_config must be specified")
 
         flow = AutoGenWorkFlowManager(
-            config=flow_config, history=history, work_dir=scratch_dir,
-            send_message_function=self.send, connection_id=connection_id
+            config=flow_config,
+            history=history,
+            work_dir=scratch_dir,
+            send_message_function=self.send,
+            connection_id=connection_id,
         )
 
         message_text = message.content.strip()
@@ -74,7 +82,7 @@ class AutoGenChatManager:
             "summary_method": flow_config.summary_method,
             "time": end_time - start_time,
             "code": "",  # Assuming that this is intentionally left empty
-            "files": get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir)
+            "files": get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir),
         }
 
         print("Modified files: ", len(metadata["files"]))
@@ -92,8 +100,9 @@ class AutoGenChatManager:
 
         return output_message
 
-    def _generate_output(self, message_text: str, flow: AutoGenWorkFlowManager,
-                         flow_config: AgentWorkFlowConfig) -> str:
+    def _generate_output(
+        self, message_text: str, flow: AutoGenWorkFlowManager, flow_config: AgentWorkFlowConfig
+    ) -> str:
         """
         Generates the output response based on the workflow configuration and agent history.
 
@@ -105,23 +114,19 @@ class AutoGenChatManager:
 
         output = ""
         if flow_config.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(
-                flow.agent_history)
+            successful_code_blocks = extract_successful_code_blocks(flow.agent_history)
             last_message = flow.agent_history[-1]["message"]["content"] if flow.agent_history else ""
             successful_code_blocks = "\n\n".join(successful_code_blocks)
-            output = (last_message + "\n" +
-                      successful_code_blocks) if successful_code_blocks else last_message
+            output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
         elif flow_config.summary_method == "llm":
             model = flow.config.receiver.config.llm_config.config_list[0]
             status_message = SocketMessage(
                 type="agent_status",
-                data={"status": "summarizing",
-                      "message": "Generating summary of agent dialogue"},
-                connection_id=flow.connection_id
+                data={"status": "summarizing", "message": "Generating summary of agent dialogue"},
+                connection_id=flow.connection_id,
             )
             self.send(status_message.dict())
-            output = summarize_chat_history(
-                task=message_text, messages=flow.agent_history, model=model)
+            output = summarize_chat_history(task=message_text, messages=flow.agent_history, model=model)
             print("Output: ", output)
 
         elif flow_config.summary_method == "none":
@@ -156,8 +161,7 @@ class WebSocketConnectionManager:
         await websocket.accept()
         self.active_connections.append(websocket)
         self.socket_store[websocket] = client_id
-        print(
-            f"New Connection: {client_id}, Total: {len(self.active_connections)}")
+        print(f"New Connection: {client_id}, Total: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket) -> None:
         """
