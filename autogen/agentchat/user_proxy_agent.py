@@ -1,7 +1,9 @@
 from typing import Callable, Dict, List, Literal, Optional, Union
+import sys
 
 from .conversable_agent import ConversableAgent
 from ..runtime_logging import logging_enabled, log_new_agent
+from ..code_utils import powershell_command, code_running_in_docker
 
 
 class UserProxyAgent(ConversableAgent):
@@ -16,6 +18,10 @@ class UserProxyAgent(ConversableAgent):
     `run_code`, and `execute_function` methods respectively.
     To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
+
+    platform = sys.platform
+    shell_command = "sh" if platform != "win32" or code_running_in_docker else powershell_command
+
 
     # Default UserProxyAgent.description values, based on human_input_mode
     DEFAULT_USER_PROXY_AGENT_DESCRIPTIONS = {

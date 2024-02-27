@@ -4,7 +4,7 @@ from .conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 import sys
-from autogen.code_utils import powershell_command, code_running_in_docker
+from user_proxy_agent import UserProxyAgent
 
 
 class AssistantAgent(ConversableAgent):
@@ -18,12 +18,10 @@ class AssistantAgent(ConversableAgent):
     This agent doesn't execute code by default, and expects the user to execute the code.
     """
 
-    shell_command = "sh" if sys.platform != "win32" or code_running_in_docker else powershell_command
-
     DEFAULT_SYSTEM_MESSAGE = f"""You are a helpful AI assistant.
 Solve tasks using your coding and language skills.
-For context, you are in the operating system platform {sys.platform}.
-In the following cases, suggest python code (in a python coding block) or shell script (in a {shell_command} coding block) for the user to execute.
+For context, you are in the operating system platform {UserProxyAgent.platform}.
+In the following cases, suggest python code (in a python coding block) or shell script (in a {UserProxyAgent.shell_command} coding block) for the user to execute.
     1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
     2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
 Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
