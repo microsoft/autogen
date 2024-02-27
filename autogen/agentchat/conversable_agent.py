@@ -79,6 +79,8 @@ class ConversableAgent(LLMAgent):
         human_input_mode: Optional[str] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
+        code_executor: Optional[CodeExecutor] = None,
+        code_lookback_messages: Union[int, str] = "auto",
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
@@ -118,6 +120,9 @@ class ConversableAgent(LLMAgent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, int or str): The number of messages to look back for code execution.
                     If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
+            code_executor (CodeExecutor): the code executor to use for code execution.
+            code_lookback_messages(int or str): The number of messages to look back for code execution.
+                If set to 'auto', it will scan backwards through all messages arriving since the agent last spoke, which is typically the last time execution was attempted. (Default: auto)
             llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
@@ -181,6 +186,11 @@ class ConversableAgent(LLMAgent):
         # Setting up code execution.
         # Do not register code execution reply if code execution is disabled.
         if code_execution_config is not False:
+            if code_executor is not None:
+                raise ValueError(
+                    "Using code_executor and code_execution_config at the same time is not allowed.",
+                )
+
             # If code_execution_config is None, set it to an empty dict.
             if code_execution_config is None:
                 warnings.warn(
@@ -198,6 +208,7 @@ class ConversableAgent(LLMAgent):
             if self._code_execution_config.get("executor") is not None:
                 # Use the new code executor.
                 self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
+                self._code_lookback_messages = self._code_execution_config.get("last_n_messages", "auto")
                 self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
             else:
                 # Legacy code execution using code_utils.
@@ -206,6 +217,19 @@ class ConversableAgent(LLMAgent):
                 check_can_use_docker_or_throw(use_docker)
                 self._code_execution_config["use_docker"] = use_docker
                 self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
+        elif code_executor is not None:
+
+            if not isinstance(code_executor, CodeExecutor):
+                raise ValueError("code_executor must be an instance of CodeExecutor.")
+
+            if code_lookback_messages != "auto" and not isinstance(code_lookback_messages, int):
+                raise ValueError("code_lookback_messages must be an integer or 'auto'.")
+
+            # Code execution is enabled.
+            self._code_executor = code_executor
+            self._code_lookback_messages = code_lookback_messages
+            self._code_execution_config = {}
+            self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
         else:
             # Code execution is disabled.
             self._code_execution_config = False
@@ -1143,7 +1167,7 @@ class ConversableAgent(LLMAgent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
-        last_n_messages = self._code_execution_config.get("last_n_messages", "auto")
+        last_n_messages = self._code_lookback_messages
 
         if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
             raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
