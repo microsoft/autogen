@@ -2129,15 +2129,18 @@ class ConversableAgent(LLMAgent):
         self._process_carryover(context)
         return context["message"]
 
-    def register_function(self, function_map: Dict[str, Callable]):
+    def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.
 
         Args:
-            function_map: a dictionary mapping function names to functions.
+            function_map: a dictionary mapping function names to functions. if function_map[name] is None, the function will be removed from the function_map.
         """
-        for name in function_map.keys():
+        for name, func in function_map.items():
             self._assert_valid_name(name)
+            if func is None and name not in self._function_map.keys():
+                warnings.warn(f"The function {name} to remove doesn't exist", name)
         self._function_map.update(function_map)
+        self._function_map = {k: v for k, v in self._function_map.items() if v is not None}
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.
