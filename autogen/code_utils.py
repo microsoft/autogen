@@ -272,7 +272,9 @@ def in_docker_container() -> bool:
     """
     return os.path.exists("/.dockerenv")
 
+
 code_running_in_docker = in_docker_container()
+
 
 def decide_use_docker(use_docker) -> bool:
     if use_docker is None:

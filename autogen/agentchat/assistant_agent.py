@@ -6,6 +6,7 @@ from autogen.runtime_logging import logging_enabled, log_new_agent
 import sys
 from autogen.code_utils import powershell_command, code_running_in_docker
 
+
 class AssistantAgent(ConversableAgent):
     """(In preview) Assistant agent, designed to solve a task with LLM.
 
