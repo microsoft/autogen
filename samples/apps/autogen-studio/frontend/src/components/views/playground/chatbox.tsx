@@ -324,6 +324,7 @@ const ChatBox = ({
 
       client.onmessage = (message) => {
         const data = JSON.parse(message.data);
+        console.log("received message", data);
         if (data && data.type === "agent_message") {
           // make copy of current socket data
           const newsocketMessages = Object.assign([], socketMessages);
@@ -335,6 +336,11 @@ const ChatBox = ({
             scrollChatBox(messageBoxInputRef);
           }, 200);
           // console.log("received message", data, socketMsgs.length);
+        } else if (data && data.type === "agent_status") {
+          const agentStatusSpan = document.getElementById("agentstatusspan");
+          if (agentStatusSpan) {
+            agentStatusSpan.innerHTML = data.data.message;
+          }
         }
       };
 
@@ -540,10 +546,13 @@ const ChatBox = ({
                   <div className="mb-1  inline-block ml-2 text-xs text-secondary">
                     <span className="innline-block text-sm ml-2">
                       {" "}
-                      agents working on task ..
+                      <span id="agentstatusspan">
+                        {" "}
+                        agents working on task ..
+                      </span>
                     </span>{" "}
                     {socketMsgs.length > 0 && (
-                      <span>
+                      <span className="border-l inline-block text-right ml-2 pl-2">
                         {socketMsgs.length} agent message
                         {socketMsgs.length > 1 && "s"} sent/received.
                       </span>

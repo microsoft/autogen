@@ -4,8 +4,8 @@ import time
 from typing import Any, List, Dict, Optional
 
 import websockets
-from .datamodel import AgentWorkFlowConfig, Message
-from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files
+from .datamodel import AgentWorkFlowConfig, Message, SocketMessage
+from .utils import extract_successful_code_blocks, get_default_agent_config, get_modified_files, summarize_chat_history
 from .workflowmanager import AutoGenWorkFlowManager
 import os
 from fastapi import WebSocket, WebSocketDisconnect
@@ -103,6 +103,7 @@ class AutoGenChatManager:
         :param flow_config: An instance of `AgentWorkFlowConfig`.
         :return: The output response as a string.
         """
+        print("Summary Method: ", flow_config.summary_method)
         output = ""
         if flow_config.summary_method == "last":
             successful_code_blocks = extract_successful_code_blocks(
@@ -112,8 +113,18 @@ class AutoGenChatManager:
             output = (last_message + "\n" +
                       successful_code_blocks) if successful_code_blocks else last_message
         elif flow_config.summary_method == "llm":
-            # Assuming some implementation for the 'llm' summary method is intended.
-            output = "LLM Summary Method Output"
+            model = flow.config.receiver.config.llm_config.config_list[0]
+            status_message = SocketMessage(
+                type="agent_status",
+                data={"status": "summarizing",
+                      "message": "Generating summary of agent dialogue"},
+                connection_id=flow.connection_id
+            )
+            self.send(status_message.dict())
+            output = summarize_chat_history(
+                task=message_text, messages=flow.agent_history, model=model)
+            print("Output: ", output)
+
         elif flow_config.summary_method == "none":
             output = ""
 

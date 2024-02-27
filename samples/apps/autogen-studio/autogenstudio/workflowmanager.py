@@ -73,7 +73,7 @@ class AutoGenWorkFlowManager:
             "message_type": "agent_message"
         }
         # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
-        if request_reply != False or sender_type == "groupchat":
+        if request_reply is not False or sender_type == "groupchat":
             self.agent_history.append(message_payload)  # add to history
             if self.send_message_function:  # send over the message queue
                 socket_msg = SocketMessage(
