@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 try:
     from openai import OpenAI
+    from sklearn.feature_extraction.text import TfidfVectorizer
 
     from autogen.agentchat.contrib.rag.reranker import Query, RerankerFactory, TfidfReranker
 except ImportError:
