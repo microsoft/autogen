@@ -421,13 +421,13 @@ def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Mod
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
     summarization_system_prompt = f"""
-    You are a helpful assistant that is able to review the chat between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINT but also comprehensive i.e ensure that the most important information is returned.
+    You are a helpful assistant that is able to review the chat between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive i.e ensure that the most important information is returned.
 
     The task requested by the user is:
     ===
     {task}
     ===
-    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed). Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carreid out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
+    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed). Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
     """
     summarization_prompt = [
         {
