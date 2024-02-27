@@ -4,8 +4,7 @@ from .conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 import sys
-from autogen.code_utils import powershell_command
-
+from autogen.code_utils import powershell_command, code_running_in_docker, docker_command
 
 class AssistantAgent(ConversableAgent):
     """(In preview) Assistant agent, designed to solve a task with LLM.
@@ -18,7 +17,7 @@ class AssistantAgent(ConversableAgent):
     This agent doesn't execute code by default, and expects the user to execute the code.
     """
 
-    shell_command = "sh" if sys.platform != "win32" else powershell_command
+    shell_command = "sh" if sys.platform != "win32" or code_running_in_docker else powershell_command
 
     DEFAULT_SYSTEM_MESSAGE = f"""You are a helpful AI assistant.
 Solve tasks using your coding and language skills.
