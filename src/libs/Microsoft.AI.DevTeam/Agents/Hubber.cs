@@ -30,11 +30,14 @@ public class Hubber : Agent
         switch (item.Type)
         {
             case EventType.NewAsk:
-                var parentNumber = long.Parse(item.Data["issueNumber"]);
-                var pmIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(PM)}.{nameof(PM.Readme)}", parentNumber);
-                var devLeadIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(DevLead)}.{nameof(DevLead.Plan)}", parentNumber);
-                // TODO: store the mapping of parent/child?
-                await CreateBranch(item.Data["org"], item.Data["repo"], $"sk-{parentNumber}");
+                {
+                    var parentNumber = long.Parse(item.Data["issueNumber"]);
+                    var pmIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(PM)}.{nameof(PM.Readme)}", parentNumber);
+                    var devLeadIssue = await CreateIssue(item.Data["org"], item.Data["repo"], item.Message, $"{nameof(DevLead)}.{nameof(DevLead.Plan)}", parentNumber);
+                    await PostComment(item.Data["org"], item.Data["repo"], parentNumber, $" - #{pmIssue} - tracks {nameof(PM)}.{nameof(PM.Readme)}");
+                    await PostComment(item.Data["org"], item.Data["repo"], parentNumber, $" - #{devLeadIssue} - tracks {nameof(DevLead)}.{nameof(DevLead.Plan)}");   
+                    await CreateBranch(item.Data["org"], item.Data["repo"], $"sk-{parentNumber}");
+                }
                 break;
             case EventType.ReadmeGenerated:
             case EventType.DevPlanGenerated:
@@ -42,24 +45,42 @@ public class Hubber : Agent
                 await PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
                 break;
             case EventType.DevPlanCreated:
-                var plan = JsonSerializer.Deserialize<DevLeadPlanResponse>(item.Data["plan"]);
-                var devTasks = plan.steps.SelectMany(s => s.subtasks.Select(st => st.prompt)).Select(p =>
-                    CreateIssue(item.Data["org"], item.Data["repo"], p, $"{nameof(Developer)}.{nameof(Developer.Implement)}", long.Parse(item.Data["parentNumber"])));
-                Task.WaitAll(devTasks.ToArray());
+                {
+                    var plan = JsonSerializer.Deserialize<DevLeadPlanResponse>(item.Data["plan"]);
+                    var prompts = plan.steps.SelectMany(s => s.subtasks.Select(st => st.prompt));
+                    var parentNumber = long.Parse(item.Data["parentNumber"]);
+                    foreach (var prompt in prompts)
+                    {
+                        var functionName = $"{nameof(Developer)}.{nameof(Developer.Implement)}";
+                        var issue = await CreateIssue(item.Data["org"], item.Data["repo"], prompt, functionName, parentNumber);
+                        var commentBody = $" - #{issue} - tracks {functionName}";
+                        await PostComment(item.Data["org"], item.Data["repo"], parentNumber, commentBody);
+                    }
+                }
                 break;
             case EventType.ReadmeStored:
-                await CommitToBranch();
-                await CreatePullRequest();
+                {
+                    var parentNumber = long.Parse(item.Data["parentNumber"]);
+                    var issueNumber = long.Parse(item.Data["issueNumber"]);
+                    var branch = $"sk-{parentNumber}";
+                    await CommitToBranch(item.Data["org"], item.Data["repo"], parentNumber, issueNumber, "output", branch);
+                    await CreatePullRequest(item.Data["org"], item.Data["repo"], parentNumber, branch);
+                }
                 break;
             case EventType.SandboxRunFinished:
-                await CommitToBranch();
+                {
+                    var parentNumber = long.Parse(item.Data["parentNumber"]);
+                    var issueNumber = long.Parse(item.Data["issueNumber"]);
+                    var branch = $"sk-{parentNumber}";
+                    await CommitToBranch(item.Data["org"], item.Data["repo"], parentNumber, issueNumber, "output", branch);
+                }
                 break;
             default:
                 break;
         }
     }
 
-    public async Task<NewIssueResponse> CreateIssue(string org, string repo, string input, string function, long parentNumber)
+    public async Task<int> CreateIssue(string org, string repo, string input, string function, long parentNumber)
     {
         return await _ghService.CreateIssue(org, repo, input, function, parentNumber);
     }
@@ -71,12 +92,12 @@ public class Hubber : Agent
     {
         await _ghService.CreateBranch(org, repo, branch);
     }
-    public async Task CreatePullRequest()
+    public async Task CreatePullRequest(string org, string repo, long issueNumber, string branch)
     {
-        //await _ghService.CreatePR();
+        await _ghService.CreatePR(org, repo, issueNumber, branch);
     }
-    public async Task CommitToBranch()
+    public async Task CommitToBranch(string org, string repo, long parentNumber, long issueNumber, string rootDir, string branch)
     {
-        //await _ghService.CommitToBranch()
+        await _ghService.CommitToBranch(org, repo, parentNumber, issueNumber, rootDir, branch);
     }
 }

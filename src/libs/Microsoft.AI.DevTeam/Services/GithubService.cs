@@ -103,7 +103,7 @@ public class GithubService : IManageGithub
         }
     }
 
-    public async Task<NewIssueResponse> CreateIssue(string org, string repo, string input, string function, long parentNumber)
+    public async Task<int> CreateIssue(string org, string repo, string input, string function, long parentNumber)
     {
         try
         {
@@ -114,13 +114,7 @@ public class GithubService : IManageGithub
             newIssue.Labels.Add(function);
             newIssue.Labels.Add($"Parent.{parentNumber}");
             var issue = await _ghClient.Issue.Create(org, repo, newIssue);
-            var commentBody = $" #{issue.Number} - tracks {function}";
-            var comment = await _ghClient.Issue.Comment.Create(org, repo, (int)parentNumber, commentBody);
-            return new NewIssueResponse
-            {
-                IssueNumber = issue.Number,
-                CommentId = comment.Id
-            };
+            return issue.Number;
         }
         catch (Exception ex)
         {
@@ -222,7 +216,7 @@ public class FileResponse
 
 public interface IManageGithub
 {
-    Task<NewIssueResponse> CreateIssue(string org, string repo, string input, string function, long parentNumber);
+    Task<int> CreateIssue(string org, string repo, string input, string function, long parentNumber);
     Task MarkTaskComplete(string org, string repo, int commentId);
 
     Task CreatePR(string org, string repo, long number, string branch);
