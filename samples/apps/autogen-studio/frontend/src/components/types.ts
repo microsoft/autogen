@@ -41,6 +41,7 @@ export interface IAgentConfig {
   is_termination_msg?: boolean | string;
   default_auto_reply?: string | null;
   code_execution_config?: boolean | string | { [key: string]: any } | null;
+  description?: string;
 }
 
 export interface IAgentFlowSpec {
@@ -49,7 +50,6 @@ export interface IAgentFlowSpec {
   timestamp?: string;
   id?: string;
   skills?: Array<ISkill>;
-  description?: string;
   user_id?: string;
 }
 

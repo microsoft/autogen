@@ -111,6 +111,7 @@ class AgentConfig:
     is_termination_msg: Optional[Union[bool, str, Callable]] = None
     code_execution_config: Optional[Union[bool, str, Dict[str, Any]]] = None
     default_auto_reply: Optional[str] = ""
+    description: Optional[str] = None
 
     def dict(self):
         result = asdict(self)
@@ -129,7 +130,6 @@ class AgentFlowSpec:
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
     skills: Optional[Union[None, List[Skill]]] = None
-    description: Optional[str] = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -174,7 +174,6 @@ class GroupChatFlowSpec:
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
-    description: Optional[str] = None
     skills: Optional[Union[None, List[Skill]]] = None
 
     def __post_init__(self):

@@ -220,7 +220,7 @@ const AgentsView = ({}: any) => {
           >
             <div style={{ minHeight: "65px" }} className="my-2   break-words">
               {" "}
-              {truncateText(agent.description || "", 70)}
+              {truncateText(agent.config.description || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
             <CardHoverBar items={cardItems} />
