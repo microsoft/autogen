@@ -34,7 +34,7 @@ def test_document():
 
 @pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_query_results():
-    query_results = QueryResults(ids=[[1, 2, 3], [4, 5, 6]])
+    query_results = QueryResults(ids=[["1", "2", "3"], ["4", "5", "6"]])
     assert query_results.ids == [["1", "2", "3"], ["4", "5", "6"]]
     assert query_results.texts is None
     assert query_results.embeddings is None
@@ -54,7 +54,7 @@ def test_query():
 
 @pytest.mark.skipif(skip, reason="dependency not installed OR requested to skip")
 def test_get_results():
-    get_results = GetResults(ids=[1, 2, 3], texts=["Document 1", "Document 2", "Document 3"])
+    get_results = GetResults(ids=["1", "2", "3"], texts=["Document 1", "Document 2", "Document 3"])
     assert get_results.ids == ["1", "2", "3"]
     assert get_results.texts == ["Document 1", "Document 2", "Document 3"]
     assert get_results.embeddings is None
