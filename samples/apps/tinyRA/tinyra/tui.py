@@ -84,7 +84,16 @@ class AppConfiguration:
         conn.close()
         return user_bio
 
-    def update_configuration(self, user_name: str = None, user_bio: str = None):
+    def get_user_preferences(self):
+        """Query the database for user's preferences"""
+        conn = sqlite3.connect(self._database_path)
+        c = conn.cursor()
+        c.execute("SELECT preferences FROM configuration")
+        preferences = c.fetchone()[0]
+        conn.close()
+        return preferences
+
+    def update_configuration(self, user_name: str = None, user_bio: str = None, user_preferences: str = None):
         """Update the user's name and bio in the database"""
         conn = sqlite3.connect(self._database_path)
         c = conn.cursor()
@@ -92,6 +101,8 @@ class AppConfiguration:
             c.execute("UPDATE configuration SET user_name = ?", (user_name,))
         if user_bio:
             c.execute("UPDATE configuration SET user_bio = ?", (user_bio,))
+        if user_preferences:
+            c.execute("UPDATE configuration SET preferences = ?", (user_preferences,))
         conn.commit()
         conn.close()
 
@@ -125,20 +136,22 @@ class AppConfiguration:
                 """
                 CREATE TABLE configuration (
                     user_name TEXT NOT NULL,
-                    user_bio TEXT
+                    user_bio TEXT,
+                    preferences TEXT
                 )
             """
             )
 
             user_name = os.environ.get("USER", "default_user")
-            user_bio = "default_bio"
+            user_bio = ""
+            default_preferences = ""
 
             # Insert data into the configuration table
             cursor.execute(
                 """
-                INSERT INTO configuration VALUES (?, ?)
+                INSERT INTO configuration VALUES (?, ?, ?)
             """,
-                (user_name, user_bio),
+                (user_name, user_bio, default_preferences),
             )
 
         # Create tools table if it doesn't exist
@@ -160,6 +173,7 @@ class AppConfiguration:
     def get_meta_system_message(self):
         user_name = self.get_user_name()
         user_bio = self.get_user_bio()
+        user_preferences = self.get_user_preferences()
         operating_system = platform.uname().system
 
         return f"""
@@ -170,13 +184,19 @@ class AppConfiguration:
         {operating_system}
 
         You are here to help "{user_name}" with his research.
+        Their bio and preferences are below.
 
         The following is the bio of {user_name}:
         <bio>
         {user_bio}
         </bio>
 
-        Respond to {user_bio}'s messages to be most helpful.
+        The following are the preferences of {user_name}:
+        <preferences>
+        {user_preferences}
+        </preferences>
+
+        Respond to {user_name}'s messages to be most helpful.
 
         """
 
@@ -618,6 +638,7 @@ class SettingsScreen(ModalScreen):
     def compose(self) -> ComposeResult:
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio(), id="user-bio")
+        self.widget_user_preferences = TextArea(APP_CONFIG.get_user_preferences(), id="user-preferences")
 
         tools = APP_CONFIG.get_tools()
 
@@ -627,6 +648,7 @@ class SettingsScreen(ModalScreen):
                 Grid(
                     Container(Label("User", classes="form-label"), self.widget_user_name),
                     Container(Label("Bio", classes="form-label"), self.widget_user_bio),
+                    Container(Label("Preferences", classes="form-label"), self.widget_user_preferences),
                     id="settings-screen-contents",
                 ),
                 Grid(
@@ -696,8 +718,11 @@ Number of tools: {len(tools)}"""
         elif event.button.id == "save-user-settings":
             new_user_name = self.widget_user_name.value
             new_user_bio = self.widget_user_bio.text
+            new_user_preferences = self.widget_user_preferences.text
 
-            APP_CONFIG.update_configuration(user_name=new_user_name, user_bio=new_user_bio)
+            APP_CONFIG.update_configuration(
+                user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
+            )
 
             self.app.pop_screen()
 
