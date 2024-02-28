@@ -88,6 +88,7 @@ class PromptGenerator:
         else:
             self.post_process_func = self._post_process
         self.cost = []
+        self._print_no_llm_warning = True
 
     def _call_llm(self, message: str, silent: bool = True) -> str:
         """
@@ -124,7 +125,8 @@ class PromptGenerator:
             logger.warning(
                 f"LLM config is not set. Will not refine the input question and use the {'given' if self.prompt_rag else 'default'} prompt.",
                 color="yellow",
-            )
+            ) if self._print_no_llm_warning else None
+            self._print_no_llm_warning = False
             return [input_question], self.prompt_rag if self.prompt_rag else PROMPTS_RAG["unknown"]
         message = self.prompt_refine.format(input_question=input_question, n=n)
         self.refined_message = self.post_process_func(self._call_llm(message, silent))

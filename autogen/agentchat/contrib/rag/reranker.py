@@ -23,9 +23,10 @@ class Reranker(Protocol):
             query: Query | The query.
             docs: Optional[List[str]] | The list of documents. Default is None.
             return_docs: bool | Whether to return the documents. Default is False.
+            return_scores: bool | Whether to return the scores. Default is False.
 
         Returns:
-            List[Tuple[str, float]] | The reranked documents with scores.
+            List[Union[int, Tuple[Union[int, str], float]]] | The reranked documents or the reranked documents with scores.
         """
         ...
 

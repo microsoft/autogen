@@ -145,11 +145,15 @@ class RagAgent(ConversableAgent):
                     `prompts.PROMPTS_RAG` will be selected by `PromptGenerator`.
                 - enable_update_context (bool): whether to enable update context. Default is True. If True, the context will
                     be updated if the message starts or ends with the trigger words.
-                - customized_trigger_words (Union[str, List[str]]): the customized trigger words, case insensitive.
+                - positive_trigger_words (Union[str, List[str]]): positive trigger words, case insensitive.
                     Default is ["update context", "question"]. If the message starts or ends with the trigger words,
                     the context will be updated.
+                - negative_trigger_words (Union[str, List[str]]): negative trigger words, case insensitive.
+                    Default is []. If the message doesn't contain the trigger words, the context will not be updated.
                 - vector_db_get_is_fast (bool): whether the vector db get is fast. If True, will save some memory w/o
                     introducing much latency. Default is True. Set to False if the vector db has high latency.
+                - max_inner_loop_consecutive_reply (int): the maximum number of consecutive auto replies for the inner loop.
+                    Default is the same as max_consecutive_auto_reply.
         """
         super().__init__(
             name=name,
@@ -176,6 +180,9 @@ class RagAgent(ConversableAgent):
         self.rag_include = self.rag_config.get("include", None)  # attributes to include in the query results
         self.rag_llm_config = self.rag_config.get("rag_llm_config", copy.deepcopy(llm_config))
         self.max_token_ratio_for_context = self.rag_config.get("max_token_ratio_for_context", 0.8)
+        self.max_inner_loop_consecutive_reply = self.rag_config.get(
+            "max_inner_loop_consecutive_reply", max_consecutive_auto_reply
+        )
 
         # initialize the splitter
         self._splitter = self.rag_config.get("splitter", "textline")
@@ -313,11 +320,24 @@ class RagAgent(ConversableAgent):
         self.ipython = get_ipython()
         self.post_process_func = self.rag_config.get("post_process_func", self.add_source_to_reply)
         self.enable_update_context = self.rag_config.get("enable_update_context", True)
-        self.customized_trigger_words = self.rag_config.get("customized_trigger_words", ["question"])
-        if isinstance(self.customized_trigger_words, str):
-            self.customized_trigger_words = [self.customized_trigger_words.lower()]
+        self.positive_trigger_words = self.rag_config.get("positive_trigger_words", ["question"])
+        self.negative_trigger_words = self.rag_config.get("negative_trigger_words", [])
+        if isinstance(self.positive_trigger_words, str):
+            self.positive_trigger_words = [self.positive_trigger_words.lower()]
+        elif isinstance(self.positive_trigger_words, list):
+            self.positive_trigger_words = [word.lower() for word in self.positive_trigger_words]
         else:
-            self.customized_trigger_words = [word.lower() for word in self.customized_trigger_words]
+            raise ValueError(
+                f"Invalid positive trigger words: {self.positive_trigger_words}. Need to be a string or a list."
+            )
+        if isinstance(self.negative_trigger_words, str):
+            self.negative_trigger_words = [self.negative_trigger_words.lower()]
+        elif isinstance(self.negative_trigger_words, list):
+            self.negative_trigger_words = [word.lower() for word in self.negative_trigger_words]
+        else:
+            raise ValueError(
+                f"Invalid negative trigger words: {self.negative_trigger_words}. Need to be a string or a list."
+            )
         self.vector_db_get_is_fast = self.rag_config.get("vector_db_get_is_fast", True)
         self.received_raw_message = None
         self.used_doc_ids = set()
@@ -343,8 +363,8 @@ class RagAgent(ConversableAgent):
             if c[0] == "python":
                 contain_code = True
                 break
-        update_context_case1, update_context_case2 = self.check_update_context(message)
-        return not (contain_code or update_context_case1 or update_context_case2)
+        is_update, new_message = self.check_update_context(message)
+        return not (contain_code or is_update or self.first_time)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
         """
@@ -507,12 +527,16 @@ class RagAgent(ConversableAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
-        trigger_words = ["update context"]
-        trigger_words.extend(self.customized_trigger_words)
-        for word in trigger_words:
+        positive_trigger_words = ["update context"]
+        positive_trigger_words.extend(self.positive_trigger_words)
+        for word in positive_trigger_words:
             length_word = len(word) * 2
             if word in message[-length_word:].lower() or word in message[:length_word].lower():
                 return True, message.lower().replace(word, "").strip()
+        if self.negative_trigger_words:
+            for word in self.negative_trigger_words:
+                if word not in message:
+                    return True, message
         return False, message
 
     @timer
@@ -552,7 +576,7 @@ class RagAgent(ConversableAgent):
                 continue
             if doc_tokens > token_limits:
                 func_print = f"Skip doc_id {query_results.ids[0][idx]} as it is too long to fit in the context."
-                logger.info(func_print, color="yellow")
+                logger.debug(func_print, color="yellow")
                 continue
             if context_tokens + doc_tokens > token_limits:
                 break
@@ -708,6 +732,7 @@ class RagAgent(ConversableAgent):
 
         self._assistant.reset()
         self._user_proxy.reset()
+        self._inner_loop_consecutive_reply_counter = 0
 
         # Clone the messages to give context
         self._assistant.chat_messages[self._user_proxy] = list()
@@ -739,7 +764,10 @@ class RagAgent(ConversableAgent):
 
         # Remind the agent of the raw question/task
         self._user_proxy.send(
-            f"""In this chat, the original question/task for you is: `{self.received_raw_message}`""",
+            (
+                f"""The original question/task for you is: `{self.received_raw_message}`. """
+                f"""More context will be added in later messages."""
+            ),
             self._assistant,
             request_reply=False,
             silent=True,
@@ -747,7 +775,8 @@ class RagAgent(ConversableAgent):
 
         # RAG inner loop
         llm_reply = None
-        while True:
+        while True and self._inner_loop_consecutive_reply_counter < self.max_inner_loop_consecutive_reply:
+            self._inner_loop_consecutive_reply_counter += 1
             message_to_llm = self.process_message(
                 llm_reply["content"] if llm_reply else raw_message, tokens_in_history=tokens_in_history
             )

@@ -60,9 +60,12 @@ Reply exactly one of the category names, don't add any explanations.
 """
 
 PROMPT_MULTIHOP = """You're a helpful AI assistant with retrieval augmented generation capability.
-You answer user's question based on your own knowledge and the given context. If you can't answer the question
-with the given context, ask a question for retrieving more context, ask question smart as the question may need
-multi-hop reasoning. If you need to ask a sub question, reply a json {{"question":  "<sub question>"}},
+You answer user's question based on your own knowledge and the given context. The questions are multi-hop
+reasoning questions. If you can't answer the question with the given context, break the question into sub-questions,
+ask a sub question to get more context.
+
+Reply in the following format:
+If you need to ask a sub question, reply a json {{"question":  "<sub question>"}},
 if you know the answer, reply a json {{"answer": "<the answer>"}}.
 
 User's question is: {input_question}
