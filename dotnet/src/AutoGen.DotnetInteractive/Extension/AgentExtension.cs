@@ -68,10 +68,11 @@ public static class AgentExtension
                     result.AppendLine("### End of executing result ###");
                 }
             }
-            if(result.Length <= maximumOutputToKeep)
+            if (result.Length <= maximumOutputToKeep)
             {
-                maximumOutputToKeep=result.Length;
+                maximumOutputToKeep = result.Length;
             }
+
             return new Message(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
         });
     }
