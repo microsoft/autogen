@@ -14,9 +14,12 @@ EXCLUDE_DIR_NAMES = ["__pycache__"]
 def normalize_answer(a):
     # Lower case
     # Trim (left and right)
+    # standardize comma separated values
     # Replace multiple spaces with one space
     # Remove trailing punctuation
-    return re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", a.strip().lower()))
+    norm_answer = ", ".join(a.strip().lower().split(","))
+    norm_answer = re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", norm_answer))
+    return norm_answer
 
 
 def scorer(instance_dir):
@@ -38,16 +41,22 @@ def scorer(instance_dir):
     with open(console_log_file, "rt") as fh:
         console_log = fh.read()
 
-        final_answer = ""
+        final_answer = None 
         m = re.search(r"FINAL ANSWER:(.*?)\n", console_log, re.DOTALL)
         if m:
             final_answer = m.group(1).strip()
 
+        # Missing the final answer line
+        if final_answer is None:
+            return None
+
         # Return true if they are equal after normalization
+        n_ex = normalize_answer(expected_answer)
+        n_final = normalize_answer(final_answer)
         return (
-            normalize_answer(expected_answer) == normalize_answer(final_answer),
-            normalize_answer(expected_answer),
-            normalize_answer(final_answer),
+            (n_ex != "" and n_ex == n_final),
+            n_ex,
+            n_final
         )
 
 
