@@ -99,7 +99,7 @@ class Orchestrator(ConversableAgent):
         messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
         return extracted_response
     
-    def _next_step(self, task, team, names, sender):
+    def _think_next_step(self, task, team, names, sender):
         step_prompt = f"""
 Recall we are working on the following request:
 
@@ -147,7 +147,8 @@ Please output an answer in pure JSON format according to the following schema. T
         )
         self.orchestrated_messages.pop()
 
-        return self.client.extract_text_or_completion_object(response)[0]
+        extracted_response = self.client.extract_text_or_completion_object(response)[0]
+        return json.loads(extracted_response)
 
     def _prepare_new_facts_and_plan(self, facts, sender, team):
         self._print_thought("We aren't making progress. Let's reset.")
@@ -192,6 +193,26 @@ Team membership:
                 a.send(reply, self, request_reply=False)
                 self._broadcast(reply, exclude=[a])
                 break
+
+    def _update_team_with_facts_and_plan(self, task, team, facts, plan):
+        self.orchestrated_messages.append({"role": "assistant", "content": f"""
+We are working to address the following user request:
+
+{task}
+
+
+To answer this request we have assembled the following team:
+
+{team}
+
+Some additional points to consider:
+
+{facts}
+
+{plan}
+""".strip(), "name": self.name})
+        self._broadcast(self.orchestrated_messages[-1])
+        self._print_thought(self.orchestrated_messages[-1]["content"])
 
     def run_chat(
         self,
@@ -244,45 +265,26 @@ Team membership:
             for a in self._agents:
                 a.reset()
 
-            self.orchestrated_messages.append({"role": "assistant", "content": f"""
-We are working to address the following user request:
-
-{task}
-
-
-To answer this request we have assembled the following team:
-
-{team}
-
-Some additional points to consider:
-
-{facts}
-
-{plan}
-""".strip(), "name": self.name})
-            self._broadcast(self.orchestrated_messages[-1])
-            self._print_thought(self.orchestrated_messages[-1]["content"])
+            self._update_team_with_facts_and_plan(task=task, team=team, facts=facts, plan=plan)
 
             # Inner loop
             stalled_count = 0
             while total_turns < max_turns:
                 total_turns += 1
 
-                extracted_response = self._next_step(task=task, team=team, names=names, sender=sender)
-                data = None
                 try:
-                    data = json.loads(extracted_response)
+                    next_step = self._think_next_step(task=task, team=team, names=names, sender=sender)
                 except json.decoder.JSONDecodeError as e:
                     # Something went wrong. Restart this loop.
                     self._print_thought(str(e))
                     break
 
-                self._print_thought(json.dumps(data, indent=4))
+                self._print_thought(json.dumps(next_step, indent=4))
 
-                if data["is_request_satisfied"]["answer"]:
+                if next_step["is_request_satisfied"]["answer"]:
                     return True, "TERMINATE"
 
-                if data["is_progress_being_made"]["answer"]:
+                if next_step["is_progress_being_made"]["answer"]:
                     stalled_count -= 1
                     stalled_count = max(stalled_count, 0)
                 else:
@@ -292,7 +294,7 @@ Some additional points to consider:
                     facts, plan = self._prepare_new_facts_and_plan(facts=facts, sender=sender, team=team)
                     break
 
-                self._broadcast_next_step_and_request_reply(next_prompt=data["instruction_or_question"]["answer"], next_speaker=data["next_speaker"]["answer"])
+                self._broadcast_next_step_and_request_reply(next_prompt=next_step["instruction_or_question"]["answer"], next_speaker=next_step["next_speaker"]["answer"])
 
 
         return True, "TERMINATE"
