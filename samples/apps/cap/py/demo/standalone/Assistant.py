@@ -10,12 +10,13 @@ class StandaloneAssistant:
         pass
 
     def run(self):
-        print("Running the StandaloneAssistant")       
+        print("Running the StandaloneAssistant")
         config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
         assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
         # Composable Agent Network adapter
         network = LocalActorNetwork()
         assistant_adptr = CAP2AG(ag_agent=assistant, the_other_name="user_proxy", init_chat=False, self_recursive=True)
+
         network.register(assistant_adptr)
         network.connect()
 
