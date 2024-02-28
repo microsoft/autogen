@@ -24,11 +24,11 @@ public class MiddlewareAgentCodeSnippet
         #endregion code_snippet_1
 
         #region code_snippet_2
-        middlewareAgent.Use(async (messages, options, next, ct) =>
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last();
             lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
-            return await next(messages, options, ct);
+            return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
@@ -46,11 +46,11 @@ public class MiddlewareAgentCodeSnippet
         reply.Content.Should().Be("[middleware 0] Hello World");
         #endregion code_snippet_2_1
         #region code_snippet_3
-        middlewareAgent.Use(async (messages, options, next, ct) =>
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last();
             lastMessage.Content = $"[middleware 1] {lastMessage.Content}";
-            return await next(messages, options, ct);
+            return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");

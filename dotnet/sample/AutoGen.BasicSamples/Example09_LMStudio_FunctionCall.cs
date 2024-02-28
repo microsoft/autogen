@@ -124,7 +124,7 @@ You have access to the following functions. Use them if required:
 
         var userProxyAgent = new UserProxyAgent(
             name: "user",
-            humanInputMode: ConversableAgent.HumanInputMode.ALWAYS);
+            humanInputMode: HumanInputMode.ALWAYS);
 
         await userProxyAgent.SendAsync(
             receiver: lmAgent,

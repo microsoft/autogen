@@ -23,21 +23,21 @@ public class MiddlewareAgentTest
         var reply = await middlewareAgent.SendAsync("hello");
         reply.Content.Should().Be("hello");
 
-        middlewareAgent.Use(async (messages, options, next, ct) =>
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last();
             lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
-            return await next(messages, options, ct);
+            return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("hello");
         reply.Content.Should().Be("[middleware 0] hello");
 
-        middlewareAgent.Use(async (messages, options, next, ct) =>
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
             var lastMessage = messages.Last();
             lastMessage.Content = $"[middleware 1] {lastMessage.Content}";
-            return await next(messages, options, ct);
+            return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         // when multiple middleware are added, they will be executed in LIFO order
