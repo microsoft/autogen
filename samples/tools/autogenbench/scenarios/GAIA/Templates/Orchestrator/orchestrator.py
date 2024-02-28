@@ -148,7 +148,9 @@ Please output an answer in pure JSON format according to the following schema. T
         self.orchestrated_messages.pop()
 
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
-        return json.loads(extracted_response)
+        next_step = json.loads(extracted_response)
+        self._print_thought(json.dumps(next_step, indent=4))
+        return next_step
 
     def _prepare_new_facts_and_plan(self, facts, sender, team):
         self._print_thought("We aren't making progress. Let's reset.")
@@ -279,8 +281,6 @@ Some additional points to consider:
                     self._print_thought(str(e))
                     break
 
-                self._print_thought(json.dumps(next_step, indent=4))
-
                 if next_step["is_request_satisfied"]["answer"]:
                     return True, "TERMINATE"
 
@@ -295,6 +295,5 @@ Some additional points to consider:
                     break
 
                 self._broadcast_next_step_and_request_reply(next_prompt=next_step["instruction_or_question"]["answer"], next_speaker=next_step["next_speaker"]["answer"])
-
 
         return True, "TERMINATE"
