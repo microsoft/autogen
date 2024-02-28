@@ -559,6 +559,16 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["python"] == exec_python
         assert agent.function_map["sh"] == exec_sh
 
+        # remove the functions
+        agent.register_function(
+            function_map={
+                "python": None,
+            }
+        )
+
+        assert set(agent.function_map.keys()) == {"sh"}
+        assert agent.function_map["sh"] == exec_sh
+
 
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
