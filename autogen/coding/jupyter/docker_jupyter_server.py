@@ -22,7 +22,6 @@ from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
 
 
-
 def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
     elapsed_time = 0
     while container.status != "running" and elapsed_time < timeout:
@@ -35,7 +34,6 @@ def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: i
 
 
 class DockerJupyterServer(JupyterConnectable):
-
     DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -57,6 +55,7 @@ EXPOSE 8888
 
 WORKDIR "${HOME}"
 """
+
     class GenerateToken:
         pass
 
