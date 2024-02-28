@@ -190,6 +190,10 @@ module.exports = {
             to: "/docs/llm_configuration/",
             from: ["/docs/ecosystem/memgpt/"],
           },
+          {
+            to: "/docs/Getting-Started",
+            from: ["/docs/"],
+          },
         ],
       },
     ]
