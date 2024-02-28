@@ -2,43 +2,59 @@ using Microsoft.AI.DevTeam;
 using Microsoft.AI.DevTeam.Skills;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
-using Octokit.Webhooks.Events.CommitComment;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
+using Orleans.Runtime;
 
 public sealed class GithubWebHookProcessor : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger;
-    private readonly IGrainFactory _grains;
+    private readonly IClusterClient _client;
     private readonly IManageGithub _ghService;
     private readonly IManageAzure _azService;
 
-    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, IGrainFactory grains, IManageGithub ghService, IManageAzure azService)
+    public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger,
+    IClusterClient client, IManageGithub ghService, IManageAzure azService)
     {
         _logger = logger;
-        _grains = grains;
+        _client = client;
         _ghService = ghService;
         _azService = azService;
     }
     protected override async Task ProcessIssuesWebhookAsync(WebhookHeaders headers, IssuesEvent issuesEvent, IssuesAction action)
     {
-        var org = issuesEvent.Organization.Login;
-        var repo = issuesEvent.Repository.Name;
-        var issueNumber = issuesEvent.Issue.Number;
-        var input = issuesEvent.Issue.Body;
-        // Assumes the label follows the following convention: Skill.Function example: PM.Readme
-        var labels = issuesEvent.Issue.Labels.First().Name.Split(".");
-        var skillName = labels[0];
-        var functionName = labels[1];
-        var suffix = $"{org}-{repo}";
-        if (issuesEvent.Action == IssuesAction.Opened)
+        try
         {
-            await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
+            _logger.LogInformation("Processing issue event");
+            var org = issuesEvent.Organization.Login;
+            var repo = issuesEvent.Repository.Name;
+            var issueNumber = issuesEvent.Issue.Number;
+            var input = issuesEvent.Issue.Body;
+            // Assumes the label follows the following convention: Skill.Function example: PM.Readme
+            // Also, we've introduced the Parent label, that ties the sub-issue with the parent issue
+            var labels = issuesEvent.Issue.Labels
+                                    .Select(l => l.Name.Split('.'))
+                                    .Where(parts => parts.Length == 2)
+                                    .ToDictionary(parts => parts[0], parts => parts[1]);
+            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
+            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+
+            var suffix = $"{org}-{repo}";
+            if (issuesEvent.Action == IssuesAction.Opened)
+            {
+                _logger.LogInformation("Processing HandleNewAsk");
+                await HandleNewAsk(issueNumber,parentNumber, skillName, labels[skillName], suffix, input, org, repo);
+            }
+            else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
+            {
+                _logger.LogInformation("Processing HandleClosingIssue");
+                await HandleClosingIssue(issueNumber, parentNumber,skillName, labels[skillName], suffix, org, repo);
+            }
         }
-        else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
+        catch (System.Exception)
         {
-            await HandleClosingIssue(issueNumber, skillName, functionName, suffix, org, repo);
+             _logger.LogError("Processing issue event");
         }
     }
 
@@ -47,198 +63,96 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
        IssueCommentEvent issueCommentEvent,
        IssueCommentAction action)
     {
-        var org = issueCommentEvent.Organization.Login;
-        var repo = issueCommentEvent.Repository.Name;
-        var issueNumber = issueCommentEvent.Issue.Number;
-        var input = issueCommentEvent.Issue.Body;
-        // Assumes the label follows the following convention: Skill.Function example: PM.Readme
-        var labels = issueCommentEvent.Issue.Labels.First().Name.Split(".");
-        var skillName = labels[0];
-        var functionName = labels[1];
-        var suffix = $"{org}-{repo}";
-        // we only resond to non-bot comments
-        if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
+        try
         {
-            await HandleNewAsk(issueNumber, skillName, functionName, suffix, input, org, repo);
+            _logger.LogInformation("Processing issue comment event");
+            var org = issueCommentEvent.Organization.Login;
+            var repo = issueCommentEvent.Repository.Name;
+            var issueNumber = issueCommentEvent.Issue.Number;
+            var input = issueCommentEvent.Issue.Body;
+            // Assumes the label follows the following convention: Skill.Function example: PM.Readme
+            var labels = issueCommentEvent.Issue.Labels
+                                    .Select(l => l.Name.Split('.'))
+                                    .Where(parts => parts.Length == 2)
+                                    .ToDictionary(parts => parts[0], parts => parts[1]);
+            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
+            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+            var suffix = $"{org}-{repo}";
+            // we only respond to non-bot comments
+            if (issueCommentEvent.Sender.Type.Value != UserType.Bot)
+            {
+                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
+            }
         }
-    }
-
-    // TODO: implement
-    protected override Task ProcessPushWebhookAsync(WebhookHeaders headers, PushEvent pushEvent)
-    {
-        var org = pushEvent.Organization.Login;
-        var repo = pushEvent.Repository.Name;
-        // Assumes the label follows the following convention: Skill.Function example: PM.Readme
+        catch (System.Exception ex)
+        {
+            _logger.LogError("Processing issue comment event");
+        }
        
-        var suffix = $"{org}-{repo}";
-        var ingester = _grains.GetGrain<IIngestRepo>(suffix);
-
-        return Task.CompletedTask;
     }
 
-    private async Task HandleClosingIssue(long issueNumber, string skillName, string functionName, string suffix, string org, string repo)
+    private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string org, string repo)
     {
-        if (skillName == nameof(PM) && functionName == nameof(PM.Readme))
+        var streamProvider = _client.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create(Consts.MainNamespace, suffix+issueNumber.ToString());
+        var stream = streamProvider.GetStream<Event>(streamId);
+        var eventType = (skillName, functionName) switch
+            {
+                (nameof(PM), nameof(PM.Readme)) => EventType.ReadmeChainClosed,
+                (nameof(DevLead), nameof(DevLead.Plan)) => EventType.DevPlanChainClosed,
+                (nameof(Developer), nameof(Developer.Implement)) => EventType.CodeChainClosed,
+                _ => EventType.NewAsk
+            };
+        var data = new Dictionary<string, string>
         {
-            await HandleClosingReadme(issueNumber, suffix, org, repo);
-        }
-        else if (skillName == nameof(DevLead) && functionName == nameof(DevLead.Plan))
-        {
-            await HandleClosingDevPlan(issueNumber, suffix, org, repo);
-        }
-        else if (skillName == nameof(Developer) && functionName == nameof(Developer.Implement))
-        {
-            await HandleClosingDevImplement(issueNumber, suffix, org, repo);
-        }
-        else { } // something went wrong
-    }
-
-    private async Task HandleClosingDevImplement(long issueNumber, string suffix, string org, string repo)
-    {
-        var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
-        var code = await dev.GetLastMessage();
-        var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        await _azService.Store(new SaveOutputRequest
-        {
-            ParentIssueNumber = parentIssue.IssueNumber,
-            IssueNumber = (int)issueNumber,
-            Output = code,
-            Extension = "sh",
-            Directory = "output",
-            FileName = "run",
-            Org = org,
-            Repo = repo
-        });
-        var sandboxRequest = new SandboxRequest
-        {
-            Org = org,
-            Repo = repo,
-            IssueNumber = (int)issueNumber,
-            ParentIssueNumber = parentIssue.IssueNumber
-        };
-        await _azService.RunInSandbox(sandboxRequest);
-
-        var commitRequest = new CommitRequest
-        {
-            Dir = "output",
-            Org = org,
-            Repo = repo,
-            ParentNumber = parentIssue.IssueNumber,
-            Number = (int)issueNumber,
-            Branch = $"sk-{parentIssue.IssueNumber}"
-        };
-        var markTaskCompleteRequest = new MarkTaskCompleteRequest
-        {
-            Org = org,
-            Repo = repo,
-            CommentId = parentIssue.CommentId
+            { "org", org },
+            { "repo", repo },
+            { "issueNumber", issueNumber.ToString() },
+            { "parentNumber", parentNumber?.ToString()}
         };
 
-        var sandbox = _grains.GetGrain<IManageSandbox>(issueNumber, suffix);
-        await sandbox.ScheduleCommitSandboxRun(commitRequest, markTaskCompleteRequest, sandboxRequest);
-    }
-
-    private async Task HandleClosingDevPlan(long issueNumber, string suffix, string org, string repo)
-    {
-        var devLead = _grains.GetGrain<ILeadDevelopment>(issueNumber, suffix);
-        var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        var conductor = _grains.GetGrain<IOrchestrateWorkflows>(parentIssue.IssueNumber, suffix);
-        var plan = await devLead.GetLatestPlan();
-        await conductor.ImplementationFlow(plan, org, repo, parentIssue.IssueNumber);
-
-        await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
+        await stream.OnNextAsync(new Event
         {
-            Org = org,
-            Repo = repo,
-            CommentId = parentIssue.CommentId
+            Type = eventType,
+            Data = data
         });
     }
 
-    private async Task HandleClosingReadme(long issueNumber, string suffix, string org, string repo)
+    private async Task HandleNewAsk(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
     {
-        var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
-        var readme = await pm.GetLastMessage();
-        var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        await _azService.Store(new SaveOutputRequest
+        try
         {
-            ParentIssueNumber = parentIssue.IssueNumber,
-            IssueNumber = (int)issueNumber,
-            Output = readme,
-            Extension = "md",
-            Directory = "output",
-            FileName = "readme",
-            Org = org,
-            Repo = repo
-        });
-        await _ghService.CommitToBranch(new CommitRequest
-        {
-            Dir = "output",
-            Org = org,
-            Repo = repo,
-            ParentNumber = parentIssue.IssueNumber,
-            Number = (int)issueNumber,
-            Branch = $"sk-{parentIssue.IssueNumber}"
-        });
-        await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
-        {
-            Org = org,
-            Repo = repo,
-            CommentId = parentIssue.CommentId
-        });
-    }
+            _logger.LogInformation("Handling new ask");
+            var streamProvider = _client.GetStreamProvider("StreamProvider");
+            var streamId = StreamId.Create(Consts.MainNamespace, suffix+issueNumber.ToString());
+            var stream = streamProvider.GetStream<Event>(streamId);
 
-    private async Task HandleNewAsk(long issueNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
-    {
-        if (skillName == "Do" && functionName == "It")
-        {
-            var conductor = _grains.GetGrain<IOrchestrateWorkflows>(issueNumber, suffix);
-            await conductor.InitialFlow(input, org, repo, issueNumber);
-        }
-        else if (skillName == "Repo" && functionName == "Ingest")
-        {
-            var ingestor = _grains.GetGrain<IIngestRepo>(suffix);
-            await ingestor.IngestionFlow(org, repo, "main");
-        }
-        else if (skillName == nameof(PM) && functionName == nameof(PM.Readme))
-        {
-            var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
-            var readme = await pm.CreateReadme(input);
-            await _ghService.PostComment(new PostCommentRequest
+            var eventType = (skillName, functionName) switch
             {
-                Org = org,
-                Repo = repo,
-                Number = (int)issueNumber,
-                Content = string.IsNullOrEmpty(readme)? "Sorry, something went wrong": readme
+                ("Do", "It") => EventType.NewAsk,
+                (nameof(PM), nameof(PM.Readme)) => EventType.ReadmeRequested,
+                (nameof(DevLead), nameof(DevLead.Plan)) => EventType.DevPlanRequested,
+                (nameof(Developer), nameof(Developer.Implement)) => EventType.CodeGenerationRequested,
+                _ => EventType.NewAsk
+            };
+             var data = new Dictionary<string, string>
+            {
+                { "org", org },
+                { "repo", repo },
+                { "issueNumber", issueNumber.ToString() },
+                { "parentNumber", parentNumber?.ToString()}
+            };
+            await stream.OnNextAsync(new Event
+            {
+                Type = eventType,
+                Message = input,
+                Data = data
             });
         }
-        else if (skillName == nameof(DevLead) && functionName == nameof(DevLead.Plan))
+        catch (System.Exception)
         {
-            var devLead = _grains.GetGrain<ILeadDevelopment>(issueNumber, suffix);
-            var plan = await devLead.CreatePlan(input);
-            await _ghService.PostComment(new PostCommentRequest
-            {
-                Org = org,
-                Repo = repo,
-                Number = (int)issueNumber,
-                Content = string.IsNullOrEmpty(plan)? "Sorry, something went wrong":plan
-            });
+             _logger.LogError("Handling new ask");
         }
-        else if (skillName == nameof(Developer) && functionName == nameof(Developer.Implement))
-        {
-            var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
-            var code = await dev.GenerateCode(input);
-            
-            await _ghService.PostComment(new PostCommentRequest
-            {
-                Org = org,
-                Repo = repo,
-                Number = (int)issueNumber,
-                Content = string.IsNullOrEmpty(code)? "Sorry, something went wrong":code
-            });
-        }
-        else { }// something went wrong
     }
 }
+

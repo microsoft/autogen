@@ -1,8 +1,0 @@
-I'd like to build a typical Chat Message Applicaton: a simple chat app in React Native that allows the user to manage multiple chat threads.  
-Each thred is a different conversation. The app can look very similar to Apple iMessage. 
-Key features of the Chat Message application include the ability to create a new chat thread, view the messages in each thread, and to edite and send a new message. 
-The frontend for the app will be in typescript and React Native, the backend will be in C# as an Azure Function.
-The backend will use a mock function to generate random responses.  The backend will store the chats in an Azure CosmosDB. 
-The application will have a setup for local testing and development that allows testing without deployment to Azure. 
-Use bicep scripts to create the Azure resources. 
-The front end should be able to run entirely in the browser. 

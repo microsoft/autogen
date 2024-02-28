@@ -17,20 +17,21 @@ public class AzureService : IManageAzure
 {
     private readonly AzureOptions _azSettings;
     private readonly ILogger<AzureService> _logger;
+    private readonly ArmClient _client;
 
-    public AzureService(IOptions<AzureOptions> azOptions, ILogger<AzureService> logger)
+    public AzureService(IOptions<AzureOptions> azOptions, ILogger<AzureService> logger, ArmClient client)
     {
         _azSettings = azOptions.Value;
         _logger = logger;
+        _client = client;
     }
 
     public async Task DeleteSandbox(string sandboxId)
     {
         try
         {
-            var client = new ArmClient(new DefaultAzureCredential());
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
 
             var collection = resourceGroupResource.GetContainerGroups();
             var containerGroup = await collection.GetAsync(sandboxId);
@@ -47,9 +48,8 @@ public class AzureService : IManageAzure
     {
         try
         {
-            var client = new ArmClient(new DefaultAzureCredential());
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
 
             var collection = resourceGroupResource.GetContainerGroups();
             var containerGroup = await collection.GetAsync(sandboxId);
@@ -63,18 +63,14 @@ public class AzureService : IManageAzure
         }
     }
 
-    public async Task RunInSandbox(SandboxRequest request)
+    public async Task RunInSandbox(string org, string repo, long parentIssueNumber, long issueNumber)
     {
         try
         {
-            var client = string.IsNullOrEmpty(_azSettings.ManagedIdentity) ?
-                        new ArmClient(new AzureCliCredential())
-                      : new ArmClient(new ManagedIdentityCredential(_azSettings.ManagedIdentity));
-
-            var runId = $"sk-sandbox-{request.Org}-{request.Repo}-{request.ParentIssueNumber}-{request.IssueNumber}";
+            var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}";
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
-            var scriptPath = $"/azfiles/output/{request.Org}-{request.Repo}/{request.ParentIssueNumber}/{request.IssueNumber}/run.sh";
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
+            var scriptPath = $"/azfiles/output/{org}-{repo}/{parentIssueNumber}/{issueNumber}/run.sh";
             var collection = resourceGroupResource.GetContainerGroups();
             var data = new ContainerGroupData(new AzureLocation(_azSettings.Location), new ContainerInstanceContainer[]
             {
@@ -113,33 +109,33 @@ public class AzureService : IManageAzure
         
     }
 
-    public async Task Store(SaveOutputRequest request)
+    public async Task Store(string org, string repo, long parentIssueNumber, long issueNumber, string filename, string extension, string dir, string output)
     {
         try
         {
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_azSettings.FilesAccountName};AccountKey={_azSettings.FilesAccountKey};EndpointSuffix=core.windows.net";
-            var parentDirName = $"{request.Directory}/{request.Org}-{request.Repo}";
+            var parentDirName = $"{dir}/{org}-{repo}";
 
-            var fileName = $"{request.FileName}.{request.Extension}";
+            var fileName = $"{filename}.{extension}";
 
             var share = new ShareClient(connectionString, _azSettings.FilesShareName);
             await share.CreateIfNotExistsAsync();
-            await share.GetDirectoryClient($"{request.Directory}").CreateIfNotExistsAsync(); ;
+            await share.GetDirectoryClient($"{dir}").CreateIfNotExistsAsync(); ;
 
             var parentDir = share.GetDirectoryClient(parentDirName);
             await parentDir.CreateIfNotExistsAsync();
 
-            var parentIssueDir = parentDir.GetSubdirectoryClient($"{request.ParentIssueNumber}");
+            var parentIssueDir = parentDir.GetSubdirectoryClient($"{parentIssueNumber}");
             await parentIssueDir.CreateIfNotExistsAsync();
 
-            var directory = parentIssueDir.GetSubdirectoryClient($"{request.IssueNumber}");
+            var directory = parentIssueDir.GetSubdirectoryClient($"{issueNumber}");
             await directory.CreateIfNotExistsAsync();
 
             var file = directory.GetFileClient(fileName);
             // hack to enable script to save files in the same directory
             var cwdHack = "#!/bin/bash\n cd $(dirname $0)";
-            var output = request.Extension == "sh" ? request.Output.Replace("#!/bin/bash", cwdHack) : request.Output;
-            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(output)))
+            var contents = extension == "sh" ? output.Replace("#!/bin/bash", cwdHack) : output;
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(contents)))
             {
                 await file.CreateAsync(stream.Length);
                 await file.UploadRangeAsync(
@@ -151,39 +147,13 @@ public class AzureService : IManageAzure
         {
             _logger.LogError(ex, "Error storing output");
         }
-        
     }
 }
 
 public interface IManageAzure
 {
-    Task Store(SaveOutputRequest request);
-    Task RunInSandbox(SandboxRequest request);
+    Task Store(string org, string repo, long parentIssueNumber, long issueNumber, string filename, string extension, string dir, string output);
+    Task RunInSandbox(string org, string repo, long parentIssueNumber, long issueNumber);
     Task<bool> IsSandboxCompleted(string sandboxId);
     Task DeleteSandbox(string sandboxId);
-}
-
-public class SaveOutputRequest
-{
-    public int ParentIssueNumber { get; set; }
-    public int IssueNumber { get; set; }
-    public string Output { get; set; }
-    public string Extension { get; set; }
-    public string Directory { get; set; }
-    public string FileName { get; set; }
-    public string Org { get; set; }
-    public string Repo { get; set; }
-}
-
-[GenerateSerializer]
-public class SandboxRequest
-{
-    [Id(0)]
-    public string Org { get; set; }
-    [Id(1)]
-    public string Repo { get; set; }
-    [Id(2)]
-    public int IssueNumber { get; set; }
-    [Id(3)]
-    public int ParentIssueNumber { get; set; }
 }
