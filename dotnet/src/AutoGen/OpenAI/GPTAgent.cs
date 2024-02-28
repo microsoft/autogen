@@ -34,6 +34,7 @@ public class GPTAgent : IStreamingReplyAgent
         {
             AzureOpenAIConfig azureConfig => new OpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
             OpenAIConfig openAIConfig => new OpenAIClient(openAIConfig.ApiKey),
+            GenericAIConfig genericAIConfig => new OpenAIClient(new Uri(genericAIConfig.Endpoint), new Azure.AzureKeyCredential(genericAIConfig.ApiKey)),
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
@@ -41,6 +42,7 @@ public class GPTAgent : IStreamingReplyAgent
         {
             AzureOpenAIConfig azureConfig => azureConfig.DeploymentName,
             OpenAIConfig openAIConfig => openAIConfig.ModelId,
+            GenericAIConfig genericAIConfig => genericAIConfig.ModelId,
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
