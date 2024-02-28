@@ -2,27 +2,28 @@ import zmq
 import threading
 import traceback
 from .DebugLog import Debug, Info
-from .Constants import Termination_Topic, xpub_url
+from .Constants import Termination_Topic
+from .Config import xpub_url
 
 class Actor:
-    def __init__(self, agent_name, description):
-        self.actor_name = agent_name
-        self.agent_description = description
+    def __init__(self, agent_name:str, description:str):
+        self.actor_name:str = agent_name
+        self.agent_description:str = description
         self.run = False
 
-    def connect(self, network):
+    def connect_network(self, network):
         Debug(self.actor_name, f"is connecting to {network}")
         Debug(self.actor_name, "connected")
 
-    def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str) -> bool:
+    def _process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str) -> bool:
         Info(self.actor_name, f"InBox: {msg}")
         return True
 
-    def process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
+    def _process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str) -> bool:
         Info(self.actor_name, f"Msg: topic=[{topic}], msg_type=[{msg_type}]")
         return True
 
-    def recv_thread(self):
+    def _recv_thread(self):
         Debug(self.actor_name, "recv thread started")
         try:
             while self.run:
@@ -37,12 +38,12 @@ class Actor:
                     continue
                 if msg_type == "text":
                     msg = msg.decode("utf-8")  # Convert bytes to string
-                    if not self.process_txt_msg(msg, msg_type, topic, sender_topic):
+                    if not self._process_txt_msg(msg, msg_type, topic, sender_topic):
                         msg = "quit"
                     if msg.lower() == "quit":
                         break
                 else:
-                    if not self.process_bin_msg(msg, msg_type, topic, sender_topic):
+                    if not self._process_bin_msg(msg, msg_type, topic, sender_topic):
                         break
         except Exception as e:
             Debug(self.actor_name, f"recv thread encountered an error: {e}")
@@ -51,7 +52,8 @@ class Actor:
             self.run = False
             Debug(self.actor_name, "recv thread ended")
 
-    def start_recv_thread(self, context: zmq.Context):
+    def start(self, context: zmq.Context):
+        self._context = context
         self.run: bool = True
         self._socket: zmq.Socket = context.socket(zmq.SUB)
         self._socket.setsockopt(zmq.RCVTIMEO, 500)
@@ -62,15 +64,15 @@ class Actor:
         str_topic = Termination_Topic
         Debug(self.actor_name, f"subscribe to: {str_topic}")
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
-        self._thread = threading.Thread(target=self.recv_thread)
+        self._thread = threading.Thread(target=self._recv_thread)
         self._thread.start()
 
-    def disconnect(self, network):
+    def disconnect_network(self, network):
         Debug(self.actor_name, f"is disconnecting from {network}")
         Debug(self.actor_name, "disconnected")
-        self.stop_recv_thread()
+        self.stop()
 
-    def stop_recv_thread(self):
+    def stop(self):
         self.run = False
         self._thread.join()
         self._socket.setsockopt(zmq.LINGER, 0)

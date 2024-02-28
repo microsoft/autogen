@@ -27,7 +27,7 @@ class CAP2AG(Actor):
         self._network: LocalActorNetwork = None
         self._connectors = {}
 
-    def connect(self, network: LocalActorNetwork):
+    def connect_network(self, network: LocalActorNetwork):
         """
         Connect to the AutoGen system.
         """
@@ -35,15 +35,15 @@ class CAP2AG(Actor):
         self._ag2can_other_agent = AG2CAP(self._network, self._other_agent_name)
         Debug(self._can2ag_name, "connected to {network}")
 
-    def disconnect(self, network: LocalActorNetwork):
+    def disconnect_network(self, network: LocalActorNetwork):
         """
         Disconnect from the AutoGen system.
         """
-        super().disconnect(network)
+        super().disconnect_network(network)
         #        self._the_other.close()
         Debug(self.actor_name, "disconnected")
 
-    def process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
+    def _process_txt_msg(self, msg: str, msg_type: str, topic: str, sender: str):
         """
         Process a text message received from the AutoGen system.
         """
@@ -128,6 +128,7 @@ class CAP2AG(Actor):
         serialized_msg = reply_msg.SerializeToString()
         connector.send_bin_msg(type(reply_msg).__name__, serialized_msg)
         return True
+    
 
     def prepchat_msgproc(self, msg, sender_topic):
         prep_chat = PrepChat()
@@ -135,7 +136,7 @@ class CAP2AG(Actor):
         self._the_ag_agent._prepare_chat(self._ag2can_other_agent, prep_chat.clear_history, prep_chat.prepare_recipient)
         return True
 
-    def process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str):
+    def _process_bin_msg(self, msg: bytes, msg_type: str, topic: str, sender: str):
         """
         Process a binary message received from the AutoGen system.
         """

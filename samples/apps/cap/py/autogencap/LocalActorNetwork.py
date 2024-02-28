@@ -39,7 +39,7 @@ class LocalActorNetwork:
         self._directory_svc.register_actor(actor.actor_name)
         time.sleep(100)  # Give the broker time to register the actor
         self.local_actors[actor.actor_name] = actor
-        actor.start_recv_thread(self._context)
+        actor.start(self._context)
         Debug("Local_Actor_Network", f"{actor.actor_name} registered in the network.")
 
     def connect(self):

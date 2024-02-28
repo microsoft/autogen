@@ -135,7 +135,7 @@ class PersonalAssistant(Actor):
         self.quant: ActorConnector = None
         self.risk_manager: ActorConnector = None
 
-    def connect(self, network: LocalActorNetwork):
+    def connect_network(self, network: LocalActorNetwork):
         """
         Connects the personal assistant to the specified local actor network.
 
@@ -149,21 +149,21 @@ class PersonalAssistant(Actor):
         self.risk_manager = network.lookup_actor("Risk Manager")
         Debug(self.actor_name, "connected")
 
-    def disconnect(self, network: LocalActorNetwork):
+    def disconnect_network(self, network: LocalActorNetwork):
         """
         Disconnects the personal assistant from the specified local actor network.
 
         Args:
             network (LocalActorNetwork): The local actor network to disconnect from.
         """
-        super().disconnect(network)
+        super().disconnect_network(network)
         self.fidelity.close()
         self.financial_planner.close()
         self.quant.close()
         self.risk_manager.close()
         Debug(self.actor_name, "disconnected")
 
-    def process_txt_msg(self, msg, msg_type, topic, sender):
+    def _process_txt_msg(self, msg, msg_type, topic, sender):
         """
         Processes a text message received by the personal assistant.
 

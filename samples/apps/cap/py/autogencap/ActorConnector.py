@@ -5,8 +5,7 @@ import zmq
 import time
 import uuid
 from .DebugLog import Debug, Error
-from .Constants import xsub_url, xpub_url
-
+from .Config import xsub_url, xpub_url
 
 class ActorConnector:
     def __init__(self, context, topic):
@@ -22,7 +21,7 @@ class ActorConnector:
         Debug("AgentConnector", f"subscribe to: {self._resp_topic}")
         self._resp_socket.setsockopt_string(zmq.SUBSCRIBE, f"{self._resp_topic}")
         self._topic = topic
-        time.sleep(0.01)  # Let the network do things.
+        time.sleep(0.05)  # Let the network do things.
 
     def send_txt_msg(self, msg):
         self._pub_socket.send_multipart(

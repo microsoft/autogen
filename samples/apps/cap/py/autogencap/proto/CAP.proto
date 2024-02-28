@@ -19,3 +19,11 @@ message ActorLookup {
     // optional string service_descriptor = 2;
 }
 
+message ActorInfoCollection {
+    repeated ActorInfo info_coll = 1;
+}
+
+message ActorLookupResponse {
+    bool found = 1;
+    optional ActorInfoCollection actor = 2;
+}

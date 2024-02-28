@@ -14,23 +14,21 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tCAP.proto\"h\n\x0f\x41\x63torProperties\x12(\n\x04\x64ict\x18\x01 \x03(\x0b\x32\x1a.ActorProperties.DictEntry\x1a+\n\tDictEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\xa3\x01\n\tActorInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\tnamespace\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x12)\n\nproperties\x18\x04 \x01(\x0b\x32\x10.ActorPropertiesH\x02\x88\x01\x01\x42\x0c\n\n_namespaceB\x0e\n\x0c_descriptionB\r\n\x0b_properties\"3\n\x11\x41\x63torRegistration\x12\x1e\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfo\"y\n\x0b\x41\x63torLookup\x12#\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfoH\x00\x88\x01\x01\x12\x1f\n\x12service_descriptor\x18\x02 \x01(\tH\x01\x88\x01\x01\x42\r\n\x0b_actor_infoB\x15\n\x13_service_descriptorb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tCAP.proto\"i\n\tActorInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\tnamespace\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x42\x0c\n\n_namespaceB\x0e\n\x0c_description\"3\n\x11\x41\x63torRegistration\x12\x1e\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfo\"A\n\x0b\x41\x63torLookup\x12#\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfoH\x00\x88\x01\x01\x42\r\n\x0b_actor_info\"4\n\x13\x41\x63torInfoCollection\x12\x1d\n\tinfo_coll\x18\x01 \x03(\x0b\x32\n.ActorInfo\"X\n\x13\x41\x63torLookupResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12(\n\x05\x61\x63tor\x18\x02 \x01(\x0b\x32\x14.ActorInfoCollectionH\x00\x88\x01\x01\x42\x08\n\x06_actorb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'CAP_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_ACTORPROPERTIES_DICTENTRY']._options = None
-  _globals['_ACTORPROPERTIES_DICTENTRY']._serialized_options = b'8\001'
-  _globals['_ACTORPROPERTIES']._serialized_start=13
-  _globals['_ACTORPROPERTIES']._serialized_end=117
-  _globals['_ACTORPROPERTIES_DICTENTRY']._serialized_start=74
-  _globals['_ACTORPROPERTIES_DICTENTRY']._serialized_end=117
-  _globals['_ACTORINFO']._serialized_start=120
-  _globals['_ACTORINFO']._serialized_end=283
-  _globals['_ACTORREGISTRATION']._serialized_start=285
-  _globals['_ACTORREGISTRATION']._serialized_end=336
-  _globals['_ACTORLOOKUP']._serialized_start=338
-  _globals['_ACTORLOOKUP']._serialized_end=459
+  _globals['_ACTORINFO']._serialized_start=13
+  _globals['_ACTORINFO']._serialized_end=118
+  _globals['_ACTORREGISTRATION']._serialized_start=120
+  _globals['_ACTORREGISTRATION']._serialized_end=171
+  _globals['_ACTORLOOKUP']._serialized_start=173
+  _globals['_ACTORLOOKUP']._serialized_end=238
+  _globals['_ACTORINFOCOLLECTION']._serialized_start=240
+  _globals['_ACTORINFOCOLLECTION']._serialized_end=292
+  _globals['_ACTORLOOKUPRESPONSE']._serialized_start=294
+  _globals['_ACTORLOOKUPRESPONSE']._serialized_end=382
 # @@protoc_insertion_point(module_scope)
