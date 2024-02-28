@@ -1,22 +1,9 @@
 import time
 import zmq
 import threading
-from .DebugLog import Debug, Info, Warn
-from .Constants import xsub_url, xpub_url
+from autogencap.DebugLog import Debug, Info, Warn
+from autogencap.Config import xsub_url, xpub_url
 
-# TODO: encapsulate directory service in a class
-# directory svc
-# 	listen(directory_svc_topic)
-# 	-> register_req
-# 		add_to_directory
-# 	<- register_resp		
-# 	-> find_actor
-# 		look in dir
-# 	<- found_actor
-
-# TODO: encapsulate bin send like Actor Connector.  Generalize common code with ActorConnector
-# TODO: Platform related things can be in some backbone type thing?
-        
 class Broker:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
