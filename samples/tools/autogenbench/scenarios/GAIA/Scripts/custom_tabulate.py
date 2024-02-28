@@ -16,7 +16,11 @@ def normalize_answer(a):
     # Trim (left and right)
     # Replace multiple spaces with one space
     # Remove trailing punctuation
-    return re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", a.strip().lower()))
+    norm_answer = re.sub(r"\s+", " ", a.strip().lower())
+    if re.search(r"^[\.\!\?]+$", norm_answer):
+        return norm_answer
+    else:
+        return re.sub(r"[\.\!\?]+$", "", norm_answer)
 
 
 def scorer(instance_dir):
