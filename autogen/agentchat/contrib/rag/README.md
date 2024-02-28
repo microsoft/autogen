@@ -35,6 +35,11 @@ Once the knowledge base is established, we can enhance our responses to user inp
 
 ## Demo Code
 
+- Installation
+```sh
+pip install -e ".[rag]"
+```
+
 - RagAgent
 
 ```python
