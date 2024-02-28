@@ -21,14 +21,6 @@ public class ProductManager : AiAgent
         _logger = logger;
     }
 
-    public async override Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
-        var stream = streamProvider.GetStream<Event>(streamId);
-
-        await stream.SubscribeAsync(HandleEvent);
-    }
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         switch (item.Type)
@@ -77,38 +69,4 @@ public class ProductManager : AiAgent
             return default;
         }
     }
-
-    // public async Task CloseReadme()
-    // {
-    //     var pm = _grains.GetGrain<IManageProduct>(issueNumber, suffix);
-    //     var readme = await pm.GetLastMessage();
-    //     var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-    //     var parentIssue = await lookup.GetMetadata((int)issueNumber);
-    //     await _azService.Store(new SaveOutputRequest
-    //     {
-    //         ParentIssueNumber = parentIssue.IssueNumber,
-    //         IssueNumber = (int)issueNumber,
-    //         Output = readme,
-    //         Extension = "md",
-    //         Directory = "output",
-    //         FileName = "readme",
-    //         Org = org,
-    //         Repo = repo
-    //     });
-    //     await _ghService.CommitToBranch(new CommitRequest
-    //     {
-    //         Dir = "output",
-    //         Org = org,
-    //         Repo = repo,
-    //         ParentNumber = parentIssue.IssueNumber,
-    //         Number = (int)issueNumber,
-    //         Branch = $"sk-{parentIssue.IssueNumber}"
-    //     });
-    //     await _ghService.MarkTaskComplete(new MarkTaskCompleteRequest
-    //     {
-    //         Org = org,
-    //         Repo = repo,
-    //         CommentId = parentIssue.CommentId
-    //     });
-    // }
 }

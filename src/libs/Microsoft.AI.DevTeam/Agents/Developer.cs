@@ -9,7 +9,6 @@ using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
-//[RegexImplicitStreamSubscription("")]
 [ImplicitStreamSubscription(Consts.MainNamespace)]
 public class Dev : AiAgent
 {
@@ -22,15 +21,6 @@ public class Dev : AiAgent
         _kernel = kernel;
         _memory = memory;
         _logger = logger;
-    }
-
-    public async override Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
-        var stream = streamProvider.GetStream<Event>(streamId);
-
-        await stream.SubscribeAsync(HandleEvent);
     }
 
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
@@ -80,57 +70,6 @@ public class Dev : AiAgent
             _logger.LogError(ex, "Error generating code");
             return default;
         }
-    }
-
-    public Task<string> ReviewPlan(string plan)
-    {
-        throw new NotImplementedException();
-    }
-
-    public async Task CloseImplementation()
-    {
-        // var dev = _grains.GetGrain<IDevelopCode>(issueNumber, suffix);
-        // var code = await dev.GetLastMessage();
-        // var lookup = _grains.GetGrain<ILookupMetadata>(suffix);
-        // var parentIssue = await lookup.GetMetadata((int)issueNumber);
-        // await _azService.Store(new SaveOutputRequest
-        // {
-        //     ParentIssueNumber = parentIssue.IssueNumber,
-        //     IssueNumber = (int)issueNumber,
-        //     Output = code,
-        //     Extension = "sh",
-        //     Directory = "output",
-        //     FileName = "run",
-        //     Org = org,
-        //     Repo = repo
-        // });
-        // var sandboxRequest = new SandboxRequest
-        // {
-        //     Org = org,
-        //     Repo = repo,
-        //     IssueNumber = (int)issueNumber,
-        //     ParentIssueNumber = parentIssue.IssueNumber
-        // };
-        // await _azService.RunInSandbox(sandboxRequest);
-
-        // var commitRequest = new CommitRequest
-        // {
-        //     Dir = "output",
-        //     Org = org,
-        //     Repo = repo,
-        //     ParentNumber = parentIssue.IssueNumber,
-        //     Number = (int)issueNumber,
-        //     Branch = $"sk-{parentIssue.IssueNumber}"
-        // };
-        // var markTaskCompleteRequest = new MarkTaskCompleteRequest
-        // {
-        //     Org = org,
-        //     Repo = repo,
-        //     CommentId = parentIssue.CommentId
-        // };
-
-        // var sandbox = _grains.GetGrain<IManageSandbox>(issueNumber, suffix);
-        // await sandbox.ScheduleCommitSandboxRun(commitRequest, markTaskCompleteRequest, sandboxRequest);
     }
 
     public async Task<UnderstandingResult> BuildUnderstanding(string content)

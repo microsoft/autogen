@@ -23,14 +23,6 @@ public class DeveloperLead : AiAgent
         _logger = logger;
         _ghService = ghService;
     }
-    public async override Task OnActivateAsync(CancellationToken cancellationToken)
-    {
-        var streamProvider = this.GetStreamProvider("StreamProvider");
-        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
-        var stream = streamProvider.GetStream<Event>(streamId);
-
-        await stream.SubscribeAsync(HandleEvent);
-    }
 
     public async override Task HandleEvent(Event item, StreamSequenceToken? token)
     {

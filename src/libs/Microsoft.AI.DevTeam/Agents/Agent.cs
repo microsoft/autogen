@@ -13,4 +13,13 @@ public abstract class Agent : Grain, IGrainWithStringKey
         var stream = streamProvider.GetStream<Event>(streamId);
         await stream.OnNextAsync(item);
     }
+
+    public async override Task OnActivateAsync(CancellationToken cancellationToken)
+    {
+        var streamProvider = this.GetStreamProvider("StreamProvider");
+        var streamId = StreamId.Create(Consts.MainNamespace, this.GetPrimaryKeyString());
+        var stream = streamProvider.GetStream<Event>(streamId);
+
+        await stream.SubscribeAsync(HandleEvent);
+    }
 }
