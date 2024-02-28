@@ -14,18 +14,19 @@ To use `AutoGen.GenericApi`, add the following package to your `.csproj` file:
 ## Usage
 ```csharp
 using AutoGen.LMStudio;
-var localServerEndpoint = "localhost";
-var port = 5000;
-var lmStudioConfig = new LMStudioConfig(localServerEndpoint, port);
-var agent = new LMStudioAgent(
-    name: "agent",
+var mistralAIKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new Exception("Please set MISTRAL_API_KEY environment variable.");
+var mistralEndpoint = "api.mistral.ai";
+var genericConfig = new GenericAgentConfig(mistralAIKey, mistralEndpoint);
+var agent = new GenericAgent(
+    name: "assistent",
+    modelName: "mistral-large-latest",
     systemMessage: "You are an agent that help user to do some tasks.",
-    lmStudioConfig: lmStudioConfig)
+    config: genericConfig)
     .RegisterPrintFormatMessageHook(); // register a hook to print message nicely to console
 
 await agent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
 ```
 
 ## Update history
-### Update on 0.0.7 (2024-02-11)
-- Add `LMStudioAgent` to support consuming openai-like API from LMStudio local server.
+### Update  (2024-02-28)
+- Add `GenericAgent` to support consuming openai-like API from different vendors like Mistral, Groq or OpenRouter.
