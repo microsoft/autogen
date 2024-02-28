@@ -26,7 +26,7 @@ public static class Example06_UserProxyAgent
         // set human input mode to ALWAYS so that user always provide input
         var userProxyAgent = new UserProxyAgent(
             name: "user",
-            humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
+            humanInputMode: HumanInputMode.ALWAYS)
             .RegisterPrintFormatMessageHook();
 
         // start the conversation

@@ -1,16 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MiddlewareExtension.cs
 
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using AutoGen.Core.Middleware;
 
 namespace AutoGen;
 
 public static class MiddlewareExtension
 {
-
     /// <summary>
     /// Register a auto reply hook to an agent. The hook will be called before the agent generate the reply.
     /// If the hook return a non-null reply, then that non-null reply will be returned directly without calling the agent.
@@ -41,14 +41,13 @@ public static class MiddlewareExtension
     /// <summary>
     /// Print formatted message to console.
     /// </summary>
-    public static IAgent RegisterPrintFormatMessageHook(this IAgent agent)
+    public static MiddlewareAgent RegisterPrintFormatMessageHook(this IAgent agent)
     {
-        return agent.RegisterPostProcess(async (conversation, reply, ct) =>
-        {
-            Console.WriteLine(reply.FormatMessage());
+        var middleware = new PrintMessageMiddleware();
+        var middlewareAgent = new MiddlewareAgent(agent);
+        middlewareAgent.Use(middleware);
 
-            return reply;
-        });
+        return middlewareAgent;
     }
 
     /// <summary>
@@ -58,7 +57,7 @@ public static class MiddlewareExtension
     /// One example is <see cref="RegisterPrintFormatMessageHook(IAgent)"/>, which print the formatted message to console before the agent return the reply.
     /// </summary>
     /// <exception cref="Exception">throw when agent name is null.</exception>
-    public static IAgent RegisterPostProcess(
+    public static MiddlewareAgent RegisterPostProcess(
         this IAgent agent,
         Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
     {
@@ -89,12 +88,10 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    /// <param name="agent"></param>
-    /// <param name="func"></param>
-    /// <returns></returns>
     public static MiddlewareAgent RegisterMiddleware(
         this IAgent agent,
-        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func)
+        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
+        string? middlewareName = null)
     {
         if (agent.Name == null)
         {
@@ -102,7 +99,25 @@ public static class MiddlewareExtension
         }
 
         var middlewareAgent = new MiddlewareAgent(agent);
-        middlewareAgent.Use((messages, options, next, ct) => func(messages, options, agent, ct));
+        middlewareAgent.Use(func, middlewareName);
+
+        return middlewareAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareAgent RegisterMiddleware(
+        this IAgent agent,
+        IMiddleware middleware)
+    {
+        if (agent.Name == null)
+        {
+            throw new Exception("Agent name is null.");
+        }
+
+        var middlewareAgent = new MiddlewareAgent(agent);
+        middlewareAgent.Use(middleware);
 
         return middlewareAgent;
     }

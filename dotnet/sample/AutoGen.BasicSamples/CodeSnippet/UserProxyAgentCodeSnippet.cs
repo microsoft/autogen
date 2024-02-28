@@ -11,7 +11,7 @@ public class UserProxyAgentCodeSnippet
         // create a user proxy agent which always ask user for input
         var agent = new UserProxyAgent(
             name: "user",
-            humanInputMode: ConversableAgent.HumanInputMode.ALWAYS);
+            humanInputMode: HumanInputMode.ALWAYS);
 
         await agent.SendAsync("hello");
         #endregion code_snippet_1
