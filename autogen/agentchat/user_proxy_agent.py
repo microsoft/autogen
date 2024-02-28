@@ -1,5 +1,7 @@
 from typing import Callable, Dict, List, Literal, Optional, Union
 
+from autogen.coding.base import CodeExecutor
+
 from .conversable_agent import ConversableAgent
 from ..runtime_logging import logging_enabled, log_new_agent
 
@@ -32,6 +34,8 @@ class UserProxyAgent(ConversableAgent):
         human_input_mode: Optional[str] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
+        code_executor: Optional[CodeExecutor] = None,
+        code_lookback_messages: Union[int, str] = "auto",
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
@@ -88,6 +92,8 @@ class UserProxyAgent(ConversableAgent):
             human_input_mode=human_input_mode,
             function_map=function_map,
             code_execution_config=code_execution_config,
+            code_executor=code_executor,
+            code_lookback_messages=code_lookback_messages,
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
             description=description

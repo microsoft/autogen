@@ -218,7 +218,6 @@ class ConversableAgent(LLMAgent):
                 self._code_execution_config["use_docker"] = use_docker
                 self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         elif code_executor is not None:
-
             if not isinstance(code_executor, CodeExecutor):
                 raise ValueError("code_executor must be an instance of CodeExecutor.")
 
