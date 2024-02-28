@@ -552,7 +552,7 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            message = hook(message, recipient, silent)
+            message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
     def send(
