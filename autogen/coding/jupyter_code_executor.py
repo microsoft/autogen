@@ -3,10 +3,15 @@ import json
 import os
 from pathlib import Path
 import re
+from types import TracebackType
 import uuid
-from typing import Any, ClassVar, List, Union
+from typing import Any, ClassVar, List, Optional, Union
+import sys
 
-from pydantic import Field
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 from ..agentchat.agent import LLMAgent
@@ -213,6 +218,18 @@ the output will be a path to the image instead of the image itself.
                 if "-qqq" not in line:
                     lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
         return "\n".join(lines)
+
+    def stop(self) -> None:
+        """Stop the kernel."""
+        self._jupyter_client.delete_kernel(self._kernel_id)
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(
+        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+    ) -> None:
+        self.stop()
 
 
 class LocalJupyterCodeExecutor(JupyterCodeExecutor):

@@ -21,7 +21,21 @@ from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
 
 
-KERNEL_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
+
+def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
+    elapsed_time = 0
+    while container.status != "running" and elapsed_time < timeout:
+        sleep(stop_time)
+        elapsed_time += stop_time
+        container.reload()
+        continue
+    if container.status != "running":
+        raise ValueError("Container failed to start")
+
+
+class DockerJupyterServer(JupyterConnectable):
+
+    DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -42,27 +56,13 @@ EXPOSE 8888
 
 WORKDIR "${HOME}"
 """
-
-
-def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
-    while container.status != "running" and elapsed_time < timeout:
-        sleep(stop_time)
-        elapsed_time += stop_time
-        container.reload()
-        continue
-    if container.status != "running":
-        raise ValueError("Container failed to start")
-
-
-class DockerJupyterServer(JupyterConnectable):
     class GenerateToken:
         pass
 
     def __init__(
         self,
         *,
-        image_name: str = "autogen-jupyterkernelgateway",
+        custom_image_name: Optional[str],
         container_name: Optional[str] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
@@ -72,8 +72,9 @@ class DockerJupyterServer(JupyterConnectable):
         """Start a Jupyter kernel gateway server in a Docker container.
 
         Args:
-            image_name (str, optional): Image to use. If this image does not exist,
-                then the bundled image will be built and tagged with this name.
+            custom_image_name (Optional[str], optional): Custom image to use. If this is None,
+                then the bundled image will be built and used. The default image is based on
+                quay.io/jupyter/docker-stacks-foundation and extended to include jupyter_kernel_gateway
             container_name (Optional[str], optional): Name of the container to start.
                 A name will be generated if None.
             auto_remove (bool, optional): If true the Docker container will be deleted
@@ -89,16 +90,25 @@ class DockerJupyterServer(JupyterConnectable):
         if container_name is None:
             container_name = f"autogen-jupyterkernelgateway-{uuid.uuid4()}"
 
-        # Check if the image exists
         client = docker.from_env()
-        try:
-            client.images.get(image_name)
-        except docker.errors.ImageNotFound:
-            # Build the image
-            # Get this script directory
-            here = Path(__file__).parent
-            dockerfile = io.BytesIO(KERNEL_DOCKERFILE.encode("utf-8"))
-            client.images.build(path=here, fileobj=dockerfile, tag=image_name)
+        if custom_image_name is None:
+            image_name = "autogen-jupyterkernelgateway"
+            # Make sure the image exists
+            try:
+                client.images.get(image_name)
+            except docker.errors.ImageNotFound:
+                # Build the image
+                # Get this script directory
+                here = Path(__file__).parent
+                dockerfile = io.BytesIO(self.DEFAULT_DOCKERFILE.encode("utf-8"))
+                client.images.build(path=here, fileobj=dockerfile, tag=image_name)
+        else:
+            image_name = custom_image_name
+            # Check if the image exists
+            try:
+                client.images.get(image_name)
+            except docker.errors.ImageNotFound:
+                raise ValueError(f"Custom image {image_name} does not exist")
 
         if isinstance(token, DockerJupyterServer.GenerateToken):
             self._token = secrets.token_hex(32)
