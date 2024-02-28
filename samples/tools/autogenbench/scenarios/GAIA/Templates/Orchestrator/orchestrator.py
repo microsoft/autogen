@@ -3,10 +3,36 @@ import json
 import traceback
 import copy
 import sys
+from string import Template
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
 
+defaultPromptTemplates = { "closed_book_prompt": Template("""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
+
+Here is the request:
+
+$task
+
+Here is the pre-survey:
+
+    1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
+    2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
+    3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
+    4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
+
+When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc. Your answer should use headings:
+
+    1. GIVEN OR VERIFIED FACTS
+    2. FACTS TO LOOK UP
+    3. FACTS TO DERIVE
+    4. EDUCATED GUESSES
+"""),
+"plan_prompt": Template("""Fantastic. To address this request we have assembled the following team:
+
+$team
+
+Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""")}
 
 class Orchestrator(ConversableAgent):
     def __init__(
@@ -20,6 +46,7 @@ class Orchestrator(ConversableAgent):
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        prompt_templates: Dict[str, Template] = defaultPromptTemplates,
     ):
         super().__init__(
             name=name,
@@ -43,6 +70,8 @@ class Orchestrator(ConversableAgent):
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
 
+        self._prompt_templates = prompt_templates
+
     def _print_thought(self, message):
         print(self.name + " (thought)\n")
         print(message.strip() + "\n")
@@ -58,125 +87,20 @@ class Orchestrator(ConversableAgent):
                 self.send(message, a, request_reply=False, silent=False)
             else:
                 self.send(message, a, request_reply=False, silent=True)
-
-    def run_chat(
-        self,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        config: Optional[OpenAIWrapper] = None,
-    ) -> Tuple[bool, Union[str, Dict, None]]:
-        # We should probably raise an error in this case.
-        if self.client is None:
-            return False, None
-
-        if messages is None:
-            messages = self._oai_messages[sender]
-
-        # Work with a copy of the messages
-        _messages = copy.deepcopy(messages)
-        
-        ##### Memory ####
-
-        # Pop the last message, which is the task
-        task = _messages.pop()["content"]
-   
-        # A reusable description of the team
-        team = "\n".join([a.name + ": " + a.description for a in self._agents])
-        names = ", ".join([a.name for a in self._agents])
-
-        # A place to store relevant facts
-        facts = ""
-
-        # A place to store the plan
-        plan = ""
-
-        #################
-
-        # Start by writing what we know
-        
-        closed_book_prompt = f"""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
-
-Here is the request:
-
-{task}
-
-Here is the pre-survey:
-
-    1. Please list any specific facts or figures that are GIVEN in the request itself. It is possible that there are none.
-    2. Please list any facts that may need to be looked up, and WHERE SPECIFICALLY they might be found. In some cases, authoritative sources are mentioned in the request itself.
-    3. Please list any facts that may need to be derived (e.g., via logical deduction, simulation, or computation)
-    4. Please list any facts that are recalled from memory, hunches, well-reasoned guesses, etc.
-
-When answering this survey, keep in mind that "facts" will typically be specific names, dates, statistics, etc. Your answer should use headings:
-
-    1. GIVEN OR VERIFIED FACTS
-    2. FACTS TO LOOK UP
-    3. FACTS TO DERIVE
-    4. EDUCATED GUESSES
-""".strip()
-
-        _messages.append({"role": "user", "content": closed_book_prompt, "name": sender.name})
+    
+    def _think_and_respond(self, messages, message, sender):
+        messages.append({"role": "user", "content": message, "name": sender.name})
 
         response = self.client.create(
-            messages=_messages,
+            messages=messages,
             cache=self.client_cache,
         )
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
-        _messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
-        facts = extracted_response
-
-        # Make an initial plan
-        plan_prompt = f"""Fantastic. To address this request we have assembled the following team:
-
-{team}
-
-Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
-        _messages.append({"role": "user", "content": plan_prompt, "name": sender.name})
-
-        response = self.client.create(
-            messages=_messages,
-            cache=self.client_cache,
-        )
-
-        extracted_response = self.client.extract_text_or_completion_object(response)[0]
-        _messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
-        plan = extracted_response
-
-        # Main loop
-        total_turns = 0
-        max_turns = 30
-        while total_turns < max_turns:
-
-            # Populate the message histories
-            self.orchestrated_messages = []
-            for a in self._agents:
-                a.reset()
-
-            self.orchestrated_messages.append({"role": "assistant", "content": f"""
-We are working to address the following user request:
-
-{task}
-
-
-To answer this request we have assembled the following team:
-
-{team}
-
-Some additional points to consider:
-
-{facts}
-
-{plan}
-""".strip(), "name": self.name})
-            self._broadcast(self.orchestrated_messages[-1])
-            self._print_thought(self.orchestrated_messages[-1]["content"])
-
-            # Inner loop
-            stalled_count = 0
-            while total_turns < max_turns:
-                total_turns += 1
-
-                step_prompt = f"""
+        messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
+        return extracted_response
+    
+    def _next_step(self, task, team, names, sender):
+        step_prompt = f"""
 Recall we are working on the following request:
 
 {task}
@@ -214,16 +138,94 @@ Please output an answer in pure JSON format according to the following schema. T
     }}
 """.strip()
 
-                # This is a temporary message we will immediately pop
-                self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
-                response = self.client.create(
-                    messages=self.orchestrated_messages,
-                    cache=self.client_cache,
-                    response_format={"type": "json_object"},
-                )
-                self.orchestrated_messages.pop()
+        # This is a temporary message we will immediately pop
+        self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
+        response = self.client.create(
+            messages=self.orchestrated_messages,
+            cache=self.client_cache,
+            response_format={"type": "json_object"},
+        )
+        self.orchestrated_messages.pop()
 
-                extracted_response = self.client.extract_text_or_completion_object(response)[0]
+        return self.client.extract_text_or_completion_object(response)[0]
+
+    def run_chat(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[OpenAIWrapper] = None,
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        # We should probably raise an error in this case.
+        if self.client is None:
+            return False, None
+
+        if messages is None:
+            messages = self._oai_messages[sender]
+
+        # Work with a copy of the messages
+        _messages = copy.deepcopy(messages)
+        
+        ##### Memory ####
+
+        # Pop the last message, which is the task
+        task = _messages.pop()["content"]
+   
+        # A reusable description of the team
+        team = "\n".join([a.name + ": " + a.description for a in self._agents])
+        names = ", ".join([a.name for a in self._agents])
+
+        # A place to store relevant facts
+        facts = ""
+
+        # A place to store the plan
+        plan = ""
+
+        #################
+
+        # Start by writing what we know
+        
+        closed_book_prompt = self._prompt_templates["closed_book_prompt"].substitute(task=task).strip()
+        facts = self._think_and_respond(_messages, closed_book_prompt, sender)
+
+        # Make an initial plan
+        plan_prompt = self._prompt_templates["plan_prompt"].substitute(team=team).strip()
+        plan = self._think_and_respond(_messages, plan_prompt, sender)
+
+        # Main loop
+        total_turns = 0
+        max_turns = 30
+        while total_turns < max_turns:
+
+            # Populate the message histories
+            self.orchestrated_messages = []
+            for a in self._agents:
+                a.reset()
+
+            self.orchestrated_messages.append({"role": "assistant", "content": f"""
+We are working to address the following user request:
+
+{task}
+
+
+To answer this request we have assembled the following team:
+
+{team}
+
+Some additional points to consider:
+
+{facts}
+
+{plan}
+""".strip(), "name": self.name})
+            self._broadcast(self.orchestrated_messages[-1])
+            self._print_thought(self.orchestrated_messages[-1]["content"])
+
+            # Inner loop
+            stalled_count = 0
+            while total_turns < max_turns:
+                total_turns += 1
+
+                extracted_response = self._next_step(task=task, team=team, names=names, sender=sender)
                 data = None
                 try:
                     data = json.loads(extracted_response)
@@ -249,14 +251,7 @@ Please output an answer in pure JSON format according to the following schema. T
 
 {facts}
 """.strip()
-                    self.orchestrated_messages.append({"role": "user", "content": new_facts_prompt, "name": sender.name})
-                    response = self.client.create(
-                        messages=self.orchestrated_messages,
-                        cache=self.client_cache,
-                    )
-                    facts = self.client.extract_text_or_completion_object(response)[0]
-                    self.orchestrated_messages.append({"role": "assistant", "content": facts, "name": self.name})
-
+                    facts = self._think_and_respond(self.orchestrated_messages, new_facts_prompt, sender)
 
                     new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
 
@@ -269,6 +264,7 @@ Team membership:
                         cache=self.client_cache,
                     )
 
+                    # plan is an exception - we dont log it as a message
                     plan = self.client.extract_text_or_completion_object(response)[0]
                     break
 
