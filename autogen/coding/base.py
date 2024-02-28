@@ -92,3 +92,12 @@ class CodeExecutor(Protocol):
         This method is called when the agent is reset.
         """
         ...  # pragma: no cover
+
+
+class IPythonCodeResult(CodeResult):
+    """(Experimental) A code result class for IPython code executor."""
+
+    output_files: List[str] = Field(
+        default_factory=list,
+        description="The list of files that the executed code blocks generated.",
+    )

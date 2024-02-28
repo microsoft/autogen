@@ -84,10 +84,9 @@ Reply "TERMINATE" in the end when everything is done.
             compress_config (dict or True/False): config for compression before oai_reply. Default to False.
                 You should contain the following keys:
                 - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
-                    "TERMINATE": terminate the conversation ONLY when token count exceeds the max limit of current model.
-                        `trigger_count` is NOT used in this mode.
-                    "COMPRESS": compress the messages when the token count exceeds the limit.
-                    "CUSTOMIZED": pass in a customized function to compress the messages.
+                    1. `TERMINATE`: terminate the conversation ONLY when token count exceeds the max limit of current model. `trigger_count` is NOT used in this mode.
+                    2. `COMPRESS`: compress the messages when the token count exceeds the limit.
+                    3. `CUSTOMIZED`: pass in a customized function to compress the messages.
                 - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
                     The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
                 - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
