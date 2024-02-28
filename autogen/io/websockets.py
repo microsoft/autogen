@@ -47,8 +47,8 @@ class IOWebsockets(IOStream):
         # call the on_connect function
         on_connect(iowebsocket)
 
-    @contextmanager
     @staticmethod
+    @contextmanager
     def run_server_in_thread(
         *,
         host: str = "127.0.0.1",
