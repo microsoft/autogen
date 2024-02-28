@@ -14,12 +14,11 @@ else:
     from typing_extensions import Self
 
 
-from ..agentchat.agent import LLMAgent
-from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult, IPythonCodeResult
-from .markdown_code_extractor import MarkdownCodeExtractor
-from .jupyter import JupyterConnectable, JupyterConnectionInfo, LocalJupyterServer, JupyterClient
-
-__all__ = ("JupyterCodeExecutor", "LocalJupyterCodeExecutor")
+from ...agentchat.agent import LLMAgent
+from ..base import CodeBlock, CodeExecutor, CodeExtractor, IPythonCodeResult
+from ..markdown_code_extractor import MarkdownCodeExtractor
+from .base import JupyterConnectable, JupyterConnectionInfo
+from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
@@ -230,10 +229,3 @@ the output will be a path to the image instead of the image itself.
         self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
-
-
-class LocalJupyterCodeExecutor(JupyterCodeExecutor):
-    def __init__(self, **kwargs: Any):
-        """Creates a LocalJupyterServer and passes it to JupyterCodeExecutor, see JupyterCodeExecutor for args"""
-        jupyter_server = LocalJupyterServer()
-        super().__init__(jupyter_server=jupyter_server, **kwargs)
