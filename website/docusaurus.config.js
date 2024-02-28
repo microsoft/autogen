@@ -187,8 +187,8 @@ module.exports = {
             from: ["/docs/llm_endpoint_configuration/"],
           },
           {
-            to: "/docs/llm_configuration/",
-            from: ["/docs/ecosystem/memgpt/"],
+            to: "/docs/ecosystem/memgpt/",
+            from: ["/docs/Ecosystem"],
           },
           {
             to: "/docs/Getting-Started",
