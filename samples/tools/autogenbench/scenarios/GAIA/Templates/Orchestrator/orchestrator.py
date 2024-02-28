@@ -149,6 +149,50 @@ Please output an answer in pure JSON format according to the following schema. T
 
         return self.client.extract_text_or_completion_object(response)[0]
 
+    def _prepare_new_facts_and_plan(self, facts, sender, team):
+        self._print_thought("We aren't making progress. Let's reset.")
+        new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning). 
+
+{facts}
+""".strip()
+        facts = self._think_and_respond(self.orchestrated_messages, new_facts_prompt, sender)
+
+        new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
+
+Team membership:
+{team}
+""".strip()
+        self.orchestrated_messages.append({"role": "user", "content": new_plan_prompt, "name": sender.name})
+        response = self.client.create(
+            messages=self.orchestrated_messages,
+            cache=self.client_cache,
+        )
+
+        # plan is an exception - we dont log it as a message
+        plan = self.client.extract_text_or_completion_object(response)[0]
+
+        return facts, plan
+
+    def _broadcast_next_step_and_request_reply(self, next_prompt, next_speaker):
+        # Broadcast the message to all agents
+        m = {"role": "user", "content": next_prompt, "name": self.name}
+        if m["content"] is None:
+            m["content"] = ""
+        self._broadcast(m, out_loud=[next_speaker])
+
+        # Keep a copy
+        m["role"] = "assistant"
+        self.orchestrated_messages.append(m)
+
+        # Request a reply
+        for a in self._agents:
+            if a.name == next_speaker:
+                reply = {"role": "user", "name": a.name, "content": a.generate_reply(sender=self)}
+                self.orchestrated_messages.append(reply)
+                a.send(reply, self, request_reply=False)
+                self._broadcast(reply, exclude=[a])
+                break
+
     def run_chat(
         self,
         messages: Optional[List[Dict]] = None,
@@ -183,7 +227,6 @@ Please output an answer in pure JSON format according to the following schema. T
         #################
 
         # Start by writing what we know
-        
         closed_book_prompt = self._prompt_templates["closed_book_prompt"].substitute(task=task).strip()
         facts = self._think_and_respond(_messages, closed_book_prompt, sender)
 
@@ -246,45 +289,10 @@ Some additional points to consider:
                     stalled_count += 1
 
                 if stalled_count >= 3: 
-                    self._print_thought("We aren't making progress. Let's reset.")
-                    new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning). 
-
-{facts}
-""".strip()
-                    facts = self._think_and_respond(self.orchestrated_messages, new_facts_prompt, sender)
-
-                    new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
-
-Team membership:
-{team}
-""".strip()
-                    self.orchestrated_messages.append({"role": "user", "content": new_plan_prompt, "name": sender.name})
-                    response = self.client.create(
-                        messages=self.orchestrated_messages,
-                        cache=self.client_cache,
-                    )
-
-                    # plan is an exception - we dont log it as a message
-                    plan = self.client.extract_text_or_completion_object(response)[0]
+                    facts, plan = self._prepare_new_facts_and_plan(facts=facts, sender=sender, team=team)
                     break
 
-                # Broadcast the message to all agents
-                m = {"role": "user", "content": data["instruction_or_question"]["answer"], "name": self.name}
-                if m["content"] is None:
-                    m["content"] = ""
-                self._broadcast(m, out_loud=[data["next_speaker"]["answer"]])
+                self._broadcast_next_step_and_request_reply(next_prompt=data["instruction_or_question"]["answer"], next_speaker=data["next_speaker"]["answer"])
 
-                # Keep a copy
-                m["role"] = "assistant"
-                self.orchestrated_messages.append(m)
-
-                # Request a reply
-                for a in self._agents:
-                    if a.name == data["next_speaker"]["answer"]:
-                        reply = {"role": "user", "name": a.name, "content": a.generate_reply(sender=self)}
-                        self.orchestrated_messages.append(reply)
-                        a.send(reply, self, request_reply=False)
-                        self._broadcast(reply, exclude=[a])
-                        break
 
         return True, "TERMINATE"
