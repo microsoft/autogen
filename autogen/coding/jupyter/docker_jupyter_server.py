@@ -62,7 +62,7 @@ WORKDIR "${HOME}"
     def __init__(
         self,
         *,
-        custom_image_name: Optional[str],
+        custom_image_name: Optional[str] = None,
         container_name: Optional[str] = None,
         auto_remove: bool = True,
         stop_container: bool = True,

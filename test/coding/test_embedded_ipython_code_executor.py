@@ -12,13 +12,21 @@ from autogen.oai.openai_utils import config_list_from_json
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker  # noqa: E402
 
 try:
-    from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
-    from autogen.coding.jupyter import DockerJupyterServer
-    from autogen.coding.jupyter_code_executor import JupyterCodeExecutor, LocalJupyterCodeExecutor
+    from autogen.coding.jupyter import (
+        DockerJupyterServer,
+        EmbeddedIPythonCodeExecutor,
+        JupyterCodeExecutor,
+        LocalJupyterServer,
+    )
 
     class DockerJupyterExecutor(JupyterCodeExecutor):
         def __init__(self, **kwargs):
             jupyter_server = DockerJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
+
+    class LocalJupyterCodeExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = LocalJupyterServer()
             super().__init__(jupyter_server=jupyter_server, **kwargs)
 
     # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
