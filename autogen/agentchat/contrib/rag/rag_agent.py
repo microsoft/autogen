@@ -2,9 +2,6 @@ import copy
 from functools import partial
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from IPython import get_ipython
-from termcolor import colored
-
 from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
 from autogen.code_utils import extract_code
 from autogen.oai import OpenAIWrapper
@@ -317,7 +314,6 @@ class RagAgent(ConversableAgent):
             is_termination_msg=lambda m: False,
         )
 
-        self.ipython = get_ipython()
         self.post_process_func = self.rag_config.get("post_process_func", self.add_source_to_reply)
         self.enable_update_context = self.rag_config.get("enable_update_context", True)
         self.positive_trigger_words = self.rag_config.get("positive_trigger_words", ["question"])
@@ -805,35 +801,3 @@ class RagAgent(ConversableAgent):
             )
         else:
             return True, None if proxy_reply is None else proxy_reply["content"]
-
-    def run_code(self, code, **kwargs) -> Tuple[int, str, None]:
-        """
-        Run the code.
-
-        Args:
-            code: str | The code.
-            kwargs: Dict | The keyword arguments.
-
-        Returns:
-            Tuple[int, str, None] | The exit code, the log, and the result.
-        """
-        lang = kwargs.get("lang", None)
-        if code.startswith("!") or code.startswith("pip") or lang in ["bash", "shell", "sh"]:
-            return (
-                0,
-                "You MUST NOT install any packages because all the packages needed are already installed.",
-                None,
-            )
-        if self.ipython is None or lang != "python":
-            return super().run_code(code, **kwargs)
-        else:
-            result = self.ipython.run_cell(code)
-            log = str(result.result)
-            exitcode = 0 if result.success else 1
-            if result.error_before_exec is not None:
-                log += f"\n{result.error_before_exec}"
-                exitcode = 1
-            if result.error_in_exec is not None:
-                log += f"\n{result.error_in_exec}"
-                exitcode = 1
-            return exitcode, log, None
