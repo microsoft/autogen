@@ -27,7 +27,7 @@ public class Sandbox : Agent, IRemindable
            case EventType.SandboxRunCreated:
                var org = item.Data["org"];
                var repo = item.Data["repo"];
-               var parentIssueNumber = long.Parse(item.Data["parentIssueNumber"]);
+               var parentIssueNumber = long.Parse(item.Data["parentNumber"]);
                var issueNumber = long.Parse(item.Data["issueNumber"]);
                await ScheduleCommitSandboxRun(org, repo, parentIssueNumber, issueNumber);
                break;
@@ -60,7 +60,7 @@ public class Sandbox : Agent, IRemindable
                         { "org", _state.State.Org },
                         { "repo", _state.State.Repo },
                         { "issueNumber", _state.State.IssueNumber.ToString() },
-                        { "parentIssueNumber", _state.State.ParentIssueNumber.ToString() }
+                        { "parentNumber", _state.State.ParentIssueNumber.ToString() }
                     }
                 });
                 await Cleanup();

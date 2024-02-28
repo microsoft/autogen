@@ -24,6 +24,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.0.0" />
     <PackageReference Include="OrleansDashboard" Version="7.2.2" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.2" />
   </ItemGroup>
   
 

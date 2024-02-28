@@ -11,6 +11,8 @@ using Microsoft.SemanticKernel.Plugins.Memory;
 using Microsoft.SemanticKernel.Reliability.Basic;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
+using Azure.Identity;
+using Microsoft.Extensions.Azure;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
@@ -26,6 +28,14 @@ builder.Services.AddSingleton(s =>
     var client = ghService.GetGitHubClient().Result;
     return client;
 });
+
+
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.UseCredential(new DefaultAzureCredential());
+    clientBuilder.AddArmClient(default);
+});
+
 builder.Services.AddSingleton<GithubAuthService>();
 
 builder.Services.AddApplicationInsightsTelemetry();

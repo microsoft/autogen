@@ -13,10 +13,10 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
     <PackageReference Include="Octokit" Version="10.0.0" />
     <PackageReference Include="GitHubJwt" Version="0.0.6" />
-    <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0-beta.1" />
+    <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />
     <PackageReference Include="Azure.Data.Tables" Version="12.8.1" />
-    <PackageReference Include="Azure.Identity" Version="1.10.0-beta.1" />
+    <PackageReference Include="Azure.Identity" Version="1.11.0-beta.1" />
     <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.0.0" />
   </ItemGroup>

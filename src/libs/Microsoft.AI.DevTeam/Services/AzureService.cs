@@ -17,20 +17,21 @@ public class AzureService : IManageAzure
 {
     private readonly AzureOptions _azSettings;
     private readonly ILogger<AzureService> _logger;
+    private readonly ArmClient _client;
 
-    public AzureService(IOptions<AzureOptions> azOptions, ILogger<AzureService> logger)
+    public AzureService(IOptions<AzureOptions> azOptions, ILogger<AzureService> logger, ArmClient client)
     {
         _azSettings = azOptions.Value;
         _logger = logger;
+        _client = client;
     }
 
     public async Task DeleteSandbox(string sandboxId)
     {
         try
         {
-            var client = new ArmClient(new DefaultAzureCredential());
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
 
             var collection = resourceGroupResource.GetContainerGroups();
             var containerGroup = await collection.GetAsync(sandboxId);
@@ -47,9 +48,8 @@ public class AzureService : IManageAzure
     {
         try
         {
-            var client = new ArmClient(new DefaultAzureCredential());
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
 
             var collection = resourceGroupResource.GetContainerGroups();
             var containerGroup = await collection.GetAsync(sandboxId);
@@ -67,13 +67,9 @@ public class AzureService : IManageAzure
     {
         try
         {
-            var client = string.IsNullOrEmpty(_azSettings.ManagedIdentity) ?
-                        new ArmClient(new AzureCliCredential())
-                      : new ArmClient(new ManagedIdentityCredential(_azSettings.ManagedIdentity));
-
             var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}";
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
-            var resourceGroupResource = client.GetResourceGroupResource(resourceGroupResourceId);
+            var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
             var scriptPath = $"/azfiles/output/{org}-{repo}/{parentIssueNumber}/{issueNumber}/run.sh";
             var collection = resourceGroupResource.GetContainerGroups();
             var data = new ContainerGroupData(new AzureLocation(_azSettings.Location), new ContainerInstanceContainer[]

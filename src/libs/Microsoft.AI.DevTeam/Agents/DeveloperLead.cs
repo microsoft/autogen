@@ -8,7 +8,7 @@ using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class DeveloperLead : AiAgent
+public class DeveloperLead : AiAgent, ILeadDevelopers
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -73,6 +73,11 @@ public class DeveloperLead : AiAgent
             return default;
         }
     }
+}
+
+public interface ILeadDevelopers
+{
+     public Task<string> CreatePlan(string ask);
 }
 
 [GenerateSerializer]

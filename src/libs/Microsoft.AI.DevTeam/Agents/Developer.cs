@@ -10,7 +10,7 @@ using Orleans.Streams;
 namespace Microsoft.AI.DevTeam;
 
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class Dev : AiAgent
+public class Dev : AiAgent, IDevelopApps
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -105,6 +105,11 @@ public class Dev : AiAgent
             return default;
         }
     }
+}
+
+public interface IDevelopApps
+{
+    public Task<string> GenerateCode(string ask);
 }
 
 [GenerateSerializer]

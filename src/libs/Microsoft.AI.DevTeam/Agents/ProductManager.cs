@@ -8,7 +8,7 @@ using Orleans.Streams;
 namespace Microsoft.AI.DevTeam;
 
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class ProductManager : AiAgent
+public class ProductManager : AiAgent, IManageProducts
 {
     private readonly IKernel _kernel;
     private readonly ISemanticTextMemory _memory;
@@ -69,4 +69,9 @@ public class ProductManager : AiAgent
             return default;
         }
     }
+}
+
+public interface IManageProducts
+{
+    public Task<string> CreateReadme(string ask);
 }
