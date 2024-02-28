@@ -2,42 +2,53 @@ import zmq
 from .DebugLog import Debug, Warn
 from .ActorConnector import ActorConnector
 from .Broker import Broker
+from .DirectorySvc import DirectorySvc
 from .Constants import Termination_Topic
 from .Actor import Actor
+from .proto.CAP_pb2 import ActorInfo
+import time
+# TODO: remove time import
 
 class LocalActorNetwork:
     def __init__(self, name:str ="Local Actor Network", start_broker:bool = True):
-        self.actors = {}
+        self.local_actors = {}
         self.name: str = name
         self._context: zmq.Context = zmq.Context()
         self._start_broker: bool = start_broker
         self._broker: Broker = None
+        self._directory_svc: DirectorySvc = None
 
     def __str__(self):
         return f"{self.name}"
 
-    def __init_broker(self):
+    def _init_runtime(self):
         if self._start_broker and self._broker is None:
             self._broker = Broker(self._context)
             if not self._broker.start():
                 self._start_broker = False  # Don't try to start the broker again
                 self._broker = None
+        if self._directory_svc is None:
+            self._directory_svc = DirectorySvc(self._context)
+            self._directory_svc.start()
 
     def register(self, actor: Actor):
-        self.__init_broker()
+        self._init_runtime()
         # Get actor's name and description and add to a dictionary so
         # that we can look up the actor by name
-        self.actors[actor.actor_name] = actor
+        time.sleep(1)  # Give the broker time to register the actor
+        self._directory_svc.register_actor(actor.actor_name)
+        time.sleep(100)  # Give the broker time to register the actor
+        self.local_actors[actor.actor_name] = actor
         actor.start_recv_thread(self._context)
         Debug("Local_Actor_Network", f"{actor.actor_name} registered in the network.")
 
     def connect(self):
-        self.__init_broker()
-        for actor in self.actors.values():
+        self._init_runtime()
+        for actor in self.local_actors.values():
             actor.connect(self)
 
     def disconnect(self):
-        for actor in self.actors.values():
+        for actor in self.local_actors.values():
             actor.disconnect(self)
         if self._broker: 
             self._broker.stop()
@@ -46,7 +57,9 @@ class LocalActorNetwork:
         return ActorConnector(self._context, topic)
 
     def lookup_actor(self, name: str) -> ActorConnector:
-        actor = self.actors.get(name, None)
+        actor_info:ActorInfo = self._directory_svc.lookup_actor_by_name(name)
+
+        actor = self.local_actors.get(name, None)
         if actor is None:
             Warn("Local_Actor_Network", f"{name}, not found in the network.")
             return None

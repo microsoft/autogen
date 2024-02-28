@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 // Get protoc here https://github.com/protocolbuffers/protobuf/releases
-// .\protoc --python_out=. Autogen.proto
+// .\protoc --python_out=. --pyi_out=. Autogen.proto
 
 message DataMap {
     map<string, string> data = 1;

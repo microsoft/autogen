@@ -4,6 +4,19 @@ import threading
 from .DebugLog import Debug, Info, Warn
 from .Constants import xsub_url, xpub_url
 
+# TODO: encapsulate directory service in a class
+# directory svc
+# 	listen(directory_svc_topic)
+# 	-> register_req
+# 		add_to_directory
+# 	<- register_resp		
+# 	-> find_actor
+# 		look in dir
+# 	<- found_actor
+
+# TODO: encapsulate bin send like Actor Connector.  Generalize common code with ActorConnector
+# TODO: Platform related things can be in some backbone type thing?
+        
 class Broker:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
@@ -13,12 +26,16 @@ class Broker:
 
     def start(self) -> bool:
         try:
+            # XPUB setup
             self._xpub = self._context.socket(zmq.XPUB)
             self._xpub.setsockopt(zmq.LINGER, 0)
             self._xpub.bind(xpub_url)
+            
+            # XSUB setup
             self._xsub = self._context.socket(zmq.XSUB)
             self._xsub.setsockopt(zmq.LINGER, 0)
             self._xsub.bind(xsub_url)
+
         except zmq.ZMQError as e:
             Debug("BROKER", f"Unable to start.  Check details: {e}")
             # If binding fails, close the sockets and return False
@@ -36,25 +53,30 @@ class Broker:
         Debug("BROKER", "stopped")
         self._run = False
         self._broker_thread.join()
-        self._xpub.close()
-        self._xsub.close()
+        if self._xpub: self._xpub.close()
+        if self._xsub: self._xsub.close()
         # self._context.term()
 
     def thread_fn(self):
         try:
+            # Poll sockets for events
             self._poller: zmq.Poller = zmq.Poller()
             self._poller.register(self._xpub, zmq.POLLIN)
             self._poller.register(self._xsub, zmq.POLLIN)
+            
+            # Receive msgs, forward and process
             while self._run:
                 events = dict(self._poller.poll(500))
                 if self._xpub in events:
                     message = self._xpub.recv_multipart()
                     Debug("BROKER", f"subscription message: {message[0]}")
                     self._xsub.send_multipart(message)
+                    
                 if self._xsub in events:
                     message = self._xsub.recv_multipart()
                     Debug("BROKER", f"publishing message: {message}")
                     self._xpub.send_multipart(message)
+                                       
         except Exception as e:
             Debug("BROKER", f"thread encountered an error: {e}")
         finally:
@@ -70,6 +92,7 @@ def main():
     else:
         Warn("BROKER", "Failed to start.")
         return
+    
     status_interval = 10
     last_time = time.time()
     while(broker._run):

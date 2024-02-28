@@ -4,7 +4,6 @@ import traceback
 from .DebugLog import Debug, Info
 from .Constants import Termination_Topic, xpub_url
 
-
 class Actor:
     def __init__(self, agent_name, description):
         self.actor_name = agent_name
@@ -55,7 +54,6 @@ class Actor:
     def start_recv_thread(self, context: zmq.Context):
         self.run: bool = True
         self._socket: zmq.Socket = context.socket(zmq.SUB)
-        self._socket.setsockopt(zmq.LINGER, 0)
         self._socket.setsockopt(zmq.RCVTIMEO, 500)
         self._socket.connect(xpub_url)
         str_topic = f"{self.actor_name}"
@@ -75,4 +73,5 @@ class Actor:
     def stop_recv_thread(self):
         self.run = False
         self._thread.join()
+        self._socket.setsockopt(zmq.LINGER, 0)
         self._socket.close()
