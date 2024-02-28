@@ -10,6 +10,7 @@ import docker
 import secrets
 import io
 import atexit
+import logging
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -101,7 +102,9 @@ WORKDIR "${HOME}"
                 # Get this script directory
                 here = Path(__file__).parent
                 dockerfile = io.BytesIO(self.DEFAULT_DOCKERFILE.encode("utf-8"))
+                logging.info(f"Image {image_name} not found. Building it now.")
                 client.images.build(path=here, fileobj=dockerfile, tag=image_name)
+                logging.info(f"Image {image_name} built successfully.")
         else:
             image_name = custom_image_name
             # Check if the image exists
