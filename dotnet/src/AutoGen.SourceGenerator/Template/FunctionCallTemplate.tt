@@ -1,7 +1,6 @@
 ﻿﻿<#@ template language="C#" linePragmas="false" visibility = "internal" #>
 <#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
-<#@ import namespace="System.Text" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="Microsoft.CodeAnalysis" #>
 //----------------------
@@ -11,8 +10,11 @@
 //----------------------
 using Azure.AI.OpenAI;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
+using AutoGen;
+using AutoGen.OpenAI.Extension;
 
 <#if (!String.IsNullOrEmpty(NameSpace)) {#>
 namespace <#=NameSpace#>
@@ -26,8 +28,10 @@ namespace <#=NameSpace#>
         {
 <#foreach (var parameter in functionContract.Parameters) {#>
 <#if (parameter.IsOptional) {#>
+            [JsonPropertyName(@"<#=parameter.Name#>")]
 			public <#=parameter.Type#> <#=parameter.Name#> {get; set;} = <#=parameter.DefaultValue#>;
 <#} else {#>
+            [JsonPropertyName(@"<#=parameter.Name#>")]
 			public <#=parameter.Type#> <#=parameter.Name#> {get; set;}
 <#}#>
 <#}#>
@@ -46,51 +50,57 @@ namespace <#=NameSpace#>
             return <#=functionContract.Name#>(<#=argumentLists#>);
         }
 
-        public FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
+        public FunctionContract <#=functionContract.GetFunctionContractName()#>
         {
-            get => new FunctionDefinition
-			{
-				Name = @"<#=functionContract.Name#>",
-                Description = """
-<#=functionContract.Description#>
-""",
-                Parameters = BinaryData.FromObjectAsJson(new
+            get => new FunctionContract
+            {
+<#if (functionContract.Namespace != null) {#>
+                Namespace = @"<#=functionContract.Namespace#>",
+<#}#>
+<#if (functionContract.ClassName != null) {#>
+                ClassName = @"<#=functionContract.ClassName#>",
+<#}#>
+<#if (functionContract.Name != null) {#>
+                Name = @"<#=functionContract.Name#>",
+<#}#>
+<#if (functionContract.Description != null) {#>
+                Description = @"<#=functionContract.Description#>",
+<#}#>
+<#if (functionContract.ReturnType != null) {#>
+                ReturnType = typeof(<#=functionContract.ReturnType#>),
+<#}#>
+<#if (functionContract.ReturnDescription != null) {#>
+                ReturnDescription = @"<#=functionContract.ReturnDescription#>",
+<#}#>
+<#if (functionContract.Parameters != null) {#>
+                Parameters = new []
                 {
-                    Type = "object",
-                    Properties = new
-					{
 <#foreach (var parameter in functionContract.Parameters) {#>
-					    <#=parameter.Name#> = new
-					    {
-						    Type = @"<#=parameter.JsonType#>",
-<#if(parameter.JsonType == "array" && parameter.JsonItemType != null) {#>
-                            Items = new
-							{
-								Type = @"<#=parameter.JsonItemType#>",
-							},
+                    new FunctionParameterContract
+                    {
+<#if (parameter.Name != null) {#>
+                        Name = @"<#=parameter.Name#>",
 <#}#>
-						    Description = @"<#=parameter.Description#>",
-<#if (parameter.IsOptional) {#>
-						    IsOptional = <#=parameter.IsOptional.ToString().ToLower()#>,
+<#if (parameter.Description != null) {#>
+                        Description = @"<#=parameter.Description#>",
 <#}#>
-<#if (parameter.DefaultValue != null && parameter.DefaultValue != "null") {#>
-						    DefaultValue = <#=parameter.DefaultValue#>,
+<#if (parameter.Type != null) {#>
+                        ParameterType = typeof(<#=parameter.Type#>),
 <#}#>
-					    },
+                        IsRequired = <#=parameter.IsOptional ? "false" : "true"#>,
+<#if (parameter.DefaultValue != null) {#>
+                        DefaultValue = <#=parameter.DefaultValue#>,
 <#}#>
                     },
-                    Required = new []
-					{
-<#foreach (var parameter in functionContract.Parameters.Where(p => !p.IsOptional)) {#>
-					    "<#=parameter.Name#>",
 <#}#>
-					},
                 },
-                new JsonSerializerOptions
-				{
-					PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-				})
+<#}#>
             };
+        }
+
+        public FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
+        {
+            get => this.<#=functionContract.GetFunctionContractName()#>.ToOpenAIFunctionDefinition();
         }
 <#}#>
     }

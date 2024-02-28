@@ -3,6 +3,7 @@
 
 using AutoGen;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 public partial class FunctionCallCodeSnippet
@@ -31,7 +32,7 @@ public partial class FunctionCallCodeSnippet
                 },
                 FunctionDefinitions = new[]
                 {
-                    function.WeatherReportFunction, // The FunctionDefinition object for the weather report function
+                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(), // The FunctionDefinition object for the weather report function
                 },
             });
 
@@ -65,12 +66,12 @@ public partial class FunctionCallCodeSnippet
                 },
                 FunctionDefinitions = new[]
                 {
-                    function.WeatherReportFunction, // The FunctionDefinition object for the weather report function
+                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(), // The FunctionDefinition object for the weather report function
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { function.WeatherReportFunction.Name, function.WeatherReportWrapper }, // The function wrapper for the weather report function
+                { function.WeatherReportFunctionContract.Name, function.WeatherReportWrapper }, // The function wrapper for the weather report function
             });
 
         #endregion code_snippet_6
@@ -96,7 +97,7 @@ public partial class FunctionCallCodeSnippet
                 ConfigList = new[] { config },
                 FunctionDefinitions = new[]
                 {
-                    function.WeatherReportFunction,
+                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(),
                 },
             });
 
@@ -104,7 +105,7 @@ public partial class FunctionCallCodeSnippet
             name: "user",
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { function.WeatherReportFunction.Name, function.WeatherReportWrapper },
+                { function.WeatherReportFunctionContract.Name, function.WeatherReportWrapper },
             });
 
         await user.InitiateChatAsync(assistant, "what's weather in Seattle today, today is 2024-01-01", 10);

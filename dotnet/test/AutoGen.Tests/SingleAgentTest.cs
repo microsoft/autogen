@@ -259,9 +259,9 @@ namespace AutoGen.Tests
         private async Task UpperCaseTest(IAgent agent)
         {
             var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new Message(Role.User, "abcdefg");
+            var uppCaseMessage = new Message(Role.User, "abcdefg");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new Message[] { message, uppCaseMessage });
 
             reply.Content.Should().Be("ABCDEFG");
             reply.Role.Should().Be(Role.Assistant);

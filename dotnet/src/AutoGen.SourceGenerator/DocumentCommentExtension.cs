@@ -41,6 +41,13 @@ namespace AutoGen.SourceGenerator
             return null;
         }
 
+        public static string? GetNamespaceNameFromClassDeclarationSyntax(this ClassDeclarationSyntax classDeclaration)
+        {
+            return classDeclaration.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString()
+                        : classDeclaration.Parent is FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclarationSyntax ? fileScopedNamespaceDeclarationSyntax.Name.ToString()
+                        : null;
+        }
+
         public static DocumentationCommentTriviaSyntax? GetDocumentationCommentTriviaSyntax(this SyntaxNode node)
         {
             if (node == null)

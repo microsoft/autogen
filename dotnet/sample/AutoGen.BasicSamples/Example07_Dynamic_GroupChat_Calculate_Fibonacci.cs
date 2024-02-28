@@ -10,7 +10,7 @@ using FluentAssertions;
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
     #region reviewer_function
-    struct CodeReviewResult
+    public struct CodeReviewResult
     {
         public bool HasMultipleCodeBlocks { get; set; }
         public bool IsTopLevelStatement { get; set; }
@@ -214,7 +214,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #region create_admin
         var admin = new AssistantAgent(
             name: "admin",
-            systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE]",
+            systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
@@ -235,12 +235,13 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #region create_group_chat
         var groupChat = new GroupChat(
             admin: admin,
-            members: new[]
-            {
+            members:
+            [
+                admin,
                 coder,
                 runner,
                 reviewer,
-            });
+            ]);
 
         admin.AddInitializeMessage("Welcome to my group, work together to resolve my task", groupChat);
         coder.AddInitializeMessage("I will write dotnet code to resolve task", groupChat);

@@ -73,7 +73,9 @@ namespace AutoGen.SourceGenerator
                         .Select(member => member as MethodDeclarationSyntax)
                         .Where(method => method != null);
 
-                    var functionContracts = methodDeclarationSyntaxes.Select(method => CreateFunctionContract(method!));
+                    var className = classDeclarationSyntax.Identifier.ToString();
+                    var namespaceName = classDeclarationSyntax.GetNamespaceNameFromClassDeclarationSyntax();
+                    var functionContracts = methodDeclarationSyntaxes.Select(method => CreateFunctionContract(method!, className, namespaceName));
 
                     return new PartialClassOutput(fullClassName, classDeclarationSyntax, functionContracts);
                 })
@@ -90,9 +92,7 @@ namespace AutoGen.SourceGenerator
                     {
                         var functionContracts = group.SelectMany(item => item!.FunctionContracts).ToArray();
                         var className = group.First()!.ClassDeclarationSyntax.Identifier.ToString();
-                        var namespaceName = group.First()!.ClassDeclarationSyntax.Parent is NamespaceDeclarationSyntax namespaceDeclarationSyntax ? namespaceDeclarationSyntax.Name.ToString()
-                        : group.First()!.ClassDeclarationSyntax.Parent is FileScopedNamespaceDeclarationSyntax fileScopedNamespaceDeclarationSyntax ? fileScopedNamespaceDeclarationSyntax.Name.ToString()
-                        : string.Empty;
+                        var namespaceName = group.First()!.ClassDeclarationSyntax.GetNamespaceNameFromClassDeclarationSyntax() ?? string.Empty;
                         var functionTT = new FunctionCallTemplate
                         {
                             NameSpace = namespaceName,
@@ -158,7 +158,7 @@ namespace AutoGen.SourceGenerator
             public IEnumerable<FunctionContract> FunctionContracts { get; }
         }
 
-        private FunctionContract CreateFunctionContract(MethodDeclarationSyntax method)
+        private FunctionContract CreateFunctionContract(MethodDeclarationSyntax method, string? className, string? namespaceName)
         {
             // get function_call attribute
             var functionCallAttribute = method.AttributeLists.SelectMany(attributeList => attributeList.Attributes)
@@ -215,8 +215,8 @@ namespace AutoGen.SourceGenerator
                     {
                         "string" => "string",
                         "string[]" => "array",
-                        "System.Int32" or "int" => "number",
-                        "System.Int64" or "long" => "number",
+                        "System.Int32" or "int" => "integer",
+                        "System.Int64" or "long" => "integer",
                         "System.Single" or "float" => "number",
                         "System.Double" or "double" => "number",
                         "System.Boolean" or "bool" => "boolean",
@@ -236,6 +236,8 @@ namespace AutoGen.SourceGenerator
 
             return new FunctionContract
             {
+                ClassName = className,
+                Namespace = namespaceName,
                 Name = functionName,
                 Description = functionDescription?.Trim() ?? functionName,
                 Parameters = parameters.ToArray(),
