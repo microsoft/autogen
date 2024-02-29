@@ -3,7 +3,7 @@ from autogencap.Config import xpub_url, xsub_url
 from autogencap.DebugLog import Debug, Info, Error
 from autogencap.ActorConnector import ActorConnector
 from autogencap.Actor import Actor
-from autogencap.proto.CAP_pb2 import ActorRegistration, ActorInfo, ActorLookup, ActorLookupResponse
+from autogencap.proto.CAP_pb2 import ActorRegistration, ActorInfo, ActorLookup, ActorLookupResponse, Ping, Pong
 import zmq
 import threading
 import time
@@ -22,9 +22,17 @@ class DirectoryActor(Actor):
             self._actor_registration_msg_handler(topic, msg_type, msg)
         elif msg_type == ActorLookup.__name__:
             self._actor_lookup_msg_handler(topic, msg_type, msg, sender)
+        elif msg_type == Ping.__name__:
+            self._ping_msg_handler(topic, msg_type, msg, sender)
         else:
             Error("DirectorySvc", f"Unknown message type: {msg_type}")
         return True
+
+    def _ping_msg_handler(self, topic: str, msg_type: str, msg: bytes, sender_topic: str):
+        pong = Pong()
+        serialized_msg = pong.SerializeToString()
+        sender_connection = ActorConnector(self._context, sender_topic)
+        sender_connection.send_bin_msg(Pong.__name__, serialized_msg)
 
     def _actor_registration_msg_handler(self, topic: str, msg_type: str, msg: bytes):
         actor_reg = ActorRegistration()
@@ -49,7 +57,11 @@ class DirectoryActor(Actor):
         else:
             Error("DirectorySvc", f"Actor not found: {actor_lookup.actor_info.name}")
         actor_lookup_resp = ActorLookupResponse()
-        actor_lookup_resp.actor.info_coll.extend([actor])
+        if actor is not None:
+            actor_lookup_resp.actor.info_coll.extend([actor])
+            actor_lookup_resp.found = True
+        else:
+            actor_lookup_resp.found = False
         sender_connection = ActorConnector(self._context, sender_topic)
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
@@ -60,14 +72,24 @@ class DirectorySvc:
         self._directory_connector: ActorConnector = None
         self._directory_actor: DirectoryActor = None
 
+    def _no_other_directory(self) -> bool:
+        ping = Ping()
+        serialized_msg = ping.SerializeToString()
+        _, _, _, resp =self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
+        if (resp is None):
+            return True
+        return False
+
     def start(self):
-        self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
-        self._directory_actor.start(self._context)
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
+        time.sleep(0.05) # Let the network do things.
+        if (self._no_other_directory()):
+            self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
+            self._directory_actor.start(self._context)
         
     def stop(self):
-        self._directory_actor.stop()
-        self._directory_connector.close()
+        if self._directory_actor: self._directory_actor.stop()
+        if self._directory_connector: self._directory_connector.close()
 
     def register_actor(self, actor_info: ActorInfo):
         # Send a message to the directory service
@@ -85,12 +107,12 @@ class DirectorySvc:
         actor_info = ActorInfo(name=actor_name)
         actor_lookup = ActorLookup(actor_info=actor_info)
         serialized_msg = actor_lookup.SerializeToString()
-        resp_topic, resp_msg_type, resp_sender_topic, resp = self._directory_connector.binary_request(ActorLookup.__name__, serialized_msg)
+        _, _, _, resp = self._directory_connector.binary_request(ActorLookup.__name__, serialized_msg)
         actor_lookup_resp = ActorLookupResponse()
         actor_lookup_resp.ParseFromString(resp)
         if (actor_lookup_resp.found):
-            if len(actor_lookup_resp.actor_info_coll) > 0:
-                return actor_lookup_resp.actor_info_coll[0]
+            if len(actor_lookup_resp.actor.info_coll) > 0:
+                return actor_lookup_resp.actor.info_coll[0]
         return None
 
 class MinProxy:

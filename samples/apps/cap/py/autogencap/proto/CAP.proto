@@ -27,3 +27,9 @@ message ActorLookupResponse {
     bool found = 1;
     optional ActorInfoCollection actor = 2;
 }
+
+message Ping {
+}
+
+message Pong {
+}

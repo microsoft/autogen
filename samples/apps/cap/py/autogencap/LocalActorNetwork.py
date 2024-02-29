@@ -58,9 +58,7 @@ class LocalActorNetwork:
 
     def lookup_actor(self, name: str) -> ActorConnector:
         actor_info:ActorInfo = self._directory_svc.lookup_actor_by_name(name)
-
-        actor = self.local_actors.get(name, None)
-        if actor is None:
+        if actor_info is None:
             Warn("Local_Actor_Network", f"{name}, not found in the network.")
             return None
         Debug("Local_Actor_Network", f"[{name}] found in the network.")

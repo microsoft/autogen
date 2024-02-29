@@ -40,3 +40,11 @@ class ActorLookupResponse(_message.Message):
     found: bool
     actor: ActorInfoCollection
     def __init__(self, found: bool = ..., actor: _Optional[_Union[ActorInfoCollection, _Mapping]] = ...) -> None: ...
+
+class Ping(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class Pong(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...

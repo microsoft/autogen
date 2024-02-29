@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tCAP.proto\"i\n\tActorInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\tnamespace\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x42\x0c\n\n_namespaceB\x0e\n\x0c_description\"3\n\x11\x41\x63torRegistration\x12\x1e\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfo\"A\n\x0b\x41\x63torLookup\x12#\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfoH\x00\x88\x01\x01\x42\r\n\x0b_actor_info\"4\n\x13\x41\x63torInfoCollection\x12\x1d\n\tinfo_coll\x18\x01 \x03(\x0b\x32\n.ActorInfo\"X\n\x13\x41\x63torLookupResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12(\n\x05\x61\x63tor\x18\x02 \x01(\x0b\x32\x14.ActorInfoCollectionH\x00\x88\x01\x01\x42\x08\n\x06_actorb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\tCAP.proto\"i\n\tActorInfo\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x16\n\tnamespace\x18\x02 \x01(\tH\x00\x88\x01\x01\x12\x18\n\x0b\x64\x65scription\x18\x03 \x01(\tH\x01\x88\x01\x01\x42\x0c\n\n_namespaceB\x0e\n\x0c_description\"3\n\x11\x41\x63torRegistration\x12\x1e\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfo\"A\n\x0b\x41\x63torLookup\x12#\n\nactor_info\x18\x01 \x01(\x0b\x32\n.ActorInfoH\x00\x88\x01\x01\x42\r\n\x0b_actor_info\"4\n\x13\x41\x63torInfoCollection\x12\x1d\n\tinfo_coll\x18\x01 \x03(\x0b\x32\n.ActorInfo\"X\n\x13\x41\x63torLookupResponse\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12(\n\x05\x61\x63tor\x18\x02 \x01(\x0b\x32\x14.ActorInfoCollectionH\x00\x88\x01\x01\x42\x08\n\x06_actor\"\x06\n\x04Ping\"\x06\n\x04Pongb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -31,4 +31,8 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['_ACTORINFOCOLLECTION']._serialized_end=292
   _globals['_ACTORLOOKUPRESPONSE']._serialized_start=294
   _globals['_ACTORLOOKUPRESPONSE']._serialized_end=382
+  _globals['_PING']._serialized_start=384
+  _globals['_PING']._serialized_end=390
+  _globals['_PONG']._serialized_start=392
+  _globals['_PONG']._serialized_end=398
 # @@protoc_insertion_point(module_scope)
