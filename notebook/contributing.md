@@ -108,5 +108,3 @@ If a notebook needs to be skipped then add to the notebook metadata:
 ```
 
 Note: Notebook metadata can be edited by opening the notebook in a text editor (Or "Open With..." -> "Text Editor" in VSCode)
-
-
