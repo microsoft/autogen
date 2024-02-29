@@ -56,7 +56,7 @@ public class FunctionContract
 
     /// <summary>
     /// The description of the return section.
-    /// If a structured comment is available, the description will be extracted from the <returns /> section.
+    /// If a structured comment is available, the description will be extracted from the return section.
     /// Otherwise, the description will be null.
     /// </summary>
     public string? ReturnDescription { get; set; }
