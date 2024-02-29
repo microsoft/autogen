@@ -82,6 +82,7 @@ class ConversableAgent(LLMAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
+        role: str = "assistant",
     ):
         """
         Args:
@@ -127,6 +128,7 @@ class ConversableAgent(LLMAgent):
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
         self._name = name
+        self._role = role
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]

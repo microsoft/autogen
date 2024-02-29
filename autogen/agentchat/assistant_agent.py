@@ -39,6 +39,7 @@ Reply "TERMINATE" in the end when everything is done.
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
         description: Optional[str] = None,
+        role: str = "assistant",
         **kwargs,
     ):
         """
@@ -66,6 +67,7 @@ Reply "TERMINATE" in the end when everything is done.
             human_input_mode,
             llm_config=llm_config,
             description=description,
+            role=role,
             **kwargs,
         )
         if logging_enabled():
