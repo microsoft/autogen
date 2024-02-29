@@ -424,22 +424,62 @@ class PptxConverter(HtmlConverter):
         return False
 
 
-class WavConverter(DocumentConverter):
+class MediaConverter(DocumentConverter):
+    def _get_metadata(self, local_path):
+        exiftool = shutil.which("exiftool")
+        if not exiftool:
+            return None
+        else:
+            try:
+                result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
+                return json.loads(result)[0]
+            except:
+                return None
+
+
+class WavConverter(MediaConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".wav":
             return None
 
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(local_path) as source:
-            audio = recognizer.record(source)
-            text_content = recognizer.recognize_google(audio).strip()
+        md_content = ""
+
+        # Add metadata
+        metadata = self._get_metadata(local_path)
+        if metadata:
+            for f in [
+                "Title",
+                "Artist",
+                "Band",
+                "Album",
+                "Genre",
+                "Track",
+                "DateTimeOriginal",
+                "CreateDate",
+                "Duration",
+            ]:
+                if f in metadata:
+                    md_content += f"{f}: {metadata[f]}\n"
+
+        # Transcribe
+        try:
+            transcript = self._transcribe_audio(local_path)
+            md_content += "\n\n### Audio Transcript:\n" + ("[No speech detected]" if transcript == "" else transcript)
+        except:
+            md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
 
         return DocumentConverterResult(
             title=None,
-            text_content="### Audio Transcript:\n" + ("[No speech detected]" if text_content == "" else text_content),
+            text_content=md_content.strip(),
         )
+
+    def _transcribe_audio(self, local_path) -> str:
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(local_path) as source:
+            audio = recognizer.record(source)
+            return recognizer.recognize_google(audio).strip()
 
 
 class Mp3Converter(WavConverter):
@@ -449,6 +489,26 @@ class Mp3Converter(WavConverter):
         if extension.lower() != ".mp3":
             return None
 
+        md_content = ""
+
+        # Add metadata
+        metadata = self._get_metadata(local_path)
+        if metadata:
+            for f in [
+                "Title",
+                "Artist",
+                "Band",
+                "Album",
+                "Genre",
+                "Track",
+                "DateTimeOriginal",
+                "CreateDate",
+                "Duration",
+            ]:
+                if f in metadata:
+                    md_content += f"{f}: {metadata[f]}\n"
+
+        # Transcribe
         handle, temp_path = tempfile.mkstemp(suffix=".wav")
         os.close(handle)
         try:
@@ -459,14 +519,21 @@ class Mp3Converter(WavConverter):
             _args.update(kwargs)
             _args["file_extension"] = ".wav"
 
-            result = super().convert(temp_path, **_args)
+            try:
+                md_content += "\n\n" + super()._transcribe_audio(temp_path)
+            except:
+                md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
+
         finally:
             os.unlink(temp_path)
 
-        return result
+        return DocumentConverterResult(
+            title=None,
+            text_content=md_content.strip(),
+        )
 
 
-class ImageConverter(DocumentConverter):
+class ImageConverter(MediaConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
@@ -481,6 +548,7 @@ class ImageConverter(DocumentConverter):
         metadata = self._get_metadata(local_path)
         if metadata:
             for f in [
+                "ImageSize",
                 "Title",
                 "Caption",
                 "Description",
@@ -525,17 +593,6 @@ class ImageConverter(DocumentConverter):
             text_content=md_content,
         )
 
-    def _get_metadata(self, local_path):
-        exiftool = shutil.which("exiftool")
-        if not exiftool:
-            return None
-        else:
-            try:
-                result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
-                return json.loads(result)[0]
-            except:
-                return None
-
     def _get_mlm_description(self, local_path, extension, client, prompt=None):
         if prompt is None or prompt.strip() == "":
             prompt = "Write a detailed caption for this image."
@@ -568,11 +625,14 @@ class ImageConverter(DocumentConverter):
             response = client.create(messages=messages)
             return client.extract_text_or_completion_object(response)[0]
 
+
 class FileConversionException(BaseException):
     pass
 
+
 class UnsupportedFormatException(BaseException):
     pass
+
 
 class MarkdownConverter:
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
@@ -705,7 +765,7 @@ class MarkdownConverter:
                 # If we hit an error log it and keep trying
                 try:
                     res = converter.convert(local_path, **_kwargs)
-                except Exception as e:
+                except Exception:
                     error_trace = ("\n\n" + traceback.format_exc()).strip()
 
                 if res is not None:
