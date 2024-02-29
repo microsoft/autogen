@@ -29,7 +29,7 @@ public partial class MiddlewareTest
 
         var neverInputAgent = agent.RegisterMiddleware(neverAskUserInputMW);
         var reply = await neverInputAgent.SendAsync("hello");
-        reply.Content!.Should().Be("hello");
+        reply.GetContent()!.Should().Be("hello");
         reply.From.Should().Be("echo");
 
         var alwaysAskUserInputMW = new HumanInputMiddleware(
@@ -38,28 +38,28 @@ public partial class MiddlewareTest
 
         var alwaysInputAgent = agent.RegisterMiddleware(alwaysAskUserInputMW);
         reply = await alwaysInputAgent.SendAsync("hello");
-        reply.Content!.Should().Be("input");
+        reply.GetContent()!.Should().Be("input");
         reply.From.Should().Be("echo");
 
         // test auto mode
         // if the reply from echo is not terminate message, return the original reply
         var autoAskUserInputMW = new HumanInputMiddleware(
             mode: HumanInputMode.AUTO,
-            isTermination: async (messages, ct) => messages.Last()?.Content == "terminate",
+            isTermination: async (messages, ct) => messages.Last()?.GetContent() == "terminate",
             getInput: () => "input",
             exitKeyword: "exit");
         var autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
         reply = await autoInputAgent.SendAsync("hello");
-        reply.Content!.Should().Be("hello");
+        reply.GetContent()!.Should().Be("hello");
 
         // if the reply from echo is terminate message, asking user for input
         reply = await autoInputAgent.SendAsync("terminate");
-        reply.Content!.Should().Be("input");
+        reply.GetContent()!.Should().Be("input");
 
         // if the reply from echo is terminate message, and user input is exit, return the TERMINATE message
         autoAskUserInputMW = new HumanInputMiddleware(
             mode: HumanInputMode.AUTO,
-            isTermination: async (messages, ct) => messages.Last().Content == "terminate",
+            isTermination: async (messages, ct) => messages.Last().GetContent() == "terminate",
             getInput: () => "exit",
             exitKeyword: "exit");
         autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
@@ -93,7 +93,7 @@ public partial class MiddlewareTest
         var testAgent = agent.RegisterMiddleware(mw);
         var functionCallMessage = new Message(Role.User, content: null, from: "user", functionCall: functionCall);
         var reply = await testAgent.SendAsync(functionCallMessage);
-        reply.Content!.Should().Be("[FUNC] hello");
+        reply.GetContent()!.Should().Be("[FUNC] hello");
         reply.From.Should().Be("echo");
 
         // test 2
@@ -103,7 +103,7 @@ public partial class MiddlewareTest
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
         testAgent = functionCallAgent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
-        reply.Content!.Should().Be("[FUNC] hello");
+        reply.GetContent()!.Should().Be("[FUNC] hello");
         reply.From.Should().Be("echo");
 
         // test 3
@@ -112,7 +112,7 @@ public partial class MiddlewareTest
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
         testAgent = agent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
-        reply.Content!.Should().Be("hello");
+        reply.GetContent()!.Should().Be("hello");
         reply.From.Should().Be("echo");
 
         // test 4
@@ -122,6 +122,6 @@ public partial class MiddlewareTest
         testAgent = agent.RegisterMiddleware(mw);
         functionCallMessage = new Message(Role.User, content: null, from: "user", functionCall: functionCall);
         reply = await testAgent.SendAsync(functionCallMessage);
-        reply.Content!.Should().Be("Function echo is not available. Available functions are: echo2");
+        reply.GetContent()!.Should().Be("Function echo is not available. Available functions are: echo2");
     }
 }

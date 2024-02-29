@@ -23,7 +23,7 @@ public static class MiddlewareExtension
     /// <exception cref="Exception">throw when agent name is null.</exception>
     public static MiddlewareAgent<TAgent> RegisterReply<TAgent>(
         this TAgent agent,
-        Func<IEnumerable<Message>, CancellationToken, Task<Message?>> replyFunc)
+        Func<IEnumerable<IMessage>, CancellationToken, Task<IMessage?>> replyFunc)
         where TAgent : IAgent
     {
         return agent.RegisterMiddleware(async (messages, options, agent, ct) =>
@@ -61,7 +61,7 @@ public static class MiddlewareExtension
     /// <exception cref="Exception">throw when agent name is null.</exception>
     public static MiddlewareAgent<TAgent> RegisterPostProcess<TAgent>(
         this TAgent agent,
-        Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
+        Func<IEnumerable<IMessage>, IMessage, CancellationToken, Task<IMessage>> postprocessFunc)
         where TAgent : IAgent
     {
         return agent.RegisterMiddleware(async (messages, options, agent, ct) =>
@@ -78,7 +78,7 @@ public static class MiddlewareExtension
     /// <exception cref="Exception">throw when agent name is null.</exception>
     public static IAgent RegisterPreProcess(
         this IAgent agent,
-        Func<IEnumerable<Message>, CancellationToken, Task<IEnumerable<Message>>> preprocessFunc)
+        Func<IEnumerable<IMessage>, CancellationToken, Task<IEnumerable<IMessage>>> preprocessFunc)
     {
         return agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
@@ -93,7 +93,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this TAgent agent,
-        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
+        Func<IEnumerable<IMessage>, GenerateReplyOptions?, IAgent, CancellationToken, Task<IMessage>> func,
         string? middlewareName = null)
         where TAgent : IAgent
     {
@@ -133,7 +133,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
         this MiddlewareAgent<TAgent> agent,
-        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
+        Func<IEnumerable<IMessage>, GenerateReplyOptions?, IAgent, CancellationToken, Task<IMessage>> func,
         string? middlewareName = null)
         where TAgent : IAgent
     {
@@ -191,7 +191,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
         this TAgent agent,
-        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<Message>>> func,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {
@@ -206,7 +206,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
         this MiddlewareStreamingAgent<TAgent> agent,
-        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<Message>>> func,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {

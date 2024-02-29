@@ -14,7 +14,7 @@ public class TextMessage : IMessage
 
     public Role Role { get; set; }
 
-    public string Content { get; }
+    public string Content { get; set; }
 
     public string? From { get; set; }
 

@@ -85,9 +85,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
                 while (maxRetry-- > 0)
                 {
-                    if (reply.FunctionName == nameof(ReviewCodeBlock))
+                    if (reply is ToolCallResultMessage toolResultMessage && toolResultMessage.ToolCalls is { Count: 1 } && toolResultMessage.ToolCalls[0].FunctionName == nameof(ReviewCodeBlock))
                     {
-                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reply.Content!);
+                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(toolResultMessage.ToolCalls[0].Result);
                         var reviews = new List<string>();
                         if (reviewResultObj.HasMultipleCodeBlocks)
                         {
@@ -122,13 +122,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                                 sb.AppendLine($"- {review}");
                             }
 
-                            reply.Content = sb.ToString();
-
-                            return reply;
+                            return new TextMessage(Role.Assistant, sb.ToString(), from: "code_reviewer");
                         }
                         else
                         {
-                            var msg = new Message(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
+                            var msg = new TextMessage(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
                             {
                                 From = "code_reviewer",
                             };
@@ -138,7 +136,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                     }
                     else
                     {
-                        var originalContent = reply.Content;
+                        var originalContent = reply.GetContent();
                         var prompt = $@"Please convert the content to ReviewCodeBlock function arguments.
 
 ## Original Content
@@ -222,9 +220,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             })
             .RegisterPostProcess(async (_, reply, _) =>
             {
-                if (reply.Content?.Contains("TERMINATE") is true)
+                if (reply is TextMessage textMessage && textMessage.Content.Contains("TERMINATE") is true)
                 {
-                    reply.Content += $"\n\n {GroupChatExtension.TERMINATE}";
+                    var content = $"{textMessage.Content}\n\n {GroupChatExtension.TERMINATE}";
+
+                    return new TextMessage(Role.Assistant, content, from: reply.From);
                 }
 
                 return reply;
@@ -258,7 +258,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         var lastMessage = conversationHistory.Last();
         lastMessage.From.Should().Be("admin");
         lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
-        lastMessage.Content.Should().Contain(the39thFibonacciNumber.ToString());
+        lastMessage.Should().BeOfType<TextMessage>();
+        var textMessage = (TextMessage)lastMessage;
+        textMessage.Content.Should().Contain(the39thFibonacciNumber.ToString());
         #endregion start_group_chat
     }
 }

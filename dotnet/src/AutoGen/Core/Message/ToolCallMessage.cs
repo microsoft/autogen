@@ -2,6 +2,7 @@
 // ToolCallMessage.cs
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace AutoGen;
@@ -38,7 +39,7 @@ public class ToolCallMessage : IMessage
     public ToolCallMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
         this.From = from;
-        this.ToolCalls = toolCalls;
+        this.ToolCalls = toolCalls.ToList();
     }
 
     public ToolCallMessage(string functionName, string functionArgs, string? from = null)
@@ -47,7 +48,7 @@ public class ToolCallMessage : IMessage
         this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) };
     }
 
-    public IEnumerable<ToolCall> ToolCalls { get; set; }
+    public IList<ToolCall> ToolCalls { get; set; }
 
     public string? From { get; set; }
 

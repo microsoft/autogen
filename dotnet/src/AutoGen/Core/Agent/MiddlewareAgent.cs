@@ -50,8 +50,8 @@ public class MiddlewareAgent : IAgent
     /// </summary>
     public IEnumerable<IMiddleware> Middlewares => this.middlewares;
 
-    public Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
@@ -69,7 +69,7 @@ public class MiddlewareAgent : IAgent
     /// Call into the next function to continue the execution of the next middleware.
     /// Short cut middleware execution by not calling into the next function.
     /// </summary>
-    public void Use(Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func, string? middlewareName = null)
+    public void Use(Func<IEnumerable<IMessage>, GenerateReplyOptions?, IAgent, CancellationToken, Task<IMessage>> func, string? middlewareName = null)
     {
         this.middlewares.Add(new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
         {
@@ -77,7 +77,7 @@ public class MiddlewareAgent : IAgent
         }));
     }
 
-    public void Use(Func<MiddlewareContext, IAgent, CancellationToken, Task<Message>> func, string? middlewareName = null)
+    public void Use(Func<MiddlewareContext, IAgent, CancellationToken, Task<IMessage>> func, string? middlewareName = null)
     {
         this.middlewares.Add(new DelegateMiddleware(middlewareName, func));
     }
@@ -100,8 +100,8 @@ public class MiddlewareAgent : IAgent
 
         public string Name { get => this.innerAgent.Name; }
 
-        public Task<Message> GenerateReplyAsync(
-            IEnumerable<Message> messages,
+        public Task<IMessage> GenerateReplyAsync(
+            IEnumerable<IMessage> messages,
             GenerateReplyOptions? options = null,
             CancellationToken cancellationToken = default)
         {

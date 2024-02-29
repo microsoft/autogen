@@ -77,9 +77,10 @@ namespace AutoGen.Tests
             response.From.Should().Be(visionAgent.Name);
 
             var labelResponse = await gpt3Agent.SendAsync(response);
+            labelResponse.Should().BeOfType<ToolCallResultMessage>();
             labelResponse.From.Should().Be(gpt3Agent.Name);
-            labelResponse.Content.Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
-            labelResponse.FunctionName.Should().Be(nameof(GetHighestLabel));
+            labelResponse.GetContent().Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
+            labelResponse.GetToolCalls().First().FunctionName.Should().Be(nameof(GetHighestLabel));
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -129,8 +130,8 @@ namespace AutoGen.Tests
 
             var reply = await assistantAgent.SendAsync("hi");
 
-            reply.Content.Should().Be("hello world");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("hello world");
+            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(assistantAgent.Name);
         }
 
@@ -209,9 +210,9 @@ namespace AutoGen.Tests
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.FunctionName.Should().Be(nameof(EchoAsync));
+            reply.GetToolCalls().First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
@@ -221,10 +222,10 @@ namespace AutoGen.Tests
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
 
-            reply.Content.Should().Be("[ECHO] Hello world");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("[ECHO] Hello world");
+            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.FunctionName.Should().Be(nameof(EchoAsync));
+            reply.GetToolCalls().First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
@@ -263,8 +264,8 @@ namespace AutoGen.Tests
 
             var reply = await agent.SendAsync(chatHistory: new Message[] { message, uppCaseMessage });
 
-            reply.Content.Should().Be("ABCDEFG");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("ABCDEFG");
+            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
         }
 

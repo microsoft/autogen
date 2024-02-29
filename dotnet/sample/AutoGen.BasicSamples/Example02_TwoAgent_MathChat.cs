@@ -27,7 +27,7 @@ public static class Example02_TwoAgent_MathChat
             })
             .RegisterPostProcess(async (_, reply, _) =>
             {
-                if (reply.Content?.Contains("TERMINATE") is true)
+                if (reply.GetContent()?.Contains("TERMINATE") is true)
                 {
                     return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
                     {

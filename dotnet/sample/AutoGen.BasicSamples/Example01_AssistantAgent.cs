@@ -30,16 +30,20 @@ public static class Example01_AssistantAgent
 
         // talk to the assistant agent
         var reply = await assistantAgent.SendAsync("hello world");
-        reply.Content?.Should().Be("HELLO WORLD");
+        reply.Should().BeOfType<TextMessage>();
+        var textReply = (TextMessage)reply;
+        textReply.Content.Should().Be("HELLO WORLD");
 
         // to carry on the conversation, pass the previous conversation history to the next call
-        var conversationHistory = new List<Message>
+        var conversationHistory = new List<IMessage>
         {
-            new Message(Role.User, "hello world"), // first message
+            new TextMessage(Role.User, "hello world"), // first message
             reply, // reply from assistant agent
         };
 
         reply = await assistantAgent.SendAsync("hello world again", conversationHistory);
-        reply.Content?.Should().Be("HELLO WORLD AGAIN");
+        reply.Should().BeOfType<TextMessage>();
+        textReply = (TextMessage)reply;
+        textReply.Content?.Should().Be("HELLO WORLD AGAIN");
     }
 }

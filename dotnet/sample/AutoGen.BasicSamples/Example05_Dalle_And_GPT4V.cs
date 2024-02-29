@@ -2,7 +2,6 @@
 // Example05_Dalle_And_GPT4V.cs
 
 using AutoGen;
-using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;
@@ -21,7 +20,7 @@ public partial class Example05_Dalle_And_GPT4V
     /// </summary>
     /// <param name="prompt">prompt with feedback</param>
     /// <returns></returns>
-    [FunctionAttribute]
+    [Function]
     public async Task<string> GenerateImage(string prompt)
     {
         // TODO
@@ -85,10 +84,10 @@ The image is generated from prompt {prompt}
             .RegisterReply(async (msgs, ct) =>
             {
                 // if last message contains [TERMINATE], then find the last image url and terminate the conversation
-                if (msgs.Last().Content?.Contains("TERMINATE") is true)
+                if (msgs.Last().GetContent()?.Contains("TERMINATE") is true)
                 {
-                    var lastMessageWithImage = msgs.Last(msg => msg.Content?.Contains("IMAGE_GENERATION") is true);
-                    var lastImageUrl = lastMessageWithImage.Content!.Split("\n").Last();
+                    var lastMessageWithImage = msgs.Last(msg => msg is ImageMessage) as ImageMessage;
+                    var lastImageUrl = lastMessageWithImage.Url;
                     Console.WriteLine($"download image from {lastImageUrl} to {imagePath}");
                     var httpClient = new HttpClient();
                     var imageBytes = await httpClient.GetByteArrayAsync(lastImageUrl);
@@ -97,7 +96,7 @@ The image is generated from prompt {prompt}
                     var messageContent = $@"{GroupChatExtension.TERMINATE}
 
 {lastImageUrl}";
-                    return new Message(Role.Assistant, messageContent)
+                    return new TextMessage(Role.Assistant, messageContent)
                     {
                         From = "dalle",
                     };
@@ -125,7 +124,7 @@ The image should satisfy the following conditions:
             }).RegisterReply(async (msgs, ct) =>
             {
                 // if no image is generated, then ask DALL-E agent to generate image
-                if (msgs.Last().Content?.Contains("IMAGE_GENERATION") is false)
+                if (msgs.Last() is not ImageMessage)
                 {
                     return new Message(Role.Assistant, "Hey dalle, please generate image")
                     {
@@ -140,15 +139,12 @@ The image should satisfy the following conditions:
                 // add image url to message metadata so it can be recognized by GPT-4V
                 return msgs.Select(msg =>
                 {
-                    if (msg.Content?.Contains("IMAGE_GENERATION") is true)
+                    if (msg.GetContent() is string content && content.Contains("IMAGE_GENERATION"))
                     {
-                        var imageUrl = msg.Content.Split("\n").Last();
-                        var imageMessageItem = new ChatMessageImageContentItem(new Uri(imageUrl));
-                        var gpt4VMessage = new ChatRequestUserMessage(imageMessageItem);
-                        var message = gpt4VMessage.ToMessage();
-                        message.From = msg.From;
+                        var imageUrl = content.Split("\n").Last();
+                        var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: msg.From);
 
-                        return message;
+                        return imageMessage;
                     }
                     else
                     {

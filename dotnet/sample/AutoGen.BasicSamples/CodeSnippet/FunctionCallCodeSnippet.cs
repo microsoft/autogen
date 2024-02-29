@@ -37,8 +37,11 @@ public partial class FunctionCallCodeSnippet
             });
 
         var response = await assistantAgent.SendAsync("hello What's the weather in Seattle today? today is 2024-01-01");
-        response.FunctionName.Should().Be("WeatherReport");
-        response.FunctionArguments.Should().Be(@"{""location"":""Seattle"",""date"":""2024-01-01""}");
+        response.Should().BeOfType<ToolCallMessage>();
+        var toolCallMessage = (ToolCallMessage)response;
+        toolCallMessage.ToolCalls.Count().Should().Be(1);
+        toolCallMessage.ToolCalls[0].FunctionName.Should().Be("WeatherReport");
+        toolCallMessage.ToolCalls[0].FunctionArguments.Should().Be(@"{""location"":""Seattle"",""date"":""2024-01-01""}");
         #endregion code_snippet_4
     }
 
@@ -78,7 +81,9 @@ public partial class FunctionCallCodeSnippet
 
         #region code_snippet_6_1
         var response = await assistantAgent.SendAsync("What's the weather in Seattle today? today is 2024-01-01");
-        response.Content.Should().Be("Weather report for Seattle on 2024-01-01 is sunny");
+        response.Should().BeOfType<TextMessage>();
+        var textMessage = (TextMessage)response;
+        textMessage.Content.Should().Be("Weather report for Seattle on 2024-01-01 is sunny");
         #endregion code_snippet_6_1
     }
 

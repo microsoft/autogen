@@ -9,7 +9,7 @@ namespace AutoGen;
 
 public interface IGroupChat
 {
-    void AddInitializeMessage(Message message);
+    void AddInitializeMessage(IMessage message);
 
-    Task<IEnumerable<Message>> CallAsync(IEnumerable<Message>? conversation = null, int maxRound = 10, CancellationToken ct = default);
+    Task<IEnumerable<IMessage>> CallAsync(IEnumerable<IMessage>? conversation = null, int maxRound = 10, CancellationToken ct = default);
 }

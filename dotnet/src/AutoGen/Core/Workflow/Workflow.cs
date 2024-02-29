@@ -33,7 +33,7 @@ public class Workflow
     /// <param name="fromAgent">the from agent</param>
     /// <param name="messages">messages</param>
     /// <returns>A list of agents that the messages can be transit to</returns>
-    public async Task<IEnumerable<IAgent>> TransitToNextAvailableAgentsAsync(IAgent fromAgent, IEnumerable<Message> messages)
+    public async Task<IEnumerable<IAgent>> TransitToNextAvailableAgentsAsync(IAgent fromAgent, IEnumerable<IMessage> messages)
     {
         var nextAgents = new List<IAgent>();
         var availableTransitions = transitions.FindAll(t => t.From == fromAgent) ?? Enumerable.Empty<Transition>();
@@ -56,17 +56,17 @@ public class Transition
 {
     private readonly IAgent _from;
     private readonly IAgent _to;
-    private readonly Func<IAgent, IAgent, IEnumerable<Message>, Task<bool>>? _canTransition;
+    private readonly Func<IAgent, IAgent, IEnumerable<IMessage>, Task<bool>>? _canTransition;
 
     /// <summary>
     /// Create a new instance of <see cref="Transition"/>.
     /// This constructor is used for testing purpose only.
-    /// To create a new instance of <see cref="Transition"/>, use <see cref="Transition.Create{TFromAgent, TToAgent}(TFromAgent, TToAgent, Func{TFromAgent, TToAgent, IEnumerable{Message}, Task{bool}}?)"/>.
+    /// To create a new instance of <see cref="Transition"/>, use <see cref="Transition.Create{TFromAgent, TToAgent}(TFromAgent, TToAgent, Func{TFromAgent, TToAgent, IEnumerable{IMessage}, Task{bool}}?)"/>.
     /// </summary>
     /// <param name="from">from agent</param>
     /// <param name="to">to agent</param>
     /// <param name="canTransitionAsync">detect if the transition is allowed, default to be always true</param>
-    internal Transition(IAgent from, IAgent to, Func<IAgent, IAgent, IEnumerable<Message>, Task<bool>>? canTransitionAsync = null)
+    internal Transition(IAgent from, IAgent to, Func<IAgent, IAgent, IEnumerable<IMessage>, Task<bool>>? canTransitionAsync = null)
     {
         _from = from;
         _to = to;
@@ -77,7 +77,7 @@ public class Transition
     /// Create a new instance of <see cref="Transition"/>.
     /// </summary>
     /// <returns><see cref="Transition"/></returns>"
-    public static Transition Create<TFromAgent, TToAgent>(TFromAgent from, TToAgent to, Func<TFromAgent, TToAgent, IEnumerable<Message>, Task<bool>>? canTransitionAsync = null)
+    public static Transition Create<TFromAgent, TToAgent>(TFromAgent from, TToAgent to, Func<TFromAgent, TToAgent, IEnumerable<IMessage>, Task<bool>>? canTransitionAsync = null)
         where TFromAgent : IAgent
         where TToAgent : IAgent
     {
@@ -92,7 +92,7 @@ public class Transition
     /// Check if the transition is allowed.
     /// </summary>
     /// <param name="messages">messages</param>
-    public Task<bool> CanTransitionAsync(IEnumerable<Message> messages)
+    public Task<bool> CanTransitionAsync(IEnumerable<IMessage> messages)
     {
         if (_canTransition == null)
         {

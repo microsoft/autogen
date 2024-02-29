@@ -36,7 +36,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
     /// </summary>
     public IEnumerable<IStreamingMiddleware> Middlewares => _middlewares;
 
-    public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
     }
@@ -75,7 +75,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
             this.innerAgent = next;
         }
 
-        public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+        public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
         }

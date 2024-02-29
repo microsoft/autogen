@@ -13,14 +13,14 @@ internal class DelegateMiddleware : IMiddleware
     /// middleware delegate. Call into the next function to continue the execution of the next middleware. Otherwise, short cut the middleware execution.
     /// </summary>
     /// <param name="cancellationToken">cancellation token</param>
-    public delegate Task<Message> MiddlewareDelegate(
+    public delegate Task<IMessage> MiddlewareDelegate(
         MiddlewareContext context,
         IAgent agent,
         CancellationToken cancellationToken);
 
     private readonly MiddlewareDelegate middlewareDelegate;
 
-    public DelegateMiddleware(string? name, Func<MiddlewareContext, IAgent, CancellationToken, Task<Message>> middlewareDelegate)
+    public DelegateMiddleware(string? name, Func<MiddlewareContext, IAgent, CancellationToken, Task<IMessage>> middlewareDelegate)
     {
         this.Name = name;
         this.middlewareDelegate = async (context, agent, cancellationToken) =>
@@ -31,7 +31,7 @@ internal class DelegateMiddleware : IMiddleware
 
     public string? Name { get; }
 
-    public Task<Message> InvokeAsync(
+    public Task<IMessage> InvokeAsync(
         MiddlewareContext context,
         IAgent agent,
         CancellationToken cancellationToken = default)

@@ -74,8 +74,8 @@ public class GPTAgent : IStreamingAgent
 
     public string Name { get; }
 
-    public async Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public async Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {

@@ -8,7 +8,7 @@ namespace AutoGen.Core.Middleware;
 public class MiddlewareContext
 {
     public MiddlewareContext(
-        IEnumerable<Message> messages,
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options)
     {
         this.Messages = messages;
@@ -18,7 +18,7 @@ public class MiddlewareContext
     /// <summary>
     /// Messages to send to the agent
     /// </summary>
-    public IEnumerable<Message> Messages { get; }
+    public IEnumerable<IMessage> Messages { get; }
 
     /// <summary>
     /// Options to generate the reply

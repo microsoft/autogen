@@ -16,8 +16,8 @@ namespace AutoGen.Tests
         }
         public string Name { get; }
 
-        public Task<Message> GenerateReplyAsync(
-            IEnumerable<Message> conversation,
+        public Task<IMessage> GenerateReplyAsync(
+            IEnumerable<IMessage> conversation,
             GenerateReplyOptions? options = null,
             CancellationToken ct = default)
         {
@@ -25,7 +25,7 @@ namespace AutoGen.Tests
             var lastMessage = conversation.Last();
             lastMessage.From = this.Name;
 
-            return Task.FromResult<Message>(lastMessage);
+            return Task.FromResult(lastMessage);
         }
     }
 }

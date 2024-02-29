@@ -18,7 +18,7 @@ public class HumanInputMiddleware : IMiddleware
     private readonly HumanInputMode mode;
     private readonly string prompt;
     private readonly string exitKeyword;
-    private Func<IEnumerable<Message>, CancellationToken, Task<bool>> isTermination;
+    private Func<IEnumerable<IMessage>, CancellationToken, Task<bool>> isTermination;
     private Func<string> getInput = Console.ReadLine;
     private Action<string> writeLine = Console.WriteLine;
     public string? Name => nameof(HumanInputMiddleware);
@@ -27,7 +27,7 @@ public class HumanInputMiddleware : IMiddleware
         string prompt = "Please give feedback: Press enter or type 'exit' to stop the conversation.",
         string exitKeyword = "exit",
         HumanInputMode mode = HumanInputMode.AUTO,
-        Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+        Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? isTermination = null,
         Func<string>? getInput = null,
         Action<string>? writeLine = null)
     {
@@ -39,7 +39,7 @@ public class HumanInputMiddleware : IMiddleware
         this.writeLine = writeLine ?? WriteLine;
     }
 
-    public async Task<Message> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
         // if the mode is never, then just return the input message
         if (mode == HumanInputMode.NEVER)
@@ -81,7 +81,7 @@ public class HumanInputMiddleware : IMiddleware
         throw new InvalidOperationException("Invalid mode");
     }
 
-    private async Task<bool> DefaultIsTermination(IEnumerable<Message> messages, CancellationToken _)
+    private async Task<bool> DefaultIsTermination(IEnumerable<IMessage> messages, CancellationToken _)
     {
         return messages?.Last().IsGroupChatTerminateMessage() is true;
     }

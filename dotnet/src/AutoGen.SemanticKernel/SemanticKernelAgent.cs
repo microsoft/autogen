@@ -36,7 +36,7 @@ public class SemanticKernelAgent : IStreamingAgent
     public string Name { get; }
 
 
-    public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var chatMessageContents = ProcessMessage(messages);
         // if there's no system message in chatMessageContents, add one to the beginning

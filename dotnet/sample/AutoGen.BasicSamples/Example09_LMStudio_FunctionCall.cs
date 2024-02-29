@@ -90,7 +90,7 @@ You have access to the following functions. Use them if required:
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
 
                 // if reply is a function call, invoke function
-                var content = reply.Content;
+                var content = reply.GetContent();
                 try
                 {
                     if (JsonSerializer.Deserialize<LLaMAFunctionCall>(content) is { } functionCall)

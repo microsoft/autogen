@@ -12,27 +12,27 @@ namespace AutoGen;
 public class SequentialGroupChat : IGroupChat
 {
     private readonly List<IAgent> agents = new List<IAgent>();
-    private readonly List<Message> initializeMessages = new List<Message>();
+    private readonly List<IMessage> initializeMessages = new List<IMessage>();
 
     public SequentialGroupChat(
         IEnumerable<IAgent> agents,
-        List<Message>? initializeMessages = null)
+        List<IMessage>? initializeMessages = null)
     {
         this.agents.AddRange(agents);
-        this.initializeMessages = initializeMessages ?? new List<Message>();
+        this.initializeMessages = initializeMessages ?? new List<IMessage>();
     }
 
-    public void AddInitializeMessage(Message message)
+    public void AddInitializeMessage(IMessage message)
     {
         this.initializeMessages.Add(message);
     }
 
-    public async Task<IEnumerable<Message>> CallAsync(
-        IEnumerable<Message>? conversationWithName = null,
+    public async Task<IEnumerable<IMessage>> CallAsync(
+        IEnumerable<IMessage>? conversationWithName = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
-        var conversationHistory = new List<Message>();
+        var conversationHistory = new List<IMessage>();
         if (conversationWithName != null)
         {
             conversationHistory.AddRange(conversationWithName);

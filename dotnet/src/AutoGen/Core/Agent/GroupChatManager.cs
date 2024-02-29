@@ -17,12 +17,12 @@ public class GroupChatManager : IAgent
     }
     public string Name => throw new ArgumentException("GroupChatManager does not have a name");
 
-    public IEnumerable<Message>? Messages { get; private set; }
+    public IEnumerable<IMessage>? Messages { get; private set; }
 
     public IGroupChat GroupChat { get; }
 
-    public async Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public async Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options,
         CancellationToken cancellationToken = default)
     {

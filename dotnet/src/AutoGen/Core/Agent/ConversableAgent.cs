@@ -43,7 +43,7 @@ public class ConversableAgent : IAgent
         IAgent? innerAgent = null,
         string? defaultAutoReply = null,
         HumanInputMode humanInputMode = HumanInputMode.NEVER,
-        Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+        Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? isTermination = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
         this.Name = name;
@@ -59,7 +59,7 @@ public class ConversableAgent : IAgent
         string name,
         string systemMessage = "You are a helpful AI assistant",
         ConversableAgentConfig? llmConfig = null,
-        Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+        Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? isTermination = null,
         HumanInputMode humanInputMode = HumanInputMode.AUTO,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null,
         string? defaultReply = null)
@@ -98,17 +98,17 @@ public class ConversableAgent : IAgent
 
     public string Name { get; }
 
-    public Func<IEnumerable<Message>, CancellationToken, Task<bool>>? IsTermination { get; }
+    public Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? IsTermination { get; }
 
-    public async Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public async Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? overrideOptions = null,
         CancellationToken cancellationToken = default)
     {
         // if there's no system message, add system message to the first of chat history
-        if (!messages.Any(m => m.Role == Role.System))
+        if (!messages.Any(m => m.IsSystemMessage()))
         {
-            var systemMessage = new Message(Role.System, this.systemMessage, from: this.Name);
+            var systemMessage = new TextMessage(Role.System, this.systemMessage, from: this.Name);
             messages = new[] { systemMessage }.Concat(messages);
         }
 
@@ -125,9 +125,8 @@ public class ConversableAgent : IAgent
                 {
                     if (m.From == this.Name)
                     {
-                        var clone = new Message(m);
-                        clone.From = this.innerAgent.Name;
-                        return clone;
+                        m.From = this.innerAgent.Name;
+                        return m;
                     }
                     else
                     {

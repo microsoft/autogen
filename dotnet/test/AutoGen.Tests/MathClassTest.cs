@@ -92,7 +92,7 @@ teacher, please create the next math question";
 
                         var formattedMessage = reply.FormatMessage();
                         this._output.WriteLine(formattedMessage);
-                        if (reply.Content?.Contains("[UPDATE_PROGRESS]") is true)
+                        if (reply.GetContent()?.Contains("[UPDATE_PROGRESS]") is true)
                         {
                             return reply;
                         }
@@ -219,17 +219,17 @@ The conversation will end after 5 correct answers.
             }
 
             // check if there's five questions from teacher
-            chatHistory.Where(msg => msg.From == teacher.Name && msg.Content?.Contains("[MATH_QUESTION]") is true)
+            chatHistory.Where(msg => msg.From == teacher.Name && msg.GetContent()?.Contains("[MATH_QUESTION]") is true)
                     .Count()
                     .Should().BeGreaterThanOrEqualTo(5);
 
             // check if there's more than five answers from student (answer might be wrong)
-            chatHistory.Where(msg => msg.From == student.Name && msg.Content?.Contains("[MATH_ANSWER]") is true)
+            chatHistory.Where(msg => msg.From == student.Name && msg.GetContent()?.Contains("[MATH_ANSWER]") is true)
                     .Count()
                     .Should().BeGreaterThanOrEqualTo(5);
 
             // check if there's five answer_is_correct from teacher
-            chatHistory.Where(msg => msg.From == teacher.Name && msg.Content?.Contains("[ANSWER_IS_CORRECT]") is true)
+            chatHistory.Where(msg => msg.From == teacher.Name && msg.GetContent()?.Contains("[ANSWER_IS_CORRECT]") is true)
                     .Count()
                     .Should().BeGreaterThanOrEqualTo(5);
 

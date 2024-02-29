@@ -13,10 +13,10 @@ public class GroupChat : IGroupChat
 {
     private IAgent? admin;
     private List<IAgent> agents = new List<IAgent>();
-    private IEnumerable<Message> initializeMessages = new List<Message>();
+    private IEnumerable<IMessage> initializeMessages = new List<IMessage>();
     private Workflow? workflow = null;
 
-    public IEnumerable<Message>? Messages { get; private set; }
+    public IEnumerable<IMessage>? Messages { get; private set; }
 
     /// <summary>
     /// Create a group chat. The next speaker will be decided by a combination effort of the admin and the workflow.
@@ -28,12 +28,12 @@ public class GroupChat : IGroupChat
     public GroupChat(
         IEnumerable<IAgent> members,
         IAgent? admin,
-        IEnumerable<Message>? initializeMessages = null,
+        IEnumerable<IMessage>? initializeMessages = null,
         Workflow? workflow = null)
     {
         this.admin = admin;
         this.agents = members.ToList();
-        this.initializeMessages = initializeMessages ?? new List<Message>();
+        this.initializeMessages = initializeMessages ?? new List<IMessage>();
         this.workflow = workflow;
 
         this.Validation();
@@ -81,7 +81,7 @@ public class GroupChat : IGroupChat
     /// <param name="currentSpeaker">current speaker</param>
     /// <param name="conversationHistory">conversation history</param>
     /// <returns>next speaker.</returns>
-    public async Task<IAgent> SelectNextSpeakerAsync(IAgent currentSpeaker, IEnumerable<Message> conversationHistory)
+    public async Task<IAgent> SelectNextSpeakerAsync(IAgent currentSpeaker, IEnumerable<IMessage> conversationHistory)
     {
         var agentNames = this.agents.Select(x => x.Name).ToList();
         if (this.workflow != null)
@@ -104,7 +104,7 @@ public class GroupChat : IGroupChat
             throw new Exception("No admin is provided.");
         }
 
-        var systemMessage = new Message(Role.System,
+        var systemMessage = new TextMessage(Role.System,
             content: $@"You are in a role play game. Carefully read the conversation history and carry on the conversation.
 The available roles are:
 {string.Join(",", agentNames)}
@@ -115,7 +115,7 @@ From admin:
 
         var conv = this.ProcessConversationsForRolePlay(this.initializeMessages, conversationHistory);
 
-        var messages = new Message[] { systemMessage }.Concat(conv);
+        var messages = new IMessage[] { systemMessage }.Concat(conv);
         var response = await this.admin.GenerateReplyAsync(
             messages: messages,
             options: new GenerateReplyOptions
@@ -126,24 +126,24 @@ From admin:
                 Functions = [],
             });
 
-        var name = response?.Content ?? throw new Exception("No name is returned.");
+        var name = response?.GetContent() ?? throw new Exception("No name is returned.");
 
         // remove From
         name = name!.Substring(5);
         return this.agents.First(x => x.Name!.ToLower() == name.ToLower());
     }
 
-    public void AddInitializeMessage(Message message)
+    public void AddInitializeMessage(IMessage message)
     {
         this.initializeMessages = this.initializeMessages.Append(message);
     }
 
-    public async Task<IEnumerable<Message>> CallAsync(
-        IEnumerable<Message>? conversationWithName = null,
+    public async Task<IEnumerable<IMessage>> CallAsync(
+        IEnumerable<IMessage>? conversationWithName = null,
         int maxRound = 10,
         CancellationToken ct = default)
     {
-        var conversationHistory = new List<Message>();
+        var conversationHistory = new List<IMessage>();
         if (conversationWithName != null)
         {
             conversationHistory.AddRange(conversationWithName);

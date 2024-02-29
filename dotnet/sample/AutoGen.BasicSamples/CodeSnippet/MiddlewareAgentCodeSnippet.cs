@@ -20,54 +20,56 @@ public class MiddlewareAgentCodeSnippet
         // Since no middleware is added, middlewareAgent will simply proxy into the inner agent to generate reply.
         var reply = await middlewareAgent.SendAsync("Hello World");
         reply.From.Should().Be("assistant");
-        reply.Content.Should().Be("Hello World");
+        reply.GetContent().Should().Be("Hello World");
         #endregion code_snippet_1
 
         #region code_snippet_2
         middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
-            var lastMessage = messages.Last();
+            var lastMessage = messages.Last() as TextMessage;
             lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
-        reply.Content.Should().Be("[middleware 0] Hello World");
+        reply.Should().BeOfType<TextMessage>();
+        var textReply = (TextMessage)reply;
+        textReply.Content.Should().Be("[middleware 0] Hello World");
         #endregion code_snippet_2
         #region code_snippet_2_1
         middlewareAgent = agent.RegisterMiddleware(async (messages, options, agnet, ct) =>
         {
-            var lastMessage = messages.Last();
+            var lastMessage = messages.Last() as TextMessage;
             lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
-        reply.Content.Should().Be("[middleware 0] Hello World");
+        reply.GetContent().Should().Be("[middleware 0] Hello World");
         #endregion code_snippet_2_1
         #region code_snippet_3
         middlewareAgent.Use(async (messages, options, agent, ct) =>
         {
-            var lastMessage = messages.Last();
+            var lastMessage = messages.Last() as TextMessage;
             lastMessage.Content = $"[middleware 1] {lastMessage.Content}";
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
-        reply.Content.Should().Be("[middleware 0] [middleware 1] Hello World");
+        reply.GetContent().Should().Be("[middleware 0] [middleware 1] Hello World");
         #endregion code_snippet_3
 
         #region code_snippet_4
         middlewareAgent.Use(async (messages, options, next, ct) =>
         {
-            var lastMessage = messages.Last();
+            var lastMessage = messages.Last() as TextMessage;
             lastMessage.Content = $"[middleware shortcut]";
 
             return lastMessage;
         });
 
         reply = await middlewareAgent.SendAsync("Hello World");
-        reply.Content.Should().Be("[middleware shortcut]");
+        reply.GetContent().Should().Be("[middleware shortcut]");
         #endregion code_snippet_4
 
         #region retrieve_inner_agent
@@ -92,7 +94,7 @@ public class MiddlewareAgentCodeSnippet
             var reply = await agent.GenerateReplyAsync(messages, options, ct);
             while (maxAttempt-- > 0)
             {
-                if (JsonSerializer.Deserialize<Dictionary<string, object>>(reply.Content) is { } dict)
+                if (JsonSerializer.Deserialize<Dictionary<string, object>>(reply.GetContent()) is { } dict)
                 {
                     return reply;
                 }

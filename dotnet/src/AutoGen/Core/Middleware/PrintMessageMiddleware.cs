@@ -14,7 +14,7 @@ public class PrintMessageMiddleware : IMiddleware
 {
     public string? Name => nameof(PrintMessageMiddleware);
 
-    public async Task<Message> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
         var reply = await agent.GenerateReplyAsync(context.Messages, context.Options, cancellationToken);
 

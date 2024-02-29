@@ -21,11 +21,11 @@ public class DefaultReplyAgent : IAgent
 
     public string DefaultReply { get; } = string.Empty;
 
-    public async Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> _,
+    public async Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> _,
         GenerateReplyOptions? __ = null,
         CancellationToken ___ = default)
     {
-        return new Message(Role.Assistant, DefaultReply, from: this.Name);
+        return new TextMessage(Role.Assistant, DefaultReply, from: this.Name);
     }
 }

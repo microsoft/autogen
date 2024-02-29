@@ -18,8 +18,8 @@ public interface IAgent
     /// </summary>
     /// <param name="messages">conversation history</param>
     /// <param name="options">completion option. If provided, it should override existing option if there's any</param>
-    public Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default);
 }

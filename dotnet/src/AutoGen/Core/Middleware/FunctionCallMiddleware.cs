@@ -29,11 +29,11 @@ public class FunctionCallMiddleware : IMiddleware
 
     public string? Name { get; }
 
-    public async Task<Message> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
         // if the last message is a function call message, invoke the function and return the result instead of sending to the agent.
         var lastMessage = context.Messages.Last();
-        if (lastMessage is not null && lastMessage is { Content: null, FunctionName: string functionName, FunctionArguments: string functionArguments })
+        if (lastMessage is Message msg && msg is { Content: null, FunctionName: string functionName, FunctionArguments: string functionArguments })
         {
             if (this.functionMap?.TryGetValue(functionName, out var func) is true)
             {
@@ -68,7 +68,7 @@ public class FunctionCallMiddleware : IMiddleware
         var reply = await agent.GenerateReplyAsync(context.Messages, options, cancellationToken);
 
         // if the reply is a function call message plus the function's name is available in function map, invoke the function and return the result instead of sending to the agent.
-        if (reply is { FunctionName: string fName, FunctionArguments: string fArgs })
+        if (reply is Message message && message is { FunctionName: string fName, FunctionArguments: string fArgs })
         {
             if (this.functionMap?.TryGetValue(fName, out var func) is true)
             {

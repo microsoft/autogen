@@ -14,7 +14,7 @@ public class AssistantAgent : ConversableAgent
             string name,
             string systemMessage = "You are a helpful AI assistant",
             ConversableAgentConfig? llmConfig = null,
-            Func<IEnumerable<Message>, CancellationToken, Task<bool>>? isTermination = null,
+            Func<IEnumerable<IMessage>, CancellationToken, Task<bool>>? isTermination = null,
             HumanInputMode humanInputMode = HumanInputMode.NEVER,
             IDictionary<string, Func<string, Task<string>>>? functionMap = null,
             string? defaultReply = null)
