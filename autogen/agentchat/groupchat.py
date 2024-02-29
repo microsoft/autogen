@@ -36,8 +36,8 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
-    - customized_speaker_selection_func: pass a function to customize the speaker selection. Default is False.
-        customized_speaker_selection_func:
+    - custom_speaker_selection_func: pass a function to customize the speaker selection. Default is None.
+        custom_speaker_selection_func:
             Parameters:
                 - last_speaker: Agent
                     The last speaker in the group chat.
@@ -81,7 +81,7 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
-    customized_speaker_selection_func: Optional[Union[bool, Callable]] = False
+    custom_speaker_selection_func: Optional[Callable] = None
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
@@ -403,8 +403,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        if self.customized_speaker_selection_func:
-            selected_agent = self.customized_speaker_selection_func(last_speaker, self.messages)
+        if self.custom_speaker_selection_func:
+            selected_agent = self.custom_speaker_selection_func(last_speaker, self.messages)
             if selected_agent and selected_agent in self.agents:
                 return selected_agent
             logger.warning(
@@ -421,8 +421,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        if self.customized_speaker_selection_func:
-            selected_agent = self.customized_speaker_selection_func(last_speaker, self.messages)
+        if self.custom_speaker_selection_func is not None:
+            selected_agent = self.custom_speaker_selection_func(last_speaker, self.messages)
             if selected_agent and selected_agent in self.agents:
                 return selected_agent
             logger.warning(
