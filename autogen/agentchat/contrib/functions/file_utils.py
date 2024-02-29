@@ -167,7 +167,7 @@ def read_text_from_audio(file_path: str) -> str:
     return text
 
 
-@FunctionWithRequirements(python_packages=["openai"], secrets=["OPENAI_API_KEY"])
+@FunctionWithRequirements(python_packages=["openai"], env_vars=["OPENAI_API_KEY"])
 def caption_image_using_gpt4v(file_path_or_url: str, prompt: Optional[str] = None) -> str:
     """
     Generates a caption for an image using the GPT-4 Vision model from OpenAI.

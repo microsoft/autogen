@@ -1,71 +1,81 @@
-import os
-import subprocess
-import sys
+import inspect
 import functools
-import pkg_resources
-from typing import List, Optional, Tuple
+from typing import List, Optional
+from typing_extensions import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class UserDefinedFunction(Protocol):
+    """
+    Represents a user-defined function.
+
+    Attributes:
+        name (str): The name of the function.
+        docstring (str): The documentation string of the function.
+        code (str): The code of the function.
+        python_packages (List[str]): The Python packages required by the function.
+        secrets (List[str]): The secrets required by the function.
+    """
+
+    name: str
+    docstring: str
+    code: str
+    python_packages: List[str]
+    env_vars: List[str]
+
+    def name(self) -> str:
+        """Returns the name of the function."""
+        return self.name
+
+    def docstring(self) -> str:
+        """Returns the documentation string of the function."""
+        return self.docstring
+
+    def code(self) -> str:
+        """Returns the code of the function."""
+        return self.code
+
+    def python_packages(self) -> List[str]:
+        """Returns the Python packages required by the function."""
+        return self.python_packages
+
+    def env_vars(self) -> List[str]:
+        """Returns the environment variables required by the function."""
+        return self.env_vars
 
 
 class FunctionWithRequirements:
     """Decorator class that adds requirements and setup functionality to a function."""
 
-    def __init__(self, python_packages: Optional[List[str]] = None, secrets: Optional[List[str]] = None):
+    def __init__(self, python_packages: Optional[List[str]] = None, env_vars: Optional[List[str]] = None):
         self.python_packages = python_packages or []
-        self.secrets = secrets or []
+        self.env_vars = env_vars or []
 
-    def __call__(self, func: callable) -> callable:
+    def __call__(self, func: callable) -> UserDefinedFunction:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            self.setup()
             return func(*args, **kwargs)
 
-        wrapper.setup = self.setup
-        wrapper.get_requirements = self.get_requirements
+        wrapper.name = func.__name__  # The name of the function
+        wrapper.docstring = func.__doc__
+        wrapper.code = inspect.getsource(func)
+        wrapper.python_packages = self.python_packages
+        wrapper.env_vars = self.env_vars
         return wrapper
 
-    def get_requirements(self) -> Tuple[List[str], List[str]]:
-        """Returns the Python packages and secrets required by the function."""
-        return self.python_packages, self.secrets
 
-    def setup(self) -> None:
-        """Installs the required Python packages and checks the required secrets."""
-        # Install Python packages
-        all_packages = {pkg: None if "==" not in pkg else pkg.split("==")[1] for pkg in self.python_packages}
-        for name, version in all_packages.items():
-            if "==" in name:
-                name, version = name.split("==")
-            print("requested package:", name, version)
-            try:
-                try:
-                    installed_package = pkg_resources.get_distribution(name)
-                except pkg_resources.DistributionNotFound:
-                    print(f"Package {name} not found")
-                    installed_package = None
-                    raise ImportError
+if __name__ == "__main__":
 
-                print("found package", installed_package)
-                if version is not None and installed_package.parsed_version != pkg_resources.parse_version(version):
-                    print("Package mismatch detected")
-                    raise ImportError
-            except ImportError or pkg_resources.DistributionNotFound:
-                print(f"Installing {name}{'==' + version if version else ''}...")
-                subprocess.check_call(
-                    [
-                        sys.executable,
-                        "-m",
-                        "pip",
-                        "install",
-                        name + "==" + version if version else name,
-                        "--upgrade",
-                        "--quiet",
-                    ]
-                )
-            except Exception as e:
-                print(f"Error: {e}")
+    @FunctionWithRequirements(python_packages=["youtube_transcript_api==0.6.0"])
+    def my_function():
+        """This is a sample function"""
+        print("Hello world")
 
-        # Check secrets
-        for name in self.secrets:
-            if name not in os.environ:
-                raise EnvironmentError(f"Environment variable {name} is not set")
-            else:
-                print(f"Environment variable {name} is set")
+    print(my_function)
+    print(my_function.name)
+    print(my_function.docstring)
+    print(my_function.code)
+    print(my_function.python_packages)
+    print(my_function.env_vars)
+
+    print(isinstance(my_function, UserDefinedFunction))
