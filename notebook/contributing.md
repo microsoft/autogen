@@ -94,3 +94,15 @@ python website/process_notebooks.py test notebook/agentchat_logging.ipynb
 Options:
 - `--timeout` - timeout for a single notebook
 - `--exit-on-first-fail` - stop executing further notebooks after the first one fails
+
+### Skip tests
+
+If a notebook needs to be skipped then add to the notebook metadata:
+```json
+{
+    "...": "...",
+    "metadata": {
+        "test_skip": "REASON"
+    }
+}
+```
