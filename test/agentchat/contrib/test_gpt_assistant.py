@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from unittest.mock import MagicMock
 import uuid
 import pytest

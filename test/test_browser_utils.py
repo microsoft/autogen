@@ -1,8 +1,9 @@
-import tempfile
+#!/usr/bin/env python3 -m pytest
 
 import pytest
 import os
 import sys
+import tempfile
 import requests
 import hashlib
 import re
