@@ -1,0 +1,71 @@
+@startuml
+skinparam Handwritten true
+skinparam BackgroundColor #EEEBDC
+
+skinparam sequence {
+    ArrowColor DeepSkyBlue
+    ActorBorderColor DeepSkyBlue
+    LifeLineBorderColor blue
+    LifeLineBackgroundColor #A9DCDF
+
+    ParticipantBorderColor DeepSkyBlue
+    ParticipantBackgroundColor DodgerBlue
+    ParticipantFontName Impact
+    ParticipantFontSize 17
+    ParticipantFontColor #A9DCDF
+
+    ActorBackgroundColor aqua
+    ActorFontColor DeepSkyBlue
+    ActorFontSize 17
+    ActorFontName Aapex
+}
+
+title RagAgent Sequence Diagram
+
+autonumber
+
+actor UserProxyAgent
+actor RagAgent
+actor RagAgent_UserProxy
+actor RagAgent_Assistant
+participant PromptGenerator
+participant Retriever
+participant Reranker
+participant PostProcessor
+
+UserProxyAgent -> RagAgent: message
+note left: What is AutoGen?
+RagAgent -> RagAgent_Assistant: messages
+RagAgent -> RagAgent: set raw_message
+note left: What is AutoGen?
+RagAgent -> RagAgent: check_update_context
+RagAgent -> RagAgent: check_code_execution_result
+alt is_code_execution_result or is_update_context
+    RagAgent -> RagAgent: keep received_raw_message
+else
+    RagAgent -> RagAgent: update received_raw_message with raw_message
+end
+note left: What is AutoGen?
+loop _inner_loop_consecutive_reply_counter
+    group process_message
+        alt is_initial_message
+            RagAgent -> PromptGenerator: llm_reply or raw_message
+        else
+            RagAgent -> RagAgent: check_update_context
+            RagAgent -> PromptGenerator: new message
+        end
+        PromptGenerator -> Retriever: refined message
+        PromptGenerator -> RagAgent_Assistant: selected prompt
+        Retriever -> Reranker: retrieved chunks
+        Reranker -> RagAgent: reranked chunks
+        RagAgent -> RagAgent: chunks to message
+    end
+    RagAgent -> RagAgent_Assistant: message to LLM
+    RagAgent_Assistant -> RagAgent_UserProxy: LLM reply
+    RagAgent_UserProxy -> RagAgent: LLM reply
+end
+RagAgent -> PostProcessor: LLM reply
+PostProcessor -> RagAgent: Final reply
+RagAgent -> UserProxyAgent: Final reply
+
+@enduml
