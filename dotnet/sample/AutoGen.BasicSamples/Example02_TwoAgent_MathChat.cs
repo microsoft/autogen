@@ -3,7 +3,7 @@
 
 using AutoGen;
 using FluentAssertions;
-using autogen = AutoGen.Core.API.LLMConfigAPI;
+using autogen = AutoGen.LLMConfigAPI;
 public static class Example02_TwoAgent_MathChat
 {
     public static async Task RunAsync()
