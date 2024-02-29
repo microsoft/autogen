@@ -1,4 +1,5 @@
 import time
+import _paths
 from autogen import AssistantAgent, config_list_from_json
 from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
