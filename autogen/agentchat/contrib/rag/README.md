@@ -7,7 +7,7 @@ Upon receipt of a message, the agent employs RAG to generate a reply. It retriev
 We also support enabling the RAG capability for any conversable agent with `Ragability`.
 
 ## Overall Design
-The overall architecture of the agent is outlined below:
+The overall architecture of the RagAgent is outlined below:
 
 ![architecture](images/autogen-rag-overall.png)
 
@@ -15,7 +15,10 @@ It consists of two main workflows: raw document processing and user input respon
 
 Given raw documents encompassing text, code, metadata (such as tables or databases), and even images, we utilize a `Splitter` to segment the documents into `Chunks`. These Chunks are then encoded using an `Encoder` to compute embeddings, which are stored as `Documents` within a vector database. This process enables the creation of a comprehensive knowledge base for subsequent retrieval operations.
 
-Once the knowledge base is established, we can enhance our responses to user input. Upon receiving a message, the `Prompt Generator` categorizes it into different types, such as `qa`, `code`, or `unknown`, and selects an appropriate prompt. The message is also refined into multiple query strings for later retrieval. The `Retriever` searches the vector database for relevant documents based on these refined queries, yielding `Retrieved Chunks`. These Chunks are then passed to the `Reranker`, where relevant documents are reordered into `Reranked Chunks` based on relevance. A final prompt is generated using the `Selected Prompt` and `Reranked Chunks`, which is then sent to the backend Language Model via the `LLM Caller`. Post-processing, handled by the `Post Processor`, results in the generation of the `Final Response`.
+Once the knowledge base is established, we can enhance our responses to user input. Upon receiving a message, the `Prompt Generator` categorizes it into different types, such as `qa`, `code`, or `unknown`, and selects an appropriate prompt. The message is also refined into multiple query strings for later retrieval. The `Retriever` searches the vector database for relevant documents based on these refined queries, yielding `Retrieved Chunks`. These Chunks are then passed to the `Reranker`, where relevant documents are reordered into `Reranked Chunks` based on relevance. A final prompt is generated using the `Selected Prompt` and `Reranked Chunks`, which is then sent to the backend Language Model via the `Innerloop Agents`. Post-processing, handled by the `Post Processor`, results in the generation of the `Final Response`.
+
+## Sequence Diagram
+<div align="center"><img src=https://raw.githubusercontent.com/thinkall/imgbed/master/img/autogen-rag-sequence-uml.png></img></div>
 
 ## RoadMap
 [Roadmap for RAG #1657](https://github.com/microsoft/autogen/issues/1657)
@@ -30,9 +33,6 @@ Once the knowledge base is established, we can enhance our responses to user inp
 - [ ] lancedb as vectordb
 - [ ] benchmark
 - [ ] async
-
-## Class Diagram
-<div align="center"><img src=https://raw.githubusercontent.com/thinkall/imgbed/master/img/autogen-class-uml.png></img></div>
 
 ## Demo Code
 
