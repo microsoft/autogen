@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AutoGen.GenericAPI</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.GenericAPI</Title>
+    <Description>
+      Provide support for consuming openai-like API service from various providers like Mistral, Groq OpenRouter, etc
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="D:\Development\microsoft\autogen\dotnet\..//dotnet/nuget/NUGET.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
+  </ItemGroup>
+
+</Project>
