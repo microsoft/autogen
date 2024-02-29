@@ -1,0 +1,98 @@
+---
+title: StateFlow - Build LLM Workflows with Customized State-Oriented Transtion Function in GroupChat
+authors: yiranwu
+tags: [LLM, research]
+---
+
+**TL;DR:**: Introduce Stateflow, a task-solving paradigm that conceptualizes complex task-solving processes backed by LLMs as state machines.
+Introduce how to use GroupChat to implement a similar idea with a customized speaker selection function.
+
+
+LLMs have increasingly been employed to solve complex, multi-step tasks, e.g., tasks that require a sequence of complex reasoning 
+and interacting with external environments and tools. To facilitate the development of such applications, we introduce **StateFlow**, a new paradigm
+that conceptualizes complex task-solving processes backed by LLMs as state machines. With proper construction of states and definition of 
+state transitions, we can ground the progress of task-solving, ensuring clear tracking and management of LLMs' responses throughout the task-solving process.
+
+AutoGen GroupChat can be used to implement a similar idea with each agent representing a state. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
+introduces a way on how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
+We also allow passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for next speaker.
+These transitions can based on current speaker and static checking of the context history (for example, checking if 'Error' is in last message).
+
+
+## Example of a custom_speaker_selection_func
+We present an quick example of how to define a custom speaker selection function for a desired workflow.
+Assume we have a task to retrieve papers related to a topic and create a markdown table for summary. 
+
+The workflow is:
+1. Write Python Code to retrieve papers from arxiv.
+2. Execute the code.
+3. Create the markdown table and terminate the conversation.
+
+To implement this workflow, we create 3 agents: `engineer`, `executor`, and `scientist` for each step.
+```python
+# Define the agents, the code is for illustration purposes and is not executable.
+coder = autogen.AssistantAgent(
+    name="Coder",
+    system_message="""You are the Coder. Write Python Code to retrieve papers from arxiv.."""
+)
+executor = autogen.UserProxyAgent(
+    name="Executor",
+    system_message="Executor. Execute the code written by the Coder and report the result.",
+)
+scientist = autogen.AssistantAgent(
+    name="Scientist",
+    system_message="""You are the Scientist. Please categorize papers after seeing their abstracts printed and create a markdown table with Domain, Title, Authors, Summary and Link. Return 'TERMINATE' in the end.""",
+)
+```
+
+Then we define a custom speaker selection function to control the transition between these agents:
+```python
+def custom_speaker_selection_func(last_speaker: Agent, messages: List[Dict]):
+    """Define a customized speaker selection function.
+    A recommended way is to define a transition for each speaker in the groupchat.
+
+    Returns:
+        Return an `Agent` class or a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
+    """
+    if len(messages) <= 1:
+        # start with the engineer
+        return engineer
+
+    if last_speaker is engineer:
+        if "```python" in messages[-1]["content"]:
+            # If the last message is a python code block, let the executor to speak
+            return executor
+        else:
+            # Otherwise, let the engineer to continue
+            return engineer
+
+    elif last_speaker is executor:
+        if "exitcode: 1" in messages[-1]["content"]:
+            # If the last message indicates an error, let the engineer to improve the code
+            return engineer
+        else:
+            # Otherwise, let the scientist to speak
+            return scientist
+
+    elif last_speaker is scientist:
+        # if the scientist speaks but doesn't terminate the task, we return to a build-in 'auto' selection method that
+        # asks the groupchat manager to select the next speaker.
+        return "auto"
+
+groupchat = autogen.GroupChat(
+    agents=[engineer, executor, scientist],
+    messages=[],
+    max_round=20,
+    speaker_selection_method=custom_speaker_selection_func,
+)
+```
+
+Through the `custom_speaker_selection_func`, we can control the transition between these agents with deterministic rules.
+We recommend implement the transition logic for each speaker in the customized function. In analogy to state machine, a state transition function determines the next state based on current state and input.
+Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
+We can always default to the build-in `auto` method to employ a LLM-based groupchat manager to select the next speaker.
+
+
+## For Further Reading
+* [GroupChat with Customized Speaker Selection notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_customized/)
+* [Documentation about `autogen`](/docs/Getting-Started)
