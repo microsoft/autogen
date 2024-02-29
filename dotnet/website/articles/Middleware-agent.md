@@ -35,6 +35,11 @@ To short-cut the next middleware, simply don't call the `next` parameter.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=code_snippet_4)]
 
+### Retrieve the inner agent
+You can retrieve the inner agent from @AutoGen.MiddlewareAgent from @AutoGen.MiddlewareAgent.Agent property.
+
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=retrieve_inner_agent)]
+
 ## Examples
 Here're a few examples of where you might want to use middleware agent.
 ### Example 1: Logging to console
