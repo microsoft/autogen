@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
 import copy
 import sys
@@ -559,6 +561,16 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["python"] == exec_python
         assert agent.function_map["sh"] == exec_sh
 
+        # remove the functions
+        agent.register_function(
+            function_map={
+                "python": None,
+            }
+        )
+
+        assert set(agent.function_map.keys()) == {"sh"}
+        assert agent.function_map["sh"] == exec_sh
+
 
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
@@ -1077,9 +1089,11 @@ def test_max_turn():
 def test_process_before_send():
     print_mock = unittest.mock.MagicMock()
 
-    def send_to_frontend(message, recipient, silent):
+    # Updated to include sender parameter
+    def send_to_frontend(sender, message, recipient, silent):
+        assert sender.name == "dummy_agent_1", "Sender is not the expected agent"
         if not silent:
-            print(f"Message sent to {recipient.name}: {message}")
+            print(f"Message sent from {sender.name} to {recipient.name}: {message}")
             print_mock(message=message)
         return message
 

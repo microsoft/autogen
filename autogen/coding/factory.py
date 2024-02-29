@@ -30,16 +30,12 @@ class CodeExecutorFactory:
             # If the executor is already an instance of CodeExecutor, return it.
             return executor
         if executor == "ipython-embedded":
-            from .embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
+            from .jupyter.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
 
             return EmbeddedIPythonCodeExecutor(**code_execution_config.get("ipython-embedded", {}))
         elif executor == "commandline-local":
             from .local_commandline_code_executor import LocalCommandlineCodeExecutor
 
             return LocalCommandlineCodeExecutor(**code_execution_config.get("commandline-local", {}))
-        elif executor == "jupyter-local":
-            from .jupyter_code_executor import LocalJupyterCodeExecutor
-
-            return LocalJupyterCodeExecutor(**code_execution_config.get("jupyter-local", {}))
         else:
             raise ValueError(f"Unknown code executor {executor}")
