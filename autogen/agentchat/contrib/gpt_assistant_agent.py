@@ -21,6 +21,8 @@ class GPTAssistantAgent(ConversableAgent):
     This agent is unique in its reliance on the OpenAI Assistant for state management, differing from other agents like ConversableAgent.
     """
 
+    DEFAULT_MODEL_NAME = "gpt-4-0125-preview"
+
     def __init__(
         self,
         name="GPT Assistant",
@@ -61,16 +63,17 @@ class GPTAssistantAgent(ConversableAgent):
 
         if llm_config is False:
             raise ValueError("llm_config=False is not supported for GPTAssistantAgent.")
-
-        # Use AutoGen OpenAIWrapper to create a client
-        model_name = "gpt-4-0125-preview"
+        # Use AutooGen OpenAIWrapper to create a client
         openai_client_cfg = copy.deepcopy(llm_config)
+        # Use the class variable
+        model_name = GPTAssistantAgent.DEFAULT_MODEL_NAME
+
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
         if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
-            model_name = openai_client_cfg["config_list"][0].pop("model", "gpt-4-0125-preview")
+            model_name = openai_client_cfg["config_list"][0].pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
         else:
-            model_name = openai_client_cfg.pop("model", "gpt-4-0125-preview")
+            model_name = openai_client_cfg.pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
 
         logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
