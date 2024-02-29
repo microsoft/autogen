@@ -1,10 +1,11 @@
 # ruff: noqa: E722
-import json
 import os
-import requests
 import re
-import markdownify
 import io
+import sys
+import requests
+import json
+import markdownify
 import uuid
 import mimetypes
 import html
@@ -14,32 +15,37 @@ import tempfile
 import copy
 import mammoth
 import pptx
-import pydub
-import pandas as pd
-import speech_recognition as sr
-import sys
 import traceback
-
-import PIL
 import shutil
 import subprocess
-import easyocr
-import numpy as np
-
 import base64
+import pandas as pd
+import pdfminer
+import pdfminer.high_level
 
 from urllib.parse import urljoin, urlparse, parse_qs
 from urllib.request import url2pathname
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
 
-# Optional PDF support
-IS_PDF_CAPABLE = False
+# Optional OCR support
+IS_OCR_CAPABLE = False
 try:
-    import pdfminer
-    import pdfminer.high_level
+    import easyocr
+    import PIL
+    import numpy as np
 
-    IS_PDF_CAPABLE = True
+    IS_OCR_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
+# Optional Transcription support
+IS_AUDIO_TRANSCRIPTION_CAPABLE = False
+try:
+    import pydub
+    import speech_recognition as sr
+
+    IS_AUDIO_TRANSCRIPTION_CAPABLE = True
 except ModuleNotFoundError:
     pass
 
@@ -464,11 +470,14 @@ class WavConverter(MediaConverter):
                     md_content += f"{f}: {metadata[f]}\n"
 
         # Transcribe
-        try:
-            transcript = self._transcribe_audio(local_path)
-            md_content += "\n\n### Audio Transcript:\n" + ("[No speech detected]" if transcript == "" else transcript)
-        except:
-            md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
+        if IS_AUDIO_TRANSCRIPTION_CAPABLE:
+            try:
+                transcript = self._transcribe_audio(local_path)
+                md_content += "\n\n### Audio Transcript:\n" + (
+                    "[No speech detected]" if transcript == "" else transcript
+                )
+            except:
+                md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
 
         return DocumentConverterResult(
             title=None,
@@ -509,24 +518,29 @@ class Mp3Converter(WavConverter):
                     md_content += f"{f}: {metadata[f]}\n"
 
         # Transcribe
-        handle, temp_path = tempfile.mkstemp(suffix=".wav")
-        os.close(handle)
-        try:
-            sound = pydub.AudioSegment.from_mp3(local_path)
-            sound.export(temp_path, format="wav")
-
-            _args = dict()
-            _args.update(kwargs)
-            _args["file_extension"] = ".wav"
-
+        if IS_AUDIO_TRANSCRIPTION_CAPABLE:
+            handle, temp_path = tempfile.mkstemp(suffix=".wav")
+            os.close(handle)
             try:
-                md_content += "\n\n" + super()._transcribe_audio(temp_path)
-            except:
-                md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
+                sound = pydub.AudioSegment.from_mp3(local_path)
+                sound.export(temp_path, format="wav")
 
-        finally:
-            os.unlink(temp_path)
+                _args = dict()
+                _args.update(kwargs)
+                _args["file_extension"] = ".wav"
 
+                try:
+                    transcript = super()._transcribe_audio(temp_path).strip()
+                    md_content += "\n\n### Audio Transcript:\n" + (
+                        "[No speech detected]" if transcript == "" else transcript
+                    )
+                except:
+                    md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
+
+            finally:
+                os.unlink(temp_path)
+
+        # Return the result
         return DocumentConverterResult(
             title=None,
             text_content=md_content.strip(),
@@ -570,23 +584,24 @@ class ImageConverter(MediaConverter):
                 + "\n"
             )
 
-        image = PIL.Image.open(local_path)
-        # Remove transparency
-        if image.mode in ("RGBA", "P"):
-            image = image.convert("RGB")
+        if IS_OCR_CAPABLE:
+            image = PIL.Image.open(local_path)
+            # Remove transparency
+            if image.mode in ("RGBA", "P"):
+                image = image.convert("RGB")
 
-        reader = easyocr.Reader(["en"])  # specify the language(s)
-        output = reader.readtext(np.array(image))  # local_path)
-        # The output is a list of tuples, each containing the coordinates of the text and the text itself.
-        # We join all the text pieces together to get the final text.
-        ocr_text = " "
-        for item in output:
-            if item[2] >= ocr_min_confidence:
-                ocr_text += item[1] + " "
-        ocr_text = ocr_text.strip()
+            reader = easyocr.Reader(["en"])  # specify the language(s)
+            output = reader.readtext(np.array(image))  # local_path)
+            # The output is a list of tuples, each containing the coordinates of the text and the text itself.
+            # We join all the text pieces together to get the final text.
+            ocr_text = " "
+            for item in output:
+                if item[2] >= ocr_min_confidence:
+                    ocr_text += item[1] + " "
+            ocr_text = ocr_text.strip()
 
-        if len(ocr_text) > 0:
-            md_content += "\n# Text detected by OCR:\n" + ocr_text
+            if len(ocr_text) > 0:
+                md_content += "\n# Text detected by OCR:\n" + ocr_text
 
         return DocumentConverterResult(
             title=None,
@@ -665,9 +680,7 @@ class MarkdownConverter:
         self.register_page_converter(WavConverter())
         self.register_page_converter(Mp3Converter())
         self.register_page_converter(ImageConverter())
-
-        if IS_PDF_CAPABLE:
-            self.register_page_converter(PdfConverter())
+        self.register_page_converter(PdfConverter())
 
     def convert(self, source, **kwargs):
         """

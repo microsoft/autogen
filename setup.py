@@ -53,7 +53,18 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+        "websurfer": [
+            "beautifulsoup4",
+            "markdownify",
+            "pathvalidate",
+            # mdconvert
+            "puremagic",  # File identification
+            "pdfminer.six",  # Pdf
+            "mammoth",  # Docx
+            "python-pptx",  # Ppts
+            "pandas",  # Xlsx
+            "openpyxl",
+        ],
         "redis": ["redis"],
         # Dependencies for EmbeddedIPythonExecutor, to be removed once upstream bug fixed
         # jupyter-client
