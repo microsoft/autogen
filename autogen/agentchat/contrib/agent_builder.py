@@ -4,7 +4,8 @@ import subprocess as sp
 import socket
 import json
 import hashlib
-from typing import Optional, List, Dict, Tuple, Type, TypeVar
+from termcolor import colored
+from typing import Optional, List, Dict, Tuple
 
 
 def _config_check(config: Dict):
@@ -33,14 +34,7 @@ class AgentBuilder:
 
     online_server_name = "online"
 
-    DEFAULT_PROXY_DESCRIPTION = """A user console with a code interpreter interface.
-It can provide the code execution results. Select this player when other players provide some code that needs to be executed."""
-
-    DEFAULT_PROXY_SYS_MESSAGE = "User console with a python code interpreter interface."
-
-    DEFAULT_PROXY_AUTO_REPLY = (
-        "There is no code for me to execute. Let other participants to continue the conversation."
-    )
+    DEFAULT_PROXY_AUTO_REPLY = "There is no code for me to execute. Let other participants to continue the conversation."
 
     CODING_PROMPT = """Does the following task need programming (i.e., access external API or tool by coding) to solve,
 or coding may help the following task become easier?
@@ -51,57 +45,44 @@ Hint:
 # Answer only YES or NO.
 """
 
-    AGENT_NAME_PROMPT = """To complete the following task, what positions/jobs should be set to maximize efficiency?
+    AGENT_NAME_PROMPT = """To complete the following task, which roles should be set to maximize efficiency?
 
 TASK: {task}
 
 Hint:
-# Considering the effort, the position in this task should be no more than {max_agents}; less is better.
-# These positions' name should include enough information that can help a group chat manager know when to let this position speak.
-# The position name should be as specific as possible. For example, use "python_programmer" instead of "programmer".
-# Do not use ambiguous position name, such as "domain expert" with no specific description of domain or "technical writer" with no description of what it should write.
-# Each position should have a unique function and the position name should reflect this.
-# The positions should relate to the task and significantly different in function.
-# Add ONLY ONE programming related position if the task needs coding.
+# Considering the effort, the role in this task should be no more than {max_agents}; less is better.
+# These roles' name should include enough information that can help a group chat manager know when to let this role speak.
+# The role name should be as specific as possible. For example, use "python_programmer" instead of "programmer".
+# Do not use ambiguous role name, such as "domain expert" with no specific description of domain or "technical writer" with no description of what it should write.
+# Each role should have a unique function and the role name should reflect this.
+# The roles should relate to the task and significantly different in function.
+# Add ONLY ONE programming related role if the task needs coding.
 # Generated agent's name should follow the format of ^[a-zA-Z0-9_-]{{1,64}}$, use "_" to split words.
-# Answer the names of those positions/jobs, separated names by commas.
-# Only return the list of positions.
+# Answer the names of those roles/jobs, separated names by ",".
+# Only return the list of roles.
 """
 
-    AGENT_SYS_MSG_PROMPT = """Considering the following position and task:
+    AGENT_SYS_MSG_PROMPT = """For the following TASK, write a high-quality description for the ROLE by modifying the DEFAULT DESCRIPTION.
+Your response should be in the second person perspective, and you should start from "You are a [ROLE's name]...".
+It is important that you should highlight the python skill because it is useful in most of the tasks.
 
-TASK: {task}
-POSITION: {position}
-
-Modify the following position requirement, making it more suitable for the above task and position:
-
-REQUIREMENT: {default_sys_msg}
-
-Hint:
-# Your answer should be natural, starting from "You are now in a group chat. You need to complete a task with other participants. As a ...".
-# [IMPORTANT] You should let them reply "TERMINATE" when they think the task is completed (the user's need has actually been satisfied).
-# Coding skill is limited to Python.
-# Your answer should omit the word "REQUIREMENT".
-# People with the above position can doubt previous messages or code in the group chat (for example, if there is no
-output after executing the code) and provide a corrected answer or code.
-# People in the above position should ask for help from the group chat manager when confused and let the manager select another participant.
+[TASK]: {task}
+[ROLE]: {position}
+[DEFAULT DESCRIPTION]: {default_sys_msg}
 """
 
-    AGENT_DESCRIPTION_PROMPT = """Considering the following position:
+    AGENT_DESCRIPTION_PROMPT = """Considering the following role:
 
-POSITION: {position}
+ROLE: {position}
 
-What requirements should this position be satisfied?
+What requirements should this role be satisfied?
 
-Hint:
-# This description should include enough information that can help a group chat manager know when to let this position speak.
-# People with the above position can doubt previous messages or code in the group chat (for example, if there is no
-output after executing the code) and provide a corrected answer or code.
-# Your answer should be in at most three sentences.
-# Your answer should be natural, starting from "[POSITION's name] is a ...".
-# Your answer should include the skills that this position should have.
-# Your answer should not contain coding-related skills when the position is not a programmer or developer.
-# Coding skills should be limited to Python.
+# This description should include enough information that can help a group chat manager know when to let this role speak.
+# People with the above role can doubt previous messages or code in the group chat (for example, if there is no
+    output after executing the code) and provide a corrected answer or code.
+# Your answer should be in three sentences.
+# Your answer should be natural and in third person perspective, starting from "[ROLE's name] is a ...".
+# Your answer should include the skills that this role should have.
 """
 
     AGENT_SEARCHING_PROMPT = """Considering the following task:
@@ -128,7 +109,6 @@ Hint:
         agent_model: Optional[str] = "gpt-4",
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 600,
-        max_tokens: Optional[int] = 945,
         max_agents: Optional[int] = 5,
     ):
         """
@@ -139,7 +119,6 @@ Hint:
             agent_model: specify a model as the backbone of participant agents.
             host: endpoint host.
             endpoint_building_timeout: timeout for building up an endpoint server.
-            max_tokens: max tokens for each agent.
             max_agents: max agents for each task.
         """
         self.host = host
@@ -156,7 +135,6 @@ Hint:
         self.agent_procs_assign: Dict[str, Tuple[autogen.ConversableAgent, str]] = {}
         self.cached_configs: Dict = {}
 
-        self.max_tokens = max_tokens
         self.max_agents = max_agents
 
         for port in range(8000, 65535):
@@ -264,12 +242,13 @@ Hint:
                 while True:
                     server_stdout = agent_proc.stdout.readline()
                     if server_stdout != b"":
-                        print(server_stdout)
+                        print(server_stdout, flush=True)
                     timeout_end = time.time()
                     if b"running" in server_stdout:
                         print(
                             f"Running {model_name_or_hf_repo} on http://{self.host}:{port} "
-                            f"with tensor parallel size {world_size}."
+                            f"with tensor parallel size {world_size}.",
+                            flush=True
                         )
                         break
                     elif b"address already in use" in server_stdout:
@@ -290,7 +269,7 @@ Hint:
 
         current_config = llm_config.copy()
         current_config.update(
-            {"config_list": config_list, "model": model_name_or_hf_repo, "max_tokens": self.max_tokens}
+            {"config_list": config_list, "model": model_name_or_hf_repo}
         )
         if use_oai_assistant:
             from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
@@ -331,7 +310,7 @@ Hint:
                         return
                 self.agent_procs[server_id][0].terminate()
                 self.open_ports.append(server_id.split("_")[-1])
-        print(f"Agent {agent_name} has been cleared.")
+        print(colored(f"Agent {agent_name} has been cleared.", "yellow"), flush=True)
 
     def clear_all_agents(self, recycle_endpoint: Optional[bool] = True):
         """
@@ -339,7 +318,7 @@ Hint:
         """
         for agent_name in [agent_name for agent_name in self.agent_procs_assign.keys()]:
             self.clear_agent(agent_name, recycle_endpoint)
-        print("All agents have been cleared.")
+        print(colored("All agents have been cleared.", "yellow"), flush=True)
 
     def build(
         self,
@@ -371,7 +350,7 @@ Hint:
                 "last_n_messages": 2,
                 "work_dir": "groupchat",
                 "use_docker": False,
-                "timeout": 60,
+                "timeout": 10,
             }
 
         agent_configs = []
@@ -389,7 +368,7 @@ Hint:
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-        print("==> Generating agents...")
+        print(colored("==> Generating agents...", "green"), flush=True)
         resp_agent_name = (
             build_manager.create(
                 messages=[
@@ -403,12 +382,12 @@ Hint:
             .message.content
         )
         agent_name_list = [agent_name.strip().replace(" ", "_") for agent_name in resp_agent_name.split(",")]
-        print(f"{agent_name_list} are generated.")
+        print(f"{agent_name_list} are generated.", flush=True)
 
-        print("==> Generating system message...")
+        print(colored("==> Generating system message...", "green"), flush=True)
         agent_sys_msg_list = []
         for name in agent_name_list:
-            print(f"Preparing system message for {name}")
+            print(f"Preparing system message for {name}", flush=True)
             resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
@@ -427,10 +406,10 @@ Hint:
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        print("==> Generating description...")
+        print(colored("==> Generating description...", "green"), flush=True)
         agent_description_list = []
         for name in agent_name_list:
-            print(f"Preparing description for {name}")
+            print(f"Preparing description for {name}", flush=True)
             resp_agent_description = (
                 build_manager.create(
                     messages=[
@@ -449,6 +428,7 @@ Hint:
             enhanced_sys_msg = """You are now working in a group chat with different expert and a group chat manager.
             Here is the members' name: {members}
             The group chat manager will select the speaker who can speak at the current time, but if there is someone you want to talk to, you can @mention him/her with "I would like to hear the opinion from ...".
+            Reply only "TERMINATE" in the end when everything is done.
             Here is your profile: """
             enhanced_sys_msg = enhanced_sys_msg.format(members=agent_name_list)
             enhanced_sys_msg += sys_msg
@@ -524,7 +504,7 @@ Hint:
                 "last_n_messages": 2,
                 "work_dir": "groupchat",
                 "use_docker": False,
-                "timeout": 60,
+                "timeout": 10,
             }
 
         agent_configs = []
@@ -547,7 +527,7 @@ Hint:
             with open(library_path_or_json, "r") as f:
                 agent_library = json.load(f)
 
-        print("==> Looking for suitable agents in library...")
+        print(colored("==> Looking for suitable agents in library...", "green"), flush=True)
         if embedding_model is not None:
             chroma_client = chromadb.Client()
             collection = chroma_client.create_collection(
@@ -571,7 +551,7 @@ Hint:
                         agent_name_list.append(agent["name"])
                         break
             chroma_client.delete_collection(collection.name)
-            print(f"{agent_name_list} are selected.")
+            print(f"{agent_name_list} are selected.", flush=True)
         else:
             agent_profiles = [
                 f"No.{i + 1} AGENT's NAME: {agent['name']}\nNo.{i + 1} AGENT's PROFILE: {agent['profile']}\n\n"
@@ -600,13 +580,13 @@ Hint:
                     if agent["name"] == name:
                         agent_profile_list.append(agent["profile"])
                         break
-            print(f"{agent_name_list} are selected.")
+            print(f"{agent_name_list} are selected.", flush=True)
 
-        print("==> Generating system message...")
+        print(colored("==> Generating system message...", "green"), flush=True)
         # generate system message from profile
         agent_sys_msg_list = []
         for name, profile in list(zip(agent_name_list, agent_profile_list)):
-            print(f"Preparing system message for {name}...")
+            print(f"Preparing system message for {name}...", flush=True)
             resp_agent_sys_msg = (
                 build_manager.create(
                     messages=[
@@ -625,22 +605,6 @@ Hint:
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_profile_list)):
-            enhanced_sys_msg = """You are now working in a group chat with different expert and a group chat manager.
-            Here is the members' name: {members}
-            The group chat manager will select the speaker who can speak at the current time, but if there is someone you want to talk to, you can @mention him/her with "I would like to hear the opinion from ...".
-            Here is your profile: """
-            enhanced_sys_msg = enhanced_sys_msg.format(members=agent_name_list)
-            enhanced_sys_msg += sys_msg
-            agent_configs.append(
-                {
-                    "name": name,
-                    "model": self.agent_model,
-                    "system_message": enhanced_sys_msg,
-                    "description": description,
-                }
-            )
-
         if coding is None:
             resp = (
                 build_manager.create(
@@ -650,6 +614,27 @@ Hint:
                 .message.content
             )
             coding = True if resp == "YES" else False
+
+        user_proxy_desc = ""
+        if coding is True:
+            user_proxy_desc = f"\nThe group chat also include a Computer_terminal to help you run the python and shell code."
+
+        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_profile_list)):
+            enhanced_sys_msg = """You are now working in a group chat with different expert and a group chat manager.
+            Here is the members' name: {members}{user_proxy_desc}
+            Reply "TERMINATE" in the end when everything is done.
+            The group chat manager will select the speaker who can speak at the current time, but if there is someone you want to talk to, you can @mention him/her with "I would like to hear the opinion from ...".
+            Here is your profile: """
+            enhanced_sys_msg = enhanced_sys_msg.format(members=agent_name_list, user_proxy_desc=user_proxy_desc)
+            enhanced_sys_msg += sys_msg
+            agent_configs.append(
+                {
+                    "name": name,
+                    "model": self.agent_model,
+                    "system_message": enhanced_sys_msg,
+                    "description": description,
+                }
+            )
 
         self.cached_configs.update(
             {
@@ -682,9 +667,9 @@ Hint:
         coding = self.cached_configs["coding"]
         code_execution_config = self.cached_configs["code_execution_config"]
 
-        print("==> Creating agents...")
+        print(colored("==> Creating agents...", "green"), flush=True)
         for config in agent_configs:
-            print(f"Creating agent {config['name']} with backbone {config['model']}...")
+            print(f"Creating agent {config['name']} with backbone {config['model']}...", flush=True)
             self._create_agent(
                 config["name"],
                 config["model"],
@@ -697,13 +682,11 @@ Hint:
         agent_list = [agent_config[0] for agent_config in self.agent_procs_assign.values()]
 
         if coding is True:
-            print("Adding user console proxy...")
+            print("Adding user console proxy...", flush=True)
             if user_proxy is None:
                 user_proxy = autogen.UserProxyAgent(
-                    name="User_console_and_code_interpreter",
+                    name="Computer_terminal",
                     is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
-                    system_message=self.DEFAULT_PROXY_SYS_MESSAGE,
-                    description=self.DEFAULT_PROXY_DESCRIPTION,
                     code_execution_config=code_execution_config,
                     human_input_mode="NEVER",
                     default_auto_reply=self.DEFAULT_PROXY_AUTO_REPLY,
@@ -727,7 +710,7 @@ Hint:
             filepath = f'./save_config_{hashlib.md5(self.building_task.encode("utf-8")).hexdigest()}.json'
         with open(filepath, "w") as save_file:
             json.dump(self.cached_configs, save_file, indent=4)
-        print(f"Building config saved to {filepath}")
+        print(colored(f"Building config saved to {filepath}", "green"), flush=True)
 
         return filepath
 
@@ -752,12 +735,12 @@ Hint:
         """
         # load json string.
         if config_json is not None:
-            print("Loading config from JSON...")
+            print(colored("Loading config from JSON...", "green"), flush=True)
             cached_configs = json.loads(config_json)
 
         # load from path.
         if filepath is not None:
-            print(f"Loading config from {filepath}")
+            print(colored(f"Loading config from {filepath}", "green"), flush=True)
             with open(filepath) as f:
                 cached_configs = json.load(f)
 

@@ -18,10 +18,10 @@ class MetaAgent(ConversableAgent):
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "group_name": {"type": "string", "description": "[REQUIRED] Name of the group."},
+                    "group_name": {"type": "string", "description": "[REQUIRED] Name of a built group."},
                     "execution_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Task that need the experts to solve by conversation.",
+                        "description": "[REQUIRED] task that needs the experts to solve by conversation. It should include 1. the problem that needs to be solved and 2. the possible outlines/steps/instructions of how to solve this problem.",
                     },
                 },
             },
@@ -34,18 +34,18 @@ class MetaAgent(ConversableAgent):
         "type": "function",
         "function": {
             "name": "autobuild",
-            "description": "Use building_task to build a group of experts to solve your execution_task. This function will return the summarization of the group chat history provided by the participant experts.",
+            "description": "Use building_task to build a group of experts to solve your execution_task by conversation. This function will return the summarization of the conversation history.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "group_name": {"type": "string", "description": "[REQUIRED] Name of the group."},
                     "building_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Instructions that helps the manager to build a group of experts for your task.",
+                        "description": "[REQUIRED] The building_task is an instruction that helps a build manager to build a group of experts for your task. You must describe the building_task as detailed as possible, highlight the coding and verification skills, and suggest some possible experts. Note that coding skill is useful in most situations, and building_task should also include the information of execution_task."
                     },
                     "execution_task": {
                         "type": "string",
-                        "description": "[REQUIRED] Task that need the experts to solve by conversation.",
+                        "description": "[REQUIRED] The execution_task is a task that needs the experts to solve by conversation. It should include the problem that needs to be solved.",
                     },
                 },
             },
@@ -53,15 +53,17 @@ class MetaAgent(ConversableAgent):
         },
     }
 
-    DEFAULT_SYSTEM_MESSAGE = """As a manager, your primary objective is to delegate the resolution of tasks to other AI agents through structured dialogue and derive conclusive insights from their interaction records.
+    AUTOBUILD_SYSTEM_MESSAGE = """You are a manager of a group of advanced experts, your primary objective is to delegate the resolution of tasks to other experts through structured dialogue and derive conclusive insights from their conversation summarization.
+When a task is assigned, it's crucial to assess its constraints and conditions for completion. If feasible, the task should be divided into smaller, logically consistent subtasks. Following this division, you have the option to address these subtasks by forming a team of agents using the "autobuild" tool.
 
-Upon task assignment, assess the task to discern its complexities and, if necessary, segment it into more manageable subtasks. Subsequently, you have the option to either tackle these subtasks individually or facilitate the resolution process through the creation of a singular agent via "meta_prompting" or a group of agents using "autobuild".
+Autobuild has two tasks: building_task and execution_task. 
+The "building_task" is an instruction that helps a build manager to build a group of experts for your task. You must describe the building_task as detailed as possible, highlight the coding and verification part, and suggest some possible experts. Note that coding skill is useful in most situations, and building_task should also include the information of execution_task.
+The "execution_task" is a task that needs the experts to solve by conversation. It should include the problem that needs to be solved.
 
-It is important to note that within a single response, you are limited to initiating either one solitary agent or a collective of agents.
-
-The "meta_prompting" and "autobuild" functions will yield a summary with the dialogue's essence and the derived conclusions. Upon receipt of these outcomes, it is crucial to conduct a thorough verification using programming or alternative AI agents to ensure accuracy and reliability.
-
-Upon the completion of all tasks and verifications, you should conclude the operation by responding with "TERMINATE".
+Autobuild will summarize the conversation's essence and the derived conclusions. After you receive the summarization, you should conduct a thorough verification by programming or an alternative group of experts to ensure the accuracy and reliability of the conclusion from a previous expert group.
+If the group chat cannot make a conclusion for your task, analyze the summarization and the execution task carefully and try again with the same group name but a modified execution task. Remember, every time you modify the execution task, check the initial task again and make sure the modified execution task includes the task information.
+It is important to note that within a single response, you are limited to initiating one group.
+Upon the completion of all tasks and verifications, you should conclude the operation and reply "TERMINATE".
 """
 
     DEFAULT_DESCRIPTION = "A helpful AI assistant that can build a group of agents at a proper time to solve a task."
@@ -69,7 +71,7 @@ Upon the completion of all tasks and verifications, you should conclude the oper
     def __init__(
         self,
         name: str,
-        system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
+        system_message: Optional[str] = AUTOBUILD_SYSTEM_MESSAGE,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,

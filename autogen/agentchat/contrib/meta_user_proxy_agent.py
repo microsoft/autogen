@@ -1,3 +1,4 @@
+import json
 import autogen
 from .agent_builder import AgentBuilder
 from typing import Callable, Dict, List, Literal, Optional, Union
@@ -31,7 +32,7 @@ Conversation history:
 """
 
     DEFAULT_AUTO_REPLY = (
-        "Thank you. Please keep solving the problem. If you think everything is done, please reply me with 'TERMINATE'."
+        "Thank you. Please keep solving the problem. If you think the problem is solved, please reply me only with 'TERMINATE'."
     )
 
     # Default UserProxyAgent.description values, based on human_input_mode
@@ -118,7 +119,7 @@ Conversation history:
         )
         self.register_function(
             function_map={
-                "autobuild": lambda *args: self._run_autobuild(**args),
+                "autobuild": lambda **args: self._run_autobuild(**args),
                 "autobuild_by_name": lambda **args: self._run_autobuild(**args),
                 "meta_prompting": lambda **args: self._run_meta_prompting(**args),
             }
@@ -133,13 +134,13 @@ Conversation history:
         This function requires the nested_mode_config to contain the autobuild_init_config,
             autobuild_llm_config, group_chat_llm_config.
         """
-        print("Running AutoBuild...")
-        print("Building task: ", building_task)
-        print("Execution task: ", execution_task)
+        print("==> Running AutoBuild...", flush=True)
+        print("==> Building task: ", building_task, flush=True)
+        print("==> Execution task: ", execution_task, flush=True)
 
         builder = AgentBuilder(**self.nested_mode_config["autobuild_init_config"])
-        if group_name in self.build_history:
-            agent_list, agent_configs = builder.load(config_json=self.build_history[group_name])
+        if group_name in self.build_history.keys():
+            agent_list, agent_configs = builder.load(config_json=json.dumps(self.build_history[group_name]))
         else:
             agent_list, agent_configs = builder.build(
                 building_task, **self.nested_mode_config["autobuild_build_config"]
