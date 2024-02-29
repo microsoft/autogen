@@ -1,11 +1,6 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example08_LMStudio.cs
-
-#region lmstudio_using_statements
+﻿
 
 using AutoGen.GenericAPI;
-using AutoGen.LMStudio;
-#endregion lmstudio_using_statements
 
 namespace AutoGen.BasicSample;
 
@@ -14,9 +9,9 @@ public class Example10_GenericAPI
     public static async Task RunAsync()
     {
         #region lmstudio_example_1
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var config = new GenericAgentConfig(openAIKey, "api.mistral.ai");
-        var lmAgent = new GenericAgent("asssistant", "mistral-large-latest", config: config)
+        var mistralApiKey = Environment.GetEnvironmentVariable("MISTRA_API_KEY") ?? throw new Exception("Please set MISTRAL_API_KEY environment variable.");
+        var config = new GenericAgentConfig(mistralApiKey, "api.mistral.ai");
+        var lmAgent = new GenericAgent("assistant", "mistral-large-latest", config: config)
             .RegisterPrintFormatMessageHook();
 
         await lmAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");

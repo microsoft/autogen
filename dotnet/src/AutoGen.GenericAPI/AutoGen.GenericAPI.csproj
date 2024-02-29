@@ -2,16 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>AutoGen.LMStudio</RootNamespace>
+    <RootNamespace>AutoGen.GenericAPI</RootNamespace>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
 
   <PropertyGroup>
     <!-- NuGet Package Settings -->
-    <Title>AutoGen.LMStudio</Title>
+    <Title>AutoGen.GenericAPI</Title>
     <Description>
-      Provide support for consuming LMStudio openai-like API service in AutoGen
+      Provide support for consuming openai-like API service from various providers like Mistral, Groq OpenRouter, etc
     </Description>
   </PropertyGroup>
 
