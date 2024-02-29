@@ -1,6 +1,7 @@
 import re
 
 from bs4 import BeautifulSoup
+import markdownify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -113,7 +114,7 @@ class HeadlessChromeBrowser(AbstractBrowser):
             script.extract()
 
         # Convert to text
-        text = soup.get_text()
+        text = markdownify.MarkdownConverter().convert_soup(soup)
 
         # Remove excessive blank lines
         text = re.sub(r"\n{2,}", "\n\n", text).strip()
