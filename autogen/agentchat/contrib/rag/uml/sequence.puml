@@ -35,7 +35,7 @@ participant PostProcessor
 
 UserProxyAgent -> RagAgent: message
 note left: What is AutoGen?
-RagAgent -> RagAgent_Assistant: messages
+RagAgent -> RagAgent_UserProxy: messages in chat history
 RagAgent -> RagAgent: set raw_message
 note left: What is AutoGen?
 RagAgent -> RagAgent: check_update_context
@@ -45,7 +45,6 @@ alt is_code_execution_result or is_update_context
 else
     RagAgent -> RagAgent: update received_raw_message with raw_message
 end
-note left: What is AutoGen?
 loop _inner_loop_consecutive_reply_counter
     group process_message
         alt is_initial_message
@@ -55,17 +54,25 @@ loop _inner_loop_consecutive_reply_counter
             RagAgent -> PromptGenerator: new message
         end
         PromptGenerator -> Retriever: refined message
+        note left: ['What is autogen', 'What is the meaning of autogen']
         PromptGenerator -> RagAgent_Assistant: selected prompt
+        note left: PROMPT_QA
         Retriever -> Reranker: retrieved chunks
         Reranker -> RagAgent: reranked chunks
-        RagAgent -> RagAgent: chunks to message
+        RagAgent -> RagAgent_UserProxy: message + context
     end
-    RagAgent -> RagAgent_Assistant: message to LLM
+    RagAgent_UserProxy -> RagAgent_Assistant: message + context
     RagAgent_Assistant -> RagAgent_UserProxy: LLM reply
     RagAgent_UserProxy -> RagAgent: LLM reply
+    note right: Autogen is a framework that enables next-gen LLM(Large Language Model)\n applications via a Multi-Agent Conversation Framework...
 end
 RagAgent -> PostProcessor: LLM reply
 PostProcessor -> RagAgent: Final reply
 RagAgent -> UserProxyAgent: Final reply
+note right
+Autogen is a framework that enables next-gen LLM(Large Language Model)
+applications via a Multi-Agent Conversation Framework...
 
+Source: https://raw.githubusercontent.com/microsoft/FLAML/main/website/docs/Research.md
+end note
 @enduml
