@@ -13,7 +13,7 @@ To use `AutoGen.GenericApi`, add the following package to your `.csproj` file:
 
 ## Usage
 ```csharp
-using AutoGen.LMStudio;
+using AutoGen.GenericAPI;
 var mistralAIKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new Exception("Please set MISTRAL_API_KEY environment variable.");
 var mistralEndpoint = "api.mistral.ai";
 var genericConfig = new GenericAgentConfig(mistralAIKey, mistralEndpoint);

@@ -5,8 +5,8 @@ using System;
 using AutoGen;
 
 /// <summary>
-///     Add support for consuming openai-like API from different LLM providers like Mistral, Groq and OpenRouter
-///     HttpScheme is used to specify the protocol to use for the API
+/// Add support for consuming openai-like API from different LLM providers like Mistral, Groq and OpenRouter
+/// HttpScheme is used to specify the protocol to use for the API
 /// </summary>
 public class GenericAgentConfig : ILLMConfig
 {
