@@ -1,5 +1,5 @@
 import re
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from autogen.agentchat import AssistantAgent
 
@@ -76,9 +76,8 @@ class PromptGenerator:
         )
         self.llm_config = llm_config
         self.prompt_rag = prompt_rag
-        verify_prompt(prompt_rag, ["{input_question}"]) if prompt_rag else None
         self.prompt_refine = prompt_refine if prompt_refine else PROMPTS_GENERATOR["refine"]
-        verify_prompt(prompt_refine, ["{input_question}", "{n}"]) if prompt_refine else None
+        verify_prompt(prompt_refine, ["{input_question}", "{n}", "{chat_history}"]) if prompt_refine else None
         self.prompt_select = prompt_select if prompt_select else PROMPTS_GENERATOR["select"]
         verify_prompt(prompt_select, ["{input_question}"]) if prompt_select else None
         if isinstance(post_process_func, Callable):
@@ -108,17 +107,18 @@ class PromptGenerator:
         return self.last_message
 
     @timer
-    def __call__(self, input_question: str, n: int = 3, silent=True) -> str:
+    def __call__(self, input_question: str, n: int = 3, chat_history: List[str] = None, silent=True) -> Tuple[str, str]:
         """
         Refine the input question and select the best prompt for the given task.
 
         Args:
             input_question: str | The input question.
             n: int | The number of refined questions. Default is 3.
+            chat_history: List[str] | The chat history. Default is None.
             silent: bool | Whether to suppress the output. Default is True.
 
         Returns:
-            str | The refined message.
+            Tuple[str, str] | The refined message and the prompt for the given task.
         """
         self.input_question = input_question
         if self.llm_config is False:
@@ -128,7 +128,7 @@ class PromptGenerator:
             ) if self._print_no_llm_warning else None
             self._print_no_llm_warning = False
             return [input_question], self.prompt_rag if self.prompt_rag else PROMPTS_RAG["unknown"]
-        message = self.prompt_refine.format(input_question=input_question, n=n)
+        message = self.prompt_refine.format(input_question=input_question, n=n, chat_history=chat_history or [])
         self.refined_message = self.post_process_func(self._call_llm(message, silent))
         if self.prompt_rag:
             return self.refined_message, self.prompt_rag
