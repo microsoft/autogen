@@ -7,10 +7,11 @@ from autogen.code_utils import extract_code
 from autogen.oai import OpenAIWrapper
 from autogen.token_count_utils import count_token, get_max_token_limit
 
-from .constants import RAG_MINIMUM_MESSAGE_LENGTH
+from .constants import RAG_MINIMUM_MESSAGE_LENGTH, TERMINATE_TRIGGER_WORDS, UPDATE_CONTEXT_TRIGGER_WORDS
 from .datamodel import GetResults, ItemID, Query, QueryResults
 from .encoder import EmbeddingFunction, EmbeddingFunctionFactory, Encoder
 from .promptgenerator import PromptGenerator
+from .prompts import PROMPT_UPDATE_CONTEXT
 from .reranker import Reranker, RerankerFactory
 from .retriever import Retriever, RetrieverFactory
 from .splitter import Splitter, SplitterFactory
@@ -316,7 +317,7 @@ class RagAgent(ConversableAgent):
 
         self.post_process_func = self.rag_config.get("post_process_func", self.add_source_to_reply)
         self.enable_update_context = self.rag_config.get("enable_update_context", True)
-        self.positive_trigger_words = self.rag_config.get("positive_trigger_words", ["question"])
+        self.positive_trigger_words = self.rag_config.get("positive_trigger_words", UPDATE_CONTEXT_TRIGGER_WORDS)
         self.negative_trigger_words = self.rag_config.get("negative_trigger_words", [])
         if isinstance(self.positive_trigger_words, str):
             self.positive_trigger_words = [self.positive_trigger_words.lower()]
@@ -344,23 +345,12 @@ class RagAgent(ConversableAgent):
         self.register_reply([Agent, None], RagAgent.generate_rag_reply, position=2)
 
     def _is_termination_msg_rag(self, message) -> bool:
-        """Check if a message is a termination message.
-        For code generation, terminate when no code block is detected. Currently only detect python code blocks.
-        For question answering, terminate when don't update context, i.e., answer is given.
-        """
         if isinstance(message, dict):
             message = message.get("content")
             if message is None:
                 return False
-        cb = extract_code(message)
-        contain_code = False
-        for c in cb:
-            # todo: support more languages
-            if c[0] == "python":
-                contain_code = True
-                break
-        is_update, _ = self.check_update_context(message)
-        return not (contain_code or is_update or self.first_time)
+        _message = message.strip().lower()
+        return any([word == _message for word in TERMINATE_TRIGGER_WORDS])
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
         """
@@ -508,6 +498,15 @@ class RagAgent(ConversableAgent):
             reranked_query_results = self.sort_query_results(retriever_deduplicated_query_results, reranked_order)
         return reranked_query_results
 
+    def check_update_context_llm(self, message: str) -> Tuple[bool, str]:
+        msg = self.prompt_generator._call_llm(
+            PROMPT_UPDATE_CONTEXT.format(input_question=self.received_raw_message, answer=message)
+        )
+        if msg.lower().startswith("answer"):
+            return False, msg
+        else:
+            return True, msg.lower().replace("update context", "").strip()
+
     def check_update_context(self, message: str) -> Tuple[bool, str]:
         """Check if the message is to update the context.
         if yes, then return True and the new query string.
@@ -524,11 +523,9 @@ class RagAgent(ConversableAgent):
         elif not isinstance(message, str):
             message = ""
         _message = message.lower()
-        positive_trigger_words = ["update context"]
-        positive_trigger_words.extend(self.positive_trigger_words)
-        for word in positive_trigger_words:
+        for word in self.positive_trigger_words:
             if word in _message:
-                return True, _message[_message.find(word) :].replace(word, "").strip()
+                return True, _message.replace(word, "").strip()
         if self.negative_trigger_words and len(_message) > RAG_MINIMUM_MESSAGE_LENGTH:
             for word in self.negative_trigger_words:
                 if word.lower() not in _message:
@@ -541,7 +538,11 @@ class RagAgent(ConversableAgent):
         Perform retrieval augmented generation for the given message.
         """
         logger.debug(f"Performing RAG for message: {raw_message}", color="green")
-        refined_questions, selected_prompt_rag = self.prompt_generator(raw_message, self.rag_promptgen_n)
+        chat_history = self._assistant.chat_messages[self._user_proxy]
+        chat_history = [msg for msg in chat_history if msg["role"] == "user"]
+        refined_questions, selected_prompt_rag = self.prompt_generator(
+            raw_message, self.rag_promptgen_n, chat_history=chat_history
+        )
         logger.debug(f"Refined message for db query: {refined_questions}", color="green")
         if self.received_raw_message not in refined_questions:
             refined_questions.append(self.received_raw_message)
@@ -602,7 +603,8 @@ class RagAgent(ConversableAgent):
         if self.first_time:
             self.perform_rag(message)
             context = self.query_results_to_context(self.reranked_query_results, token_limits)
-            llm_message = f"User's question is: {self.received_raw_message}\n\nContext is: {context}"
+            llm_message = f"User's question is: {self.refined_questions[0]}\n\nContext is: {context}"
+            self.first_time_refined_question = self.refined_questions[0]
         else:
             is_update, new_message = self.check_update_context(message)
             logger.debug(
@@ -614,7 +616,7 @@ class RagAgent(ConversableAgent):
                 )
                 self.perform_rag(new_message)
                 context = self.query_results_to_context(self.reranked_query_results, token_limits)
-                llm_message = f"Here are more context: {context}"
+                llm_message = f"User's question is: {self.first_time_refined_question}\n\nSummary from previous context is: {new_message}\n\nHere are more contexts: {context}"
             else:
                 llm_message = ""
         return llm_message
@@ -701,6 +703,7 @@ class RagAgent(ConversableAgent):
         self.received_raw_message = None
         self.first_time = True
 
+    @timer
     def generate_rag_reply(
         self,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -748,7 +751,7 @@ class RagAgent(ConversableAgent):
                 or is_code_execution_result
                 else raw_message
             )
-        )
+        )  # the real question
         if raw_message == self.received_raw_message or is_code_execution_result:
             self.used_doc_ids = set()
             self.first_time = True
@@ -758,6 +761,8 @@ class RagAgent(ConversableAgent):
         # RAG inner loop
         llm_reply = None
         while True and self._inner_loop_consecutive_reply_counter < self.max_inner_loop_consecutive_reply:
+            # reset used_doc_ids every 3 consecutive replies
+            self.used_doc_ids = set() if self._inner_loop_consecutive_reply_counter % 3 == 0 else self.used_doc_ids
             self._inner_loop_consecutive_reply_counter += 1
             message_to_llm = self.process_message(
                 llm_reply["content"] if llm_reply else raw_message, tokens_in_history=tokens_in_history

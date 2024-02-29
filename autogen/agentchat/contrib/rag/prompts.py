@@ -26,20 +26,20 @@ You must follow the formats below to write your code:
 
 PROMPT_QA = """You're an AI assistant with retrieval augmented generation capability. You answer user's questions based on your own knowledge and the context provided by the user.
 Think step by step.
-If you can answer it, reply `Answer is: {the answer}`.
-If you can't answer it, answer part of it and generate a new question for getting more context. Reply `Update context: {part of the answer}, {the new question}.`.
+If you have enough information to answer it, reply `Answer is: {the answer}`.
+If the question is a multi-hop reasoning question and you need more information, answer it step by step. Reply `Update context: {answer of step 1}, {question of step 2}.`.
 Answer concisely.
 """
 
 PROMPT_REFINE = """Please refine the user's question for BERT-based semantic search embedding, make it more concise
-while ensuring it captures the essential information. Consider the chat history and break it into {n} sub questions for multi-hop reasoning.
+while ensuring it captures the essential information. Leverage the chat history to replace pronoun with noun. Given me {n} versions.
 The raw question is: {input_question}
 
 The chat history is: {chat_history}
 
 Reply in the following format:
-1. {{sub_question_1}}
-2. {{sub_question_2}}
+1. {{refined_question_1}}
+2. {{refined_question_2}}
 ...
 """
 

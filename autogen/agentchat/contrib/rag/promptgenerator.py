@@ -7,6 +7,12 @@ from .prompts import PROMPTS_GENERATOR, PROMPTS_RAG
 from .utils import logger, timer
 
 
+def contains_only_one_sentence(text: str) -> bool:
+    # Count the number of periods (.), question marks (?), and exclamation marks (!)
+    punctuation_count = text.count(".") + text.count("?") + text.count("!")
+    return punctuation_count == 1
+
+
 def extract_refined_questions(input_text: str) -> List[str]:
     """
     Extract refined questions from the input text.
@@ -17,6 +23,9 @@ def extract_refined_questions(input_text: str) -> List[str]:
     Returns:
         List[str] | The list of refined questions.
     """
+    # If the input text contains only one sentence, return the input text
+    if contains_only_one_sentence(input_text):
+        return [input_text.strip()]
     # Define a regular expression pattern to match sentences starting with a number
     pattern = r"\d+\.\s(.*?)(?:\?|\.\.\.)"
     matches = re.findall(pattern, input_text)
