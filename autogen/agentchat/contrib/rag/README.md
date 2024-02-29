@@ -23,6 +23,7 @@ Once the knowledge base is established, we can enhance our responses to user inp
 - [x] core functionalities
 - [x] notebook example
 - [x] capability for any agent
+- [x] multi-round conversation with pronouns
 - [ ] blog
 - [ ] unstructured as splitter
 - [ ] qdrant as vectordb
