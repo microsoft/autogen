@@ -5,7 +5,7 @@ using AutoGen;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
+using autogen = AutoGen.Core.API.LLMConfigAPI;
 
 public partial class Example05_Dalle_And_GPT4V
 {

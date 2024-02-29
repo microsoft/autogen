@@ -6,6 +6,7 @@ using AutoGen.DotnetInteractive;
 using AutoGen;
 using System.Text;
 using FluentAssertions;
+using AutoGen.Core.API;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {

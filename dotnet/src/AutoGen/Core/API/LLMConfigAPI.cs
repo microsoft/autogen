@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AutoGen.OpenAI;
 
-namespace AutoGen
+namespace AutoGen.Core.API
 {
     public static class LLMConfigAPI
     {

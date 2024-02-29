@@ -26,6 +26,16 @@ public class MiddlewareStreamingAgent : IStreamingAgent
 
     public string? Name { get; }
 
+    /// <summary>
+    /// Get the inner agent.
+    /// </summary>
+    public IStreamingAgent Agent => _agent;
+
+    /// <summary>
+    /// Get the middlewares.
+    /// </summary>
+    public IEnumerable<IStreamingMiddleware> Middlewares => _middlewares;
+
     public async Task<Message> GenerateReplyAsync(IEnumerable<Message> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var reply = await GenerateStreamingReplyAsync(messages, options, cancellationToken);
@@ -92,4 +102,25 @@ public class MiddlewareStreamingAgent : IStreamingAgent
             return middleware.InvokeAsync(context, innerAgent, cancellationToken);
         }
     }
+}
+
+public sealed class MiddlewareStreamingAgent<T> : MiddlewareStreamingAgent
+    where T : IStreamingAgent
+{
+    public MiddlewareStreamingAgent(T innerAgent, string? name = null)
+        : base(innerAgent, name)
+    {
+        TAgent = innerAgent;
+    }
+
+    public MiddlewareStreamingAgent(MiddlewareStreamingAgent<T> other)
+        : base(other)
+    {
+        TAgent = other.TAgent;
+    }
+
+    /// <summary>
+    /// Get the inner agent.
+    /// </summary>
+    public T TAgent { get; }
 }

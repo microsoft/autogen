@@ -4,7 +4,7 @@
 using AutoGen;
 using AutoGen.DotnetInteractive;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
+using autogen = AutoGen.Core.API.LLMConfigAPI;
 
 public partial class Example04_Dynamic_GroupChat_Coding_Task
 {

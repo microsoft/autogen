@@ -3,7 +3,7 @@
 
 using AutoGen;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
+using autogen = AutoGen.Core.API.LLMConfigAPI;
 
 /// <summary>
 /// This example shows the basic usage of <see cref="ConversableAgent"/> class.
