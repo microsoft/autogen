@@ -14,7 +14,7 @@ namespace AutoGen;
 /// </summary>
 public class MiddlewareAgent : IAgent
 {
-    private readonly IAgent innerAgent;
+    private readonly IAgent _agent;
     private readonly List<IMiddleware> middlewares = new();
 
     /// <summary>
@@ -24,18 +24,38 @@ public class MiddlewareAgent : IAgent
     /// <param name="name">the name of the agent if provided. Otherwise, the name of <paramref name="innerAgent"/> will be used.</param>
     public MiddlewareAgent(IAgent innerAgent, string? name = null)
     {
-        this.innerAgent = innerAgent;
         this.Name = name ?? innerAgent.Name;
+        this._agent = innerAgent;
+    }
+
+    /// <summary>
+    /// Create a new instance of <see cref="MiddlewareAgent"/> by copying the middlewares from another <see cref="MiddlewareAgent"/>.
+    /// </summary>
+    public MiddlewareAgent(MiddlewareAgent other)
+    {
+        this.Name = other.Name;
+        this._agent = other._agent;
+        this.middlewares.AddRange(other.middlewares);
     }
 
     public string? Name { get; }
+
+    /// <summary>
+    /// Get the inner agent.
+    /// </summary>
+    public IAgent Agent => this._agent;
+
+    /// <summary>
+    /// Get the middlewares.
+    /// </summary>
+    public IEnumerable<IMiddleware> Middlewares => this.middlewares;
 
     public Task<Message> GenerateReplyAsync(
         IEnumerable<Message> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var agent = this.innerAgent;
+        IAgent agent = this._agent;
         foreach (var middleware in this.middlewares)
         {
             agent = new DelegateAgent(middleware, agent);
@@ -89,4 +109,25 @@ public class MiddlewareAgent : IAgent
             return this.middleware.InvokeAsync(context, this.innerAgent, cancellationToken);
         }
     }
+}
+
+public sealed class MiddlewareAgent<T> : MiddlewareAgent
+    where T : IAgent
+{
+    public MiddlewareAgent(T innerAgent, string? name = null)
+        : base(innerAgent, name)
+    {
+        this.TAgent = innerAgent;
+    }
+
+    public MiddlewareAgent(MiddlewareAgent<T> other)
+        : base(other)
+    {
+        this.TAgent = other.TAgent;
+    }
+
+    /// <summary>
+    /// Get the inner agent of type <typeparamref name="T"/>.
+    /// </summary>
+    public T TAgent { get; }
 }

@@ -70,6 +70,10 @@ public class MiddlewareAgentCodeSnippet
         reply.Content.Should().Be("[middleware shortcut]");
         #endregion code_snippet_4
 
+        #region retrieve_inner_agent
+        var innerAgent = middlewareAgent.Agent;
+        #endregion retrieve_inner_agent
+
         #region code_snippet_logging_to_console
         var agentWithLogging = middlewareAgent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {

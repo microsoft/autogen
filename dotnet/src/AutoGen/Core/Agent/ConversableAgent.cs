@@ -140,7 +140,7 @@ public class ConversableAgent : IAgent
         }
         else
         {
-            agent = new MiddlewareAgent(new DefaultReplyAgent(this.Name!, this.defaultReply ?? "Default reply is not set. Please pass a default reply to assistant agent"));
+            agent = new MiddlewareAgent<DefaultReplyAgent>(new DefaultReplyAgent(this.Name!, this.defaultReply ?? "Default reply is not set. Please pass a default reply to assistant agent"));
         }
 
         // process human input

@@ -14,7 +14,7 @@ public static class AgentExtension
     /// <param name="agent"></param>
     /// <example>
     /// <![CDATA[
-    /// [!code-csharp[Dynamic_GroupChat_Get_MLNET_PR](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Get_MLNET_PR.cs)]
+    /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]
     /// ]]>
     /// </example>
     public static IAgent RegisterDotnetCodeBlockExectionHook(

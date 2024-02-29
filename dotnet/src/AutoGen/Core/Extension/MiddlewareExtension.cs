@@ -21,9 +21,10 @@ public static class MiddlewareExtension
     /// <param name="replyFunc"></param>
     /// <returns></returns>
     /// <exception cref="Exception">throw when agent name is null.</exception>
-    public static IAgent RegisterReply(
-        this IAgent agent,
+    public static MiddlewareAgent<TAgent> RegisterReply<TAgent>(
+        this TAgent agent,
         Func<IEnumerable<Message>, CancellationToken, Task<Message?>> replyFunc)
+        where TAgent : IAgent
     {
         return agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
@@ -41,10 +42,11 @@ public static class MiddlewareExtension
     /// <summary>
     /// Print formatted message to console.
     /// </summary>
-    public static MiddlewareAgent RegisterPrintFormatMessageHook(this IAgent agent)
+    public static MiddlewareAgent<TAgent> RegisterPrintFormatMessageHook<TAgent>(this TAgent agent)
+        where TAgent : IAgent
     {
         var middleware = new PrintMessageMiddleware();
-        var middlewareAgent = new MiddlewareAgent(agent);
+        var middlewareAgent = new MiddlewareAgent<TAgent>(agent);
         middlewareAgent.Use(middleware);
 
         return middlewareAgent;
@@ -54,12 +56,13 @@ public static class MiddlewareExtension
     /// Register a post process hook to an agent. The hook will be called before the agent return the reply and after the agent generate the reply.
     /// This is useful when you want to customize arbitrary behavior before the agent return the reply.
     /// 
-    /// One example is <see cref="RegisterPrintFormatMessageHook(IAgent)"/>, which print the formatted message to console before the agent return the reply.
+    /// One example is <see cref="RegisterPrintFormatMessageHook{TAgent}(TAgent)"/>, which print the formatted message to console before the agent return the reply.
     /// </summary>
     /// <exception cref="Exception">throw when agent name is null.</exception>
-    public static MiddlewareAgent RegisterPostProcess(
-        this IAgent agent,
+    public static MiddlewareAgent<TAgent> RegisterPostProcess<TAgent>(
+        this TAgent agent,
         Func<IEnumerable<Message>, Message, CancellationToken, Task<Message>> postprocessFunc)
+        where TAgent : IAgent
     {
         return agent.RegisterMiddleware(async (messages, options, agent, ct) =>
         {
@@ -88,17 +91,19 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareAgent RegisterMiddleware(
-        this IAgent agent,
+    public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
+        this TAgent agent,
         Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
         string? middlewareName = null)
+        where TAgent : IAgent
     {
         if (agent.Name == null)
         {
             throw new Exception("Agent name is null.");
         }
 
-        var middlewareAgent = new MiddlewareAgent(agent);
+
+        var middlewareAgent = new MiddlewareAgent<TAgent>(agent);
         middlewareAgent.Use(func, middlewareName);
 
         return middlewareAgent;
@@ -107,18 +112,107 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareAgent RegisterMiddleware(
-        this IAgent agent,
+    public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
+        this TAgent agent,
         IMiddleware middleware)
+        where TAgent : IAgent
     {
         if (agent.Name == null)
         {
             throw new Exception("Agent name is null.");
         }
 
-        var middlewareAgent = new MiddlewareAgent(agent);
+        var middlewareAgent = new MiddlewareAgent<TAgent>(agent);
         middlewareAgent.Use(middleware);
 
         return middlewareAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
+        this MiddlewareAgent<TAgent> agent,
+        Func<IEnumerable<Message>, GenerateReplyOptions?, IAgent, CancellationToken, Task<Message>> func,
+        string? middlewareName = null)
+        where TAgent : IAgent
+    {
+        var copyAgent = new MiddlewareAgent<TAgent>(agent);
+        copyAgent.Use(func, middlewareName);
+
+        return copyAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareAgent<TAgent> RegisterMiddleware<TAgent>(
+        this MiddlewareAgent<TAgent> agent,
+        IMiddleware middleware)
+        where TAgent : IAgent
+    {
+        var copyAgent = new MiddlewareAgent<TAgent>(agent);
+        copyAgent.Use(middleware);
+
+        return copyAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+        this TAgent agent,
+        IStreamingMiddleware middleware)
+        where TAgent : IStreamingAgent
+    {
+        var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
+        middlewareAgent.Use(middleware);
+
+        return middlewareAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+        this MiddlewareStreamingAgent<TAgent> agent,
+        IStreamingMiddleware middleware)
+        where TAgent : IStreamingAgent
+    {
+        var copyAgent = new MiddlewareStreamingAgent<TAgent>(agent);
+        copyAgent.Use(middleware);
+
+        return copyAgent;
+    }
+
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+        this TAgent agent,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<Message>>> func,
+        string? middlewareName = null)
+        where TAgent : IStreamingAgent
+    {
+        var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
+        middlewareAgent.Use(func, middlewareName);
+
+        return middlewareAgent;
+    }
+
+    /// <summary>
+    /// Register a middleware to an existing agent and return a new agent with the middleware.
+    /// </summary>
+    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+        this MiddlewareStreamingAgent<TAgent> agent,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<Message>>> func,
+        string? middlewareName = null)
+        where TAgent : IStreamingAgent
+    {
+        var copyAgent = new MiddlewareStreamingAgent<TAgent>(agent);
+        copyAgent.Use(func, middlewareName);
+
+        return copyAgent;
     }
 }

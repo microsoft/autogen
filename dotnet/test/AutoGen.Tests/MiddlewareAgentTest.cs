@@ -96,5 +96,7 @@ public class MiddlewareAgentTest
 
         reply = await middlewareAgent.SendAsync("hello");
         reply.Content.Should().Be("[middleware shortcut] hello");
+
+        middlewareAgent.Middlewares.Count().Should().Be(3);
     }
 }
