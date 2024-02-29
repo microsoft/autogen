@@ -944,7 +944,7 @@ def test_customized_chat():
         agents=[a1, a2, a3],
         messages=[],
         max_round=20,
-        custom_speaker_selection_func=custom_speaker_selection_func,
+        speaker_selection_method=custom_speaker_selection_func,
     )
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 

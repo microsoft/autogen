@@ -36,26 +36,21 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
-    - custom_speaker_selection_func: pass a function to customize the speaker selection. Default is None.
-        custom_speaker_selection_func:
-            Parameters:
-                - last_speaker: Agent
-                    The last speaker in the group chat.
-                - agents: List[Agents]
-                    All agents in the group chat.
-                - messages: List[Dict]
-                    All past messages in the group chat.
-            Returns:
-                - Agent
-                    The selected speaker.
-        The return agent should be one of the agents in the group chat.
-        If the return agent is not valid, we will use default to the method specified in `speaker_selection_method`.
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
+        - a customized speaker selection function: if passed in a function, it will be called with the following parameters:
+            custom_speaker_selection_func:
+            Parameters:
+                - last_speaker: Agent
+                    The last speaker in the group chat.
+                - messages: List[Dict]
+                    All past messages in the group chat.
+            Returns:
+                Return an `Agent` class or a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
 
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
@@ -81,7 +76,6 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
-    custom_speaker_selection_func: Optional[Callable] = None
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
@@ -292,11 +286,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return random.choice(agents)
 
     def _prepare_and_select_agents(
-        self, last_speaker: Agent
+        self, last_speaker: Agent, speaker_selection_method: Optional[str],
     ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
-        if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
+        if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
-                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
+                f"GroupChat speaker_selection_method is set to '{speaker_selection_method}'. "
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
 
@@ -315,7 +309,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Please add more agents to the GroupChat or use direct communication instead."
             )
-        elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
+        elif n_agents == 2 and speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
             logger.warning(
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Consider setting speaker_selection_method to 'round_robin' or allow_repeat_speaker to False, "
@@ -381,11 +375,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # Use the selected speaker selection method
         select_speaker_messages = None
-        if self.speaker_selection_method.lower() == "manual":
+        if speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "round_robin":
+        elif speaker_selection_method.lower() == "round_robin":
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "random":
+        elif speaker_selection_method.lower() == "random":
             selected_agent = self.random_select_speaker(graph_eligible_agents)
         else:
             selected_agent = None
@@ -402,15 +396,24 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        if self.custom_speaker_selection_func:
-            selected_agent = self.custom_speaker_selection_func(last_speaker, self.messages)
-            if selected_agent and selected_agent in self.agents:
-                return selected_agent
-            logger.warning(
-                f"Customized speaker selection failed to resolve the next speaker's name. Returned by the function: {selected_agent}. Default to `speaker_selection_method`: {self.speaker_selection_method}."
-            )
+        if isinstance(self.speaker_selection_method, Callable):
+            selected_agent = self.speaker_selection_method(last_speaker, self.messages)
+            if isinstance(selected_agent, Agent):
+                if selected_agent in self.agents:
+                    return selected_agent
+                else:
+                    raise ValueError(
+                        f"Custom speaker selection function returned an agent {selected_agent.name} not in the group chat."
+                    )
+            elif isinstance(selected_agent, str):
+                # If returned a string, assume it is a speaker selection method
+                temp_selection_method = selected_agent
+            else:
+                raise ValueError(
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                )
 
-        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
+        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker, temp_selection_method)
         if selected_agent:
             return selected_agent
         # auto speaker selection
@@ -420,15 +423,24 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
-        if self.custom_speaker_selection_func is not None:
-            selected_agent = self.custom_speaker_selection_func(last_speaker, self.messages)
-            if selected_agent and selected_agent in self.agents:
-                return selected_agent
-            logger.warning(
-                f"Customized speaker selection failed to resolve the next speaker's name. Returned by the function: {selected_agent}. Default to `speaker_selection_method`: {self.speaker_selection_method}."
-            )
-
-        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
+        if isinstance(self.speaker_selection_method, Callable):
+            selected_agent = self.speaker_selection_method(last_speaker, self.messages)
+            if isinstance(selected_agent, Agent):
+                if selected_agent in self.agents:
+                    return selected_agent
+                else:
+                    raise ValueError(
+                        f"Custom speaker selection function returned an agent {selected_agent.name} not in the group chat."
+                    )
+            elif isinstance(selected_agent, str):
+                # If returned a string, assume it is a speaker selection method
+                temp_selection_method = selected_agent
+            else:
+                raise ValueError(
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                )
+            
+        selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker, temp_selection_method)
         if selected_agent:
             return selected_agent
         # auto speaker selection
