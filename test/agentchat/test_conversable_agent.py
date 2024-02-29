@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
 import copy
 import sys
@@ -559,6 +561,16 @@ def test_update_function_signature_and_register_functions() -> None:
         assert agent.function_map["python"] == exec_python
         assert agent.function_map["sh"] == exec_sh
 
+        # remove the functions
+        agent.register_function(
+            function_map={
+                "python": None,
+            }
+        )
+
+        assert set(agent.function_map.keys()) == {"sh"}
+        assert agent.function_map["sh"] == exec_sh
+
 
 def test__wrap_function_sync():
     CurrencySymbol = Literal["USD", "EUR"]
@@ -1074,6 +1086,26 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
+def test_process_before_send():
+    print_mock = unittest.mock.MagicMock()
+
+    # Updated to include sender parameter
+    def send_to_frontend(sender, message, recipient, silent):
+        assert sender.name == "dummy_agent_1", "Sender is not the expected agent"
+        if not silent:
+            print(f"Message sent from {sender.name} to {recipient.name}: {message}")
+            print_mock(message=message)
+        return message
+
+    dummy_agent_1 = ConversableAgent(name="dummy_agent_1", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_2 = ConversableAgent(name="dummy_agent_2", llm_config=False, human_input_mode="NEVER")
+    dummy_agent_1.register_hook("process_message_before_send", send_to_frontend)
+    dummy_agent_1.send("hello", dummy_agent_2)
+    print_mock.assert_called_once_with(message="hello")
+    dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
+    print_mock.assert_called_once_with(message="hello")
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1081,4 +1113,5 @@ if __name__ == "__main__":
     # test_generate_code_execution_reply()
     # test_conversable_agent()
     # test_no_llm_config()
-    test_max_turn()
+    # test_max_turn()
+    test_process_before_send()
