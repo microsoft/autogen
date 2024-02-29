@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from pathlib import Path
 import re
 import uuid
 from queue import Empty
@@ -11,19 +12,10 @@ from jupyter_client.kernelspec import KernelSpecManager
 from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
-from .base import CodeBlock, CodeExtractor, CodeResult
+from .base import CodeBlock, CodeExtractor, IPythonCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = ("EmbeddedIPythonCodeExecutor", "IPythonCodeResult")
-
-
-class IPythonCodeResult(CodeResult):
-    """(Experimental) A code result class for IPython code executor."""
-
-    output_files: List[str] = Field(
-        default_factory=list,
-        description="The list of files that the executed code blocks generated.",
-    )
+__all__ = "EmbeddedIPythonCodeExecutor"
 
 
 class EmbeddedIPythonCodeExecutor(BaseModel):
@@ -126,6 +118,8 @@ the output will be a path to the image instead of the image itself.
         self._kernel_client = self._kernel_manager.client()
         self._kernel_client.start_channels()
         self._timeout = self.timeout
+        self._kernel_name = self.kernel_name
+        self._output_dir = Path(self.output_dir)
 
     @property
     def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
