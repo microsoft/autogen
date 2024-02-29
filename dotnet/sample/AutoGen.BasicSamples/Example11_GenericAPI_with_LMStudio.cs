@@ -1,15 +1,13 @@
-﻿using AutoGen.LMStudio;
+﻿using AutoGen.GenericAPI;
 
 namespace AutoGen.BasicSample;
 
-public class Example08_LMStudio
+public class Example11_GenericAPI_with_LMStudio
 {
     public static async Task RunAsync()
     {
-        #region lmstudio_example_1
-
-        var config = new LMStudioConfig("localhost", 1234);
-        MiddlewareAgent lmAgent = new LMStudioAgent("assistant", config)
+        var config = new GenericAgentConfig(HttpScheme.Http, "localhost", 1234);
+        MiddlewareAgent lmAgent = new GenericAgent("assistant", config)
             .RegisterPrintFormatMessageHook();
 
         await lmAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
@@ -34,7 +32,5 @@ public class Example08_LMStudio
         // In this code, we define a function `Fibonacci` that takes an integer `n` as input and returns the `n`-th number in the Fibonacci sequence. The function uses a recursive approach to calculate the value of the sequence.
         // The `Main` method simply calls the `Fibonacci` function with the argument `100`, and prints the result to the console.
         // Note that this code will only work for positive integers `n`. If you want to calculate the Fibonacci sequence for other types of numbers, such as real or complex numbers, you will need to modify the code accordingly.
-
-        #endregion lmstudio_example_1
     }
 }

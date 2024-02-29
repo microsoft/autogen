@@ -16,6 +16,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="D:\Development\microsoft\autogen\dotnet\..//dotnet/nuget/NUGET.md" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
   </ItemGroup>
 

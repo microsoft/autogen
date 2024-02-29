@@ -17,7 +17,7 @@ namespace AutoGen.GenericAPI;
 ///     agent that consumes api's other than AzureOpenAI or OpenAI
 /// </summary>
 /// <example>
-///     [!code-csharp[LMStudioAgent](../../sample/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+///     [!code-csharp[GenericAgent](../../sample/AutoGen.BasicSamples/Example10_GenericAPI.cs?name=genericapi_example_1)]
 /// </example>
 public class GenericAgent : IAgent
 {
@@ -25,12 +25,10 @@ public class GenericAgent : IAgent
 
     public GenericAgent(
         string name,
-        string modelName,
         GenericAgentConfig config,
         string systemMessage = "You are a helpful AI assistant",
         float temperature = 0.7f,
         int maxTokens = 1024,
-      
         IEnumerable<FunctionDefinition>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
@@ -39,7 +37,7 @@ public class GenericAgent : IAgent
             name,
             systemMessage,
             client,
-            modelName,
+            config.ModelName,
             temperature,
             maxTokens,
             functions,
@@ -64,12 +62,11 @@ public class GenericAgent : IAgent
         TokenCredential tokenCredential = DelegatedTokenCredential.Create((_, _) => accessToken);
         var openAIClient = new OpenAIClient(uri, tokenCredential);
 
-        // remove authenication header from pipeline
-        var authHeaderPolicy = new AddAuthenticationHeaderPolicy("Bearer " + accessToken.Token);
-
         HttpPipeline pipeline = HttpPipelineBuilder.Build(
             new OpenAIClientOptions(OpenAIClientOptions.ServiceVersion.V2022_12_01),
-            new[] { authHeaderPolicy },
+            string.IsNullOrEmpty(config.ApiToken)
+                ? Array.Empty<HttpPipelinePolicy>()
+                : new[] { new AddAuthenticationHeaderPolicy("Bearer " + accessToken.Token) },
             [],
             new ResponseClassifier());
 
@@ -97,6 +94,9 @@ public class AddAuthenticationHeaderPolicy : HttpPipelineSynchronousPolicy
 
     public override void OnSendingRequest(HttpMessage message)
     {
-        message.Request.Headers.Add("Authorization", _headerValue);
+        if (!string.IsNullOrEmpty(_headerValue))
+        {
+            message.Request.Headers.Add("Authorization", _headerValue);
+        }
     }
 }
