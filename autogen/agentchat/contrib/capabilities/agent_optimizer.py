@@ -1,10 +1,10 @@
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.code_utils import execute_code
 from openai import AzureOpenAI
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 import copy
-import os
+import autogen
 
 ADD_FUNC = {
     "type": "function",
@@ -170,16 +170,18 @@ class AgentOptimizer:
     More information could be found in the following paper: https://arxiv.org/abs/2402.11359
     """
 
-    def __init__(self, max_actions_per_step: int, azure_config: dict):
+    def __init__(
+        self,
+        max_actions_per_step: int,
+        config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
+        config_file_location: Optional[str] = "",
+    ):
         """
         (These APIs are experimental and may change in the future.)
         Args:
             max_actions_per_step (int): the maximum number of actions that the optimizer can take in one step.
-            azure_config (dict): the configuration of Azure OpenAI API. It has the following filds:
-                - "AZURE_OPENAI_API_KEY" (str): the API key of Azure OpenAI.
-                - "api_version" (str): the version of the API.
-                - "azure_endpoint" (str): the endpoint of Azure OpenAI.
-                - "model" (str): the model of Azure OpenAI, and we suggest using "gpt-4-1106-preview".
+            config_file_or_env: path or environment of the OpenAI api configs.
+            config_file_location: the location of the OpenAI config file.
         """
         self.max_actions_per_step = max_actions_per_step
         self._max_trials = 3
@@ -195,13 +197,10 @@ class AgentOptimizer:
         self._failure_functions_performance = []
         self._cur_performance = -1
 
-        self.model = azure_config["model"]
-        self._oai_config = azure_config
-        os.environ["AZURE_OPENAI_API_KEY"] = azure_config["AZURE_OPENAI_API_KEY"]
-        self._client = AzureOpenAI(
-            api_version=azure_config["api_version"],
-            azure_endpoint=azure_config["azure_endpoint"],
-        )
+        config_list = autogen.config_list_from_json(config_file_or_env, file_location=config_file_location)
+        if len(config_list) == 0:
+            raise RuntimeError("No valid openai config found in the config file or environment variable.")
+        self._client = autogen.OpenAIWrapper(config_list=config_list)
 
     def record_one_conversation(self, conversation_history: List[Dict], is_satisfied: bool = None):
         """
@@ -263,9 +262,10 @@ class AgentOptimizer:
             )
             messages = [{"role": "user", "content": prompt}]
             for _ in range(self._max_trials):
-                response = self._client.chat.completions.create(
-                    model=self.model, messages=messages, tools=[ADD_FUNC, REVISE_FUNC, REMOVE_FUNC], tool_choice="auto"
+                response = self._client.create(
+                    messages=messages, tools=[ADD_FUNC, REVISE_FUNC, REMOVE_FUNC], tool_choice="auto"
                 )
+                print(response)
                 actions = response.choices[0].message.tool_calls
                 if self._val_actions(actions, incumbent_functions):
                     break
@@ -299,7 +299,7 @@ class AgentOptimizer:
                         func.get("name"), func.get("packages"), func.get("code"), **args
                     )
                 }
-            )  # check
+            )
 
         self._trial_functions = incumbent_functions
 
@@ -383,7 +383,6 @@ class AgentOptimizer:
             for item in self._failure_functions_performance:
                 failure_experience_prompt += "Function: \n" + str(item["functions"]) + "\n"
                 failure_experience_prompt += "Performance: \n" + str(item["performance"]) + "\n"
-            # failure_experience_prompt += "\n\n"
         else:
             failure_experience_prompt = "\n"
 
@@ -392,7 +391,6 @@ class AgentOptimizer:
             performance_prompt += "\n"
             for item in self._cur_conversations_performance:
                 performance_prompt += str(item) + "\n"
-        #     performance_prompt += "\n\n"
         else:
             performance_prompt = "\n"
 
