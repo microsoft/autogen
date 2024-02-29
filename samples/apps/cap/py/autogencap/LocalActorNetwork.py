@@ -35,9 +35,7 @@ class LocalActorNetwork:
         self._init_runtime()
         # Get actor's name and description and add to a dictionary so
         # that we can look up the actor by name
-        time.sleep(1)  # Give the broker time to register the actor
-        self._directory_svc.register_actor(actor.actor_name)
-        time.sleep(100)  # Give the broker time to register the actor
+        self._directory_svc.register_actor_by_name(actor.actor_name)
         self.local_actors[actor.actor_name] = actor
         actor.start(self._context)
         Debug("Local_Actor_Network", f"{actor.actor_name} registered in the network.")
@@ -45,11 +43,13 @@ class LocalActorNetwork:
     def connect(self):
         self._init_runtime()
         for actor in self.local_actors.values():
-            actor.connect(self)
+            actor.connect_network(self)
 
     def disconnect(self):
         for actor in self.local_actors.values():
-            actor.disconnect(self)
+            actor.disconnect_network(self)
+        if self._directory_svc:
+            self._directory_svc.stop()
         if self._broker: 
             self._broker.stop()
 

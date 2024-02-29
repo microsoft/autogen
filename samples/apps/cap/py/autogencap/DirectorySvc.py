@@ -66,7 +66,7 @@ class DirectorySvc:
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
         
     def stop(self):
-        self._directory_actor.run = False
+        self._directory_actor.stop()
         self._directory_connector.close()
 
     def register_actor(self, actor_info: ActorInfo):
