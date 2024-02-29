@@ -359,7 +359,7 @@ class RagAgent(ConversableAgent):
             if c[0] == "python":
                 contain_code = True
                 break
-        is_update, new_message = self.check_update_context(message)
+        is_update, _ = self.check_update_context(message)
         return not (contain_code or is_update or self.first_time)
 
     def _merge_docs(self, query_results: QueryResults, key: str, unique_pos=None) -> Tuple[List[str], List[int]]:
@@ -523,15 +523,15 @@ class RagAgent(ConversableAgent):
             message = message.get("content", "")
         elif not isinstance(message, str):
             message = ""
+        _message = message.lower()
         positive_trigger_words = ["update context"]
         positive_trigger_words.extend(self.positive_trigger_words)
         for word in positive_trigger_words:
-            length_word = len(word) * 2
-            if word in message[-length_word:].lower() or word in message[:length_word].lower():
-                return True, message.lower().replace(word, "").strip()
-        if self.negative_trigger_words:
+            if word in _message:
+                return True, _message[_message.find(word) :].replace(word, "").strip()
+        if self.negative_trigger_words and len(_message) > RAG_MINIMUM_MESSAGE_LENGTH:
             for word in self.negative_trigger_words:
-                if word not in message:
+                if word.lower() not in _message:
                     return True, message
         return False, message
 
@@ -549,6 +549,7 @@ class RagAgent(ConversableAgent):
         self.refined_questions = refined_questions
         self.selected_prompt_rag = selected_prompt_rag
         self.reranked_query_results = reranked_query_results
+        self._assistant.update_system_message(system_message=selected_prompt_rag)
 
     def query_results_to_context(self, query_results: QueryResults, token_limits: int = -1) -> str:
         """
@@ -601,9 +602,7 @@ class RagAgent(ConversableAgent):
         if self.first_time:
             self.perform_rag(message)
             context = self.query_results_to_context(self.reranked_query_results, token_limits)
-            llm_message = self.selected_prompt_rag.format(
-                input_question=self.received_raw_message, input_context=message + "\n" + context
-            )
+            llm_message = f"User's question is: {self.received_raw_message}\n\nContext is: {context}"
         else:
             is_update, new_message = self.check_update_context(message)
             logger.debug(
@@ -615,9 +614,7 @@ class RagAgent(ConversableAgent):
                 )
                 self.perform_rag(new_message)
                 context = self.query_results_to_context(self.reranked_query_results, token_limits)
-                llm_message = self.selected_prompt_rag.format(
-                    input_question=self.received_raw_message, input_context=new_message + "\n" + context
-                )
+                llm_message = f"Here are more context: {context}"
             else:
                 llm_message = ""
         return llm_message
@@ -758,17 +755,6 @@ class RagAgent(ConversableAgent):
         logger.debug(f"Input message: {raw_message}", color="green")
         logger.debug(f"Received raw message: {self.received_raw_message}", color="green")
 
-        # Remind the agent of the raw question/task
-        self._user_proxy.send(
-            (
-                f"""The original question/task for you is: `{self.received_raw_message}`. """
-                f"""More context will be added in later messages."""
-            ),
-            self._assistant,
-            request_reply=False,
-            silent=True,
-        )
-
         # RAG inner loop
         llm_reply = None
         while True and self._inner_loop_consecutive_reply_counter < self.max_inner_loop_consecutive_reply:
@@ -777,7 +763,7 @@ class RagAgent(ConversableAgent):
                 llm_reply["content"] if llm_reply else raw_message, tokens_in_history=tokens_in_history
             )
             self.first_time = False
-            logger.debug(f"To LLM message: {message_to_llm[:100]}", color="green")
+            logger.debug(f"To LLM message: {message_to_llm[:200]}", color="green")
             logger.debug(f"Tokens in history: {tokens_in_history}", color="green")
 
             if not message_to_llm:

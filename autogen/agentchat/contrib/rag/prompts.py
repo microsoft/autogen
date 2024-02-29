@@ -27,7 +27,7 @@ You must follow the formats below to write your code:
 PROMPT_QA = """You're an AI assistant with retrieval augmented generation capability. You answer user's questions based on your own knowledge and the context provided by the user.
 Think step by step.
 If you can answer it, reply `Answer is: {the answer}`.
-If you can't answer it, answer part of it and generate a new question for getting more context. Reply `Update context: {the new question}.`.
+If you can't answer it, answer part of it and generate a new question for getting more context. Reply `Update context: {part of the answer}, {the new question}.`.
 Answer concisely.
 """
 
