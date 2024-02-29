@@ -16,7 +16,7 @@ namespace AutoGen.SemanticKernel;
 /// <summary>
 /// The agent that intergrade with the semantic kernel.
 /// </summary>
-public class SemanticKernelAgent : IStreamingReplyAgent
+public class SemanticKernelAgent : IStreamingAgent
 {
     private readonly Kernel _kernel;
     private readonly string _systemMessage;
@@ -92,7 +92,7 @@ public class SemanticKernelAgent : IStreamingReplyAgent
         }
     }
 
-    public async Task<IAsyncEnumerable<IMessage>> GenerateReplyStreamingAsync(
+    public async Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)

@@ -31,7 +31,7 @@ public class LightPlugin
     }
 }
 
-public class Example09_SemanticKernel
+public class Example10_SemanticKernel
 {
     public static async Task RunAsync()
     {
@@ -51,7 +51,7 @@ public class Example09_SemanticKernel
             .RegisterPrintFormatMessageHook();
 
 
-        var userProxyAgent = new UserProxyAgent(name: "user", humanInputMode: ConversableAgent.HumanInputMode.ALWAYS);
+        var userProxyAgent = new UserProxyAgent(name: "user", humanInputMode: HumanInputMode.ALWAYS);
         await userProxyAgent.InitiateChatAsync(
             receiver: assistantAgent,
             message: "Hey assistant, please help me to do some tasks.",

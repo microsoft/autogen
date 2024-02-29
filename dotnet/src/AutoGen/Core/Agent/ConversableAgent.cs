@@ -6,19 +6,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.Core.Middleware;
 using AutoGen.OpenAI;
 
 namespace AutoGen;
 
+public enum HumanInputMode
+{
+    /// <summary>
+    /// NEVER prompt the user for input
+    /// </summary>
+    NEVER = 0,
+
+    /// <summary>
+    /// ALWAYS prompt the user for input
+    /// </summary>
+    ALWAYS = 1,
+
+    /// <summary>
+    /// prompt the user for input if the message is not a termination message
+    /// </summary>
+    AUTO = 2,
+}
+
 public class ConversableAgent : IAgent
 {
-    public enum HumanInputMode
-    {
-        NEVER = 0,
-        ALWAYS = 1,
-        AUTO = 2,
-    }
-
     private readonly IAgent? innerAgent;
     private readonly string? defaultReply;
     private readonly HumanInputMode humanInputMode;
@@ -40,7 +52,6 @@ public class ConversableAgent : IAgent
         this.humanInputMode = humanInputMode;
         this.innerAgent = innerAgent;
         this.IsTermination = isTermination;
-        this.defaultReply = defaultAutoReply;
         this.systemMessage = systemMessage;
     }
 
@@ -60,27 +71,6 @@ public class ConversableAgent : IAgent
         this.IsTermination = isTermination;
         this.systemMessage = systemMessage;
         this.innerAgent = llmConfig?.ConfigList != null ? this.CreateInnerAgentFromConfigList(llmConfig) : null;
-    }
-
-    /// <summary>
-    /// Override this method to change the behavior of getting human input
-    /// </summary>
-    public virtual Task<string?> GetHumanInputAsync()
-    {
-        // first, write prompt, then read from stdin
-        var prompt = "Please give feedback: Press enter or type 'exit' to stop the conversation.";
-        Console.WriteLine(prompt);
-        var userInput = Console.ReadLine();
-        if (!string.IsNullOrEmpty(userInput) && userInput.ToLower() != "exit")
-        {
-            return Task.FromResult<string?>(userInput);
-        }
-        else
-        {
-            Console.WriteLine("Terminating the conversation");
-            userInput = GroupChatExtension.TERMINATE;
-            return Task.FromResult<string?>(userInput);
-        }
     }
 
     private IAgent? CreateInnerAgentFromConfigList(ConversableAgentConfig config)
@@ -126,15 +116,12 @@ public class ConversableAgent : IAgent
         // first in, last out
 
         // process default reply
-        IAgent agent = new DefaultReplyAgent(this.Name!, this.defaultReply ?? "Default reply is not set. Please pass a default reply to assistant agent");
-
-        // process inner agent
-        agent = agent.RegisterReply(async (messages, cancellationToken) =>
+        MiddlewareAgent agent;
+        if (this.innerAgent != null)
         {
-            if (this.innerAgent != null)
+            agent = innerAgent.RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
-                // for every message, update message.From to inner agent's name if it is the name of this assistant agent
-                var updatedMessages = messages.Select(m =>
+                var updatedMessages = msgs.Select(m =>
                 {
                     if (m.From == this.Name)
                     {
@@ -148,110 +135,22 @@ public class ConversableAgent : IAgent
                     }
                 });
 
-                var msg = await this.innerAgent.GenerateReplyAsync(updatedMessages, overrideOptions, cancellationToken);
-                msg.From = this.Name;
-
-                return msg;
-            }
-            else
-            {
-                return null;
-            }
-        });
-
-        // process human input
-        agent = agent.RegisterReply(async (messages, cancellationToken) =>
+                return await agent.GenerateReplyAsync(updatedMessages, option, ct);
+            });
+        }
+        else
         {
-            async Task<Message> TakeUserInputAsync()
-            {
-                var input = await this.GetHumanInputAsync();
-                if (input != null)
-                {
-                    return new Message(Role.Assistant, input, from: this.Name);
-                }
-                else
-                {
-                    return new Message(Role.Assistant, string.Empty, from: this.Name);
-                }
-            }
-
-            if (this.humanInputMode == HumanInputMode.ALWAYS)
-            {
-                return await TakeUserInputAsync();
-            }
-            else if (this.humanInputMode == HumanInputMode.AUTO)
-            {
-                if (this.IsTermination != null && await this.IsTermination(messages, cancellationToken))
-                {
-                    return await TakeUserInputAsync();
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return null;
-            }
-        });
-
-        // process function call
-        agent = agent.RegisterMiddleware(async (messages, option, innerAgent, cancellationToken) =>
-        {
-            if (this.functionMap != null &&
-                messages.Last()?.FunctionName is string functionName &&
-                messages.Last()?.FunctionArguments is string functionArguments &&
-                messages.Last()?.Content is null &&
-                this.functionMap.ContainsKey(functionName) &&
-                messages.Last().From != this.Name)
-            {
-                var reply = await this.ExecuteFunctionCallAsync(messages.Last(), cancellationToken);
-
-                // perform as a proxy to run function call from external agent, therefore, the reply should be from the last message's sender
-                reply.Role = Role.Function;
-
-                return reply;
-            }
-
-            var agentReply = await innerAgent.GenerateReplyAsync(messages, option, cancellationToken);
-            if (this.functionMap != null && agentReply.FunctionName is string && agentReply.FunctionArguments is string)
-            {
-                return await this.ExecuteFunctionCallAsync(agentReply, cancellationToken);
-            }
-            else
-            {
-                return agentReply;
-            }
-        });
-
-        return await agent.GenerateReplyAsync(messages, overrideOptions, cancellationToken);
-    }
-
-    private async Task<Message> ExecuteFunctionCallAsync(Message message, CancellationToken _)
-    {
-        if (message.FunctionName is string functionName && message.FunctionArguments is string functionArguments && this.functionMap != null)
-        {
-            if (this.functionMap.TryGetValue(functionName, out var func))
-            {
-                var result = await func(functionArguments);
-                return new Message(Role.Assistant, result, from: this.Name)
-                {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
-            }
-            else
-            {
-                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                return new Message(Role.Assistant, errorMessage, from: this.Name)
-                {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
-            }
+            agent = new MiddlewareAgent(new DefaultReplyAgent(this.Name!, this.defaultReply ?? "Default reply is not set. Please pass a default reply to assistant agent"));
         }
 
-        throw new Exception("Function call is not available. Please pass a function map to assistant agent");
+        // process human input
+        var humanInputMiddleware = new HumanInputMiddleware(mode: this.humanInputMode, isTermination: this.IsTermination);
+        agent.Use(humanInputMiddleware);
+
+        // process function call
+        var functionCallMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
+        agent.Use(functionCallMiddleware);
+
+        return await agent.GenerateReplyAsync(messages, overrideOptions, cancellationToken);
     }
 }

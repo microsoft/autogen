@@ -10,7 +10,7 @@ using Azure.AI.OpenAI;
 
 namespace AutoGen.OpenAI;
 
-public class GPTAgent : IStreamingReplyAgent
+public class GPTAgent : IStreamingAgent
 {
     private readonly string _systemMessage;
     private readonly IEnumerable<FunctionDefinition>? _functions;
@@ -86,7 +86,7 @@ public class GPTAgent : IStreamingReplyAgent
         return await this.PostProcessMessage(oaiMessage);
     }
 
-    public async Task<IAsyncEnumerable<IMessage>> GenerateReplyStreamingAsync(
+    public async Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)

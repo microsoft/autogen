@@ -2,6 +2,7 @@
 // IAgent.cs
 
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
@@ -23,19 +24,24 @@ public interface IAgent
         CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// agent that supports streaming reply
-/// </summary>
-public interface IStreamingReplyAgent : IAgent
-{
-    public Task<IAsyncEnumerable<IMessage>> GenerateReplyStreamingAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default);
-}
-
 public class GenerateReplyOptions
 {
+    public GenerateReplyOptions()
+    {
+    }
+
+    /// <summary>
+    /// Copy constructor
+    /// </summary>
+    /// <param name="other">other option to copy from</param>
+    public GenerateReplyOptions(GenerateReplyOptions other)
+    {
+        this.Temperature = other.Temperature;
+        this.MaxToken = other.MaxToken;
+        this.StopSequence = other.StopSequence?.Select(s => s)?.ToArray();
+        this.Functions = other.Functions?.Select(f => f)?.ToArray();
+    }
+
     public float? Temperature { get; set; }
 
     public int? MaxToken { get; set; }
