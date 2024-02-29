@@ -1,14 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
 from typing import Any, Dict, List, Optional, Type
-from autogen import AgentNameConflict, Agent
+from autogen import AgentNameConflict, Agent, GroupChat
 import pytest
 from unittest import mock
 import builtins
 import autogen
 import json
 import sys
-from autogen import Agent, GroupChat
 
 
 def test_func_call_groupchat():
@@ -909,40 +908,40 @@ def test_nested_teams_chat():
     assert msg["content"] == team1_msg["content"]
     assert reply["content"] == team2_msg["content"]
 
-def test_customized_chat():
 
+def test_customized_chat():
     a1 = autogen.UserProxyAgent(
-            name="a1",
-            default_auto_reply="This is a1 speaking.",
-            human_input_mode="NEVER",
-            code_execution_config={},
-        )
+        name="a1",
+        default_auto_reply="This is a1 speaking.",
+        human_input_mode="NEVER",
+        code_execution_config={},
+    )
 
     a2 = autogen.UserProxyAgent(
         name="a2",
         default_auto_reply="This is a2 speaking.",
-            human_input_mode="NEVER",
-            code_execution_config={},
+        human_input_mode="NEVER",
+        code_execution_config={},
     )
 
     a3 = autogen.UserProxyAgent(
         name="a3",
         default_auto_reply="TERMINATE",
-                human_input_mode="NEVER",
-            code_execution_config={},
+        human_input_mode="NEVER",
+        code_execution_config={},
     )
 
     def custom_speaker_selection_func(last_speaker: Agent, messages: List[Dict]):
         """Define a customized speaker selection function.
-        A recommended way is to define a transtion for each speaker in the groupchat.
+        A recommended way is to define a transition for each speaker in the groupchat.
         """
         if last_speaker is a1:
             return a2
         elif last_speaker is a2:
             return a3
-        
+
     groupchat = autogen.GroupChat(
-        agents=[a1, a2, a3], 
+        agents=[a1, a2, a3],
         messages=[],
         max_round=20,
         custom_speaker_selection_func=custom_speaker_selection_func,

@@ -48,7 +48,7 @@ class GroupChat:
             Returns:
                 - Agent
                     The selected speaker.
-        The return agent should be one of the agents in the group chat. 
+        The return agent should be one of the agents in the group chat.
         If the return agent is not valid, we will use default to the method specified in `speaker_selection_method`.
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
@@ -170,7 +170,6 @@ class GroupChat:
             allowed_speaker_transitions_dict=self.allowed_speaker_transitions_dict,
             agents=self.agents,
         )
-
 
     @property
     def agent_names(self) -> List[str]:
