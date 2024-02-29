@@ -286,7 +286,9 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return random.choice(agents)
 
     def _prepare_and_select_agents(
-        self, last_speaker: Agent, speaker_selection_method: Optional[str],
+        self,
+        last_speaker: Agent,
+        speaker_selection_method: Optional[str],
     ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
         if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
@@ -439,7 +441,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 raise ValueError(
                     f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
                 )
-            
+
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker, temp_selection_method)
         if selected_agent:
             return selected_agent
