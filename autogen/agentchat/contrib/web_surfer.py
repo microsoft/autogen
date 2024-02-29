@@ -2,6 +2,7 @@ import json
 import copy
 import logging
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
@@ -23,7 +24,7 @@ class WebSurferAgent(ConversableAgent):
         + datetime.now().date().isoformat()
     )
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, download files, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
 
     def __init__(
         self,
@@ -124,7 +125,14 @@ class WebSurferAgent(ConversableAgent):
             current_page = self.browser.viewport_current_page
             total_pages = len(self.browser.viewport_pages)
 
+            address = self.browser.address
+            for i in range(len(self.browser.history)-2,-1,-1): # Start from the second last
+                if self.browser.history[i][0] == address:
+                    header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
+                    break
+
             header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
@@ -159,6 +167,15 @@ class WebSurferAgent(ConversableAgent):
             name="visit_page", description="Visit a webpage at a given URL and return its text."
         )
         def _visit_page(url: Annotated[str, "The relative or absolute url of the webapge to visit."]) -> str:
+            self.browser.visit_page(url)
+            header, content = _browser_state()
+            return header.strip() + "\n=======================\n" + content
+
+        @self._user_proxy.register_for_execution()
+        @self._assistant.register_for_llm(
+            name="download_file", description="Download a file at a given URL and, if possible, return its text."
+        )
+        def _visit_page(url: Annotated[str, "The relative or absolute url of the file to be downloaded."]) -> str:
             self.browser.visit_page(url)
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
@@ -224,10 +241,10 @@ class WebSurferAgent(ConversableAgent):
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name="answer_from_page",
+                name="read_page_and_answer",
                 description="Uses AI to read the page and directly answer a given question based on the content.",
             )
-            def _answer_from_page(
+            def _read_page_and_answer(
                 question: Annotated[Optional[str], "The question to directly answer."],
                 url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
             ) -> str:
@@ -235,18 +252,20 @@ class WebSurferAgent(ConversableAgent):
                     self.browser.visit_page(url)
 
                 # We are likely going to need to fix this later, but summarize only as many tokens that fit in the buffer
-                limit = 4096
-                try:
-                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
-                except ValueError:
-                    pass  # limit is unknown
-                except TypeError:
-                    pass  # limit is unknown
+#                limit = 4096
+#                try:
+#                    limit = get_max_token_limit(self.summarizer_llm_config["config_list"][0]["model"])  # type: ignore[index]
+#                except ValueError:
+#                    pass  # limit is unknown
+#                except TypeError:
+#                    pass  # limit is unknown
+#
+#                if limit < 16000:
+#                    logger.warning(
+#                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
+#                    )
 
-                if limit < 16000:
-                    logger.warning(
-                        f"The token limit ({limit}) of the WebSurferAgent.summarizer_llm_config, is below the recommended 16k."
-                    )
+                limit = 32000
 
                 buffer = ""
                 for line in re.split(r"([\r\n]+)", self.browser.page_content):
@@ -288,7 +307,7 @@ class WebSurferAgent(ConversableAgent):
                     Optional[str], "[Optional] The url of the page to summarize. (Defaults to current page)"
                 ] = None
             ) -> str:
-                return _answer_from_page(url=url, question=None)
+                return _read_page_and_answer(url=url, question=None)
 
     def generate_surfer_reply(
         self,
