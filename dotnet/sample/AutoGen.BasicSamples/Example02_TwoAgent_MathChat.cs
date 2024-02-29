@@ -29,10 +29,7 @@ public static class Example02_TwoAgent_MathChat
             {
                 if (reply.GetContent()?.Contains("TERMINATE") is true)
                 {
-                    return new Message(Role.Assistant, GroupChatExtension.TERMINATE)
-                    {
-                        From = reply.From,
-                    };
+                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: reply.From);
                 }
 
                 return reply;

@@ -188,7 +188,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             {
                 if (msgs.Count() == 0)
                 {
-                    return new Message(Role.Assistant, "No code available. Coder please write code");
+                    return new TextMessage(Role.Assistant, "No code available. Coder please write code");
                 }
 
                 return null;
@@ -199,7 +199,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var coderMsg = msgs.LastOrDefault(msg => msg.From == "coder");
                 if (coderMsg is null)
                 {
-                    return Enumerable.Empty<Message>();
+                    return Enumerable.Empty<IMessage>();
                 }
                 else
                 {

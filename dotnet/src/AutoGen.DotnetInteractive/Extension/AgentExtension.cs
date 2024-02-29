@@ -73,7 +73,7 @@ public static class AgentExtension
                 maximumOutputToKeep = result.Length;
             }
 
-            return new Message(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
+            return new TextMessage(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
         });
     }
 }

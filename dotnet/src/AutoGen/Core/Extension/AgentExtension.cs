@@ -156,7 +156,7 @@ public static class AgentExtension
         CancellationToken ct = default)
     {
         var chatMessage = new TextMessage(Role.Assistant, msg, from: agent.Name);
-        chatHistory = chatHistory ?? Enumerable.Empty<Message>();
+        chatHistory = chatHistory ?? Enumerable.Empty<IMessage>();
         chatHistory = chatHistory.Append(chatMessage);
 
         return await agent.SendMessageToGroupAsync(groupChat, chatHistory, maxRound, ct);

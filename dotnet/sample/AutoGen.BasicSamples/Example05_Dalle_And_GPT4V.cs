@@ -126,10 +126,7 @@ The image should satisfy the following conditions:
                 // if no image is generated, then ask DALL-E agent to generate image
                 if (msgs.Last() is not ImageMessage)
                 {
-                    return new Message(Role.Assistant, "Hey dalle, please generate image")
-                    {
-                        From = "gpt4v",
-                    };
+                    return new TextMessage(Role.Assistant, "Hey dalle, please generate image", from: "gpt4v");
                 }
 
                 return null;
@@ -153,9 +150,9 @@ The image should satisfy the following conditions:
                 });
             }).RegisterPrintFormatMessageHook();
 
-        IEnumerable<Message> conversation = new List<Message>()
+        IEnumerable<IMessage> conversation = new List<IMessage>()
         {
-            new Message(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
+            new TextMessage(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
         };
         var maxRound = 20;
         await gpt4VAgent.InitiateChatAsync(

@@ -96,7 +96,7 @@ public static class MessageExtension
         };
     }
 
-    public static IEnumerable<ToolCall> GetToolCalls(this IMessage message)
+    public static IList<ToolCall> GetToolCalls(this IMessage message)
     {
         return message switch
         {

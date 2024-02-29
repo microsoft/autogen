@@ -84,7 +84,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
         {
             // TODO
             // fix this
-            var context = new MiddlewareContext((IEnumerable<Message>)messages, options);
+            var context = new MiddlewareContext(messages, options);
             return middleware.InvokeAsync(context, innerAgent, cancellationToken);
         }
     }

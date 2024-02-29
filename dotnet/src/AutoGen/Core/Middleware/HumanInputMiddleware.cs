@@ -54,10 +54,10 @@ public class HumanInputMiddleware : IMiddleware
             var input = getInput();
             if (input == exitKeyword)
             {
-                return new Message(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
+                return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
             }
 
-            return new Message(Role.Assistant, input, agent.Name);
+            return new TextMessage(Role.Assistant, input, agent.Name);
         }
 
         // if the mode is auto, then prompt the user for input if the message is not a termination message
@@ -72,10 +72,10 @@ public class HumanInputMiddleware : IMiddleware
             var input = getInput();
             if (input == exitKeyword)
             {
-                return new Message(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
+                return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, agent.Name);
             }
 
-            return new Message(Role.Assistant, input, agent.Name);
+            return new TextMessage(Role.Assistant, input, agent.Name);
         }
 
         throw new InvalidOperationException("Invalid mode");

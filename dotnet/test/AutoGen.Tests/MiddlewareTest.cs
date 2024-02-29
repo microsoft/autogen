@@ -82,7 +82,7 @@ public partial class MiddlewareTest
                 return await agent.GenerateReplyAsync(messages, options, ct);
             }
 
-            return new Message(Role.Assistant, content: null, from: agent.Name, functionCall: functionCall);
+            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from: agent.Name);
         });
 
         // test 1
@@ -91,8 +91,9 @@ public partial class MiddlewareTest
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
 
         var testAgent = agent.RegisterMiddleware(mw);
-        var functionCallMessage = new Message(Role.User, content: null, from: "user", functionCall: functionCall);
+        var functionCallMessage = new ToolCallMessage(functionCall.Name, functionCall.Arguments, from: "user");
         var reply = await testAgent.SendAsync(functionCallMessage);
+        reply.Should().BeOfType<ToolCallResultMessage>();
         reply.GetContent()!.Should().Be("[FUNC] hello");
         reply.From.Should().Be("echo");
 
@@ -120,7 +121,6 @@ public partial class MiddlewareTest
         mw = new FunctionCallMiddleware(
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo2", EchoWrapper } });
         testAgent = agent.RegisterMiddleware(mw);
-        functionCallMessage = new Message(Role.User, content: null, from: "user", functionCall: functionCall);
         reply = await testAgent.SendAsync(functionCallMessage);
         reply.GetContent()!.Should().Be("Function echo is not available. Available functions are: echo2");
     }

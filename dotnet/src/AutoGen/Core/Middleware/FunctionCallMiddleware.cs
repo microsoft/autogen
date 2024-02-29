@@ -33,31 +33,31 @@ public class FunctionCallMiddleware : IMiddleware
     {
         // if the last message is a function call message, invoke the function and return the result instead of sending to the agent.
         var lastMessage = context.Messages.Last();
-        if (lastMessage is Message msg && msg is { Content: null, FunctionName: string functionName, FunctionArguments: string functionArguments })
+        if (lastMessage.GetToolCalls() is IList<ToolCall> toolCalls && toolCalls.Count() == 1)
         {
-            if (this.functionMap?.TryGetValue(functionName, out var func) is true)
+            var toolCallResult = new List<ToolCall>();
+            foreach (var toolCall in toolCalls)
             {
-                var result = await func(functionArguments);
-                return new Message(role: Role.Function, content: result, from: agent.Name)
+                var functionName = toolCall.FunctionName;
+                var functionArguments = toolCall.FunctionArguments;
+                if (this.functionMap?.TryGetValue(functionName, out var func) is true)
                 {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
-            }
-            else if (this.functionMap is not null)
-            {
-                var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
+                    var result = await func(functionArguments);
+                    toolCallResult.Add(new ToolCall(functionName, functionArguments, result));
+                }
+                else if (this.functionMap is not null)
+                {
+                    var errorMessage = $"Function {functionName} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
 
-                return new Message(role: Role.Function, content: errorMessage, from: agent.Name)
+                    toolCallResult.Add(new ToolCall(functionName, functionArguments, errorMessage));
+                }
+                else
                 {
-                    FunctionName = functionName,
-                    FunctionArguments = functionArguments,
-                };
+                    throw new InvalidOperationException("FunctionMap is not available");
+                }
             }
-            else
-            {
-                throw new InvalidOperationException("FunctionMap is not available");
-            }
+
+            return new ToolCallResultMessage(toolCallResult, from: agent.Name);
         }
 
         // combine functions
@@ -68,17 +68,21 @@ public class FunctionCallMiddleware : IMiddleware
         var reply = await agent.GenerateReplyAsync(context.Messages, options, cancellationToken);
 
         // if the reply is a function call message plus the function's name is available in function map, invoke the function and return the result instead of sending to the agent.
-        if (reply is Message message && message is { FunctionName: string fName, FunctionArguments: string fArgs })
+        if (reply.GetToolCalls() is IList<ToolCall> toolCallsReply && toolCallsReply.Count() == 1)
         {
-            if (this.functionMap?.TryGetValue(fName, out var func) is true)
+            var toolCallResult = new List<ToolCall>();
+            foreach (var toolCall in toolCallsReply)
             {
-                var result = await func(fArgs);
-                return new Message(role: Role.Assistant, content: result, from: reply.From)
+                var fName = toolCall.FunctionName;
+                var fArgs = toolCall.FunctionArguments;
+                if (this.functionMap?.TryGetValue(fName, out var func) is true)
                 {
-                    FunctionName = fName,
-                    FunctionArguments = fArgs,
-                };
+                    var result = await func(fArgs);
+                    toolCallResult.Add(new ToolCall(fName, fArgs, result));
+                }
             }
+
+            return new ToolCallResultMessage(toolCallResult, from: agent.Name);
         }
 
         // for all other messages, just return the reply from the agent.
