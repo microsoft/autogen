@@ -131,7 +131,7 @@ def test_no_function_map():
         ValueError,
         match="No agent can execute the function get_random_number. Please check the function_map of the agents.",
     ):
-        groupchat._prepare_and_select_agents(dummy2)
+        groupchat._prepare_and_select_agents(dummy2, speaker_selection_method="auto")
 
 
 if __name__ == "__main__":

@@ -397,7 +397,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
     def _call_custom_speaker_selection_func(self, last_speaker: Agent) -> None:
-        """ 
+        """
         If self.speaker_selection_method is a function, call it to get the next speaker.
         If self.speaker_selection_method is a string, return it.
 
@@ -420,9 +420,8 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 raise ValueError(
                     f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
                 )
-    
-        return self.speaker_selection_method
 
+        return self.speaker_selection_method
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
@@ -443,7 +442,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         temp_selection_method = self._call_custom_speaker_selection_func(last_speaker)
         if isinstance(temp_selection_method, Agent):
             return temp_selection_method
-        
+
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker, temp_selection_method)
         if selected_agent:
             return selected_agent
