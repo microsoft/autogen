@@ -2,7 +2,6 @@ import zmq
 import threading
 import traceback
 from .DebugLog import Debug, Info
-from .Constants import Termination_Topic
 from .Config import xpub_url
 
 class Actor:
@@ -59,9 +58,6 @@ class Actor:
         self._socket.setsockopt(zmq.RCVTIMEO, 500)
         self._socket.connect(xpub_url)
         str_topic = f"{self.actor_name}"
-        Debug(self.actor_name, f"subscribe to: {str_topic}")
-        self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
-        str_topic = Termination_Topic
         Debug(self.actor_name, f"subscribe to: {str_topic}")
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         self._thread = threading.Thread(target=self._recv_thread)

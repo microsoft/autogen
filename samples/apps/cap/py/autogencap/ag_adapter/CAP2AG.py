@@ -1,14 +1,14 @@
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Optional
 from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from ..Actor import Actor
+from .AGActor import AGActor
 from .AG2CAP import AG2CAP
 from autogen import ConversableAgent
 
 
-class CAP2AG(Actor):
+class CAP2AG(AGActor):
     """
     A CAN actor that acts as an adapter for the AutoGen system.
     """
