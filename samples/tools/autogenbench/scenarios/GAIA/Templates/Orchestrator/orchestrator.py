@@ -1,12 +1,10 @@
 # ruff: noqa: E722
 import json
-import traceback
 import copy
-import sys
 from string import Template
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
-from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
+from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 defaultPromptTemplates = { "closed_book_prompt": Template("""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 
@@ -33,6 +31,24 @@ When answering this survey, keep in mind that "facts" will typically be specific
 $team
 
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""")}
+
+from dataclasses import dataclass
+@dataclass
+class Criteria:
+    name: str
+    prompt_msg: str
+    answer_spec: str
+
+    def to_bullet_point(self):
+        return f"    - {self.prompt_msg}"
+    
+    def to_json(self):
+        return {
+            self.name: {
+                "reason": "string",
+                "answer": self.answer_spec
+        }
+    }
 
 class Orchestrator(ConversableAgent):
     def __init__(
@@ -100,6 +116,17 @@ class Orchestrator(ConversableAgent):
         return extracted_response
     
     def _think_next_step(self, task, team, names, sender):
+        criteria_list = [
+            Criteria("is_request_satisfied", "Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)", "boolean"),
+            Criteria("is_progress_being_made", "Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)", "boolean"),
+            Criteria("next_speaker", f"Who should speak next? (select from: {names})", f"string (select from: {names})"),
+            Criteria("instruction_or_question", "What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)", "string")
+        ]
+
+        bullet_points = "\n".join([criteria.to_bullet_point() for criteria in criteria_list])
+        inner_json = ",\n".join([criteria.to_json_schema_str() for criteria in criteria_list])
+        json_schema = f"{{\n{inner_json}\n}}"
+
         step_prompt = f"""
 Recall we are working on the following request:
 
@@ -111,31 +138,11 @@ And we have assembled the following team:
 
 To make progress on the request, please answer the following questions, including necessary reasoning:
 
-    - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
-    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
-    - Who should speak next? (select from: {names})
-    - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
+{bullet_points}
 
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
-    {{
-        "is_request_satisfied": {{
-            "reason": string,
-            "answer": boolean
-        }},
-        "is_progress_being_made": {{
-            "reason": string,
-            "answer": boolean
-        }},
-        "next_speaker": {{
-            "reason": string,
-            "answer": string (select from: {names})
-        }},
-        "instruction_or_question": {{
-            "reason": string,
-            "answer": string
-        }}
-    }}
+{json_schema}
 """.strip()
 
         # This is a temporary message we will immediately pop
