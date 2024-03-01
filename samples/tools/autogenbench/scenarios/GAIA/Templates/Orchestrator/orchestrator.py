@@ -117,10 +117,10 @@ class Orchestrator(ConversableAgent):
     
     def _think_next_step(self, task, team, names, sender):
         criteria_list = [
-            Criteria("is_request_satisfied", "Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)", "boolean"),
-            Criteria("is_progress_being_made", "Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)", "boolean"),
-            Criteria("next_speaker", f"Who should speak next? (select from: {names})", f"string (select from: {names})"),
-            Criteria("instruction_or_question", "What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)", "string")
+            Criteria(name="is_request_satisfied", prompt_msg="Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)", answer_spec="boolean"),
+            Criteria(name="is_progress_being_made", prompt_msg="Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)", answer_spec="boolean"),
+            Criteria(name="next_speaker", prompt_msg=f"Who should speak next? (select from: {names})", answer_spec=f"string (select from: {names})"),
+            Criteria(name="instruction_or_question", prompt_msg="What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)", answer_spec="string")
         ]
 
         bullet_points = "\n".join([criteria.to_bullet_point() for criteria in criteria_list])
