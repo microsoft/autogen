@@ -36,6 +36,43 @@ $team
 
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task."""
     ),
+    "step_prompt": Template(
+        """
+Recall we are working on the following request:
+
+$task
+
+And we have assembled the following team:
+
+$team
+
+To make progress on the request, please answer the following questions, including necessary reasoning:
+
+$bullet_points
+
+Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
+
+$json_schema
+"""
+    ),
+    "team_update": Template(
+        """
+We are working to address the following user request:
+
+$task
+
+
+To answer this request we have assembled the following team:
+
+$team
+
+Some additional points to consider:
+
+$facts
+
+$plan
+"""
+    ),
 }
 
 
@@ -149,23 +186,11 @@ class Orchestrator(ConversableAgent):
         inner_json = ",\n".join([criteria.to_json_schema_str() for criteria in criteria_list])
         json_schema = f"{{\n{inner_json}\n}}"
 
-        step_prompt = f"""
-Recall we are working on the following request:
-
-{task}
-
-And we have assembled the following team:
-
-{team}
-
-To make progress on the request, please answer the following questions, including necessary reasoning:
-
-{bullet_points}
-
-Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
-
-{json_schema}
-""".strip()
+        step_prompt = (
+            self._prompt_templates["step_prompt"]
+            .substitute(task=task, team=team, bullet_points=bullet_points, json_schema=json_schema)
+            .strip()
+        )
 
         # This is a temporary message we will immediately pop
         self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
@@ -226,22 +251,10 @@ Team membership:
                 break
 
     def _update_team_with_facts_and_plan(self, task, team, facts, plan):
-        self.orchestrated_messages.append({"role": "assistant", "content": f"""
-We are working to address the following user request:
-
-{task}
-
-
-To answer this request we have assembled the following team:
-
-{team}
-
-Some additional points to consider:
-
-{facts}
-
-{plan}
-""".strip(), "name": self.name})
+        team_update_prompt = (
+            self._prompt_templates["team_update"].substitute(task=task, team=team, facts=facts, plan=plan).strip()
+        )
+        self.orchestrated_messages.append({"role": "assistant", "content": team_update_prompt, "name": self.name})
         self._broadcast(self.orchestrated_messages[-1])
         self._print_thought(self.orchestrated_messages[-1]["content"])
 
