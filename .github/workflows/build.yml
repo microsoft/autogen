@@ -46,9 +46,8 @@ jobs:
         # code executors auto skip without deps, so only run for python 3.11
         if: matrix.python-version == '3.11'
         run: |
-          pip install jupyter-client ipykernel
+          pip install -e ".[jupyter-executor]"
           python -m ipykernel install --user --name python3
-          pip install -e ".[local-jupyter-exec]"
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |

@@ -56,11 +56,13 @@ setuptools.setup(
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
         "websockets": ["websockets>=12.0,<13"],
-        # Dependencies for EmbeddedIPythonExecutor, to be removed once upstream bug fixed
-        # https://github.com/jupyter-server/kernel_gateway/issues/398
-        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
-        # Dependencies for LocalJupyterExecutor
-        "local-jupyter-exec": ["jupyter-kernel-gateway", "websocket-client", "requests", "ipykernel"],
+        "jupyter-executor": [
+            "jupyter-kernel-gateway",
+            "websocket-client",
+            "requests",
+            "jupyter-client>=8.6.0",
+            "ipykernel>=6.29.0",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

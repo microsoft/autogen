@@ -11,9 +11,9 @@ from jupyter_client import KernelManager  # type: ignore[attr-defined]
 from jupyter_client.kernelspec import KernelSpecManager
 from pydantic import BaseModel, Field, field_validator
 
-from ..agentchat.agent import LLMAgent
-from .base import CodeBlock, CodeExtractor, IPythonCodeResult
-from .markdown_code_extractor import MarkdownCodeExtractor
+from ...agentchat.agent import LLMAgent
+from ..base import CodeBlock, CodeExtractor, IPythonCodeResult
+from ..markdown_code_extractor import MarkdownCodeExtractor
 
 __all__ = "EmbeddedIPythonCodeExecutor"
 
