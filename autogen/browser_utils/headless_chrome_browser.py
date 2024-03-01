@@ -106,7 +106,7 @@ class HeadlessChromeBrowser(AbstractBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _process_html(self, html: str) -> str:
+    def _process_html(self, html: str, is_search: bool) -> str:
         """Process the raw HTML content and return the processed text."""
         soup = BeautifulSoup(html, "html.parser")
 
@@ -115,7 +115,8 @@ class HeadlessChromeBrowser(AbstractBrowser):
             script.extract()
 
         # Convert to text
-        text = markdownify.MarkdownConverter().convert_soup(soup)
+        converter = markdownify.MarkdownConverter()
+        text = converter.convert_soup(soup) if not is_search else converter.convert_soup(soup.find("main"))
 
         # Remove excessive blank lines
         text = re.sub(r"\n{2,}", "\n\n", text).strip()
@@ -142,7 +143,8 @@ class HeadlessChromeBrowser(AbstractBrowser):
 
     def visit_page(self, path_or_uri):
         """Update the address, visit the page, and return the content of the viewport."""
+        is_search = path_or_uri.startswith("bing:")
         self.set_address(path_or_uri)
         html = self.driver.execute_script("return document.body.innerHTML;")
-        self._set_page_content(self._process_html(html))
+        self._set_page_content(self._process_html(html, is_search))
         return self.viewport
