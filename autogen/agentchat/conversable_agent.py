@@ -1470,7 +1470,6 @@ class ConversableAgent(LLMAgent):
         no_human_input_msg = ""
         sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
-            _raise_if_sender_is_none(sender)
             reply = self.get_human_input(
                 f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
@@ -1483,7 +1482,6 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
-                    _raise_if_sender_is_none(sender)
                     terminate = self._is_termination_msg(message)
                     reply = self.get_human_input(
                         f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
@@ -1498,7 +1496,6 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
-                    _raise_if_sender_is_none(sender)
                     reply = self.get_human_input(
                         f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
@@ -1582,7 +1579,6 @@ class ConversableAgent(LLMAgent):
         no_human_input_msg = ""
         sender_name = "the sender" if sender is None else sender.name
         if self.human_input_mode == "ALWAYS":
-            _raise_if_sender_is_none(sender)
             reply = await self.a_get_human_input(
                 f"Provide feedback to {sender_name}. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
             )
@@ -1595,7 +1591,6 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
-                    _raise_if_sender_is_none(sender)
                     terminate = self._is_termination_msg(message)
                     reply = await self.a_get_human_input(
                         f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
@@ -1610,7 +1605,6 @@ class ConversableAgent(LLMAgent):
                     reply = "exit"
                 else:
                     # self.human_input_mode == "TERMINATE":
-                    _raise_if_sender_is_none(sender)
                     reply = await self.a_get_human_input(
                         f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
@@ -1779,7 +1773,6 @@ class ConversableAgent(LLMAgent):
             if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
 
-            # _raise_if_sender_is_none(sender)
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
@@ -1808,7 +1801,8 @@ class ConversableAgent(LLMAgent):
         if trigger is None:
             return sender is None
         elif isinstance(trigger, str):
-            _raise_if_sender_is_none(sender)
+            if sender is None:
+                raise SenderRequired()
             return trigger == sender.name
         elif isinstance(trigger, type):
             return isinstance(sender, trigger)
@@ -2518,8 +2512,3 @@ def register_function(
     """
     f = caller.register_for_llm(name=name, description=description)(f)
     executor.register_for_execution(name=name)(f)
-
-
-def _raise_if_sender_is_none(sender: Optional[Agent]):
-    if sender is None:
-        raise SenderRequired()
