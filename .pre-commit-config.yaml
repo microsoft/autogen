@@ -47,5 +47,6 @@ repos:
     rev: 1.7.1
     hooks:
       - id: nbqa-ruff
-        args: ["--fix"]
+        # Don't require notebooks to have all imports at the top
+        args: ["--fix", "--ignore=E402"]
       - id: nbqa-black

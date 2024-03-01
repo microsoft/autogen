@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.capabilities.teachability import Teachability
 from autogen import ConversableAgent
