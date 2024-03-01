@@ -1253,6 +1253,50 @@ class ConversableAgent(LLMAgent):
 
         return False, None
 
+    async def _generate_code_execution_reply_using_executor_async(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Union[Dict, Literal[False]]] = None,
+    ):
+        """Asynchronously generate a reply using code executor."""
+        if config is not None:
+            raise ValueError("config is not supported for _generate_code_execution_reply_using_executor_async.")
+        if self._code_execution_config is False:
+            return False, None
+        if messages is None:
+            messages = self._oai_messages[sender]
+        last_n_messages = self._code_execution_config.get("last_n_messages", "auto")
+
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+
+        num_messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            num_messages_to_scan = 0
+            for message in reversed(messages):
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    num_messages_to_scan += 1
+        num_messages_to_scan = min(len(messages), num_messages_to_scan)
+        messages_to_scan = messages[-num_messages_to_scan:]
+
+        for message in reversed(messages_to_scan):
+            if not message["content"]:
+                continue
+            code_blocks = self.code_executor.code_extractor.extract_code_blocks(message["content"])
+            if len(code_blocks) == 0:
+                continue
+            # Found code blocks, execute code asynchronously.
+            code_result = await self._code_executor.execute_code_blocks_async(code_blocks)
+            exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
+            return True, f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+
+        return False, None
+
     def generate_code_execution_reply(
         self,
         messages: Optional[List[Dict]] = None,
@@ -1303,6 +1347,54 @@ class ConversableAgent(LLMAgent):
         # no code blocks are found, push last_n_messages back and return.
         code_execution_config["last_n_messages"] = last_n_messages
 
+        return False, None
+
+    async def generate_code_execution_reply_async(
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Union[Dict, Literal[False]]] = None,
+    ):
+        """Asynchronously generate a reply using code execution."""
+        code_execution_config = config if config is not None else self._code_execution_config
+        if code_execution_config is False:
+            return False, None
+        if messages is None:
+            messages = self._oai_messages[sender]
+        last_n_messages = code_execution_config.get("last_n_messages", "auto")
+
+        if not (isinstance(last_n_messages, (int, float)) and last_n_messages >= 0) and last_n_messages != "auto":
+            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+
+        messages_to_scan = last_n_messages
+        if last_n_messages == "auto":
+            # Find when the agent last spoke
+            messages_to_scan = 0
+            for i in range(len(messages)):
+                message = messages[-(i + 1)]
+                if "role" not in message:
+                    break
+                elif message["role"] != "user":
+                    break
+                else:
+                    messages_to_scan += 1
+
+        for i in range(min(len(messages), messages_to_scan)):
+            message = messages[-(i + 1)]
+            if not message["content"]:
+                continue
+            code_blocks = extract_code(message["content"])
+            if len(code_blocks) == 1 and code_blocks[0][0] == UNKNOWN:
+                continue
+
+            # found code blocks, execute code and push "last_n_messages" back
+            exitcode, logs = await self.execute_code_blocks_async(code_blocks)
+            code_execution_config["last_n_messages"] = last_n_messages
+            exitcode2str = "execution succeeded" if exitcode == 0 else "execution failed"
+            return True, f"exitcode: {exitcode} ({exitcode2str})\nCode output: {logs}"
+
+        # no code blocks are found, push last_n_messages back and return.
+        code_execution_config["last_n_messages"] = last_n_messages
         return False, None
 
     def generate_function_call_reply(
