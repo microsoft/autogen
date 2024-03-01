@@ -107,46 +107,52 @@ def test_web_surfer() -> None:
     reason="do not run if dependency is not installed",
 )
 def test_web_surfer_headless():
-    page_size = 4096
-    web_surfer = WebSurferAgent(
-        "web_surfer", llm_config=False, browser_config={"viewport_size": page_size, "headless": True}
-    )
+    with pytest.MonkeyPatch.context() as mp:
+        # we mock the API key so we can register functions (llm_config must be present for this to work)
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
-    # Sneak a peak at the function map, allowing us to call the functions for testing here
-    function_map = web_surfer._user_proxy._function_map
+        page_size = 4096
+        web_surfer = WebSurferAgent(
+            "web_surfer",
+            llm_config={"model": "gpt-3.5-turbo", "config_list": []},
+            browser_config={"viewport_size": page_size, "headless": True},
+        )
 
-    # Test some basic navigations
-    response = function_map["visit_page"](BLOG_POST_URL)
-    assert f"Address: {BLOG_POST_URL}".strip() in response
-    # assert f"Title: {BLOG_POST_TITLE}".strip() in response
+        # Sneak a peak at the function map, allowing us to call the functions for testing here
+        function_map = web_surfer._user_proxy._function_map
 
-    # Test scrolling
-    m = re.search(r"\bViewport position: Showing page 1 of (\d+).", response)
-    total_pages = int(m.group(1))
+        # Test some basic navigations
+        response = function_map["visit_page"](BLOG_POST_URL)
+        assert f"Address: {BLOG_POST_URL}".strip() in response
+        # assert f"Title: {BLOG_POST_TITLE}".strip() in response
 
-    response = function_map["page_down"]()
-    assert (
-        f"Viewport position: Showing page 2 of {total_pages}." in response
-    )  # Assumes the content is longer than one screen
+        # Test scrolling
+        m = re.search(r"\bViewport position: Showing page 1 of (\d+).", response)
+        total_pages = int(m.group(1))
 
-    response = function_map["page_up"]()
-    assert f"Viewport position: Showing page 1 of {total_pages}." in response
-
-    # Try to scroll too far back up
-    response = function_map["page_up"]()
-    assert f"Viewport position: Showing page 1 of {total_pages}." in response
-
-    # Try to scroll too far down
-    for i in range(0, total_pages + 1):
         response = function_map["page_down"]()
-    assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
+        assert (
+            f"Viewport position: Showing page 2 of {total_pages}." in response
+        )  # Assumes the content is longer than one screen
 
-    # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
-    with pytest.raises(AttributeError, match="'NoneType' object has no attribute 'create'"):
-        response = function_map["answer_from_page"]("When was it founded?")
+        response = function_map["page_up"]()
+        assert f"Viewport position: Showing page 1 of {total_pages}." in response
 
-    with pytest.raises(AttributeError, match="'NoneType' object has no attribute 'create'"):
-        response = function_map["summarize_page"]()
+        # Try to scroll too far back up
+        response = function_map["page_up"]()
+        assert f"Viewport position: Showing page 1 of {total_pages}." in response
+
+        # Try to scroll too far down
+        for i in range(0, total_pages + 1):
+            response = function_map["page_down"]()
+        assert f"Viewport position: Showing page {total_pages} of {total_pages}." in response
+
+        # Test Q&A and summarization -- we don't have a key so we expect it to fail (but it means the code path is correct)
+        with pytest.raises(IndexError):
+            response = function_map["answer_from_page"]("When was it founded?")
+
+        with pytest.raises(IndexError):
+            response = function_map["summarize_page"]()
 
 
 @pytest.mark.skipif(
@@ -237,25 +243,29 @@ def test_web_surfer_bing() -> None:
     reason="do not run if open ai api key is not available",
 )
 def test_web_surfer_headless_bing():
-    page_size = 4096
-    web_surfer = WebSurferAgent(
-        "web_surfer",
-        llm_config=False,
-        browser_config={"viewport_size": page_size, "headless": True},
-    )
+    with pytest.MonkeyPatch.context() as mp:
+        # we mock the API key so we can register functions (llm_config must be present for this to work)
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
 
-    # Sneak a peak at the function map, allowing us to call the functions for testing here
-    function_map = web_surfer._user_proxy._function_map
+        page_size = 4096
+        web_surfer = WebSurferAgent(
+            "web_surfer",
+            llm_config={"model": "gpt-3.5-turbo", "config_list": []},
+            browser_config={"viewport_size": page_size, "headless": True},
+        )
 
-    # Test informational queries
-    response = function_map["informational_web_search"](BING_QUERY)
-    assert "Address: https://www.bing.com/search?q=Microsoft&form=QBLH" in response
-    assert "Microsoft – Cloud, Computers, Apps & Gaming" in response
+        # Sneak a peak at the function map, allowing us to call the functions for testing here
+        function_map = web_surfer._user_proxy._function_map
 
-    # Test informational queries
-    response = function_map["navigational_web_search"](BING_QUERY + " Wikipedia")
-    assert "Address: https://www.bing.com/search?q=Microsoft+Wikipedia&form=QBLH" in response
-    assert "Microsoft - Wikipedia" in response
+        # Test informational queries
+        response = function_map["informational_web_search"](BING_QUERY)
+        assert "Address: https://www.bing.com/search?q=Microsoft&form=QBLH" in response
+        assert "**Microsoft** – Cloud, Computers, Apps & Gaming" in response
+
+        # Test informational queries
+        response = function_map["navigational_web_search"](BING_QUERY + " Wikipedia")
+        print("RESPONSE BEG", response, "RESPONSE END")
+        assert "Address: https://en.wikipedia.org/wiki/" in response
 
 
 if __name__ == "__main__":
