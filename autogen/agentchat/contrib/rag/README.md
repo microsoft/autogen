@@ -32,6 +32,7 @@ Once the knowledge base is established, we can enhance our responses to user inp
 - [ ] qdrant as vectordb
 - [ ] lancedb as vectordb
 - [ ] benchmark
+- [ ] cost stats
 - [ ] async
 
 ## Demo Code
