@@ -10,7 +10,7 @@ from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.mdconvert import MarkdownConverter, UnsupportedFormatException
+from autogen.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from orchestrator import Orchestrator
 
 testbed_utils.init()
@@ -26,24 +26,19 @@ with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
 
 config_list = autogen.config_list_from_json( "OAI_CONFIG_LIST",)
-llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
+
+llm_config = testbed_utils.default_llm_config(
+        autogen.filter_config(config_list, {"tags": ["llm"]}),
+        timeout=300
+)
 llm_config["temperature"] = 0.1
-
-gpt4v_azure = {
-  "model": "gpt-4-turbo-v",
-  "base_url": config_list[0]["base_url"],
-  "api_key": config_list[0]["api_key"],
-  "max_retries": 65535,
-  "api_version": "2023-12-01-preview",
-  "max_tokens": 1000,
-  "api_type": "azure",
-}
-
 summarizer_llm_config = llm_config
 final_llm_config = llm_config
 
+gpt4v = autogen.filter_config(config_list, {"tags": ["mlm"]})[0]
+
 client = autogen.OpenAIWrapper(**final_llm_config)
-mlm_client = autogen.OpenAIWrapper(**gpt4v_azure)
+mlm_client = autogen.OpenAIWrapper(**gpt4v)
 
 def response_preparer(inner_messages):
 
@@ -59,11 +54,13 @@ Your team then worked diligently to address that request. Here is a transcript o
     ]
 
     # The first message just repeats the question, so remove it
-    if len(inner_messages) > 1:
-        del inner_messages[0]
+    #if len(inner_messages) > 1:
+    #    del inner_messages[0]
 
     # copy them to this context
     for message in inner_messages:
+        if not message.get("content"):
+            continue
         message = copy.deepcopy(message)
         message["role"] = "user"
         messages.append(message)
@@ -89,6 +86,8 @@ If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to
     )
 
     response = client.create(context=None, messages=messages)
+    if "finish_reason='content_filter'" in str(response):
+        raise Exception(str(response))
     extracted_response = client.extract_text_or_completion_object(response)[0]
 
     # No answer
@@ -107,7 +106,10 @@ If you are asked for a comma separated list, apply the above rules depending on 
 """.strip()})
 
         response = client.create(context=None, messages=messages)
+        if "finish_reason='content_filter'" in str(response):
+            raise Exception(str(response))
         extracted_response = client.extract_text_or_completion_object(response)[0]
+
         return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)  
     else:
         return extracted_response
@@ -163,7 +165,7 @@ if len(filename) > 0:
     filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
 
     mdconverter = MarkdownConverter( mlm_client=mlm_client)
-    mlm_prompt="""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
+    mlm_prompt=f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
 
 {PROMPT}
 """.strip()
@@ -173,6 +175,8 @@ if len(filename) > 0:
         filename_prompt += " Here are the file's contents:\n\n" + res.text_content
     except UnsupportedFormatException:
         pass
+    except FileConversionException:
+        traceback.print_exc()
 
 
 question = f"""{PROMPT}
@@ -190,6 +194,7 @@ try:
     )
 except:
     traceback.print_exc()
+
 
 print()
 print(response_preparer(maestro.orchestrated_messages))

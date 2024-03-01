@@ -17,6 +17,8 @@ import pptx
 import pydub
 import pandas as pd
 import speech_recognition as sr
+import sys
+import traceback
 
 import PIL
 import shutil
@@ -538,6 +540,8 @@ class ImageConverter(DocumentConverter):
         if prompt is None or prompt.strip() == "":
             prompt = "Write a detailed caption for this image."
 
+        sys.stderr.write(f"MLM Prompt:\n{prompt}\n")
+
         data_uri = ""
         with open(local_path, "rb") as image_file:
             content_type, encoding = mimetypes.guess_type("_dummy" + extension)
@@ -564,10 +568,11 @@ class ImageConverter(DocumentConverter):
             response = client.create(messages=messages)
             return client.extract_text_or_completion_object(response)[0]
 
+class FileConversionException(BaseException):
+    pass
 
 class UnsupportedFormatException(BaseException):
     pass
-
 
 class MarkdownConverter:
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
@@ -687,6 +692,7 @@ class MarkdownConverter:
         return result
 
     def _convert(self, local_path, extensions, **kwargs):
+        error_trace = ""
         for ext in extensions:
             for converter in self._page_converters:
                 _kwargs = copy.deepcopy(kwargs)
@@ -696,7 +702,12 @@ class MarkdownConverter:
                 if "mlm_client" not in _kwargs and self._mlm_client is not None:
                     _kwargs["mlm_client"] = self._mlm_client
 
-                res = converter.convert(local_path, **_kwargs)
+                # If we hit an error log it and keep trying
+                try:
+                    res = converter.convert(local_path, **_kwargs)
+                except Exception as e:
+                    error_trace = ("\n\n" + traceback.format_exc()).strip()
+
                 if res is not None:
                     # Normalize the content
                     res.text_content = "\n".join([line.rstrip() for line in re.split(r"\r?\n", res.text_content)])
@@ -704,6 +715,12 @@ class MarkdownConverter:
 
                     # Todo
                     return res
+
+        # If we got this far without success, report any exceptions
+        if len(error_trace) > 0:
+            raise FileConversionException(
+                f"Could not convert '{local_path}' to Markdown. File type was recognized as {extensions}. While converting the file, the following error was encountered:\n\n{error_trace}"
+            )
 
         # Nothing can handle it!
         raise UnsupportedFormatException(

@@ -9,10 +9,11 @@ import mimetypes
 import time
 import pathlib
 import pathvalidate
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, unquote, parse_qs
 from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
-from .mdconvert import MarkdownConverter, UnsupportedFormatException
+from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+
 
 class SimpleTextBrowser:
     """(In preview) An extremely simple text-based web browser comparable to Lynx. Suitable for Agentic use."""
@@ -174,8 +175,8 @@ class SimpleTextBrowser:
         return self.viewport
 
     def _split_pages(self) -> None:
-        # Split only regular pages
-        if not self.address.startswith("http:") and not self.address.startswith("https:"):
+        # Do not split search results
+        if self.address.startswith("bing:"):
             self.viewport_pages = [(0, len(self._page_content))]
             return
 
@@ -234,15 +235,18 @@ class SimpleTextBrowser:
 
         web_snippets: List[str] = list()
         idx = 0
-        for page in results["webPages"]["value"]:
-            idx += 1
-            web_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['snippet']}")
-            if "deepLinks" in page:
-                for dl in page["deepLinks"]:
-                    idx += 1
-                    web_snippets.append(
-                        f"{idx}. [{dl['name']}]({dl['url']})\n{_prev_visit(dl['url'])}{dl['snippet'] if 'snippet' in dl else ''}"
-                    )
+        if "webPages" in results:
+            for page in results["webPages"]["value"]:
+                idx += 1
+                web_snippets.append(
+                    f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['snippet']}"
+                )
+                if "deepLinks" in page:
+                    for dl in page["deepLinks"]:
+                        idx += 1
+                        web_snippets.append(
+                            f"{idx}. [{dl['name']}]({dl['url']})\n{_prev_visit(dl['url'])}{dl['snippet'] if 'snippet' in dl else ''}"
+                        )
 
         news_snippets = list()
         if "news" in results:
@@ -285,7 +289,7 @@ class SimpleTextBrowser:
         download_path = ""
         try:
             if url.startswith("file://"):
-                download_path = os.path.normcase(os.path.normpath(url[7:]))
+                download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
                 res = self._mdconvert.convert_local(download_path)
                 self.page_title = res.title
                 self._set_page_content(res.text_content)
@@ -343,6 +347,9 @@ class SimpleTextBrowser:
                     self.set_address(local_uri)
 
         except UnsupportedFormatException:
+            self.page_title = ("Download complete.",)
+            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+        except FileConversionException:
             self.page_title = ("Download complete.",)
             self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
         except FileNotFoundError:
