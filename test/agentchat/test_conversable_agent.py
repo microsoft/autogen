@@ -17,7 +17,7 @@ import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
-from autogen.exception_utils import CarryoverType, SenderRequired
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
@@ -1128,7 +1128,7 @@ def test_messages_with_carryover():
     assert isinstance(generated_message, str)
 
     context = dict(message="hello", carryover=3)
-    with pytest.raises(CarryoverType):
+    with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
 

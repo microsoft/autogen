@@ -19,7 +19,7 @@ class SenderRequired(Exception):
         super().__init__(self.message)
 
 
-class CarryoverType(Exception):
+class InvalidCarryOverType(Exception):
     """Exception raised when the carryover type is invalid."""
 
     def __init__(

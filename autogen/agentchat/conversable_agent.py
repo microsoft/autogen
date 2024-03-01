@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 import warnings
 from openai import BadRequestError
 
-from autogen.exception_utils import CarryoverType, SenderRequired
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
@@ -2107,7 +2107,7 @@ class ConversableAgent(LLMAgent):
             elif isinstance(carryover, list):
                 context["message"] = context["message"] + "\nContext: \n" + ("\n").join([t for t in carryover])
             else:
-                raise CarryoverType(
+                raise InvalidCarryOverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
 
