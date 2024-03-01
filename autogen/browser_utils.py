@@ -7,8 +7,10 @@ import io
 import uuid
 import mimetypes
 import time
+import datetime
 import pathlib
 import pathvalidate
+import html
 from urllib.parse import urljoin, urlparse, unquote, parse_qs
 from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
@@ -84,10 +86,15 @@ class SimpleTextBrowser:
         """Return the full contents of the current page."""
         return self._page_content
 
-    def _set_page_content(self, content: str) -> None:
+    def _set_page_content(self, content: str, split_pages=True) -> None:
         """Sets the text content of the current page."""
         self._page_content = content
-        self._split_pages()
+
+        if split_pages:
+            self._split_pages()
+        else:
+            self.viewport_pages = [(0, len(self._page_content))]
+
         if self.viewport_current_page >= len(self.viewport_pages):
             self.viewport_current_page = len(self.viewport_pages) - 1
 
@@ -182,11 +189,6 @@ class SimpleTextBrowser:
         return self.viewport
 
     def _split_pages(self) -> None:
-        # Do not split search results
-        if self.address.startswith("bing:"):
-            self.viewport_pages = [(0, len(self._page_content))]
-            return
-
         # Handle empty pages
         if len(self._page_content) == 0:
             self.viewport_pages = [(0, 0)]
@@ -290,16 +292,25 @@ class SimpleTextBrowser:
         if len(video_snippets) > 0:
             content += "\n\n## Video Results:\n" + "\n\n".join(video_snippets)
 
-        self._set_page_content(content)
+        self._set_page_content(content, split_pages=False)
 
     def _fetch_page(self, url: str) -> None:
         download_path = ""
         try:
             if url.startswith("file://"):
                 download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
-                res = self._mdconvert.convert_local(download_path)
-                self.page_title = res.title
-                self._set_page_content(res.text_content)
+                if os.path.isdir(download_path):
+                    res = self._mdconvert.convert_stream(
+                        io.StringIO(self._fetch_local_dir(download_path)), file_extension=".html"
+                    )
+                    self.page_title = res.title
+                    self._set_page_content(
+                        res.text_content, split_pages=False
+                    )  # Like search results, don't split directory listings
+                else:
+                    res = self._mdconvert.convert_local(download_path)
+                    self.page_title = res.title
+                    self._set_page_content(res.text_content)
             else:
                 # Prepare the request parameters
                 request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
@@ -378,94 +389,48 @@ class SimpleTextBrowser:
                 self.page_title = f"Error {response.status_code}"
                 self._set_page_content(f"## Error {response.status_code}\n\n{text}")
 
+    def _fetch_local_dir(self, local_path: str) -> str:
+        pardir = os.path.normpath(os.path.join(local_path, os.pardir))
+        pardir_uri = pathlib.Path(pardir).as_uri()
+        listing = f"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Index of {html.escape(local_path)}</title>
+  </head>
+  <body>
+    <h1>Index of {html.escape(local_path)}</h1>
 
-# #https://stackoverflow.com/questions/10123929/fetch-a-file-from-a-local-url-with-python-requests
-# class LocalFileAdapter(requests.adapters.BaseAdapter):
-#     """Protocol Adapter to allow Requests to GET file:// URLs"""
-#
-#     @staticmethod
-#     def _chkpath(method, path):
-#         """Return an HTTP status for the given filesystem path."""
-#         if method.lower() in ("put", "delete"):
-#             return 501, "Not Implemented"
-#         elif method.lower() not in ("get", "head"):
-#             return 405, "Method Not Allowed"
-#         elif not os.path.exists(path):
-#             return 404, "File Not Found"
-#         elif not os.access(path, os.R_OK):
-#             return 403, "Access Denied"
-#         else:
-#             return 200, "OK"
-#
-#     def send(self, req, **kwargs):
-#         """Return the file specified by the given request"""
-#         path = os.path.normcase(os.path.normpath(url2pathname(req.path_url)))
-#         response = requests.Response()
-#
-#         response.status_code, response.reason = self._chkpath(req.method, path)
-#         if response.status_code == 200 and req.method.lower() != "head":
-#             try:
-#                 if os.path.isfile(path):
-#                     response.raw = open(path, "rb")
-#                 else:  # List the directory
-#                     response.headers["content-type"] = "text/html"
-#                     pardir = os.path.normpath(os.path.join(path, os.pardir))
-#                     pardir_uri = pathlib.Path(pardir).as_uri()
-#                     listing = f"""
-# <!DOCTYPE html>
-# <html>
-#   <head>
-#     <title>Index of {html.escape(path)}</title>
-#   </head>
-#   <body>
-#     <h1>Index of {html.escape(path)}</h1>
-#
-#     <a href="{html.escape(pardir_uri, quote=True)}">.. (parent directory)</a>
-#
-#     <table>
-#     <tr>
-#        <th>Name</th><th>Size</th><th>Date modified</th>
-#     </tr>
-# """
-#
-#                     for entry in os.listdir(path):
-#                         full_path = os.path.normpath(os.path.join(path, entry))
-#                         full_path_uri = pathlib.Path(full_path).as_uri()
-#                         size = ""
-#
-#                        if os.path.isdir(full_path):
-#                            entry = entry + os.path.sep
-#                        else:
-#                            size = str(os.path.getsize(full_path))
-#
-#                        listing += (
-#                            "<tr>\n"
-#                            + f'<td><a href="{html.escape(full_path_uri, quote=True)}">{html.escape(entry)}</a></td>'
-#                            + f"<td>{html.escape(size)}</td>"
-#                            + f"<td>{html.escape(entry)}</td>"
-#                            + "</tr>"
-#                        )
-#
-#                    listing += """
-#    </table>
-#  </body>
-# </html>
-# """
-#
-#                    response.raw = io.StringIO(listing)
-#            except (OSError, IOError) as err:
-#                response.status_code = 500
-#                response.reason = str(err)
-#
-#        if isinstance(req.url, bytes):
-#            response.url = req.url.decode("utf-8")
-#        else:
-#            response.url = req.url
-#
-#        response.request = req
-#        response.connection = self
-#
-#        return response
-#
-#    def close(self):
-#        pass
+    <a href="{html.escape(pardir_uri, quote=True)}">.. (parent directory)</a>
+
+    <table>
+    <tr>
+       <th>Name</th><th>Size</th><th>Date modified</th>
+    </tr>
+"""
+
+        for entry in os.listdir(local_path):
+            full_path = os.path.normpath(os.path.join(local_path, entry))
+            full_path_uri = pathlib.Path(full_path).as_uri()
+            size = ""
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+
+            if os.path.isdir(full_path):
+                entry = entry + os.path.sep
+            else:
+                size = str(os.path.getsize(full_path))
+
+            listing += (
+                "<tr>\n"
+                + f'<td><a href="{html.escape(full_path_uri, quote=True)}">{html.escape(entry)}</a></td>'
+                + f"<td>{html.escape(size)}</td>"
+                + f"<td>{html.escape(mtime)}</td>"
+                + "</tr>"
+            )
+
+        listing += """
+    </table>
+  </body>
+</html>
+"""
+        return listing

@@ -7,10 +7,14 @@ import requests
 import json
 import markdownify
 import uuid
+
+# File-format detection
+import puremagic
 import mimetypes
+from binaryornot.check import is_binary
+
 import html
 import pathlib
-import puremagic
 import tempfile
 import copy
 import mammoth
@@ -76,15 +80,14 @@ class PlainTextConverter(DocumentConverter):
     """Anything with content type text/plain"""
 
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        extension = kwargs.get("file_extension", "")
-        if extension == "":
-            return None
+        # Guess the content type from any file extension that might be around
+        content_type, encoding = mimetypes.guess_type("__placeholder" + kwargs.get("file_extension", ""))
 
-        content_type, encoding = mimetypes.guess_type("__placeholder" + extension)
         if content_type is None:
-            return None
-
-        if "text/" not in content_type.lower():
+            # No content type, so peek at the file and see if it's binary
+            if is_binary(local_path):
+                return None
+        elif "text/" not in content_type.lower():
             return None
 
         text_content = ""
@@ -712,6 +715,39 @@ class MarkdownConverter:
         # Convert
         return self._convert(path, extensions, **kwargs)
 
+    def convert_stream(self, stream, **kwargs):
+        # Prepare a list of extensions to try (in order of priority)
+        ext = kwargs.get("file_extension")
+        extensions = [ext] if ext is not None else []
+
+        # Save the file locally to a temporary file. It will be deleted before this method exits
+        handle, temp_path = tempfile.mkstemp()
+        fh = os.fdopen(handle, "wb")
+        result = None
+        try:
+            # Write to the temporary file
+            content = stream.read()
+            if isinstance(content, str):
+                fh.write(content.encode("utf-8"))
+            else:
+                fh.write(content)
+            fh.close()
+
+            # Use puremagic to check for more extension options
+            self._append_ext(extensions, self._guess_ext_magic(temp_path))
+
+            # Convert
+            result = self._convert(temp_path, extensions)
+        # Clean up
+        finally:
+            try:
+                fh.close()
+            except:
+                pass
+            os.unlink(temp_path)
+
+        return result
+
     def convert_url(self, url, **kwargs):
         # Send a HTTP request to the URL
         response = self._requests_session.get(url, stream=True)
@@ -766,10 +802,16 @@ class MarkdownConverter:
 
     def _convert(self, local_path, extensions, **kwargs):
         error_trace = ""
-        for ext in extensions:
+        for ext in extensions + [None]:  # Try last with no extension
             for converter in self._page_converters:
                 _kwargs = copy.deepcopy(kwargs)
-                _kwargs.update({"file_extension": ext})
+
+                # Overwrite file_extension appropriately
+                if ext is None:
+                    if "file_extension" in _kwargs:
+                        del _kwargs["file_extension"]
+                else:
+                    _kwargs.update({"file_extension": ext})
 
                 # Copy any additional global options
                 if "mlm_client" not in _kwargs and self._mlm_client is not None:
