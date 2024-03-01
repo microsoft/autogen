@@ -53,7 +53,7 @@ class HeadlessChromeBrowser(AbstractBrowser):
 
     def _start_browser(self):
         chrome_options = Options()
-        chrome_options.add_argument("--headless") 
+        chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.implicitly_wait(99)
         self.driver.get(self.start_page)
