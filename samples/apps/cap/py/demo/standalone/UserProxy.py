@@ -26,7 +26,13 @@ class StandaloneUserProxy:
 
         # Send a message to the user_proxy
         user_proxy_conn = network.lookup_actor("user_proxy")
-        user_proxy_conn.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
+        example = "Plot a chart of MSFT daily closing prices for last 1 Month."
+        print(f"Example: {example}")       
+        user_input = input("Please enter your command: ")
+        if user_input == "":
+            user_input = example
+        print(f"Sending: {user_input}")
+        user_proxy_conn.send_txt_msg(user_input)
 
         # Hang around for a while
         try:
