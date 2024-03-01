@@ -122,10 +122,10 @@ teacher, please create the next math question";
                 {
                     config,
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.CreateMathQuestionFunction,
-                    this.AnswerIsCorrectFunction,
+                    this.CreateMathQuestionFunctionContract,
+                    this.AnswerIsCorrectFunctionContract,
                 },
             };
 
@@ -155,9 +155,9 @@ If the answer is correct, you create another math question.
             var config = new AzureOpenAIConfig(endPoint, model, key);
             var llmConfig = new ConversableAgentConfig
             {
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.AnswerQuestionFunction,
+                    this.AnswerQuestionFunctionContract,
                 },
                 ConfigList = new[]
                 {

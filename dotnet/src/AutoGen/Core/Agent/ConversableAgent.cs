@@ -36,6 +36,7 @@ public class ConversableAgent : IAgent
     private readonly HumanInputMode humanInputMode;
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
     private readonly string systemMessage;
+    private readonly IEnumerable<FunctionContract>? functions;
 
     public ConversableAgent(
         string name,
@@ -71,6 +72,7 @@ public class ConversableAgent : IAgent
         this.IsTermination = isTermination;
         this.systemMessage = systemMessage;
         this.innerAgent = llmConfig?.ConfigList != null ? this.CreateInnerAgentFromConfigList(llmConfig) : null;
+        this.functions = llmConfig?.FunctionContracts;
     }
 
     private IAgent? CreateInnerAgentFromConfigList(ConversableAgentConfig config)
@@ -82,8 +84,8 @@ public class ConversableAgent : IAgent
             {
                 null => llmConfig switch
                 {
-                    AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0, functions: config.FunctionDefinitions),
-                    OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0, functions: config.FunctionDefinitions),
+                    AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0),
+                    OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0),
                     _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
                 },
                 IAgent innerAgent => innerAgent.RegisterReply(async (messages, cancellationToken) =>
@@ -147,7 +149,7 @@ public class ConversableAgent : IAgent
         agent.Use(humanInputMiddleware);
 
         // process function call
-        var functionCallMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
+        var functionCallMiddleware = new FunctionCallMiddleware(functions: this.functions, functionMap: this.functionMap);
         agent.Use(functionCallMiddleware);
 
         return await agent.GenerateReplyAsync(messages, overrideOptions, cancellationToken);

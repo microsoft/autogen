@@ -70,9 +70,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             {
                 Temperature = 0,
                 ConfigList = gpt3Config,
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    functions.ReviewCodeBlockFunction,
+                    functions.ReviewCodeBlockFunctionContract,
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>()

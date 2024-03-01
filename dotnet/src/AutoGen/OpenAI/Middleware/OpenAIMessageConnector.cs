@@ -25,6 +25,13 @@ namespace AutoGen.OpenAI.Middleware;
 /// </summary>
 public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
 {
+    private bool strictMode = false;
+
+    public OpenAIMessageConnector(bool strictMode = false)
+    {
+        this.strictMode = strictMode;
+    }
+
     public string? Name => nameof(OpenAIMessageConnector);
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
@@ -283,7 +290,7 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
         return new[] { new ChatRequestUserMessage(items) };
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallMessage _)
+    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallMessage msg)
     {
         throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
     }

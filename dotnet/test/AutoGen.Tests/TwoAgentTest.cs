@@ -38,9 +38,9 @@ public partial class TwoAgentTest
             llmConfig: new ConversableAgentConfig
             {
                 ConfigList = new[] { config },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.GetWeatherFunction,
+                    this.GetWeatherFunctionContract,
                 },
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>

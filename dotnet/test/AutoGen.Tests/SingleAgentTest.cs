@@ -108,9 +108,9 @@ namespace AutoGen.Tests
             var llmConfig = new ConversableAgentConfig
             {
                 Temperature = 0,
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.EchoAsyncFunction,
+                    this.EchoAsyncFunctionContract,
                 },
                 ConfigList = new[]
                 {
@@ -148,9 +148,9 @@ namespace AutoGen.Tests
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var llmConfig = new ConversableAgentConfig
             {
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.EchoAsyncFunction,
+                    this.EchoAsyncFunctionContract,
                 },
                 ConfigList = new[]
                 {

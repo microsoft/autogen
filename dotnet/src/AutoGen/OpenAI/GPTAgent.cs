@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core.Middleware;
+using AutoGen.OpenAI.Extension;
 using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 
@@ -203,7 +204,8 @@ public class GPTAgent : IStreamingAgent
             Temperature = options?.Temperature ?? _temperature,
         };
 
-        var functions = options?.Functions ?? _functions;
+        var openAIFunctions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition());
+        var functions = openAIFunctions ?? _functions;
         if (functions is not null && functions.Count() > 0)
         {
             foreach (var f in functions)

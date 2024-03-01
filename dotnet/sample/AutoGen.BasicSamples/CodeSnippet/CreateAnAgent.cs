@@ -86,9 +86,9 @@ public partial class AssistantCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.UpperCaseFunction, // The FunctionDefinition object for the UpperCase function
+                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
                 },
             });
 
@@ -121,9 +121,9 @@ public partial class AssistantCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.UpperCaseFunction, // The FunctionDefinition object for the UpperCase function
+                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>

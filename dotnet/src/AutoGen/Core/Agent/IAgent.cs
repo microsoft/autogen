@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.AI.OpenAI;
 
 namespace AutoGen;
 
@@ -48,5 +47,5 @@ public class GenerateReplyOptions
 
     public string[]? StopSequence { get; set; }
 
-    public FunctionDefinition[]? Functions { get; set; }
+    public FunctionContract[]? Functions { get; set; }
 }

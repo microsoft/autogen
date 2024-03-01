@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.AI.OpenAI;
 
 namespace AutoGen.Core.Middleware;
 
@@ -26,10 +25,11 @@ namespace AutoGen.Core.Middleware;
 /// </summary>
 public class FunctionCallMiddleware : IMiddleware
 {
-    private readonly IEnumerable<FunctionDefinition>? functions;
+    private readonly IEnumerable<FunctionContract>? functions;
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
+
     public FunctionCallMiddleware(
-        IEnumerable<FunctionDefinition>? functions = null,
+        IEnumerable<FunctionContract>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null,
         string? name = null)
     {

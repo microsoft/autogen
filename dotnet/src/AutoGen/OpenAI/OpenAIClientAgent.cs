@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.OpenAI;
@@ -94,7 +95,8 @@ public class OpenAIClientAgent : IStreamingAgent
             Temperature = options?.Temperature ?? _temperature,
         };
 
-        var functions = options?.Functions ?? _functions;
+        var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition());
+        var functions = openAIFunctionDefinitions ?? _functions;
         if (functions is not null && functions.Count() > 0)
         {
             foreach (var f in functions)

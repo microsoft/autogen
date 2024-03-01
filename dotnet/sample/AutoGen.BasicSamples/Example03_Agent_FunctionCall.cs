@@ -54,11 +54,11 @@ public partial class Example03_Agent_FunctionCall
         {
             Temperature = 0,
             ConfigList = llmConfig,
-            FunctionDefinitions = new[]
+            FunctionContracts = new[]
             {
-                ConcatStringFunction,
-                UpperCaseFunction,
-                CalculateTaxFunction,
+                ConcatStringFunctionContract,
+                UpperCaseFunctionContract,
+                CalculateTaxFunctionContract,
             },
         };
 

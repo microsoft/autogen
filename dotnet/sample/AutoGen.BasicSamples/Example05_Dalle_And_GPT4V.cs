@@ -72,9 +72,9 @@ The image is generated from prompt {prompt}
             {
                 Temperature = 0,
                 ConfigList = gpt35Config,
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    instance.GenerateImageFunction,
+                    instance.GenerateImageFunctionContract,
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>

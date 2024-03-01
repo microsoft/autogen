@@ -3,7 +3,6 @@
 
 using AutoGen;
 using AutoGen.OpenAI;
-using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 
 public partial class FunctionCallCodeSnippet
@@ -30,9 +29,9 @@ public partial class FunctionCallCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(), // The FunctionDefinition object for the weather report function
+                    function.WeatherReportFunctionContract,
                 },
             });
 
@@ -67,9 +66,9 @@ public partial class FunctionCallCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(), // The FunctionDefinition object for the weather report function
+                    function.WeatherReportFunctionContract,
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
@@ -100,9 +99,9 @@ public partial class FunctionCallCodeSnippet
             llmConfig: new ConversableAgentConfig
             {
                 ConfigList = new[] { config },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    function.WeatherReportFunctionContract.ToOpenAIFunctionDefinition(),
+                    function.WeatherReportFunctionContract,
                 },
             });
 

@@ -2,13 +2,12 @@
 // ConversableAgentConfig.cs
 
 using System.Collections.Generic;
-using Azure.AI.OpenAI;
 
 namespace AutoGen;
 
 public class ConversableAgentConfig
 {
-    public IEnumerable<FunctionDefinition>? FunctionDefinitions { get; set; }
+    public IEnumerable<FunctionContract>? FunctionContracts { get; set; }
 
     public IEnumerable<ILLMConfig>? ConfigList { get; set; }
 

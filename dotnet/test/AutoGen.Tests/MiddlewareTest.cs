@@ -100,7 +100,7 @@ public partial class MiddlewareTest
         // test 2
         // middleware should invoke function call if agent reply is a function call message
         mw = new FunctionCallMiddleware(
-            functions: [this.EchoFunction],
+            functions: [this.EchoFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { "echo", EchoWrapper } });
         testAgent = functionCallAgent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
