@@ -69,7 +69,7 @@ def check_quarto_bin(quarto_bin: str = "quarto") -> None:
     try:
         version = subprocess.check_output([quarto_bin, "--version"], text=True).strip()
         version = tuple(map(int, version.split(".")))
-        if version < (1,5,23):
+        if version < (1, 5, 23):
             print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
             sys.exit(1)
 
@@ -82,9 +82,11 @@ def notebooks_target_dir(website_directory: Path) -> Path:
     """Return the target directory for notebooks."""
     return website_directory / "docs" / "notebooks"
 
+
 def load_metadata(notebook: Path) -> typing.Dict:
     content = json.load(notebook.open())
     return content["metadata"]
+
 
 def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     """Return a reason to skip the notebook, or None if it should not be skipped."""
@@ -108,7 +110,9 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
 
     # <!-- and --> must exists on lines on their own
     if first_cell["cell_type"] == "markdown" and first_cell["source"][0].strip() == "<!--":
-        raise ValueError(f"Error in {str(notebook.resolve())} - Front matter should be defined in the notebook metadata now.")
+        raise ValueError(
+            f"Error in {str(notebook.resolve())} - Front matter should be defined in the notebook metadata now."
+        )
 
     metadata = load_metadata(notebook)
 
@@ -172,8 +176,9 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
             [quarto_bin, "render", intermediate_notebook], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.returncode != 0:
-            return fmt_error(src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}")
-
+            return fmt_error(
+                src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}"
+            )
 
         # Unlink intermediate files
         intermediate_notebook.unlink()
@@ -192,7 +197,9 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
             [quarto_bin, "render", src_notebook], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.returncode != 0:
-            return fmt_error(src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}")
+            return fmt_error(
+                src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}"
+            )
 
     front_matter = {}
     if "front_matter" in metadata:
@@ -353,14 +360,18 @@ def collect_notebooks(notebook_directory: Path, website_directory: Path) -> typi
     notebooks.extend(list(website_directory.glob("docs/**/*.ipynb")))
     return notebooks
 
+
 def fmt_skip(notebook: Path, reason: str) -> None:
     return f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {reason}"
+
 
 def fmt_ok(notebook: Path) -> None:
     return f"{colored('[OK]', 'green')} {colored(notebook.name, 'blue')} ✅"
 
+
 def fmt_error(notebook: Path, error: NotebookError) -> None:
     return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
+
 
 def start_thread_to_terminate_when_parent_process_dies(ppid: int):
     pid = os.getpid()
@@ -436,15 +447,15 @@ def main() -> None:
                 notebook, optional_error_or_skip = future.result()
                 if isinstance(optional_error_or_skip, NotebookError):
                     if optional_error_or_skip.error_name == "timeout":
-                        print(
-                            fmt_error(notebook, optional_error_or_skip.error_name)
-                        )
+                        print(fmt_error(notebook, optional_error_or_skip.error_name))
 
                     else:
                         print("-" * 80)
 
                         print(
-                            fmt_error(notebook, f"{optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}")
+                            fmt_error(
+                                notebook, f"{optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}"
+                            )
                         )
                         print(optional_error_or_skip.traceback)
                         print("-" * 80)
@@ -452,9 +463,7 @@ def main() -> None:
                         sys.exit(1)
                     failure = True
                 elif isinstance(optional_error_or_skip, NotebookSkip):
-                    print(
-                        fmt_skip(notebook, optional_error_or_skip.reason)
-                    )
+                    print(fmt_skip(notebook, optional_error_or_skip.reason))
                 else:
                     print(fmt_ok(notebook))
 
@@ -468,7 +477,11 @@ def main() -> None:
             notebooks_target_dir(args.website_directory).mkdir(parents=True)
 
         for notebook in filtered_notebooks:
-            print(process_notebook(notebook, args.website_directory, args.notebook_directory, args.quarto_bin, args.dry_run))
+            print(
+                process_notebook(
+                    notebook, args.website_directory, args.notebook_directory, args.quarto_bin, args.dry_run
+                )
+            )
     else:
         print("Unknown subcommand")
         sys.exit(1)
