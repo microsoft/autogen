@@ -21,7 +21,7 @@ class ActorConnector:
         Debug("AgentConnector", f"subscribe to: {self._resp_topic}")
         self._resp_socket.setsockopt_string(zmq.SUBSCRIBE, f"{self._resp_topic}")
         self._topic = topic
-        time.sleep(0.05)  # Let the network do things.
+        time.sleep(0.01)  # Let the network do things.
 
     def send_txt_msg(self, msg):
         self._pub_socket.send_multipart(
@@ -42,10 +42,10 @@ class ActorConnector:
                 resp_topic, resp_msg_type, resp_sender_topic, resp = self._resp_socket.recv_multipart()
                 return resp_topic, resp_msg_type, resp_sender_topic, resp
             except zmq.Again:
-                Debug("AgentConnector", f"binary_request: No response received. retry_count={i}, max_retry={retry}")
-                time.sleep(0.05) # Don't go crazy
+                Debug("ActorConnector", f"binary_request: No response received. retry_count={i}, max_retry={retry}")
+                time.sleep(0.01) # Wait a bit before retrying
                 continue
-        Error("AgentConnector", "binary_request: No response received. Giving up.")
+        Error("ActorConnector", "binary_request: No response received. Giving up.")
         return None, None, None, None
 
     def close(self):

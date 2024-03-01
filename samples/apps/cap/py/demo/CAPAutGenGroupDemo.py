@@ -60,10 +60,20 @@ def cap_ag_group_demo():
         "Find a latest paper about gpt-4 on arxiv and find its potential applications in software."
     )
 
-    while True:
-        time.sleep(0.5)
-        if not user_proxy_cap2ag.run and not coder_cap2ag.run and not pm_cap2ag.run and not manager_cap2ag.run:
-            break
+    # Periodically Check the status of all running Agents
+    # Exit when all agents are done
+    try:
+        while True:
+            time.sleep(0.5)
+            if (
+                not user_proxy_cap2ag.run 
+                and not coder_cap2ag.run 
+                and not pm_cap2ag.run 
+                and not manager_cap2ag.run
+            ):
+                break
+    except KeyboardInterrupt:
+        print("Interrupted by user, shutting down.")
 
     network.disconnect()
     Info("App", "App Exit")

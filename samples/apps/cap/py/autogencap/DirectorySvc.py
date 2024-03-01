@@ -82,7 +82,6 @@ class DirectorySvc:
 
     def start(self):
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
-        time.sleep(0.05) # Let the network do things.
         if (self._no_other_directory()):
             self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
             self._directory_actor.start(self._context)
@@ -115,6 +114,7 @@ class DirectorySvc:
                 return actor_lookup_resp.actor.info_coll[0]
         return None
 
+# Standalone min proxy for a standalone directory service
 class MinProxy:
     def __init__(self, context: zmq.Context):
         self._context: zmq.Context = context
@@ -125,12 +125,14 @@ class MinProxy:
         # Start the proxy thread
         proxy_thread = threading.Thread(target=self.proxy_thread_fn)
         proxy_thread.start()
+        time.sleep(0.01)
 
     def stop(self):
         self._xsub.setsockopt(zmq.LINGER, 0)
         self._xpub.setsockopt(zmq.LINGER, 0)
         self._xpub.close()
         self._xsub.close()
+        time.sleep(0.01)
 
     def proxy_thread_fn(self):
         self._xpub: zmq.Socket = self._context.socket(zmq.XPUB)
@@ -151,18 +153,15 @@ class MinProxy:
         finally:
             Info(f"proxy_thread_fn", f"proxy_thread_fn terminated.")
 
+# Run a standalone directory service
 def main():
-    # Standalone min repro sanity check for DirectorySvc
-    
     context: zmq.Context = zmq.Context()
     # Start simple broker (will exit if real broker is running)
     proxy: MinProxy = MinProxy(context)
     proxy.start()
-    time.sleep(0.05) # wait for proxy sockets to bind
     # Start the directory service
     directory_svc = DirectorySvc(context)
     directory_svc.start()
-    time.sleep(0.05) # wait for directory sockets to connect
     # register an actor
     directory_svc.register_actor_by_name("my_actor")
     # look up an actor
@@ -172,7 +171,6 @@ def main():
     
     directory_svc.stop()
     proxy.stop()
-    time.sleep(0.05) # wait for directory and proxy sockets to close
     context.term()
     Info("main", "Done.")
     

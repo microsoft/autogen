@@ -29,9 +29,13 @@ def cap_ag_pair_demo():
     user_proxy.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
     # Hang around for a while
-    while True:
-        time.sleep(0.5)
-        if not user_proxy_adptr.run and not assistant_adptr.run:
-            break
+    try: 
+        while True:
+            time.sleep(0.5)
+            if (not user_proxy_adptr.run 
+                and not assistant_adptr.run):
+                break
+    except KeyboardInterrupt:
+        print("Interrupted by user, shutting down.")
     network.disconnect()
     Info("App", "App Exit")

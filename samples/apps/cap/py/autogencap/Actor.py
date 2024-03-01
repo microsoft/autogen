@@ -1,6 +1,7 @@
 import zmq
 import threading
 import traceback
+import time
 from .DebugLog import Debug, Info
 from .Config import xpub_url
 
@@ -62,6 +63,7 @@ class Actor:
         self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         self._thread = threading.Thread(target=self._recv_thread)
         self._thread.start()
+        time.sleep(0.01)
 
     def disconnect_network(self, network):
         Debug(self.actor_name, f"is disconnecting from {network}")

@@ -33,6 +33,7 @@ class Broker:
         self._run = True
         self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
+        time.sleep(0.01)
         return True
 
     def stop(self):
@@ -71,6 +72,8 @@ class Broker:
             Debug("BROKER", "thread ended")
         return
 
+# Run a standalone broker that all other Actors can connect to.
+# This can also run inproc with the other actors.
 def main():
     broker = Broker()
     Info("BROKER", "Starting.")
@@ -82,6 +85,11 @@ def main():
     
     status_interval = 10
     last_time = time.time()
+    
+    # Broker is running in a separate thread. Here we are watching the 
+    # broker's status and printing status every few seconds.  This is
+    # a good place to print other statistics captured as the broker runs.
+    # -- Exits when the user presses Ctrl+C --
     while(broker._run):
         # print a message every n seconds
         current_time = time.time()
