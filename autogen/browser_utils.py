@@ -12,7 +12,7 @@ import pathvalidate
 from urllib.parse import urljoin, urlparse, unquote, parse_qs
 from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
-from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 
 
 class SimpleTextBrowser:
@@ -172,6 +172,13 @@ class SimpleTextBrowser:
     def visit_page(self, path_or_uri: str) -> str:
         """Update the address, visit the page, and return the content of the viewport."""
         self.set_address(path_or_uri)
+        return self.viewport
+
+    def open_local_file(self, local_path: str) -> str:
+        """Convert a local file path to a file:/// URI, update the address, visit the page,
+        and return the contents of the viewport."""
+        full_path = os.path.abspath(os.path.expanduser(local_path))
+        self.set_address(pathlib.Path(full_path).as_uri())
         return self.viewport
 
     def _split_pages(self) -> None:

@@ -59,6 +59,7 @@ setuptools.setup(
             "pathvalidate",
             # mdconvert
             "puremagic",  # File identification
+            "binaryornot",  # More file identification
             "pdfminer.six",  # Pdf
             "mammoth",  # Docx
             "python-pptx",  # Ppts
