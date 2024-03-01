@@ -35,6 +35,7 @@ class LocalActorNetwork:
         self._init_runtime()
         # Get actor's name and description and add to a dictionary so
         # that we can look up the actor by name
+        time.sleep(0.05)
         self._directory_svc.register_actor_by_name(actor.actor_name)
         self.local_actors[actor.actor_name] = actor
         actor.start(self._context)
