@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace AutoGen.Core;
 
-public class MessageEnvelope<T> : IMessage<T>
+public class MessageEnvelope<T> : IMessage<T>, IStreamingMessage<T>
 {
     public MessageEnvelope(T content, string? from = null, IDictionary<string, object>? metadata = null)
     {

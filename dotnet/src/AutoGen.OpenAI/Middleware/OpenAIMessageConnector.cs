@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Azure.AI.OpenAI;
@@ -43,9 +44,46 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
         return PostProcessMessage(reply);
     }
 
-    public Task<IAsyncEnumerable<IMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(
+        MiddlewareContext context,
+        IStreamingAgent agent,
+        CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return InvokeStreamingAsync(context, agent, cancellationToken);
+    }
+
+    private async IAsyncEnumerable<IStreamingMessage> InvokeStreamingAsync(
+        MiddlewareContext context,
+        IStreamingAgent agent,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var chatMessages = ProcessIncomingMessages(agent, context.Messages)
+            .Select(m => new MessageEnvelope<ChatRequestMessage>(m));
+        var streamingReply = await agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
+        string? currentToolName = null;
+        await foreach (var reply in streamingReply)
+        {
+            if (reply is IStreamingMessage<StreamingChatCompletionsUpdate> update)
+            {
+                if (update.Content.FunctionName is string functionName)
+                {
+                    currentToolName = functionName;
+                }
+                else if (update.Content.ToolCallUpdate is StreamingFunctionToolCallUpdate toolCallUpdate && toolCallUpdate.Name is string toolCallName)
+                {
+                    currentToolName = toolCallName;
+                }
+                var postProcessMessage = PostProcessStreamingMessage(update, currentToolName);
+                if (postProcessMessage != null)
+                {
+                    yield return postProcessMessage;
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("The type of streaming reply is not supported. Must be one of StreamingChatCompletionsUpdate");
+            }
+        }
     }
 
     public IMessage PostProcessMessage(IMessage message)
@@ -62,6 +100,31 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
             IMessage<ChatResponseMessage> m => PostProcessMessage(m),
             _ => throw new InvalidOperationException("The type of message is not supported. Must be one of TextMessage, ImageMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, Message, IMessage<ChatRequestMessage>, AggregateMessage<ToolCallMessage, ToolCallResultMessage>"),
         };
+    }
+
+    public IStreamingMessage? PostProcessStreamingMessage(IStreamingMessage<StreamingChatCompletionsUpdate> update, string? currentToolName)
+    {
+        if (update.Content.ContentUpdate is string contentUpdate)
+        {
+            // text message
+            return new TextMessageUpdate(Role.Assistant, contentUpdate, from: update.From);
+        }
+        else if (update.Content.FunctionName is string functionName)
+        {
+            return new ToolCallMessageUpdate(functionName, string.Empty, from: update.From);
+        }
+        else if (update.Content.FunctionArgumentsUpdate is string functionArgumentsUpdate && currentToolName is string)
+        {
+            return new ToolCallMessageUpdate(currentToolName, functionArgumentsUpdate, from: update.From);
+        }
+        else if (update.Content.ToolCallUpdate is StreamingFunctionToolCallUpdate tooCallUpdate && currentToolName is string)
+        {
+            return new ToolCallMessageUpdate(tooCallUpdate.Name ?? currentToolName, tooCallUpdate.ArgumentsUpdate, from: update.From);
+        }
+        else
+        {
+            return null;
+        }
     }
 
     private IMessage PostProcessMessage(IMessage<ChatResponseMessage> message)

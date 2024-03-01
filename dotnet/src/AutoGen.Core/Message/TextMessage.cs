@@ -3,13 +3,35 @@
 
 namespace AutoGen.Core;
 
-public class TextMessage : IMessage
+public class TextMessage : IMessage, IStreamingMessage
 {
     public TextMessage(Role role, string content, string? from = null)
     {
         this.Content = content;
         this.Role = role;
         this.From = from;
+    }
+
+    public TextMessage(TextMessageUpdate update)
+    {
+        this.Content = update.Content;
+        this.Role = update.Role;
+        this.From = update.From;
+    }
+
+    public void Update(TextMessageUpdate update)
+    {
+        if (update.Role != this.Role)
+        {
+            throw new System.ArgumentException("Role mismatch", nameof(update));
+        }
+
+        if (update.From != this.From)
+        {
+            throw new System.ArgumentException("From mismatch", nameof(update));
+        }
+
+        this.Content = this.Content + update.Content;
     }
 
     public Role Role { get; set; }
@@ -22,4 +44,20 @@ public class TextMessage : IMessage
     {
         return $"TextMessage({this.Role}, {this.Content}, {this.From})";
     }
+}
+
+public class TextMessageUpdate : IStreamingMessage
+{
+    public TextMessageUpdate(Role role, string content, string? from = null)
+    {
+        this.Content = content;
+        this.From = from;
+        this.Role = role;
+    }
+
+    public string Content { get; set; }
+
+    public string? From { get; set; }
+
+    public Role Role { get; set; }
 }

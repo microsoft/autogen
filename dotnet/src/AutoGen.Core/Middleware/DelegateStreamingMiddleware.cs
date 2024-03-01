@@ -9,7 +9,7 @@ namespace AutoGen.Core;
 
 internal class DelegateStreamingMiddleware : IStreamingMiddleware
 {
-    public delegate Task<IAsyncEnumerable<IMessage>> MiddlewareDelegate(
+    public delegate Task<IAsyncEnumerable<IStreamingMessage>> MiddlewareDelegate(
         MiddlewareContext context,
         IStreamingAgent agent,
         CancellationToken cancellationToken);
@@ -24,7 +24,7 @@ internal class DelegateStreamingMiddleware : IStreamingMiddleware
 
     public string? Name { get; }
 
-    public Task<IAsyncEnumerable<IMessage>> InvokeAsync(
+    public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(
                MiddlewareContext context,
                IStreamingAgent agent,
                CancellationToken cancellationToken = default)

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Extension;
@@ -24,6 +25,7 @@ namespace AutoGen.OpenAI;
 /// <list type="bullet">
 /// <item>
 /// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatResponseMessage"/>: chat response message.
+/// <see cref="MessageEnvelope{T}"/> where T is <see cref="StreamingChatCompletionsUpdate"/>: streaming chat completions update.
 /// </item>
 /// </list>
 /// </summary>
@@ -67,12 +69,30 @@ public class OpenAIClientAgent : IStreamingAgent
         return new MessageEnvelope<ChatResponseMessage>(reply.Value.Choices.First().Message, from: this.Name);
     }
 
-    public Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
+    public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.FromResult(this.StreamingReplyAsync(messages, options, cancellationToken));
+    }
+
+    private async IAsyncEnumerable<IStreamingMessage> StreamingReplyAsync(
+        IEnumerable<IMessage> messages,
+        GenerateReplyOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var settings = this.CreateChatCompletionsOptions(options, messages);
+        var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings);
+        await foreach (var update in response.WithCancellation(cancellationToken))
+        {
+            if (update.ChoiceIndex > 0)
+            {
+                throw new InvalidOperationException("Only one choice is supported in streaming response");
+            }
+
+            yield return new MessageEnvelope<StreamingChatCompletionsUpdate>(update, from: this.Name);
+        }
     }
 
     private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)

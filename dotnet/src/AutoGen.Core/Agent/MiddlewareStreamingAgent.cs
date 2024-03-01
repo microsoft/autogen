@@ -40,7 +40,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
         throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
     }
 
-    public Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var agent = _agent;
         foreach (var middleware in _middlewares)
@@ -56,7 +56,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
         _middlewares.Add(middleware);
     }
 
-    public void Use(Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func, string? middlewareName = null)
+    public void Use(Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IStreamingMessage>>> func, string? middlewareName = null)
     {
         _middlewares.Add(new DelegateStreamingMiddleware(middlewareName, new DelegateStreamingMiddleware.MiddlewareDelegate(func)));
     }
@@ -79,7 +79,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
             throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
         }
 
-        public Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+        public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
             // TODO
             // fix this

@@ -190,7 +190,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this TAgent agent,
-        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IStreamingMessage>>> func,
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {
@@ -205,7 +205,7 @@ public static class MiddlewareExtension
     /// </summary>
     public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this MiddlewareStreamingAgent<TAgent> agent,
-        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
+        Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IStreamingMessage>>> func,
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {

@@ -235,23 +235,24 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "[ECHO] Hello world";
-            IMessage? finalReply = default;
+            IStreamingMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
                 reply.From.Should().Be(agent.Name);
                 finalReply = reply;
             }
 
-            if (finalReply is ToolCallResultMessage toolCallResultMessage)
+            if (finalReply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
             {
+                var toolCallResultMessage = aggregateMessage.Message2;
                 toolCallResultMessage.ToolCalls.First().Result.Should().Be(answer);
                 toolCallResultMessage.From.Should().Be(agent.Name);
                 toolCallResultMessage.ToolCalls.First().FunctionName.Should().Be(nameof(EchoAsync));
@@ -275,24 +276,29 @@ namespace AutoGen.Tests
 
         private async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new Message(Role.User, "a b c d e f g h i j k l m n");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var helloWorld = new TextMessage(Role.User, "a b c d e f g h i j k l m n");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "A B C D E F G H I J K L M N";
             TextMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
-                if (reply is TextMessage textMessage)
+                if (reply is TextMessageUpdate update)
                 {
-                    textMessage.From.Should().Be(agent.Name);
+                    update.From.Should().Be(agent.Name);
 
-                    // the content should be part of the answer
-                    textMessage.Content.Should().Be(answer.Substring(0, textMessage.Content!.Length));
-                    finalReply = textMessage;
+                    if (finalReply is null)
+                    {
+                        finalReply = new TextMessage(update);
+                    }
+                    else
+                    {
+                        finalReply.Update(update);
+                    }
 
                     continue;
                 }

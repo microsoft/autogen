@@ -48,6 +48,32 @@ public class ToolCallMessage : IMessage
         this.ToolCalls = new List<ToolCall> { new ToolCall(functionName, functionArgs) };
     }
 
+    public ToolCallMessage(ToolCallMessageUpdate update)
+    {
+        this.From = update.From;
+        this.ToolCalls = new List<ToolCall> { new ToolCall(update.FunctionName, update.FunctionArgumentUpdate) };
+    }
+
+    public void Update(ToolCallMessageUpdate update)
+    {
+        // firstly, valid if the update is from the same agent
+        if (update.From != this.From)
+        {
+            throw new System.ArgumentException("From mismatch", nameof(update));
+        }
+
+        // if update.FunctionName exists in the tool calls, update the function arguments
+        var toolCall = this.ToolCalls.FirstOrDefault(tc => tc.FunctionName == update.FunctionName);
+        if (toolCall is not null)
+        {
+            toolCall.FunctionArguments += update.FunctionArgumentUpdate;
+        }
+        else
+        {
+            this.ToolCalls.Add(new ToolCall(update.FunctionName, update.FunctionArgumentUpdate));
+        }
+    }
+
     public IList<ToolCall> ToolCalls { get; set; }
 
     public string? From { get; set; }
@@ -63,4 +89,20 @@ public class ToolCallMessage : IMessage
 
         return sb.ToString();
     }
+}
+
+public class ToolCallMessageUpdate : IStreamingMessage
+{
+    public ToolCallMessageUpdate(string functionName, string functionArgumentUpdate, string? from = null)
+    {
+        this.From = from;
+        this.FunctionName = functionName;
+        this.FunctionArgumentUpdate = functionArgumentUpdate;
+    }
+
+    public string? From { get; set; }
+
+    public string FunctionName { get; set; }
+
+    public string FunctionArgumentUpdate { get; set; }
 }

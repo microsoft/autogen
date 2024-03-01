@@ -33,12 +33,20 @@ namespace AutoGen.Core;
 /// </item>
 /// </list>
 /// </summary>
-public interface IMessage
+public interface IMessage : IStreamingMessage
+{
+}
+
+public interface IMessage<out T> : IMessage, IStreamingMessage<T>
+{
+}
+
+public interface IStreamingMessage
 {
     string? From { get; set; }
 }
 
-public interface IMessage<out T> : IMessage
+public interface IStreamingMessage<out T> : IStreamingMessage
 {
     T Content { get; }
 }

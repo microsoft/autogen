@@ -92,7 +92,7 @@ public class SemanticKernelAgent : IStreamingAgent
         }
     }
 
-    public async Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
+    public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
