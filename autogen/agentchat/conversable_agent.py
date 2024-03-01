@@ -1191,7 +1191,10 @@ class ConversableAgent(LLMAgent):
         return extracted_response
 
     async def a_generate_oai_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai asynchronously."""
         return await asyncio.get_event_loop().run_in_executor(
@@ -1299,7 +1302,10 @@ class ConversableAgent(LLMAgent):
         return False, None
 
     def generate_function_call_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
         """
         Generate a reply using function call.
@@ -1334,7 +1340,10 @@ class ConversableAgent(LLMAgent):
         return False, None
 
     async def a_generate_function_call_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
         """
         Generate a reply using async function call.
@@ -1420,7 +1429,10 @@ class ConversableAgent(LLMAgent):
         }
 
     async def a_generate_tool_calls_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[Dict, None]]:
         """Generate a reply using async function call."""
         if config is None:
@@ -1442,7 +1454,10 @@ class ConversableAgent(LLMAgent):
         return False, None
 
     def check_termination_and_human_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, None]]:
         """Check if the conversation should be terminated, and if human reply is provided.
 
@@ -1499,7 +1514,6 @@ class ConversableAgent(LLMAgent):
                     reply = self.get_human_input(
                         f"Please give feedback to {sender_name}. Press enter or type 'exit' to stop the conversation: "
                     )
-                    assert False
                     no_human_input_msg = "NO HUMAN INPUT RECEIVED." if not reply else ""
                     # if the human input is empty, and the message is a termination message, then we will terminate the conversation
                     reply = reply or "exit"
@@ -1551,7 +1565,10 @@ class ConversableAgent(LLMAgent):
         return False, None
 
     async def a_check_termination_and_human_reply(
-        self, messages: Optional[List[Dict]] = None, sender: Optional[Agent] = None, config: Optional[Any] = None
+        self,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, None]]:
         """(async) Check if the conversation should be terminated, and if human reply is provided.
 
@@ -2148,7 +2165,10 @@ class ConversableAgent(LLMAgent):
                     func for func in self.llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
-            assert isinstance(func_sig, dict)
+            if not isinstance(func_sig, dict):
+                raise ValueError(
+                    f"The function signature must be of the type dict. Received function signature type {type(func_sig)}"
+                )
 
             self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
@@ -2186,8 +2206,10 @@ class ConversableAgent(LLMAgent):
                     tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
-            assert isinstance(tool_sig, dict)
-
+            if not isinstance(tool_sig, dict):
+                raise ValueError(
+                    f"The tool signature must be of the type dict. Received tool signature type {type(tool_sig)}"
+                )
             self._assert_valid_name(tool_sig["function"]["name"])
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
