@@ -21,7 +21,10 @@ class Agent(Protocol):
         ...
 
     def send(
-        self, message: Union[Dict[str, Any], str], recipient: "Agent", request_reply: Optional[bool] = None
+        self,
+        message: Union[Dict[str, Any], str],
+        recipient: "Agent",
+        request_reply: Optional[bool] = None,
     ) -> None:
         """Send a message to another agent.
 
@@ -34,7 +37,10 @@ class Agent(Protocol):
         ...
 
     async def a_send(
-        self, message: Union[Dict[str, Any], str], recipient: "Agent", request_reply: Optional[bool] = None
+        self,
+        message: Union[Dict[str, Any], str],
+        recipient: "Agent",
+        request_reply: Optional[bool] = None,
     ) -> None:
         """(Async) Send a message to another agent.
 
@@ -47,7 +53,10 @@ class Agent(Protocol):
         ...
 
     def receive(
-        self, message: Union[Dict[str, Any], str], sender: "Agent", request_reply: Optional[bool] = None
+        self,
+        message: Union[Dict[str, Any], str],
+        sender: "Agent",
+        request_reply: Optional[bool] = None,
     ) -> None:
         """Receive a message from another agent.
 
@@ -75,7 +84,10 @@ class Agent(Protocol):
         ...
 
     def generate_reply(
-        self, messages: Optional[List[Dict[str, Any]]] = None, sender: Optional["Agent"] = None, **kwargs: Any
+        self,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """Generate a reply based on the received messages.
 
@@ -90,7 +102,10 @@ class Agent(Protocol):
         """
 
     async def a_generate_reply(
-        self, messages: Optional[List[Dict[str, Any]]] = None, sender: Optional["Agent"] = None, **kwargs: Any
+        self,
+        messages: Optional[List[Dict[str, Any]]] = None,
+        sender: Optional["Agent"] = None,
+        **kwargs: Any,
     ) -> Union[str, Dict[str, Any], None]:
         """(Async) Generate a reply based on the received messages.
 
