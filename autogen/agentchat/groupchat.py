@@ -626,7 +626,7 @@ class GroupChatManager(ConversableAgent):
             # Broadcast the intro
             intro = groupchat.introductions_msg()
             for agent in groupchat.agents:
-                self.a_send(intro, agent, request_reply=False, silent=True)
+                await self.a_send(intro, agent, request_reply=False, silent=True)
             # NOTE: We do not also append to groupchat.messages,
             # since groupchat handles its own introductions
 
