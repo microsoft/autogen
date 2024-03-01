@@ -36,8 +36,8 @@ def complex_actor_demo():
     print(colored(info_msg, "blue"))
 
     while True:
-        # Let the network do things and then get the next prompt from user
-        time.sleep(0.1)
+        # For aesthetic reasons, better to let network messages complete
+        time.sleep(0.1) 
         # Get a message from the user
         msg = input(colored("Enter your name (or quit): ", "light_red"))
         # Send the message to the personal assistant agent
