@@ -223,7 +223,7 @@ namespace AutoGen.Tests
 
             reply.GetContent().Should().Be("[ECHO] Hello world");
             reply.From.Should().Be(agent.Name);
-            reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
+            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
         }
 
         private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)

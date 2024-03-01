@@ -47,7 +47,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
                 ConfigList = gptConfig,
             });
 
-        var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE)
+        var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
             .RegisterPrintFormatMessageHook();
 
         // Create admin agent

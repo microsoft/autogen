@@ -27,17 +27,62 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
 {
     public string? Name => nameof(OpenAIMessageConnector);
 
-    public Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
+    public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
         var chatMessages = ProcessIncomingMessages(agent, context.Messages)
             .Select(m => new MessageEnvelope<ChatRequestMessage>(m));
 
-        return agent.GenerateReplyAsync(chatMessages, context.Options, cancellationToken);
+        var reply = await agent.GenerateReplyAsync(chatMessages, context.Options, cancellationToken);
+
+        return PostProcessMessage(reply);
     }
 
     public Task<IAsyncEnumerable<IMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
+    }
+
+    public IMessage PostProcessMessage(IMessage message)
+    {
+        return message switch
+        {
+            TextMessage => message,
+            ImageMessage => message,
+            MultiModalMessage => message,
+            ToolCallMessage => message,
+            ToolCallResultMessage => message,
+            Message => message,
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> => message,
+            IMessage<ChatResponseMessage> m => PostProcessMessage(m),
+            _ => throw new InvalidOperationException("The type of message is not supported. Must be one of TextMessage, ImageMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, Message, IMessage<ChatRequestMessage>, AggregateMessage<ToolCallMessage, ToolCallResultMessage>"),
+        };
+    }
+
+    private IMessage PostProcessMessage(IMessage<ChatResponseMessage> message)
+    {
+        var chatResponseMessage = message.Content;
+        if (chatResponseMessage.Content is string content)
+        {
+            return new TextMessage(Role.Assistant, content, message.From);
+        }
+
+        if (chatResponseMessage.FunctionCall is FunctionCall functionCall)
+        {
+            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, message.From);
+        }
+
+        if (chatResponseMessage.ToolCalls.Where(tc => tc is ChatCompletionsFunctionToolCall).Any())
+        {
+            var functionToolCalls = chatResponseMessage.ToolCalls
+                .Where(tc => tc is ChatCompletionsFunctionToolCall)
+                .Select(tc => (ChatCompletionsFunctionToolCall)tc);
+
+            var toolCalls = functionToolCalls.Select(tc => new ToolCall(tc.Name, tc.Arguments));
+
+            return new ToolCallMessage(toolCalls, message.From);
+        }
+
+        throw new InvalidOperationException("Invalid ChatResponseMessage");
     }
 
     public IEnumerable<ChatRequestMessage> ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages)
@@ -160,7 +205,7 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
             }
             else
             {
-                return new[] { new ChatRequestFunctionMessage(message.FunctionName, content) };
+                return new[] { new ChatRequestToolMessage(content, message.FunctionName) };
             }
         }
         else if (message.FunctionName is string functionName)

@@ -85,9 +85,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
                 while (maxRetry-- > 0)
                 {
-                    if (reply is ToolCallResultMessage toolResultMessage && toolResultMessage.ToolCalls is { Count: 1 } && toolResultMessage.ToolCalls[0].FunctionName == nameof(ReviewCodeBlock))
+                    if (reply.GetToolCalls() is var toolCalls && toolCalls.Count() == 1 && toolCalls[0].FunctionName == nameof(ReviewCodeBlock))
                     {
-                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(toolResultMessage.ToolCalls[0].Result);
+                        var toolCallResult = reply.GetContent();
+                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(toolCallResult);
                         var reviews = new List<string>();
                         if (reviewResultObj.HasMultipleCodeBlocks)
                         {

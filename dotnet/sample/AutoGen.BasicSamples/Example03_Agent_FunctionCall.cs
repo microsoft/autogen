@@ -76,19 +76,15 @@ public partial class Example03_Agent_FunctionCall
 
         // talk to the assistant agent
         var upperCase = await agent.SendAsync("convert to upper case: hello world");
-        upperCase.Should().BeOfType<ToolCallResultMessage>();
-        var upperCaseResult = (ToolCallResultMessage)upperCase;
-        upperCaseResult.ToolCalls.First().Result?.Should().Be("HELLO WORLD");
-        upperCaseResult.ToolCalls.Count().Should().Be(1);
+        upperCase.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        upperCase.GetContent()?.Should().Be("HELLO WORLD");
 
         var concatString = await agent.SendAsync("concatenate strings: a, b, c, d, e");
-        concatString.Should().BeOfType<ToolCallResultMessage>();
-        var concatStringResult = (ToolCallResultMessage)concatString;
-        concatStringResult.ToolCalls.First().Result?.Should().Be("a b c d e");
+        concatString.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        concatString.GetContent()?.Should().Be("a b c d e");
 
         var calculateTax = await agent.SendAsync("calculate tax: 100, 0.1");
-        calculateTax.Should().BeOfType<ToolCallResultMessage>();
-        var calculateTaxResult = (ToolCallResultMessage)calculateTax;
-        calculateTaxResult.ToolCalls.First().Result?.Should().Be("tax is 10");
+        calculateTax.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        calculateTax.GetContent().Should().Be("tax is 10");
     }
 }

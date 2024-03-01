@@ -81,7 +81,7 @@ The image is generated from prompt {prompt}
             {
                 { nameof(GenerateImage), instance.GenerateImageWrapper },
             })
-            .RegisterReply(async (msgs, ct) =>
+            .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 // if last message contains [TERMINATE], then find the last image url and terminate the conversation
                 if (msgs.Last().GetContent()?.Contains("TERMINATE") is true)
@@ -102,7 +102,19 @@ The image is generated from prompt {prompt}
                     };
                 }
 
-                return null;
+                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
+
+                if (reply.GetContent() is string content && content.Contains("IMAGE_GENERATION"))
+                {
+                    var imageUrl = content.Split("\n").Last();
+                    var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: reply.From);
+
+                    return imageMessage;
+                }
+                else
+                {
+                    return reply;
+                }
             })
             .RegisterPrintFormatMessageHook();
 
@@ -121,34 +133,8 @@ The image should satisfy the following conditions:
             {
                 Temperature = 0,
                 ConfigList = gpt4vConfig,
-            }).RegisterReply(async (msgs, ct) =>
-            {
-                // if no image is generated, then ask DALL-E agent to generate image
-                if (msgs.Last() is not ImageMessage)
-                {
-                    return new TextMessage(Role.Assistant, "Hey dalle, please generate image", from: "gpt4v");
-                }
-
-                return null;
             })
-            .RegisterPreProcess(async (msgs, ct) =>
-            {
-                // add image url to message metadata so it can be recognized by GPT-4V
-                return msgs.Select(msg =>
-                {
-                    if (msg.GetContent() is string content && content.Contains("IMAGE_GENERATION"))
-                    {
-                        var imageUrl = content.Split("\n").Last();
-                        var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: msg.From);
-
-                        return imageMessage;
-                    }
-                    else
-                    {
-                        return msg;
-                    }
-                });
-            }).RegisterPrintFormatMessageHook();
+            .RegisterPrintFormatMessageHook();
 
         IEnumerable<IMessage> conversation = new List<IMessage>()
         {

@@ -16,10 +16,100 @@ public static class MessageExtension
         return message switch
         {
             Message msg => msg.FormatMessage(),
+            TextMessage textMessage => textMessage.FormatMessage(),
+            ImageMessage imageMessage => imageMessage.FormatMessage(),
+            ToolCallMessage toolCallMessage => toolCallMessage.FormatMessage(),
+            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.FormatMessage(),
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.FormatMessage(),
             _ => message.ToString(),
         };
     }
 
+    public static string FormatMessage(this TextMessage message)
+    {
+        var sb = new StringBuilder();
+        // write from
+        sb.AppendLine($"TextMessage from {message.From}");
+        // write a seperator
+        sb.AppendLine(separator);
+        sb.AppendLine(message.Content);
+        // write a seperator
+        sb.AppendLine(separator);
+
+        return sb.ToString();
+    }
+
+    public static string FormatMessage(this ImageMessage message)
+    {
+        var sb = new StringBuilder();
+        // write from
+        sb.AppendLine($"ImageMessage from {message.From}");
+        // write a seperator
+        sb.AppendLine(separator);
+        sb.AppendLine($"Image: {message.Url}");
+        // write a seperator
+        sb.AppendLine(separator);
+
+        return sb.ToString();
+    }
+
+    public static string FormatMessage(this ToolCallMessage message)
+    {
+        var sb = new StringBuilder();
+        // write from
+        sb.AppendLine($"ToolCallMessage from {message.From}");
+
+        // write a seperator
+        sb.AppendLine(separator);
+
+        foreach (var toolCall in message.ToolCalls)
+        {
+            sb.AppendLine($"- {toolCall.FunctionName}: {toolCall.FunctionArguments}");
+        }
+
+        sb.AppendLine(separator);
+
+        return sb.ToString();
+    }
+
+    public static string FormatMessage(this ToolCallResultMessage message)
+    {
+        var sb = new StringBuilder();
+        // write from
+        sb.AppendLine($"ToolCallResultMessage from {message.From}");
+
+        // write a seperator
+        sb.AppendLine(separator);
+
+        foreach (var toolCall in message.ToolCalls)
+        {
+            sb.AppendLine($"- {toolCall.FunctionName}: {toolCall.Result}");
+        }
+
+        sb.AppendLine(separator);
+
+        return sb.ToString();
+    }
+
+    public static string FormatMessage(this AggregateMessage<ToolCallMessage, ToolCallResultMessage> message)
+    {
+        var sb = new StringBuilder();
+        // write from
+        sb.AppendLine($"AggregateMessage from {message.From}");
+
+        // write a seperator
+        sb.AppendLine(separator);
+
+        sb.AppendLine("ToolCallMessage:");
+        sb.AppendLine(message.Message1.FormatMessage());
+
+        sb.AppendLine("ToolCallResultMessage:");
+        sb.AppendLine(message.Message2.FormatMessage());
+
+        sb.AppendLine(separator);
+
+        return sb.ToString();
+    }
     public static string FormatMessage(this Message message)
     {
         var sb = new StringBuilder();
@@ -68,6 +158,8 @@ public static class MessageExtension
     /// Get the content from the message
     /// <para>if the message is a <see cref="Message"/> or <see cref="TextMessage"/>, return the content</para>
     /// <para>if the message is a <see cref="ToolCallResultMessage"/> and only contains one function call, return the result of that function call</para>
+    /// <para>if the message is a <see cref="AggregateMessage{ToolCallMessage, ToolCallResultMessage}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/> and the second message only contains one function call, return the result of that function call</para>
+    /// <para>for all other situation, return null.</para>
     /// </summary>
     /// <param name="message"></param>
     public static string? GetContent(this IMessage message)
@@ -76,7 +168,8 @@ public static class MessageExtension
         {
             TextMessage textMessage => textMessage.Content,
             Message msg => msg.Content,
-            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.GetToolCalls().Count() == 1 ? toolCallResultMessage.GetToolCalls().First().Result : null,
+            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.ToolCalls.Count == 1 ? toolCallResultMessage.ToolCalls.First().Result : null,
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message2.ToolCalls.Count == 1 ? aggregateMessage.Message2.ToolCalls.First().Result : null,
             _ => null,
         };
     }
@@ -98,6 +191,9 @@ public static class MessageExtension
 
     /// <summary>
     /// Return the tool calls from the message if it's available.
+    /// <para>if the message is a <see cref="ToolCallMessage"/>, return its tool calls</para>
+    /// <para>if the message is a <see cref="Message"/> and the function name and function arguments are available, return a list of tool call with one item</para>
+    /// <para>if the message is a <see cref="AggregateMessage{ToolCallMessage, ToolCallResultMessage}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/>, return the tool calls from the first message</para>
     /// </summary>
     /// <param name="message"></param>
     /// <returns></returns>
@@ -106,11 +202,11 @@ public static class MessageExtension
         return message switch
         {
             ToolCallMessage toolCallMessage => toolCallMessage.ToolCalls,
-            ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.ToolCalls,
             Message msg => msg.FunctionName is not null && msg.FunctionArguments is not null
                 ? msg.Content is not null ? new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments, result: msg.Content) }
                 : new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments) }
                 : null,
+            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message1.ToolCalls,
             _ => null,
         };
     }

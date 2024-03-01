@@ -91,14 +91,7 @@ public class GPTAgent : IStreamingAgent
             agent = agent.RegisterMiddleware(functionMapMiddleware);
         }
 
-        var reply = await agent.GenerateReplyAsync(messages, options, cancellationToken);
-
-        if (reply is IMessage<ChatResponseMessage> oaiMessage)
-        {
-            return await this.PostProcessMessage(oaiMessage.Content);
-        }
-
-        throw new Exception("Invalid message type");
+        return await agent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
     public async Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
@@ -344,7 +337,7 @@ public class GPTAgent : IStreamingAgent
             {
                 foreach (var f in functions)
                 {
-                    settings.Functions.Add(f);
+                    settings.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
                 }
             }
 
