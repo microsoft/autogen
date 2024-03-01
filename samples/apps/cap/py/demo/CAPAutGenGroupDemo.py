@@ -65,12 +65,7 @@ def cap_ag_group_demo():
     try:
         while True:
             time.sleep(0.5)
-            if (
-                not user_proxy_cap2ag.run 
-                and not coder_cap2ag.run 
-                and not pm_cap2ag.run 
-                and not manager_cap2ag.run
-            ):
+            if not user_proxy_cap2ag.run and not coder_cap2ag.run and not pm_cap2ag.run and not manager_cap2ag.run:
                 break
     except KeyboardInterrupt:
         print("Interrupted by user, shutting down.")

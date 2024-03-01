@@ -3,6 +3,7 @@ from autogencap.Actor import Actor
 from autogencap.Constants import Termination_Topic
 from autogencap.DebugLog import Debug
 
+
 class AGActor(Actor):
     def start(self, context: zmq.Context):
         super().start(context)

@@ -7,6 +7,7 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class DataMap(_message.Message):
     __slots__ = ("data",)
+
     class DataEntry(_message.Message):
         __slots__ = ("key", "value")
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -30,7 +31,14 @@ class ReceiveReq(_message.Message):
     sender: str
     request_reply: bool
     silent: bool
-    def __init__(self, data_map: _Optional[_Union[DataMap, _Mapping]] = ..., data: _Optional[str] = ..., sender: _Optional[str] = ..., request_reply: bool = ..., silent: bool = ...) -> None: ...
+    def __init__(
+        self,
+        data_map: _Optional[_Union[DataMap, _Mapping]] = ...,
+        data: _Optional[str] = ...,
+        sender: _Optional[str] = ...,
+        request_reply: bool = ...,
+        silent: bool = ...,
+    ) -> None: ...
 
 class Terminate(_message.Message):
     __slots__ = ("sender",)
@@ -56,4 +64,6 @@ class PrepChat(_message.Message):
     recipient: str
     clear_history: bool
     prepare_recipient: bool
-    def __init__(self, recipient: _Optional[str] = ..., clear_history: bool = ..., prepare_recipient: bool = ...) -> None: ...
+    def __init__(
+        self, recipient: _Optional[str] = ..., clear_history: bool = ..., prepare_recipient: bool = ...
+    ) -> None: ...

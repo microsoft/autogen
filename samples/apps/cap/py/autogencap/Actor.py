@@ -5,10 +5,11 @@ import time
 from .DebugLog import Debug, Info
 from .Config import xpub_url
 
+
 class Actor:
-    def __init__(self, agent_name:str, description:str):
-        self.actor_name:str = agent_name
-        self.agent_description:str = description
+    def __init__(self, agent_name: str, description: str):
+        self.actor_name: str = agent_name
+        self.agent_description: str = description
         self.run = False
 
     def connect_network(self, network):

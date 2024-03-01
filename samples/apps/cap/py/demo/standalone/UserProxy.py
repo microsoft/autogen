@@ -6,6 +6,7 @@ from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.Config import IGNORED_LOG_CONTEXTS
 
+
 # Starts the Broker and the Assistant. The UserProxy is started separately.
 class StandaloneUserProxy:
     def __init__(self):
@@ -13,7 +14,7 @@ class StandaloneUserProxy:
 
     def run(self):
         print("Running the StandaloneUserProxy")
-        
+
         user_proxy = UserProxyAgent(
             "user_proxy",
             code_execution_config={"work_dir": "coding"},
@@ -28,7 +29,7 @@ class StandaloneUserProxy:
         # Send a message to the user_proxy
         user_proxy_conn = network.lookup_actor("user_proxy")
         example = "Plot a chart of MSFT daily closing prices for last 1 Month."
-        print(f"Example: {example}")       
+        print(f"Example: {example}")
         try:
             user_input = input("Please enter your command: ")
             if user_input == "":
@@ -49,6 +50,7 @@ def main():
     IGNORED_LOG_CONTEXTS.extend(["BROKER", "DirectorySvc"])
     assistant = StandaloneUserProxy()
     assistant.run()
+
 
 if __name__ == "__main__":
     main()

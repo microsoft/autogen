@@ -37,7 +37,7 @@ def complex_actor_demo():
 
     while True:
         # For aesthetic reasons, better to let network messages complete
-        time.sleep(0.1) 
+        time.sleep(0.1)
         # Get a message from the user
         msg = input(colored("Enter your name (or quit): ", "light_red"))
         # Send the message to the personal assistant agent

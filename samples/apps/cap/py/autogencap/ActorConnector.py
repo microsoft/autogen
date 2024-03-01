@@ -7,6 +7,7 @@ import uuid
 from .DebugLog import Debug, Error
 from .Config import xsub_url, xpub_url
 
+
 class ActorConnector:
     def __init__(self, context, topic):
         self._pub_socket = context.socket(zmq.PUB)
@@ -37,13 +38,13 @@ class ActorConnector:
         self._pub_socket.send_multipart(
             [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
         )
-        for i in range(retry+1):
+        for i in range(retry + 1):
             try:
                 resp_topic, resp_msg_type, resp_sender_topic, resp = self._resp_socket.recv_multipart()
                 return resp_topic, resp_msg_type, resp_sender_topic, resp
             except zmq.Again:
                 Debug("ActorConnector", f"binary_request: No response received. retry_count={i}, max_retry={retry}")
-                time.sleep(0.01) # Wait a bit before retrying
+                time.sleep(0.01)  # Wait a bit before retrying
                 continue
         Error("ActorConnector", "binary_request: No response received. Giving up.")
         return None, None, None, None

@@ -5,6 +5,7 @@ from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 
+
 # Starts the Broker and the Assistant. The UserProxy is started separately.
 class StandaloneAssistant:
     def __init__(self):
@@ -33,6 +34,7 @@ class StandaloneAssistant:
 def main():
     assistant = StandaloneAssistant()
     assistant.run()
+
 
 if __name__ == "__main__":
     main()

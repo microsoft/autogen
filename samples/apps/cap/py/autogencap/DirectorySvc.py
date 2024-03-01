@@ -8,8 +8,9 @@ import zmq
 import threading
 import time
 
-#TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
+# TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful
+
 
 class DirectoryActor(Actor):
     def __init__(self, topic: str, name: str):
@@ -39,18 +40,18 @@ class DirectoryActor(Actor):
         actor_reg.ParseFromString(msg)
         Info("DirectorySvc", f"Actor registration: {actor_reg.actor_info.name}")
         name = actor_reg.actor_info.name
-        #TODO (Future DirectorySv PR) network_id should be namespace prefixed to support multiple networks
-        network_id = actor_reg.actor_info.name + self._network_prefix
+        # TODO (Future DirectorySv PR) network_id should be namespace prefixed to support multiple networks
+        actor_reg.actor_info.name + self._network_prefix
         if name in self._registered_actors:
             Error("DirectorySvc", f"Actor already registered: {name}")
             return
         self._registered_actors[name] = actor_reg.actor_info
-        
+
     def _actor_lookup_msg_handler(self, topic: str, msg_type: str, msg: bytes, sender_topic: str):
         actor_lookup = ActorLookup()
         actor_lookup.ParseFromString(msg)
         Debug("DirectorySvc", f"Actor lookup: {actor_lookup.actor_info.name}")
-        actor:ActorInfo = None
+        actor: ActorInfo = None
         if actor_lookup.actor_info.name in self._registered_actors:
             Info("DirectorySvc", f"Actor found: {actor_lookup.actor_info.name}")
             actor = self._registered_actors[actor_lookup.actor_info.name]
@@ -65,7 +66,8 @@ class DirectoryActor(Actor):
         sender_connection = ActorConnector(self._context, sender_topic)
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
-        
+
+
 class DirectorySvc:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
@@ -75,24 +77,26 @@ class DirectorySvc:
     def _no_other_directory(self) -> bool:
         ping = Ping()
         serialized_msg = ping.SerializeToString()
-        _, _, _, resp =self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
-        if (resp is None):
+        _, _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
+        if resp is None:
             return True
         return False
 
     def start(self):
         self._directory_connector = ActorConnector(self._context, Directory_Svc_Topic)
-        if (self._no_other_directory()):
+        if self._no_other_directory():
             self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
             self._directory_actor.start(self._context)
-        
+
     def stop(self):
-        if self._directory_actor: self._directory_actor.stop()
-        if self._directory_connector: self._directory_connector.close()
+        if self._directory_actor:
+            self._directory_actor.stop()
+        if self._directory_connector:
+            self._directory_connector.close()
 
     def register_actor(self, actor_info: ActorInfo):
         # Send a message to the directory service
-        # to register the actor        
+        # to register the actor
         actor_reg = ActorRegistration()
         actor_reg.actor_info.CopyFrom(actor_info)
         serialized_msg = actor_reg.SerializeToString()
@@ -109,10 +113,11 @@ class DirectorySvc:
         _, _, _, resp = self._directory_connector.binary_request(ActorLookup.__name__, serialized_msg)
         actor_lookup_resp = ActorLookupResponse()
         actor_lookup_resp.ParseFromString(resp)
-        if (actor_lookup_resp.found):
+        if actor_lookup_resp.found:
             if len(actor_lookup_resp.actor.info_coll) > 0:
                 return actor_lookup_resp.actor.info_coll[0]
         return None
+
 
 # Standalone min proxy for a standalone directory service
 class MinProxy:
@@ -120,7 +125,7 @@ class MinProxy:
         self._context: zmq.Context = context
         self._xpub: zmq.Socket = None
         self._xsub: zmq.Socket = None
-        
+
     def start(self):
         # Start the proxy thread
         proxy_thread = threading.Thread(target=self.proxy_thread_fn)
@@ -141,17 +146,18 @@ class MinProxy:
             self._xpub.bind(xpub_url)
             self._xsub.bind(xsub_url)
             zmq.proxy(self._xpub, self._xsub)
-        except zmq.ContextTerminated as e:
+        except zmq.ContextTerminated:
             self._xpub.close()
             self._xsub.close()
         except Exception as e:
-            Error(f"proxy_thread_fn", f"proxy_thread_fn encountered an error: {e}")
+            Error("proxy_thread_fn", f"proxy_thread_fn encountered an error: {e}")
             self._xpub.setsockopt(zmq.LINGER, 0)
             self._xsub.setsockopt(zmq.LINGER, 0)
             self._xpub.close()
             self._xsub.close()
         finally:
-            Info(f"proxy_thread_fn", f"proxy_thread_fn terminated.")
+            Info("proxy_thread_fn", "proxy_thread_fn terminated.")
+
 
 # Run a standalone directory service
 def main():
@@ -165,14 +171,15 @@ def main():
     # register an actor
     directory_svc.register_actor_by_name("my_actor")
     # look up an actor
-    actor:ActorInfo = directory_svc.lookup_actor_by_name("my_actor")
-    if(actor is not None):
+    actor: ActorInfo = directory_svc.lookup_actor_by_name("my_actor")
+    if actor is not None:
         Info("main", f"Found actor: {actor.name}")
-    
+
     directory_svc.stop()
     proxy.stop()
     context.term()
     Info("main", "Done.")
-    
+
+
 if __name__ == "__main__":
     main()

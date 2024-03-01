@@ -128,7 +128,6 @@ class CAP2AG(AGActor):
         serialized_msg = reply_msg.SerializeToString()
         connector.send_bin_msg(type(reply_msg).__name__, serialized_msg)
         return True
-    
 
     def prepchat_msgproc(self, msg, sender_topic):
         prep_chat = PrepChat()

@@ -16,16 +16,16 @@ def cap_ag_pair_demo():
 
     # Composable Agent Platform AutoGen Pair adapter
     network = LocalActorNetwork()
-    
+
     pair = Pair(network, user_proxy, assistant)
     pair.initiate_chat("Plot a chart of MSFT daily closing prices for last 1 Month.")
-    
+
     # Wait for the pair to finish
     try:
         while pair.running():
             time.sleep(0.5)
     except KeyboardInterrupt:
-        print("Interrupted by user, shutting down.")    
-    
+        print("Interrupted by user, shutting down.")
+
     network.disconnect()
     Info("App", "App Exit")
