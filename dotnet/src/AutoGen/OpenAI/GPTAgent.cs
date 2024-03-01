@@ -12,6 +12,23 @@ using Azure.AI.OpenAI;
 
 namespace AutoGen.OpenAI;
 
+/// <summary>
+/// GPT agent that can be used to connect to OpenAI chat models like GPT-3.5, GPT-4, etc.
+/// <para><see cref="GPTAgent" /> supports the following message types as input:</para>
+/// <para>- <see cref="TextMessage"/></para> 
+/// <para>- <see cref="ImageMessage"/></para> 
+/// <para>- <see cref="MultiModalMessage"/></para>
+/// <para>- <see cref="ToolCallMessage"/></para>
+/// <para>- <see cref="ToolCallResultMessage"/></para>
+/// <para>- <see cref="Message"/></para>
+/// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
+/// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
+/// 
+/// <para><see cref="GPTAgent" /> returns the following message types:</para>
+/// <para>- <see cref="TextMessage"/></para> 
+/// <para>- <see cref="ToolCallMessage"/></para>
+/// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
+/// </summary>
 public class GPTAgent : IStreamingAgent
 {
     private readonly string _systemMessage;
@@ -221,135 +238,5 @@ public class GPTAgent : IStreamingAgent
         }
 
         return openAIMessages;
-    }
-
-    private async Task<Message> PostProcessMessage(ChatResponseMessage oaiMessage)
-    {
-        if (this.functionMap != null && oaiMessage.FunctionCall is FunctionCall fc)
-        {
-            if (this.functionMap.TryGetValue(fc.Name, out var func))
-            {
-                var result = await func(fc.Arguments);
-                return new Message(Role.Assistant, result, from: this.Name)
-                {
-                    FunctionName = fc.Name,
-                    FunctionArguments = fc.Arguments,
-                    Value = oaiMessage,
-                };
-            }
-            else
-            {
-                var errorMessage = $"Function {fc.Name} is not available. Available functions are: {string.Join(", ", this.functionMap.Select(f => f.Key))}";
-                return new Message(Role.Assistant, errorMessage, from: this.Name)
-                {
-                    FunctionName = fc.Name,
-                    FunctionArguments = fc.Arguments,
-                    Value = oaiMessage,
-                };
-            }
-        }
-        else
-        {
-            if (string.IsNullOrEmpty(oaiMessage.Content) && oaiMessage.FunctionCall is null)
-            {
-                throw new Exception("OpenAI response is invalid.");
-            }
-            return new Message(Role.Assistant, oaiMessage.Content)
-            {
-                From = this.Name,
-                FunctionName = oaiMessage.FunctionCall?.Name,
-                FunctionArguments = oaiMessage.FunctionCall?.Arguments,
-                Value = oaiMessage,
-            };
-        }
-    }
-
-    private class OpenAIClientAgent : IStreamingAgent
-    {
-        private readonly OpenAIClient openAIClient;
-        private readonly string modelName;
-        private readonly float _temperature;
-        private readonly int _maxTokens = 1024;
-        private readonly IEnumerable<FunctionDefinition>? _functions;
-        private readonly string _systemMessage;
-
-        public OpenAIClientAgent(
-            OpenAIClient openAIClient,
-            string name,
-            string systemMessage,
-            string modelName,
-            float temperature = 0.7f,
-            int maxTokens = 1024,
-            IEnumerable<FunctionDefinition>? functions = null)
-        {
-            this.openAIClient = openAIClient;
-            this.modelName = modelName;
-            this.Name = name;
-            _temperature = temperature;
-            _maxTokens = maxTokens;
-            _functions = functions;
-            _systemMessage = systemMessage;
-        }
-
-        public string Name { get; }
-
-        public async Task<IMessage> GenerateReplyAsync(
-            IEnumerable<IMessage> messages,
-            GenerateReplyOptions? options = null,
-            CancellationToken cancellationToken = default)
-        {
-            var settings = this.CreateChatCompletionsOptions(options, messages);
-            var reply = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
-
-            return new MessageEnvelope<ChatResponseMessage>(reply.Value.Choices.First().Message, from: this.Name);
-        }
-
-        public Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
-            IEnumerable<IMessage> messages,
-            GenerateReplyOptions? options = null,
-            CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
-        private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)
-        {
-            var oaiMessages = messages.Select(m => m switch
-            {
-                IMessage<ChatRequestMessage> chatRequestMessage => chatRequestMessage.Content,
-                _ => throw new ArgumentException("Invalid message type")
-            });
-
-            // add system message if there's no system message in messages
-            if (!oaiMessages.Any(m => m is ChatRequestSystemMessage))
-            {
-                oaiMessages = new[] { new ChatRequestSystemMessage(_systemMessage) }.Concat(oaiMessages);
-            }
-
-            var settings = new ChatCompletionsOptions(this.modelName, oaiMessages)
-            {
-                MaxTokens = options?.MaxToken ?? _maxTokens,
-                Temperature = options?.Temperature ?? _temperature,
-            };
-
-            var functions = options?.Functions ?? _functions;
-            if (functions is not null && functions.Count() > 0)
-            {
-                foreach (var f in functions)
-                {
-                    settings.Tools.Add(new ChatCompletionsFunctionToolDefinition(f));
-                }
-            }
-
-            if (options?.StopSequence is var sequence && sequence is { Length: > 0 })
-            {
-                foreach (var seq in sequence)
-                {
-                    settings.StopSequences.Add(seq);
-                }
-            }
-
-            return settings;
-        }
     }
 }

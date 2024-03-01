@@ -71,16 +71,23 @@ namespace AutoGen.Tests
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
                 new ChatMessageImageContentItem(new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png")));
+            var multiModalMessage = new MultiModalMessage(
+                [
+                    new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),
+                    new ImageMessage(Role.User, @"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png", from: "user"),
+                ],
+                from: "user");
 
-            var message = oaiMessage.ToMessage();
-            var response = await visionAgent.SendAsync(message);
-            response.From.Should().Be(visionAgent.Name);
+            foreach (var message in new IMessage[] { new MessageEnvelope<ChatRequestUserMessage>(oaiMessage), multiModalMessage })
+            {
+                var response = await visionAgent.SendAsync(message);
+                response.From.Should().Be(visionAgent.Name);
 
-            var labelResponse = await gpt3Agent.SendAsync(response);
-            labelResponse.Should().BeOfType<ToolCallResultMessage>();
-            labelResponse.From.Should().Be(gpt3Agent.Name);
-            labelResponse.GetContent().Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
-            labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
+                var labelResponse = await gpt3Agent.SendAsync(response);
+                labelResponse.From.Should().Be(gpt3Agent.Name);
+                labelResponse.GetContent().Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
+                labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
+            }
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
