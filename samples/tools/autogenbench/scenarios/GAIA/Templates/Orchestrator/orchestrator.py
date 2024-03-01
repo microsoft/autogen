@@ -3,10 +3,20 @@ import json
 import copy
 from string import Template
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
+from typing import Dict, List, Optional, Union, Callable, Literal, Tuple, TypedDict
 from autogen import Agent, ConversableAgent, OpenAIWrapper
 
-defaultPromptTemplates = {
+
+class OrchestratorPromptTemplates(TypedDict):
+    closed_book_prompt: Template
+    plan_prompt: Template
+    step_prompt: Template
+    team_update: Template
+    rethink_facts: Template
+    new_plan: Template
+
+
+defaultPromptTemplates: OrchestratorPromptTemplates = {
     "closed_book_prompt": Template(
         """Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 
@@ -118,7 +128,7 @@ class Orchestrator(ConversableAgent):
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        prompt_templates: Dict[str, Template] = defaultPromptTemplates,
+        prompt_templates: OrchestratorPromptTemplates = defaultPromptTemplates,
     ):
         super().__init__(
             name=name,
