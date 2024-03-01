@@ -15,7 +15,7 @@ message ActorRegistration {
 
 message ActorLookup {
     optional ActorInfo actor_info = 1;
-    // TODO:  May need more structure here for symantic service discovery
+    // TODO:  May need more structure here for semantic service discovery
     // optional string service_descriptor = 2;
 }
 
