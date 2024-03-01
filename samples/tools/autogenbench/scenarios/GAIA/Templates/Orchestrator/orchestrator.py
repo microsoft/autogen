@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, OpenAIWrapper
 
-defaultPromptTemplates = { "closed_book_prompt": Template("""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
+defaultPromptTemplates = {
+    "closed_book_prompt": Template(
+        """Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 
 Here is the request:
 
@@ -25,14 +27,18 @@ When answering this survey, keep in mind that "facts" will typically be specific
     2. FACTS TO LOOK UP
     3. FACTS TO DERIVE
     4. EDUCATED GUESSES
-"""),
-"plan_prompt": Template("""Fantastic. To address this request we have assembled the following team:
+"""
+    ),
+    "plan_prompt": Template(
+        """Fantastic. To address this request we have assembled the following team:
 
 $team
 
-Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""")}
+Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task."""
+    ),
+}
 
-from dataclasses import dataclass
+
 @dataclass
 class Criteria:
     name: str
@@ -41,7 +47,7 @@ class Criteria:
 
     def to_bullet_point(self):
         return f"    - {self.prompt_msg}"
-    
+
     def to_json(self):
         return {
             self.name: {
@@ -103,7 +109,7 @@ class Orchestrator(ConversableAgent):
                 self.send(message, a, request_reply=False, silent=False)
             else:
                 self.send(message, a, request_reply=False, silent=True)
-    
+
     def _think_and_respond(self, messages, message, sender):
         messages.append({"role": "user", "content": message, "name": sender.name})
 
@@ -114,13 +120,29 @@ class Orchestrator(ConversableAgent):
         extracted_response = self.client.extract_text_or_completion_object(response)[0]
         messages.append({"role": "assistant", "content": extracted_response, "name": self.name})
         return extracted_response
-    
+
     def _think_next_step(self, task, team, names, sender):
         criteria_list = [
-            Criteria(name="is_request_satisfied", prompt_msg="Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)", answer_spec="boolean"),
-            Criteria(name="is_progress_being_made", prompt_msg="Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)", answer_spec="boolean"),
-            Criteria(name="next_speaker", prompt_msg=f"Who should speak next? (select from: {names})", answer_spec=f"string (select from: {names})"),
-            Criteria(name="instruction_or_question", prompt_msg="What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)", answer_spec="string")
+            Criteria(
+                name="is_request_satisfied",
+                prompt_msg="Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)",
+                answer_spec="boolean",
+            ),
+            Criteria(
+                name="is_progress_being_made",
+                prompt_msg="Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)",
+                answer_spec="boolean",
+            ),
+            Criteria(
+                name="next_speaker",
+                prompt_msg=f"Who should speak next? (select from: {names})",
+                answer_spec=f"string (select from: {names})",
+            ),
+            Criteria(
+                name="instruction_or_question",
+                prompt_msg="What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)",
+                answer_spec="string",
+            ),
         ]
 
         bullet_points = "\n".join([criteria.to_bullet_point() for criteria in criteria_list])
@@ -238,12 +260,12 @@ Some additional points to consider:
 
         # Work with a copy of the messages
         _messages = copy.deepcopy(messages)
-        
+
         ##### Memory ####
 
         # Pop the last message, which is the task
         task = _messages.pop()["content"]
-   
+
         # A reusable description of the team
         team = "\n".join([a.name + ": " + a.description for a in self._agents])
         names = ", ".join([a.name for a in self._agents])
@@ -297,10 +319,13 @@ Some additional points to consider:
                 else:
                     stalled_count += 1
 
-                if stalled_count >= 3: 
+                if stalled_count >= 3:
                     facts, plan = self._prepare_new_facts_and_plan(facts=facts, sender=sender, team=team)
                     break
 
-                self._broadcast_next_step_and_request_reply(next_prompt=next_step["instruction_or_question"]["answer"], next_speaker=next_step["next_speaker"]["answer"])
+                self._broadcast_next_step_and_request_reply(
+                    next_prompt=next_step["instruction_or_question"]["answer"],
+                    next_speaker=next_step["next_speaker"]["answer"],
+                )
 
         return True, "TERMINATE"
