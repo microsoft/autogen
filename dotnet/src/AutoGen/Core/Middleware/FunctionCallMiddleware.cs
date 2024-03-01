@@ -68,7 +68,7 @@ public class FunctionCallMiddleware : IMiddleware
         var reply = await agent.GenerateReplyAsync(context.Messages, options, cancellationToken);
 
         // if the reply is a function call message plus the function's name is available in function map, invoke the function and return the result instead of sending to the agent.
-        if (reply.GetToolCalls() is IList<ToolCall> toolCallsReply && toolCallsReply.Count() == 1)
+        if (reply.GetToolCalls() is IList<ToolCall> toolCallsReply)
         {
             var toolCallResult = new List<ToolCall>();
             foreach (var toolCall in toolCallsReply)
@@ -82,7 +82,14 @@ public class FunctionCallMiddleware : IMiddleware
                 }
             }
 
-            return new ToolCallResultMessage(toolCallResult, from: agent.Name);
+            if (toolCallResult.Count() > 0)
+            {
+                return new ToolCallResultMessage(toolCallResult, from: agent.Name);
+            }
+            else
+            {
+                return reply;
+            }
         }
 
         // for all other messages, just return the reply from the agent.

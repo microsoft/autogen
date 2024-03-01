@@ -40,7 +40,7 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
         throw new NotImplementedException();
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages)
+    public IEnumerable<ChatRequestMessage> ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages)
     {
         return messages.SelectMany(m =>
         {
@@ -165,12 +165,14 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
         }
         else if (message.FunctionName is string functionName)
         {
+            var msg = new ChatRequestAssistantMessage(content: null)
+            {
+                FunctionCall = new FunctionCall(functionName, message.FunctionArguments)
+            };
+
             return new[]
             {
-                new ChatRequestAssistantMessage(string.Empty)
-                {
-                    FunctionCall = new FunctionCall(functionName, message.FunctionArguments)
-                }
+                msg,
             };
         }
         else
@@ -238,12 +240,12 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallMessage _)
     {
-        return [new ChatRequestUserMessage("// ToolCall Message Type is not supported")];
+        throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallResultMessage message)
     {
-        return message.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result));
+        return message.ToolCalls.Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(Message message)
@@ -284,7 +286,7 @@ public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
         // convert as user message
         var resultMessage = aggregateMessage.Message2;
 
-        return ProcessIncomingMessagesForOther(resultMessage);
+        return resultMessage.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result));
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(TextMessage message)

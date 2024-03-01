@@ -160,7 +160,7 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+    public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this TAgent agent,
         IStreamingMiddleware middleware)
         where TAgent : IStreamingAgent
@@ -174,7 +174,7 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+    public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this MiddlewareStreamingAgent<TAgent> agent,
         IStreamingMiddleware middleware)
         where TAgent : IStreamingAgent
@@ -189,7 +189,7 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+    public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this TAgent agent,
         Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
         string? middlewareName = null)
@@ -204,7 +204,7 @@ public static class MiddlewareExtension
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
     /// </summary>
-    public static MiddlewareStreamingAgent<TAgent> RegisterMiddleware<TAgent>(
+    public static MiddlewareStreamingAgent<TAgent> RegisterStreamingMiddleware<TAgent>(
         this MiddlewareStreamingAgent<TAgent> agent,
         Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IMessage>>> func,
         string? middlewareName = null)

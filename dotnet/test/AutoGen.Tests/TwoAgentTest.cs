@@ -61,7 +61,7 @@ public partial class TwoAgentTest
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 var lastMessage = msgs.Last();
-                if (lastMessage.GetToolCalls().FirstOrDefault()?.FunctionName != null)
+                if (lastMessage.GetToolCalls()!.First()!.FunctionName != null)
                 {
                     return await agent.GenerateReplyAsync(msgs, option, ct);
                 }

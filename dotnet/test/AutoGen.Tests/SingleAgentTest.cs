@@ -80,7 +80,7 @@ namespace AutoGen.Tests
             labelResponse.Should().BeOfType<ToolCallResultMessage>();
             labelResponse.From.Should().Be(gpt3Agent.Name);
             labelResponse.GetContent().Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
-            labelResponse.GetToolCalls().First().FunctionName.Should().Be(nameof(GetHighestLabel));
+            labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -205,27 +205,25 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallTestAsync(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that call echo function");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that call echo function");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
 
-            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.GetToolCalls().First().FunctionName.Should().Be(nameof(EchoAsync));
+            reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
 
             reply.GetContent().Should().Be("[ECHO] Hello world");
-            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.GetToolCalls().First().FunctionName.Should().Be(nameof(EchoAsync));
+            reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
@@ -259,13 +257,12 @@ namespace AutoGen.Tests
 
         private async Task UpperCaseTest(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var uppCaseMessage = new Message(Role.User, "abcdefg");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, uppCaseMessage });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, uppCaseMessage });
 
             reply.GetContent().Should().Be("ABCDEFG");
-            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
         }
 

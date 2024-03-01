@@ -8,7 +8,7 @@ using System.Text.Json;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
@@ -63,10 +63,10 @@ public class OpenAIMessageTests
                 message1: new ToolCallMessage("test", "test", "assistant"),
                 message2: new ToolCallResultMessage("result", "test", "test", "assistant"), "assistant"),
         ];
-
+        var openaiMessageConnectorMiddleware = new OpenAIMessageConnector();
         var agent = new EchoAgent("assistant");
 
-        var oaiMessages = messages.Select(m => (m, agent.ToOpenAIChatRequestMessage(m)));
+        var oaiMessages = messages.Select(m => (m, openaiMessageConnectorMiddleware.ProcessIncomingMessages(agent, [m])));
         VerifyOAIMessages(oaiMessages);
     }
 
@@ -74,10 +74,11 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageTest()
     {
         var agent = new EchoAgent("assistant");
+        var middleware = new OpenAIMessageConnector();
 
         // user message
         IMessage message = new TextMessage(Role.User, "Hello", "user");
-        var oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        var oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
@@ -87,7 +88,7 @@ public class OpenAIMessageTests
         // user message test 2
         // even if Role is assistant, it should be converted to user message because it is from the user
         message = new TextMessage(Role.Assistant, "Hello", "user");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
@@ -97,7 +98,7 @@ public class OpenAIMessageTests
         // user message with multimodal content
         // image
         message = new ImageMessage(Role.User, "https://example.com/image.png", "user");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
@@ -112,7 +113,7 @@ public class OpenAIMessageTests
                 new TextMessage(Role.User, "Hello", "user"),
                 new ImageMessage(Role.User, "https://example.com/image.png", "user"),
             ], "user");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
@@ -123,7 +124,7 @@ public class OpenAIMessageTests
 
         // assistant text message
         message = new TextMessage(Role.Assistant, "How can I help you?", "assistant");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
@@ -132,7 +133,7 @@ public class OpenAIMessageTests
 
         // assistant text message with single tool call
         message = new ToolCallMessage("test", "test", "assistant");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
@@ -143,7 +144,7 @@ public class OpenAIMessageTests
 
         // user should not suppose to send tool call message
         message = new ToolCallMessage("test", "test", "user");
-        Func<ChatRequestMessage> action = () => agent.ToOpenAIChatRequestMessage(message).First();
+        Func<ChatRequestMessage> action = () => middleware.ProcessIncomingMessages(agent, [message]).First();
         action.Should().Throw<ArgumentException>().WithMessage("ToolCallMessage is not supported when message.From is not the same with agent");
 
         // assistant text message with multiple tool calls
@@ -154,7 +155,7 @@ public class OpenAIMessageTests
                 new ToolCall("test", "test"),
             ], "assistant");
 
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
@@ -164,7 +165,7 @@ public class OpenAIMessageTests
 
         // tool call result message
         message = new ToolCallResultMessage("result", "test", "test", "user");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestToolMessage>();
@@ -179,7 +180,7 @@ public class OpenAIMessageTests
                 new ToolCall("result", "test", "test"),
             ], "user");
 
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(2);
         oaiMessages.First().Should().BeOfType<ChatRequestToolMessage>();
@@ -195,7 +196,7 @@ public class OpenAIMessageTests
             message1: new ToolCallMessage("test", "test", "assistant"),
             message2: new ToolCallResultMessage("result", "test", "test", "assistant"), "assistant");
 
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(2);
         oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
@@ -213,7 +214,7 @@ public class OpenAIMessageTests
             message1: new ToolCallMessage("test", "test", "user"),
             message2: new ToolCallResultMessage("result", "test", "test", "user"), "user");
 
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
 
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
@@ -236,14 +237,14 @@ public class OpenAIMessageTests
                     new ToolCall("result", "test", "test"),
                 ], from: "user"), "user");
 
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
         oaiMessages.Count().Should().Be(2);
         oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
         oaiMessages.Last().Should().BeOfType<ChatRequestUserMessage>();
 
         // system message
         message = new TextMessage(Role.System, "You are a helpful AI assistant");
-        oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
         oaiMessages.Count().Should().Be(1);
         oaiMessages.First().Should().BeOfType<ChatRequestSystemMessage>();
     }
@@ -252,7 +253,7 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageShortCircuitTest()
     {
         var agent = new EchoAgent("assistant");
-
+        var middleware = new OpenAIMessageConnector();
         ChatRequestMessage[] messages =
             [
                 new ChatRequestUserMessage("Hello"),
@@ -265,7 +266,7 @@ public class OpenAIMessageTests
         foreach (var oaiMessage in messages)
         {
             IMessage message = new MessageEnvelope<ChatRequestMessage>(oaiMessage);
-            var oaiMessages = agent.ToOpenAIChatRequestMessage(message);
+            var oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
             oaiMessages.Count().Should().Be(1);
             oaiMessages.First().Should().Be(oaiMessage);
         }

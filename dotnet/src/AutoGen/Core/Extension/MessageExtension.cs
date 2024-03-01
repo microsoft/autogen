@@ -96,7 +96,12 @@ public static class MessageExtension
         };
     }
 
-    public static IList<ToolCall> GetToolCalls(this IMessage message)
+    /// <summary>
+    /// Return the tool calls from the message if it's available.
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    public static IList<ToolCall>? GetToolCalls(this IMessage message)
     {
         return message switch
         {
@@ -105,8 +110,8 @@ public static class MessageExtension
             Message msg => msg.FunctionName is not null && msg.FunctionArguments is not null
                 ? msg.Content is not null ? new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments, result: msg.Content) }
                 : new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments) }
-                : [],
-            _ => [],
+                : null,
+            _ => null,
         };
     }
 }

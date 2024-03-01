@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.Core.Middleware;
+using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.OpenAI;
@@ -19,7 +21,7 @@ public class GPTAgent : IStreamingAgent
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
     private readonly OpenAIClient openAIClient;
     private readonly string? modelName;
-    public const string CHUNK_KEY = "oai_msg_chunk";
+    private readonly OpenAIClientAgent _innerAgent;
 
     public GPTAgent(
         string name,
@@ -44,6 +46,7 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
+        _innerAgent = new OpenAIClientAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
         _systemMessage = systemMessage;
         _functions = functions;
         Name = name;
@@ -70,6 +73,7 @@ public class GPTAgent : IStreamingAgent
         _temperature = temperature;
         _maxTokens = maxTokens;
         this.functionMap = functionMap;
+        _innerAgent = new OpenAIClientAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
     }
 
     public string Name { get; }
@@ -79,11 +83,22 @@ public class GPTAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var settings = this.CreateChatCompletionsOptions(options, messages);
-        var response = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
-        var oaiMessage = response.Value.Choices.First().Message;
+        var oaiConnectorMiddleware = new OpenAIMessageConnector();
+        var agent = this._innerAgent.RegisterMiddleware(oaiConnectorMiddleware);
+        if (this.functionMap is not null)
+        {
+            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
+            agent = agent.RegisterMiddleware(functionMapMiddleware);
+        }
 
-        return await this.PostProcessMessage(oaiMessage);
+        var reply = await agent.GenerateReplyAsync(messages, options, cancellationToken);
+
+        if (reply is IMessage<ChatResponseMessage> oaiMessage)
+        {
+            return await this.PostProcessMessage(oaiMessage.Content);
+        }
+
+        throw new Exception("Invalid message type");
     }
 
     public async Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
@@ -253,6 +268,95 @@ public class GPTAgent : IStreamingAgent
                 FunctionArguments = oaiMessage.FunctionCall?.Arguments,
                 Value = oaiMessage,
             };
+        }
+    }
+
+    private class OpenAIClientAgent : IStreamingAgent
+    {
+        private readonly OpenAIClient openAIClient;
+        private readonly string modelName;
+        private readonly float _temperature;
+        private readonly int _maxTokens = 1024;
+        private readonly IEnumerable<FunctionDefinition>? _functions;
+        private readonly string _systemMessage;
+
+        public OpenAIClientAgent(
+            OpenAIClient openAIClient,
+            string name,
+            string systemMessage,
+            string modelName,
+            float temperature = 0.7f,
+            int maxTokens = 1024,
+            IEnumerable<FunctionDefinition>? functions = null)
+        {
+            this.openAIClient = openAIClient;
+            this.modelName = modelName;
+            this.Name = name;
+            _temperature = temperature;
+            _maxTokens = maxTokens;
+            _functions = functions;
+            _systemMessage = systemMessage;
+        }
+
+        public string Name { get; }
+
+        public async Task<IMessage> GenerateReplyAsync(
+            IEnumerable<IMessage> messages,
+            GenerateReplyOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            var settings = this.CreateChatCompletionsOptions(options, messages);
+            var reply = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
+
+            return new MessageEnvelope<ChatResponseMessage>(reply.Value.Choices.First().Message, from: this.Name);
+        }
+
+        public Task<IAsyncEnumerable<IMessage>> GenerateStreamingReplyAsync(
+            IEnumerable<IMessage> messages,
+            GenerateReplyOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        private ChatCompletionsOptions CreateChatCompletionsOptions(GenerateReplyOptions? options, IEnumerable<IMessage> messages)
+        {
+            var oaiMessages = messages.Select(m => m switch
+            {
+                IMessage<ChatRequestMessage> chatRequestMessage => chatRequestMessage.Content,
+                _ => throw new ArgumentException("Invalid message type")
+            });
+
+            // add system message if there's no system message in messages
+            if (!oaiMessages.Any(m => m is ChatRequestSystemMessage))
+            {
+                oaiMessages = new[] { new ChatRequestSystemMessage(_systemMessage) }.Concat(oaiMessages);
+            }
+
+            var settings = new ChatCompletionsOptions(this.modelName, oaiMessages)
+            {
+                MaxTokens = options?.MaxToken ?? _maxTokens,
+                Temperature = options?.Temperature ?? _temperature,
+            };
+
+            var functions = options?.Functions ?? _functions;
+            if (functions is not null && functions.Count() > 0)
+            {
+                foreach (var f in functions)
+                {
+                    settings.Functions.Add(f);
+                }
+            }
+
+            if (options?.StopSequence is var sequence && sequence is { Length: > 0 })
+            {
+                foreach (var seq in sequence)
+                {
+                    settings.StopSequences.Add(seq);
+                }
+            }
+
+            return settings;
         }
     }
 }
