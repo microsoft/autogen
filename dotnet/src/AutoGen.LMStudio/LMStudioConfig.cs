@@ -2,7 +2,6 @@
 // LMStudioConfig.cs
 
 using System;
-using AutoGen;
 
 /// <summary>
 /// Add support for consuming openai-like API from LM Studio

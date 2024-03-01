@@ -2,7 +2,6 @@
 // TypeSafeFunctionCallCodeSnippet.cs
 
 using System.Text.Json;
-using AutoGen;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 

@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using AutoGen.Core.Middleware;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;

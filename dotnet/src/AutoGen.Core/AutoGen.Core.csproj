@@ -1,23 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>AutoGen.LMStudio</RootNamespace>
+    <RootNamespace>AutoGen.Core</RootNamespace>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
 
   <PropertyGroup>
     <!-- NuGet Package Settings -->
-    <Title>AutoGen.LMStudio</Title>
+    <Title>AutoGen.Core</Title>
     <Description>
-      Provide support for consuming LMStudio openai-like API service in AutoGen
+      Core library for AutoGen. This package provides contracts and core functionalities for AutoGen.
     </Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    <PackageReference Include="JsonSchema.Net.Generation" Version="$(JsonSchemaVersion)" />
   </ItemGroup>
 
 </Project>
