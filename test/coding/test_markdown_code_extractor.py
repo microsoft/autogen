@@ -1,13 +1,20 @@
 from autogen.coding import MarkdownCodeExtractor
 
-_message_1 = """
-Example:
+
+def test_extract_code1() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """Example:
 ```
 print("hello extract code")
 ```
 """
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
 
-_message_2 = """Example:
+
+def test_extract_code2() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """Example:
 ```python
 def scrape(url):
     import requests
@@ -26,8 +33,13 @@ print(f"Title: {title}")
 print(f"Text: {text}")
 ```
 """
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 2 and code_blocks[0].language == "python" and code_blocks[1].language == "python"
 
-_message_3 = """
+
+def test_extract_code3() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
 Example:
    ```python
    def scrape(url):
@@ -40,8 +52,13 @@ Example:
        return title, text
    ```
 """
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
 
-_message_4 = """
+
+def test_extract_code4() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
 Example:
 ``` python
 def scrape(url):
@@ -54,17 +71,29 @@ def scrape(url):
    return title, text
 ```
 """.replace(
-    "\n", "\r\n"
-)
+        "\n", "\r\n"
+    )
 
-_message_5 = """
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
+
+
+def test_extract_code5() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
 Test bash script:
 ```bash
 echo 'hello world!'
 ```
 """
 
-_message_6 = """
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "bash"
+
+
+def test_extract_code6() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
 Test some C# code, expecting ""
 ```
 using System;
@@ -84,32 +113,42 @@ namespace ConsoleApplication1
 }
 ```
 """
-
-_message_7 = """
-Test some message that has no code block.
-"""
-
-
-def test_extract_code() -> None:
-    extractor = MarkdownCodeExtractor()
-
-    code_blocks = extractor.extract_code_blocks(_message_1)
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    code_blocks = extractor.extract_code_blocks(_message_2)
-    assert len(code_blocks) == 2 and code_blocks[0].language == "python" and code_blocks[1].language == "python"
-
-    code_blocks = extractor.extract_code_blocks(_message_3)
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    code_blocks = extractor.extract_code_blocks(_message_4)
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    code_blocks = extractor.extract_code_blocks(_message_5)
-    assert len(code_blocks) == 1 and code_blocks[0].language == "bash"
-
-    code_blocks = extractor.extract_code_blocks(_message_6)
+    code_blocks = extractor.extract_code_blocks(message)
     assert len(code_blocks) == 1 and code_blocks[0].language == ""
 
-    code_blocks = extractor.extract_code_blocks(_message_7)
+
+def test_extract_code7() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
+Test some message that has no code block.
+"""
+    code_blocks = extractor.extract_code_blocks(message)
     assert len(code_blocks) == 0
+
+
+def test_extract_code8() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = """
+Four backticks
+````python
+print(f"Text: {text}")
+````
+"""
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
+
+
+def test_extract_code9() -> None:
+    extractor = MarkdownCodeExtractor()
+    message = '''
+Nested backticks
+````python
+print(f"""
+```python
+x = 1
+```
+""")
+````
+'''
+    code_blocks = extractor.extract_code_blocks(message)
+    assert len(code_blocks) == 1 and code_blocks[0].language == "python"

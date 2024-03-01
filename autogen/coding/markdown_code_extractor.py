@@ -1,8 +1,12 @@
-import re
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
-from ..code_utils import CODE_BLOCK_PATTERN, UNKNOWN, content_str, infer_lang
+from ..code_utils import UNKNOWN, content_str, infer_lang
 from .base import CodeBlock
+
+from marko import Markdown
+from marko.block import FencedCode
+from marko.inline import RawText
+
 
 __all__ = ("MarkdownCodeExtractor",)
 
@@ -12,7 +16,7 @@ class MarkdownCodeExtractor:
 
     def extract_code_blocks(self, message: Union[str, List[Dict[str, Any]], None]) -> List[CodeBlock]:
         """(Experimental) Extract code blocks from a message. If no code blocks are found,
-        return an empty list.
+        returns an empty list.
 
         Args:
             message (str): The message to extract code blocks from.
@@ -22,14 +26,18 @@ class MarkdownCodeExtractor:
         """
 
         text = content_str(message)
-        match = re.findall(CODE_BLOCK_PATTERN, text, flags=re.DOTALL)
-        if not match:
-            return []
+        result = Markdown().parse(text)
         code_blocks = []
-        for lang, code in match:
-            if lang == "":
-                lang = infer_lang(code)
-            if lang == UNKNOWN:
-                lang = ""
-            code_blocks.append(CodeBlock(code=code, language=lang))
+        for element in result.children:
+            if isinstance(element, FencedCode):
+                assert isinstance(element.children[0], RawText)
+                assert isinstance(element.children[0].children, str)
+                content = element.children[0].children
+                lang = element.lang
+                if lang == "":
+                    lang = infer_lang(content)
+                if lang == UNKNOWN:
+                    lang = ""
+                code_blocks.append(CodeBlock(code=content, language=lang))
+
         return code_blocks
