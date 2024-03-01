@@ -37,7 +37,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
+        return await _agent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
     public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
@@ -76,13 +76,11 @@ public class MiddlewareStreamingAgent : IStreamingAgent
 
         public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
-            throw new NotImplementedException("Streaming agent does not support non-streaming reply.");
+            return await innerAgent.GenerateReplyAsync(messages, options, cancellationToken);
         }
 
         public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
-            // TODO
-            // fix this
             var context = new MiddlewareContext(messages, options);
             return middleware.InvokeAsync(context, innerAgent, cancellationToken);
         }
