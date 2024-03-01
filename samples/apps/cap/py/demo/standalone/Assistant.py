@@ -17,13 +17,15 @@ class StandaloneAssistant:
         # Composable Agent Network adapter
         network = LocalActorNetwork()
         assistant_adptr = CAP2AG(ag_agent=assistant, the_other_name="user_proxy", init_chat=False, self_recursive=True)
-
         network.register(assistant_adptr)
         network.connect()
 
         # Hang around for a while
-        while assistant_adptr.run:
-            time.sleep(0.5)
+        try:
+            while assistant_adptr.run:
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            print("Interrupted by user, shutting down.")
         network.disconnect()
         Info("StandaloneAssistant", "App Exit")
 

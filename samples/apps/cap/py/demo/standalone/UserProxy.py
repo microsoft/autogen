@@ -29,8 +29,11 @@ class StandaloneUserProxy:
         user_proxy_conn.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
         # Hang around for a while
-        while user_proxy_adptr.run:
-            time.sleep(0.5)
+        try:
+            while user_proxy_adptr.run:
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            print("Interrupted by user, shutting down.")
         network.disconnect()
         Info("StandaloneUserProxy", "App Exit")
 
