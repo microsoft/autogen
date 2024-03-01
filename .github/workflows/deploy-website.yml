@@ -52,7 +52,7 @@ jobs:
           quarto render .
       - name: Process notebooks
         run: |
-          python process_notebooks.py
+          python process_notebooks.py render
       - name: Test Build
         run: |
           if [ -e yarn.lock ]; then
@@ -98,7 +98,7 @@ jobs:
           quarto render .
       - name: Process notebooks
         run: |
-          python process_notebooks.py
+          python process_notebooks.py render
       - name: Build website
         run: |
           if [ -e yarn.lock ]; then
