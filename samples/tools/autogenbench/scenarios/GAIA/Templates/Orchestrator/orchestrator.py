@@ -73,6 +73,19 @@ $facts
 $plan
 """
     ),
+    "rethink_facts": Template(
+        """It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning). 
+
+$prev_facts
+"""
+    ),
+    "new_plan": Template(
+        """Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
+
+Team membership:
+$team
+"""
+    ),
 }
 
 
@@ -208,17 +221,10 @@ class Orchestrator(ConversableAgent):
 
     def _prepare_new_facts_and_plan(self, facts, sender, team):
         self._print_thought("We aren't making progress. Let's reset.")
-        new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning). 
-
-{facts}
-""".strip()
+        new_facts_prompt = self._prompt_templates["rethink_facts"].substitute(prev_facts=facts).strip()
         facts = self._think_and_respond(self.orchestrated_messages, new_facts_prompt, sender)
 
-        new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
-
-Team membership:
-{team}
-""".strip()
+        new_plan_prompt = self._prompt_templates["new_plan"].substitute(team=team).strip()
         self.orchestrated_messages.append({"role": "user", "content": new_plan_prompt, "name": sender.name})
         response = self.client.create(
             messages=self.orchestrated_messages,
