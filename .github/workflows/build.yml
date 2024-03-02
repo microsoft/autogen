@@ -41,7 +41,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install pytest mock networkx
+          pip install pytest mock networkx matplotlib
       - name: Install optional dependencies for code executors
         # code executors auto skip without deps, so only run for python 3.11
         if: matrix.python-version == '3.11'
