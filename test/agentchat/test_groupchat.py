@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from typing import Any, Dict, List, Optional, Type
 from autogen import AgentNameConflict
 import pytest

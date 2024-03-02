@@ -362,7 +362,7 @@ class ConversableAgent(LLMAgent):
     def register_nested_chats(
         self,
         chat_queue: List[Dict[str, Any]],
-        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
         position: int = 2,
         **kwargs,
@@ -370,7 +370,7 @@ class ConversableAgent(LLMAgent):
         """Register a nested chat reply function.
         Args:
             chat_queue (list): a list of chat objects to be initiated.
-            trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
+            trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
                 Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
@@ -552,7 +552,7 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
-            message = hook(message, recipient, silent)
+            message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
     def send(
@@ -2139,15 +2139,18 @@ class ConversableAgent(LLMAgent):
         self._process_carryover(context)
         return context["message"]
 
-    def register_function(self, function_map: Dict[str, Callable]):
+    def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.
 
         Args:
-            function_map: a dictionary mapping function names to functions.
+            function_map: a dictionary mapping function names to functions. if function_map[name] is None, the function will be removed from the function_map.
         """
-        for name in function_map.keys():
+        for name, func in function_map.items():
             self._assert_valid_name(name)
+            if func is None and name not in self._function_map.keys():
+                warnings.warn(f"The function {name} to remove doesn't exist", name)
         self._function_map.update(function_map)
+        self._function_map = {k: v for k, v in self._function_map.items() if v is not None}
 
     def update_function_signature(self, func_sig: Union[str, Dict], is_remove: None):
         """update a function_signature in the LLM configuration for function_call.

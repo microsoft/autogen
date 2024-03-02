@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from autogen import AssistantAgent, UserProxyAgent
 from autogen import GroupChat, GroupChatManager
 import asyncio
