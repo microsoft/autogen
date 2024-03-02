@@ -64,8 +64,10 @@ public class Example10_SemanticKernel
         // To support more AutoGen bulit-in IMessage, register skAgent with ChatMessageContentConnector
         var connector = new ChatMessageContentConnector();
         var skAgentWithMiddlewares = skAgent
-            .RegisterMiddleware(connector)
+            .RegisterMiddlewareToStreamingAgent(connector)
+            .RegisterStreamingMiddleware(connector)
             .RegisterPrintFormatMessageHook();
+
 
         // Now the skAgentWithMiddlewares supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage
         // It also register a print format message hook to print the message in a human readable format to the console
