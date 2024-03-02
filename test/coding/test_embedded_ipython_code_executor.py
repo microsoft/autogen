@@ -9,11 +9,25 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.oai.openai_utils import config_list_from_json
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker  # noqa: E402
 
 try:
-    from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
-    from autogen.coding.jupyter_code_executor import LocalJupyterCodeExecutor
+    from autogen.coding.jupyter import (
+        DockerJupyterServer,
+        EmbeddedIPythonCodeExecutor,
+        JupyterCodeExecutor,
+        LocalJupyterServer,
+    )
+
+    class DockerJupyterExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = DockerJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
+
+    class LocalJupyterCodeExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = LocalJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
 
     # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
     if sys.platform == "win32":
@@ -21,21 +35,27 @@ try:
     else:
         classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
 
+    if not skip_docker:
+        classes_to_test.append(DockerJupyterExecutor)
+
     skip = False
     skip_reason = ""
-except ImportError:
+except ImportError as e:
     skip = True
-    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed."
+    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed. " + e.msg
     classes_to_test = []
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
+def test_create_dict() -> None:
+    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
+    executor = CodeExecutorFactory.create(config)
+    assert isinstance(executor, EmbeddedIPythonCodeExecutor)
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_create(cls) -> None:
-    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
-    executor = CodeExecutorFactory.create(config)
-    assert isinstance(executor, EmbeddedIPythonCodeExecutor)
-
     config = {"executor": cls()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
