@@ -1,4 +1,3 @@
-import json
 import copy
 import logging
 import re
@@ -6,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser
+from ...browser_utils import SimpleTextBrowser, HeadlessChromeBrowser
 from ...code_utils import content_str
 from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
@@ -16,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class WebSurferAgent(ConversableAgent):
-    """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
+    """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages.
+    Defaults to a simple text-based browser.
+    Can be configured to use a headless Chrome browser by providing a browser_config dictionary with the key "headless" set to True.
+    """
 
     DEFAULT_PROMPT = (
         "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
@@ -56,8 +58,12 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
-
+        headless = browser_config.pop("headless", False)
+        self.browser = (
+            SimpleTextBrowser(**(browser_config if browser_config else {}))
+            if not headless
+            else HeadlessChromeBrowser(**browser_config)
+        )
         inner_llm_config = copy.deepcopy(llm_config)
 
         # Set up the inner monologue
@@ -124,7 +130,7 @@ class WebSurferAgent(ConversableAgent):
             current_page = self.browser.viewport_current_page
             total_pages = len(self.browser.viewport_pages)
 
-            header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
+            header += f"Viewport position: Showing page {current_page + 1} of {total_pages}.\n"
             return (header, self.browser.viewport)
 
         @self._user_proxy.register_for_execution()
@@ -145,7 +151,7 @@ class WebSurferAgent(ConversableAgent):
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
             self.browser.visit_page(f"bing: {query}")
 
-            # Extract the first linl
+            # Extract the first link
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
             if m:
                 self.browser.visit_page(m.group(1))
