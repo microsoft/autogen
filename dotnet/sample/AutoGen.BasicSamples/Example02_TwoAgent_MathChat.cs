@@ -2,16 +2,15 @@
 // Example02_TwoAgent_MathChat.cs
 
 using AutoGen;
+using AutoGen.BasicSample;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
 public static class Example02_TwoAgent_MathChat
 {
     public static async Task RunAsync()
     {
         #region code_snippet_1
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
+        // get gpt-3.5-turbo config
+        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
 
         // create teacher agent
         // teacher agent will create math questions
@@ -23,7 +22,7 @@ public static class Example02_TwoAgent_MathChat
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = llmConfig,
+                ConfigList = [gpt35],
             })
             .RegisterPostProcess(async (_, reply, _) =>
             {
@@ -44,7 +43,7 @@ public static class Example02_TwoAgent_MathChat
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = llmConfig,
+                ConfigList = [gpt35],
             })
             .RegisterPrintFormatMessageHook();
 

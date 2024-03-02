@@ -2,9 +2,10 @@
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
 using AutoGen;
+using AutoGen.BasicSample;
 using AutoGen.DotnetInteractive;
+using AutoGen.OpenAI;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
 
 public partial class Example04_Dynamic_GroupChat_Coding_Task
 {
@@ -17,7 +18,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         if (!Directory.Exists(workDir))
             Directory.CreateDirectory(workDir);
 
-        var service = new InteractiveService(workDir);
+        using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
 
         var result = Path.Combine(workDir, "result.txt");
@@ -26,26 +27,19 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
 
         await service.StartAsync(workDir, default);
 
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gptConfig = autogen.GetOpenAIConfigList(openAIKey, ["gpt-4"]);
+        var gptConfig = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
 
-        var helperAgent = new AssistantAgent(
+        var helperAgent = new GPTAgent(
             name: "helper",
             systemMessage: "You are a helpful AI assistant",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gptConfig,
-            });
+            temperature: 0f,
+            config: gptConfig);
 
-        var groupAdmin = new AssistantAgent(
+        var groupAdmin = new GPTAgent(
             name: "groupAdmin",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gptConfig,
-            });
+            systemMessage: "You are the admin of the group chat",
+            temperature: 0f,
+            config: gptConfig);
 
         var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
             .RegisterPrintFormatMessageHook();
@@ -99,7 +93,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
             llmConfig: new ConversableAgentConfig
             {
                 Temperature = 0,
-                ConfigList = gptConfig,
+                ConfigList = [gptConfig],
             })
             .RegisterPrintFormatMessageHook();
 
@@ -108,7 +102,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
         // The dotnet coder write dotnet code to resolve the task.
         // The code reviewer review the code block from coder's reply.
         // The nuget agent install nuget packages if there's any.
-        var coderAgent = new AssistantAgent(
+        var coderAgent = new GPTAgent(
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
@@ -130,11 +124,8 @@ If your code is incorrect, Fix the error and send the code again.
 Here's some externel information
 - The link to mlnet repo is: https://github.com/dotnet/machinelearning. you don't need a token to use github pr api. Make sure to include a User-Agent header, otherwise github will reject it.
 ",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0.4f,
-                ConfigList = gptConfig,
-            })
+            config: gptConfig,
+            temperature: 0.4f)
             .RegisterPrintFormatMessageHook();
 
         // code reviewer agent will review if code block from coder's reply satisfy the following conditions:
@@ -142,7 +133,7 @@ Here's some externel information
         // - The code block is csharp code block
         // - The code block is top level statement
         // - The code block is not using declaration
-        var codeReviewAgent = new AssistantAgent(
+        var codeReviewAgent = new GPTAgent(
             name: "reviewer",
             systemMessage: """
             You are a code reviewer who reviews code from coder. You need to check if the code satisfy the following conditions:
@@ -168,11 +159,8 @@ Here's some externel information
             ```
 
             """,
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gptConfig,
-            })
+            config: gptConfig,
+            temperature: 0f)
             .RegisterPrintFormatMessageHook();
 
         // create runner agent
@@ -181,12 +169,7 @@ Here's some externel information
         // It also truncate the output if the output is too long.
         var runner = new AssistantAgent(
             name: "runner",
-            defaultReply: "No code available, coder, write code please",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gptConfig,
-            })
+            defaultReply: "No code available, coder, write code please")
             .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {

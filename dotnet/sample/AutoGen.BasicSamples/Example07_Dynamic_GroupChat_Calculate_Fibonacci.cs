@@ -6,6 +6,8 @@ using AutoGen.DotnetInteractive;
 using AutoGen;
 using System.Text;
 using FluentAssertions;
+using AutoGen.BasicSample;
+using AutoGen.OpenAI;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
@@ -44,7 +46,6 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     }
     #endregion reviewer_function
 
-
     public static async Task RunAsync()
     {
         var functions = new Example07_Dynamic_GroupChat_Calculate_Fibonacci();
@@ -53,28 +54,19 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         if (!Directory.Exists(workDir))
             Directory.CreateDirectory(workDir);
 
-        var service = new InteractiveService(workDir);
+        using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
 
         await service.StartAsync(workDir, default);
 
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gpt3Config = LLMConfigAPI.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
+        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
 
         #region create_reviewer
-        var reviewer = new AssistantAgent(
+        var reviewer = new GPTAgent(
             name: "code_reviewer",
             systemMessage: @"You review code block from coder",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gpt3Config,
-                FunctionContracts = new[]
-                {
-                    functions.ReviewCodeBlockFunctionContract,
-                },
-            },
+            config: gpt3Config,
+            functions: [functions.ReviewCodeBlockFunction],
             functionMap: new Dictionary<string, Func<string, Task<string>>>()
             {
                 { nameof(ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
@@ -153,7 +145,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #endregion create_reviewer
 
         #region create_coder
-        var coder = new AssistantAgent(
+        var coder = new GPTAgent(
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
@@ -171,11 +163,8 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             ```
             
             If your code is incorrect, runner will tell you the error message. Fix the error and send the code again.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0.4f,
-                ConfigList = gpt3Config,
-            })
+            config: gpt3Config,
+            temperature: 0.4f)
             .RegisterPrintFormatMessageHook();
         #endregion create_coder
 
@@ -211,14 +200,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #endregion create_runner
 
         #region create_admin
-        var admin = new AssistantAgent(
+        var admin = new GPTAgent(
             name: "admin",
             systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gpt3Config,
-            })
+            temperature: 0,
+            config: gpt3Config)
             .RegisterPostProcess(async (_, reply, _) =>
             {
                 if (reply is TextMessage textMessage && textMessage.Content.Contains("TERMINATE") is true)
@@ -260,8 +246,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         lastMessage.From.Should().Be("admin");
         lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
         lastMessage.Should().BeOfType<TextMessage>();
-        var textMessage = (TextMessage)lastMessage;
-        textMessage.Content.Should().Contain(the39thFibonacciNumber.ToString());
+        lastMessage.GetContent().Should().Contain(the39thFibonacciNumber.ToString());
         #endregion start_group_chat
     }
 }
