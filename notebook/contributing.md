@@ -19,8 +19,6 @@ In the notebook metadata set the `tags` and `description` `front_matter` propert
 
 **Note**: Notebook metadata can be edited by opening the notebook in a text editor (Or "Open With..." -> "Text Editor" in VSCode)
 
-Ensure the first cell is markdown and before absolutely anything else include the following yaml within a comment.
-
 The `tags` field is a list of tags that will be used to categorize the notebook. The `description` field is a brief description of the notebook.
 
 ## Best practices for authoring notebooks
