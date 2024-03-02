@@ -14,7 +14,7 @@ on:
       - "notebook/agentchat_groupchat_finite_state_machine.ipynb"
       - ".github/workflows/openai.yml"
 permissions: {}
-    # actions: read
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read
