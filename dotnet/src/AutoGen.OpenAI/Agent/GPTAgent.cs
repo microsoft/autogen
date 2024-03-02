@@ -86,7 +86,7 @@ public class GPTAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var oaiConnectorMiddleware = new OpenAIMessageConnector();
+        var oaiConnectorMiddleware = new ChatRequestMessageConnector();
         var agent = this._innerAgent.RegisterMiddleware(oaiConnectorMiddleware);
         if (this.functionMap is not null)
         {
@@ -102,7 +102,7 @@ public class GPTAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var oaiConnectorMiddleware = new OpenAIMessageConnector();
+        var oaiConnectorMiddleware = new ChatRequestMessageConnector();
         var agent = this._innerAgent.RegisterStreamingMiddleware(oaiConnectorMiddleware);
         if (this.functionMap is not null)
         {

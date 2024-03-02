@@ -12,7 +12,7 @@ using Azure.AI.OpenAI;
 namespace AutoGen.OpenAI.Middleware;
 
 /// <summary>
-/// This middleware converts the incoming <see cref="IMessage"/> to <see cref="ChatRequestMessage" /> before sending to agent. And converts the output <see cref="ChatResponseMessage"/> to <see cref="IMessage"/> after receiving from agent.
+/// This middleware converts the incoming <see cref="IMessage"/> to <see cref="IMessage{ChatRequestMessage}" /> where T is <see cref="ChatRequestMessage"/> before sending to agent. And converts the output <see cref="ChatResponseMessage"/> to <see cref="IMessage"/> after receiving from agent.
 /// <para>Supported <see cref="IMessage"/> are</para>
 /// <para>- <see cref="TextMessage"/></para> 
 /// <para>- <see cref="ImageMessage"/></para> 
@@ -23,16 +23,16 @@ namespace AutoGen.OpenAI.Middleware;
 /// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
-public class OpenAIMessageConnector : IMiddleware, IStreamingMiddleware
+public class ChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
 {
     private bool strictMode = false;
 
-    public OpenAIMessageConnector(bool strictMode = false)
+    public ChatRequestMessageConnector(bool strictMode = false)
     {
         this.strictMode = strictMode;
     }
 
-    public string? Name => nameof(OpenAIMessageConnector);
+    public string? Name => nameof(ChatRequestMessageConnector);
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {

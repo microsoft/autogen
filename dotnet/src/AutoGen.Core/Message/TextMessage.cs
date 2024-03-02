@@ -14,7 +14,7 @@ public class TextMessage : IMessage, IStreamingMessage
 
     public TextMessage(TextMessageUpdate update)
     {
-        this.Content = update.Content;
+        this.Content = update.Content ?? string.Empty;
         this.Role = update.Role;
         this.From = update.From;
     }
@@ -31,7 +31,7 @@ public class TextMessage : IMessage, IStreamingMessage
             throw new System.ArgumentException("From mismatch", nameof(update));
         }
 
-        this.Content = this.Content + update.Content;
+        this.Content = this.Content + update.Content ?? string.Empty;
     }
 
     public Role Role { get; set; }
@@ -48,14 +48,14 @@ public class TextMessage : IMessage, IStreamingMessage
 
 public class TextMessageUpdate : IStreamingMessage
 {
-    public TextMessageUpdate(Role role, string content, string? from = null)
+    public TextMessageUpdate(Role role, string? content, string? from = null)
     {
         this.Content = content;
         this.From = from;
         this.Role = role;
     }
 
-    public string Content { get; set; }
+    public string? Content { get; set; }
 
     public string? From { get; set; }
 

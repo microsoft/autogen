@@ -8,8 +8,9 @@ namespace AutoGen.Core;
 
 public class MultiModalMessage : IMessage
 {
-    public MultiModalMessage(IEnumerable<IMessage> content, string? from = null)
+    public MultiModalMessage(Role role, IEnumerable<IMessage> content, string? from = null)
     {
+        this.Role = role;
         this.Content = content;
         this.From = from;
         this.Validate();

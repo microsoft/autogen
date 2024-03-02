@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Azure.AI.OpenAI;
+using AutoGen.SemanticKernel.Middleware;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
@@ -14,7 +14,19 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 namespace AutoGen.SemanticKernel;
 
 /// <summary>
-/// The agent that intergrade with the semantic kernel.
+/// Semantic Kernel Agent
+/// <listheader>Income message could be one of the following type:</listheader>
+/// <list type="bullet">
+/// <item><see cref="IMessage{T}"/> where T is <see cref="ChatMessageContent"/></item>
+/// </list>
+/// 
+/// <listheader>Return message could be one of the following type:</listheader>
+/// <list type="bullet">
+/// <item><see cref="IMessage{T}"/> where T is <see cref="ChatMessageContent"/></item>
+/// <item>(streaming) <see cref="IMessage{T}"/> where T is <see cref="StreamingChatMessageContent"/></item>
+/// </list>
+/// 
+/// <para>To support more AutoGen built-in <see cref="IMessage"/>, register with <see cref="ChatMessageContentConnector"/>.</para>
 /// </summary>
 public class SemanticKernelAgent : IStreamingAgent
 {
@@ -33,63 +45,24 @@ public class SemanticKernelAgent : IStreamingAgent
         _systemMessage = systemMessage;
         _settings = settings;
     }
+
     public string Name { get; }
 
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var chatMessageContents = ProcessMessage(messages);
-        // if there's no system message in chatMessageContents, add one to the beginning
-        if (!chatMessageContents.Any(c => c.Role == AuthorRole.System))
-        {
-            chatMessageContents = new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
-        }
-
-        var chatHistory = new ChatHistory(chatMessageContents);
-        var option = _settings ?? new OpenAIPromptExecutionSettings
-        {
-            Temperature = options?.Temperature ?? 0.7f,
-            MaxTokens = options?.MaxToken ?? 1024,
-            StopSequences = options?.StopSequence,
-        };
-
+        var chatHistory = BuildChatHistory(messages);
+        var option = BuildOption(options);
         var chatService = _kernel.GetRequiredService<IChatCompletionService>();
 
         var reply = await chatService.GetChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
 
-        if (reply.Count() == 1)
+        if (reply.Count > 1)
         {
-            // might be a plain text return or a function call return
-            var msg = reply.First();
-            if (msg is OpenAIChatMessageContent oaiContent)
-            {
-                if (oaiContent.Content is string content)
-                {
-                    return new Message(Role.Assistant, content, this.Name);
-                }
-                else if (oaiContent.ToolCalls is { Count: 1 } && oaiContent.ToolCalls.First() is ChatCompletionsFunctionToolCall toolCall)
-                {
-                    return new Message(Role.Assistant, content: null, this.Name)
-                    {
-                        FunctionName = toolCall.Name,
-                        FunctionArguments = toolCall.Arguments,
-                    };
-                }
-                else
-                {
-                    // parallel function call is not supported
-                    throw new InvalidOperationException("Unsupported return type, only plain text and function call are supported.");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("Unsupported return type");
-            }
+            throw new InvalidOperationException("ResultsPerPrompt greater than 1 is not supported in this semantic kernel agent");
         }
-        else
-        {
-            throw new InvalidOperationException("Unsupported return type, multiple messages are not supported.");
-        }
+
+        return new MessageEnvelope<ChatMessageContent>(reply.First(), from: this.Name);
     }
 
     public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
@@ -97,6 +70,16 @@ public class SemanticKernelAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        var chatHistory = BuildChatHistory(messages);
+        var option = BuildOption(options);
+        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+        var response = chatService.GetStreamingChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
+
+        return ProcessMessage(response);
+    }
+
+    private ChatHistory BuildChatHistory(IEnumerable<IMessage> messages)
+    {
         var chatMessageContents = ProcessMessage(messages);
         // if there's no system message in chatMessageContents, add one to the beginning
         if (!chatMessageContents.Any(c => c.Role == AuthorRole.System))
@@ -104,172 +87,40 @@ public class SemanticKernelAgent : IStreamingAgent
             chatMessageContents = new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
         }
 
-        var chatHistory = new ChatHistory(chatMessageContents);
-        var option = _settings ?? new OpenAIPromptExecutionSettings
+        return new ChatHistory(chatMessageContents);
+    }
+
+    private PromptExecutionSettings BuildOption(GenerateReplyOptions? options)
+    {
+        return _settings ?? new OpenAIPromptExecutionSettings
         {
             Temperature = options?.Temperature ?? 0.7f,
             MaxTokens = options?.MaxToken ?? 1024,
             StopSequences = options?.StopSequence,
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            ResultsPerPrompt = 1,
         };
-
-        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
-        var response = chatService.GetStreamingChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
-
-        return ProcessMessage(response);
     }
 
     private async IAsyncEnumerable<IMessage> ProcessMessage(IAsyncEnumerable<StreamingChatMessageContent> response)
     {
-        string? text = null;
         await foreach (var content in response)
         {
-            if (content is OpenAIStreamingChatMessageContent oaiStreamingChatContent && oaiStreamingChatContent.Content is string chunk)
+            if (content.ChoiceIndex > 0)
             {
-                text += chunk;
-                yield return new Message(Role.Assistant, text, this.Name);
+                throw new InvalidOperationException("Only one choice is supported in streaming response");
             }
-            else
-            {
-                throw new InvalidOperationException("Unsupported return type");
-            }
-        }
 
-        if (text is not null)
-        {
-            yield return new Message(Role.Assistant, text, this.Name);
+            yield return new MessageEnvelope<StreamingChatMessageContent>(content, from: this.Name);
         }
     }
 
     private IEnumerable<ChatMessageContent> ProcessMessage(IEnumerable<IMessage> messages)
     {
-        return messages.SelectMany(m =>
+        return messages.Select(m => m switch
         {
-            if (m is IMessage<ChatMessageContent> chatMessageContent)
-            {
-                return [chatMessageContent.Content];
-            }
-            if (m.From == this.Name)
-            {
-                return ProcessMessageForSelf(m);
-            }
-            else
-            {
-                return ProcessMessageForOthers(m);
-            }
+            IMessage<ChatMessageContent> cmc => cmc.Content,
+            _ => throw new ArgumentException("Invalid message type")
         });
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForSelf(IMessage message)
-    {
-        return message switch
-        {
-            TextMessage textMessage => ProcessMessageForSelf(textMessage),
-            MultiModalMessage multiModalMessage => ProcessMessageForSelf(multiModalMessage),
-            Message m => ProcessMessageForSelf(m),
-            _ => throw new System.NotImplementedException(),
-        };
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForOthers(IMessage message)
-    {
-        return message switch
-        {
-            TextMessage textMessage => ProcessMessageForOthers(textMessage),
-            MultiModalMessage multiModalMessage => ProcessMessageForOthers(multiModalMessage),
-            Message m => ProcessMessageForOthers(m),
-            _ => throw new System.NotImplementedException(),
-        };
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForSelf(TextMessage message)
-    {
-        if (message.Role == Role.System)
-        {
-            return [new ChatMessageContent(AuthorRole.System, message.Content)];
-        }
-        else
-        {
-            return [new ChatMessageContent(AuthorRole.Assistant, message.Content)];
-        }
-    }
-
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForOthers(TextMessage message)
-    {
-        if (message.Role == Role.System)
-        {
-            return [new ChatMessageContent(AuthorRole.System, message.Content)];
-        }
-        else
-        {
-            return [new ChatMessageContent(AuthorRole.User, message.Content)];
-        }
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForSelf(MultiModalMessage message)
-    {
-        throw new System.InvalidOperationException("MultiModalMessage is not supported in the semantic kernel if it's from self.");
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForOthers(MultiModalMessage message)
-    {
-        var collections = new ChatMessageContentItemCollection();
-        foreach (var item in message.Content)
-        {
-            if (item is TextMessage textContent)
-            {
-                collections.Add(new TextContent(textContent.Content));
-            }
-            else if (item is ImageMessage imageContent)
-            {
-                collections.Add(new ImageContent(new Uri(imageContent.Url)));
-            }
-            else
-            {
-                throw new InvalidOperationException($"Unsupported message type: {item.GetType().Name}");
-            }
-        }
-        return [new ChatMessageContent(AuthorRole.User, collections)];
-    }
-
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForSelf(Message message)
-    {
-        if (message.Role == Role.System)
-        {
-            return [new ChatMessageContent(AuthorRole.System, message.Content)];
-        }
-        else if (message.Content is string && message.FunctionName is null && message.FunctionArguments is null)
-        {
-            return [new ChatMessageContent(AuthorRole.Assistant, message.Content)];
-        }
-        else if (message.Content is null && message.FunctionName is not null && message.FunctionArguments is not null)
-        {
-            throw new System.InvalidOperationException("Function call is not supported in the semantic kernel if it's from self.");
-        }
-        else
-        {
-            throw new System.InvalidOperationException("Unsupported message type");
-        }
-    }
-
-    private IEnumerable<ChatMessageContent> ProcessMessageForOthers(Message message)
-    {
-        if (message.Role == Role.System)
-        {
-            return [new ChatMessageContent(AuthorRole.System, message.Content)];
-        }
-        else if (message.Content is string && message.FunctionName is null && message.FunctionArguments is null)
-        {
-            return [new ChatMessageContent(AuthorRole.User, message.Content)];
-        }
-        else if (message.Content is null && message.FunctionName is not null && message.FunctionArguments is not null)
-        {
-            throw new System.InvalidOperationException("Function call is not supported in the semantic kernel if it's from others.");
-        }
-        else
-        {
-            throw new System.InvalidOperationException("Unsupported message type");
-        }
     }
 }

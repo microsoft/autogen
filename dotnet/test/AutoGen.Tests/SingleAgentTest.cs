@@ -71,7 +71,7 @@ namespace AutoGen.Tests
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
                 new ChatMessageImageContentItem(new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png")));
-            var multiModalMessage = new MultiModalMessage(
+            var multiModalMessage = new MultiModalMessage(Role.User,
                 [
                     new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),
                     new ImageMessage(Role.User, @"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png", from: "user"),

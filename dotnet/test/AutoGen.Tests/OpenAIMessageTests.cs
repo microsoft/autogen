@@ -42,7 +42,7 @@ public class OpenAIMessageTests
                 FunctionArguments = "functionArguments",
             },
             new ImageMessage(Role.User, "https://example.com/image.png", "user"),
-            new MultiModalMessage(
+            new MultiModalMessage(Role.Assistant,
                 [
                     new TextMessage(Role.User, "Hello", "user"),
                     new ImageMessage(Role.User, "https://example.com/image.png", "user"),
@@ -63,7 +63,7 @@ public class OpenAIMessageTests
                 message1: new ToolCallMessage("test", "test", "assistant"),
                 message2: new ToolCallResultMessage("result", "test", "test", "assistant"), "assistant"),
         ];
-        var openaiMessageConnectorMiddleware = new OpenAIMessageConnector();
+        var openaiMessageConnectorMiddleware = new ChatRequestMessageConnector();
         var agent = new EchoAgent("assistant");
 
         var oaiMessages = messages.Select(m => (m, openaiMessageConnectorMiddleware.ProcessIncomingMessages(agent, [m])));
@@ -74,7 +74,7 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageTest()
     {
         var agent = new EchoAgent("assistant");
-        var middleware = new OpenAIMessageConnector();
+        var middleware = new ChatRequestMessageConnector();
 
         // user message
         IMessage message = new TextMessage(Role.User, "Hello", "user");
@@ -253,7 +253,7 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageShortCircuitTest()
     {
         var agent = new EchoAgent("assistant");
-        var middleware = new OpenAIMessageConnector();
+        var middleware = new ChatRequestMessageConnector();
         ChatRequestMessage[] messages =
             [
                 new ChatRequestUserMessage("Hello"),
