@@ -112,6 +112,7 @@ def test_nested():
     ]
     assistant.register_nested_chats(
         nested_chat_queue,
+        trigger=user,
     )
     user.initiate_chats([{"recipient": assistant, "message": tasks[0]}, {"recipient": assistant, "message": tasks[1]}])
 
