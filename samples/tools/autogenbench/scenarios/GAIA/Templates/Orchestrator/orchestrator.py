@@ -108,13 +108,12 @@ class Criteria:
     def to_bullet_point(self):
         return f"    - {self.prompt_msg}"
 
-    def to_json(self):
-        return {
-            self.name: {
-                "reason": "string",
-                "answer": self.answer_spec
-        }
-    }
+    def to_json_schema_str(self):
+        return f"""    "{self.name}": {{
+        "reason": string,
+        "answer": {self.answer_spec}
+    }}"""
+
 
 class Orchestrator(ConversableAgent):
     def __init__(
