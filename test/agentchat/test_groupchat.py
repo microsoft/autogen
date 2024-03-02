@@ -681,7 +681,7 @@ def test_graceful_exit_before_max_round():
 
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)
 
-    agent1.initiate_chat(group_chat_manager, message='')
+    agent1.initiate_chat(group_chat_manager, message="")
 
     # Note that 3 is much lower than 10 (max_round), so the conversation should end before 10 rounds.
     assert len(groupchat.messages) == 3
@@ -972,9 +972,6 @@ def test_custom_speaker_selection_with_transition_graph():
         for i in range(26)
     ]
 
-    # Print agents name
-    # print([agent.name for agent in agents])
-
     # Initiate allowed speaker transitions
     allowed_or_disallowed_speaker_transitions = {}
 
@@ -996,14 +993,9 @@ def test_custom_speaker_selection_with_transition_graph():
             allowed_or_disallowed_speaker_transitions[previous_agent].append(current_agent)
         previous_agent = current_agent
 
-    # For Kevin to visualize, to remove code
-    from autogen.graph_utils import visualize_speaker_transitions_dict
-
-    visualize_speaker_transitions_dict(allowed_or_disallowed_speaker_transitions, agents)
-
     def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
-        """Define a customized speaker selection function.
-        A recommended way is to define a transition for each speaker in the groupchat.
+        """
+        Define a customized speaker selection function.
         """
         expected_sequence = ["a", "u", "t", "o", "g", "e", "n"]
 
@@ -1012,7 +1004,12 @@ def test_custom_speaker_selection_with_transition_graph():
         last_speaker_index = expected_sequence.index(last_speaker_char)
         # Return the next agent in the expected sequence
         if last_speaker_index == len(expected_sequence) - 1:
-            return None  # ValueError: Custom speaker selection function returned an object of type <class 'NoneType'> instead of Agent or str.
+            # return None  # ValueError: Custom speaker selection function returned an object of type <class 'NoneType'> instead of Agent or str.
+            from autogen.agentchat.groupchat import (
+                NoEligibleSpeakerException,
+            )  # TODO: Kevin, we should let the user return None here as NoEligibleSpeakerException is relatively unknown to our users.
+
+            raise NoEligibleSpeakerException("No eligible speaker found in custom_speaker_selection.")
         else:
             next_agent = agents[ord(expected_sequence[last_speaker_index + 1]) - 97]
             return next_agent
@@ -1027,8 +1024,14 @@ def test_custom_speaker_selection_with_transition_graph():
     )
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
 
-    agents[0].initiate_chat(manager, message="My name is a")
-    # TODO: Assert result is a,u,t,o,g,e,n afterwards
+    results = agents[0].initiate_chat(manager, message="My name is a")
+    actual_sequence = []
+
+    # Append to actual_sequence using results.chat_history[idx]['content'][-1]
+    for idx in range(len(results.chat_history)):
+        actual_sequence.append(results.chat_history[idx]["content"][-1]) # append the last character of the content
+
+    assert expected_sequence == actual_sequence
 
 
 if __name__ == "__main__":
@@ -1045,5 +1048,5 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    #test_custom_speaker_selection_with_transition_graph()
-    pass
+    test_custom_speaker_selection_with_transition_graph()
+    # pass
