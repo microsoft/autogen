@@ -1004,12 +1004,7 @@ def test_custom_speaker_selection_with_transition_graph():
         last_speaker_index = expected_sequence.index(last_speaker_char)
         # Return the next agent in the expected sequence
         if last_speaker_index == len(expected_sequence) - 1:
-            # return None  # ValueError: Custom speaker selection function returned an object of type <class 'NoneType'> instead of Agent or str.
-            from autogen.agentchat.groupchat import (
-                NoEligibleSpeakerException,
-            )  # TODO: Kevin, we should let the user return None here as NoEligibleSpeakerException is relatively unknown to our users.
-
-            raise NoEligibleSpeakerException("No eligible speaker found in custom_speaker_selection.")
+            return None  # terminate the conversation
         else:
             next_agent = agents[ord(expected_sequence[last_speaker_index + 1]) - 97]
             return next_agent
@@ -1029,7 +1024,7 @@ def test_custom_speaker_selection_with_transition_graph():
 
     # Append to actual_sequence using results.chat_history[idx]['content'][-1]
     for idx in range(len(results.chat_history)):
-        actual_sequence.append(results.chat_history[idx]["content"][-1]) # append the last character of the content
+        actual_sequence.append(results.chat_history[idx]["content"][-1])  # append the last character of the content
 
     assert expected_sequence == actual_sequence
 
