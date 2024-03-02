@@ -68,10 +68,10 @@ def check_quarto_bin(quarto_bin: str = "quarto") -> None:
     """Check if quarto is installed."""
     try:
         version = subprocess.check_output([quarto_bin, "--version"], text=True).strip()
-        version = tuple(map(int, version.split(".")))
-        if version < (1, 5, 23):
-            print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
-            sys.exit(1)
+        # version = tuple(map(int, version.split(".")))
+        # if version < (1, 5, 23):
+        #     print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
+        #     sys.exit(1)
 
     except FileNotFoundError:
         print("Quarto is not installed. Please install it from https://quarto.org")
