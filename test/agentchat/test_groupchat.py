@@ -931,7 +931,7 @@ def test_custom_speaker_selection():
         code_execution_config={},
     )
 
-    def custom_speaker_selection_func(last_speaker: Agent, messages: List[Dict]) -> Agent:
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
         """Define a customized speaker selection function.
         A recommended way is to define a transition for each speaker in the groupchat.
         """
@@ -1001,7 +1001,7 @@ def test_custom_speaker_selection_with_transition_graph():
 
     visualize_speaker_transitions_dict(allowed_or_disallowed_speaker_transitions, agents)
 
-    def custom_speaker_selection_func(last_speaker: Agent, messages: List[Dict]) -> Agent:
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
         """Define a customized speaker selection function.
         A recommended way is to define a transition for each speaker in the groupchat.
         """

@@ -47,8 +47,8 @@ class GroupChat:
             Parameters:
                 - last_speaker: Agent
                     The last speaker in the group chat.
-                - messages: List[Dict]
-                    All past messages in the group chat.
+                - groupchat: GroupChat
+                    The GroupChat object
             Returns:
                 Return an `Agent` class or a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
 
@@ -405,7 +405,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         """
         if isinstance(self.speaker_selection_method, Callable):
-            selected_agent = self.speaker_selection_method(last_speaker, self.messages)
+            selected_agent = self.speaker_selection_method(last_speaker, self)
             if isinstance(selected_agent, Agent):
                 if selected_agent in self.agents:
                     return selected_agent
