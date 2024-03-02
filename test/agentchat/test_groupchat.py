@@ -662,7 +662,7 @@ def test_graceful_exit_before_max_round():
         max_consecutive_auto_reply=10,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is sam speaking. TERMINATE",
+        default_auto_reply="This is sam speaking.",
     )
 
     # This speaker_transitions limits the transition to be only from agent1 to agent2, and from agent2 to agent3 and end.
@@ -681,7 +681,7 @@ def test_graceful_exit_before_max_round():
 
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)
 
-    agent1.initiate_chat(group_chat_manager, message="'None' is_termination_msg function.")
+    agent1.initiate_chat(group_chat_manager, message='')
 
     # Note that 3 is much lower than 10 (max_round), so the conversation should end before 10 rounds.
     assert len(groupchat.messages) == 3
@@ -1045,4 +1045,5 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    test_custom_speaker_selection_with_transition_graph()
+    #test_custom_speaker_selection_with_transition_graph()
+    pass
