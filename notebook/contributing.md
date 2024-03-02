@@ -2,15 +2,22 @@
 
 ## How to get a notebook displayed on the website
 
-Ensure the first cell is markdown and before absolutely anything else include the following yaml within a comment.
+In the notebook metadata set the `tags` and `description` `front_matter` properties. For example:
 
-```markdown
-<!--
-tags: ["code generation", "debugging"]
-description: |
-    Use conversable language learning model agents to solve tasks and provide automatic feedback through a comprehensive example of writing, executing, and debugging Python code to compare stock price changes.
--->
+```json
+{
+    "...": "...",
+    "metadata": {
+        "...": "...",
+        "front_matter": {
+            "tags": ["code generation", "debugging"],
+            "description": "Use conversable language learning model agents to solve tasks and provide automatic feedback through a comprehensive example of writing, executing, and debugging Python code to compare stock price changes."
+        }
+    }
+}
 ```
+
+**Note**: Notebook metadata can be edited by opening the notebook in a text editor (Or "Open With..." -> "Text Editor" in VSCode)
 
 The `tags` field is a list of tags that will be used to categorize the notebook. The `description` field is a brief description of the notebook.
 
@@ -102,9 +109,26 @@ If a notebook needs to be skipped then add to the notebook metadata:
 {
     "...": "...",
     "metadata": {
-        "test_skip": "REASON"
+        "skip_test": "REASON"
     }
 }
 ```
 
-Note: Notebook metadata can be edited by opening the notebook in a text editor (Or "Open With..." -> "Text Editor" in VSCode)
+## Metadata fields
+
+All possible metadata fields are as follows:
+```json
+{
+    "...": "...",
+    "metadata": {
+        "...": "...",
+        "front_matter": {
+            "tags": "List[str] - List of tags to categorize the notebook",
+            "description": "str - Brief description of the notebook",
+        },
+        "skip_test": "str - Reason for skipping the test. If present, the notebook will be skipped during testing",
+        "skip_render": "str - Reason for skipping rendering the notebook. If present, the notebook will be left out of the website.",
+        "extra_files_to_copy": "List[str] - List of files to copy to the website. The paths are relative to the notebook directory",
+    }
+}
+```
