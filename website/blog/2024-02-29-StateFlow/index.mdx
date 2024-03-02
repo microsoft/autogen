@@ -1,5 +1,5 @@
 ---
-title: StateFlow - Build LLM Workflows with Customized State-Oriented Transtion Function in GroupChat
+title: StateFlow - Build LLM Workflows with Customized State-Oriented Transition Function in GroupChat
 authors: yiranwu
 tags: [LLM, research]
 ---
@@ -7,26 +7,32 @@ tags: [LLM, research]
 **TL;DR:**: Introduce Stateflow, a task-solving paradigm that conceptualizes complex task-solving processes backed by LLMs as state machines.
 Introduce how to use GroupChat to realize such an idea with a customized speaker selection function.
 
-Paper is coming soon!
 
-LLMs have increasingly been employed to solve complex, multi-step tasks, e.g., tasks that require a sequence of complex reasoning 
+The paper is coming soon!
+
+
+LLMs have increasingly been employed to solve complex, multi-step tasks, e.g., tasks that require a sequence of complex reasoning
 and interacting with external environments and tools. To facilitate the development of such applications, we introduce **StateFlow**, a new paradigm
-that conceptualizes complex task-solving processes backed by LLMs as state machines. With proper construction of states and definition of 
+that conceptualizes complex task-solving processes backed by LLMs as state machines. With proper construction of states and definition of
 state transitions, we can ground the progress of task-solving, ensuring clear tracking and management of LLMs' responses throughout the task-solving process.
 
+
 AutoGen GroupChat can be used to build a state-oriented workflow. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
-introduces a way on how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
-GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for next speaker.
-These transitions can be based on current speaker and static checking of the context history (for example, checking if 'Error' is in last message).
+introduces a way how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
+GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for the next speaker.
+These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
+
 
 ## Example of a custom_speaker_selection_func
 We present an example of how to define a custom speaker selection function for a desired workflow.
-Here, the task is to retrieve papers related to a topic and create a markdown table for these papers. 
+Here, the task is to retrieve papers related to a topic and create a markdown table for these papers.
+
 
 <figure>
-    <img src="../website/blog/2024-02-29-StateFlow/img/sf_example_1.png"  width="700"
-         alt="SF_Example_1">
+   <img src="../website/blog/2024-02-29-StateFlow/img/sf_example_1.png" width="700"
+        alt="SF_Example_1">
 </figure>
+
 
 We define the following agents:
 - Initializer: Start the workflow by sending a task.
@@ -34,24 +40,27 @@ We define the following agents:
 - Executor: Execute the code.
 - Scientist: Read the papers and write a summary.
 
+
 ```python
 # Define the agents, the code is for illustration purposes and is not executable.
 initializer = autogen.UserProxyAgent(
-    name="Init"
+   name="Init"
 )
 coder = autogen.AssistantAgent(
-    name="Coder",
-    system_message="""You are the Coder. Write Python Code to retrieve papers from arxiv.."""
+   name="Coder",
+   system_message="""You are the Coder. Write Python Code to retrieve papers from arxiv.."""
 )
 executor = autogen.UserProxyAgent(
-    name="Executor",
-    system_message="Executor. Execute the code written by the Coder and report the result.",
+   name="Executor",
+   system_message="Executor. Execute the code written by the Coder and report the result.",
 )
 scientist = autogen.AssistantAgent(
-    name="Scientist",
-    system_message="""You are the Scientist. Please categorize papers after seeing their abstracts printed and create a markdown table with Domain, Title, Authors, Summary and Link. Return 'TERMINATE' in the end.""",
+   name="Scientist",
+   system_message="""You are the Scientist. Please categorize papers after seeing their abstracts printed and create a markdown table with Domain, Title, Authors, Summary and Link. Return 'TERMINATE' in the end.""",
 )
 ```
+
+
 
 
 In the Figure, we define a simple workflow for research with 4 states: Init, Retrieve, Reserach and End. Within each state, we will call different agents to perform the tasks.
@@ -60,40 +69,46 @@ In the Figure, we define a simple workflow for research with 4 states: Init, Ret
 - Research: We will call the scientist to read the papers and write a summary.
 - End: We will end the workflow.
 
+
 Then we define a customized function to control the transition between states:
 ```python
 def state_transition(last_speaker, groupchat):
-    messages = groupchat.messages
-    
-    if last_speaker is initializer:
-        # init -> retrieve
-        return coder
-    elif last_speaker is coder:
-        # retrieve: action 1 -> action 2
-        return executor
-    elif last_speaker is executor:
-        if messages[-1]["content"] == "exitcode: 1":
-            # retrieve --(execution failed)--> retrieve
-            return coder
-        else:
-            # retrieve --(execution sucess)--> research
-            return scientist
-    elif last_speaker == "Scientist":
-        # research -> end
-        return None
+   messages = groupchat.messages
+
+
+   if last_speaker is initializer:
+       # init -> retrieve
+       return coder
+   elif last_speaker is coder:
+       # retrieve: action 1 -> action 2
+       return executor
+   elif last_speaker is executor:
+       if messages[-1]["content"] == "exitcode: 1":
+           # retrieve --(execution failed)--> retrieve
+           return coder
+       else:
+           # retrieve --(execution success)--> research
+           return scientist
+   elif last_speaker == "Scientist":
+       # research -> end
+       return None
+
 
 groupchat = autogen.GroupChat(
-    agents=[initializer, coder, executor, scientist],
-    messages=[],
-    max_round=20,
-    speaker_selection_method=state_transition,
+   agents=[initializer, coder, executor, scientist],
+   messages=[],
+   max_round=20,
+   speaker_selection_method=state_transition,
 )
 ```
 
-We recommend implement the transition logic for each speaker in the customized function. In analogy to state machine, a state transition function determines the next state based on current state and input.
+
+We recommend implementing the transition logic for each speaker in the customized function. In analogy to a state machine, a state transition function determines the next state based on the current state and input.
 Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
-For example, we can always default to the build-in `auto` method to employ a LLM-based groupchat manager to select the next speaker.
+For example, we can always default to the built-in `auto` method to employ a LLM-based groupchat manager to select the next speaker.
 When returning `None`, the groupchat will terminate.
+
+
 
 
 ## For Further Reading
