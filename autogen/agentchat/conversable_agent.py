@@ -1126,8 +1126,18 @@ class ConversableAgent(LLMAgent):
         if recipient is None:
             if nr_messages_to_preserve:
                 for key in self._oai_messages:
+                    nr_messages_to_preserve_internal = nr_messages_to_preserve
+                    # if breaking history between function call and function response, save function call message
+                    # additionally, otherwise openai will return error
+                    first_msg_to_save = self._oai_messages[key][-nr_messages_to_preserve_internal]
+                    if "tool_responses" in first_msg_to_save:
+                        nr_messages_to_preserve_internal += 1
+                        print(
+                            f"Preserving one more message for {self.name} to not divide history between tool call and "
+                            f"tool response."
+                        )
                     # Remove messages from history except last `nr_messages_to_preserve` messages.
-                    self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve:]
+                    self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve_internal:]
             else:
                 self._oai_messages.clear()
         else:
