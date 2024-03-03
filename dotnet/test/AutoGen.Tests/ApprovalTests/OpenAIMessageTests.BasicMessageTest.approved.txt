@@ -102,7 +102,7 @@
     ]
   },
   {
-    "OriginalMessage": "MultiModalMessage(, user)\n\tTextMessage(user, Hello, user)\n\tImageMessage(user, https://example.com/image.png, user)",
+    "OriginalMessage": "MultiModalMessage(assistant, user)\n\tTextMessage(user, Hello, user)\n\tImageMessage(user, https://example.com/image.png, user)",
     "ConvertedMessages": [
       {
         "Role": "user",
