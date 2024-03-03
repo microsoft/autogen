@@ -26,9 +26,9 @@ class Teachability(AgentCapability):
 
     When adding Teachability to an agent, the following are modified:
     - The agent's system message is appended with a note about the agent's new ability.
-    - The agent's `process_last_received_message` hook is registered for processing the last received message.
-        - Appends any relevant memos to the message text.
-        - Stores any apparent teachings in new memos.
+    - A hook is added to the agent's `process_last_received_message` hookable method,
+    and the hook potentially modifies the last of the received messages to include earlier teachings related to the message.
+    Not modifying the stored message history. Stores apparent teachings in new memos.
     """
 
     def __init__(
