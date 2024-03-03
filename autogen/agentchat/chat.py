@@ -4,7 +4,7 @@ from collections import defaultdict
 from typing import Dict, List, Any, Set, Tuple
 from dataclasses import dataclass
 import warnings
-from autogen.agentchat.conversable_agent import colored
+from termcolor import colored
 from .utils import consolidate_chat_info
 
 
