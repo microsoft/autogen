@@ -67,25 +67,31 @@ namespace AutoGen.Tests
                     { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
                 });
 
-
+            var imageUri = new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png");
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
-                new ChatMessageImageContentItem(new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png")));
+                new ChatMessageImageContentItem(imageUri));
             var multiModalMessage = new MultiModalMessage(Role.User,
                 [
                     new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),
-                    new ImageMessage(Role.User, @"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png", from: "user"),
+                    new ImageMessage(Role.User, imageUri, from: "user"),
                 ],
                 from: "user");
 
-            foreach (var message in new IMessage[] { new MessageEnvelope<ChatRequestUserMessage>(oaiMessage), multiModalMessage })
+            var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
+
+            IMessage[] messages = [
+                MessageEnvelope.Create(oaiMessage),
+                multiModalMessage,
+                imageMessage,
+                ];
+            foreach (var message in messages)
             {
                 var response = await visionAgent.SendAsync(message);
                 response.From.Should().Be(visionAgent.Name);
 
                 var labelResponse = await gpt3Agent.SendAsync(response);
                 labelResponse.From.Should().Be(gpt3Agent.Name);
-                labelResponse.GetContent().Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
                 labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
             }
         }

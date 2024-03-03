@@ -57,7 +57,7 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, functions);
         Name = name;
         this.functionMap = functionMap;
     }
@@ -76,7 +76,7 @@ public class GPTAgent : IStreamingAgent
         this.modelName = modelName;
         Name = name;
         this.functionMap = functionMap;
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, functions);
     }
 
     public string Name { get; }

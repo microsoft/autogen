@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // ImageMessage.cs
 
+using System;
+
 namespace AutoGen.Core;
 
 public class ImageMessage : IMessage
@@ -10,6 +12,13 @@ public class ImageMessage : IMessage
         this.Role = role;
         this.From = from;
         this.Url = url;
+    }
+
+    public ImageMessage(Role role, Uri uri, string? from = null)
+    {
+        this.Role = role;
+        this.From = from;
+        this.Url = uri.ToString();
     }
 
     public Role Role { get; set; }
