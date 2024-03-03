@@ -50,7 +50,7 @@ module.exports = {
           type: "doc",
           docId: "reference/agentchat/conversable_agent",
           position: "left",
-          label: "SDK",
+          label: "API",
         },
         { to: "blog", label: "Blog", position: "left" },
         {
@@ -76,18 +76,9 @@ module.exports = {
         //   label: "Notebooks",
         // },
         {
-          label: "Resources",
-          type: "dropdown",
-          items: [
-            {
-              type: "doc",
-              docId: "Ecosystem",
-            },
-            {
-              type: "doc",
-              docId: "Gallery",
-            },
-          ],
+          type: "doc",
+          position: "left",
+          docId: "Gallery",
         },
         {
           label: "Other Languages",
@@ -194,6 +185,14 @@ module.exports = {
           {
             to: "/docs/llm_configuration/",
             from: ["/docs/llm_endpoint_configuration/"],
+          },
+          {
+            to: "/docs/ecosystem/memgpt/",
+            from: ["/docs/Ecosystem"],
+          },
+          {
+            to: "/docs/Getting-Started",
+            from: ["/docs/"],
           },
         ],
       },

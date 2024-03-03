@@ -15,8 +15,9 @@ import typing
 import concurrent.futures
 import os
 
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 from dataclasses import dataclass
+
 
 from multiprocessing import current_process
 
@@ -25,6 +26,7 @@ try:
 except ImportError:
     print("pyyaml not found.\n\nPlease install pyyaml:\n\tpip install pyyaml\n")
     sys.exit(1)
+
 
 try:
     import nbclient
@@ -65,7 +67,12 @@ class Result:
 def check_quarto_bin(quarto_bin: str = "quarto") -> None:
     """Check if quarto is installed."""
     try:
-        subprocess.check_output([quarto_bin, "--version"])
+        subprocess.check_output([quarto_bin, "--version"], text=True).strip()
+        # version = tuple(map(int, version.split(".")))
+        # if version < (1, 5, 23):
+        #     print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
+        #     sys.exit(1)
+
     except FileNotFoundError:
         print("Quarto is not installed. Please install it from https://quarto.org")
         sys.exit(1)
@@ -76,32 +83,9 @@ def notebooks_target_dir(website_directory: Path) -> Path:
     return website_directory / "docs" / "notebooks"
 
 
-def extract_yaml_from_notebook(notebook: Path) -> typing.Optional[typing.Dict]:
-    with open(notebook, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    json_content = json.loads(content)
-    first_cell = json_content["cells"][0]
-
-    # <!-- and --> must exists on lines on their own
-    if first_cell["cell_type"] != "markdown":
-        return None
-
-    lines = first_cell["source"]
-    if "<!--" != lines[0].strip():
-        return None
-
-    # remove trailing whitespace
-    lines = [line.rstrip() for line in lines]
-
-    if "-->" not in lines:
-        return None
-
-    closing_arrow_idx = lines.index("-->")
-
-    front_matter_lines = lines[1:closing_arrow_idx]
-    front_matter = yaml.safe_load("\n".join(front_matter_lines))
-    return front_matter
+def load_metadata(notebook: Path) -> typing.Dict:
+    content = json.load(notebook.open())
+    return content["metadata"]
 
 
 def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
@@ -125,29 +109,17 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     first_cell = json_content["cells"][0]
 
     # <!-- and --> must exists on lines on their own
-    if first_cell["cell_type"] != "markdown":
-        return "first cell is not markdown"
+    if first_cell["cell_type"] == "markdown" and first_cell["source"][0].strip() == "<!--":
+        raise ValueError(
+            f"Error in {str(notebook.resolve())} - Front matter should be defined in the notebook metadata now."
+        )
 
-    lines = first_cell["source"]
-    if "<!--" != lines[0].strip():
-        return "first line does not contain only '<!--'"
+    metadata = load_metadata(notebook)
 
-    # remove trailing whitespace
-    lines = [line.rstrip() for line in lines]
+    if "front_matter" not in metadata:
+        return "front matter missing from notebook metadata ⚠️"
 
-    if "-->" not in lines:
-        return "no closing --> found, or it is not on a line on its own"
-
-    try:
-        front_matter = extract_yaml_from_notebook(notebook)
-    except yaml.YAMLError as e:
-        return colored(f"Failed to parse front matter in {notebook.name}: {e}", "red")
-
-    # Should not be none at this point as we have already done the same checks as in extract_yaml_from_notebook
-    assert front_matter is not None, f"Front matter is None for {notebook.name}"
-
-    if "skip" in front_matter and front_matter["skip"] is True:
-        return "skip is set to true"
+    front_matter = metadata["front_matter"]
 
     if "tags" not in front_matter:
         return "tags is not in front matter"
@@ -171,16 +143,20 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
 
     in_notebook_dir = "notebook" in src_notebook.parts
 
+    metadata = load_metadata(src_notebook)
+    if "skip_render" in metadata:
+        return fmt_skip(src_notebook, "skip_render is in notebook metadata")
+
     if in_notebook_dir:
-        relative_notebook = src_notebook.relative_to(notebook_dir)
+        relative_notebook = src_notebook.resolve().relative_to(notebook_dir.resolve())
         dest_dir = notebooks_target_dir(website_directory=website_dir)
-        target_mdx_file = dest_dir / relative_notebook.with_suffix(".mdx")
+        target_file = dest_dir / relative_notebook.with_suffix(".mdx")
         intermediate_notebook = dest_dir / relative_notebook
 
         # If the intermediate_notebook already exists, check if it is newer than the source file
-        if target_mdx_file.exists():
-            if target_mdx_file.stat().st_mtime > src_notebook.stat().st_mtime:
-                return colored(f"Skipping {src_notebook.name}, as target file is newer", "blue")
+        if target_file.exists():
+            if target_file.stat().st_mtime > src_notebook.stat().st_mtime:
+                return fmt_skip(src_notebook, f"target file ({target_file.name}) is newer ☑️")
 
         if dry_run:
             return colored(f"Would process {src_notebook.name}", "green")
@@ -191,11 +167,8 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
 
         # Check if another file has to be copied too
         # Solely added for the purpose of agent_library_example.json
-        front_matter = extract_yaml_from_notebook(src_notebook)
-        # Should not be none at this point as we have already done the same checks as in extract_yaml_from_notebook
-        assert front_matter is not None, f"Front matter is None for {src_notebook.name}"
-        if "extra_files_to_copy" in front_matter:
-            for file in front_matter["extra_files_to_copy"]:
+        if "extra_files_to_copy" in metadata:
+            for file in metadata["extra_files_to_copy"]:
                 shutil.copy(src_notebook.parent / file, dest_dir / file)
 
         # Capture output
@@ -203,28 +176,19 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
             [quarto_bin, "render", intermediate_notebook], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.returncode != 0:
-            return (
-                colored(f"Failed to render {intermediate_notebook}", "red")
-                + f"\n{result.stderr}"
-                + f"\n{result.stdout}"
+            return fmt_error(
+                src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}"
             )
 
         # Unlink intermediate files
         intermediate_notebook.unlink()
-
-        if "extra_files_to_copy" in front_matter:
-            for file in front_matter["extra_files_to_copy"]:
-                (dest_dir / file).unlink()
-
-        # Post process the file
-        post_process_mdx(target_mdx_file)
     else:
-        target_mdx_file = src_notebook.with_suffix(".mdx")
+        target_file = src_notebook.with_suffix(".mdx")
 
         # If the intermediate_notebook already exists, check if it is newer than the source file
-        if target_mdx_file.exists():
-            if target_mdx_file.stat().st_mtime > src_notebook.stat().st_mtime:
-                return colored(f"Skipping {src_notebook.name}, as target file is newer", "blue")
+        if target_file.exists():
+            if target_file.stat().st_mtime > src_notebook.stat().st_mtime:
+                return fmt_skip(src_notebook, f"target file ({target_file.name}) is newer ☑️")
 
         if dry_run:
             return colored(f"Would process {src_notebook.name}", "green")
@@ -233,9 +197,17 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
             [quarto_bin, "render", src_notebook], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
         )
         if result.returncode != 0:
-            return colored(f"Failed to render {src_notebook}", "red") + f"\n{result.stderr}" + f"\n{result.stdout}"
+            return fmt_error(
+                src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}"
+            )
 
-    return colored(f"Processed {src_notebook.name}", "green")
+    front_matter = {}
+    if "front_matter" in metadata:
+        front_matter = metadata["front_matter"]
+
+    post_process_mdx(target_file, front_matter)
+
+    return fmt_ok(src_notebook)
 
 
 # Notebook execution based on nbmake: https://github.com/treebeardtech/nbmakes
@@ -258,21 +230,14 @@ NB_VERSION = 4
 def test_notebook(notebook_path: Path, timeout: int = 300) -> Tuple[Path, Optional[Union[NotebookError, NotebookSkip]]]:
     nb = nbformat.read(str(notebook_path), NB_VERSION)
 
-    allow_errors = False
-    if "execution" in nb.metadata:
-        if "timeout" in nb.metadata.execution:
-            timeout = nb.metadata.execution.timeout
-        if "allow_errors" in nb.metadata.execution:
-            allow_errors = nb.metadata.execution.allow_errors
-
-    if "test_skip" in nb.metadata:
-        return notebook_path, NotebookSkip(reason=nb.metadata.test_skip)
+    if "skip_test" in nb.metadata:
+        return notebook_path, NotebookSkip(reason=nb.metadata.skip_test)
 
     try:
         c = NotebookClient(
             nb,
             timeout=timeout,
-            allow_errors=allow_errors,
+            allow_errors=False,
             record_timing=True,
         )
         os.environ["PYDEVD_DISABLE_FILE_VALIDATION"] = "1"
@@ -327,24 +292,19 @@ def get_error_info(nb: NotebookNode) -> Optional[NotebookError]:
 
 
 # rendered_notebook is the final mdx file
-def post_process_mdx(rendered_mdx: Path) -> None:
+def post_process_mdx(rendered_mdx: Path, front_matter: Dict) -> None:
     notebook_name = f"{rendered_mdx.stem}.ipynb"
     with open(rendered_mdx, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Check for existence of "export const quartoRawHtml", this indicates there was a front matter line in the file
-    if "export const quartoRawHtml" not in content:
-        raise ValueError(f"File {rendered_mdx} does not contain 'export const quartoRawHtml'")
+    # If there is front matter in the mdx file, we need to remove it
+    if content.startswith("---"):
+        front_matter_end = content.find("---", 3)
+        front_matter = yaml.safe_load(content[4:front_matter_end])
+        content = content[front_matter_end + 3 :]
 
-    # Extract the text between <!-- and -->
-    front_matter = content.split("<!--")[1].split("-->")[0]
-    # Strip empty lines before and after
-    front_matter = "\n".join([line for line in front_matter.split("\n") if line.strip() != ""])
-
-    # add file path
-    front_matter += f"\nsource_notebook: /notebook/{notebook_name}"
-    # Custom edit url
-    front_matter += f"\ncustom_edit_url: https://github.com/microsoft/autogen/edit/main/notebook/{notebook_name}"
+    front_matter["source_notebook"] = f"/notebook/{notebook_name}"
+    front_matter["custom_edit_url"] = f"https://github.com/microsoft/autogen/edit/main/notebook/{notebook_name}"
 
     # inject in content directly after the markdown title the word done
     # Find the end of the line with the title
@@ -352,8 +312,11 @@ def post_process_mdx(rendered_mdx: Path) -> None:
 
     # Extract page title
     title = content[content.find("#") + 1 : content.find("\n", content.find("#"))].strip()
+    # If there is a { in the title we trim off the { and everything after it
+    if "{" in title:
+        title = title[: title.find("{")].strip()
 
-    front_matter += f"\ntitle: {title}"
+    front_matter["title"] = title
 
     github_link = f"https://github.com/microsoft/autogen/blob/main/notebook/{notebook_name}"
     content = (
@@ -374,12 +337,15 @@ def post_process_mdx(rendered_mdx: Path) -> None:
             + content[title_end:]
         )
 
+    # Dump front_matter to ysaml
+    front_matter = yaml.dump(front_matter, default_flow_style=False)
+
     # Rewrite the content as
     # ---
     # front_matter
     # ---
     # content
-    new_content = f"---\n{front_matter}\n---\n{content}"
+    new_content = f"---\n{front_matter}---\n{content}"
     with open(rendered_mdx, "w", encoding="utf-8") as f:
         f.write(new_content)
 
@@ -393,6 +359,18 @@ def collect_notebooks(notebook_directory: Path, website_directory: Path) -> typi
     notebooks = list(notebook_directory.glob("*.ipynb"))
     notebooks.extend(list(website_directory.glob("docs/**/*.ipynb")))
     return notebooks
+
+
+def fmt_skip(notebook: Path, reason: str) -> None:
+    return f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {reason}"
+
+
+def fmt_ok(notebook: Path) -> None:
+    return f"{colored('[OK]', 'green')} {colored(notebook.name, 'blue')} ✅"
+
+
+def fmt_error(notebook: Path, error: NotebookError) -> None:
+    return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
 
 
 def start_thread_to_terminate_when_parent_process_dies(ppid: int):
@@ -424,7 +402,6 @@ def main() -> None:
     parser.add_argument(
         "--website-directory", type=path, help="Root directory of docusarus website", default=script_dir
     )
-    parser.add_argument("--workers", help="Number of workers to use", type=int, default=-1)
 
     render_parser = subparsers.add_parser("render")
     render_parser.add_argument("--quarto-bin", help="Path to quarto binary", default="quarto")
@@ -435,10 +412,9 @@ def main() -> None:
     test_parser.add_argument("--timeout", help="Timeout for each notebook", type=int, default=60)
     test_parser.add_argument("--exit-on-first-fail", "-e", help="Exit after first test fail", action="store_true")
     test_parser.add_argument("notebooks", type=path, nargs="*", default=None)
+    test_parser.add_argument("--workers", help="Number of workers to use", type=int, default=-1)
 
     args = parser.parse_args()
-    if args.workers == -1:
-        args.workers = None
 
     if args.subcommand is None:
         print("No subcommand specified")
@@ -453,13 +429,13 @@ def main() -> None:
     for notebook in collected_notebooks:
         reason = skip_reason_or_none_if_ok(notebook)
         if reason:
-            print(f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {reason}")
+            print(fmt_skip(notebook, reason))
         else:
             filtered_notebooks.append(notebook)
 
-    print(f"Processing {len(filtered_notebooks)} notebook{'s' if len(filtered_notebooks) != 1 else ''}...")
-
     if args.subcommand == "test":
+        if args.workers == -1:
+            args.workers = None
         failure = False
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=args.workers,
@@ -471,14 +447,15 @@ def main() -> None:
                 notebook, optional_error_or_skip = future.result()
                 if isinstance(optional_error_or_skip, NotebookError):
                     if optional_error_or_skip.error_name == "timeout":
-                        print(
-                            f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {optional_error_or_skip.error_name}"
-                        )
+                        print(fmt_error(notebook, optional_error_or_skip.error_name))
 
                     else:
                         print("-" * 80)
+
                         print(
-                            f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}"
+                            fmt_error(
+                                notebook, f"{optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}"
+                            )
                         )
                         print(optional_error_or_skip.traceback)
                         print("-" * 80)
@@ -486,11 +463,9 @@ def main() -> None:
                         sys.exit(1)
                     failure = True
                 elif isinstance(optional_error_or_skip, NotebookSkip):
-                    print(
-                        f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {optional_error_or_skip.reason}"
-                    )
+                    print(fmt_skip(notebook, optional_error_or_skip.reason))
                 else:
-                    print(f"{colored('[OK]', 'green')} {colored(notebook.name, 'blue')}")
+                    print(fmt_ok(notebook))
 
         if failure:
             sys.exit(1)
@@ -501,15 +476,12 @@ def main() -> None:
         if not notebooks_target_dir(args.website_directory).exists():
             notebooks_target_dir(args.website_directory).mkdir(parents=True)
 
-        with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as executor:
-            futures = [
-                executor.submit(
-                    process_notebook, f, args.website_directory, args.notebook_directory, args.quarto_bin, args.dry_run
+        for notebook in filtered_notebooks:
+            print(
+                process_notebook(
+                    notebook, args.website_directory, args.notebook_directory, args.quarto_bin, args.dry_run
                 )
-                for f in filtered_notebooks
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                print(future.result())
+            )
     else:
         print("Unknown subcommand")
         sys.exit(1)
