@@ -3,20 +3,13 @@ import re
 import uuid
 import warnings
 from typing import Any, ClassVar, List, Optional
-
 from pydantic import BaseModel, Field, field_validator
 
+from autogen.agentchat.conversable_agent import colored
 from ..agentchat.agent import LLMAgent
 from ..code_utils import execute_code
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x: Any, *args: Any, **kwargs: Any) -> str:  # type: ignore[misc]
-        return x  # type: ignore[no-any-return]
 
 
 __all__ = (

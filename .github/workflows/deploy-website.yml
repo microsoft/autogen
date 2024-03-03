@@ -37,7 +37,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown pyyaml colored
+          pip install pydoc-markdown pyyaml termcolor
       - name: pydoc-markdown run
         run: |
           pydoc-markdown
@@ -83,7 +83,7 @@ jobs:
       - name: pydoc-markdown install
         run: |
           python -m pip install --upgrade pip
-          pip install pydoc-markdown pyyaml colored
+          pip install pydoc-markdown pyyaml termcolor
       - name: pydoc-markdown run
         run: |
           pydoc-markdown

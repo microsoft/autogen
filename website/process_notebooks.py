@@ -14,19 +14,16 @@ import time
 import typing
 import concurrent.futures
 import os
-
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 from dataclasses import dataclass
-
-
 from multiprocessing import current_process
+from termcolor import colored
 
 try:
     import yaml
 except ImportError:
     print("pyyaml not found.\n\nPlease install pyyaml:\n\tpip install pyyaml\n")
     sys.exit(1)
-
 
 try:
     import nbclient
@@ -47,14 +44,6 @@ except ImportError:
     if current_process().name == "MainProcess":
         print("nbformat not found.\n\nPlease install nbformat:\n\tpip install nbformat\n")
         print("test won't work without nbclient")
-
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
 
 
 class Result:
