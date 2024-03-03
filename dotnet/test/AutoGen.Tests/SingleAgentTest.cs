@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
@@ -66,19 +67,33 @@ namespace AutoGen.Tests
                     { nameof(GetHighestLabel), this.GetHighestLabelWrapper },
                 });
 
-
+            var imageUri = new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png");
             var oaiMessage = new ChatRequestUserMessage(
                 new ChatMessageTextContentItem("which label has the highest inference cost"),
-                new ChatMessageImageContentItem(new Uri(@"https://raw.githubusercontent.com/microsoft/autogen/main/website/blog/2023-04-21-LLM-tuning-math/img/level2algebra.png")));
+                new ChatMessageImageContentItem(imageUri));
+            var multiModalMessage = new MultiModalMessage(Role.User,
+                [
+                    new TextMessage(Role.User, "which label has the highest inference cost", from: "user"),
+                    new ImageMessage(Role.User, imageUri, from: "user"),
+                ],
+                from: "user");
 
-            var message = oaiMessage.ToMessage();
-            var response = await visionAgent.SendAsync(message);
-            response.From.Should().Be(visionAgent.Name);
+            var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
 
-            var labelResponse = await gpt3Agent.SendAsync(response);
-            labelResponse.From.Should().Be(gpt3Agent.Name);
-            labelResponse.Content.Should().Be("[HIGHEST_LABEL] gpt-4 (n=5) green");
-            labelResponse.FunctionName.Should().Be(nameof(GetHighestLabel));
+            IMessage[] messages = [
+                MessageEnvelope.Create(oaiMessage),
+                multiModalMessage,
+                imageMessage,
+                ];
+            foreach (var message in messages)
+            {
+                var response = await visionAgent.SendAsync(message);
+                response.From.Should().Be(visionAgent.Name);
+
+                var labelResponse = await gpt3Agent.SendAsync(response);
+                labelResponse.From.Should().Be(gpt3Agent.Name);
+                labelResponse.GetToolCalls()!.First().FunctionName.Should().Be(nameof(GetHighestLabel));
+            }
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -99,9 +114,9 @@ namespace AutoGen.Tests
             var llmConfig = new ConversableAgentConfig
             {
                 Temperature = 0,
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.EchoAsyncFunction,
+                    this.EchoAsyncFunctionContract,
                 },
                 ConfigList = new[]
                 {
@@ -128,8 +143,8 @@ namespace AutoGen.Tests
 
             var reply = await assistantAgent.SendAsync("hi");
 
-            reply.Content.Should().Be("hello world");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("hello world");
+            reply.GetRole().Should().Be(Role.Assistant);
             reply.From.Should().Be(assistantAgent.Name);
         }
 
@@ -139,9 +154,9 @@ namespace AutoGen.Tests
             var config = this.CreateAzureOpenAIGPT35TurboConfig();
             var llmConfig = new ConversableAgentConfig
             {
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.EchoAsyncFunction,
+                    this.EchoAsyncFunctionContract,
                 },
                 ConfigList = new[]
                 {
@@ -203,92 +218,98 @@ namespace AutoGen.Tests
 
         private async Task EchoFunctionCallTestAsync(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that call echo function");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that call echo function");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
 
-            reply.Role.Should().Be(Role.Assistant);
             reply.From.Should().Be(agent.Name);
-            reply.FunctionName.Should().Be(nameof(EchoAsync));
+            reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
         private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, helloWorld });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, helloWorld });
 
-            reply.Content.Should().Be("[ECHO] Hello world");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("[ECHO] Hello world");
             reply.From.Should().Be(agent.Name);
-            reply.FunctionName.Should().Be(nameof(EchoAsync));
+            reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
         }
 
         private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that echo whatever user says");
-            var helloWorld = new Message(Role.User, "echo Hello world");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
+            var helloWorld = new TextMessage(Role.User, "echo Hello world");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "[ECHO] Hello world";
-            Message? finalReply = default;
+            IStreamingMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
-                reply.Role.Should().Be(Role.Assistant);
                 reply.From.Should().Be(agent.Name);
-
                 finalReply = reply;
-
-                var formatted = reply.FormatMessage();
-                _output.WriteLine(formatted);
             }
 
-            finalReply!.Content.Should().Be(answer);
-            finalReply!.Role.Should().Be(Role.Assistant);
-            finalReply!.From.Should().Be(agent.Name);
-            finalReply!.FunctionName.Should().Be(nameof(EchoAsync));
+            if (finalReply is AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+            {
+                var toolCallResultMessage = aggregateMessage.Message2;
+                toolCallResultMessage.ToolCalls.First().Result.Should().Be(answer);
+                toolCallResultMessage.From.Should().Be(agent.Name);
+                toolCallResultMessage.ToolCalls.First().FunctionName.Should().Be(nameof(EchoAsync));
+            }
+            else
+            {
+                throw new Exception("unexpected message type");
+            }
         }
 
         private async Task UpperCaseTest(IAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var uppCaseMessage = new Message(Role.User, "abcdefg");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
 
-            var reply = await agent.SendAsync(chatHistory: new Message[] { message, uppCaseMessage });
+            var reply = await agent.SendAsync(chatHistory: new[] { message, uppCaseMessage });
 
-            reply.Content.Should().Be("ABCDEFG");
-            reply.Role.Should().Be(Role.Assistant);
+            reply.GetContent().Should().Be("ABCDEFG");
             reply.From.Should().Be(agent.Name);
         }
 
         private async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
         {
-            var message = new Message(Role.System, "You are a helpful AI assistant that convert user message to upper case");
-            var helloWorld = new Message(Role.User, "a b c d e f g h i j k l m n");
+            var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
+            var helloWorld = new TextMessage(Role.User, "a b c d e f g h i j k l m n");
             var option = new GenerateReplyOptions
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new Message[] { message, helloWorld }, option);
+            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "A B C D E F G H I J K L M N";
-            Message? finalReply = default;
+            TextMessage? finalReply = default;
             await foreach (var reply in replyStream)
             {
-                reply.Role.Should().Be(Role.Assistant);
-                reply.From.Should().Be(agent.Name);
+                if (reply is TextMessageUpdate update)
+                {
+                    update.From.Should().Be(agent.Name);
 
-                // the content should be part of the answer
-                reply.Content.Should().Be(answer.Substring(0, reply.Content!.Length));
-                finalReply = reply;
+                    if (finalReply is null)
+                    {
+                        finalReply = new TextMessage(update);
+                    }
+                    else
+                    {
+                        finalReply.Update(update);
+                    }
 
-                // print the message
-                var formatted = reply.FormatMessage();
-                _output.WriteLine(formatted);
+                    continue;
+                }
+
+                throw new Exception("unexpected message type");
             }
 
             finalReply!.Content.Should().Be(answer);

@@ -38,9 +38,9 @@ public partial class TwoAgentTest
             llmConfig: new ConversableAgentConfig
             {
                 ConfigList = new[] { config },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.GetWeatherFunction,
+                    this.GetWeatherFunctionContract,
                 },
             })
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
@@ -61,7 +61,7 @@ public partial class TwoAgentTest
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 var lastMessage = msgs.Last();
-                if (lastMessage.FunctionName != null)
+                if (lastMessage.GetToolCalls()?.FirstOrDefault()?.FunctionName != null)
                 {
                     return await agent.GenerateReplyAsync(msgs, option, ct);
                 }
@@ -86,7 +86,7 @@ public partial class TwoAgentTest
         chatHistory.Last().IsGroupChatTerminateMessage().Should().BeTrue();
 
         // the third last message should be the weather message from function
-        chatHistory[^3].Content.Should().Be("[GetWeatherFunction] The weather in New York is sunny");
+        chatHistory[^3].GetContent().Should().Be("[GetWeatherFunction] The weather in New York is sunny");
 
         // the # of messages should be 5
         chatHistory.Length.Should().Be(5);

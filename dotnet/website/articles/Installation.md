@@ -46,3 +46,20 @@ Once you finishing adding AutoGen feed, you can consume AutoGen packages in your
     <PackageReference Include="AutoGen.DotnetInteractive" Version="AUTOGEN_VERSION" />
 </ItemGroup>
 ```
+
+### Package overview
+AutoGen.Net provides the following packages, you can choose to install one or more of them based on your needs:
+
+- `AutoGen`: The one-in-all package, which includes all the core features of AutoGen like `AssistantAgent` and `AutoGen.SourceGenerator`, plus intergration over popular platforms like openai, semantic kernel and LM Studio.
+- `AutoGen.Core`: The core package, this package provides the abstraction for message type, agent and group chat.
+- `AutoGen.OpenAI`: This package provides the integration agents over openai models.
+- `AutoGen.LMStudio`: This package provides the integration agents from LM Studio.
+- `AutoGen.SemanticKernel`: This package provides the integration agents over semantic kernel.
+- `AutoGen.SourceGenerator`: This package carries a source generator that adds support for type-safe function definition generation.
+- `AutoGen.DotnetInteractive`: This packages carries dotnet interactive support to execute dotnet code snippet.
+
+#### Help me choose
+- If you just want to install one package and enjoy the core features of AutoGen, choose `AutoGen`.
+- If you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies, like `Azure.AI.OpenAI` or `Semantic Kernel`, choose `AutoGen.Core`.
+- If you want to use AutoGen with openai, choose `AutoGen.OpenAI`, similarly, choose `AutoGen.LMStudio` or `AutoGen.SemanticKernel` if you want to use agents from LM Studio or semantic kernel.
+- If you just want the type-safe source generation for function call and don't want any other features, which even include the AutoGen's abstraction, choose `AutoGen.SourceGenerator`.

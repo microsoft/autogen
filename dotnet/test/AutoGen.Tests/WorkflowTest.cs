@@ -19,7 +19,7 @@ public class WorkflowTest
 
         var aliceToBob = Transition.Create(alice, bob, async (from, to, messages) =>
         {
-            if (messages.Any(m => m is { Content: "Hello" }))
+            if (messages.Any(m => m.GetContent() == "Hello"))
             {
                 return true;
             }

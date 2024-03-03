@@ -6,6 +6,8 @@ using AutoGen.DotnetInteractive;
 using AutoGen;
 using System.Text;
 using FluentAssertions;
+using AutoGen.BasicSample;
+using AutoGen.OpenAI;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
@@ -44,7 +46,6 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     }
     #endregion reviewer_function
 
-
     public static async Task RunAsync()
     {
         var functions = new Example07_Dynamic_GroupChat_Calculate_Fibonacci();
@@ -53,28 +54,19 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         if (!Directory.Exists(workDir))
             Directory.CreateDirectory(workDir);
 
-        var service = new InteractiveService(workDir);
+        using var service = new InteractiveService(workDir);
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
 
         await service.StartAsync(workDir, default);
 
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var gpt3Config = LLMConfigAPI.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
+        var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
 
         #region create_reviewer
-        var reviewer = new AssistantAgent(
+        var reviewer = new GPTAgent(
             name: "code_reviewer",
             systemMessage: @"You review code block from coder",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gpt3Config,
-                FunctionDefinitions = new[]
-                {
-                    functions.ReviewCodeBlockFunction,
-                },
-            },
+            config: gpt3Config,
+            functions: [functions.ReviewCodeBlockFunction],
             functionMap: new Dictionary<string, Func<string, Task<string>>>()
             {
                 { nameof(ReviewCodeBlock), functions.ReviewCodeBlockWrapper },
@@ -85,9 +77,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
                 while (maxRetry-- > 0)
                 {
-                    if (reply.FunctionName == nameof(ReviewCodeBlock))
+                    if (reply.GetToolCalls() is var toolCalls && toolCalls.Count() == 1 && toolCalls[0].FunctionName == nameof(ReviewCodeBlock))
                     {
-                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(reply.Content!);
+                        var toolCallResult = reply.GetContent();
+                        var reviewResultObj = JsonSerializer.Deserialize<CodeReviewResult>(toolCallResult);
                         var reviews = new List<string>();
                         if (reviewResultObj.HasMultipleCodeBlocks)
                         {
@@ -122,13 +115,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                                 sb.AppendLine($"- {review}");
                             }
 
-                            reply.Content = sb.ToString();
-
-                            return reply;
+                            return new TextMessage(Role.Assistant, sb.ToString(), from: "code_reviewer");
                         }
                         else
                         {
-                            var msg = new Message(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
+                            var msg = new TextMessage(Role.Assistant, "The code looks good, please ask runner to run the code for you.")
                             {
                                 From = "code_reviewer",
                             };
@@ -138,7 +129,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                     }
                     else
                     {
-                        var originalContent = reply.Content;
+                        var originalContent = reply.GetContent();
                         var prompt = $@"Please convert the content to ReviewCodeBlock function arguments.
 
 ## Original Content
@@ -154,7 +145,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #endregion create_reviewer
 
         #region create_coder
-        var coder = new AssistantAgent(
+        var coder = new GPTAgent(
             name: "coder",
             systemMessage: @"You act as dotnet coder, you write dotnet code to resolve task. Once you finish writing code, ask runner to run the code for you.
 
@@ -172,11 +163,8 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             ```
             
             If your code is incorrect, runner will tell you the error message. Fix the error and send the code again.",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0.4f,
-                ConfigList = gpt3Config,
-            })
+            config: gpt3Config,
+            temperature: 0.4f)
             .RegisterPrintFormatMessageHook();
         #endregion create_coder
 
@@ -190,7 +178,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             {
                 if (msgs.Count() == 0)
                 {
-                    return new Message(Role.Assistant, "No code available. Coder please write code");
+                    return new TextMessage(Role.Assistant, "No code available. Coder please write code");
                 }
 
                 return null;
@@ -201,7 +189,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 var coderMsg = msgs.LastOrDefault(msg => msg.From == "coder");
                 if (coderMsg is null)
                 {
-                    return Enumerable.Empty<Message>();
+                    return Enumerable.Empty<IMessage>();
                 }
                 else
                 {
@@ -212,19 +200,18 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #endregion create_runner
 
         #region create_admin
-        var admin = new AssistantAgent(
+        var admin = new GPTAgent(
             name: "admin",
             systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
-            llmConfig: new ConversableAgentConfig
-            {
-                Temperature = 0,
-                ConfigList = gpt3Config,
-            })
+            temperature: 0,
+            config: gpt3Config)
             .RegisterPostProcess(async (_, reply, _) =>
             {
-                if (reply.Content?.Contains("TERMINATE") is true)
+                if (reply is TextMessage textMessage && textMessage.Content.Contains("TERMINATE") is true)
                 {
-                    reply.Content += $"\n\n {GroupChatExtension.TERMINATE}";
+                    var content = $"{textMessage.Content}\n\n {GroupChatExtension.TERMINATE}";
+
+                    return new TextMessage(Role.Assistant, content, from: reply.From);
                 }
 
                 return reply;
@@ -258,7 +245,8 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         var lastMessage = conversationHistory.Last();
         lastMessage.From.Should().Be("admin");
         lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
-        lastMessage.Content.Should().Contain(the39thFibonacciNumber.ToString());
+        lastMessage.Should().BeOfType<TextMessage>();
+        lastMessage.GetContent().Should().Contain(the39thFibonacciNumber.ToString());
         #endregion start_group_chat
     }
 }

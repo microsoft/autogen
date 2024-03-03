@@ -86,15 +86,17 @@ public partial class AssistantCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.UpperCaseFunction, // The FunctionDefinition object for the UpperCase function
+                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
                 },
             });
 
         var response = await assistantAgent.SendAsync("hello");
-        response.FunctionName.Should().Be("UpperCase");
-        response.Content.Should().BeNullOrEmpty();
+        response.Should().BeOfType<ToolCallMessage>();
+        var toolCallMessage = (ToolCallMessage)response;
+        toolCallMessage.ToolCalls.Count().Should().Be(1);
+        toolCallMessage.ToolCalls.First().FunctionName.Should().Be("UpperCase");
         #endregion code_snippet_4
     }
 
@@ -119,9 +121,9 @@ public partial class AssistantCodeSnippet
                 {
                     llmConfig
                 },
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    this.UpperCaseFunction, // The FunctionDefinition object for the UpperCase function
+                    this.UpperCaseFunctionContract, // The FunctionDefinition object for the UpperCase function
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
@@ -130,7 +132,10 @@ public partial class AssistantCodeSnippet
             });
 
         var response = await assistantAgent.SendAsync("hello");
-        response.Content.Should().Be("HELLO");
+        response.Should().BeOfType<TextMessage>();
+        response.From.Should().Be("assistant");
+        var textMessage = (TextMessage)response;
+        textMessage.Content.Should().Be("HELLO");
         #endregion code_snippet_5
     }
 }

@@ -42,10 +42,10 @@ public class LMStudioAgent : IAgent
             functionMap: functionMap);
     }
 
-    public string? Name => innerAgent.Name;
+    public string Name => innerAgent.Name;
 
-    public Task<Message> GenerateReplyAsync(
-        IEnumerable<Message> messages,
+    public Task<IMessage> GenerateReplyAsync(
+        IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
         System.Threading.CancellationToken cancellationToken = default)
     {

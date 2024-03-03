@@ -16,7 +16,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
   </ItemGroup>
 
 </Project>

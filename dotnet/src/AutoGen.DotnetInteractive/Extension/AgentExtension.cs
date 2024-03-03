@@ -27,13 +27,13 @@ public static class AgentExtension
         return agent.RegisterReply(async (msgs, ct) =>
         {
             var lastMessage = msgs.LastOrDefault();
-            if (lastMessage == null || lastMessage.Content is null)
+            if (lastMessage == null || lastMessage.GetContent() is null)
             {
                 return null;
             }
 
             // retrieve all code blocks from last message
-            var codeBlocks = lastMessage.Content.Split(new[] { codeBlockPrefix }, StringSplitOptions.RemoveEmptyEntries);
+            var codeBlocks = lastMessage.GetContent()!.Split(new[] { codeBlockPrefix }, StringSplitOptions.RemoveEmptyEntries);
             if (codeBlocks.Length <= 0)
             {
                 return null;
@@ -73,7 +73,7 @@ public static class AgentExtension
                 maximumOutputToKeep = result.Length;
             }
 
-            return new Message(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
+            return new TextMessage(Role.Assistant, result.ToString().Substring(0, maximumOutputToKeep), from: agent.Name);
         });
     }
 }

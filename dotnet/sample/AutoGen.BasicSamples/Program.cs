@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 
-await Example04_Dynamic_GroupChat_Coding_Task.RunAsync();
+await Example10_SemanticKernel.RunAsync();

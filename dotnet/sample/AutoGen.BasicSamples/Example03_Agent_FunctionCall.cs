@@ -2,8 +2,8 @@
 // Example03_Agent_FunctionCall.cs
 
 using AutoGen;
+using AutoGen.BasicSample;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
 
 /// <summary>
 /// This example shows how to add type-safe function call to an agent.
@@ -41,11 +41,10 @@ public partial class Example03_Agent_FunctionCall
         return $"tax is {price * taxRate}";
     }
 
-    public async Task RunAsync()
+    public static async Task RunAsync()
     {
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" }); // the version of GPT needs to support function call, a.k.a later than 0613
+        var instance = new Example03_Agent_FunctionCall();
+        var gpt35 = LLMConfiguration.GetOpenAIGPT3_5_Turbo();
 
         // AutoGen makes use of AutoGen.SourceGenerator to automatically generate FunctionDefinition and FunctionCallWrapper for you.
         // The FunctionDefinition will be created based on function signature and XML documentation.
@@ -53,12 +52,12 @@ public partial class Example03_Agent_FunctionCall
         var config = new ConversableAgentConfig
         {
             Temperature = 0,
-            ConfigList = llmConfig,
-            FunctionDefinitions = new[]
+            ConfigList = [gpt35],
+            FunctionContracts = new[]
             {
-                ConcatStringFunction,
-                UpperCaseFunction,
-                CalculateTaxFunction,
+                instance.ConcatStringFunctionContract,
+                instance.UpperCaseFunctionContract,
+                instance.CalculateTaxFunctionContract,
             },
         };
 
@@ -68,20 +67,29 @@ public partial class Example03_Agent_FunctionCall
             llmConfig: config,
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { nameof(ConcatString), this.ConcatStringWrapper },
-                { nameof(UpperCase), this.UpperCaseWrapper },
-                { nameof(CalculateTax), this.CalculateTaxWrapper },
+                { nameof(ConcatString), instance.ConcatStringWrapper },
+                { nameof(UpperCase), instance.UpperCaseWrapper },
+                { nameof(CalculateTax), instance.CalculateTaxWrapper },
             })
             .RegisterPrintFormatMessageHook();
 
         // talk to the assistant agent
         var upperCase = await agent.SendAsync("convert to upper case: hello world");
-        upperCase.Content?.Should().Be("HELLO WORLD");
+        upperCase.GetContent()?.Should().Be("HELLO WORLD");
+        upperCase.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        upperCase.GetToolCalls().Should().HaveCount(1);
+        upperCase.GetToolCalls().First().FunctionName.Should().Be(nameof(UpperCase));
 
         var concatString = await agent.SendAsync("concatenate strings: a, b, c, d, e");
-        concatString.Content?.Should().Be("a b c d e");
+        concatString.GetContent()?.Should().Be("a b c d e");
+        concatString.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        concatString.GetToolCalls().Should().HaveCount(1);
+        concatString.GetToolCalls().First().FunctionName.Should().Be(nameof(ConcatString));
 
         var calculateTax = await agent.SendAsync("calculate tax: 100, 0.1");
-        calculateTax.Content?.Should().Be("tax is 10");
+        calculateTax.GetContent().Should().Be("tax is 10");
+        calculateTax.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
+        calculateTax.GetToolCalls().Should().HaveCount(1);
+        calculateTax.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
     }
 }

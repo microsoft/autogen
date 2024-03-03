@@ -2,7 +2,6 @@
 // Example05_Dalle_And_GPT4V.cs
 
 using AutoGen;
-using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;
@@ -21,7 +20,7 @@ public partial class Example05_Dalle_And_GPT4V
     /// </summary>
     /// <param name="prompt">prompt with feedback</param>
     /// <returns></returns>
-    [FunctionAttribute]
+    [Function]
     public async Task<string> GenerateImage(string prompt)
     {
         // TODO
@@ -73,22 +72,22 @@ The image is generated from prompt {prompt}
             {
                 Temperature = 0,
                 ConfigList = gpt35Config,
-                FunctionDefinitions = new[]
+                FunctionContracts = new[]
                 {
-                    instance.GenerateImageFunction,
+                    instance.GenerateImageFunctionContract,
                 },
             },
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
                 { nameof(GenerateImage), instance.GenerateImageWrapper },
             })
-            .RegisterReply(async (msgs, ct) =>
+            .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 // if last message contains [TERMINATE], then find the last image url and terminate the conversation
-                if (msgs.Last().Content?.Contains("TERMINATE") is true)
+                if (msgs.Last().GetContent()?.Contains("TERMINATE") is true)
                 {
-                    var lastMessageWithImage = msgs.Last(msg => msg.Content?.Contains("IMAGE_GENERATION") is true);
-                    var lastImageUrl = lastMessageWithImage.Content!.Split("\n").Last();
+                    var lastMessageWithImage = msgs.Last(msg => msg is ImageMessage) as ImageMessage;
+                    var lastImageUrl = lastMessageWithImage.Url;
                     Console.WriteLine($"download image from {lastImageUrl} to {imagePath}");
                     var httpClient = new HttpClient();
                     var imageBytes = await httpClient.GetByteArrayAsync(lastImageUrl);
@@ -97,13 +96,25 @@ The image is generated from prompt {prompt}
                     var messageContent = $@"{GroupChatExtension.TERMINATE}
 
 {lastImageUrl}";
-                    return new Message(Role.Assistant, messageContent)
+                    return new TextMessage(Role.Assistant, messageContent)
                     {
                         From = "dalle",
                     };
                 }
 
-                return null;
+                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
+
+                if (reply.GetContent() is string content && content.Contains("IMAGE_GENERATION"))
+                {
+                    var imageUrl = content.Split("\n").Last();
+                    var imageMessage = new ImageMessage(Role.Assistant, imageUrl, from: reply.From);
+
+                    return imageMessage;
+                }
+                else
+                {
+                    return reply;
+                }
             })
             .RegisterPrintFormatMessageHook();
 
@@ -122,44 +133,12 @@ The image should satisfy the following conditions:
             {
                 Temperature = 0,
                 ConfigList = gpt4vConfig,
-            }).RegisterReply(async (msgs, ct) =>
-            {
-                // if no image is generated, then ask DALL-E agent to generate image
-                if (msgs.Last().Content?.Contains("IMAGE_GENERATION") is false)
-                {
-                    return new Message(Role.Assistant, "Hey dalle, please generate image")
-                    {
-                        From = "gpt4v",
-                    };
-                }
-
-                return null;
             })
-            .RegisterPreProcess(async (msgs, ct) =>
-            {
-                // add image url to message metadata so it can be recognized by GPT-4V
-                return msgs.Select(msg =>
-                {
-                    if (msg.Content?.Contains("IMAGE_GENERATION") is true)
-                    {
-                        var imageUrl = msg.Content.Split("\n").Last();
-                        var imageMessageItem = new ChatMessageImageContentItem(new Uri(imageUrl));
-                        var gpt4VMessage = new ChatRequestUserMessage(imageMessageItem);
-                        var message = gpt4VMessage.ToMessage();
-                        message.From = msg.From;
+            .RegisterPrintFormatMessageHook();
 
-                        return message;
-                    }
-                    else
-                    {
-                        return msg;
-                    }
-                });
-            }).RegisterPrintFormatMessageHook();
-
-        IEnumerable<Message> conversation = new List<Message>()
+        IEnumerable<IMessage> conversation = new List<IMessage>()
         {
-            new Message(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
+            new TextMessage(Role.User, "Hey dalle, please generate image from prompt: English short hair blue cat chase after a mouse")
         };
         var maxRound = 20;
         await gpt4VAgent.InitiateChatAsync(

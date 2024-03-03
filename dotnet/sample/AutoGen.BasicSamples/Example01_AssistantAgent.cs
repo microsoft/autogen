@@ -2,8 +2,8 @@
 // Example01_AssistantAgent.cs
 
 using AutoGen;
+using AutoGen.BasicSample;
 using FluentAssertions;
-using autogen = AutoGen.LLMConfigAPI;
 
 /// <summary>
 /// This example shows the basic usage of <see cref="ConversableAgent"/> class.
@@ -12,13 +12,11 @@ public static class Example01_AssistantAgent
 {
     public static async Task RunAsync()
     {
-        // get OpenAI Key and create config
-        var openAIKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? throw new Exception("Please set OPENAI_API_KEY environment variable.");
-        var llmConfig = autogen.GetOpenAIConfigList(openAIKey, new[] { "gpt-3.5-turbo" });
+        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var config = new ConversableAgentConfig
         {
             Temperature = 0,
-            ConfigList = llmConfig,
+            ConfigList = [gpt35],
         };
 
         // create assistant agent
@@ -30,16 +28,18 @@ public static class Example01_AssistantAgent
 
         // talk to the assistant agent
         var reply = await assistantAgent.SendAsync("hello world");
-        reply.Content?.Should().Be("HELLO WORLD");
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetContent().Should().Be("HELLO WORLD");
 
         // to carry on the conversation, pass the previous conversation history to the next call
-        var conversationHistory = new List<Message>
+        var conversationHistory = new List<IMessage>
         {
-            new Message(Role.User, "hello world"), // first message
+            new TextMessage(Role.User, "hello world"), // first message
             reply, // reply from assistant agent
         };
 
         reply = await assistantAgent.SendAsync("hello world again", conversationHistory);
-        reply.Content?.Should().Be("HELLO WORLD AGAIN");
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetContent().Should().Be("HELLO WORLD AGAIN");
     }
 }

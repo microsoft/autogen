@@ -83,14 +83,14 @@ You have access to the following functions. Use them if required:
             .RegisterMiddleware(async (msgs, option, innerAgent, ct) =>
             {
                 // inject few-shot example to the message
-                var exampleGetWeather = new Message(Role.User, "Get weather in London");
-                var exampleAnswer = new Message(Role.Assistant, "{\n    \"name\": \"GetWeather\",\n    \"arguments\": {\n        \"city\": \"London\"\n    }\n}", from: innerAgent.Name);
+                var exampleGetWeather = new TextMessage(Role.User, "Get weather in London");
+                var exampleAnswer = new TextMessage(Role.Assistant, "{\n    \"name\": \"GetWeather\",\n    \"arguments\": {\n        \"city\": \"London\"\n    }\n}", from: innerAgent.Name);
 
                 msgs = new[] { exampleGetWeather, exampleAnswer }.Concat(msgs).ToArray();
                 var reply = await innerAgent.GenerateReplyAsync(msgs, option, ct);
 
                 // if reply is a function call, invoke function
-                var content = reply.Content;
+                var content = reply.GetContent();
                 try
                 {
                     if (JsonSerializer.Deserialize<LLaMAFunctionCall>(content) is { } functionCall)
@@ -100,12 +100,12 @@ You have access to the following functions. Use them if required:
                         if (functionCall.Name == instance.GetWeatherFunction.Name)
                         {
                             var result = await instance.GetWeatherWrapper(arguments);
-                            return new Message(Role.Assistant, result);
+                            return new TextMessage(Role.Assistant, result);
                         }
                         else if (functionCall.Name == instance.GoogleSearchFunction.Name)
                         {
                             var result = await instance.GoogleSearchWrapper(arguments);
-                            return new Message(Role.Assistant, result);
+                            return new TextMessage(Role.Assistant, result);
                         }
                         else
                         {

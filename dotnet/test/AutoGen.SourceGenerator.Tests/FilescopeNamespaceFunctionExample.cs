@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// TopLevelStatementFunctionExample.cs
+// FilescopeNamespaceFunctionExample.cs
 
 namespace AutoGen.SourceGenerator.Tests;
 public partial class FilescopeNamespaceFunctionExample

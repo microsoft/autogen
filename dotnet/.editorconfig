@@ -167,9 +167,6 @@ dotnet_diagnostic.IDE0005.severity = error
 # IDE0069: Remove unused local variable
 dotnet_diagnostic.IDE0069.severity = error
 
-# IDE0060: Remove unused parameter
-dotnet_diagnostic.IDE0060.severity = warning
-
 # disable CS1573: Parameter has no matching param tag in the XML comment for
 dotnet_diagnostic.CS1573.severity = none
 
