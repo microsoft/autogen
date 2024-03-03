@@ -1030,7 +1030,7 @@ def test_custom_speaker_selection():
 
     def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
         """Define a customized speaker selection function.
-        A recommended way is to define a transition for each speaker in the groupchat.
+        A recommended way is to define a transition for each speaker using the groupchat allowed_or_disallowed_speaker_transitions parameter.
         """
         if last_speaker is a1:
             return a2
@@ -1090,7 +1090,7 @@ def test_custom_speaker_selection_with_transition_graph():
             allowed_or_disallowed_speaker_transitions[previous_agent].append(current_agent)
         previous_agent = current_agent
 
-    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Optional[Agent]:
         """
         Define a customized speaker selection function.
         """
@@ -1126,6 +1126,68 @@ def test_custom_speaker_selection_with_transition_graph():
     assert expected_sequence == actual_sequence
 
 
+def test_custom_speaker_selection_contradicts_transition_graph():
+    """
+    In this test, team A engineer can transition to team A executor and team B engineer, but team B engineer cannot transition to team A executor.
+    What should be the expected behavior?
+    (1) Custom function overrides the constraints of the graph, or
+    (2) Raise a warning/error?
+    """
+
+    # For loop that creates UserProxyAgent with names from a to z
+    agents = [
+        autogen.UserProxyAgent(
+            name="teamA_engineer",
+            default_auto_reply="My name is teamA_engineer",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+        autogen.UserProxyAgent(
+            name="teamA_executor",
+            default_auto_reply="My name is teamA_executor",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+        autogen.UserProxyAgent(
+            name="teamB_engineer",
+            default_auto_reply="My name is teamB_engineer",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+    ]
+
+    allowed_or_disallowed_speaker_transitions = {}
+
+    # teamA_engineer can transition to teamA_executor and teamB_engineer
+    # teamB_engineer can transition to no one
+    allowed_or_disallowed_speaker_transitions[agents[0]] = [agents[1], agents[2]]
+
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Optional[Agent]:
+        if last_speaker.name == "teamA_engineer":
+            return agents[2]  # Goto teamB_engineer
+        elif last_speaker.name == "teamB_engineer":
+            return agents[1]  # Goto teamA_executor and contradict the graph
+
+    groupchat = autogen.GroupChat(
+        agents=agents,
+        messages=[],
+        max_round=20,
+        speaker_selection_method=custom_speaker_selection_func,
+        allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
+        speaker_transitions_type="allowed",
+    )
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    results = agents[0].initiate_chat(manager, message="My name is teamA_engineer")
+
+    # The current approach is (1) Custom function overrides the constraints of the graph. To confirm if this is desired.
+    print(results.chat_history)
+    speakers = []
+    for idx in range(len(results.chat_history)):
+        speakers.append(results.chat_history[idx].get("name"))
+
+    assert "teamA_executor" in speakers
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1140,5 +1202,5 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    test_custom_speaker_selection_with_transition_graph()
+    test_custom_speaker_selection_contradicts_transition_graph()
     # pass
