@@ -3,6 +3,7 @@
 import pytest
 import os
 import sys
+from termcolor import colored
 from autogen import ConversableAgent, config_list_from_json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -17,13 +18,6 @@ except ImportError:
     skip = True
 else:
     skip = skip_openai
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
 
 
 # Specify the model to use by uncommenting one of the following lines.
