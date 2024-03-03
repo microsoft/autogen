@@ -23,16 +23,16 @@ namespace AutoGen.OpenAI.Middleware;
 /// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
-public class ChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
+public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddleware
 {
     private bool strictMode = false;
 
-    public ChatRequestMessageConnector(bool strictMode = false)
+    public OpenAIChatRequestMessageConnector(bool strictMode = false)
     {
         this.strictMode = strictMode;
     }
 
-    public string? Name => nameof(ChatRequestMessageConnector);
+    public string? Name => nameof(OpenAIChatRequestMessageConnector);
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {

@@ -63,7 +63,7 @@ public class OpenAIMessageTests
                 message1: new ToolCallMessage("test", "test", "assistant"),
                 message2: new ToolCallResultMessage("result", "test", "test", "assistant"), "assistant"),
         ];
-        var openaiMessageConnectorMiddleware = new ChatRequestMessageConnector();
+        var openaiMessageConnectorMiddleware = new OpenAIChatRequestMessageConnector();
         var agent = new EchoAgent("assistant");
 
         var oaiMessages = messages.Select(m => (m, openaiMessageConnectorMiddleware.ProcessIncomingMessages(agent, [m])));
@@ -74,7 +74,7 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageTest()
     {
         var agent = new EchoAgent("assistant");
-        var middleware = new ChatRequestMessageConnector();
+        var middleware = new OpenAIChatRequestMessageConnector();
 
         // user message
         IMessage message = new TextMessage(Role.User, "Hello", "user");
@@ -254,7 +254,7 @@ public class OpenAIMessageTests
     public void ToOpenAIChatRequestMessageShortCircuitTest()
     {
         var agent = new EchoAgent("assistant");
-        var middleware = new ChatRequestMessageConnector();
+        var middleware = new OpenAIChatRequestMessageConnector();
         ChatRequestMessage[] messages =
             [
                 new ChatRequestUserMessage("Hello"),

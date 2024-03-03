@@ -63,7 +63,7 @@ public partial class SemanticKernelAgentTest
 
         var kernel = builder.Build();
 
-        var connector = new ChatMessageContentConnector();
+        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgent = new SemanticKernelAgent(kernel, "assistant")
             .RegisterStreamingMiddleware(connector)
             .RegisterMiddleware(connector);
@@ -119,7 +119,7 @@ public partial class SemanticKernelAgentTest
         builder.Plugins.AddFromFunctions("plugins", [function]);
         var kernel = builder.Build();
 
-        var connector = new ChatMessageContentConnector();
+        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgent = new SemanticKernelAgent(kernel, "assistant")
             .RegisterStreamingMiddleware(connector)
             .RegisterMiddleware(connector);

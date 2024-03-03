@@ -95,7 +95,7 @@ public class FunctionCallMiddleware : IMiddleware, IStreamingMiddleware
         IStreamingMessage? initMessage = default;
         await foreach (var message in await agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
         {
-            if (message is ToolCallMessageUpdate toolCallMessageUpdate)
+            if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
             {
                 if (initMessage is null)
                 {
@@ -110,40 +110,15 @@ public class FunctionCallMiddleware : IMiddleware, IStreamingMiddleware
                     throw new InvalidOperationException("The first message is ToolCallMessage, but the update message is not ToolCallMessageUpdate");
                 }
             }
-            else if (message is TextMessageUpdate textMessageUpdate)
-            {
-                if (initMessage is null)
-                {
-                    initMessage = new TextMessage(textMessageUpdate);
-                }
-                else if (initMessage is TextMessage textMessage)
-                {
-                    textMessage.Update(textMessageUpdate);
-                }
-                else
-                {
-                    throw new InvalidOperationException("The first message is TextMessage, but the update message is not TextMessageUpdate");
-                }
-            }
             else
             {
-                initMessage = message;
+                yield return message;
             }
-
-            yield return initMessage;
         }
 
         if (initMessage is ToolCallMessage toolCallMsg)
         {
             yield return await this.InvokeToolCallMessagesAfterInvokingAgentAsync(toolCallMsg, agent);
-        }
-        else if (initMessage is not null)
-        {
-            yield return initMessage;
-        }
-        else
-        {
-            throw new InvalidOperationException("The agent returns no message.");
         }
     }
 

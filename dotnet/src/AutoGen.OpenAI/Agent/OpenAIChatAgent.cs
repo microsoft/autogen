@@ -41,8 +41,8 @@ public class OpenAIChatAgent : IStreamingAgent
     public OpenAIChatAgent(
         OpenAIClient openAIClient,
         string name,
-        string systemMessage,
         string modelName,
+        string systemMessage = "You are a helpful AI assistant",
         float temperature = 0.7f,
         int maxTokens = 1024,
         IEnumerable<FunctionDefinition>? functions = null)

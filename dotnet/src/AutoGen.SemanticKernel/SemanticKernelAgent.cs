@@ -26,7 +26,7 @@ namespace AutoGen.SemanticKernel;
 /// <item>(streaming) <see cref="IMessage{T}"/> where T is <see cref="StreamingChatMessageContent"/></item>
 /// </list>
 /// 
-/// <para>To support more AutoGen built-in <see cref="IMessage"/>, register with <see cref="ChatMessageContentConnector"/>.</para>
+/// <para>To support more AutoGen built-in <see cref="IMessage"/>, register with <see cref="SemanticKernelChatMessageContentConnector"/>.</para>
 /// </summary>
 public class SemanticKernelAgent : IStreamingAgent
 {

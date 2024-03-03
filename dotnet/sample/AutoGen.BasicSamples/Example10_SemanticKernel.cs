@@ -62,7 +62,7 @@ public class Example10_SemanticKernel
         Console.WriteLine((reply as IMessage<ChatMessageContent>).Content.Items[0].As<TextContent>().Text);
 
         // To support more AutoGen built-in IMessage, register skAgent with ChatMessageContentConnector
-        var connector = new ChatMessageContentConnector();
+        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgentWithMiddleware = skAgent
             .RegisterStreamingMiddleware(connector)
             .RegisterMiddleware(connector)

@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// ChatMessageContentConnector.cs
+// SemanticKernelChatMessageContentConnector.cs
 
 using System;
 using System.Collections.Generic;
@@ -32,9 +32,9 @@ namespace AutoGen.SemanticKernel.Middleware;
 /// <para>- <see cref="MultiModalMessage"/></para>
 /// <para>- (streaming) <see cref="TextMessageUpdate"/></para>
 /// </summary>
-public class ChatMessageContentConnector : IMiddleware, IStreamingMiddleware
+public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreamingMiddleware
 {
-    public string? Name => nameof(ChatMessageContentConnector);
+    public string? Name => nameof(SemanticKernelChatMessageContentConnector);
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
