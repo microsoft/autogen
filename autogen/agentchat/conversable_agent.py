@@ -226,7 +226,9 @@ class ConversableAgent(LLMAgent):
         # New hookable methods should be added to this list as required to support new agent capabilities.
         self.hook_lists = {
             "process_last_received_message": [],
+            "a_process_last_received_message": [],
             "process_all_messages_before_reply": [],
+            "a_process_all_messages_before_reply": [],
             "process_message_before_send": [],
         }
 
@@ -552,8 +554,22 @@ class ConversableAgent(LLMAgent):
         """Process the message before sending it to the recipient."""
         hook_list = self.hook_lists["process_message_before_send"]
         for hook in hook_list:
+            if inspect.iscoroutinefunction(hook):
+                continue
             message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
+
+    async def _a_process_message_before_send(
+        self, message: Union[Dict, str], recipient: Agent, silent: bool
+    ) -> Union[Dict, str]:
+        """Process the message before sending it to the recipient."""
+        hook_list = self.hook_lists["a_process_message_before_send"]
+        for hook in hook_list:
+            if not inspect.iscoroutinefunction(hook):
+                continue
+            message = await hook(sender=self, message=message, recipient=recipient, silent=silent)
+        return message
+
 
     def send(
         self,
@@ -1795,11 +1811,11 @@ class ConversableAgent(LLMAgent):
 
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages_before_reply(messages)
+        messages = await self.a_process_all_messages_before_reply(messages)
 
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_last_received_message(messages)
+        messages = await self.a_process_last_received_message(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -2448,7 +2464,26 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the messages.
         processed_messages = messages
         for hook in hook_list:
+            if inspect.iscoroutinefunction(hook):
+                continue
             processed_messages = hook(processed_messages)
+        return processed_messages
+    
+    async def a_process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
+        """
+        Calls any registered capability hooks to process all messages, potentially modifying the messages.
+        """
+        hook_list = self.hook_lists["a_process_all_messages_before_reply"]
+        # If no hooks are registered, or if there are no messages to process, return the original message list.
+        if len(hook_list) == 0 or messages is None:
+            return messages
+
+        # Call each hook (in order of registration) to process the messages.
+        processed_messages = messages
+        for hook in hook_list:
+            if not inspect.iscoroutinefunction(hook):
+                continue
+            processed_messages = await hook(processed_messages)
         return processed_messages
 
     def process_last_received_message(self, messages):
@@ -2481,7 +2516,50 @@ class ConversableAgent(LLMAgent):
         # Call each hook (in order of registration) to process the user's message.
         processed_user_text = user_text
         for hook in hook_list:
+            if inspect.iscoroutinefunction(hook):
+                continue
             processed_user_text = hook(processed_user_text)
+        if processed_user_text == user_text:
+            return messages  # No hooks actually modified the user's message.
+
+        # Replace the last user message with the expanded one.
+        messages = messages.copy()
+        messages[-1]["content"] = processed_user_text
+        return messages
+
+    async def a_process_last_received_message(self, messages):
+        """
+        Calls any registered capability hooks to use and potentially modify the text of the last message,
+        as long as the last message is not a function call or exit command.
+        """
+
+        # If any required condition is not met, return the original message list.
+        hook_list = self.hook_lists["a_process_last_received_message"]
+        if len(hook_list) == 0:
+            return messages  # No hooks registered.
+        if messages is None:
+            return None  # No message to process.
+        if len(messages) == 0:
+            return messages  # No message to process.
+        last_message = messages[-1]
+        if "function_call" in last_message:
+            return messages  # Last message is a function call.
+        if "context" in last_message:
+            return messages  # Last message contains a context key.
+        if "content" not in last_message:
+            return messages  # Last message has no content.
+        user_text = last_message["content"]
+        if not isinstance(user_text, str):
+            return messages  # Last message content is not a string. TODO: Multimodal agents will use a dict here.
+        if user_text == "exit":
+            return messages  # Last message is an exit command.
+
+        # Call each hook (in order of registration) to process the user's message.
+        processed_user_text = user_text
+        for hook in hook_list:
+            if not inspect.iscoroutinefunction(hook):
+                continue
+            processed_user_text = await hook(processed_user_text)
         if processed_user_text == user_text:
             return messages  # No hooks actually modified the user's message.
 
