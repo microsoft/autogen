@@ -12,12 +12,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 try:
-    from openai import OpenAI
     from autogen.agentchat.contrib.capabilities.teachability import Teachability
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = skip_openai
 
 try:
     from termcolor import colored
@@ -141,7 +140,7 @@ def use_task_advice_pair_phrasing():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run if dependency is not installed",
+    reason="do not run if dependency is not installed or requested to skip",
 )
 def test_teachability_code_paths():
     """Runs this file's unit tests."""
@@ -172,7 +171,7 @@ def test_teachability_code_paths():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run if dependency is not installed",
+    reason="do not run if dependency is not installed or requested to skip",
 )
 def test_teachability_accuracy():
     """A very cheap and fast test of teachability accuracy."""
