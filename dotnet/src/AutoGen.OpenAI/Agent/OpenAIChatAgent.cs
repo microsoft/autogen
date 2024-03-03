@@ -15,13 +15,13 @@ namespace AutoGen.OpenAI;
 /// <summary>
 /// OpenAI client agent. This agent is a thin wrapper around <see cref="OpenAIClient"/> to provide a simple interface for chat completions.
 /// To better work with other agents, it's recommended to use <see cref="GPTAgent"/> which supports more message types and have a better compatibility with other agents.
-/// <para><see cref="OpenAIClientAgent" /> supports the following message types:</para>
+/// <para><see cref="OpenAIChatAgent" /> supports the following message types:</para>
 /// <list type="bullet">
 /// <item>
 /// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatRequestMessage"/>: chat request message.
 /// </item>
 /// </list>
-/// <para><see cref="OpenAIClientAgent" /> returns the following message types:</para>
+/// <para><see cref="OpenAIChatAgent" /> returns the following message types:</para>
 /// <list type="bullet">
 /// <item>
 /// <see cref="MessageEnvelope{T}"/> where T is <see cref="ChatResponseMessage"/>: chat response message.
@@ -29,7 +29,7 @@ namespace AutoGen.OpenAI;
 /// </item>
 /// </list>
 /// </summary>
-public class OpenAIClientAgent : IStreamingAgent
+public class OpenAIChatAgent : IStreamingAgent
 {
     private readonly OpenAIClient openAIClient;
     private readonly string modelName;
@@ -38,7 +38,7 @@ public class OpenAIClientAgent : IStreamingAgent
     private readonly IEnumerable<FunctionDefinition>? _functions;
     private readonly string _systemMessage;
 
-    public OpenAIClientAgent(
+    public OpenAIChatAgent(
         OpenAIClient openAIClient,
         string name,
         string systemMessage,

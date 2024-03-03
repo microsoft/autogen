@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -84,6 +85,14 @@ public class MiddlewareAgent : IAgent
     public void Use(IMiddleware middleware)
     {
         this.middlewares.Add(middleware);
+    }
+
+    public override string ToString()
+    {
+        var names = this.Middlewares.Select(m => m.Name ?? "[Unknown middleware]");
+        var namesPlusAgentName = names.Append(this.Name);
+
+        return namesPlusAgentName.Aggregate((a, b) => $"{a} -> {b}");
     }
 
     private class DelegateAgent : IAgent

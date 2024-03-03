@@ -69,6 +69,8 @@ public class MiddlewareAgentTest
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
+        middlewareAgent.Should().BeOfType<MiddlewareAgent<EchoAgent>>();
+        middlewareAgent.Middlewares.Count().Should().Be(1);
         var reply = await middlewareAgent.SendAsync("hello");
         reply.GetContent().Should().Be("[middleware 0] hello");
         reply = await echoAgent.SendAsync("hello");
@@ -82,6 +84,7 @@ public class MiddlewareAgentTest
             return await agent.GenerateReplyAsync(messages, options, ct);
         });
 
+        middlewareAgent.Middlewares.Count().Should().Be(2);
         reply = await middlewareAgent.SendAsync("hello");
         reply.GetContent().Should().Be("[middleware 0] [middleware 1] hello");
 

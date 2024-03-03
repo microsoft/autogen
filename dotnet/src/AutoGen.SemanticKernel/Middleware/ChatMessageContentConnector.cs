@@ -152,8 +152,9 @@ public class ChatMessageContentConnector : IMiddleware, IStreamingMiddleware
         {
             TextMessage textMessage => ProcessMessageForOthers(textMessage),
             MultiModalMessage multiModalMessage => ProcessMessageForOthers(multiModalMessage),
+            ImageMessage imageMessage => ProcessMessageForOthers(imageMessage),
             Message m => ProcessMessageForOthers(m),
-            _ => throw new System.NotImplementedException(),
+            _ => throw new InvalidOperationException("unsupported message type, only support TextMessage, ImageMessage, MultiModalMessage and Message."),
         };
     }
 
@@ -180,6 +181,14 @@ public class ChatMessageContentConnector : IMiddleware, IStreamingMiddleware
         {
             return [new ChatMessageContent(AuthorRole.User, message.Content)];
         }
+    }
+
+    private IEnumerable<ChatMessageContent> ProcessMessageForOthers(ImageMessage message)
+    {
+        var imageContent = new ImageContent(new Uri(message.Url));
+        var collectionItems = new ChatMessageContentItemCollection();
+        collectionItems.Add(imageContent);
+        return [new ChatMessageContent(AuthorRole.User, collectionItems)];
     }
 
     private IEnumerable<ChatMessageContent> ProcessMessageForSelf(MultiModalMessage message)

@@ -61,24 +61,23 @@ public class Example10_SemanticKernel
         reply.Should().BeOfType<MessageEnvelope<ChatMessageContent>>();
         Console.WriteLine((reply as IMessage<ChatMessageContent>).Content.Items[0].As<TextContent>().Text);
 
-        // To support more AutoGen bulit-in IMessage, register skAgent with ChatMessageContentConnector
+        // To support more AutoGen built-in IMessage, register skAgent with ChatMessageContentConnector
         var connector = new ChatMessageContentConnector();
-        var skAgentWithMiddlewares = skAgent
-            .RegisterMiddlewareToStreamingAgent(connector)
+        var skAgentWithMiddleware = skAgent
             .RegisterStreamingMiddleware(connector)
+            .RegisterMiddleware(connector)
             .RegisterPrintFormatMessageHook();
 
-
-        // Now the skAgentWithMiddlewares supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage
+        // Now the skAgentWithMiddleware supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage
         // It also register a print format message hook to print the message in a human readable format to the console
         await skAgent.SendAsync(chatMessageContent);
-        await skAgentWithMiddlewares.SendAsync(new TextMessage(Role.User, "Toggle the light"));
+        await skAgentWithMiddleware.SendAsync(new TextMessage(Role.User, "Toggle the light"));
 
         // The more message type an agent support, the more flexible it is to be used in different scenarios
-        // For example, since the TextMessage is supported, the skAgentWithMiddlewares can be used with user proxy.
+        // For example, since the TextMessage is supported, the skAgentWithMiddleware can be used with user proxy.
         var userProxy = new UserProxyAgent("user");
 
-        await skAgentWithMiddlewares.InitiateChatAsync(userProxy, "how can I help you today");
+        await skAgentWithMiddleware.InitiateChatAsync(userProxy, "how can I help you today");
     }
 
 }

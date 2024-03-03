@@ -109,6 +109,7 @@ public class OpenAIMessageTests
 
         // text and image
         message = new MultiModalMessage(
+            Role.User,
             [
                 new TextMessage(Role.User, "Hello", "user"),
                 new ImageMessage(Role.User, "https://example.com/image.png", "user"),

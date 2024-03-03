@@ -32,7 +32,7 @@ public class GPTAgent : IStreamingAgent
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
     private readonly OpenAIClient openAIClient;
     private readonly string? modelName;
-    private readonly OpenAIClientAgent _innerAgent;
+    private readonly OpenAIChatAgent _innerAgent;
 
     public GPTAgent(
         string name,
@@ -57,7 +57,7 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        _innerAgent = new OpenAIClientAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
         Name = name;
         this.functionMap = functionMap;
     }
@@ -76,7 +76,7 @@ public class GPTAgent : IStreamingAgent
         this.modelName = modelName;
         Name = name;
         this.functionMap = functionMap;
-        _innerAgent = new OpenAIClientAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, systemMessage, modelName, temperature, maxTokens, functions);
     }
 
     public string Name { get; }
