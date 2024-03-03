@@ -11,33 +11,34 @@
 
  module.exports = {
   docsSidebar: [
+  'Getting-Started',
     {
       type: 'category',
-      label: 'Getting Started',
+      label: 'Tutorial',
       items: [
         {
           type: 'doc',
-          id: 'getting-started/introduction',
+          id: 'tutorial/introduction',
           label: 'Introduction',
         },
         {
           type: 'doc',
-          id: 'getting-started/human-in-the-loop',
+          id: 'tutorial/human-in-the-loop',
           label: 'Human in the Loop',
         },
         {
           type: 'doc',
-          id: 'getting-started/code-executors',
+          id: 'tutorial/code-executors',
           label: 'Code Executors',
         },
         {
           type: 'doc',
-          id: 'getting-started/conversation-patterns',
+          id: 'tutorial/conversation-patterns',
           label: 'Conversation Patterns',
         },
         {
           type: 'doc',
-          id: 'getting-started/what-is-next',
+          id: 'tutorial/what-is-next',
           label: 'What is Next?',
         }
       ],

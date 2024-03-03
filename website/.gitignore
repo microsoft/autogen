@@ -12,9 +12,9 @@ docs/reference
 /docs/notebooks
 
 docs/llm_configuration.mdx
-docs/getting-started/*.mdx
-docs/getting-started/**/*.png
-!docs/getting-started/assets/*.png
+docs/tutorial/*.mdx
+docs/tutorial/**/*.png
+!docs/tutorial/assets/*.png
 
 # Misc
 .DS_Store
