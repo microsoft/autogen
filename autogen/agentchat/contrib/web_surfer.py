@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser, HeadlessChromeBrowser
+from ...browser_utils import SimpleTextBrowser, SeleniumChromeBrowser
 from ...code_utils import content_str
 from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
@@ -60,7 +60,7 @@ class WebSurferAgent(ConversableAgent):
         self.browser = (
             SimpleTextBrowser(**(browser_config if browser_config else {}))
             if not headless
-            else HeadlessChromeBrowser(**browser_config)
+            else SeleniumChromeBrowser(**browser_config)
         )
 
         inner_llm_config = copy.deepcopy(llm_config)

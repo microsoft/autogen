@@ -14,7 +14,7 @@ from autogen.browser_utils.abstract_browser import AbstractBrowser
 from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 
 
-class HeadlessChromeBrowser(AbstractBrowser):
+class SeleniumChromeBrowser(AbstractBrowser):
     """(In preview) A Selenium powered headless Chrome browser. Suitable for Agentic use."""
 
     def __init__(
