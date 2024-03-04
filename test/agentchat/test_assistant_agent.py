@@ -199,6 +199,43 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
     print(chat_res.cost)
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+def test_message(human_input_mode="NEVER", max_consecutive_auto_reply=10):
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    def my_message(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Make a joke about AI."
+        final_msg["context"] = {"prefix": "Today I feel"}
+        return final_msg
+
+    # autogen.ChatCompletion.start_logging()
+    assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={
+            "work_dir": here,
+            # "use_docker": False,
+        },
+        human_input_mode=human_input_mode,
+        max_consecutive_auto_reply=max_consecutive_auto_reply,
+    )
+    chat_res = user.initiate_chat(
+        assistant,
+        message=my_message,
+        max_turns=1,
+    )
+    print(chat_res.summary)
+    print(chat_res.chat_history)
+    # print(autogen.ChatCompletion.logged_history)
+    # autogen.ChatCompletion.stop_logging()
+    # print(chat_res.summary)
+    print(chat_res.cost)
+
+
 if __name__ == "__main__":
     # test_gpt35()
     # test_create_execute_script(human_input_mode="TERMINATE")
@@ -206,3 +243,4 @@ if __name__ == "__main__":
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
     test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    test_message(human_input_mode="NEVER", max_consecutive_auto_reply=10)
