@@ -199,17 +199,17 @@ class ConversableAgent(LLMAgent):
             if self._code_execution_config.get("executor") is not None:
                 if "use_docker" in self._code_execution_config:
                     raise ValueError(
-                        "'use_docker' in code_execution_config is not valid when 'executor' is set. Use the approriate arg in the chosen executor instead."
+                        "'use_docker' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
                     )
 
                 if "work_dir" in self._code_execution_config:
                     raise ValueError(
-                        "'work_dir' in code_execution_config is not valid when 'executor' is set. Use the approriate arg in the chosen executor instead."
+                        "'work_dir' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
                     )
 
                 if "timeout" in self._code_execution_config:
                     raise ValueError(
-                        "'timeout' in code_execution_config is not valid when 'executor' is set. Use the approriate arg in the chosen executor instead."
+                        "'timeout' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
                     )
 
                 # Use the new code executor.
