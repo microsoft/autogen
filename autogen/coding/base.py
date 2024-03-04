@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
 from pydantic import BaseModel, Field
