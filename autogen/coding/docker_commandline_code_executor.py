@@ -32,9 +32,9 @@ def _wait_for_ready(container: Container, timeout: int = 60, stop_time: int = 0.
     if container.status != "running":
         raise ValueError("Container failed to start")
 
-__all__ = (
-    "DockerCommandLineCodeExecutor",
-)
+
+__all__ = ("DockerCommandLineCodeExecutor",)
+
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
     """(Experimental) A code executor class that executes code through a local command line
@@ -59,7 +59,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             a default working directory will be used. The default working
             directory is the current directory ".".
     """
-
 
     def __init__(
         self,
@@ -169,12 +168,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             with code_path.open("w", encoding="utf-8") as fout:
                 fout.write(code)
 
-            command = [
-                "timeout",
-                str(self._timeout),
-                _cmd(lang),
-                filename
-            ]
+            command = ["timeout", str(self._timeout), _cmd(lang), filename]
 
             result = self._container.exec_run(command)
             exit_code = result.exit_code

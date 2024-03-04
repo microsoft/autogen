@@ -30,6 +30,7 @@ def test_create_local() -> None:
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
 
+
 @pytest.mark.skipif(skip_docker, reason="Docker tests skipped")
 def test_create_docker() -> None:
     config = {"executor": DockerCommandLineCodeExecutor()}
