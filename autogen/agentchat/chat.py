@@ -3,15 +3,9 @@ import logging
 from collections import defaultdict
 from typing import Dict, List, Any, Set, Tuple
 from dataclasses import dataclass
-from .utils import consolidate_chat_info
 import warnings
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from termcolor import colored
+from .utils import consolidate_chat_info
 
 
 logger = logging.getLogger(__name__)
