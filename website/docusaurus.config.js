@@ -183,7 +183,7 @@ module.exports = {
       {
         redirects: [
           {
-            to: "/docs/topics/llm_configuration/",
+            to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_endpoint_configuration/"],
           },
           {
