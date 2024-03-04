@@ -1126,12 +1126,10 @@ def test_custom_speaker_selection_with_transition_graph():
     assert expected_sequence == actual_sequence
 
 
-def test_custom_speaker_selection_contradicts_transition_graph():
+def test_custom_speaker_selection_overrides_transition_graph():
     """
     In this test, team A engineer can transition to team A executor and team B engineer, but team B engineer cannot transition to team A executor.
-    What should be the expected behavior?
-    (1) Custom function overrides the constraints of the graph, or
-    (2) Raise a warning/error?
+    The expected behaviour is that the custom speaker selection function will override the constraints of the graph.
     """
 
     # For loop that creates UserProxyAgent with names from a to z
@@ -1179,8 +1177,6 @@ def test_custom_speaker_selection_contradicts_transition_graph():
     manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
     results = agents[0].initiate_chat(manager, message="My name is teamA_engineer")
 
-    # The current approach is (1) Custom function overrides the constraints of the graph. To confirm if this is desired.
-    print(results.chat_history)
     speakers = []
     for idx in range(len(results.chat_history)):
         speakers.append(results.chat_history[idx].get("name"))
@@ -1202,5 +1198,5 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    test_custom_speaker_selection_contradicts_transition_graph()
+    test_custom_speaker_selection_overrides_transition_graph()
     # pass
