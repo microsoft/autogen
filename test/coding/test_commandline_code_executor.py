@@ -2,6 +2,7 @@ import sys
 import tempfile
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
+from autogen.code_utils import is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
@@ -10,7 +11,7 @@ from autogen.oai.openai_utils import config_list_from_json
 
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker
 
-if skip_docker:
+if skip_docker or not is_docker_running():
     classes_to_test = [LocalCommandlineCodeExecutor]
 else:
     classes_to_test = [LocalCommandlineCodeExecutor, DockerCommandLineCodeExecutor]
@@ -31,7 +32,10 @@ def test_create_local() -> None:
     assert executor is config["executor"]
 
 
-@pytest.mark.skipif(skip_docker, reason="Docker tests skipped")
+@pytest.mark.skipif(
+    skip_docker or not is_docker_running(),
+    reason="docker is not running or requested to skip docker tests",
+)
 def test_create_docker() -> None:
     config = {"executor": DockerCommandLineCodeExecutor()}
     executor = CodeExecutorFactory.create(config)
@@ -118,7 +122,10 @@ def test_local_commandline_code_executor_restart() -> None:
 
 
 # This is kind of hard to test because each exec is a new env
-@pytest.mark.skipif(skip_docker, reason="Docker tests skipped")
+@pytest.mark.skipif(
+    skip_docker or not is_docker_running(),
+    reason="docker is not running or requested to skip docker tests",
+)
 def test_docker_commandline_code_executor_restart() -> None:
     with DockerCommandLineCodeExecutor() as executor:
         result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
