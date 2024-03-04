@@ -570,7 +570,6 @@ class ConversableAgent(LLMAgent):
             message = await hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
-
     def send(
         self,
         message: Union[Dict, str],
@@ -1812,11 +1811,10 @@ class ConversableAgent(LLMAgent):
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = await self.a_process_last_received_message(messages)
-        
+
         # Call the hookable method that gives registered hooks a chance to process all messages.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = await self.a_process_all_messages_before_reply(messages)
-
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
@@ -2469,7 +2467,7 @@ class ConversableAgent(LLMAgent):
                 continue
             processed_messages = hook(processed_messages)
         return processed_messages
-    
+
     async def a_process_all_messages_before_reply(self, messages: List[Dict]) -> List[Dict]:
         """
         Calls any registered capability hooks to process all messages, potentially modifying the messages.
