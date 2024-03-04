@@ -1,32 +1,21 @@
-import io
-import mimetypes
+# ruff: noqa: E722
+import json
 import os
-import re
-from typing import Optional, Union, Dict
-import uuid
-from urllib.parse import urljoin, urlparse
-
-import markdownify
 import requests
-from bs4 import BeautifulSoup
-
+import re
+import io
+import uuid
+import mimetypes
+import time
+import datetime
+import pathlib
+import pathvalidate
+import html
+from urllib.parse import urljoin, urlparse, unquote, parse_qs
+from urllib.request import url2pathname
+from typing import Any, Dict, List, Optional, Union, Tuple
+from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from autogen.browser_utils.abstract_browser import AbstractBrowser
-
-# Optional PDF support
-IS_PDF_CAPABLE = False
-try:
-    import pdfminer
-    import pdfminer.high_level
-
-    IS_PDF_CAPABLE = True
-except ModuleNotFoundError:
-    pass
-
-# Other optional dependencies
-try:
-    import pathvalidate
-except ModuleNotFoundError:
-    pass
 
 
 class SimpleTextBrowser(AbstractBrowser):
@@ -34,32 +23,36 @@ class SimpleTextBrowser(AbstractBrowser):
 
     def __init__(
         self,
-        start_page: Optional[str] = "about:blank",
+        start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
         bing_api_key: Optional[Union[str, None]] = None,
-        request_kwargs: Optional[Union[Dict, None]] = None,
+        request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
-        self.start_page = start_page
+        self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.downloads_folder = downloads_folder
-        self.history = list()
-        self.page_title = None
+        self.history: List[Tuple[str, float]] = list()
+        self.page_title: Optional[str] = None
         self.viewport_current_page = 0
-        self.viewport_pages = list()
-        self.set_address(start_page)
+        self.viewport_pages: List[Tuple[int, int]] = list()
+        self.set_address(self.start_page)
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
+        self._mdconvert = MarkdownConverter()
+        self._page_content: str = ""
 
-        self._page_content = ""
+        self._find_on_page_query: Union[str, None] = None
+        self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
     @property
     def address(self) -> str:
         """Return the address of the current page."""
-        return self.history[-1]
+        return self.history[-1][0]
 
-    def set_address(self, uri_or_path):
-        self.history.append(uri_or_path)
+    def set_address(self, uri_or_path: str) -> None:
+        # TODO: Handle anchors
+        self.history.append((uri_or_path, time.time()))
 
         # Handle special URIs
         if uri_or_path == "about:blank":
@@ -67,12 +60,21 @@ class SimpleTextBrowser(AbstractBrowser):
         elif uri_or_path.startswith("bing:"):
             self._bing_search(uri_or_path[len("bing:") :].strip())
         else:
-            if not uri_or_path.startswith("http:") and not uri_or_path.startswith("https:"):
-                uri_or_path = urljoin(self.address, uri_or_path)
-                self.history[-1] = uri_or_path  # Update the address with the fully-qualified path
+            if (
+                not uri_or_path.startswith("http:")
+                and not uri_or_path.startswith("https:")
+                and not uri_or_path.startswith("file:")
+            ):
+                if len(self.history) > 1:
+                    prior_address = self.history[-2][0]
+                    uri_or_path = urljoin(prior_address, uri_or_path)
+                    # Update the address with the fully-qualified path
+                    self.history[-1] = (uri_or_path, self.history[-1][1])
             self._fetch_page(uri_or_path)
 
         self.viewport_current_page = 0
+        self.find_on_page_query = None
+        self.find_on_page_viewport = None
 
     @property
     def viewport(self) -> str:
@@ -85,30 +87,109 @@ class SimpleTextBrowser(AbstractBrowser):
         """Return the full contents of the current page."""
         return self._page_content
 
-    def _set_page_content(self, content) -> str:
+    def _set_page_content(self, content: str, split_pages=True) -> None:
         """Sets the text content of the current page."""
         self._page_content = content
-        self._split_pages()
+
+        if split_pages:
+            self._split_pages()
+        else:
+            self.viewport_pages = [(0, len(self._page_content))]
+
         if self.viewport_current_page >= len(self.viewport_pages):
             self.viewport_current_page = len(self.viewport_pages) - 1
 
-    def page_down(self):
+    def page_down(self) -> None:
         self.viewport_current_page = min(self.viewport_current_page + 1, len(self.viewport_pages) - 1)
 
-    def page_up(self):
+    def page_up(self) -> None:
         self.viewport_current_page = max(self.viewport_current_page - 1, 0)
 
-    def visit_page(self, path_or_uri):
+    def find_on_page(self, query: str) -> Union[str, None]:
+        """Searches for the query from the current viewport forward, looping back to the start if necessary."""
+
+        # Did we get here via a previous find_on_page search with the same query?
+        # If so, map to find_next
+        if query == self._find_on_page_query and self.viewport_current_page == self._find_on_page_last_result:
+            return self.find_next()
+
+        # Ok it's a new search start from the current viewport
+        self._find_on_page_query = query
+        viewport_match = self._find_next_viewport(query, self.viewport_current_page)
+        if viewport_match is None:
+            self._find_on_page_last_result = None
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            self._find_on_page_last_result = viewport_match
+            return self.viewport
+
+    def find_next(self) -> None:
+        """Scroll to the next viewport that matches the query"""
+
+        if self._find_on_page_query is None:
+            return None
+
+        starting_viewport = self._find_on_page_last_result
+        if starting_viewport is None:
+            starting_viewport = 0
+        else:
+            starting_viewport += 1
+            if starting_viewport >= len(self.viewport_pages):
+                starting_viewport = 0
+
+        viewport_match = self._find_next_viewport(self._find_on_page_query, starting_viewport)
+        if viewport_match is None:
+            self._find_on_page_last_result = None
+            return None
+        else:
+            self.viewport_current_page = viewport_match
+            self._find_on_page_last_result = viewport_match
+            return self.viewport
+
+    def _find_next_viewport(self, query: str, starting_viewport: int) -> Union[int, None]:
+        """Search for matches between the starting viewport looping when reaching the end."""
+
+        if query is None:
+            return None
+
+        # Normalize the query, and convert to a regular expression
+        nquery = re.sub(r"\*", "__STAR__", query)
+        nquery = " " + (" ".join(re.split(r"\W+", nquery))).strip() + " "
+        nquery = nquery.replace(" __STAR__ ", "__STAR__ ")  # Merge isolated stars with prior word
+        nquery = nquery.replace("__STAR__", ".*").lower()
+
+        if nquery.strip() == "":
+            return None
+
+        idxs = list()
+        idxs.extend(range(starting_viewport, len(self.viewport_pages)))
+        idxs.extend(range(0, starting_viewport))
+
+        for i in idxs:
+            bounds = self.viewport_pages[i]
+            content = self.page_content[bounds[0] : bounds[1]]
+
+            # TODO: Remove markdown links and images
+            ncontent = " " + (" ".join(re.split(r"\W+", content))).strip().lower() + " "
+            if re.search(nquery, ncontent):
+                return i
+
+        return None
+
+    def visit_page(self, path_or_uri: str) -> str:
         """Update the address, visit the page, and return the content of the viewport."""
         self.set_address(path_or_uri)
         return self.viewport
 
-    def _split_pages(self):
-        # Split only regular pages
-        if not self.address.startswith("http:") and not self.address.startswith("https:"):
-            self.viewport_pages = [(0, len(self._page_content))]
-            return
+    def open_local_file(self, local_path: str) -> str:
+        """Convert a local file path to a file:/// URI, update the address, visit the page,
+        and return the contents of the viewport."""
+        full_path = os.path.abspath(os.path.expanduser(local_path))
+        self.set_address(pathlib.Path(full_path).as_uri())
+        return self.viewport
 
+    def _split_pages(self) -> None:
         # Handle empty pages
         if len(self._page_content) == 0:
             self.viewport_pages = [(0, 0)]
@@ -118,14 +199,14 @@ class SimpleTextBrowser(AbstractBrowser):
         self.viewport_pages = []
         start_idx = 0
         while start_idx < len(self._page_content):
-            end_idx = min(start_idx + self.viewport_size, len(self._page_content))
+            end_idx = min(start_idx + self.viewport_size, len(self._page_content))  # type: ignore[operator]
             # Adjust to end on a space
             while end_idx < len(self._page_content) and self._page_content[end_idx - 1] not in [" ", "\t", "\r", "\n"]:
                 end_idx += 1
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _bing_api_call(self, query):
+    def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
         # Make sure the key was set
         if self.bing_api_key is None:
             raise ValueError("Missing Bing API key.")
@@ -150,110 +231,120 @@ class SimpleTextBrowser(AbstractBrowser):
         response.raise_for_status()
         results = response.json()
 
-        return results
+        return results  # type: ignore[no-any-return]
 
-    def _bing_search(self, query):
+    def _bing_search(self, query: str) -> None:
         results = self._bing_api_call(query)
 
-        web_snippets = list()
+        def _prev_visit(url):
+            for i in range(len(self.history) - 1, -1, -1):
+                if self.history[i][0] == url:
+                    # Todo make this more human-friendly
+                    return f"You previously visited this page {round(time.time() - self.history[i][1])} seconds ago.\n"
+            return ""
+
+        web_snippets: List[str] = list()
         idx = 0
-        for page in results["webPages"]["value"]:
-            idx += 1
-            web_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['snippet']}")
-            if "deepLinks" in page:
-                for dl in page["deepLinks"]:
-                    idx += 1
-                    web_snippets.append(
-                        f"{idx}. [{dl['name']}]({dl['url']})\n{dl['snippet'] if 'snippet' in dl else ''}"
-                    )
+        if "webPages" in results:
+            for page in results["webPages"]["value"]:
+                idx += 1
+                web_snippets.append(
+                    f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['snippet']}"
+                )
+                if "deepLinks" in page:
+                    for dl in page["deepLinks"]:
+                        idx += 1
+                        web_snippets.append(
+                            f"{idx}. [{dl['name']}]({dl['url']})\n{_prev_visit(dl['url'])}{dl['snippet'] if 'snippet' in dl else ''}"
+                        )
 
         news_snippets = list()
         if "news" in results:
             for page in results["news"]["value"]:
                 idx += 1
-                news_snippets.append(f"{idx}. [{page['name']}]({page['url']})\n{page['description']}")
+                datePublished = ""
+                if "datePublished" in page:
+                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
+                news_snippets.append(
+                    f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['description']}{datePublished}"
+                )
+
+        video_snippets = list()
+        if "videos" in results:
+            for page in results["videos"]["value"]:
+                if not page["contentUrl"].startswith("https://www.youtube.com/watch?v="):
+                    continue
+                idx += 1
+                datePublished = ""
+                if "datePublished" in page:
+                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
+                video_snippets.append(
+                    f"{idx}. [{page['name']}]({page['contentUrl']})\n{_prev_visit(page['contentUrl'])}{page['description']}{datePublished}"
+                )
 
         self.page_title = f"{query} - Search"
 
         content = (
-            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets)} results:\n\n## Web Results\n"
+            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets) + len(video_snippets)} results:\n\n## Web Results\n"
             + "\n\n".join(web_snippets)
         )
         if len(news_snippets) > 0:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
-        self._set_page_content(content)
+        if len(video_snippets) > 0:
+            content += "\n\n## Video Results:\n" + "\n\n".join(video_snippets)
 
-    def _fetch_page(self, url):
+        self._set_page_content(content, split_pages=False)
+
+    def _fetch_page(self, url: str) -> None:
+        download_path = ""
         try:
-            # Prepare the request parameters
-            request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
-            request_kwargs["stream"] = True
+            if url.startswith("file://"):
+                download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
+                if os.path.isdir(download_path):
+                    res = self._mdconvert.convert_stream(
+                        io.StringIO(self._fetch_local_dir(download_path)), file_extension=".html"
+                    )
+                    self.page_title = res.title
+                    self._set_page_content(
+                        res.text_content, split_pages=False
+                    )  # Like search results, don't split directory listings
+                else:
+                    res = self._mdconvert.convert_local(download_path)
+                    self.page_title = res.title
+                    self._set_page_content(res.text_content)
+            else:
+                # Prepare the request parameters
+                request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
+                request_kwargs["stream"] = True
 
-            # Send a HTTP request to the URL
-            response = requests.get(url, **request_kwargs)
-            response.raise_for_status()
+                # Send a HTTP request to the URL
+                response = requests.get(url, **request_kwargs)
+                response.raise_for_status()
 
-            # If the HTTP request returns a status code 200, proceed
-            if response.status_code == 200:
+                # If the HTTP request was successful
                 content_type = response.headers.get("content-type", "")
-                for ct in ["text/html", "text/plain", "application/pdf"]:
-                    if ct in content_type.lower():
-                        content_type = ct
-                        break
 
-                if content_type == "text/html":
-                    # Get the content of the response
-                    html = ""
-                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                        html += chunk
-
-                    soup = BeautifulSoup(html, "html.parser")
-
-                    # Remove javascript and style blocks
-                    for script in soup(["script", "style"]):
-                        script.extract()
-
-                    # Convert to markdown -- Wikipedia gets special attention to get a clean version of the page
-                    if url.startswith("https://en.wikipedia.org/"):
-                        body_elm = soup.find("div", {"id": "mw-content-text"})
-                        title_elm = soup.find("span", {"class": "mw-page-title-main"})
-
-                        if body_elm:
-                            # What's the title
-                            main_title = soup.title.string
-                            if title_elm and len(title_elm) > 0:
-                                main_title = title_elm.string
-                            webpage_text = (
-                                "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
-                            )
-                        else:
-                            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
-                    else:
-                        webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
-
-                    # Convert newlines
-                    webpage_text = re.sub(r"\r\n", "\n", webpage_text)
-
-                    # Remove excessive blank lines
-                    self.page_title = soup.title.string
-                    self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
-                elif content_type == "text/plain":
-                    # Get the content of the response
-                    plain_text = ""
-                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                        plain_text += chunk
-
-                    self.page_title = None
-                    self._set_page_content(plain_text)
-                elif IS_PDF_CAPABLE and content_type == "application/pdf":
-                    pdf_data = io.BytesIO(response.raw.read())
-                    self.page_title = None
-                    self._set_page_content(pdfminer.high_level.extract_text(pdf_data))
-                elif self.downloads_folder is not None:
+                # Text or HTML
+                if "text/" in content_type.lower():
+                    res = self._mdconvert.convert_response(response)
+                    self.page_title = res.title
+                    self._set_page_content(res.text_content)
+                # A download
+                else:
                     # Try producing a safe filename
                     fname = None
+                    download_path = None
                     try:
                         fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
+                        download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
+
+                        suffix = 0
+                        while os.path.exists(download_path) and suffix < 1000:
+                            suffix += 1
+                            base, ext = os.path.splitext(fname)
+                            new_fname = f"{base}__{suffix}{ext}"
+                            download_path = os.path.abspath(os.path.join(self.downloads_folder, new_fname))
+
                     except NameError:
                         pass
 
@@ -263,22 +354,84 @@ class SimpleTextBrowser(AbstractBrowser):
                         if extension is None:
                             extension = ".download"
                         fname = str(uuid.uuid4()) + extension
+                        download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
 
                     # Open a file for writing
-                    download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
                     with open(download_path, "wb") as fh:
                         for chunk in response.iter_content(chunk_size=512):
                             fh.write(chunk)
 
-                    # Return a page describing what just happened
-                    self.page_title = "Download complete."
-                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
-                else:
-                    self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
-                    self._set_page_content(self.page_title)
+                    # Render it
+                    local_uri = pathlib.Path(download_path).as_uri()
+                    self.set_address(local_uri)
+
+        except UnsupportedFormatException:
+            self.page_title = ("Download complete.",)
+            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+        except FileConversionException:
+            self.page_title = ("Download complete.",)
+            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+        except FileNotFoundError:
+            self.page_title = "Error 404"
+            self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
+        except requests.exceptions.RequestException:
+            self.page_title = f"Error {response.status_code}"
+
+            # If the error was rendered in HTML we might as well render it
+            content_type = response.headers.get("content-type", "")
+            if content_type is not None and "text/html" in content_type.lower():
+                res = self._mdconvert.convert(response)
+                self.page_title = f"Error {response.status_code}"
+                self._set_page_content(f"## Error {response.status_code}\n\n{res.text_content}")
             else:
-                self.page_title = "Error"
-                self._set_page_content("Failed to retrieve " + url)
-        except requests.exceptions.RequestException as e:
-            self.page_title = "Error"
-            self._set_page_content(str(e))
+                text = ""
+                for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
+                    text += chunk
+                self.page_title = f"Error {response.status_code}"
+                self._set_page_content(f"## Error {response.status_code}\n\n{text}")
+
+    def _fetch_local_dir(self, local_path: str) -> str:
+        pardir = os.path.normpath(os.path.join(local_path, os.pardir))
+        pardir_uri = pathlib.Path(pardir).as_uri()
+        listing = f"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Index of {html.escape(local_path)}</title>
+  </head>
+  <body>
+    <h1>Index of {html.escape(local_path)}</h1>
+
+    <a href="{html.escape(pardir_uri, quote=True)}">.. (parent directory)</a>
+
+    <table>
+    <tr>
+       <th>Name</th><th>Size</th><th>Date modified</th>
+    </tr>
+"""
+
+        for entry in os.listdir(local_path):
+            full_path = os.path.normpath(os.path.join(local_path, entry))
+            full_path_uri = pathlib.Path(full_path).as_uri()
+            size = ""
+            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+
+            if os.path.isdir(full_path):
+                entry = entry + os.path.sep
+            else:
+                size = str(os.path.getsize(full_path))
+
+            listing += (
+                "<tr>\n"
+                + f'<td><a href="{html.escape(full_path_uri, quote=True)}">{html.escape(entry)}</a></td>'
+                + f"<td>{html.escape(size)}</td>"
+                + f"<td>{html.escape(mtime)}</td>"
+                + "</tr>"
+            )
+
+        listing += """
+    </table>
+  </body>
+</html>
+"""
+        return listing

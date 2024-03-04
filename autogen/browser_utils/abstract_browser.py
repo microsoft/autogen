@@ -46,3 +46,15 @@ class AbstractBrowser(ABC):
     @abstractmethod
     def visit_page(self, path_or_uri):
         pass
+
+    @abstractmethod
+    def open_local_file(self, local_path):
+        pass
+
+    @abstractmethod
+    def find_on_page(self, query: str):
+        pass
+
+    @abstractmethod
+    def find_next(self):
+        pass
