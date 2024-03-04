@@ -230,6 +230,7 @@ class ConversableAgent(LLMAgent):
             "process_all_messages_before_reply": [],
             "a_process_all_messages_before_reply": [],
             "process_message_before_send": [],
+            "a_process_message_before_send": [],
         }
 
     @property
