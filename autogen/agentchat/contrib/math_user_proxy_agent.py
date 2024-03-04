@@ -177,7 +177,8 @@ class MathUserProxyAgent(UserProxyAgent):
         self._previous_code = ""
         self.last_reply = None
 
-    def generate_init_message(self, problem, prompt_type="default", customized_prompt=None):
+    @staticmethod
+    def message_generator(sender, recipient, context):
         """Generate a prompt for the assistant agent with the given problem and prompt.
 
         Args:
@@ -198,7 +199,10 @@ class MathUserProxyAgent(UserProxyAgent):
         Returns:
             str: the generated prompt ready to be sent to the assistant agent.
         """
-        self._reset()
+        sender._reset()
+        problem = context.get("problem")
+        prompt_type = context.get("prompt_type", "default")
+        customized_prompt = context.get("customized_prompt", None)
         if customized_prompt is not None:
             return customized_prompt + problem
         return PROMPTS[prompt_type] + problem

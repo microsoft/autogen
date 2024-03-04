@@ -491,10 +491,93 @@ def test_chats_w_func():
     print(res.summary, res.cost, res.chat_history)
 
 
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_udf_message_in_chats():
+    import autogen
+
+    config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+    llm_config = {"config_list": config_list}
+
+    research_task = """
+    ## NVDA (NVIDIA Corporation)
+    - Current Stock Price: $822.79
+    - Performance over the past month: 24.36%
+
+    ## TSLA (Tesla, Inc.)
+    - Current Stock Price: $202.64
+    - Performance over the past month: 7.84%
+
+    Save them to a file named stock_prices.md.
+    """
+
+    def my_writing_task(sender, recipient, context):
+        carryover = context.get("carryover", "")
+        if isinstance(carryover, list):
+            carryover = carryover[-1]
+
+        try:
+            filename = context.get("work_dir", "") + "/stock_prices.md"
+            with open(filename, "r") as file:
+                data = file.read()
+        except Exception as e:
+            data = f"An error occurred while reading the file: {e}"
+
+        return """Make a joke. """ + "\nContext:\n" + carryover + "\nData:" + data
+
+    researcher = autogen.AssistantAgent(
+        name="Financial_researcher",
+        llm_config=llm_config,
+    )
+    writer = autogen.AssistantAgent(
+        name="Writer",
+        llm_config=llm_config,
+        system_message="""
+            You are a professional writer, known for
+            your insightful and engaging articles.
+            You transform complex concepts into compelling narratives.
+            Reply "TERMINATE" in the end when everything is done.
+            """,
+    )
+
+    user_proxy_auto = autogen.UserProxyAgent(
+        name="User_Proxy_Auto",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
+    chat_results = autogen.initiate_chats(
+        [
+            {
+                "sender": user_proxy_auto,
+                "recipient": researcher,
+                "message": research_task,
+                "clear_history": True,
+                "silent": False,
+            },
+            {
+                "sender": user_proxy_auto,
+                "recipient": writer,
+                "message": my_writing_task,
+                "max_turns": 2,  # max number of turns for the conversation (added for demo purposes, generally not necessarily needed)
+                "summary_method": "reflection_with_llm",
+                "work_dir": "tasks",
+            },
+        ]
+    )
+    print(chat_results[0].summary, chat_results[0].cost)
+    print(chat_results[1].summary, chat_results[1].cost)
+
+
 if __name__ == "__main__":
-    test_chats()
-    test_chats_general()
+    # test_chats()
+    # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
+    test_udf_message_in_chats()
