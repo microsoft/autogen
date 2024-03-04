@@ -279,7 +279,7 @@ For convenience, we provide a number of utility functions to load config lists.
 - `config_list_from_models`: Creates configurations based on a provided list of models, useful when targeting specific models without manually specifying each configuration.
 - `config_list_from_dotenv`: Constructs a configuration list from a `.env` file, offering a consolidated way to manage multiple API configurations and keys from a single file.
 
-We suggest that you take a look at this [notebook](/docs/llm_configuration) for full code examples of the different methods to configure your model endpoints.
+We suggest that you take a look at this [notebook](/docs/topics/llm_configuration) for full code examples of the different methods to configure your model endpoints.
 
 ### Logic error
 
