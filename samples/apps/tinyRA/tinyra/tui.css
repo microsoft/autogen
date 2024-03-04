@@ -196,7 +196,14 @@ SettingsScreen {
     padding: 1;
 }
 
+#user-settings-screen {
+    /* border: solid red; */
+}
+
 #settings-screen-contents {
+
+    layout: grid;
+
     grid-size: 1 3;
     grid-gutter: 1 2;
     grid-rows: 5 15 15;

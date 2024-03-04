@@ -30,11 +30,22 @@ from autogen import Agent, AssistantAgent, UserProxyAgent
 
 
 class Tool:
-    def __init__(self, name, code, description, id: int = None):
+    def __init__(self, name: str, code: str, description: str = None, id: int = None):
         self.id = id
         self.name = name
         self.code = code
-        self.description = description
+
+        if not description and len(code) > 0:
+            # Parse the function string into an AST
+            module = ast.parse(code)
+
+            # Get the function definition from the AST
+            function_def = module.body[0]
+
+            # Extract the docstring
+            self.description = ast.get_docstring(function_def)
+        else:
+            self.description = description or self.name
 
 
 def string_to_function(code: str):
@@ -46,6 +57,25 @@ def string_to_function(code: str):
 
 
 class AppConfiguration:
+    #     ASSISTANT_MESSAGE = """
+    # Your capabilities:
+    # You can solve tasks by using:
+    # - context history and language skills
+    # - tools you have been given
+    # - writing new code
+
+    # In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
+    #     1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
+    #     2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
+    # Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
+    # When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
+    # If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
+    # If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try.
+    # When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
+    # Reply "TERMINATE" in the end when everything is done.
+
+    # """
+
     def __init__(
         self,
         data_path: str = os.path.join(os.path.expanduser("~"), ".tinyra"),
@@ -191,7 +221,10 @@ class AppConfiguration:
         {user_bio}
         </bio>
 
-        The following are the preferences of {user_name}:
+        The following are the preferences of {user_name}.
+        These preferences should always have the HIGHEST priority.
+        And should never be ignored.
+        Ignoring them will cause MAJOR annoyance.
         <preferences>
         {user_preferences}
         </preferences>
@@ -203,9 +236,10 @@ class AppConfiguration:
     def get_assistant_system_message(self):
         return (
             self.get_meta_system_message()
-            + "\nAdditional instructions\n"
+            + "\nAdditional instructions:\n"
             + AssistantAgent.DEFAULT_SYSTEM_MESSAGE
             + "\n\nReply with TERMINATE when the task is done. Especially if the user is chit-chatting with you."
+            + "\n\nAdhere to user preferences always especially regarding tool usage."
         )
 
     def get_data_path(self):
@@ -266,9 +300,19 @@ class AppConfiguration:
 
 APP_CONFIG = AppConfiguration()
 # do not save the LLM config to the database, keep it
+
 LLM_CONFIG = {
     "config_list": config_list_from_json("OAI_CONFIG_LIST"),
 }
+
+# LLM_CONFIG = {
+#     "config_list": [
+#         {
+#             "model": "gpt-4",
+#             "api_key": os.environ.get("OPENAI_API_KEY"),
+#         }
+#     ]
+# }
 
 
 logging.basicConfig(
@@ -645,7 +689,7 @@ class SettingsScreen(ModalScreen):
         with TabbedContent("User", "Tools", "History", id="settings-screen"):
             # Tab for user settings
             yield Container(
-                Grid(
+                ScrollableContainer(
                     Container(Label("User", classes="form-label"), self.widget_user_name),
                     Container(Label("Bio", classes="form-label"), self.widget_user_bio),
                     Container(Label("Preferences", classes="form-label"), self.widget_user_preferences),
@@ -730,9 +774,8 @@ Number of tools: {len(tools)}"""
             tools = APP_CONFIG.get_tools()
             num_tools = len(tools)
             new_tool_name = f"tool-{num_tools + 1}"
-            description = new_tool_name
 
-            APP_CONFIG.update_tool(Tool(name=new_tool_name, code=new_tool_name, description=description))
+            APP_CONFIG.update_tool(Tool(name=new_tool_name, code=""))
 
             list_view_widget = self.query_one("#tool-list", ListView)
             new_list_item = ListItem(Label(new_tool_name), id=f"tool-{num_tools + 1}")
@@ -768,8 +811,8 @@ Number of tools: {len(tools)}"""
             tool_id = int(self.query_one("#tool-id-input", Input).value)
             tool_name = self.query_one("#tool-name-input", Input).value
             tool_code = self.query_one("#tool-code-textarea", TextArea).text
-            tool_description = tool_name
-            tool = Tool(tool_name, tool_code, tool_description, id=tool_id)
+            # tool_description = tool_name
+            tool = Tool(tool_name, tool_code, id=tool_id)
 
             # update the database
             APP_CONFIG.update_tool(tool)
@@ -1028,8 +1071,7 @@ class TinyRA(App):
                 update_message = f"{summary}..."
                 await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
             else:
-                num_messages = len(messages)
-                await a_insert_chat_message("info", f"Num messages...{num_messages}", root_id=0, id=msg_idx + 1)
+                await a_insert_chat_message("info", "Working...", root_id=0, id=msg_idx + 1)
             return False, None
 
         async def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
@@ -1056,6 +1098,13 @@ class TinyRA(App):
             is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
         )
 
+        # populate the history before registering new reply functions
+        for msg in chat_history:
+            if msg["role"] == "user":
+                await user.a_send(msg["content"], assistant, request_reply=False, silent=True)
+            else:
+                await assistant.a_send(msg["content"], user, request_reply=False, silent=True)
+
         assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
         assistant.register_reply([Agent, None], post_update_to_main)
         assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
@@ -1069,8 +1118,7 @@ class TinyRA(App):
         # register tools for assistant and user
         tools = APP_CONFIG.get_tools()
         for tool in tools.values():
-            name = tool.name
-            description = name  # TODO: add description
+            description = tool.description
             code = tool.code
             # convert a code string to function and return a callable
 
@@ -1078,13 +1126,11 @@ class TinyRA(App):
             assistant.register_for_llm(name=function_name, description=description)(tool_instance)
             user.register_for_execution()(tool_instance)
 
-        for msg in chat_history:
-            if msg["role"] == "user":
-                await user.a_send(msg["content"], assistant, request_reply=False, silent=True)
-            else:
-                await assistant.a_send(msg["content"], user, request_reply=False, silent=True)
+        logging.info("Current history:")
+        logging.info(assistant.chat_messages[user])
 
         await user.a_initiate_chat(assistant, message=task, clear_history=False)
+
         await user.a_send(
             f"""Based on the results in above conversation, create a response for the user.
 While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
