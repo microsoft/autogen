@@ -27,46 +27,38 @@ In October, we moved AutoGen from FLAML to a standalone repo on GitHub, and publ
 
 Since then, we've got new feedback every day, everywhere. Users have shown really high recognition of the new levels of capability enabled by AutoGen. For example, there are many comments like the following on X (Twitter) or YouTube.
 
-```mdx
-Autogen gave me the same a-ha moment that I haven't felt since trying out GPT-3
+> Autogen gave me the same a-ha moment that I haven't felt since trying out GPT-3
 for the first time.
-```
-```
-I have never been this surprised since ChatGPT.
-```
+
+> I have never been this surprised since ChatGPT.
+
 
 Many users have deep understanding of the value in different dimensions, such as the modularity, flexibility and simplicity.
 
-```
-The same reason autogen is significant is the same reason OOP is a good idea.
-Autogen packages up all that complexity into an agent I can create in one line,
-or modify with another.
-```
+> The same reason autogen is significant is the same reason OOP is a good idea. Autogen packages up all that complexity into an agent I can create in one line, or modify with another.
 <!--
 I had lots of ideas I wanted to implement, but it needed a framework like this
 and I am just not the guy to make such a robust and intelligent framework.
 -->
+
 Over time, more and more users share their experiences in using or contributing to autogen.
-```
-In our Data Science department Autogen is helping us develop a production ready
+
+> In our Data Science department Autogen is helping us develop a production ready
 multi-agents framework.
-- Sam Khalil, VP Data Insights & FounData, Novo Nordisk
-```
-```
-When I built an interactive learning tool for students, I looked for a tool that
+>> Sam Khalil, VP Data Insights & FounData, Novo Nordisk
+
+> When I built an interactive learning tool for students, I looked for a tool that
 could streamline the logistics but also give enough flexibility so I could use
 customized tools. AutoGen has both. It simplified the work. Thanks to Chi and his
 team for sharing such a wonderful tool with the community.
-- Yongsheng Lian, Professor at the University of Louisville, Mechanical Engineering
-```
-```
-Exciting news: the latest AutoGen release now features my contribution…
+>> Yongsheng Lian, Professor at the University of Louisville, Mechanical Engineering
+
+> Exciting news: the latest AutoGen release now features my contribution…
 This experience has been a wonderful blend of learning and contributing,
 demonstrating the dynamic and collaborative spirit of the tech community.
-- Davor Runje, Cofounder @ airt / President of the board @ CISEx
-```
-```
-With the support of a grant through the Data Intensive Studies Center at Tufts
+>> Davor Runje, Cofounder @ airt / President of the board @ CISEx
+
+> With the support of a grant through the Data Intensive Studies Center at Tufts
 University, our group is hoping to solve some of the challenges students face when
 transitioning from undergraduate to graduate-level courses, particularly in Tufts'
 Doctor of Physical Therapy program in the School of Medicine. We're experimenting
@@ -81,15 +73,13 @@ in my Primary Care class to facilitate student engagement in patient interviews
 through digital simulations. The agent retrieved information from a real patient
 featured in a published case study, allowing students to practice their interview
 skills with realistic information.
-- Benjamin D Stern, MS, DPT, Assistant Professor, Doctor of Physical Therapy Program,
+>> Benjamin D Stern, MS, DPT, Assistant Professor, Doctor of Physical Therapy Program,
 Tufts University School of Medicine
-```
-```
-Autogen has been a game changer for how we analyze companies and products! Through
+
+> Autogen has been a game changer for how we analyze companies and products! Through
 collaborative discourse between AI Agents we are able to shave days off our research
 and analysis process.
-- Justin Trugman, Cofounder & Head of Technology at BetterFutureLabs
-```
+>> Justin Trugman, Cofounder & Head of Technology at BetterFutureLabs
 
 These are just a small fraction of examples. We have seen big enterprise customers’ interest from pretty much every vertical industry: Accounting, Airlines, Biotech, Consulting, Consumer Packaged Goods, Electronics, Entertainment, Finance, Fintech, Government, Healthcare, Manufacturer, Metals, Pharmacy, Research, Retailer, Social Media, Software, Supply Chain, Technology, Telecom…
 
@@ -131,7 +121,7 @@ The community has been working hard to address them in several dimensions:
 - Interface. An intuitive, expressive and standardized interface is the prerequisite of fast experimentation and optimization.
 - Optimization. Both the multi-agent interaction design (e.g., decomposition) and the individual agent capability need to be optimized to satisfy specific application needs.
 - Integration. Integration with new technologies is an effective way to enhance agent capability.
-- Learning/Teaching. Agentic learning and teaching are intuitive approaches for agents to optimize their performance, enable human agency and enhance safety potentially.
+- Learning/Teaching. Agentic learning and teaching are intuitive approaches for agents to optimize their performance, enable human agency and enhance safety.
 
 ## New Features & Ongoing Research
 
@@ -158,7 +148,7 @@ The features in this category allow agents to remember teachings from users or o
 
 - [AgentOptimizer](/blog/2023/12/23/AgentOptimizer). This [research](https://arxiv.org/abs/2402.11359) finds an approach of training LLM agents without modifying the model. As a case study, this technique optimizes a set of Python functions for agents to use in solving a set of training tasks. It is planned to be available as an experimental feature.
 - [EcoAssistant](/blog/2023/11/09/EcoAssistant). This [research](https://arxiv.org/abs/2310.03046) finds a multi-agent teaching approach when using agents with different capacities powered by different LLMs. For example, a GPT-4 agent can teach a GPT-3.5 agent by demonstration. With this approach, one only needs 1/3 or 1/2 of GPT-4's cost, while getting 10-20\% higher success rate than GPT-4 on coding-based QA. No finetuning is needed. All you need is a GPT-4 endpoint and a GPT-3.5-turbo endpoint. Help is appreciated to offer this technique as a feature in the AutoGen library.
-- [Teachability](/blog/2023/10/26/TeachableAgent). Every LLM agent in AutoGen can be made teachable, i.e., remember facts, preferences, skills etc. from interacting with other agents. For example, a user behind a user proxy agent can teach an assistant agent instructions in solving a difficult math problem. After teaching once, the problem solving rate for the assistant agent can have a dramatic improvement (e.g., 37% -> 95%).
+- [Teachability](/blog/2023/10/26/TeachableAgent). Every LLM agent in AutoGen can be made teachable, i.e., remember facts, preferences, skills etc. from interacting with other agents. For example, a user behind a user proxy agent can teach an assistant agent instructions in solving a difficult math problem. After teaching once, the problem solving rate for the assistant agent can have a dramatic improvement (e.g., 37% -> 95% for gpt-4-0613).
 ![teach](img/teach.png)
 This feature works for GPTAssistantAgent (using OpenAI's assistant API) and group chat as well. One interesting use case of teachability + FSM group chat: [teaching resilience](https://www.linkedin.com/pulse/combatting-ai-naivete-teaching-resilience-emotional-leah-bonser-jdhrc).
 
