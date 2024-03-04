@@ -556,11 +556,10 @@ class ConversableAgent(LLMAgent):
 
     def send(
         self,
-        message: Union[Dict, str, Callable],
+        message: Union[Dict, str],
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-        **context,
     ) -> ChatResult:
         """Send a message to another agent.
 
@@ -590,8 +589,7 @@ class ConversableAgent(LLMAgent):
             recipient (Agent): the recipient of the message.
             request_reply (bool or None): whether to request a reply from the recipient.
             silent (bool or None): (Experimental) whether to print the message sent.
-            **context: the context of the message, which will be passed to [OpenAIWrapper.create](../oai/client#create).
-            #TODO: shall we also support callable message and context in "send"
+
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
 
