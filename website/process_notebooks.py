@@ -320,7 +320,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
 
     print(Path(__file__).resolve())
     print(Path(__file__).parent.resolve())
-    print(Path(__file__).parent.parent.resolve())
+    print(Path(__file__).parent.resolve().parent.resolve())
     repo_root = Path(__file__).parent.parent.resolve()
     repo_relative_notebook = source_notebooks.resolve().relative_to(repo_root)
     print(repo_relative_notebook)
