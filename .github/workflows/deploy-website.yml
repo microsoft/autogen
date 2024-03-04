@@ -47,9 +47,6 @@ jobs:
           wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.5.23/quarto-1.5.23-linux-amd64.tar.gz
           tar -xzf quarto-1.5.23-linux-amd64.tar.gz
           echo "$(pwd)/quarto-1.5.23/bin/" >> $GITHUB_PATH
-      - name: quarto run
-        run: |
-          quarto render .
       - name: Process notebooks
         run: |
           python process_notebooks.py render
@@ -93,9 +90,6 @@ jobs:
           wget -q https://github.com/quarto-dev/quarto-cli/releases/download/v1.5.23/quarto-1.5.23-linux-amd64.tar.gz
           tar -xzf quarto-1.5.23-linux-amd64.tar.gz
           echo "$(pwd)/quarto-1.5.23/bin/" >> $GITHUB_PATH
-      - name: quarto run
-        run: |
-          quarto render .
       - name: Process notebooks
         run: |
           python process_notebooks.py render
