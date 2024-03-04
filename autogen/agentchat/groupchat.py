@@ -193,19 +193,24 @@ class GroupChat:
 
     def next_agent(self, agent: Agent, agents: Optional[List[Agent]] = None) -> Agent:
         """Return the next agent in the list."""
-        agents = agents or self.agents
+        if agents is None:
+            agents = self.agents
 
         # Ensure the provided list of agents is a subset of self.agents
         if not set(agents).issubset(set(self.agents)):
             raise UndefinedNextAgent()
 
-        # Try to find the index of the current agent in the provided list
-        idx = self.agents.index(agent) if agent in self.agents else -1
+        # What index is the agent? (-1 if not present)
+        idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
 
-        for i in range(1, len(self.agents) + 1):
-            next_agent = self.agents[(idx + i) % len(self.agents)]
-            if next_agent in agents:
-                return next_agent
+        # Return the next agent
+        if agents == self.agents:
+            return agents[(idx + 1) % len(agents)]
+        else:
+            offset = idx + 1
+            for i in range(len(self.agents)):
+                if self.agents[(offset + i) % len(self.agents)] in agents:
+                    return self.agents[(offset + i) % len(self.agents)]
 
         # Explicitly handle cases where no valid next agent exists in the provided subset.
         raise UndefinedNextAgent()
