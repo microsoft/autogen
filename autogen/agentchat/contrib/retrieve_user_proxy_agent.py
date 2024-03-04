@@ -1,4 +1,6 @@
 import re
+from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from IPython import get_ipython
 
 try:
     import chromadb
@@ -10,16 +12,7 @@ from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, T
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen import logger
-
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
-from IPython import get_ipython
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.agentchat.conversable_agent import colored
 
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
