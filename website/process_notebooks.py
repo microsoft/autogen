@@ -486,11 +486,7 @@ def main() -> None:
                     else:
                         print("-" * 80)
 
-                        print(
-                            fmt_error(
-                                notebook, optional_error_or_skip
-                            )
-                        )
+                        print(fmt_error(notebook, optional_error_or_skip))
                         print(optional_error_or_skip.traceback)
                         print("-" * 80)
                     if args.exit_on_first_fail:

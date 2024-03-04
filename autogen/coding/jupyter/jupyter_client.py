@@ -23,8 +23,6 @@ from .base import JupyterConnectionInfo
 
 
 class JupyterClient:
-
-
     def __init__(self, connection_info: JupyterConnectionInfo):
         """(Experimental) A client for communicating with a Jupyter gateway server.
 
