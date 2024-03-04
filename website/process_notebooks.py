@@ -105,6 +105,9 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
 
     metadata = load_metadata(notebook)
 
+    if "skip_render" in metadata:
+        return metadata["skip_render"]
+
     if "front_matter" not in metadata:
         return "front matter missing from notebook metadata ⚠️"
 
@@ -154,8 +157,6 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
     in_notebook_dir = "notebook" in src_notebook.parts
 
     metadata = load_metadata(src_notebook)
-    if "skip_render" in metadata:
-        return fmt_skip(src_notebook, "skip_render is in notebook metadata")
 
     title = extract_title(src_notebook)
     if title is None:
@@ -331,7 +332,7 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
     else:
         title_search_content = content
 
-    title_exists = title_search_content.find("# ") != -1
+    title_exists = title_search_content.find("\n# ") != -1
     if not title_exists:
         content = f"# {front_matter['title']}\n{content}"
 
@@ -389,16 +390,21 @@ def collect_notebooks(notebook_directory: Path, website_directory: Path) -> typi
     return notebooks
 
 
-def fmt_skip(notebook: Path, reason: str) -> None:
+def fmt_skip(notebook: Path, reason: str) -> str:
     return f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {reason}"
 
 
-def fmt_ok(notebook: Path) -> None:
+def fmt_ok(notebook: Path) -> str:
     return f"{colored('[OK]', 'green')} {colored(notebook.name, 'blue')} ✅"
 
 
-def fmt_error(notebook: Path, error: NotebookError) -> None:
-    return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
+def fmt_error(notebook: Path, error: Union[NotebookError, str]) -> str:
+    if isinstance(error, str):
+        return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error}"
+    elif isinstance(error, NotebookError):
+        return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
+    else:
+        raise ValueError("error must be a string or a NotebookError")
 
 
 def start_thread_to_terminate_when_parent_process_dies(ppid: int):
@@ -480,11 +486,7 @@ def main() -> None:
                     else:
                         print("-" * 80)
 
-                        print(
-                            fmt_error(
-                                notebook, f"{optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}"
-                            )
-                        )
+                        print(fmt_error(notebook, optional_error_or_skip))
                         print(optional_error_or_skip.traceback)
                         print("-" * 80)
                     if args.exit_on_first_fail:
