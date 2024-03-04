@@ -885,13 +885,37 @@ class ConversableAgent(LLMAgent):
                     Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
             message (str or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 - If a string is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
-                - If a callable is provided, it will be called to get the initial message. E.g,
+                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict. If the returned value is a dict, it should contain the following reserved fields:
+                    If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
+                    1. "content": content of the message, can be None.
+                    2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                    3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                    4. "role": role of the message, can be "assistant", "user", "function".
+                        This field is only needed to distinguish between "function" or "assistant"/"user".
+                    5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                    6. "context" (dict): the context of the message, which will be passed to
+                        [OpenAIWrapper.create](../oai/client#create).
+
+                    Example of a callable message (returning a string):
                     ```python
-                    def my_message(sender, receiver, context):
+                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
                         carryover = context.get("carryover", "")
                         if isinstance(message, list):
                             carryover = carryover[-1]
                         final_msg = "Write a blogpost." + "\nContext: \n" + carryover
+                        return final_msg
+                    ```
+
+                    Example of a callable message (returning a dict):
+                    ```python
+                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
+                        final_msg = {}
+                        carryover = context.get("carryover", "")
+                        carryover = context.get("carryover", "")
+                        if isinstance(message, list):
+                            carryover = carryover[-1]
+                        final_msg["content"] = "Write a blogpost." + "\nContext: \n" + carryover
+                        final_msg["context"] = {"prefix": "Today I feel"}
                         return final_msg
                     ```
             **context: any context information. It has the following reserved fields:
