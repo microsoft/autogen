@@ -157,7 +157,7 @@ class WebSurferAgent(ConversableAgent):
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
             self.browser.visit_page(f"bing: {query}")
 
-            # Extract the first linl
+            # Extract the first link
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
             if m:
                 self.browser.visit_page(m.group(1))
