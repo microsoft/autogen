@@ -1,3 +1,4 @@
+from __future__ import annotations
 import atexit
 from hashlib import md5
 import logging
@@ -5,7 +6,7 @@ from pathlib import Path
 from time import sleep
 from types import TracebackType
 import uuid
-from typing import List, Optional, Union
+from typing import List, Optional, Type, Union
 import docker
 from docker.models.containers import Container
 
@@ -200,6 +201,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()

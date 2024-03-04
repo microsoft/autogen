@@ -5,7 +5,7 @@ import sys
 from time import sleep
 from types import TracebackType
 import uuid
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Type, Union
 import docker
 import secrets
 import io
@@ -153,6 +153,6 @@ WORKDIR "${HOME}"
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
