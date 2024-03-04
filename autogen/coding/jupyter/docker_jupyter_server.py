@@ -12,6 +12,8 @@ import io
 import atexit
 import logging
 
+from ..docker_commandline_code_executor import _wait_for_ready
+
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
@@ -20,17 +22,6 @@ else:
 
 from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
-
-
-def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
-    while container.status != "running" and elapsed_time < timeout:
-        sleep(stop_time)
-        elapsed_time += stop_time
-        container.reload()
-        continue
-    if container.status != "running":
-        raise ValueError("Container failed to start")
 
 
 class DockerJupyterServer(JupyterConnectable):

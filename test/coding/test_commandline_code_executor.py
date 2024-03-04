@@ -5,9 +5,17 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
+from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
+
+classes_to_test = [LocalCommandlineCodeExecutor, DockerCommandLineCodeExecutor]
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_is_code_executor(cls) -> None:
+    assert isinstance(cls, CodeExecutor)
 
 
 def test_create() -> None:
@@ -19,19 +27,25 @@ def test_create() -> None:
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
 
+    config = {"executor": DockerCommandLineCodeExecutor()}
+    executor = CodeExecutorFactory.create(config)
+    assert executor is config["executor"]
 
-def test_local_commandline_executor_init() -> None:
-    executor = LocalCommandlineCodeExecutor(timeout=10, work_dir=".")
-    assert executor.timeout == 10 and executor.work_dir == "."
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_init(cls) -> None:
+    executor = cls(timeout=10, work_dir=".")
+    assert executor.timeout == 10 and str(executor.work_dir) == "."
 
     # Try invalid working directory.
     with pytest.raises(ValueError, match="Working directory .* does not exist."):
-        executor = LocalCommandlineCodeExecutor(timeout=111, work_dir="/invalid/directory")
+        executor = cls(timeout=111, work_dir="/invalid/directory")
 
 
-def test_local_commandline_executor_execute_code() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_execute_code(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = cls(work_dir=temp_dir)
         _test_execute_code(executor=executor)
 
 
@@ -79,9 +93,10 @@ def _test_execute_code(executor: CodeExecutor) -> None:
 
 
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_local_commandline_code_executor_timeout() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_code_executor_timeout(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(timeout=1, work_dir=temp_dir)
+        executor = cls(timeout=1, work_dir=temp_dir)
         _test_timeout(executor)
 
 
@@ -94,6 +109,16 @@ def _test_timeout(executor: CodeExecutor) -> None:
 def test_local_commandline_code_executor_restart() -> None:
     executor = LocalCommandlineCodeExecutor()
     _test_restart(executor)
+
+
+# This is kind of hard to test because each exec is a new env
+def test_docker_commandline_code_executor_restart() -> None:
+    with DockerCommandLineCodeExecutor() as executor:
+        result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
+        assert result.exit_code == 0
+        executor.restart()
+        result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
+        assert result.exit_code == 0
 
 
 def _test_restart(executor: CodeExecutor) -> None:
@@ -148,9 +173,10 @@ def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
     assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
 
 
-def test_local_commandline_executor_conversable_agent_code_execution() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_conversable_agent_code_execution(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = cls(work_dir=temp_dir)
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
             _test_conversable_agent_code_execution(executor)
