@@ -318,7 +318,8 @@ def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: D
         front_matter = yaml.safe_load(content[4:front_matter_end])
         content = content[front_matter_end + 3 :]
 
-    repo_relative_notebook = source_notebooks.resolve().relative_to(Path(__file__).parent.parent.resolve())
+    repo_root = Path(__file__).parent.parent.resolve()
+    repo_relative_notebook = source_notebooks.resolve().relative_to(repo_root)
     print(repo_relative_notebook)
     front_matter["source_notebook"] = f"/{repo_relative_notebook}"
     front_matter["custom_edit_url"] = f"https://github.com/microsoft/autogen/edit/main/{repo_relative_notebook}"
