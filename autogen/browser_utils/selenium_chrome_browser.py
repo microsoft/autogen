@@ -2,16 +2,20 @@ import re
 import os
 import pathlib
 import io
-
-from bs4 import BeautifulSoup
-import markdownify
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from typing import Optional, Union, Dict
-
 from autogen.browser_utils.abstract_browser import AbstractBrowser
 from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+
+# Check if Playwright dependencies are installed
+IS_SELENIUM_ENABLED = False
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+
+    IS_SELENIUM_ENABLED = True
+except ModuleNotFoundError:
+    pass
 
 
 class SeleniumChromeBrowser(AbstractBrowser):
@@ -25,6 +29,12 @@ class SeleniumChromeBrowser(AbstractBrowser):
         bing_api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict, None]] = None,
     ):
+        # Raise an error if Playwright isn't available
+        if not IS_SELENIUM_ENABLED:
+            raise ModuleNotFoundError(
+                "No module named 'selenium'. Selenium can be installed via 'pip install selenium' or 'conda install selenium' depending on your environment."
+            )
+
         self.start_page = start_page
         self.driver = None
         self.viewport_size = viewport_size  # Applies only to the standard uri types
