@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import autogen
 import pytest
 from unittest.mock import MagicMock
@@ -34,9 +36,14 @@ def test_get_human_input():
 
     user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
 
-    user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
+    res = user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
+
     # Test without supplying messages parameter
-    user_proxy.initiate_chat(assistant, clear_history=True)
+    res = user_proxy.initiate_chat(assistant, clear_history=True)
+    print("Result summary:", res.summary)
+    print("Human input:", res.human_input)
 
     # Assert that custom_a_get_human_input was called at least once
     user_proxy.get_human_input.assert_called()

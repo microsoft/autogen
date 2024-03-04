@@ -1,4 +1,6 @@
-from autogen.agent_utils import gather_usage_summary
+#!/usr/bin/env python3 -m pytest
+
+from autogen import gather_usage_summary
 from autogen import AssistantAgent, UserProxyAgent
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
@@ -108,10 +110,12 @@ def test_agent_usage():
     )
 
     math_problem = "$x^3=125$. What is x?"
-    ai_user_proxy.initiate_chat(
+    res = ai_user_proxy.initiate_chat(
         assistant,
         message=math_problem,
+        summary_method="reflection_with_llm",
     )
+    print("Result summary:", res.summary)
 
     # test print
     captured_output = io.StringIO()
