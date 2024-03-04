@@ -125,7 +125,8 @@ Conversation history:
             }
         )
         check_nested_mode_config(nested_mode_config)
-        self.nested_mode_config = nested_mode_config.copy()
+        self._nested_mode_config = nested_mode_config.copy()
+        self._code_execution_config = code_execution_config.copy()
         self.build_history = {}
 
     def _run_autobuild(self, group_name: str, execution_task: str, building_task: str = "") -> str:
@@ -138,21 +139,21 @@ Conversation history:
         print("==> Building task: ", building_task, flush=True)
         print("==> Execution task: ", execution_task, flush=True)
 
-        builder = AgentBuilder(**self.nested_mode_config["autobuild_init_config"])
+        builder = AgentBuilder(**self._nested_mode_config["autobuild_init_config"])
         if group_name in self.build_history.keys():
             agent_list, agent_configs = builder.load(config_json=json.dumps(self.build_history[group_name]))
         else:
             agent_list, agent_configs = builder.build(
-                building_task, **self.nested_mode_config["autobuild_build_config"]
+                building_task, **self._nested_mode_config["autobuild_build_config"]
             )
             self.build_history[group_name] = agent_configs.copy()
 
         # start nested chat
         nested_group_chat = autogen.GroupChat(
-            agents=agent_list, messages=[], **self.nested_mode_config["group_chat_config"]
+            agents=agent_list, messages=[], **self._nested_mode_config["group_chat_config"]
         )
         manager = autogen.GroupChatManager(
-            groupchat=nested_group_chat, llm_config=self.nested_mode_config["group_chat_llm_config"]
+            groupchat=nested_group_chat, llm_config=self._nested_mode_config["group_chat_llm_config"]
         )
         agent_list[0].initiate_chat(manager, message=execution_task)
 
@@ -183,5 +184,43 @@ Conversation history:
         )
         return summarized_history
 
-    def _run_meta_prompting(self, **args) -> str:
-        pass
+    def _run_meta_prompting(self, expert_name: str, expert_identity: str, task: str) -> str:
+        """
+        Run Meta-prompting to solve the task.
+        The method is adapted from "Meta-Prompting: Enhancing Language Models with Task-Agnostic Scaffolding".
+        Paper available at https://arxiv.org/abs/2401.12954
+        """
+        print("Running meta prompting...")
+        print("Querying expert: ", expert_name)
+
+        expert = autogen.AssistantAgent(
+            name=expert_name,
+            human_input_mode="NEVER",
+            llm_config=self._nested_mode_config["meta_prompting_llm_config"],
+            system_message='You are an AI assistant that helps people find information. Please answer the following question. Once you have determined the final answer, please present it using the format below:\n\n>> FINAL ANSWER:\n"""\n[final answer]\n"""',
+            max_consecutive_auto_reply=1,
+        )
+        user_proxy = autogen.UserProxyAgent(
+            name="proxy",
+            human_input_mode="NEVER",
+            default_auto_reply="TERMINATE",
+            code_execution_config=self._code_execution_config,
+            max_consecutive_auto_reply=1,
+        )
+        task += "\nYou have access to python code interpreter. Suggest python code block starting with '```python' and the code will be automatically executed. You can use code to solve the task or for result verification. You should always use print statement to get the value of a variable."
+        user_proxy.initiate_chat(expert, message=expert_identity + "\n" + task, silent=True)
+
+        expert_reply = user_proxy.chat_messages[expert][1]["content"]
+        proxy_reply = user_proxy.chat_messages[expert][2]["content"]
+
+        if proxy_reply != "TERMINATE":
+            # Code is suggested by the expert
+            code_result = proxy_reply[proxy_reply.find("Code output:") + len("Code output:"):].strip()
+            expert_reply += f"\nThis is the output of the code blocks when executed:\n{code_result}"
+        else:
+            expert_reply.replace(
+                "FINAL ANSWER:",
+                f"{expert_name}'s final answer:\n",
+            )
+
+        return expert_reply
