@@ -3,28 +3,21 @@
 import pytest
 import os
 import sys
+from termcolor import colored
 from autogen import ConversableAgent, config_list_from_json
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 try:
-    from openai import OpenAI
     from autogen.agentchat.contrib.capabilities.teachability import Teachability
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+    skip = skip_openai
 
 
 # Specify the model to use by uncommenting one of the following lines.
@@ -141,7 +134,7 @@ def use_task_advice_pair_phrasing():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run if dependency is not installed",
+    reason="do not run if dependency is not installed or requested to skip",
 )
 def test_teachability_code_paths():
     """Runs this file's unit tests."""
@@ -172,7 +165,7 @@ def test_teachability_code_paths():
 
 @pytest.mark.skipif(
     skip,
-    reason="do not run if dependency is not installed",
+    reason="do not run if dependency is not installed or requested to skip",
 )
 def test_teachability_accuracy():
     """A very cheap and fast test of teachability accuracy."""
