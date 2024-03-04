@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser, SeleniumChromeBrowser
+from ...browser_utils import SimpleTextBrowser, SeleniumChromeBrowser, PlaywrightChromeBrowser
 from ...code_utils import content_str
 from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
@@ -57,11 +57,14 @@ class WebSurferAgent(ConversableAgent):
 
         # Create the browser
         headless = browser_config.pop("headless", False)
-        self.browser = (
-            SimpleTextBrowser(**(browser_config if browser_config else {}))
-            if not headless
-            else SeleniumChromeBrowser(**browser_config)
-        )
+        if not headless:
+            self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        elif headless.lower() == "selenium":
+            self.browser = SeleniumChromeBrowser(**browser_config)
+        elif headless.lower() == "playwright":
+            self.browser = PlaywrightChromeBrowser(**browser_config)
+        else:
+            raise ValueError(f"Unknown headless option '{headless}'")
 
         inner_llm_config = copy.deepcopy(llm_config)
 

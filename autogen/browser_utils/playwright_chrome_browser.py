@@ -69,6 +69,7 @@ class PlaywrightChromeBrowser(AbstractBrowser):
 
         # Browser context
         self._page = self._browser.new_page()
+        self.set_address(self.start_page)
 
     def __enter__(self):
         return self
