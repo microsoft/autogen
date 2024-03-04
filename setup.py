@@ -53,7 +53,19 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate", "selenium"],
+        "websurfer": [
+            "beautifulsoup4",
+            "markdownify",
+            "pathvalidate",
+            # mdconvert
+            "puremagic",  # File identification
+            "binaryornot",  # More file identification
+            "pdfminer.six",  # Pdf
+            "mammoth",  # Docx
+            "python-pptx",  # Ppts
+            "pandas",  # Xlsx
+            "openpyxl",
+        ],
         "redis": ["redis"],
         "jupyter-executor": [
             "jupyter-kernel-gateway",

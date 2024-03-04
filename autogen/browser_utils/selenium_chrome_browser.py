@@ -1,4 +1,7 @@
 import re
+import os
+import pathlib
+import io
 
 from bs4 import BeautifulSoup
 import markdownify
@@ -8,25 +11,10 @@ from selenium.webdriver.common.by import By
 from typing import Optional, Union, Dict
 
 from autogen.browser_utils.abstract_browser import AbstractBrowser
-
-# Optional PDF support
-IS_PDF_CAPABLE = False
-try:
-    import pdfminer
-    import pdfminer.high_level
-
-    IS_PDF_CAPABLE = True
-except ModuleNotFoundError:
-    pass
-
-# Other optional dependencies
-try:
-    import pathvalidate
-except ModuleNotFoundError:
-    pass
+from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 
 
-class HeadlessChromeBrowser(AbstractBrowser):
+class SeleniumChromeBrowser(AbstractBrowser):
     """(In preview) A Selenium powered headless Chrome browser. Suitable for Agentic use."""
 
     def __init__(
@@ -48,6 +36,7 @@ class HeadlessChromeBrowser(AbstractBrowser):
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
         self._page_content = ""
+        self._mdconvert = MarkdownConverter()
 
         self._start_browser()
 
@@ -106,23 +95,6 @@ class HeadlessChromeBrowser(AbstractBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _process_html(self, html: str, is_search: bool) -> str:
-        """Process the raw HTML content and return the processed text."""
-        soup = BeautifulSoup(html, "html.parser")
-
-        # Remove javascript and style blocks
-        for script in soup(["script", "style"]):
-            script.extract()
-
-        # Convert to text
-        converter = markdownify.MarkdownConverter()
-        text = converter.convert_soup(soup) if not is_search else converter.convert_soup(soup.find("main"))
-
-        # Remove excessive blank lines
-        text = re.sub(r"\n{2,}", "\n\n", text).strip()
-
-        return text
-
     def _bing_search(self, query):
         self.driver.get("https://www.bing.com")
 
@@ -141,10 +113,27 @@ class HeadlessChromeBrowser(AbstractBrowser):
         if self.viewport_current_page > 0:
             self.viewport_current_page -= 1
 
+    def find_on_page(self, query: str):
+        raise NotImplementedError()
+
+    def find_next(self):
+        raise NotImplementedError()
+
+    def open_local_file(self, local_path: str) -> str:
+        """Convert a local file path to a file:/// URI, update the address, visit the page,
+        and return the contents of the viewport."""
+        full_path = os.path.abspath(os.path.expanduser(local_path))
+        self.set_address(pathlib.Path(full_path).as_uri())
+        return self.viewport
+
     def visit_page(self, path_or_uri):
         """Update the address, visit the page, and return the content of the viewport."""
-        is_search = path_or_uri.startswith("bing:")
+        path_or_uri.startswith("bing:")
         self.set_address(path_or_uri)
         html = self.driver.execute_script("return document.body.innerHTML;")
-        self._set_page_content(self._process_html(html, is_search))
+
+        res = self._mdconvert.convert_stream(io.StringIO(html), file_extension=".html", url=self.driver.current_url)
+        self.page_title = res.title
+        self._set_page_content(res.text_content)
+
         return self.viewport
