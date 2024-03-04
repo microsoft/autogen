@@ -929,7 +929,6 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
-        # TODO: check
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
         _chat_info["sender"] = self
