@@ -2155,19 +2155,18 @@ class ConversableAgent(LLMAgent):
             "content": str(content),
         }
 
-    def generate_init_message(self, message, **context) -> Union[str, Dict]:
+    def generate_init_message(self, message: Union[str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
-        TODO: offer a way to customize initial message without overriding this function.
-
-        Override this function to customize the initial message based on user's request.
-        If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
+        If message is None, input() will be called to get the initial message.
 
         Args:
-            message (str): the message to be processed.
+            message (str or None): the message to be processed.
             **context: any context information. It has the following reserved fields:
                 "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
                     message.
+        Returns:
+            str or dict: the processed message.
         """
         if message is None:
             message = self.get_human_input(">")
@@ -2187,15 +2186,15 @@ class ConversableAgent(LLMAgent):
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
 
-    async def a_generate_init_message(self, message, **context) -> Union[str, Dict]:
+    async def a_generate_init_message(self, message: Union[str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
-        TODO: offer a way to customize initial message without overriding this function.
-
-        Override this function to customize the initial message based on user's request.
-        If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
+        If message is None, input() will be called to get the initial message.
 
         Args:
             Please refer to `generate_init_message` for the description of the arguments.
+
+        Returns:
+            str or dict: the processed message.
         """
         if message is None:
             message = await self.a_get_human_input(">")
