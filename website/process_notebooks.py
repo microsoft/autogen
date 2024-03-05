@@ -56,11 +56,11 @@ class Result:
 def check_quarto_bin(quarto_bin: str = "quarto") -> None:
     """Check if quarto is installed."""
     try:
-        subprocess.check_output([quarto_bin, "--version"], text=True).strip()
-        # version = tuple(map(int, version.split(".")))
-        # if version < (1, 5, 23):
-        #     print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
-        #     sys.exit(1)
+        version = subprocess.check_output([quarto_bin, "--version"], text=True).strip()
+        version = tuple(map(int, version.split(".")))
+        if version < (1, 5, 23):
+            print("Quarto version is too old. Please upgrade to 1.5.23 or later.")
+            sys.exit(1)
 
     except FileNotFoundError:
         print("Quarto is not installed. Please install it from https://quarto.org")
@@ -105,6 +105,9 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
 
     metadata = load_metadata(notebook)
 
+    if "skip_render" in metadata:
+        return metadata["skip_render"]
+
     if "front_matter" not in metadata:
         return "front matter missing from notebook metadata ⚠️"
 
@@ -127,14 +130,43 @@ def skip_reason_or_none_if_ok(notebook: Path) -> typing.Optional[str]:
     return None
 
 
+def extract_title(notebook: Path) -> Optional[str]:
+    """Extract the title of the notebook."""
+    with open(notebook, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Load the json and get the first cell
+    json_content = json.loads(content)
+    first_cell = json_content["cells"][0]
+
+    # find the # title
+    for line in first_cell["source"]:
+        if line.startswith("# "):
+            title = line[2:].strip()
+            # Strip off the { if it exists
+            if "{" in title:
+                title = title[: title.find("{")].strip()
+            return title
+
+    return None
+
+
 def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, quarto_bin: str, dry_run: bool) -> str:
     """Process a single notebook."""
 
     in_notebook_dir = "notebook" in src_notebook.parts
 
     metadata = load_metadata(src_notebook)
-    if "skip_render" in metadata:
-        return fmt_skip(src_notebook, "skip_render is in notebook metadata")
+
+    title = extract_title(src_notebook)
+    if title is None:
+        return fmt_error(src_notebook, "Title not found in notebook")
+
+    front_matter = {}
+    if "front_matter" in metadata:
+        front_matter = metadata["front_matter"]
+
+    front_matter["title"] = title
 
     if in_notebook_dir:
         relative_notebook = src_notebook.resolve().relative_to(notebook_dir.resolve())
@@ -190,11 +222,7 @@ def process_notebook(src_notebook: Path, website_dir: Path, notebook_dir: Path, 
                 src_notebook, f"Failed to render {src_notebook}\n\nstderr:\n{result.stderr}\nstdout:\n{result.stdout}"
             )
 
-    front_matter = {}
-    if "front_matter" in metadata:
-        front_matter = metadata["front_matter"]
-
-    post_process_mdx(target_file, front_matter)
+    post_process_mdx(target_file, src_notebook, front_matter)
 
     return fmt_ok(src_notebook)
 
@@ -281,8 +309,7 @@ def get_error_info(nb: NotebookNode) -> Optional[NotebookError]:
 
 
 # rendered_notebook is the final mdx file
-def post_process_mdx(rendered_mdx: Path, front_matter: Dict) -> None:
-    notebook_name = f"{rendered_mdx.stem}.ipynb"
+def post_process_mdx(rendered_mdx: Path, source_notebooks: Path, front_matter: Dict) -> None:
     with open(rendered_mdx, "r", encoding="utf-8") as f:
         content = f.read()
 
@@ -292,8 +319,22 @@ def post_process_mdx(rendered_mdx: Path, front_matter: Dict) -> None:
         front_matter = yaml.safe_load(content[4:front_matter_end])
         content = content[front_matter_end + 3 :]
 
-    front_matter["source_notebook"] = f"/notebook/{notebook_name}"
-    front_matter["custom_edit_url"] = f"https://github.com/microsoft/autogen/edit/main/notebook/{notebook_name}"
+    # Each intermediate path needs to be resolved for this to work reliably
+    repo_root = Path(__file__).parent.resolve().parent.resolve()
+    repo_relative_notebook = source_notebooks.resolve().relative_to(repo_root)
+    front_matter["source_notebook"] = f"/{repo_relative_notebook}"
+    front_matter["custom_edit_url"] = f"https://github.com/microsoft/autogen/edit/main/{repo_relative_notebook}"
+
+    # Is there a title on the content? Only search up until the first code cell
+    first_code_cell = content.find("```")
+    if first_code_cell != -1:
+        title_search_content = content[:first_code_cell]
+    else:
+        title_search_content = content
+
+    title_exists = title_search_content.find("\n# ") != -1
+    if not title_exists:
+        content = f"# {front_matter['title']}\n{content}"
 
     # inject in content directly after the markdown title the word done
     # Find the end of the line with the title
@@ -305,9 +346,7 @@ def post_process_mdx(rendered_mdx: Path, front_matter: Dict) -> None:
     if "{" in title:
         title = title[: title.find("{")].strip()
 
-    front_matter["title"] = title
-
-    github_link = f"https://github.com/microsoft/autogen/blob/main/notebook/{notebook_name}"
+    github_link = f"https://github.com/microsoft/autogen/blob/main/{repo_relative_notebook}"
     content = (
         content[:title_end]
         + "\n[![Open on GitHub](https://img.shields.io/badge/Open%20on%20GitHub-grey?logo=github)]("
@@ -318,10 +357,11 @@ def post_process_mdx(rendered_mdx: Path, front_matter: Dict) -> None:
 
     # If no colab link is present, insert one
     if "colab-badge.svg" not in content:
+        colab_link = f"https://colab.research.google.com/github/microsoft/autogen/blob/main/{repo_relative_notebook}"
         content = (
             content[:title_end]
-            + "\n[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/"
-            + notebook_name
+            + "\n[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]("
+            + colab_link
             + ")"
             + content[title_end:]
         )
@@ -350,16 +390,21 @@ def collect_notebooks(notebook_directory: Path, website_directory: Path) -> typi
     return notebooks
 
 
-def fmt_skip(notebook: Path, reason: str) -> None:
+def fmt_skip(notebook: Path, reason: str) -> str:
     return f"{colored('[Skip]', 'yellow')} {colored(notebook.name, 'blue')}: {reason}"
 
 
-def fmt_ok(notebook: Path) -> None:
+def fmt_ok(notebook: Path) -> str:
     return f"{colored('[OK]', 'green')} {colored(notebook.name, 'blue')} ✅"
 
 
-def fmt_error(notebook: Path, error: NotebookError) -> None:
-    return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
+def fmt_error(notebook: Path, error: Union[NotebookError, str]) -> str:
+    if isinstance(error, str):
+        return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error}"
+    elif isinstance(error, NotebookError):
+        return f"{colored('[Error]', 'red')} {colored(notebook.name, 'blue')}: {error.error_name} - {error.error_value}"
+    else:
+        raise ValueError("error must be a string or a NotebookError")
 
 
 def start_thread_to_terminate_when_parent_process_dies(ppid: int):
@@ -441,11 +486,7 @@ def main() -> None:
                     else:
                         print("-" * 80)
 
-                        print(
-                            fmt_error(
-                                notebook, f"{optional_error_or_skip.error_name} - {optional_error_or_skip.error_value}"
-                            )
-                        )
+                        print(fmt_error(notebook, optional_error_or_skip))
                         print(optional_error_or_skip.traceback)
                         print("-" * 80)
                     if args.exit_on_first_fail:
