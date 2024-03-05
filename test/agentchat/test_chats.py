@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from autogen import AssistantAgent, UserProxyAgent
 from autogen import GroupChat, GroupChatManager
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
