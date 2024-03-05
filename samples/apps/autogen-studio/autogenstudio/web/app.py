@@ -573,15 +573,26 @@ async def get_version():
     }
 
 
+async def process_socket_message(data: dict, websocket: WebSocket, client_id: str):
+    print(f"Client says: {data['type']}")
+    if data['type'] == "user_message":
+        user_request_body = DBWebRequestModel(**data['data'])
+        response = await add_message(user_request_body)
+        response_socket_message = {
+            "type": "agent_response",
+            "data": response,
+            "connection_id": client_id,
+        }
+        await websocket_manager.send_message(response_socket_message, websocket)
+
+
 @api.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket_manager.connect(websocket, client_id)
     try:
         while True:
-            data = await websocket.receive_text()
-            print(f"Client #{client_id} says: {data}")
-            # await websocket_manager.send_personal_message(f"You wrote: {data}", websocket)
-            # await websocket_manager.broadcast(f"Client #{client_id} says: {data}")
+            data = await websocket.receive_json()
+            await process_socket_message(data, websocket, client_id)
     except WebSocketDisconnect:
         print(f"Client #{client_id} is disconnected")
         await websocket_manager.disconnect(websocket)

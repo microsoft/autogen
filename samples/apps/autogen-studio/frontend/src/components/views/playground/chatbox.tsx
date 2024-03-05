@@ -341,6 +341,9 @@ const ChatBox = ({
           if (agentStatusSpan) {
             agentStatusSpan.innerHTML = data.data.message;
           }
+        } else if (data && data.type === "agent_response") {
+          console.log("got a final agent response");
+          processAgentResponse(data.data);
         }
       };
 
@@ -368,6 +371,34 @@ const ChatBox = ({
     });
   };
 
+  const processAgentResponse = (data: any) => {
+    if (data && data.status) {
+      let messageHolder = Object.assign([], messages);
+      const botMesage: IChatMessage = {
+        text: data.message,
+        sender: "bot",
+        metadata: data.metadata,
+        msg_id: data.msg_id,
+      };
+      // if (data.metadata) {
+      //   setMetadata(data.metadata);
+      // }
+      messageHolder.push(botMesage);
+      messageHolder = Object.assign([], messageHolder);
+
+      setTimeout(() => {
+        socketMsgs = [];
+        setLoading(false);
+        setMessages(messageHolder);
+      }, 2000);
+    } else {
+      console.log("error", data);
+      // setError(data);
+      ToastMessage.error(data.message);
+      setLoading(false);
+    }
+  };
+
   const getCompletion = (query: string) => {
     setError(null);
     socketMsgs = [];
@@ -391,79 +422,66 @@ const ChatBox = ({
     };
 
     const textUrl = `${serverUrl}/messages`;
+    const postBody = {
+      message: messagePayload,
+      workflow: workflowConfig,
+      session: session,
+      user_id: user?.email,
+      connection_id: connectionId,
+    };
     const postData = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        message: messagePayload,
-        workflow: workflowConfig,
-        session: session,
-        user_id: user?.email,
-        connection_id: connectionId,
-      }),
+      body: JSON.stringify(postBody),
     };
     setLoading(true);
-    fetch(textUrl, postData)
-      .then((res) => {
-        if (res.status === 200) {
-          res.json().then((data) => {
-            if (data && data.status) {
-              const botMesage: IChatMessage = {
-                text: data.message,
-                sender: "bot",
-                metadata: data.metadata,
-                msg_id: data.msg_id,
-              };
-              // if (data.metadata) {
-              //   setMetadata(data.metadata);
-              // }
-              messageHolder.push(botMesage);
-              messageHolder = Object.assign([], messageHolder);
-              // set innerHTML of socketDivRef to <div> Agent conversation complete. Compiling results</div>
-              // if (socketDivRef.current) {
-              //   socketDivRef.current.style.height = "auto";
-              //   socketDivRef.current.innerHTML = `<div class='text-sm'> Agent conversation complete. Compiling results</div>`;
-              // }
 
-              setTimeout(() => {
-                socketMsgs = [];
-                setMessages(messageHolder);
-                setLoading(false);
-              }, 2000);
-            } else {
+    // check if socket connected, send on socket
+    // else send on fetch
+    if (wsClient.current && wsClient.current.readyState === 1) {
+      wsClient.current.send(
+        JSON.stringify({
+          connection_id: connectionId,
+          data: postBody,
+          type: "user_message",
+        })
+      );
+      console.log("sending on socket ..");
+    } else {
+      fetch(textUrl, postData)
+        .then((res) => {
+          if (res.status === 200) {
+            res.json().then((data) => {
+              processAgentResponse(data);
+            });
+          } else {
+            res.json().then((data) => {
               console.log("error", data);
               // setError(data);
               ToastMessage.error(data.message);
               setLoading(false);
-            }
-          });
-        } else {
-          res.json().then((data) => {
-            console.log("error", data);
-            // setError(data);
-            ToastMessage.error(data.message);
-            setLoading(false);
-          });
+            });
+            ToastMessage.error(
+              "Connection error. Ensure server is up and running."
+            );
+          }
+        })
+        .catch(() => {
+          setLoading(false);
+
           ToastMessage.error(
             "Connection error. Ensure server is up and running."
           );
-        }
-      })
-      .catch(() => {
-        setLoading(false);
-
-        ToastMessage.error(
-          "Connection error. Ensure server is up and running."
-        );
-      })
-      .finally(() => {
-        setTimeout(() => {
-          scrollChatBox(messageBoxInputRef);
-        }, 500);
-      });
+        })
+        .finally(() => {
+          setTimeout(() => {
+            scrollChatBox(messageBoxInputRef);
+          }, 500);
+        });
+    }
   };
 
   const handleTextChange = (
