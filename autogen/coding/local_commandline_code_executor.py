@@ -239,7 +239,7 @@ class _DeprecatedClassMeta(type):
             return issubclass(subclass, getattr(cls, "_DeprecatedClassMeta__alias"))
 
 
-class LocalCommandLineCodeExecutor(metaclass=_DeprecatedClassMeta):
+class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
     """LocalCommandLineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
 
     _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
