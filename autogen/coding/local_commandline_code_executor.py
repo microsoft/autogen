@@ -240,6 +240,6 @@ class _DeprecatedClassMeta(type):
 
 
 class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
-    """LocalCommandLineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
+    """LocalCommandlineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
 
     _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
