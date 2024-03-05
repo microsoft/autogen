@@ -1,7 +1,8 @@
+import asyncio
 import json
 from queue import Queue
 import time
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Optional, Tuple
 import os
 from fastapi import WebSocket, WebSocketDisconnect
 import websockets
@@ -114,20 +115,23 @@ class AutoGenChatManager:
 
         output = ""
         if flow_config.summary_method == "last":
-            successful_code_blocks = extract_successful_code_blocks(flow.agent_history)
+            successful_code_blocks = extract_successful_code_blocks(
+                flow.agent_history)
             last_message = flow.agent_history[-1]["message"]["content"] if flow.agent_history else ""
             successful_code_blocks = "\n\n".join(successful_code_blocks)
-            output = (last_message + "\n" + successful_code_blocks) if successful_code_blocks else last_message
+            output = (last_message + "\n" +
+                      successful_code_blocks) if successful_code_blocks else last_message
         elif flow_config.summary_method == "llm":
             model = flow.config.receiver.config.llm_config.config_list[0]
             status_message = SocketMessage(
                 type="agent_status",
-                data={"status": "summarizing", "message": "Generating summary of agent dialogue"},
+                data={"status": "summarizing",
+                      "message": "Generating summary of agent dialogue"},
                 connection_id=flow.connection_id,
             )
             self.send(status_message.dict())
-            output = summarize_chat_history(task=message_text, messages=flow.agent_history, model=model)
-            print("Output: ", output)
+            output = summarize_chat_history(
+                task=message_text, messages=flow.agent_history, model=model)
 
         elif flow_config.summary_method == "none":
             output = ""
@@ -140,16 +144,17 @@ class WebSocketConnectionManager:
     Manages WebSocket connections including sending, broadcasting, and managing the lifecycle of connections.
     """
 
-    def __init__(self, active_connections: List[WebSocket] = None) -> None:
+    def __init__(self, active_connections: List[Tuple[WebSocket, str]] = None, active_connections_lock: asyncio.Lock = None) -> None:
         """
         Initializes WebSocketConnectionManager with an optional list of active WebSocket connections.
 
-        :param active_connections: A list of WebSocket objects representing the current active connections.
+        :param active_connections: A list of tuples, each containing a WebSocket object and its corresponding client_id.
         """
         if active_connections is None:
             active_connections = []
-        self.active_connections: List[WebSocket] = active_connections
-        self.socket_store: Dict[WebSocket, str] = {}
+        self.active_connections_lock = active_connections_lock
+        self.active_connections: List[Tuple[WebSocket,
+                                            str]] = active_connections
 
     async def connect(self, websocket: WebSocket, client_id: str) -> None:
         """
@@ -159,29 +164,32 @@ class WebSocketConnectionManager:
         :param client_id: A string representing the unique identifier of the client.
         """
         await websocket.accept()
-        self.active_connections.append(websocket)
-        self.socket_store[websocket] = client_id
-        print(f"New Connection: {client_id}, Total: {len(self.active_connections)}")
+        async with self.active_connections_lock:
+            self.active_connections.append((websocket, client_id))
+            print(
+                f"New Connection: {client_id}, Total: {len(self.active_connections)}")
 
-    def disconnect(self, websocket: WebSocket) -> None:
+    async def disconnect(self, websocket: WebSocket) -> None:
         """
         Disconnects and removes a WebSocket connection from the active connections list.
 
         :param websocket: The WebSocket instance to remove.
         """
-        try:
-            self.active_connections.remove(websocket)
-            del self.socket_store[websocket]
-            print(f"Connection Closed. Total: {len(self.active_connections)}")
-        except ValueError:
-            print("Error: WebSocket connection not found")
+        async with self.active_connections_lock:
+            try:
+                self.active_connections = [
+                    conn for conn in self.active_connections if conn[0] != websocket]
+                print(
+                    f"Connection Closed. Total: {len(self.active_connections)}")
+            except ValueError:
+                print("Error: WebSocket connection not found")
 
-    def disconnect_all(self) -> None:
+    async def disconnect_all(self) -> None:
         """
         Disconnects all active WebSocket connections.
         """
-        for connection in self.active_connections[:]:
-            self.disconnect(connection)
+        for connection, _ in self.active_connections[:]:
+            await self.disconnect(connection)
 
     async def send_message(self, message: Dict, websocket: WebSocket) -> None:
         """
@@ -191,30 +199,35 @@ class WebSocketConnectionManager:
         :param websocket: The WebSocket instance through which to send the message.
         """
         try:
-            await websocket.send_json(message)
+            async with self.active_connections_lock:
+                await websocket.send_json(message)
         except WebSocketDisconnect:
             print("Error: Tried to send a message to a closed WebSocket")
-            self.disconnect(websocket)
+            await self.disconnect(websocket)
         except websockets.exceptions.ConnectionClosedOK:
             print("Error: WebSocket connection closed normally")
-            self.disconnect(websocket)
+            await self.disconnect(websocket)
+        except Exception as e:
+            print(f"Error in sending message: {str(e)}")
+            await self.disconnect(websocket)
 
-    async def broadcast(self, message: str) -> None:
+    async def broadcast(self, message: Dict) -> None:
         """
-        Broadcasts a text message to all active WebSocket connections.
+        Broadcasts a JSON message to all active WebSocket connections.
 
-        :param message: A string containing the message to broadcast.
+        :param message: A JSON serializable dictionary containing the message to broadcast.
         """
-        for connection in self.active_connections[:]:
+        # Create a message dictionary with the desired format
+        message_dict = {"message": message}
+
+        for connection, _ in self.active_connections[:]:
             try:
                 if connection.client_state == websockets.protocol.State.OPEN:
-                    await connection.send_text(message)
+                    # Call send_message method with the message dictionary and current WebSocket connection
+                    await self.send_message(message_dict, connection)
                 else:
                     print("Error: WebSocket connection is closed")
-                    self.disconnect(connection)
-            except WebSocketDisconnect:
-                print("Error: Tried to send a message to a closed WebSocket")
-                self.disconnect(connection)
-            except websockets.exceptions.ConnectionClosedOK:
-                print("Error: WebSocket connection closed normally")
-                self.disconnect(connection)
+                    await self.disconnect(connection)
+            except (WebSocketDisconnect, websockets.exceptions.ConnectionClosedOK) as e:
+                print(f"Error: WebSocket disconnected or closed({str(e)})")
+                await self.disconnect(connection)
