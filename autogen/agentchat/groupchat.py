@@ -53,7 +53,7 @@ class GroupChat:
                 Return one of the following:
                 1. an `Agent` class, it must be one of the agents in the group chat.
                 2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
-                3. None, which indicates the chat should be terminated.
+                3. None, which would terminate the conversation gracefully.
 
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
