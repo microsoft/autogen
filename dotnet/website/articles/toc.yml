@@ -6,8 +6,8 @@
       href: Create-an-agent.md
     - name: user proxy agent
       href: Create-a-user-proxy-agent.md
-    - name: use middleware to customize agent behavior
-      href: Middleware-agent.md
+    - name: built-in messages
+      href: Built-in-messages.md
     - name: function call
       items:
         - name: Function call overview
@@ -16,6 +16,16 @@
           href: Create-type-safe-function-call.md
         - name: Use function call in an agent
           href: Use-function-call.md
+    - name: middleware
+      items:
+        - name: middleware overview
+          href: Middleware-agent.md
+        - name: built-in middleware and use case
+          items:
+            - name: print message
+              href: print-message-middleware.md
+            - name: function call
+              href: function-call-middleware.md
     - name: two agent chat
       href: Two-agent-chat.md
     - name: group chat
@@ -28,15 +38,6 @@
           href: Use-workflow-in-group-chat.md
     - name: Create your own agent
       href: Create-your-own-agent.md
-
-- name: AutoGen.Core
-  items:
-    - name: Overview
-      href: AutoGen-Core-Overview.md
-    - name: Built-in messages
-      href: Built-in-messages.md
-    - name: Built-in middlewares
-      href: Built-in-middlewares.md
 
 - name: AutoGen.DotnetInteractive
   items:
