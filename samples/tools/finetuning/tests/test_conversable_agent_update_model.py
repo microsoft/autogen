@@ -1,11 +1,12 @@
 import pytest
 from autogen import AssistantAgent, UserProxyAgent
-from finetuning import update_model
-from typing import Dict
 
 import sys
 
 sys.path.append("samples/tools/finetuning")
+
+from finetuning import update_model  # noqa: E402
+from typing import Dict  # noqa: E402
 
 try:
     from openai import OpenAI
@@ -54,20 +55,13 @@ def test_custom_model_client():
         def update_model(self, preference_data, messages, **kwargs):
             return {"loss": TEST_LOSS}
 
-    config_list = [
-        {
-            "model": TEST_LOCAL_MODEL_NAME,
-            "model_client_cls": "CustomModel",
-        }
-    ]
+    config_list = [{"model": TEST_LOCAL_MODEL_NAME, "model_client_cls": "CustomModel"}]
 
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         human_input_mode="NEVER",
-        llm_config={
-            "config_list": config_list,
-        },
+        llm_config={"config_list": config_list},
     )
     assistant.register_model_client(model_client_cls=CustomModel)
     user_proxy = UserProxyAgent(
@@ -141,20 +135,13 @@ def test_custom_model_update_func_missing_raises_error():
         def get_usage(response) -> Dict:
             return {}
 
-    config_list = [
-        {
-            "model": TEST_LOCAL_MODEL_NAME,
-            "model_client_cls": "CustomModel",
-        }
-    ]
+    config_list = [{"model": TEST_LOCAL_MODEL_NAME, "model_client_cls": "CustomModel"}]
 
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         human_input_mode="NEVER",
-        llm_config={
-            "config_list": config_list,
-        },
+        llm_config={"config_list": config_list},
     )
     assistant.register_model_client(model_client_cls=CustomModel)
     user_proxy = UserProxyAgent(
@@ -209,23 +196,15 @@ def test_multiple_model_clients_raises_error():
             return {}
 
     config_list = [
-        {
-            "model": TEST_LOCAL_MODEL_NAME,
-            "model_client_cls": "CustomModel",
-        },
-        {
-            "model": TEST_LOCAL_MODEL_NAME,
-            "model_client_cls": "CustomModel",
-        },
+        {"model": TEST_LOCAL_MODEL_NAME, "model_client_cls": "CustomModel"},
+        {"model": TEST_LOCAL_MODEL_NAME, "model_client_cls": "CustomModel"},
     ]
 
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         human_input_mode="NEVER",
-        llm_config={
-            "config_list": config_list,
-        },
+        llm_config={"config_list": config_list},
     )
     assistant.register_model_client(model_client_cls=CustomModel)
     assistant.register_model_client(model_client_cls=CustomModel)
