@@ -116,6 +116,8 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
         print_message = message
     elif callable(message):
         print_message = "Callable: " + message.__name__
+    elif isinstance(message, dict):
+        print_message = "Dict: " + str(message)
     elif message is None:
         print_message = "None"
     print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
@@ -166,6 +168,7 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         chat_info["carryover"] = _chat_carryover + [r.summary for r in finished_chats]
         __post_carryover_processing(chat_info)
         sender = chat_info["sender"]
+        print("chat_infochat_infochat_info", chat_info)
         chat_res = sender.initiate_chat(**chat_info)
         finished_chats.append(chat_res)
     return finished_chats

@@ -862,7 +862,7 @@ class ConversableAgent(LLMAgent):
         max_turns: Optional[int] = None,
         summary_method: Optional[Union[str, Callable]] = DEFAULT_summary_method,
         summary_args: Optional[dict] = {},
-        message: Optional[Union[str, Callable]] = None,
+        message: Optional[Union[Dict, str, Callable]] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
@@ -898,10 +898,9 @@ class ConversableAgent(LLMAgent):
                     E.g., a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract a summary when summary_method is "reflection_with_llm".
                     Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
-            message (str or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
-                - If a string is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
-                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict. If the returned value is a dict, it should contain the following reserved fields:
-                    If the type is dict, it may contain the following reserved fields (either content or function_call need to be provided).
+            message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
+                - If a string or a dict is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
+                    If dict, it may contain the following reserved fields (either content or function_call need to be provided).
                     1. "content": content of the message, can be None.
                     2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
                     3. "tool_calls": a list of dictionaries containing the function name and arguments.
@@ -910,6 +909,8 @@ class ConversableAgent(LLMAgent):
                     5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                     6. "context" (dict): the context of the message, which will be passed to
                         [OpenAIWrapper.create](../oai/client#create).
+                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict. If the returned value is a dict, it should contain the following reserved fields:
+                    If the returned type is dict, it may contain the reserved fields mentioned above.
 
                     Example of a callable message (returning a string):
                     ```python
@@ -2170,7 +2171,7 @@ class ConversableAgent(LLMAgent):
             "content": str(content),
         }
 
-    def generate_init_message(self, message: Union[str, None], **context) -> Union[str, Dict]:
+    def generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
 
@@ -2185,9 +2186,14 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
-        return self._process_carryover(message, context)
+        if isinstance(message, str):
+            return self._process_carryover(message, context)
+        elif isinstance(message, dict):
+            message = message.copy()
+            message["content"] = self._process_carryover(message["content"], context)
+            return message
 
-    def _process_carryover(self, message, context):
+    def _process_carryover(self, message: str, context: dict) -> str:
         carryover = context.get("carryover")
         if carryover:
             # if carryover is string
@@ -2201,7 +2207,7 @@ class ConversableAgent(LLMAgent):
                 )
         return message
 
-    async def a_generate_init_message(self, message: Union[str, None], **context) -> Union[str, Dict]:
+    async def a_generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
 
@@ -2213,8 +2219,12 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = await self.a_get_human_input(">")
-        self._process_carryover(message, context)
-        return message
+        if isinstance(message, str):
+            return self._process_carryover(message, context)
+        elif isinstance(message, dict):
+            message = message.copy()
+            message["content"] = self._process_carryover(message["content"], context)
+            return message
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.

@@ -217,6 +217,15 @@ def test_chats():
     def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
 
+    # chat_res_play = user.initiate_chat(
+    #     player,
+    #     message= {"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+    #     max_turns=1,
+    #     summary_method=my_summary,
+    #     summary_args={"prefix": "This is the last message:"},
+    # )
+    # print(chat_res_play.summary)
+
     chat_res = user.initiate_chats(
         [
             {
@@ -237,6 +246,16 @@ def test_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
+            },
+            {
+                "recipient": financial_assistant_1,
+                "message": {
+                    "content": "Let's play a game.",
+                    "function_call": {"name": "get_random_number", "arguments": "{}"},
+                },
+                "carryover": "I like even number.",
+                "summary_method": "last_msg",
                 "max_turns": 1,
             },
             {
@@ -603,5 +622,5 @@ if __name__ == "__main__":
     # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
-    test_chat_messages_for_summary()
-    test_udf_message_in_chats()
+    # test_chat_messages_for_summary()
+    # test_udf_message_in_chats()

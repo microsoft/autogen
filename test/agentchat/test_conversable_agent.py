@@ -1131,6 +1131,13 @@ def test_message_func():
 
     chat_res_play = user.initiate_chat(
         player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
         message=my_message_play,
         max_turns=1,
     )
@@ -1202,6 +1209,15 @@ def test_summary():
     )
     print(chat_res_play.summary)
 
+    chat_res_play = user.initiate_chat(
+        player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play.summary)
+
 
 def test_process_before_send():
     print_mock = unittest.mock.MagicMock()
@@ -1232,5 +1248,5 @@ if __name__ == "__main__":
     # test_no_llm_config()
     # test_max_turn()
     # test_process_before_send()
-    # test_message_func()
+    test_message_func()
     test_summary()
