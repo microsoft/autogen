@@ -19,12 +19,6 @@ from .base import JupyterConnectable, JupyterConnectionInfo
 from .jupyter_client import JupyterClient
 
 
-def _get_free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        return cast(int, s.getsockname()[1])
-
-
 class LocalJupyterServer(JupyterConnectable):
     class GenerateToken:
         pass
@@ -69,9 +63,6 @@ class LocalJupyterServer(JupyterConnectable):
             )
 
         self.ip = ip
-        if port is None:
-            port = _get_free_port()
-        self.port = port
 
         if isinstance(token, LocalJupyterServer.GenerateToken):
             token = secrets.token_hex(32)
@@ -98,8 +89,6 @@ class LocalJupyterServer(JupyterConnectable):
             "kernelgateway",
             "--KernelGatewayApp.ip",
             ip,
-            "--KernelGatewayApp.port",
-            str(port),
             "--KernelGatewayApp.auth_token",
             token,
             "--JupyterApp.answer_yes",
@@ -109,6 +98,9 @@ class LocalJupyterServer(JupyterConnectable):
             "--JupyterWebsocketPersonality.list_kernels",
             "true",
         ]
+        if port is not None:
+            args.extend(["--KernelGatewayApp.port", str(port)])
+            args.extend(["--KernelGatewayApp.port_retries", "0"])
         self._subprocess = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         # Satisfy mypy, we know this is not None because we passed PIPE
@@ -119,11 +111,22 @@ class LocalJupyterServer(JupyterConnectable):
             result = self._subprocess.poll()
             if result is not None:
                 stderr += self._subprocess.stderr.read()
-                print(f"token=[[[[{token}]]]]")
                 raise ValueError(f"Jupyter gateway server failed to start with exit code: {result}. stderr:\n{stderr}")
             line = self._subprocess.stderr.readline()
             stderr += line
+
+            if "ERROR:" in line:
+                error_info = line.split("ERROR:")[1]
+                raise ValueError(f"Jupyter gateway server failed to start. {error_info}")
+
             if "is available at" in line:
+                # We need to extract what port it settled on
+                # Example output:
+                #   Jupyter Kernel Gateway 3.0.0 is available at http://127.0.0.1:8890
+                if port is None:
+                    port = int(line.split(":")[-1])
+                self.port = port
+
                 break
 
         # Poll the subprocess to check if it is still running
