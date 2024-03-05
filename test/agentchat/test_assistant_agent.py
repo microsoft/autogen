@@ -200,40 +200,52 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
-def test_message(human_input_mode="NEVER", max_consecutive_auto_reply=10):
+def test_message_func(human_input_mode="NEVER", max_consecutive_auto_reply=10):
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
     )
 
-    def my_message(sender, recipient, context):
+    def my_message_play(sender, recipient, context):
         final_msg = {}
-        final_msg["content"] = "Make a joke about AI."
-        final_msg["context"] = {"prefix": "Today I feel"}
+        final_msg["content"] = "Let's play a game."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
         return final_msg
 
+    func = Function()
     # autogen.ChatCompletion.start_logging()
-    assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
     user = UserProxyAgent(
         "user",
         code_execution_config={
             "work_dir": here,
-            # "use_docker": False,
+            "use_docker": False,
         },
         human_input_mode=human_input_mode,
         max_consecutive_auto_reply=max_consecutive_auto_reply,
     )
-    chat_res = user.initiate_chat(
-        assistant,
-        message=my_message,
+    player = autogen.AssistantAgent(
+        name="Player",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that makes function_calls.",
+        llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
+    )
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message=my_message_play,
         max_turns=1,
     )
-    print(chat_res.summary)
-    print(chat_res.chat_history)
-    # print(autogen.ChatCompletion.logged_history)
-    # autogen.ChatCompletion.stop_logging()
-    # print(chat_res.summary)
-    print(chat_res.cost)
+    print(chat_res_play.summary)
 
 
 if __name__ == "__main__":
@@ -242,5 +254,5 @@ if __name__ == "__main__":
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
-    test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
-    test_message(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    # test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    test_message_func(human_input_mode="NEVER", max_consecutive_auto_reply=10)
