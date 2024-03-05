@@ -41,8 +41,6 @@
 
 - name: AutoGen.DotnetInteractive
   items:
-    - name: Overview
-      href: AutoGen-DotnetInteractive-Overview.md
     - name: Execute code snippet
       href: Run-dotnet-code.md
 
