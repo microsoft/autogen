@@ -3,7 +3,7 @@
 
 using System.ComponentModel;
 using AutoGen.SemanticKernel.Extension;
-using AutoGen.SemanticKernel.Middleware;
+using AutoGen.SemanticKernel;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;

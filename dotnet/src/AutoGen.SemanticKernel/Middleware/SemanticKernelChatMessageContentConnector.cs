@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace AutoGen.SemanticKernel.Middleware;
+namespace AutoGen.SemanticKernel;
 
 /// <summary>
 /// This middleware converts the incoming <see cref="IMessage"/> to <see cref="ChatMessageContent"/> before passing to agent.
