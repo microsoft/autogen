@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using AutoGen.BasicSample;
+using AutoGen.BasicSample.CodeSnippet;
 
-await Example10_SemanticKernel.RunAsync();
+var codeSnippet = new PrintMessageMiddlewareCodeSnippet();
+// wait user to click enter to continue
+Console.ReadLine();
+await codeSnippet.PrintMessageStreamingMiddlewareAsync();

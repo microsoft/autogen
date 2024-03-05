@@ -21,6 +21,8 @@ Below is an example of a function definition for getting weather report for a ci
 }
 ```
 
+
+
 When the model receives a message, it will intelligently decide whether to use function call or not based on the message received. If the model decides to use function call, it will generate a function call which can be used to invoke the actual function. The function call is a json object which contains the function name and its arguments.
 
 Below is an example of a function call object for getting weather report for Seattle:

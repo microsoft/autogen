@@ -3,7 +3,6 @@
 
 #region using_statement
 using AutoGen.OpenAI;
-using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 #endregion using_statement
 using FluentAssertions;

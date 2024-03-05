@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using AutoGen.OpenAI;
-using AutoGen.OpenAI.Middleware;
 using FluentAssertions;
 
 namespace AutoGen.BasicSample.CodeSnippet;
@@ -55,7 +54,7 @@ public class MiddlewareAgentCodeSnippet
         #region register_streaming_middleware
         var connector = new OpenAIChatRequestMessageConnector();
         var agent = streamingAgent!
-                    .RegisterStreamingMiddleware(connector);
+                .RegisterStreamingMiddleware(connector);
         #endregion register_streaming_middleware
     }
 

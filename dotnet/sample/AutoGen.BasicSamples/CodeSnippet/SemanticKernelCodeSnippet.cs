@@ -2,7 +2,6 @@
 // SemanticKernelCodeSnippet.cs
 
 using AutoGen.SemanticKernel;
-using AutoGen.SemanticKernel.Middleware;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;

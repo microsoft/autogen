@@ -23,9 +23,9 @@
         - name: built-in middleware and use case
           items:
             - name: print message
-              href: print-message-middleware.md
+              href: Print-message-middleware.md
             - name: function call
-              href: function-call-middleware.md
+              href: Function-call-middleware.md
     - name: two agent chat
       href: Two-agent-chat.md
     - name: group chat
