@@ -197,6 +197,21 @@ class ConversableAgent(LLMAgent):
             self._code_execution_config = code_execution_config
 
             if self._code_execution_config.get("executor") is not None:
+                if "use_docker" in self._code_execution_config:
+                    raise ValueError(
+                        "'use_docker' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
+                if "work_dir" in self._code_execution_config:
+                    raise ValueError(
+                        "'work_dir' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
+                if "timeout" in self._code_execution_config:
+                    raise ValueError(
+                        "'timeout' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
                 # Use the new code executor.
                 self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
                 self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
@@ -362,7 +377,7 @@ class ConversableAgent(LLMAgent):
     def register_nested_chats(
         self,
         chat_queue: List[Dict[str, Any]],
-        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List] = [Agent, None],
+        trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],
         reply_func_from_nested_chats: Union[str, Callable] = "summary_from_nested_chats",
         position: int = 2,
         **kwargs,
@@ -370,7 +385,7 @@ class ConversableAgent(LLMAgent):
         """Register a nested chat reply function.
         Args:
             chat_queue (list): a list of chat objects to be initiated.
-            trigger (Agent class, str, Agent instance, callable, or list): Default to [Agent, None]. Ref to `register_reply` for details.
+            trigger (Agent class, str, Agent instance, callable, or list): refer to `register_reply` for details.
             reply_func_from_nested_chats (Callable, str): the reply function for the nested chat.
                 The function takes a chat_queue for nested chat, recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
                 Default to "summary_from_nested_chats", which corresponds to a built-in reply function that get summary from the nested chat_queue.
@@ -1126,8 +1141,18 @@ class ConversableAgent(LLMAgent):
         if recipient is None:
             if nr_messages_to_preserve:
                 for key in self._oai_messages:
+                    nr_messages_to_preserve_internal = nr_messages_to_preserve
+                    # if breaking history between function call and function response, save function call message
+                    # additionally, otherwise openai will return error
+                    first_msg_to_save = self._oai_messages[key][-nr_messages_to_preserve_internal]
+                    if "tool_responses" in first_msg_to_save:
+                        nr_messages_to_preserve_internal += 1
+                        print(
+                            f"Preserving one more message for {self.name} to not divide history between tool call and "
+                            f"tool response."
+                        )
                     # Remove messages from history except last `nr_messages_to_preserve` messages.
-                    self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve:]
+                    self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve_internal:]
             else:
                 self._oai_messages.clear()
         else:
@@ -1722,13 +1747,13 @@ class ConversableAgent(LLMAgent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # Call the hookable method that gives registered hooks a chance to process all messages.
-        # Message modifications do not affect the incoming messages or self._oai_messages.
-        messages = self.process_all_messages_before_reply(messages)
-
         # Call the hookable method that gives registered hooks a chance to process the last message.
         # Message modifications do not affect the incoming messages or self._oai_messages.
         messages = self.process_last_received_message(messages)
+
+        # Call the hookable method that gives registered hooks a chance to process all messages.
+        # Message modifications do not affect the incoming messages or self._oai_messages.
+        messages = self.process_all_messages_before_reply(messages)
 
         for reply_func_tuple in self._reply_func_list:
             reply_func = reply_func_tuple["reply_func"]
