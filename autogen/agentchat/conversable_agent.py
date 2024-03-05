@@ -1284,7 +1284,7 @@ class ConversableAgent(LLMAgent):
             else:
                 print(
                     colored(
-                        f"\n>>>>>>>> EXECUTING {num_code_blocks} CODE BLOCKS (inferred languages are [{", ".join([x.language for x in code_blocks])}])...",
+                        f"\n>>>>>>>> EXECUTING {num_code_blocks} CODE BLOCKS (inferred languages are [{', '.join([x.language for x in code_blocks])}])...",
                         "red",
                     ),
                     flush=True,
