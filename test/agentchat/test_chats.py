@@ -192,7 +192,7 @@ def test_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
+    def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
 
     chat_res = user.initiate_chats(
@@ -297,7 +297,7 @@ def test_chats_general():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
+    def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
 
     chat_res = initiate_chats(

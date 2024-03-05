@@ -1072,6 +1072,7 @@ class ConversableAgent(LLMAgent):
                 def my_summary_method(
                     sender: ConversableAgent,
                     recipient: ConversableAgent,
+                    summary_args: dict,
                 ):
                     return recipient.last_message(sender)["content"]
                 ```
