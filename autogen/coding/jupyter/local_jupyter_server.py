@@ -39,6 +39,17 @@ class LocalJupyterServer(JupyterConnectable):
         log_max_bytes: int = 1048576,
         log_backup_count: int = 3,
     ):
+        """Runs a Jupyter Kernel Gateway server locally.
+
+        Args:
+            ip (str, optional): IP address to bind to. Defaults to "127.0.0.1".
+            port (Optional[int], optional): Port to use, if None it automatically selects a port. Defaults to None.
+            token (Union[str, GenerateToken], optional): Token to use for Jupyter server. By default will generate a token. Using None will use no token for authentication. Defaults to GenerateToken().
+            log_file (str, optional): File for Jupyter Kernel Gateway logs. Defaults to "jupyter_gateway.log".
+            log_level (str, optional): Level for Jupyter Kernel Gateway logs. Defaults to "INFO".
+            log_max_bytes (int, optional): Max logfile size. Defaults to 1048576.
+            log_backup_count (int, optional): Number of backups for rotating log. Defaults to 3.
+        """
         # Remove as soon as https://github.com/jupyter-server/kernel_gateway/issues/398 is fixed
         if sys.platform == "win32":
             raise ValueError("LocalJupyterServer is not supported on Windows due to kernelgateway bug.")
