@@ -162,8 +162,23 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             code = code_block.code
 
             code_hash = md5(code.encode()).hexdigest()
-            # create a file with a automatically generated name
-            filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
+
+            # Check if there is a filename comment
+            # Get first line
+            first_line = code.split("\n")[0]
+            if first_line.startswith("# filename:"):
+                filename = first_line.split(":")[1].strip()
+
+                # Handle relative paths in the filename
+                path = Path(filename)
+                if not path.is_absolute():
+                    path = Path("/workspace") / path
+                path = path.resolve()
+                if not path.is_relative_to(Path("/workspace")):
+                    return CommandlineCodeResult(exit_code=1, output="Filename is not in the workspace")
+            else:
+                # create a file with a automatically generated name
+                filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
