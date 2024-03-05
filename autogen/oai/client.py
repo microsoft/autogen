@@ -108,7 +108,7 @@ class ModelClient(Protocol):
     def update_model(
         self, preference_data: List[Dict[str, Any]], inference_messages: List[Dict[str, Any]], **kwargs: Any
     ) -> Dict[str, Any]:
-        """Optional method to learn from the preference data, if the model supports learning. Can be missing.
+        """Optional method to learn from the preference data, if the model supports learning. Can be omitted.
 
         Learn from the preference data.
 
@@ -118,7 +118,7 @@ class ModelClient(Protocol):
             **kwargs: other arguments.
 
         Returns:
-            Learning stats.
+            Dict of learning stats.
         """
         ...  # pragma: no cover
 
