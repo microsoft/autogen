@@ -23,9 +23,12 @@ from .base import JupyterConnectionInfo
 
 
 class JupyterClient:
-    """(Experimental) A client for communicating with a Jupyter gateway server."""
-
     def __init__(self, connection_info: JupyterConnectionInfo):
+        """(Experimental) A client for communicating with a Jupyter gateway server.
+
+        Args:
+            connection_info (JupyterConnectionInfo): Connection information
+        """
         self._connection_info = connection_info
         self._session = requests.Session()
         retries = Retry(total=5, backoff_factor=0.1)

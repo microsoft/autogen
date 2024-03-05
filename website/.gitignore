@@ -12,6 +12,7 @@ docs/reference
 /docs/notebooks
 
 docs/topics/llm_configuration.mdx
+docs/topics/code-execution/jupyter-code-executor.mdx
 
 # Misc
 .DS_Store
