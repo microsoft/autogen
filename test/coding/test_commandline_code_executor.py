@@ -4,7 +4,7 @@ import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
-from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
+from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
@@ -13,25 +13,25 @@ from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 def test_create() -> None:
     config = {"executor": "commandline-local"}
     executor = CodeExecutorFactory.create(config)
-    assert isinstance(executor, LocalCommandlineCodeExecutor)
+    assert isinstance(executor, LocalCommandLineCodeExecutor)
 
-    config = {"executor": LocalCommandlineCodeExecutor()}
+    config = {"executor": LocalCommandLineCodeExecutor()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
 
 
 def test_local_commandline_executor_init() -> None:
-    executor = LocalCommandlineCodeExecutor(timeout=10, work_dir=".")
+    executor = LocalCommandLineCodeExecutor(timeout=10, work_dir=".")
     assert executor.timeout == 10 and executor.work_dir == "."
 
     # Try invalid working directory.
     with pytest.raises(ValueError, match="Working directory .* does not exist."):
-        executor = LocalCommandlineCodeExecutor(timeout=111, work_dir="/invalid/directory")
+        executor = LocalCommandLineCodeExecutor(timeout=111, work_dir="/invalid/directory")
 
 
 def test_local_commandline_executor_execute_code() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
         _test_execute_code(executor=executor)
 
 
@@ -81,7 +81,7 @@ def _test_execute_code(executor: CodeExecutor) -> None:
 @pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
 def test_local_commandline_code_executor_timeout() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(timeout=1, work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(timeout=1, work_dir=temp_dir)
         _test_timeout(executor)
 
 
@@ -92,7 +92,7 @@ def _test_timeout(executor: CodeExecutor) -> None:
 
 
 def test_local_commandline_code_executor_restart() -> None:
-    executor = LocalCommandlineCodeExecutor()
+    executor = LocalCommandLineCodeExecutor()
     _test_restart(executor)
 
 
@@ -105,7 +105,7 @@ def _test_restart(executor: CodeExecutor) -> None:
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_local_commandline_executor_conversable_agent_capability() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
         _test_conversable_agent_capability(executor=executor)
 
 
@@ -150,7 +150,7 @@ def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
 
 def test_local_commandline_executor_conversable_agent_code_execution() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
             _test_conversable_agent_code_execution(executor)
@@ -192,7 +192,7 @@ def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
 )
 def test_dangerous_commands(lang, code, expected_message):
     with pytest.raises(ValueError) as exc_info:
-        LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+        LocalCommandLineCodeExecutor.sanitize_command(lang, code)
     assert expected_message in str(
         exc_info.value
     ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
