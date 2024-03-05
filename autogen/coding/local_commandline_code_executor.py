@@ -183,6 +183,7 @@ If you want the user to save the code in a file before executing it, put # filen
         """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
 
+
 # From stack overflow: https://stackoverflow.com/a/52087847/2214524
 class _DeprecatedClassMeta(type):
     def __new__(cls, name, bases, classdict, *args, **kwargs):
@@ -229,15 +230,14 @@ class _DeprecatedClassMeta(type):
         return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)
 
     def __instancecheck__(cls, instance):
-        return any(
-            cls.__subclasscheck__(c) for c in {type(instance), instance.__class__}
-        )
+        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})
 
     def __subclasscheck__(cls, subclass):
         if subclass is cls:
             return True
         else:
             return issubclass(subclass, getattr(cls, "_DeprecatedClassMeta__alias"))
+
 
 class LocalCommandLineCodeExecutor(metaclass=_DeprecatedClassMeta):
     """LocalCommandLineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
