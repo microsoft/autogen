@@ -2,7 +2,6 @@ import abc
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from diskcache import Cache
 import re
-import matplotlib.pyplot as plt
 
 from openai import OpenAI
 from autogen.agentchat.agent import Agent
@@ -47,8 +46,8 @@ class DalleImageGenerator(ImageGenerator):
         cache = Cache(".cache/")  # Create a cache directory
         key = (self._model, prompt, self._resolution, self._quality, self._num_images)
 
-        # if key in cache:
-        #     return img_utils._to_pil(cache[key])
+        if key in cache:
+            return img_utils._to_pil(cache[key])
 
         # If not in cache, compute and store the result
         response = self._dalle_client.images.generate(
@@ -110,7 +109,10 @@ class ImageGeneration(AgentCapability):
                 "In detail, please provide the prompt to generate the image described in the TEXT. DO NOT include any advice.",
             )
             image = self._image_generator.generate_image(prompt)
+
+            # TODO: DELETE THIS AFTER TESTING
             image.show()
+
             return True, {
                 "content": [
                     {"type": "text", "text": f"Generated an image with the prompt: {prompt}"},
@@ -123,7 +125,7 @@ class ImageGeneration(AgentCapability):
     def _should_generate_image(self, message: str) -> bool:
         response = self._analyze_text(
             message,
-            "Does any part of the TEXT ask the agent to generate an image? Answer with just one word, yes or no.",
+            "Does any part of the TEXT ask the agent to generate or modify an image? Answer with just one word, yes or no.",
         )
         return "yes" in response.lower()
 
