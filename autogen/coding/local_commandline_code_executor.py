@@ -14,12 +14,11 @@ from .markdown_code_extractor import MarkdownCodeExtractor
 
 __all__ = (
     "LocalCommandLineCodeExecutor",
-    "LocalCommandLineCodeExecutor",
-    "CommandlineCodeResult",
+    "CommandLineCodeResult",
 )
 
 
-class CommandlineCodeResult(CodeResult):
+class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
 
     code_file: Optional[str] = Field(
@@ -127,14 +126,14 @@ If you want the user to save the code in a file before executing it, put # filen
                 if re.search(pattern, code):
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
 
         Returns:
-            CommandlineCodeResult: The result of the code execution."""
+            CommandLineCodeResult: The result of the code execution."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
@@ -177,7 +176,7 @@ If you want the user to save the code in a file before executing it, put # filen
             if exitcode != 0:
                 break
         code_filename = os.path.join(self.work_dir, filename) if filename is not None else None
-        return CommandlineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
@@ -243,3 +242,8 @@ class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
     """LocalCommandlineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
 
     _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
+
+class CommandlineCodeResult(metaclass=_DeprecatedClassMeta):
+    """CommandlineCodeResult renamed to CommandLineCodeResult"""
+
+    _DeprecatedClassMeta__alias = CommandLineCodeResult
