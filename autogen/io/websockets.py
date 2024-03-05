@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import partial
+import ssl
 import threading
 from time import sleep
 from typing import Any, Callable, Dict, Iterator, Optional
@@ -54,6 +55,8 @@ class IOWebsockets(IOStream):
         host: str = "127.0.0.1",
         port: int = 8765,
         on_connect: Callable[["IOWebsockets"], None],
+        ssl_context: Optional[ssl.SSLContext] = None,
+        **kwargs: Any,
     ) -> Iterator[str]:
         """Factory function to create a websocket input/output stream.
 
@@ -61,6 +64,7 @@ class IOWebsockets(IOStream):
             host (str, optional): The host to bind the server to. Defaults to "127.0.0.1".
             port (int, optional): The port to bind the server to. Defaults to 8765.
             on_connect (Callable[[IOWebsockets], None]): The function to be executed on client connection. Typically creates agents and initiate chat.
+            ssl_context (Optional[ssl.SSLContext], optional): The SSL context to use for secure connections. Defaults to None.
 
         Yields:
             str: The URI of the websocket server.
@@ -70,7 +74,11 @@ class IOWebsockets(IOStream):
         def _run_server() -> None:
             # print(f" - _run_server(): starting server on ws://{host}:{port}", flush=True)
             with ws_serve(
-                handler=partial(IOWebsockets._handler, on_connect=on_connect), host=host, port=port
+                handler=partial(IOWebsockets._handler, on_connect=on_connect),
+                host=host,
+                port=port,
+                ssl_context=ssl_context,
+                **kwargs,
             ) as server:
                 # print(f" - _run_server(): server {server} started on ws://{host}:{port}", flush=True)
 
