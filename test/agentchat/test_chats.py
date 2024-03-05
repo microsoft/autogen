@@ -16,14 +16,16 @@ from conftest import skip_openai  # noqa: E402
 
 
 def test_chat_messages_for_summary():
-    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER")
-    user = UserProxyAgent(name="user", human_input_mode="NEVER")
+    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER", code_execution_config={"use_docker": False})
+    user = UserProxyAgent(name="user", human_input_mode="NEVER", code_execution_config={"use_docker": False})
     user.send("What is the capital of France?", assistant)
     messages = assistant.chat_messages_for_summary(user)
     assert len(messages) == 1
 
     groupchat = GroupChat(agents=[user, assistant], messages=[], max_round=2)
-    manager = GroupChatManager(groupchat=groupchat, name="manager", llm_config=False)
+    manager = GroupChatManager(
+        groupchat=groupchat, name="manager", llm_config=False, code_execution_config={"use_docker": False}
+    )
     user.initiate_chat(manager, message="What is the capital of France?")
     messages = manager.chat_messages_for_summary(user)
     assert len(messages) == 2
@@ -42,10 +44,10 @@ def test_chats_group():
     )
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Pros and cons of the companies I'm interested in. Keep it short.""",
+        """Give lucky numbers for them.""",
     ]
 
-    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
+    writing_tasks = ["""Make a joke."""]
 
     user_proxy = UserProxyAgent(
         name="User_proxy",
@@ -126,13 +128,15 @@ def test_chats_group():
                 "recipient": financial_assistant,
                 "message": financial_tasks[0],
                 "summary_method": "last_msg",
+                "max_turns": 1,
             },
             {
                 "recipient": manager_1,
                 "message": financial_tasks[1],
                 "summary_method": "reflection_with_llm",
+                "max_turns": 1,
             },
-            {"recipient": manager_2, "message": writing_tasks[0]},
+            {"recipient": manager_2, "message": writing_tasks[0], "max_turns": 1},
         ]
     )
 
@@ -148,26 +152,44 @@ def test_chats_group():
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
     )
 
+    def luck_number_message(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Give lucky numbers for them."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        luck_number_message,
+        luck_number_message,
     ]
 
-    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
+    writing_tasks = ["""Make a joke."""]
 
+    func = Function()
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
         llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
     )
     writer = AssistantAgent(
         name="Writer",
@@ -215,12 +237,14 @@ def test_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
             },
             {
                 "recipient": writer,
                 "message": writing_tasks[0],
-                "carryover": "I want to include a figure or a table of data in the blogpost.",
+                "carryover": "Make the numbers relevant.",
                 "summary_method": "last_msg",
+                "max_turns": 1,
             },
         ]
     )
@@ -248,8 +272,8 @@ def test_chats_general():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        """Give lucky numbers for them.""",
+        """Give lucky words for them.""",
     ]
 
     writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
@@ -354,8 +378,8 @@ def test_chats_exceptions():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        """Give lucky numbers for them.""",
+        """Give lucky words for them.""",
     ]
 
     financial_assistant_1 = AssistantAgent(
@@ -574,10 +598,10 @@ def test_udf_message_in_chats():
 
 
 if __name__ == "__main__":
-    # test_chats()
+    test_chats()
     # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
-    # test_chat_messages_for_summary()
+    test_chat_messages_for_summary()
     test_udf_message_in_chats()

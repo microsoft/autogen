@@ -2185,8 +2185,7 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
-        self._process_carryover(message, context)
-        return message
+        return self._process_carryover(message, context)
 
     def _process_carryover(self, message, context):
         carryover = context.get("carryover")
@@ -2200,6 +2199,7 @@ class ConversableAgent(LLMAgent):
                 raise warnings.warn(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
+        return message
 
     async def a_generate_init_message(self, message: Union[str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
