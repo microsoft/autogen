@@ -275,6 +275,17 @@ class ConversableAgent(LLMAgent):
             )
         return self._code_executor
 
+    @property
+    def iostream(self) -> IOStream:
+        """The input/output stream for the agent."""
+        return self._iostream
+
+    @iostream.setter
+    def iostream(self, iostream: IOStream) -> None:
+        self._iostream = iostream
+        if self.client is not None:
+            self.client.iostream = iostream
+
     def register_reply(
         self,
         trigger: Union[Type[Agent], str, Agent, Callable[[Agent], bool], List],

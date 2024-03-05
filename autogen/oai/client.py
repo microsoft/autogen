@@ -85,6 +85,15 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
+    @property
+    def iostream(self) -> IOStream:
+        """The input/output stream for the agent."""
+        ...
+
+    @iostream.setter
+    def iostream(self, iostream: IOStream) -> None:
+        ...
+
     def create(self, **params: Any) -> ModelClientResponseProtocol:
         ...  # pragma: no cover
 
@@ -127,6 +136,17 @@ class OpenAIClient:
             logger.warning(
                 "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
             )
+
+    @property
+    def iostream(self) -> IOStream:
+        """The input/output stream for the agent."""
+        return self._iostream
+
+    @iostream.setter
+    def iostream(self, iostream: IOStream) -> None:
+        self._iostream = iostream
+        if self._oai_client is not None:
+            self._oai_client.iostream = iostream
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -385,6 +405,18 @@ class OpenAIWrapper:
             self._register_default_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
         self.wrapper_id = id(self)
+
+    @property
+    def iostream(self) -> IOStream:
+        """The input/output stream for the agent."""
+        return self._iostream
+
+    @iostream.setter
+    def iostream(self, iostream: IOStream) -> None:
+        self._iostream = iostream
+        for client in self._clients:
+            if client is not None:
+                client.iostream = iostream
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
