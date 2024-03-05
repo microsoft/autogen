@@ -243,6 +243,7 @@ class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
 
     _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
 
+
 class CommandlineCodeResult(metaclass=_DeprecatedClassMeta):
     """CommandlineCodeResult renamed to CommandLineCodeResult"""
 
