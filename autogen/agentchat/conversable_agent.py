@@ -1271,6 +1271,25 @@ class ConversableAgent(LLMAgent):
             code_blocks = self._code_executor.code_extractor.extract_code_blocks(message["content"])
             if len(code_blocks) == 0:
                 continue
+
+            num_code_blocks = len(code_blocks)
+            if num_code_blocks > 1:
+                print(
+                    colored(
+                        f"\n>>>>>>>> EXECUTING CODE BLOCK (inferred language is {code_blocks[0].language})...",
+                        "red",
+                    ),
+                    flush=True,
+                )
+            else:
+                print(
+                    colored(
+                        f"\n>>>>>>>> EXECUTING {num_code_blocks} CODE BLOCKS (inferred languages are [{', '.join([x.language for x in code_blocks])}])...",
+                        "red",
+                    ),
+                    flush=True,
+                )
+
             # found code blocks, execute code.
             code_result = self._code_executor.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
