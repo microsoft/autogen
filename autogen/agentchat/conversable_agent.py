@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Tuple,
 import warnings
 from openai import BadRequestError
 
+from ..types import SystemMessage
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
