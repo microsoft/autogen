@@ -13,9 +13,9 @@ from autogen.oai.openai_utils import config_list_from_json
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker
 
 if skip_docker or not is_docker_running():
-    classes_to_test = [LocalCommandlineCodeExecutor]
+    classes_to_test = [LocalCommandLineCodeExecutor]
 else:
-    classes_to_test = [LocalCommandlineCodeExecutor, DockerCommandLineCodeExecutor]
+    classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
@@ -253,6 +253,7 @@ print("hello world")
         result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
         assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
 
+
 @pytest.mark.skipif(
     skip_docker or not is_docker_running(),
     reason="docker is not running or requested to skip docker tests",
@@ -261,7 +262,7 @@ def test_docker_valid_relative_path() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_dir = Path(temp_dir)
         with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-            code = f"""# filename: test.py
+            code = """# filename: test.py
 
 print("hello world")
 """
