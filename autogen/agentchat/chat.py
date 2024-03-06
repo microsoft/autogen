@@ -168,7 +168,6 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         chat_info["carryover"] = _chat_carryover + [r.summary for r in finished_chats]
         __post_carryover_processing(chat_info)
         sender = chat_info["sender"]
-        print("chat_infochat_infochat_info", chat_info)
         chat_res = sender.initiate_chat(**chat_info)
         finished_chats.append(chat_res)
     return finished_chats

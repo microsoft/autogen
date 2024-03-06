@@ -1108,7 +1108,7 @@ class ConversableAgent(LLMAgent):
         try:
             summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
         except (IndexError, AttributeError) as e:
-            warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty as summary.", UserWarning)
+            warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
             summary = ""
         return summary
 
@@ -1124,7 +1124,7 @@ class ConversableAgent(LLMAgent):
             summary = sender._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"))
         except BadRequestError as e:
             warnings.warn(
-                f"Cannot extract summary using reflection_with_llm: {e}. Using an empty as summary.", UserWarning
+                f"Cannot extract summary using reflection_with_llm: {e}. Using an empty str as summary.", UserWarning
             )
             summary = ""
         return summary
