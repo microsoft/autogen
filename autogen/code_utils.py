@@ -39,7 +39,6 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-
 def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
     """Converts the `content` field of an OpenAI merssage into a string format.
 

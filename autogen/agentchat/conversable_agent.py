@@ -49,7 +49,6 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-
 HumanInputMode = Literal["ALWAYS", "TERMINATE", "NEVER"]
 
 CodeExecutionConfig = TypedDict(
@@ -61,10 +60,11 @@ CodeExecutionConfig = TypedDict(
         "use_docker": Union[bool, str, List[str]],
         "work_dir": str,
         "ipython-embedded": Mapping[str, Any],
-        "commandline-local": Mapping[str, Any]
+        "commandline-local": Mapping[str, Any],
     },
     total=False,
 )
+
 
 class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
