@@ -11,12 +11,12 @@ from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
 __all__ = (
-    "LocalCommandlineCodeExecutor",
-    "CommandlineCodeResult",
+    "LocalCommandLineCodeExecutor",
+    "CommandLineCodeResult",
 )
 
 
-class CommandlineCodeResult(CodeResult):
+class CommandLineCodeResult(CodeResult):
     """(Experimental) A code result class for command line code executor."""
 
     code_file: Optional[str] = Field(
@@ -25,7 +25,7 @@ class CommandlineCodeResult(CodeResult):
     )
 
 
-class LocalCommandlineCodeExecutor(BaseModel):
+class LocalCommandLineCodeExecutor(BaseModel):
     """(Experimental) A code executor class that executes code through a local command line
     environment.
 
@@ -49,7 +49,7 @@ class LocalCommandlineCodeExecutor(BaseModel):
             directory is the current directory ".".
         system_message_update (str): The system message update for agent that
             produces code to run on this executor.
-            Default is `LocalCommandlineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
+            Default is `LocalCommandLineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
 
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
@@ -92,10 +92,10 @@ If you want the user to save the code in a file before executing it, put # filen
         raise ValueError(f"Working directory {v} does not exist.")
 
     @property
-    def user_capability(self) -> "LocalCommandlineCodeExecutor.UserCapability":
+    def user_capability(self) -> "LocalCommandLineCodeExecutor.UserCapability":
         """Export a user capability for this executor that can be added to
         an agent that produces code to be executed by this executor."""
-        return LocalCommandlineCodeExecutor.UserCapability(self.system_message_update)
+        return LocalCommandLineCodeExecutor.UserCapability(self.system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
@@ -124,19 +124,19 @@ If you want the user to save the code in a file before executing it, put # filen
                 if re.search(pattern, code):
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
 
         Returns:
-            CommandlineCodeResult: The result of the code execution."""
+            CommandLineCodeResult: The result of the code execution."""
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block.language, code_block.code
 
-            LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+            LocalCommandLineCodeExecutor.sanitize_command(lang, code)
             filename_uuid = uuid.uuid4().hex
             filename = None
             if lang in ["bash", "shell", "sh", "pwsh", "powershell", "ps1"]:
@@ -166,8 +166,75 @@ If you want the user to save the code in a file before executing it, put # filen
             if exitcode != 0:
                 break
         code_filename = os.path.join(self.work_dir, filename) if filename is not None else None
-        return CommandlineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
+
+
+# From stack overflow: https://stackoverflow.com/a/52087847/2214524
+class _DeprecatedClassMeta(type):
+    def __new__(cls, name, bases, classdict, *args, **kwargs):
+        alias = classdict.get("_DeprecatedClassMeta__alias")
+
+        if alias is not None:
+
+            def new(cls, *args, **kwargs):
+                alias = getattr(cls, "_DeprecatedClassMeta__alias")
+
+                if alias is not None:
+                    warnings.warn(
+                        "{} has been renamed to {}, the alias will be "
+                        "removed in the future".format(cls.__name__, alias.__name__),
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+
+                return alias(*args, **kwargs)
+
+            classdict["__new__"] = new
+            classdict["_DeprecatedClassMeta__alias"] = alias
+
+        fixed_bases = []
+
+        for b in bases:
+            alias = getattr(b, "_DeprecatedClassMeta__alias", None)
+
+            if alias is not None:
+                warnings.warn(
+                    "{} has been renamed to {}, the alias will be "
+                    "removed in the future".format(b.__name__, alias.__name__),
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+            # Avoid duplicate base classes.
+            b = alias or b
+            if b not in fixed_bases:
+                fixed_bases.append(b)
+
+        fixed_bases = tuple(fixed_bases)
+
+        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)
+
+    def __instancecheck__(cls, instance):
+        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})
+
+    def __subclasscheck__(cls, subclass):
+        if subclass is cls:
+            return True
+        else:
+            return issubclass(subclass, getattr(cls, "_DeprecatedClassMeta__alias"))
+
+
+class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
+    """LocalCommandlineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
+
+    _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
+
+
+class CommandlineCodeResult(metaclass=_DeprecatedClassMeta):
+    """CommandlineCodeResult renamed to CommandLineCodeResult"""
+
+    _DeprecatedClassMeta__alias = CommandLineCodeResult
