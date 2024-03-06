@@ -1,7 +1,7 @@
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult
 from .factory import CodeExecutorFactory
 from .markdown_code_extractor import MarkdownCodeExtractor
-from .local_commandline_code_executor import LocalCommandlineCodeExecutor, CommandlineCodeResult
+from .local_commandline_code_executor import LocalCommandLineCodeExecutor, CommandLineCodeResult
 
 __all__ = (
     "CodeBlock",
@@ -10,7 +10,7 @@ __all__ = (
     "CodeExecutor",
     "CodeExecutorFactory",
     "MarkdownCodeExtractor",
-    "LocalCommandlineCodeExecutor",
-    "CommandlineCodeResult",
+    "LocalCommandLineCodeExecutor",
+    "CommandLineCodeResult",
     "DockerCommandLineCodeExecutor",
 )
