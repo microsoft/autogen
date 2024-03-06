@@ -8,7 +8,7 @@ AutoGen supports the use of custom models to power agents [see blog post here](h
 
 The creator of the Custom Model Client will have to decide what kind of data is going to be fed back and how it will be used to fine-tune the model. This tool is designed to be flexible and allow for a wide variety of feedback mechanisms.
 
-Custom Model Client will have to implement the method:
+Custom Model Client will have follow the protocol client defined in `update_model.py` `UpdateableModelClient` which is a subclass of `ModelClient` and adds the following method:
 
 ```python
 def update_model(
@@ -20,7 +20,7 @@ def update_model(
 
     Args:
         preference_data: The preference data.
-        inference_messages: The messages used for inference.
+        inference_messages: The messages that were used during inference between the agent that is being updated and another agent.
         **kwargs: other arguments.
 
     Returns:
@@ -28,26 +28,32 @@ def update_model(
     """
 ```
 
-The function provided in the file `conversable_agent_update_model.py` is called by passing these arguments:
+The function provided in the file `update_model.py` is called by passing these arguments:
 
 - the agent whose model is to be updated
 - the preference data
-- the agent who's conversation is being used to provide the inference messages
+- the agent whose conversation is being used to provide the inference messages
 
-The function will call the `update_model` method of the model client and will return a dictionary containing the update stats, messages, and preference data, like so:
+The function will find the conversation thread that occurred between the "update agent" and the "other agent", and call the `update_model` method of the model client. It will return a dictionary containing the update stats, inference messages, and preference data:
 
 ```python
 {
     "update_stats": <the dictionary returned by the custom model client implementation>,
-    "messages": <message used for inference>,
+    "inference_messages": <message used for inference>,
     "preference_data": <the preference data passed in when update_model was called>
 }
 ```
 
+**NOTES**:
+
+`inference_messages` will contain messages that were passed into the custom model client when `create` was called and a response was needed from the model. It is up to the author of the custom model client to decide which parts of the conversation are needed and how to use this data to fine-tune the model.
+
+If a conversation has been long-running before `update_model` is called, then the `inference_messages` will contain a conversation thread that was used for multiple inference steps. It is again up to the author of the custom model client to decide which parts of the conversation correspond to the preference data and how to use this data to fine-tune the model.
+
 An example of how to use this tool is shown below:
 
 ```python
-from finetuning.conversable_agent_update_model import update_model
+from finetuning.update_model import update_model
 
 assistant = AssistantAgent(
     "assistant",
