@@ -20,7 +20,7 @@ class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
     DEFAULT_PROMPT = (
-        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
+        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Though you have access to many browser functions, use at most one function per response. Today's date is "
         + datetime.now().date().isoformat()
     )
 
