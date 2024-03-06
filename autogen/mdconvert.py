@@ -63,6 +63,25 @@ except ModuleNotFoundError:
     pass
 
 
+class _CustomMarkdownify(markdownify.MarkdownConverter):
+    def convert_img(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes data URIs """
+
+        alt = el.attrs.get('alt', None) or ''
+        src = el.attrs.get('src', None) or ''
+        title = el.attrs.get('title', None) or ''
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        if (convert_as_inline
+                and el.parent.name not in self.options['keep_inline_images_in']):
+            return alt
+
+        # Remove dataURIs
+        if src.startswith("data:"):
+            src = src.split(",")[0] + "..."
+
+        return '![%s](%s%s)' % (alt, src, title_part)
+
+
 class DocumentConverterResult:
     """The result of converting a document to text."""
 
@@ -129,9 +148,9 @@ class HtmlConverter(DocumentConverter):
         body_elm = soup.find("body")
         webpage_text = ""
         if body_elm:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=None if soup.title is None else soup.title.string,
@@ -172,9 +191,9 @@ class WikipediaConverter(DocumentConverter):
                 main_title = title_elm.string
 
             # Convert the page
-            webpage_text = f"# {main_title}\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = f"# {main_title}\n\n" + _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=main_title,
