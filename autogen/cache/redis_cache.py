@@ -19,7 +19,7 @@ class RedisCache(AbstractCache):
     interface using the Redis database for caching data.
 
     Attributes:
-        seed (str): A seed or namespace used as a prefix for cache keys.
+        seed (Union[str, int]): A seed or namespace used as a prefix for cache keys.
         cache (redis.Redis): The Redis client used for caching.
 
     Methods:
@@ -37,7 +37,7 @@ class RedisCache(AbstractCache):
         Initialize the RedisCache instance.
 
         Args:
-            seed (str): A seed or namespace for the cache. This is used as a prefix for all cache keys.
+            seed (Union[str, int]): A seed or namespace for the cache. This is used as a prefix for all cache keys.
             redis_url (str): The URL for the Redis server.
 
         """

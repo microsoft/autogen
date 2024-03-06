@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Union
 import diskcache
 from .abstract_cache_base import AbstractCache
 import sys
@@ -29,12 +29,12 @@ class DiskCache(AbstractCache):
         __exit__(self, exc_type, exc_value, traceback): Context management exit.
     """
 
-    def __init__(self, seed: str):
+    def __init__(self, seed: Union[str, int]):
         """
         Initialize the DiskCache instance.
 
         Args:
-            seed (str): A seed or namespace for the cache. This is used to create
+            seed (Union[str, int]): A seed or namespace for the cache. This is used to create
                         a unique storage location for the cache data.
 
         """
