@@ -120,8 +120,10 @@ assistant = autogen.AssistantAgent(
     code_execution_config=False,
     llm_config=llm_config,
 )
+
+user_proxy_name = "computer_terminal"
 user_proxy = autogen.UserProxyAgent(
-    "computer_terminal",
+    user_proxy_name,
     human_input_mode="NEVER",
     description="A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
@@ -129,7 +131,7 @@ user_proxy = autogen.UserProxyAgent(
         "work_dir": "coding",
         "use_docker": False,
     },
-    default_auto_reply="",
+    default_auto_reply=f"Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning \"```python\" or \"```sh\" respectively.",
     max_consecutive_auto_reply=15,
 )
 
