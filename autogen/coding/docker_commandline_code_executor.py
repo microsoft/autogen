@@ -174,7 +174,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
                 if not path.is_absolute():
                     path = Path("/workspace") / path
                 path = path.resolve()
-                if not path.is_relative_to(Path("/workspace")):
+                try:
+                    path.relative_to(Path("/workspace"))
+                except ValueError:
                     return CommandlineCodeResult(exit_code=1, output="Filename is not in the workspace")
             else:
                 # create a file with a automatically generated name
