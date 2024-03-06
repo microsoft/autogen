@@ -32,9 +32,11 @@
       items:
         - name: group chat overview
           href: Group-chat-overview.md
-        - name: group chat
+        - name: sequential group chat
+          href: Sequential-group-chat.md
+        - name: dynamic group chat
           href: Group-chat.md
-        - name: use workflow in group chat
+        - name: use workflow to control group chat
           href: Use-workflow-in-group-chat.md
     - name: Create your own agent
       href: Create-your-own-agent.md
