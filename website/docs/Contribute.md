@@ -175,6 +175,8 @@ Tests for the `autogen.agentchat.contrib` module may be skipped automatically if
 required dependencies are not installed. Please consult the documentation for
 each contrib module to see what dependencies are required.
 
+See [here](https://github.com/microsoft/autogen/blob/main/notebook/contributing.md#testing) for how to run notebook tests.
+
 #### Skip flags for tests
 
 - `--skip-openai` for skipping tests that require access to OpenAI services.
@@ -216,11 +218,11 @@ Then:
 
 ```console
 npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown  # skip if you use the dev container we provided
+pip install pydoc-markdown pyyaml termcolor # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py render
 yarn start
 ```
 
@@ -245,7 +247,7 @@ Once at the CLI in Docker run the following commands:
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py render
 yarn start --host 0.0.0.0 --port 3000
 ```
 

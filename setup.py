@@ -55,9 +55,6 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
-        # Dependencies for EmbeddedIPythonExecutor, to be removed once upstream bug fixed
-        # jupyter-client
-        # https://github.com/jupyter-server/kernel_gateway/issues/398
         "jupyter-executor": [
             "jupyter-kernel-gateway",
             "websocket-client",
