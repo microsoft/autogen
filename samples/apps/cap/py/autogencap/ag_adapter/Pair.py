@@ -27,7 +27,7 @@ class Pair:
 
         # Send a message to the user_proxy
         agent_connection = self._network.lookup_actor(self._first_ag_agent.name)
-        agent_connection.send_txt_msg("Plot a chart of MSFT daily closing prices for last 1 Month.")
+        agent_connection.send_txt_msg(message)
 
     def running(self):
         return self._first_adptr.run and self._second_adptr.run
