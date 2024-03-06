@@ -47,7 +47,7 @@ class GroupChat:
                 1. an `Agent` class, it must be one of the agents in the group chat.
                 2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
                 3. None, which would terminate the conversation gracefully.
-            ```python 
+            ```python
             def custom_speaker_selection_func(
                 last_speaker: Agent, groupchat: GroupChat
             ) -> Union[Agent, str, None]:
