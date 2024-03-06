@@ -14,9 +14,10 @@ RUN apt-get update \
    && apt-get -y install --no-install-recommends build-essential npm \
    && apt-get autoremove -y \
    && apt-get clean -y \
-   && wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.5.23/quarto-1.5.23-linux-amd64.deb \
-   && dpkg -i quarto-1.5.23-linux-amd64.deb \
-   && rm -rf /var/lib/apt/lists/* quarto-1.5.23-linux-amd64.deb
+   && arch=$(arch | sed s/aarch64/arm64/ | sed s/x86_64/amd64/) \
+   && wget https://github.com/quarto-dev/quarto-cli/releases/download/v1.5.23/quarto-1.5.23-linux-${arch}.deb \
+   && dpkg -i quarto-1.5.23-linux-${arch}.deb \
+   && rm -rf /var/lib/apt/lists/* quarto-1.5.23-linux-${arch}.deb
 ENV DEBIAN_FRONTEND=dialog
 
 # For docs
