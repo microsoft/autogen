@@ -72,7 +72,7 @@ class GroupChat:
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Optional[str] = None
     enable_clear_history: Optional[bool] = False
-    send_introductions: Optional[bool] = False
+    send_introductions: bool = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
