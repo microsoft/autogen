@@ -1,6 +1,6 @@
 ## Type-safe function call
 
-`AutoGen` provides a source generator to easness the trouble of manually craft function definition and function call wrapper from a function. To use this feature, simply add the `AutoGen.SourceGenerator` package to your project and decorate your function with [`Function`](../api/AutoGen.FunctionAttribute.yml) attribute.
+`AutoGen` provides a source generator to easness the trouble of manually craft function definition and function call wrapper from a function. To use this feature, simply add the `AutoGen.SourceGenerator` package to your project and decorate your function with @AutoGen.Core.FunctionAttribute.
 
 ```xml
 <ItemGroup>

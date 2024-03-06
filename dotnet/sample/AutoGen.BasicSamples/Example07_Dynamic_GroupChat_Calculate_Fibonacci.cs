@@ -1,13 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs
 
-using System.Text.Json;
-using AutoGen.DotnetInteractive;
-using AutoGen;
 using System.Text;
-using FluentAssertions;
+using System.Text.Json;
+using AutoGen;
 using AutoGen.BasicSample;
+using AutoGen.DotnetInteractive;
 using AutoGen.OpenAI;
+using FluentAssertions;
 
 public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 {
@@ -225,6 +225,110 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         #endregion create_reviewer
 
         return reviewer;
+    }
+
+    public static async Task RunWorkflowAsync()
+    {
+        long the39thFibonacciNumber = 63245986;
+        var workDir = Path.Combine(Path.GetTempPath(), "InteractiveService");
+        if (!Directory.Exists(workDir))
+            Directory.CreateDirectory(workDir);
+
+        using var service = new InteractiveService(workDir);
+        var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
+
+        await service.StartAsync(workDir, default);
+
+        #region create_workflow
+        var reviewer = await CreateReviewerAgentAsync();
+        var coder = await CreateCoderAgentAsync();
+        var runner = await CreateRunnerAgentAsync(service);
+        var admin = await CreateAdminAsync();
+
+        var admin2CoderTransition = Transition.Create(admin, coder);
+        var coder2ReviewerTransition = Transition.Create(coder, reviewer);
+        var reviewer2RunnerTransition = Transition.Create(
+            from: reviewer,
+            to: runner,
+            canTransitionAsync: async (from, to, messages) =>
+        {
+            var lastMessage = messages.Last();
+            if (lastMessage is TextMessage textMessage && textMessage.Content.ToLower().Contains("the code looks good, please ask runner to run the code for you.") is true)
+            {
+                // ask runner to run the code
+                return true;
+            }
+
+            return false;
+        });
+        var reviewer2CoderTransition = Transition.Create(
+            from: reviewer,
+            to: coder,
+            canTransitionAsync: async (from, to, messages) =>
+        {
+            var lastMessage = messages.Last();
+            if (lastMessage is TextMessage textMessage && textMessage.Content.ToLower().Contains("there're some comments from code reviewer, please fix these comments") is true)
+            {
+                // ask coder to fix the code based on reviewer's comments
+                return true;
+            }
+
+            return false;
+        });
+
+        var runner2CoderTransition = Transition.Create(
+            from: runner,
+            to: coder,
+            canTransitionAsync: async (from, to, messages) =>
+        {
+            var lastMessage = messages.Last();
+            if (lastMessage is TextMessage textMessage && textMessage.Content.ToLower().Contains("error") is true)
+            {
+                // ask coder to fix the error
+                return true;
+            }
+
+            return false;
+        });
+        var runner2AdminTransition = Transition.Create(runner, admin);
+
+        var workflow = new Workflow(
+            [
+                admin2CoderTransition,
+                coder2ReviewerTransition,
+                reviewer2RunnerTransition,
+                reviewer2CoderTransition,
+                runner2CoderTransition,
+                runner2AdminTransition,
+            ]);
+        #endregion create_workflow
+
+        #region create_group_chat_with_workflow
+        var groupChat = new GroupChat(
+            admin: admin,
+            workflow: workflow,
+            members:
+            [
+                admin,
+                coder,
+                runner,
+                reviewer,
+            ]);
+
+        admin.AddInitializeMessage("Welcome to my group, work together to resolve my task", groupChat);
+        coder.AddInitializeMessage("I will write dotnet code to resolve task", groupChat);
+        reviewer.AddInitializeMessage("I will review dotnet code", groupChat);
+        runner.AddInitializeMessage("I will run dotnet code once the review is done", groupChat);
+
+        var groupChatManager = new GroupChatManager(groupChat);
+        var conversationHistory = await admin.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number?", maxRound: 10);
+        #endregion create_group_chat_with_workflow
+        // the last message is from admin, which is the termination message
+        var lastMessage = conversationHistory.Last();
+        lastMessage.From.Should().Be("admin");
+        lastMessage.IsGroupChatTerminateMessage().Should().BeTrue();
+        lastMessage.Should().BeOfType<TextMessage>();
+        lastMessage.GetContent().Should().Contain(the39thFibonacciNumber.ToString());
     }
 
     public static async Task RunAsync()

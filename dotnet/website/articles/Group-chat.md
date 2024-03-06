@@ -18,7 +18,6 @@ The following example shows how to create a dynamic group chat with @AutoGen.Cor
 ```mermaid
 flowchart LR
   subgraph Group Chat
-    A[User] 
     B[Amin]
     C[Coder]
     D[Reviewer]
