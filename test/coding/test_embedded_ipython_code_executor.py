@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 import tempfile
-from typing import Dict, Union
+from typing import Dict, Type, Union
 import uuid
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
@@ -173,6 +173,23 @@ def test_save_image(cls) -> None:
         assert code_result.exit_code == 0
         assert os.path.exists(code_result.output_files[0])
         assert f"Image data saved to {code_result.output_files[0]}" in code_result.output
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_timeout_preserves_kernel_state(cls: Type[CodeExecutor]) -> None:
+    executor = cls(timeout=1)
+    code_blocks = [CodeBlock(code="x = 123", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    code_blocks = [CodeBlock(code="import time; time.sleep(10)", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code != 0 and "Timeout" in code_result.output
+
+    code_blocks = [CodeBlock(code="print(x)", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "123" in code_result.output
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)
