@@ -98,7 +98,7 @@ Links to notebook examples:
 ### Utilities
 - API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
 - Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/topics/llm_configuration)
-- Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
+- Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_cost_token_tracking.ipynb)
 
 ### Inference Hyperparameters Tuning
 
