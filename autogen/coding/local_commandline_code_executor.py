@@ -3,21 +3,12 @@ import re
 import uuid
 import warnings
 from typing import Any, ClassVar, List, Optional
-
 from pydantic import BaseModel, Field, field_validator
 
 from ..agentchat.agent import LLMAgent
 from ..code_utils import execute_code
 from .base import CodeBlock, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x: Any, *args: Any, **kwargs: Any) -> str:  # type: ignore[misc]
-        return x  # type: ignore[no-any-return]
-
 
 __all__ = (
     "LocalCommandlineCodeExecutor",
@@ -146,14 +137,6 @@ If you want the user to save the code in a file before executing it, put # filen
             lang, code = code_block.language, code_block.code
 
             LocalCommandlineCodeExecutor.sanitize_command(lang, code)
-
-            print(
-                colored(
-                    f"\n>>>>>>>> EXECUTING CODE BLOCK {i} (inferred language is {lang})...",
-                    "red",
-                ),
-                flush=True,
-            )
             filename_uuid = uuid.uuid4().hex
             filename = None
             if lang in ["bash", "shell", "sh", "pwsh", "powershell", "ps1"]:

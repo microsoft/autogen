@@ -197,6 +197,21 @@ class ConversableAgent(LLMAgent):
             self._code_execution_config = code_execution_config
 
             if self._code_execution_config.get("executor") is not None:
+                if "use_docker" in self._code_execution_config:
+                    raise ValueError(
+                        "'use_docker' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
+                if "work_dir" in self._code_execution_config:
+                    raise ValueError(
+                        "'work_dir' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
+                if "timeout" in self._code_execution_config:
+                    raise ValueError(
+                        "'timeout' in code_execution_config is not valid when 'executor' is set. Use the appropriate arg in the chosen executor instead."
+                    )
+
                 # Use the new code executor.
                 self._code_executor = CodeExecutorFactory.create(self._code_execution_config)
                 self.register_reply([Agent, None], ConversableAgent._generate_code_execution_reply_using_executor)
@@ -1256,6 +1271,25 @@ class ConversableAgent(LLMAgent):
             code_blocks = self._code_executor.code_extractor.extract_code_blocks(message["content"])
             if len(code_blocks) == 0:
                 continue
+
+            num_code_blocks = len(code_blocks)
+            if num_code_blocks > 1:
+                print(
+                    colored(
+                        f"\n>>>>>>>> EXECUTING CODE BLOCK (inferred language is {code_blocks[0].language})...",
+                        "red",
+                    ),
+                    flush=True,
+                )
+            else:
+                print(
+                    colored(
+                        f"\n>>>>>>>> EXECUTING {num_code_blocks} CODE BLOCKS (inferred languages are [{', '.join([x.language for x in code_blocks])}])...",
+                        "red",
+                    ),
+                    flush=True,
+                )
+
             # found code blocks, execute code.
             code_result = self._code_executor.execute_code_blocks(code_blocks)
             exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"

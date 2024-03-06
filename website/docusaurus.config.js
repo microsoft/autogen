@@ -183,7 +183,7 @@ module.exports = {
       {
         redirects: [
           {
-            to: "/docs/llm_configuration/",
+            to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_endpoint_configuration/"],
           },
           {
@@ -193,6 +193,10 @@ module.exports = {
           {
             to: "/docs/Getting-Started",
             from: ["/docs/"],
+          },
+          {
+            to: "/docs/topics/llm_configuration",
+            from: ["/docs/llm_configuration"],
           },
         ],
       },
