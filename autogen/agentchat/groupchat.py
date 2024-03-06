@@ -42,19 +42,16 @@ class GroupChat:
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
-        - a customized speaker selection function (Callable): if passed in a function, it will be called with the following parameters:
-            custom_speaker_selection_func:
-            Parameters:
-                - last_speaker: Agent
-                    The last speaker in the group chat.
-                - groupchat: GroupChat
-                    The GroupChat object
-            Return:
-                Return one of the following:
+        - a customized speaker selection function (Callable): the function will be called to select the next speaker.
+            The function should take the last speaker and the group chat as input and return one of the following:
                 1. an `Agent` class, it must be one of the agents in the group chat.
                 2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
                 3. None, which would terminate the conversation gracefully.
-
+            ```python 
+            def custom_speaker_selection_func(
+                last_speaker: Agent, groupchat: GroupChat
+            ) -> Union[Agent, str, None]:
+            ```
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
