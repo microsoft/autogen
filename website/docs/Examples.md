@@ -20,7 +20,7 @@ Links to notebook examples:
    - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_vis.ipynb)
    - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_research.ipynb)
    - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
-   - Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
+   - Automated Task Solving with transition paths specified in a graph - [View Notebook]([https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_finite_state_machine.ipynb)
    - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_society_of_mind.ipynb)
 
 1. **Sequential Multi-Agent Chats**
@@ -98,7 +98,7 @@ Links to notebook examples:
 ### Utilities
 - API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
 - Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/topics/llm_configuration)
-- Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/oai_client_cost.ipynb)
+- Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_cost_token_tracking.ipynb)
 
 ### Inference Hyperparameters Tuning
 
