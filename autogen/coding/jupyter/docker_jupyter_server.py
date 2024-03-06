@@ -5,7 +5,7 @@ import sys
 from time import sleep
 from types import TracebackType
 import uuid
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 import docker
 import secrets
 import io
@@ -22,8 +22,8 @@ from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
 
 
-def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
+def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
+    elapsed_time = 0.0
     while container.status != "running" and elapsed_time < timeout:
         sleep(stop_time)
         elapsed_time += stop_time
@@ -133,7 +133,7 @@ WORKDIR "${HOME}"
         self._port = int(container_ports["8888/tcp"][0]["HostPort"])
         self._container_id = container.id
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 inner_container = client.containers.get(container.id)
                 inner_container.stop()
@@ -152,7 +152,7 @@ WORKDIR "${HOME}"
     def connection_info(self) -> JupyterConnectionInfo:
         return JupyterConnectionInfo(host="127.0.0.1", use_https=False, port=self._port, token=self._token)
 
-    def stop(self):
+    def stop(self) -> None:
         self._cleanup_func()
 
     def get_client(self) -> JupyterClient:

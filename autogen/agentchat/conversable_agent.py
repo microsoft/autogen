@@ -7,7 +7,7 @@ import logging
 import re
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Tuple, Type, TypeVar, TypedDict, Union
 import warnings
 from openai import BadRequestError
 
@@ -49,6 +49,23 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+
+HumanInputMode = Literal["ALWAYS", "TERMINATE", "NEVER"]
+
+CodeExecutionConfig = TypedDict(
+    "CodeExecutionConfig",
+    {
+        "executor": Union[Literal["ipython-embedded", "commandline-local"], CodeExecutor],
+        "last_n_messages": Union[int, Literal["auto"]],
+        "timeout": int,
+        "use_docker": Union[bool, str, List[str]],
+        "work_dir": str,
+        "ipython-embedded": Mapping[str, Any],
+        "commandline-local": Mapping[str, Any]
+    },
+    total=False,
+)
+
 class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
@@ -74,12 +91,12 @@ class ConversableAgent(LLMAgent):
     def __init__(
         self,
         name: str,
-        system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
+        system_message: str = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "TERMINATE",
-        function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Union[Dict, Literal[False]] = False,
+        max_consecutive_auto_reply: int = MAX_CONSECUTIVE_AUTO_REPLY,
+        human_input_mode: HumanInputMode = "TERMINATE",
+        function_map: Dict[str, Callable] = {},
+        code_execution_config: Union[CodeExecutionConfig, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
@@ -87,12 +104,11 @@ class ConversableAgent(LLMAgent):
         """
         Args:
             name (str): name of the agent.
-            system_message (str or list): system message for the ChatCompletion inference.
+            system_message (str): system message for the ChatCompletion inference.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
-            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
-                default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
+            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies. Defaults to class attribute MAX_CONSECUTIVE_AUTO_REPLY.
                 When set to 0, no auto reply will be generated.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
@@ -130,7 +146,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
-        self._oai_system_message = [{"content": system_message, "role": "system"}]
+        self._oai_system_message: List[SystemMessage] = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
@@ -161,11 +177,24 @@ class ConversableAgent(LLMAgent):
         self.client_cache = None
 
         self.human_input_mode = human_input_mode
+        if max_consecutive_auto_reply is None:
+            warnings.warn(
+                "Using None to signal a default max_consecutive_auto_reply is deprecated. Use the default value (MAX_CONSECUTIVE_AUTO_REPLY) directly.",
+                stacklevel=2,
+            )
+
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
+
+        if function_map is None:
+            warnings.warn(
+                "Using None to signal a default function_map is deprecated. Use {} to explicitly pass the default.",
+                stacklevel=2,
+            )
+
         self._function_map = (
             {}
             if function_map is None
