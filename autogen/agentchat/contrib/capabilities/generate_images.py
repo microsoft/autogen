@@ -46,8 +46,8 @@ class DalleImageGenerator(ImageGenerator):
         cache = Cache(".cache/")  # Create a cache directory
         key = (self._model, prompt, self._resolution, self._quality, self._num_images)
 
-        if key in cache:
-            return img_utils._to_pil(cache[key])
+        # if key in cache:
+        #     return img_utils._to_pil(cache[key])
 
         # If not in cache, compute and store the result
         response = self._dalle_client.images.generate(
