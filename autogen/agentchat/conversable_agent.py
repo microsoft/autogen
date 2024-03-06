@@ -7,12 +7,12 @@ import logging
 import re
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Tuple, Type, TypeVar, TypedDict, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
 
 from ..types import SystemMessage
-from ..coding.base import CodeExecutor
+from ..coding.base import CodeExecutor, CodeExecutionConfig
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
@@ -51,20 +51,6 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 
 HumanInputMode = Literal["ALWAYS", "TERMINATE", "NEVER"]
-
-CodeExecutionConfig = TypedDict(
-    "CodeExecutionConfig",
-    {
-        "executor": Union[Literal["ipython-embedded", "commandline-local"], CodeExecutor],
-        "last_n_messages": Union[int, Literal["auto"]],
-        "timeout": int,
-        "use_docker": Union[bool, str, List[str]],
-        "work_dir": str,
-        "ipython-embedded": Mapping[str, Any],
-        "commandline-local": Mapping[str, Any],
-    },
-    total=False,
-)
 
 
 class ConversableAgent(LLMAgent):

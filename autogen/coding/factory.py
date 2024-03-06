@@ -1,6 +1,4 @@
-from ..agentchat.conversable_agent import CodeExecutionConfig
-
-from .base import CodeExecutor
+from .base import CodeExecutor, CodeExecutionConfig
 
 __all__ = ("CodeExecutorFactory",)
 

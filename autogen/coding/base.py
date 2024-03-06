@@ -1,11 +1,12 @@
-from typing import Any, Dict, List, Protocol, Union, runtime_checkable
+from __future__ import annotations
+from typing import Any, Dict, List, Literal, Mapping, Protocol, TypedDict, Union, runtime_checkable
 
 from pydantic import BaseModel, Field
 
 from ..agentchat.agent import LLMAgent
 from ..types import UserMessageImageContentPart, UserMessageTextContentPart
 
-__all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor")
+__all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor", "CodeExecutionConfig")
 
 
 class CodeBlock(BaseModel):
@@ -104,3 +105,18 @@ class IPythonCodeResult(CodeResult):
         default_factory=list,
         description="The list of files that the executed code blocks generated.",
     )
+
+
+CodeExecutionConfig = TypedDict(
+    "CodeExecutionConfig",
+    {
+        "executor": Union[Literal["ipython-embedded", "commandline-local"], CodeExecutor],
+        "last_n_messages": Union[int, Literal["auto"]],
+        "timeout": int,
+        "use_docker": Union[bool, str, List[str]],
+        "work_dir": str,
+        "ipython-embedded": Mapping[str, Any],
+        "commandline-local": Mapping[str, Any],
+    },
+    total=False,
+)
