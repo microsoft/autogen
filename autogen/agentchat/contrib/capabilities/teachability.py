@@ -1,18 +1,12 @@
 import os
-from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
+from typing import Dict, Optional, Union
 import chromadb
 from chromadb.config import Settings
 import pickle
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.agentchat.assistant_agent import ConversableAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
+from autogen.agentchat.conversable_agent import colored
 
 
 class Teachability(AgentCapability):
@@ -23,6 +17,13 @@ class Teachability(AgentCapability):
     To make any conversable agent teachable, instantiate both the agent and the Teachability class,
     then pass the agent to teachability.add_to_agent(agent).
     Note that teachable agents in a group chat must be given unique path_to_db_dir values.
+
+    When adding Teachability to an agent, the following are modified:
+    - The agent's system message is appended with a note about the agent's new ability.
+    - A hook is added to the agent's `process_last_received_message` hookable method,
+    and the hook potentially modifies the last of the received messages to include earlier teachings related to the message.
+    Added teachings do not propagate into the stored message history.
+    If new user teachings are detected, they are added to new memos in the vector database.
     """
 
     def __init__(
