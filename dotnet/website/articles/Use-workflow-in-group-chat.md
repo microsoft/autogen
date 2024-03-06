@@ -1,16 +1,16 @@
-Sometimes, you may want to add more control on how the next agent is selected in a @AutoGen.Core.GroupChat based on the task you want to resolve. For example, in the previous [code writing example](./Group-chat.md), the original workflow can be represented by the following diagram:
+Sometimes, you may want to add more control on how the next agent is selected in a @AutoGen.Core.GroupChat based on the task you want to resolve. For example, in the previous [code writing example](./Group-chat.md), the original code interpreter workflow can be improved by the following diagram because it's not necessary for `admin` to directly talk to `reviewer`, nor it's necessary for `coder` to talk to `runner`.
 
 ```mermaid
 flowchart TD
-    A[Admin] -->|Write code| B[Coder]
-    B -->|Review code| C[Reviewer]
-    C -->|Run code| D[Runner]
+    A[Admin] -->|Ask coder to write code| B[Coder]
+    B -->|Ask Reviewer to review code| C[Reviewer]
+    C -->|Ask Runner to run code| D[Runner]
     D -->|Send result if succeed| A[Admin]
     D -->|Ask coder to fix if failed| B[Coder]
     C -->|Ask coder to fix if not approved| B[Coder]
 ```
 
-In the workflow above, neither it's necessary to have `Admin` directly talk to `Reviewer`, nor it's neccsary for `Coder` to talk to `Runner`. By having @AutoGen.Core.GroupChat to follow a specific workflow, we can bring prior knowledge to group chat and make the conversation more efficient and robust. This is where @AutoGen.Core.Workflow comes in.
+By having @AutoGen.Core.GroupChat to follow a specific workflow, we can bring prior knowledge to group chat and make the conversation more efficient and robust. This is where @AutoGen.Core.Workflow comes in.
 
 ### Create a workflow
 The following code shows how to create a workflow that represents the diagram above. The workflow doesn't need to be a finite state machine where each state can only have one legitimate next state. Instead, it can be a directed graph where each state can have multiple legitimate next states. And if there are multiple legitimate next states, the `admin` agent of @AutoGen.Core.GroupChat will decide which one to go based on the conversation context.

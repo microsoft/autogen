@@ -2,10 +2,18 @@
   items:
     - name: Installation
       href: Installation.md
-    - name: assistant agent
-      href: Create-an-agent.md
-    - name: user proxy agent
-      href: Create-a-user-proxy-agent.md
+    - name: agent
+      items:
+        - name: agent overview
+          href: Agent-overview.md
+        - name: assistant agent
+          href: Create-an-agent.md
+        - name: user proxy agent
+          href: Create-a-user-proxy-agent.md
+        - name: Chat with an agent using user proxy agent
+          href: Two-agent-chat.md
+        - name: Create your own agent
+          href: Create-your-own-agent.md
     - name: built-in messages
       href: Built-in-messages.md
     - name: function call
@@ -26,8 +34,6 @@
               href: Print-message-middleware.md
             - name: function call
               href: Function-call-middleware.md
-    - name: two agent chat
-      href: Two-agent-chat.md
     - name: group chat
       items:
         - name: group chat overview
@@ -38,8 +44,6 @@
           href: Group-chat.md
         - name: use workflow to control group chat
           href: Use-workflow-in-group-chat.md
-    - name: Create your own agent
-      href: Create-your-own-agent.md
 
 - name: AutoGen.DotnetInteractive
   items:

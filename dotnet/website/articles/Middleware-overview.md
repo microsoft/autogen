@@ -18,11 +18,6 @@ The example below shows how to short-circuit the inner agent
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=short_circuit_middleware_agent)]
 
-## Middleware function calling order
-When multiple middleware functions are registered, the order of middleware functions is first registered, last invoked.
-
-[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MiddlewareAgentCodeSnippet.cs?name=middleware_function_calling_order)]
-
 > [!Note]
 > When multiple middleware functions are registered, the order of middleware functions is first registered, last invoked.
 

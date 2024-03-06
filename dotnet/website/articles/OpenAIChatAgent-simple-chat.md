@@ -6,6 +6,6 @@ Firsly, import the required namespaces:
 Then, create an @AutoGen.OpenAI.OpenAIChatAgent and chat with it:
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=create_openai_chat_agent)]
 
-@AutoGen.OpenAI.OpenAIChatAgent also supports streaming chat via @AutoGen.Core.IAgent.GenerateStreamingReplyAsync.
+@AutoGen.OpenAI.OpenAIChatAgent also supports streaming chat via @AutoGen.Core.IAgent.GenerateStreamingReplyAsync*.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=create_openai_chat_agent_streaming)]

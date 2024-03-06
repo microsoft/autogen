@@ -4,8 +4,9 @@
 > In @AutoGen.Core.GroupChat, when only the group admin is used to determine the next speaker agent, it's recommented to use a more powerful llm model, such as `gpt-4` to ensure the best experience.
 
 ## Use @AutoGen.Core.GroupChat to implement a code interpreter chat flow
-
 The following example shows how to create a dynamic group chat with @AutoGen.Core.GroupChat. In this example, we will create a dynamic group chat with 4 agents: `admin`, `coder`, `reviewer` and `runner`. Each agent has its own role in the group chat:
+
+### Code interpreter group chat
 - `admin`: create task for group to work on and terminate the conversation when task is completed. In this example, the task to resolve is to calculate the 39th Fibonacci number.
 - `coder`: a dotnet coder who can write code to resolve tasks.
 - `reviewer`: a dotnet code reviewer who can review code written by `coder`. In this example, `reviewer` will examine if the code written by `coder` follows the condition below:

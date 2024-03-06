@@ -4,6 +4,6 @@ The following example shows how to create an @AutoGen.SemanticKernel.SemanticKer
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent)]
 
-@AutoGen.SemanticKernel.SemanticKernelAgent also supports streaming chat via @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync.
+@AutoGen.SemanticKernel.SemanticKernelAgent also supports streaming chat via @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync*.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/SemanticKernelCodeSnippet.cs?name=create_semantic_kernel_agent_streaming)]

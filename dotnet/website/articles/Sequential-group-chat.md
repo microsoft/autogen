@@ -6,7 +6,7 @@
 flowchart LR
     A[User] -->|Ask a question| B[Search Agent]
     B -->|Retrieve information| C[Summarization Agent]
-    C -->|Summarize result| D[Result]
+    C -->|Summarize result| A[User]
 ```
 
 Step 1: Create a `bingSearch` agent using @AutoGen.SemanticKernel.SemanticKernelAgent

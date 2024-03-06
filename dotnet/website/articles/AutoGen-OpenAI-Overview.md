@@ -2,7 +2,7 @@
 
 AutoGen.OpenAI provides the following agents over openai models:
 - @AutoGen.OpenAI.OpenAIChatAgent: A slim wrapper agent over `OpenAIClient`. This agent only support `IMessage<ChatRequestMessage>` message type. To support more message types like @AutoGen.Core.TextMessage, register the agent with @AutoGen.OpenAI.OpenAIChatRequestMessageConnector.
-- @AutoGen.OpenAI.GPTAgent: A conversable agent that build on top of @AutoGen.OpenAI.OpenAIChatAgent with more message types support like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, @AutoGen.Core.MultiModalMessage and function call support. Essentially, it is equivalent to @AutoGen.OpenAI.OpenAIChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.OpenAI.OpenAIChatRequestMessageConnector registered.
+- @AutoGen.OpenAI.GPTAgent: An agent that build on top of @AutoGen.OpenAI.OpenAIChatAgent with more message types support like @AutoGen.Core.TextMessage, @AutoGen.Core.ImageMessage, @AutoGen.Core.MultiModalMessage and function call support. Essentially, it is equivalent to @AutoGen.OpenAI.OpenAIChatAgent with @AutoGen.Core.FunctionCallMiddleware and @AutoGen.OpenAI.OpenAIChatRequestMessageConnector registered.
 
 ### Get start with AutoGen.OpenAI
 

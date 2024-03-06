@@ -46,9 +46,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
     }
     #endregion reviewer_function
 
+    #region create_coder
     public static async Task<IAgent> CreateCoderAgentAsync()
     {
-        #region create_coder
         var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var coder = new GPTAgent(
             name: "coder",
@@ -73,12 +73,12 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             .RegisterPrintFormatMessageHook();
 
         return coder;
-        #endregion create_coder
     }
+    #endregion create_coder
 
+    #region create_runner
     public static async Task<IAgent> CreateRunnerAgentAsync(InteractiveService service)
     {
-        #region create_runner
         var runner = new AssistantAgent(
             name: "runner",
             systemMessage: "You run dotnet code",
@@ -109,12 +109,12 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             .RegisterPrintFormatMessageHook();
 
         return runner;
-        #endregion create_runner
     }
+    #endregion create_runner
 
+    #region create_admin
     public static async Task<IAgent> CreateAdminAsync()
     {
-        #region create_admin
         var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var admin = new GPTAgent(
             name: "admin",
@@ -134,12 +134,12 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             });
 
         return admin;
-        #endregion create_admin
     }
+    #endregion create_admin
 
+    #region create_reviewer
     public static async Task<IAgent> CreateReviewerAgentAsync()
     {
-        #region create_reviewer
         var gpt3Config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var functions = new Example07_Dynamic_GroupChat_Calculate_Fibonacci();
         var reviewer = new GPTAgent(
@@ -222,10 +222,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 throw new Exception("Failed to review code block");
             })
             .RegisterPrintFormatMessageHook();
-        #endregion create_reviewer
 
         return reviewer;
     }
+    #endregion create_reviewer
 
     public static async Task RunWorkflowAsync()
     {
@@ -342,12 +342,11 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         var dotnetInteractiveFunctions = new DotnetInteractiveFunction(service);
 
         await service.StartAsync(workDir, default);
+        #region create_group_chat
         var reviewer = await CreateReviewerAgentAsync();
         var coder = await CreateCoderAgentAsync();
         var runner = await CreateRunnerAgentAsync(service);
         var admin = await CreateAdminAsync();
-
-        #region create_group_chat
         var groupChat = new GroupChat(
             admin: admin,
             members:
