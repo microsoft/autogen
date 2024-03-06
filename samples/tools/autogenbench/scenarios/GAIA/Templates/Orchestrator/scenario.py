@@ -5,6 +5,7 @@ import json
 import autogen
 import copy
 import traceback
+import pathlib
 import re
 from datetime import datetime
 import testbed_utils
@@ -164,7 +165,9 @@ filename = "__FILE_NAME__".strip()
 filename_prompt = ""
 if len(filename) > 0:
     relpath = os.path.join("coding", filename)
-    filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
+    file_uri = pathlib.Path(os.path.abspath(os.path.expanduser(relpath))).as_uri()
+
+    filename_prompt = f"The question is about a file, document or image, which can be accessed by the filename '{filename}' in the current working directory. It can also be viewed in a web browser by visiting the URL {file_uri}"
 
     mdconverter = MarkdownConverter( mlm_client=mlm_client)
     mlm_prompt=f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
@@ -174,7 +177,10 @@ if len(filename) > 0:
 
     try:
         res = mdconverter.convert(relpath, mlm_prompt=mlm_prompt)
-        filename_prompt += " Here are the file's contents:\n\n" + res.text_content
+
+        if res.text_content:
+            if count_token(res.text_content) < 8000: # Don't put overly-large documents into the prompt
+                filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
     except UnsupportedFormatException:
         pass
     except FileConversionException:
