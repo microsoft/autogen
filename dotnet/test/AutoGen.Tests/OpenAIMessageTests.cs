@@ -8,7 +8,6 @@ using System.Text.Json;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
