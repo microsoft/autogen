@@ -22,27 +22,6 @@ from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
-    """(Experimental) A code executor class that executes code statefully using an embedded
-    IPython kernel managed by this class.
-
-    **This will execute LLM generated code on the local machine.**
-
-    Each execution is stateful and can access variables created from previous
-    executions in the same session. The kernel must be installed before using
-    this class. The kernel can be installed using the following command:
-    `python -m ipykernel install --user --name {kernel_name}`
-    where `kernel_name` is the name of the kernel to install.
-
-    Args:
-        timeout (int): The timeout for code execution, by default 60.
-        kernel_name (str): The kernel name to use. Make sure it is installed.
-            By default, it is "python3".
-        output_dir (str): The directory to save output files, by default ".".
-        system_message_update (str): The system message update to add to the
-            agent that produces code. By default it is
-            `JupyterCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
-    """
-
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
         str
     ] = """
@@ -72,24 +51,10 @@ the output will be a path to the image instead of the image itself.
 """
 
     class UserCapability:
-        """(Experimental) An AgentCapability class that gives agent ability use a stateful
-        IPython code executor. This capability can be added to an agent using
-        the `add_to_agent` method which append a system message update to the
-        agent's system message."""
-
         def __init__(self, system_message_update: str):
             self._system_message_update = system_message_update
 
         def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent by appending a system message
-            update to the agent's system message.
-
-            **Currently we do not check for conflicts with existing content in
-            the agent's system message.**
-
-            Args:
-                agent (LLMAgent): The agent to add the capability to.
-            """
             agent.update_system_message(agent.system_message + self._system_message_update)
 
     def __init__(
@@ -100,6 +65,19 @@ the output will be a path to the image instead of the image itself.
         output_dir: Union[Path, str] = Path("."),
         system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
     ):
+        """(Experimental) A code executor class that executes code statefully using
+        a Jupyter server supplied to this class.
+
+        Each execution is stateful and can access variables created from previous
+        executions in the same session.
+
+        Args:
+            jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
+            timeout (int): The timeout for code execution, by default 60.
+            kernel_name (str): The kernel name to use. Make sure it is installed.
+                By default, it is "python3".
+            output_dir (str): The directory to save output files, by default ".".
+        """
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
@@ -130,8 +108,6 @@ the output will be a path to the image instead of the image itself.
 
     @property
     def user_capability(self) -> "JupyterCodeExecutor.UserCapability":
-        """(Experimental) Export a user capability for this executor that can be added to
-        an agent using the `add_to_agent` method."""
         return JupyterCodeExecutor.UserCapability(self._system_message_update)
 
     @property
@@ -142,8 +118,7 @@ the output will be a path to the image instead of the image itself.
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
         """(Experimental) Execute a list of code blocks and return the result.
 
-        This method executes a list of code blocks as cells in an IPython kernel
-        managed by this class.
+        This method executes a list of code blocks as cells in the Jupyter kernel.
         See: https://jupyter-client.readthedocs.io/en/stable/messaging.html
         for the message protocol.
 

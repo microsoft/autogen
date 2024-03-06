@@ -6,8 +6,8 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.code_utils import is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
-from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
+from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 from autogen.oai.openai_utils import config_list_from_json
 
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker
@@ -26,9 +26,9 @@ def test_is_code_executor(cls) -> None:
 def test_create_local() -> None:
     config = {"executor": "commandline-local"}
     executor = CodeExecutorFactory.create(config)
-    assert isinstance(executor, LocalCommandlineCodeExecutor)
+    assert isinstance(executor, LocalCommandLineCodeExecutor)
 
-    config = {"executor": LocalCommandlineCodeExecutor()}
+    config = {"executor": LocalCommandLineCodeExecutor()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
 
@@ -118,7 +118,7 @@ def _test_timeout(executor: CodeExecutor) -> None:
 
 
 def test_local_commandline_code_executor_restart() -> None:
-    executor = LocalCommandlineCodeExecutor()
+    executor = LocalCommandLineCodeExecutor()
     _test_restart(executor)
 
 
@@ -145,7 +145,7 @@ def _test_restart(executor: CodeExecutor) -> None:
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_local_commandline_executor_conversable_agent_capability() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
         _test_conversable_agent_capability(executor=executor)
 
 
@@ -233,7 +233,7 @@ def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
 )
 def test_dangerous_commands(lang, code, expected_message):
     with pytest.raises(ValueError) as exc_info:
-        LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+        LocalCommandLineCodeExecutor.sanitize_command(lang, code)
     assert expected_message in str(
         exc_info.value
     ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
