@@ -39,28 +39,6 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
-    """(Experimental) A code executor class that executes code through
-    a command line environment in a Docker container.
-
-    The executor first saves each code block in a file in the working
-    directory, and then executes the code file in the container.
-    The executor executes the code blocks in the order they are received.
-    The executor sanitizes command line commands using regular expression
-    match against a list of dangerous commands in order to prevent
-    self-destructive commands from being executed which may potentially
-    affect the host environment.
-    Currently, the executor only supports Python and shell scripts.
-    For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
-    block.
-
-    Args:
-        timeout (int): The timeout for code execution. Default is 60.
-        work_dir (str): The working directory for the code execution. If None,
-            a default working directory will be used. The default working
-            directory is the current directory ".".
-    """
-
     def __init__(
         self,
         image: str = "python:3-slim",
@@ -70,6 +48,35 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         auto_remove: bool = True,
         stop_container: bool = True,
     ):
+        """(Experimental) A code executor class that executes code through
+        a command line environment in a Docker container.
+
+        The executor first saves each code block in a file in the working
+        directory, and then executes the code file in the container.
+        The executor executes the code blocks in the order they are received.
+        Currently, the executor only supports Python and shell scripts.
+        For Python code, use the language "python" for the code block.
+        For shell scripts, use the language "bash", "shell", or "sh" for the code
+        block.
+
+        Args:
+            image (_type_, optional): Docker image to use for code execution.
+                Defaults to "python:3-slim".
+            container_name (Optional[str], optional): Name of the Docker container
+                which is created. If None, will autogenerate a name. Defaults to None.
+            timeout (int, optional): The timeout for code execution. Defaults to 60.
+            work_dir (Union[Path, str], optional): The working directory for the code
+                execution. Defaults to Path(".").
+            auto_remove (bool, optional): If true, will automatically remove the Docker
+                container when it is stopped. Defaults to True.
+            stop_container (bool, optional): If true, will automatically stop the
+                container when stop is called, when the context manager exits or when
+                the Python process exits with atext. Defaults to True.
+
+        Raises:
+            ValueError: On argument error, or if the container fails to start.
+        """
+
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
