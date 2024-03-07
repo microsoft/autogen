@@ -31,7 +31,7 @@ class BaseLogger(ABC):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
-        request: Dict[str, Union[List[Dict[str, str]], str, float]],
+        request: Dict[str, Union[float, str, List[Dict[str, str]]]],
         response: Union[str, ChatCompletion],
         is_cached: int,
         cost: float,
