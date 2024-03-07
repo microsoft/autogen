@@ -45,7 +45,7 @@
 
 ## What is AutoGen
 
-AutoGen is a programming framework for agentic AI, just like PyTorch for deep learning. It enables the development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
+AutoGen is a programming framework for agentic AI, like PyTorch for deep learning. It enables the development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
