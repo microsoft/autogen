@@ -410,6 +410,18 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     @staticmethod
     def message_generator(sender, recipient, context):
+        """
+        Generate an initial message with the given context for the RetrieveUserProxyAgent.
+        Args:
+            sender (Agent): the sender agent. It should be the instance of RetrieveUserProxyAgent.
+            recipient (Agent): the recipient agent. Usually it's the assistant agent.
+            context (dict): the context for the message generation. It should contain the following keys:
+                - problem (str): the problem to be solved.
+                - n_results (int): the number of results to be retrieved. Default is 20.
+                - search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
+        Returns:
+            str: the generated message ready to be sent to the recipient agent.
+        """
         sender._reset()
 
         problem = context.get("problem", "")
