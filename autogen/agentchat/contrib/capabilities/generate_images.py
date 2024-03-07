@@ -128,16 +128,19 @@ class ImageGeneration(AgentCapability):
             return False, None
 
         if self._should_generate_image(last_message):
-            prompt = self._analyze_text(
-                last_message,
-                "In detail, please summarize the provided prompt to generate the image described in the TEXT. DO NOT include any advice.",
-            )
+            assert self._text_analyzer is not None
 
-            image = self._image_generator.generate_image(prompt)
+            instructions = """In detail, please summarize the provided prompt to generate the image described in the
+            TEXT. DO NOT include any advice. RESPOND like the following example:
+            EXAMPLE: Blue background, 3D shapes, ...
+            """
+            analysis = self._text_analyzer.analyze_text(last_message, instructions)
+
+            image = self._image_generator.generate_image(self._extract_analysis(analysis))
 
             return True, {
                 "content": [
-                    {"type": "text", "text": f"I generated an image with the prompt: {prompt}"},
+                    {"type": "text", "text": f"I generated an image with the prompt: {analysis}"},
                     {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
                 ]
             }
@@ -145,29 +148,22 @@ class ImageGeneration(AgentCapability):
             return False, None
 
     def _should_generate_image(self, message: str) -> bool:
-        response = self._analyze_text(
-            message,
-            "Does any part of the TEXT ask the agent to generate or modify an image? Answer with just one word, yes or no.",
-        )
-        return "yes" in response.lower()
-
-    def _analyze_text(self, text_to_analyze: str, analysis_instructions: str) -> str:
         assert self._text_analyzer is not None
-        assert self._agent is not None
 
-        self._text_analyzer.reset()
-        self._agent.send(
-            recipient=self._text_analyzer, message=text_to_analyze, request_reply=False, silent=self._verbosity < 2
-        )
-        self._agent.send(
-            recipient=self._text_analyzer, message=analysis_instructions, request_reply=True, silent=self._verbosity < 2
-        )
+        instructions = """
+        Does any part of the TEXT ask the agent to generate an image?
+        The TEXT must explicitly mention that the image must be generated.
+        Answer with just one word, yes or no.
+        """
+        analysis = self._text_analyzer.analyze_text(message, instructions)
 
-        last_message = self._agent.last_message(self._text_analyzer)
-        if last_message is None:
-            return ""
+        return "yes" in self._extract_analysis(analysis).lower()
 
-        return code_utils.content_str(last_message["content"])
+    def _extract_analysis(self, analysis: Union[str, Dict, None]) -> str:
+        if isinstance(analysis, Dict):
+            return code_utils.content_str(analysis["content"])
+        else:
+            return code_utils.content_str(analysis)
 
 
 ### Helpers
