@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from time import sleep
 from types import TracebackType
 import uuid
 from typing import Dict, Optional, Type, Union

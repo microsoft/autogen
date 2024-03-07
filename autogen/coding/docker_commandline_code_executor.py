@@ -9,8 +9,9 @@ import uuid
 from typing import List, Optional, Type, Union
 import docker
 from docker.models.containers import Container
+from docker.errors import ImageNotFound
 
-from .local_commandline_code_executor import CommandlineCodeResult
+from .local_commandline_code_executor import CommandLineCodeResult
 
 from ..code_utils import TIMEOUT_MSG, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor
@@ -38,16 +39,15 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
-    """(Experimental) A code executor class that executes code through a local command line
-    environment.
-
-    **This will execute LLM generated code on the local machine.**
+    """(Experimental) A code executor class that executes code through
+    a command line environment in a Docker container.
 
     Each code block is saved as a file and executed in a separate process in
     the working directory, and a unique file is generated and saved in the
     working directory for each code block.
     The code blocks are executed in the order they are received.
-    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
+    Command line code is sanitized using regular expression match against a
+    list of dangerous commands in order to prevent self-destructive
     commands from being executed which may potentially affect the users environment.
     Currently the only supported languages is Python and shell scripts.
     For Python code, use the language "python" for the code block.
@@ -84,7 +84,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         # Check if the image exists
         try:
             client.images.get(image)
-        except docker.errors.ImageNotFound:
+        except ImageNotFound:
             logging.info(f"Pulling image {image}...")
             # Let the docker exception escape if this fails.
             client.images.pull(image)
@@ -142,7 +142,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         """(Experimental) Export a code extractor that can be used by an agent."""
         return MarkdownCodeExtractor()
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandlineCodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
@@ -177,7 +177,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
                 try:
                     path.relative_to(Path("/workspace"))
                 except ValueError:
-                    return CommandlineCodeResult(exit_code=1, output="Filename is not in the workspace")
+                    return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
             else:
                 # create a file with a automatically generated name
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
@@ -202,7 +202,8 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             if exit_code != 0:
                 break
 
-        return CommandlineCodeResult(exit_code=last_exit_code, output="".join(outputs), code_file=str(files[0]))
+        code_file = str(files[0]) if files else None
+        return CommandLineCodeResult(exit_code=last_exit_code, output="".join(outputs), code_file=code_file)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
