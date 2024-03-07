@@ -247,9 +247,9 @@ export const sampleAgentConfig = (user_id: string = "guestuser@gmail.com") => {
   const sampleAgent: IAgentFlowSpec = {
     type: "assistant",
     user_id: user_id,
-    description: "Sample assistant",
     config: {
       name: "sample_assistant",
+      description: "Sample assistant",
       llm_config: {
         config_list: [
           {
