@@ -134,9 +134,6 @@ class ImageGeneration(AgentCapability):
             )
             image = self._image_generator.generate_image(prompt)
 
-            # TODO: DELETE THIS AFTER TESTING
-            image.show()
-
             return True, {
                 "content": [
                     {"type": "text", "text": f"Generated an image with the prompt: {prompt}"},
