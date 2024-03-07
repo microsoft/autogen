@@ -12,16 +12,13 @@ from autogen.logger.logger_utils import get_current_ts, to_dict
 
 from openai import OpenAI, AzureOpenAI
 from openai.types.chat import ChatCompletion
-from typing import Dict, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from .base_logger import LLMConfig
 
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
-
-# this is a pointer to the module object instance itself
-this = sys.modules[__name__]
-this._session_id = None
 logger = logging.getLogger(__name__)
 
 __all__ = ("SqliteLogger",)
@@ -30,19 +27,19 @@ __all__ = ("SqliteLogger",)
 class SqliteLogger(BaseLogger):
     schema_version = 1
 
-    def __init__(self, config):
-        self.con = None
-        self.cur = None
+    def __init__(self, config: Dict[str, Any]):
         self.config = config
 
-    def start(self) -> str:
-        dbname = self.config["dbname"] if "dbname" in self.config else "logs.db"
-        this._session_id = str(uuid.uuid4())
-
         try:
-            self.con = sqlite3.connect(dbname)
+            self.dbname = self.config.get("dbname", "logs.db")
+            self.con = sqlite3.connect(self.dbname)
             self.cur = self.con.cursor()
+            self.session_id = str(uuid.uuid4())
+        except sqlite3.Error as e:
+            logger.error(f"[SqliteLogger] Failed to connect to database {self.dbname}: {e}")
 
+    def start(self) -> str:
+        try:
             query = """
                 CREATE TABLE IF NOT EXISTS chat_completions(
                     id INTEGER PRIMARY KEY,
@@ -117,21 +114,23 @@ class SqliteLogger(BaseLogger):
                 )
                 self.con.commit()
 
-            self._apply_migration(dbname)
+            self._apply_migration()
 
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] start logging error: {e}")
         finally:
-            return this._session_id
+            return self.session_id
 
-    def _get_current_db_version(self):
+    def _get_current_db_version(self) -> Union[None, int]:
         self.cur.execute("SELECT version_number FROM version ORDER BY id DESC LIMIT 1")
         result = self.cur.fetchone()
-        return result[0] if result else None
+        return result[0] if result is not None else None
 
     # Example migration script name format: 002_update_agents_table.sql
-    def _apply_migration(self, dbname, migrations_dir="./migrations"):
+    def _apply_migration(self, migrations_dir: str ="./migrations") -> None:
         current_version = self._get_current_db_version()
+        current_version = SqliteLogger.schema_version if current_version is None else current_version
+
         if os.path.isdir(migrations_dir):
             migrations = sorted(os.listdir(migrations_dir))
         else:
@@ -147,7 +146,7 @@ class SqliteLogger(BaseLogger):
                 self.con.commit()
 
                 latest_version = int(script.split("_")[0])
-                self.cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version))
+                self.cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version, ))
                 self.con.commit()
 
     def log_chat_completion(
@@ -155,7 +154,7 @@ class SqliteLogger(BaseLogger):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
-        request: Dict,
+        request: Dict[str, Union[List[Dict[str, str]], str, float]],
         response: Union[str, ChatCompletion],
         is_cached: int,
         cost: float,
@@ -184,7 +183,7 @@ class SqliteLogger(BaseLogger):
                     invocation_id,
                     client_id,
                     wrapper_id,
-                    this._session_id,
+                    self.session_id,
                     json.dumps(request),
                     response_messages,
                     is_cached,
@@ -197,7 +196,7 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_chat_completion error: {e}")
 
-    def log_new_agent(self, agent: ConversableAgent, init_args: Dict) -> None:
+    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         from autogen import Agent
 
         if self.con is None:
@@ -206,7 +205,7 @@ class SqliteLogger(BaseLogger):
         args = to_dict(
             init_args,
             exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"),
-            no_recursive=(Agent),
+            no_recursive=(Agent, ),
         )
 
         # We do an upsert since both the superclass and subclass may call this method (in that order)
@@ -225,7 +224,7 @@ class SqliteLogger(BaseLogger):
                 (
                     id(agent),
                     agent.client.wrapper_id if hasattr(agent, "client") and agent.client is not None else "",
-                    this._session_id,
+                    self.session_id,
                     agent.name if hasattr(agent, "name") and agent.name is not None else "",
                     type(agent).__name__,
                     json.dumps(args),
@@ -236,7 +235,7 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_new_agent error: {e}")
 
-    def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict) -> None:
+    def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         if self.con is None:
             return
 
@@ -253,7 +252,7 @@ class SqliteLogger(BaseLogger):
                 query,
                 (
                     id(wrapper),
-                    this._session_id,
+                    self.session_id,
                     json.dumps(args),
                     get_current_ts(),
                 ),
@@ -262,7 +261,7 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_new_wrapper error: {e}")
 
-    def log_new_client(self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict) -> None:
+    def log_new_client(self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
         if self.con is None:
             return
 
@@ -280,7 +279,7 @@ class SqliteLogger(BaseLogger):
                 (
                     id(client),
                     id(wrapper),
-                    this._session_id,
+                    self.session_id,
                     type(client).__name__,
                     json.dumps(args),
                     get_current_ts(),
@@ -293,9 +292,8 @@ class SqliteLogger(BaseLogger):
     def stop(self) -> None:
         if self.con:
             self.con.close()
-            self.con = None
-            self.cur = None
 
-    def get_connection(self) -> sqlite3.Connection:
+    def get_connection(self) -> Union[None, sqlite3.Connection]:
         if self.con:
             return self.con
+        return None

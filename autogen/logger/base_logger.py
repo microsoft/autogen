@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict, TYPE_CHECKING, Union
+from typing import Any, Dict, List, TYPE_CHECKING, Union
 import sqlite3
 import uuid
 
@@ -11,6 +11,8 @@ from openai.types.chat import ChatCompletion
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
+ConfigItem = Dict[str, Union[str, List[str]]]
+LLMConfig = Dict[str, Union[None, float, int, ConfigItem, List[ConfigItem]]]
 
 class BaseLogger(ABC):
     @abstractmethod
@@ -25,10 +27,11 @@ class BaseLogger(ABC):
 
     @abstractmethod
     def log_chat_completion(
+        self,
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
-        request: Dict,
+        request: Dict[str, Union[List[Dict[str, str]], str, float]],
         response: Union[str, ChatCompletion],
         is_cached: int,
         cost: float,
@@ -54,7 +57,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_new_agent(agent: ConversableAgent, init_args: Dict) -> None:
+    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         """
         Log the birth of a new agent.
 
@@ -65,7 +68,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict) -> None:
+    def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         """
         Log the birth of a new OpenAIWrapper.
 
@@ -76,7 +79,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_new_client(client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict) -> None:
+    def log_new_client(self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
         """
         Log the birth of a new OpenAIWrapper.
 
@@ -87,14 +90,14 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def stop() -> None:
+    def stop(self) -> None:
         """
         Close the connection to the logging database, and stop logging.
         """
         ...
 
     @abstractmethod
-    def get_connection() -> Union[sqlite3.Connection]:
+    def get_connection(self) -> Union[None, sqlite3.Connection]:
         """
         Return a connection to the logging database.
         """
