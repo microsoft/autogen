@@ -157,6 +157,10 @@ web_surfer = WebSurferAgent(
 maestro = Orchestrator(
     "orchestrator",
     agents=[assistant, user_proxy, web_surfer],
+    orchestration_hints=f"""
+- If the most recent message contains a codeblock beggining ```python or ```sh then {user_proxy.name} should speak next.
+- If the most recent message reports a ModuleNotFoundError, then {assistant.name} should speak next, and should be asked to provide an sh script that pip installs missing modules.
+""".strip(),
     llm_config=llm_config,
 )
 

@@ -13,6 +13,7 @@ class Orchestrator(ConversableAgent):
         self,
         name: str,
         agents: List[ConversableAgent] = [],
+        orchestration_hints: Optional[str] = None,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "TERMINATE",
@@ -34,6 +35,8 @@ class Orchestrator(ConversableAgent):
         )
 
         self._agents = agents
+        self._orchestration_hints = orchestration_hints
+
         self.orchestrated_messages = []
 
         # NOTE: Async reply functions are not yet supported with this contrib agent
@@ -92,8 +95,11 @@ class Orchestrator(ConversableAgent):
 
         #################
 
+        orchestration_hints_prompt = ""
+        if self._orchestration_hints:
+            orchestration_hints_prompt = f"As you answer the questions, consider the following:\n{self._orchestration_hints}\n\n"
+
         # Start by writing what we know
-        
         closed_book_prompt = f"""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 
 Here is the request:
@@ -192,7 +198,7 @@ To make progress on the request, please answer the following questions, includin
     - Who should speak next? (select from: {names})
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
 
-Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
+{orchestration_hints_prompt}Finally, please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
     {{
         "is_request_satisfied": {{
