@@ -73,6 +73,7 @@ Reply "TERMINATE" in the end when everything is done.
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
             llm_config (dict): llm inference configuration.
+                Note: you must set `model` in llm_config. It will be used to compute the token count.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
@@ -121,6 +122,8 @@ Reply "TERMINATE" in the end when everything is done.
             self.llm_compress_config = False
             self.compress_client = None
         else:
+            if "model" not in llm_config:
+                raise ValueError("llm_config must contain the 'model' field.")
             self.llm_compress_config = self.llm_config.copy()
             # remove functions
             if "functions" in self.llm_compress_config:
