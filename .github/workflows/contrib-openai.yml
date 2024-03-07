@@ -4,7 +4,7 @@
 name: OpenAI4ContribTests
 
 on:
-  pull_request_target:
+  pull_request:
     branches: ['main']
     paths:
       - 'autogen/**'
@@ -173,7 +173,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_teachable_agent.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
