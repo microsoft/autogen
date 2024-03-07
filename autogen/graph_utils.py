@@ -1,7 +1,7 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 import logging
 
-from autogen.agentchat.groupchat import Agent
+from .agentchat.groupchat import Agent
 
 
 def has_self_loops(allowed_speaker_transitions: Dict) -> bool:
