@@ -1,13 +1,14 @@
 import os
+from pathlib import Path
 import re
 import uuid
 import warnings
-from typing import Any, ClassVar, List, Optional
-from pydantic import BaseModel, Field, field_validator
+from typing import ClassVar, List, Optional, Union
+from pydantic import Field
 
 from ..agentchat.agent import LLMAgent
 from ..code_utils import execute_code
-from .base import CodeBlock, CodeExtractor, CodeResult
+from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
 __all__ = (
@@ -25,33 +26,7 @@ class CommandLineCodeResult(CodeResult):
     )
 
 
-class LocalCommandLineCodeExecutor(BaseModel):
-    """(Experimental) A code executor class that executes code through a local command line
-    environment.
-
-    **This will execute LLM generated code on the local machine.**
-
-    Each code block is saved as a file and executed in a separate process in
-    the working directory, and a unique file is generated and saved in the
-    working directory for each code block.
-    The code blocks are executed in the order they are received.
-    Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
-    commands from being executed which may potentially affect the users environment.
-    Currently the only supported languages is Python and shell scripts.
-    For Python code, use the language "python" for the code block.
-    For shell scripts, use the language "bash", "shell", or "sh" for the code
-    block.
-
-    Args:
-        timeout (int): The timeout for code execution. Default is 60.
-        work_dir (str): The working directory for the code execution. If None,
-            a default working directory will be used. The default working
-            directory is the current directory ".".
-        system_message_update (str): The system message update for agent that
-            produces code to run on this executor.
-            Default is `LocalCommandLineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
-    """
-
+class LocalCommandLineCodeExecutor(CodeExecutor):
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
         str
     ] = """
@@ -64,12 +39,51 @@ When using code, you must indicate the script type in the code block. The user c
 If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
 """
 
-    timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
-    work_dir: str = Field(default=".", description="The working directory for the code execution.")
-    system_message_update: str = Field(
-        default=DEFAULT_SYSTEM_MESSAGE_UPDATE,
-        description="The system message update for agent that produces code to run on this executor.",
-    )
+    def __init__(
+        self,
+        timeout: int = 60,
+        work_dir: Union[Path, str] = Path("."),
+        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
+    ):
+        """(Experimental) A code executor class that executes code through a local command line
+        environment.
+
+        **This will execute LLM generated code on the local machine.**
+
+        Each code block is saved as a file and executed in a separate process in
+        the working directory, and a unique file is generated and saved in the
+        working directory for each code block.
+        The code blocks are executed in the order they are received.
+        Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
+        commands from being executed which may potentially affect the users environment.
+        Currently the only supported languages is Python and shell scripts.
+        For Python code, use the language "python" for the code block.
+        For shell scripts, use the language "bash", "shell", or "sh" for the code
+        block.
+
+        Args:
+            timeout (int): The timeout for code execution. Default is 60.
+            work_dir (str): The working directory for the code execution. If None,
+                a default working directory will be used. The default working
+                directory is the current directory ".".
+            system_message_update (str): The system message update for agent that
+            produces code to run on this executor.
+            Default is `LocalCommandLineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
+
+        """
+
+        if timeout < 1:
+            raise ValueError("Timeout must be greater than or equal to 1.")
+
+        if isinstance(work_dir, str):
+            work_dir = Path(work_dir)
+
+        if not work_dir.exists():
+            raise ValueError(f"Working directory {work_dir} does not exist.")
+
+        self._timeout = timeout
+        self._work_dir: Path = work_dir
+        self._system_message_update = system_message_update
 
     class UserCapability:
         """An AgentCapability class that gives agent ability use a command line
@@ -84,18 +98,21 @@ If you want the user to save the code in a file before executing it, put # filen
             message."""
             agent.update_system_message(agent.system_message + self.system_message_update)
 
-    @field_validator("work_dir")
-    @classmethod
-    def _check_work_dir(cls, v: str) -> str:
-        if os.path.exists(v):
-            return v
-        raise ValueError(f"Working directory {v} does not exist.")
-
     @property
     def user_capability(self) -> "LocalCommandLineCodeExecutor.UserCapability":
         """Export a user capability for this executor that can be added to
         an agent that produces code to be executed by this executor."""
-        return LocalCommandLineCodeExecutor.UserCapability(self.system_message_update)
+        return LocalCommandLineCodeExecutor.UserCapability(self._system_message_update)
+
+    @property
+    def timeout(self) -> int:
+        """(Experimental) The timeout for code execution."""
+        return self._timeout
+
+    @property
+    def work_dir(self) -> Path:
+        """(Experimental) The working directory for the code execution."""
+        return self._work_dir
 
     @property
     def code_extractor(self) -> CodeExtractor:
@@ -133,7 +150,7 @@ If you want the user to save the code in a file before executing it, put # filen
         Returns:
             CommandLineCodeResult: The result of the code execution."""
         logs_all = ""
-        for i, code_block in enumerate(code_blocks):
+        for code_block in code_blocks:
             lang, code = code_block.language, code_block.code
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
@@ -144,8 +161,8 @@ If you want the user to save the code in a file before executing it, put # filen
                 exitcode, logs, _ = execute_code(
                     code=code,
                     lang=lang,
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
+                    timeout=self._timeout,
+                    work_dir=str(self._work_dir),
                     filename=filename,
                     use_docker=False,
                 )
@@ -154,8 +171,8 @@ If you want the user to save the code in a file before executing it, put # filen
                 exitcode, logs, _ = execute_code(
                     code=code,
                     lang="python",
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
+                    timeout=self._timeout,
+                    work_dir=str(self._work_dir),
                     filename=filename,
                     use_docker=False,
                 )
@@ -165,7 +182,8 @@ If you want the user to save the code in a file before executing it, put # filen
             logs_all += "\n" + logs
             if exitcode != 0:
                 break
-        code_filename = os.path.join(self.work_dir, filename) if filename is not None else None
+
+        code_filename = str(self._work_dir / filename) if filename is not None else None
         return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
 
     def restart(self) -> None:
