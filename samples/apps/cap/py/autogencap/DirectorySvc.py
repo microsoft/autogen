@@ -193,6 +193,7 @@ def main():
             time.sleep(0.5)
         except KeyboardInterrupt:
             Info("DirectorySvc", "KeyboardInterrupt.  Stopping the DirectorySvc.")
+            break
 
     directory_svc.stop()
     proxy.stop()
