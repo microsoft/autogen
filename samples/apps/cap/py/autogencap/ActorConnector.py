@@ -16,7 +16,7 @@ class ActorConnector:
 
         self._resp_socket = context.socket(zmq.SUB)
         self._resp_socket.setsockopt(zmq.LINGER, 0)
-        self._resp_socket.setsockopt(zmq.RCVTIMEO, 100)
+        self._resp_socket.setsockopt(zmq.RCVTIMEO, 10000)
         self._resp_socket.connect(xpub_url)
         self._resp_topic = str(uuid.uuid4())
         Debug("AgentConnector", f"subscribe to: {self._resp_topic}")
