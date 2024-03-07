@@ -182,7 +182,7 @@ def main():
     # -- Exits when the user presses Ctrl+C --
     status_interval = 10
     last_time = time.time()
-    while directory_svc._run:
+    while True:
         # print a message every n seconds
         current_time = time.time()
         elapsed_time = current_time - last_time
