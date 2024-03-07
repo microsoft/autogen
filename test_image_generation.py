@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from PIL.Image import Image
 
 import autogen
-from autogen.agentchat import groupchat
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities import generate_images
 from autogen.oai import openai_utils
@@ -31,12 +30,18 @@ def main():
     critic = critic_agent()
 
     img_prompt = "a happy robot is showing a sign with 'I Love AutoGen'"
+    # img_prompt = "Ask me how I'm doing"
 
-    dalle.initiate_chat(critic, message=img_prompt, clear_history=False)
+    dalle.initiate_chat(critic, message=img_prompt)
+
+    img = extract_img(dalle, critic)
+    img.show()
 
 
 def image_generator_agent() -> autogen.ConversableAgent:
-    agent = autogen.ConversableAgent(name="dalle", llm_config=gpt_config(), max_consecutive_auto_reply=2)
+    agent = autogen.ConversableAgent(
+        name="dalle", llm_config=gpt_config(), max_consecutive_auto_reply=2, human_input_mode="NEVER"
+    )
     dalle_gen = generate_images.DalleImageGenerator(llm_config=dalle_config(), cache_settings={"directory": ".cache/"})
     image_gen_capability = generate_images.ImageGeneration(image_generator=dalle_gen)
 
@@ -46,23 +51,15 @@ def image_generator_agent() -> autogen.ConversableAgent:
 
 def critic_agent() -> autogen.ConversableAgent:
     return autogen.ConversableAgent(
-        name="critic", llm_config=gpt_v_config(), system_message=CRITIC_SYSTEM_MESSAGE, max_consecutive_auto_reply=2
+        name="critic",
+        llm_config=gpt_v_config(),
+        system_message=CRITIC_SYSTEM_MESSAGE,
+        max_consecutive_auto_reply=2,
+        human_input_mode="NEVER",
     )
 
 
-def art_studio() -> groupchat.GroupChatManager:
-    gc = groupchat.GroupChat(
-        admin_name=None,
-        agents=[image_generator_agent(), critic_agent()],
-        messages=[],
-        speaker_selection_method="round_robin",
-        max_round=4,
-    )
-    return groupchat.GroupChatManager(groupchat=gc, llm_config=False)
-
-
-def extract_img(sender: autogen.ConversableAgent, recipient: autogen.ConversableAgent) -> Optional[Image]:
-    # From notebook/agentchat_dalle_and_gpt4v.ipynb
+def extract_img(sender: autogen.ConversableAgent, recipient: autogen.ConversableAgent) -> Image:
     """
     Extracts an image from the last message of an agent and converts it to a PIL image.
 
@@ -82,23 +79,23 @@ def extract_img(sender: autogen.ConversableAgent, recipient: autogen.Conversable
     - The `_to_pil` function is used to convert the extracted image data into a PIL image.
     - If no <img> tag is found, or if the image data is not correctly formatted, the function may raise an error.
     """
-    last_message = recipient.last_message(sender)
-    print(f"Last message: {last_message}")
     img_data = None
+    last_message = sender.last_message(recipient)["content"]
 
     if isinstance(last_message, str):
-        img_data = re.findall("<img (.*)>", last_message)
-        if img_data:
-            img_data = img_data[0]
+        img_data = re.findall("<img (.*)>", last_message)[0]
     elif isinstance(last_message, list):
         # The GPT-4V format, where the content is an array of data
         assert isinstance(last_message[0], dict)
-        img_data = last_message[0].get("image_url", {}).get("url")
+        for msg in last_message:
+            if msg["type"] == "image_url":
+                img_data = msg["image_url"]["url"]
+                break
 
-    if img_data:
-        return img_utils._to_pil(img_data)
-    else:
-        return None
+    if img_data is None:
+        raise ValueError("No image data found in the last message.")
+
+    return img_utils.get_pil_image(img_data)
 
 
 def gpt_config() -> Dict:

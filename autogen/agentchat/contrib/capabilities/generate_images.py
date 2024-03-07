@@ -130,14 +130,15 @@ class ImageGeneration(AgentCapability):
         if self._should_generate_image(last_message):
             prompt = self._analyze_text(
                 last_message,
-                "In detail, please provide the prompt to generate the image described in the TEXT. DO NOT include any advice.",
+                "In detail, please summarize the provided prompt to generate the image described in the TEXT. DO NOT include any advice.",
             )
+
             image = self._image_generator.generate_image(prompt)
 
             return True, {
                 "content": [
-                    {"type": "text", "text": f"Generated an image with the prompt: {prompt}"},
-                    {"type": "image_url", "image_url": {"url": image}},
+                    {"type": "text", "text": f"I generated an image with the prompt: {prompt}"},
+                    {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
                 ]
             }
         else:
