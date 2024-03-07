@@ -18,6 +18,7 @@ def simple_actor_demo():
     greeter_link = network.lookup_actor("Greeter")
     # Send a message to the actor
     greeter_link.send_txt_msg("Hello World!")
+    time.sleep(100)
     # Cleanup
     greeter_link.close()
     network.disconnect()

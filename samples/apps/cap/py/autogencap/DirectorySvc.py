@@ -30,6 +30,7 @@ class DirectoryActor(Actor):
         return True
 
     def _ping_msg_handler(self, topic: str, msg_type: str, msg: bytes, sender_topic: str):
+        Info("DirectorySvc", f"Ping received: {sender_topic}")
         pong = Pong()
         serialized_msg = pong.SerializeToString()
         sender_connection = ActorConnector(self._context, sender_topic)
@@ -87,6 +88,9 @@ class DirectorySvc:
         if self._no_other_directory():
             self._directory_actor = DirectoryActor(Directory_Svc_Topic, "Directory Service")
             self._directory_actor.start(self._context)
+            Info("DirectorySvc", "Directory service started.")
+        else:
+            Info("DirectorySvc", "Another directory service is running. This instance will not start.")
 
     def stop(self):
         if self._directory_actor:

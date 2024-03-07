@@ -26,6 +26,12 @@ class Actor:
 
     def _recv_thread(self):
         Debug(self.actor_name, "recv thread started")
+        self._socket: zmq.Socket = self._context.socket(zmq.SUB)
+        self._socket.setsockopt(zmq.RCVTIMEO, 500)
+        self._socket.connect(xpub_url)
+        str_topic = f"{self.actor_name}"
+        Debug(self.actor_name, f"subscribe to: {str_topic}")
+        self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         try:
             while self.run:
                 try:
@@ -56,12 +62,6 @@ class Actor:
     def start(self, context: zmq.Context):
         self._context = context
         self.run: bool = True
-        self._socket: zmq.Socket = context.socket(zmq.SUB)
-        self._socket.setsockopt(zmq.RCVTIMEO, 500)
-        self._socket.connect(xpub_url)
-        str_topic = f"{self.actor_name}"
-        Debug(self.actor_name, f"subscribe to: {str_topic}")
-        self._socket.setsockopt_string(zmq.SUBSCRIBE, f"{str_topic}")
         self._thread = threading.Thread(target=self._recv_thread)
         self._thread.start()
         time.sleep(0.01)

@@ -25,7 +25,7 @@ def parse_args():
     # Set the log level
     # Print log level string based on names in debug_log.py
     print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
-    IGNORED_LOG_CONTEXTS.extend(["BROKER"])
+    # IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
 
 ####################################################################################################

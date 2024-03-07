@@ -38,8 +38,10 @@ class ActorConnector:
         self._pub_socket.send_multipart(
             [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
         )
+        time.sleep(0.01)  # Let the network do things.
         for i in range(retry + 1):
             try:
+                self._resp_socket.setsockopt(zmq.RCVTIMEO, 10000)
                 resp_topic, resp_msg_type, resp_sender_topic, resp = self._resp_socket.recv_multipart()
                 return resp_topic, resp_msg_type, resp_sender_topic, resp
             except zmq.Again:
