@@ -150,7 +150,7 @@ If you want the user to save the code in a file before executing it, put # filen
         Returns:
             CommandLineCodeResult: The result of the code execution."""
         logs_all = ""
-        for i, code_block in enumerate(code_blocks):
+        for code_block in code_blocks:
             lang, code = code_block.language, code_block.code
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
@@ -161,8 +161,8 @@ If you want the user to save the code in a file before executing it, put # filen
                 exitcode, logs, _ = execute_code(
                     code=code,
                     lang=lang,
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
+                    timeout=self._timeout,
+                    work_dir=str(self._work_dir),
                     filename=filename,
                     use_docker=False,
                 )
@@ -171,8 +171,8 @@ If you want the user to save the code in a file before executing it, put # filen
                 exitcode, logs, _ = execute_code(
                     code=code,
                     lang="python",
-                    timeout=self.timeout,
-                    work_dir=self.work_dir,
+                    timeout=self._timeout,
+                    work_dir=str(self._work_dir),
                     filename=filename,
                     use_docker=False,
                 )
@@ -182,7 +182,8 @@ If you want the user to save the code in a file before executing it, put # filen
             logs_all += "\n" + logs
             if exitcode != 0:
                 break
-        code_filename = os.path.join(self.work_dir, filename) if filename is not None else None
+
+        code_filename = str(self._work_dir / filename) if filename is not None else None
         return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
 
     def restart(self) -> None:
