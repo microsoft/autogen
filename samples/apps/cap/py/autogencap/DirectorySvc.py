@@ -169,9 +169,10 @@ def main():
     directory_svc = DirectorySvc(context)
     directory_svc.start()
     
-    # # register an actor
+    # # How do you register an actor?
     # directory_svc.register_actor_by_name("my_actor")
-    # # look up an actor
+    #
+    # # How do you look up an actor?
     # actor: ActorInfo = directory_svc.lookup_actor_by_name("my_actor")
     # if actor is not None:
     #     Info("main", f"Found actor: {actor.name}")
@@ -180,7 +181,7 @@ def main():
     # status and printing status every few seconds.  This is
     # a good place to print other statistics captured as the broker runs.
     # -- Exits when the user presses Ctrl+C --
-    status_interval = 10
+    status_interval = 300 # seconds
     last_time = time.time()
     while True:
         # print a message every n seconds

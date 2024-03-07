@@ -89,7 +89,7 @@ def main():
         Warn("BROKER", "Failed to start.")
         return
 
-    status_interval = 10
+    status_interval = 300  # seconds
     last_time = time.time()
 
     # Broker is running in a separate thread. Here we are watching the
