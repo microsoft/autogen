@@ -1,17 +1,15 @@
-from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
-from diskcache import Cache
 import re
+from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
-
+from diskcache import Cache
 from openai import OpenAI
+from PIL.Image import Image
+
+from autogen import ConversableAgent, code_utils
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
-from autogen import code_utils
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-
-from PIL.Image import Image
-from autogen import ConversableAgent
 
 SYSTEM_MESSAGE = "You've been given the special ability to generate images."
 DESCRIPTION_MESSAGE = "This agent has the ability to generate images."
@@ -58,6 +56,7 @@ class DalleImageGenerator:
 
     def generate_image(self, prompt: str) -> Image:
         # Use cache if user has specified a cache directory
+        cache = None
         if self._cache_settings:
             cache = Cache(**self._cache_settings)
             key = (self._model, prompt, self._resolution, self._quality, self._num_images)
@@ -76,7 +75,10 @@ class DalleImageGenerator:
 
         image_url = response.data[0].url
         img_data = img_utils.get_image_data(image_url)
-        cache[key] = img_data
+
+        if cache:
+            cache[key] = img_data
+
         return img_utils._to_pil(img_data)
 
 
@@ -112,7 +114,7 @@ class ImageGeneration(AgentCapability):
 
     def _image_gen_reply(
         self,
-        reciepient: ConversableAgent,
+        recipient: ConversableAgent,
         messages: Optional[List[Dict]],
         sender: Optional[Agent] = None,
         config: Optional[Any] = None,
@@ -120,7 +122,7 @@ class ImageGeneration(AgentCapability):
         if messages is None:
             return False, None
 
-        last_message = code_utils.content_str([messages[-1]])
+        last_message = code_utils.content_str(messages[-1]["content"])
 
         if not last_message:
             return False, None
@@ -167,7 +169,7 @@ class ImageGeneration(AgentCapability):
         if last_message is None:
             return ""
 
-        return code_utils.content_str([last_message])
+        return code_utils.content_str(last_message["content"])
 
 
 ### Helpers
