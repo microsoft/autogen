@@ -28,12 +28,12 @@ __all__ = ("SqliteLogger",)
 class SqliteLogger(BaseLogger):
     schema_version = 1
 
-    def __init__(self, config: Dict[str, Any], **kwargs: Any):
+    def __init__(self, config: Dict[str, Any]):
         self.config = config
 
         try:
             self.dbname = self.config.get("dbname", "logs.db")
-            self.con = sqlite3.connect(self.dbname, check_same_thread=False, **kwargs)
+            self.con = sqlite3.connect(self.dbname, check_same_thread=False)
             self.cur = self.con.cursor()
             self.session_id = str(uuid.uuid4())
         except sqlite3.Error as e:
