@@ -42,14 +42,14 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
     """(Experimental) A code executor class that executes code through
     a command line environment in a Docker container.
 
-    Each code block is saved as a file and executed in a separate process in
-    the working directory, and a unique file is generated and saved in the
-    working directory for each code block.
-    The code blocks are executed in the order they are received.
-    Command line code is sanitized using regular expression match against a
-    list of dangerous commands in order to prevent self-destructive
-    commands from being executed which may potentially affect the users environment.
-    Currently the only supported languages is Python and shell scripts.
+    The executor first saves each code block in a file in the working
+    directory, and then executes the code file in the container.
+    The executor executes the code blocks in the order they are received.
+    The executor sanitizes command line commands using regular expression
+    match against a list of dangerous commands in order to prevent
+    self-destructive commands from being executed which may potentially
+    affect the host environment.
+    Currently, the executor only supports Python and shell scripts.
     For Python code, use the language "python" for the code block.
     For shell scripts, use the language "bash", "shell", or "sh" for the code
     block.
