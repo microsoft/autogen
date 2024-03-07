@@ -270,9 +270,6 @@ install via pip and use --quiet option.
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
         f.write(prompt)
-    # overwrite skills.py in work_dir
-    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
 
     return instruction + prompt
 
