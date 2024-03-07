@@ -27,7 +27,6 @@ class CommandLineCodeResult(CodeResult):
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-
     DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
         str
     ] = """
@@ -104,7 +103,6 @@ If you want the user to save the code in a file before executing it, put # filen
         """Export a user capability for this executor that can be added to
         an agent that produces code to be executed by this executor."""
         return LocalCommandLineCodeExecutor.UserCapability(self._system_message_update)
-
 
     @property
     def timeout(self) -> int:
