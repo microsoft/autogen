@@ -159,10 +159,9 @@ Reply "TERMINATE" in the end when everything is done.
             if not (isinstance(trigger_count, int) or isinstance(trigger_count, float)) or trigger_count <= 0:
                 raise ValueError("trigger_count must be a positive number.")
             if isinstance(trigger_count, float) and 0 < trigger_count <= 1:
-                # _model = self.llm_config["model"]
-                # TODO: ERROR: self.llm_config does not have "model". Using gpt-3.5-turbo as a temporary fix.
-                _model = "gpt-3.5-turbo"
-                self.compress_config["trigger_count"] = int(trigger_count * get_max_token_limit(_model))
+                self.compress_config["trigger_count"] = int(
+                    trigger_count * get_max_token_limit(self.llm_config["model"])
+                )
                 trigger_count = self.compress_config["trigger_count"]
             init_count = self._compute_init_token_count()
             if trigger_count < init_count:
@@ -221,13 +220,10 @@ Reply "TERMINATE" in the end when everything is done.
             return 0
 
         func_count = 0
-        # _model = self.llm_config["model"]
-        # TODO: ERROR: self.llm_config does not have "model". Using gpt-3.5-turbo as a temporary fix.
-        _model = "gpt-3.5-turbo"
         if "functions" in self.llm_config:
-            func_count = num_tokens_from_functions(self.llm_config["functions"], _model)
+            func_count = num_tokens_from_functions(self.llm_config["functions"], self.llm_config["model"])
 
-        return func_count + count_token(self._oai_system_message, _model)
+        return func_count + count_token(self._oai_system_message, self.llm_config["model"])
 
     def _manage_history_on_token_limit(self, messages, token_used, max_token_allowed, model):
         """Manage the message history with different modes when token limit is reached.
@@ -302,14 +298,13 @@ Reply "TERMINATE" in the end when everything is done.
         TODO: async compress
         TODO: maintain a list for old oai messages (messages before compression)
         """
+        llm_config = self.llm_config if config is None else config
         if self.compress_config is False:
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # model = llm_config["model"]
-        # TODO: ERROR: self.llm_config does not have "model". Using gpt-3.5-turbo as a temporary fix.
-        model = "gpt-3.5-turbo"
+        model = llm_config["model"]
         init_token_count = self._compute_init_token_count()
         token_used = init_token_count + count_token(messages, model)
         final, compressed_messages = self._manage_history_on_token_limit(
