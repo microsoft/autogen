@@ -3,4 +3,4 @@
 
 using AutoGen.BasicSample;
 
-await Example10_SemanticKernel.RunAsync();
+await TwoAgent_Fill_Application.RunAsync();

@@ -27,7 +27,7 @@ public class GroupChat : IGroupChat
     /// <param name="initializeMessages"></param>
     public GroupChat(
         IEnumerable<IAgent> members,
-        IAgent? admin,
+        IAgent? admin = null,
         IEnumerable<IMessage>? initializeMessages = null,
         Workflow? workflow = null)
     {
