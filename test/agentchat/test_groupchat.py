@@ -1,7 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 from typing import Any, Dict, List, Optional, Type
-from autogen import AgentNameConflict, Agent, GroupChat, Agent, GroupChat
+from autogen import AgentNameConflict, Agent, GroupChat
 import pytest
 from unittest import mock
 import builtins

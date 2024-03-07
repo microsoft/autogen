@@ -3,7 +3,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Tuple, Callable, Callable
+from typing import Dict, List, Optional, Union, Tuple, Callable
 
 
 from ..code_utils import content_str

@@ -15,14 +15,16 @@ and interacting with external environments and tools. To facilitate the developm
 that conceptualizes complex task-solving processes backed by LLMs as state machines. With proper construction of states and definition of
 state transitions, we can ground the progress of task-solving, ensuring clear tracking and management of LLMs' responses throughout the task-solving process.
 
+We evaluate **StateFlow** on the SQL task and Bash task from the InterCode benchmark. 
+The results demonstrate the advantages of **StateFlow** over existing methods in terms of both effectiveness and efficiency.
+For instance, in the SQL task with GPT-4-turbo, **StateFlow** improves the success rate by 10% compared to ReAct prompting, while reducing costs by a factor of 4.  
 
+## Implement StateFlow With GroupChat
 AutoGen GroupChat can be used to build a state-oriented workflow. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
 introduces a way how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
 GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for the next speaker.
 These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
 
-
-## StateFlow Example
 We present an example of how to build a state-oriented workflow using GroupChat.
 We define a custom speaker selection function to be passed into the `speaker_selection_method` parameter of the GroupChat.
 Here, the task is to retrieve research papers related to a given topic, and create a markdown table for these papers.
@@ -55,9 +57,6 @@ scientist = autogen.AssistantAgent(
    system_message="""You are the Scientist. Please categorize papers after seeing their abstracts printed and create a markdown table with Domain, Title, Authors, Summary and Link. Return 'TERMINATE' in the end.""",
 )
 ```
-
-
-
 
 In the Figure, we define a simple workflow for research with 4 states: Init, Retrieve, Reserach and End. Within each state, we will call different agents to perform the tasks.
 - Init: We use the initializer to start the workflow.
@@ -103,7 +102,6 @@ We recommend implementing the transition logic for each speaker in the customize
 Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
 For example, we can always default to the built-in `auto` method to employ a LLM-based groupchat manager to select the next speaker.
 When returning `None`, the groupchat will terminate.
-
 
 
 
