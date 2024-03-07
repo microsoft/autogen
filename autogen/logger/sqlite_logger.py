@@ -127,7 +127,7 @@ class SqliteLogger(BaseLogger):
         return result[0] if result is not None else None
 
     # Example migration script name format: 002_update_agents_table.sql
-    def _apply_migration(self, migrations_dir: str ="./migrations") -> None:
+    def _apply_migration(self, migrations_dir: str = "./migrations") -> None:
         current_version = self._get_current_db_version()
         current_version = SqliteLogger.schema_version if current_version is None else current_version
 
@@ -146,7 +146,7 @@ class SqliteLogger(BaseLogger):
                 self.con.commit()
 
                 latest_version = int(script.split("_")[0])
-                self.cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version, ))
+                self.cur.execute("UPDATE version SET version_number = ? WHERE id = 1", (latest_version,))
                 self.con.commit()
 
     def log_chat_completion(
@@ -205,7 +205,7 @@ class SqliteLogger(BaseLogger):
         args = to_dict(
             init_args,
             exclude=("self", "__class__", "api_key", "organization", "base_url", "azure_endpoint"),
-            no_recursive=(Agent, ),
+            no_recursive=(Agent,),
         )
 
         # We do an upsert since both the superclass and subclass may call this method (in that order)
@@ -261,7 +261,9 @@ class SqliteLogger(BaseLogger):
         except sqlite3.Error as e:
             logger.error(f"[SqliteLogger] log_new_wrapper error: {e}")
 
-    def log_new_client(self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
+    def log_new_client(
+        self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+    ) -> None:
         if self.con is None:
             return
 

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 ConfigItem = Dict[str, Union[str, List[str]]]
 LLMConfig = Dict[str, Union[None, float, int, ConfigItem, List[ConfigItem]]]
 
+
 class BaseLogger(ABC):
     @abstractmethod
     def start(self) -> str:
@@ -79,7 +80,9 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_new_client(self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
+    def log_new_client(
+        self, client: Union[AzureOpenAI, OpenAI], wrapper: OpenAIWrapper, init_args: Dict[str, Any]
+    ) -> None:
         """
         Log the birth of a new OpenAIWrapper.
 
