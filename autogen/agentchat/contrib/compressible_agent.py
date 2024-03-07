@@ -123,7 +123,7 @@ Reply "TERMINATE" in the end when everything is done.
             self.compress_client = None
         else:
             if "model" not in llm_config:
-                raise ValueError("llm_config must contain the 'model' key.")
+                raise ValueError("llm_config must contain the 'model' field.")
             self.llm_compress_config = self.llm_config.copy()
             # remove functions
             if "functions" in self.llm_compress_config:
