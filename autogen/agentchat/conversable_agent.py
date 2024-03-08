@@ -1273,7 +1273,7 @@ class ConversableAgent(LLMAgent):
                 continue
 
             num_code_blocks = len(code_blocks)
-            if num_code_blocks > 1:
+            if num_code_blocks == 1:
                 print(
                     colored(
                         f"\n>>>>>>>> EXECUTING CODE BLOCK (inferred language is {code_blocks[0].language})...",
