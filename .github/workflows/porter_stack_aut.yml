@@ -1,0 +1,27 @@
+"on":
+  push:
+    branches:
+    - main
+name: Deploy to aut
+jobs:
+  porter-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Set Github tag
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Setup porter
+      uses: porter-dev/setup-porter@v0.1.0
+    - name: Deploy stack
+      timeout-minutes: 30
+      run: exec porter apply
+      env:
+        PORTER_CLUSTER: "3616"
+        PORTER_HOST: https://dashboard.getporter.dev
+        PORTER_PR_NUMBER: ${{ github.event.number }}
+        PORTER_PROJECT: "11608"
+        PORTER_STACK_NAME: aut
+        PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
+        PORTER_TOKEN: ${{ secrets.PORTER_STACK_11608_3616 }}
