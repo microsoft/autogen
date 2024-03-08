@@ -8,7 +8,9 @@ on:  # Trigger the workflow on pull request or merge
 
 defaults:
   run:
-    shell: bash
+    shell: base
+    using: 'node20'
+    working-directory: 'cleanup.js'
 permissions: {}
     # actions: read
   # checks: read
