@@ -20,6 +20,11 @@ topics:
     that can be decomposed into these patterns, and leverage the code executors
     to make the agents more powerful.
 
+## Dig Deeper
+
+- Read the [topic docs](/docs/topics) to learn more
+- Read the examples and guides in the [notebooks section](/docs/notebooks)
+
 ## Get Help
 
 If you have any questions, you can ask in our [GitHub
@@ -33,8 +38,3 @@ our [Discord Server](https://discord.gg/pAbnFJrkgZ).
 - Contribute your work to our [gallery](../Gallery)
 - Follow our [contribution guide](../Contribute) to make a pull request to AutoGen
 - You can also share your work with the community on the Discord server.
-
-## Dig Deeper
-
-- Read the [topic docs](/docs/topics) to learn more
-- Read the examples and guides in the [notebooks section](/docs/notebooks)
