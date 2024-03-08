@@ -27,7 +27,7 @@ import pandas as pd
 import pdfminer
 import pdfminer.high_level
 
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, parse_qs, quote, unquote, urlunparse
 from urllib.request import url2pathname
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
@@ -64,6 +64,37 @@ except ModuleNotFoundError:
 
 
 class _CustomMarkdownify(markdownify.MarkdownConverter):
+    def convert_a(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes Javascript links and escapes URIs."""
+        prefix, suffix, text = markdownify.chomp(text)
+        if not text:
+            return ''
+        href = el.get('href')
+        title = el.get('title')
+
+        # Escape URIs and skip non-http or file schemes
+        if href:
+            try:
+                parsed_url = urlparse(href)
+                if parsed_url.scheme and parsed_url.scheme.lower() not in ["http", "https", "file"]:
+                    return '%s%s%s' % (prefix, text, suffix)
+                href = urlunparse(parsed_url._replace(path=quote(unquote(parsed_url.path))))
+            except ValueError: # It's not clear if this ever gets thrown
+                return '%s%s%s' % (prefix, text, suffix)
+
+        # For the replacement see #29: text nodes underscores are escaped
+        if (self.options['autolinks']
+                and text.replace(r'\_', '_') == href
+                and not title
+                and not self.options['default_title']):
+            # Shortcut syntax
+            return '<%s>' % href
+        if self.options['default_title'] and not title:
+            title = href
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        return '%s[%s](%s%s)%s' % (prefix, text, href, title_part, suffix) if href else text
+
+
     def convert_img(self, el, text, convert_as_inline):
         """ Same as usual converter, but removes data URIs """
 
@@ -199,7 +230,6 @@ class WikipediaConverter(DocumentConverter):
             title=main_title,
             text_content=webpage_text,
         )
-
 
 class YouTubeConverter(DocumentConverter):
     """Handle YouTube specially, focusing on the video title, description, and transcript."""
