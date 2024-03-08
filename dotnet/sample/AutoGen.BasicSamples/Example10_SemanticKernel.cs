@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example09_SemanticKernel.cs
+// Example10_SemanticKernel.cs
 
 using System.ComponentModel;
 using AutoGen.SemanticKernel.Extension;
