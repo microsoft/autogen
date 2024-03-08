@@ -102,17 +102,8 @@ public partial class TwoAgent_Fill_Application
                 ```
                 """;
 
-                var reply = await agent.GenerateReplyAsync([lastUserMessage], option, ct);
+                return await agent.GenerateReplyAsync([lastUserMessage], option, ct);
 
-                // if application is complete, exit conversation by sending termination message
-                if (reply.GetContent().Contains("Application information is saved to database."))
-                {
-                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
-                }
-                else
-                {
-                    return reply;
-                }
             });
 
         return chatAgent;
@@ -134,7 +125,22 @@ public partial class TwoAgent_Fill_Application
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterStreamingMiddleware(openaiMessageConnector)
             .RegisterMiddleware(openaiMessageConnector)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintFormatMessageHook()
+            .RegisterMiddleware(async (msgs, option, agent, ct) =>
+            {
+                var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
+                var reply = await agent.GenerateReplyAsync(msgs, option, ct);
+
+                // if application is complete, exit conversation by sending termination message
+                if (lastReply.GetContent().Contains("Application information is saved to database."))
+                {
+                    return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: agent.Name);
+                }
+                else
+                {
+                    return reply;
+                }
+            });
 
         return chatAgent;
     }
