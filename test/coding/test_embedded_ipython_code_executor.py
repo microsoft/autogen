@@ -46,6 +46,11 @@ except ImportError as e:
     classes_to_test = []
 
 
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_is_code_executor(cls) -> None:
+    assert isinstance(cls, CodeExecutor)
+
+
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_create_dict() -> None:
     config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}

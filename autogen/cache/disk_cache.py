@@ -1,5 +1,13 @@
+from types import TracebackType
+from typing import Any, Optional, Type, Union
 import diskcache
 from .abstract_cache_base import AbstractCache
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class DiskCache(AbstractCache):
@@ -21,18 +29,18 @@ class DiskCache(AbstractCache):
         __exit__(self, exc_type, exc_value, traceback): Context management exit.
     """
 
-    def __init__(self, seed):
+    def __init__(self, seed: Union[str, int]):
         """
         Initialize the DiskCache instance.
 
         Args:
-            seed (str): A seed or namespace for the cache. This is used to create
+            seed (Union[str, int]): A seed or namespace for the cache. This is used to create
                         a unique storage location for the cache data.
 
         """
         self.cache = diskcache.Cache(seed)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the cache.
 
@@ -46,7 +54,7 @@ class DiskCache(AbstractCache):
         """
         return self.cache.get(key, default)
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         """
         Set an item in the cache.
 
@@ -56,7 +64,7 @@ class DiskCache(AbstractCache):
         """
         self.cache.set(key, value)
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the cache.
 
@@ -65,7 +73,7 @@ class DiskCache(AbstractCache):
         """
         self.cache.close()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """
         Enter the runtime context related to the object.
 
@@ -74,7 +82,12 @@ class DiskCache(AbstractCache):
         """
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         """
         Exit the runtime context related to the object.
 
