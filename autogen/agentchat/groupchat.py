@@ -241,7 +241,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
 
-        # USe the class attribute instead of a hardcoded string
+        # Use the class attribute instead of a hardcoded string
         intro_msg = self.DEFAULT_INTRO_MSG
         participant_roles = self._participant_roles(agents)
 
