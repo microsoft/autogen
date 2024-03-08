@@ -9,6 +9,7 @@ def simple_actor_demo():
     sending a message, and performing cleanup operations.
     """
     # CAP Platform
+    
     network = LocalActorNetwork()
     # Register an actor
     network.register(GreeterAgent())
@@ -16,9 +17,10 @@ def simple_actor_demo():
     network.connect()
     # Get a channel to the actor
     greeter_link = network.lookup_actor("Greeter")
+    time.sleep(1)    
     # Send a message to the actor
     greeter_link.send_txt_msg("Hello World!")
-    time.sleep(100)
+    time.sleep(1)
     # Cleanup
     greeter_link.close()
     network.disconnect()

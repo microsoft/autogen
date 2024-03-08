@@ -35,10 +35,11 @@ class ActorConnector:
         )
 
     def binary_request(self, msg_type: str, msg, retry=5):
+        time.sleep(0.5)  # Let the network do things.
         self._pub_socket.send_multipart(
             [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
         )
-        time.sleep(0.01)  # Let the network do things.
+        time.sleep(0.5)  # Let the network do things.
         for i in range(retry + 1):
             try:
                 self._resp_socket.setsockopt(zmq.RCVTIMEO, 10000)
