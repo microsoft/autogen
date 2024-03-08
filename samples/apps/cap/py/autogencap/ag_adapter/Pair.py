@@ -1,5 +1,6 @@
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 
+
 class Pair:
     def __init__(self, network, first, second):
         self._network = network
@@ -10,16 +11,16 @@ class Pair:
 
     def initiate_chat(self, message: str):
         self._first_adptr = CAP2AG(
-            ag_agent=self._first_ag_agent, 
-            the_other_name=self._second_ag_agent.name, 
-            init_chat=True, 
-            self_recursive=True
+            ag_agent=self._first_ag_agent,
+            the_other_name=self._second_ag_agent.name,
+            init_chat=True,
+            self_recursive=True,
         )
         self._second_adptr = CAP2AG(
-            ag_agent=self._second_ag_agent, 
-            the_other_name=self._first_ag_agent.name, 
-            init_chat=False, 
-            self_recursive=True
+            ag_agent=self._second_ag_agent,
+            the_other_name=self._first_ag_agent.name,
+            init_chat=False,
+            self_recursive=True,
         )
         self._network.register(self._first_adptr)
         self._network.register(self._second_adptr)

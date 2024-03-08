@@ -172,7 +172,7 @@ def main():
     # Start the directory service
     directory_svc = DirectorySvc(context)
     directory_svc.start()
-    
+
     # # How do you register an actor?
     # directory_svc.register_actor_by_name("my_actor")
     #
@@ -185,7 +185,7 @@ def main():
     # status and printing status every few seconds.  This is
     # a good place to print other statistics captured as the broker runs.
     # -- Exits when the user presses Ctrl+C --
-    status_interval = 300 # seconds
+    status_interval = 300  # seconds
     last_time = time.time()
     while True:
         # print a message every n seconds
@@ -204,6 +204,7 @@ def main():
     proxy.stop()
     context.term()
     Info("main", "Done.")
+
 
 if __name__ == "__main__":
     main()
