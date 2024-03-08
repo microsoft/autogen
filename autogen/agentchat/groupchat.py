@@ -3,7 +3,7 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Callable
 
 
 from ..code_utils import content_str
@@ -42,7 +42,16 @@ class GroupChat:
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
-
+        - a customized speaker selection function (Callable): the function will be called to select the next speaker.
+            The function should take the last speaker and the group chat as input and return one of the following:
+                1. an `Agent` class, it must be one of the agents in the group chat.
+                2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
+                3. None, which would terminate the conversation gracefully.
+            ```python
+            def custom_speaker_selection_func(
+                last_speaker: Agent, groupchat: GroupChat
+            ) -> Union[Agent, str, None]:
+            ```
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
@@ -67,7 +76,7 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
-    speaker_selection_method: Optional[str] = "auto"
+    speaker_selection_method: Optional[Union[str, Callable]] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Optional[str] = None
@@ -277,11 +286,36 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return random.choice(agents)
 
     def _prepare_and_select_agents(
-        self, last_speaker: Agent
+        self,
+        last_speaker: Agent,
     ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
-        if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
+        # If self.speaker_selection_method is a callable, call it to get the next speaker.
+        # If self.speaker_selection_method is a string, return it.
+        speaker_selection_method = self.speaker_selection_method
+        if isinstance(self.speaker_selection_method, Callable):
+            selected_agent = self.speaker_selection_method(last_speaker, self)
+            if selected_agent is None:
+                raise NoEligibleSpeakerException(
+                    "Custom speaker selection function returned None. Terminating conversation."
+                )
+            elif isinstance(selected_agent, Agent):
+                if selected_agent in self.agents:
+                    return selected_agent, self.agents, None
+                else:
+                    raise ValueError(
+                        f"Custom speaker selection function returned an agent {selected_agent.name} not in the group chat."
+                    )
+            elif isinstance(selected_agent, str):
+                # If returned a string, assume it is a speaker selection method
+                speaker_selection_method = selected_agent
+            else:
+                raise ValueError(
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                )
+
+        if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
-                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
+                f"GroupChat speaker_selection_method is set to '{speaker_selection_method}'. "
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
 
@@ -300,7 +334,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Please add more agents to the GroupChat or use direct communication instead."
             )
-        elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
+        elif n_agents == 2 and speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
             logger.warning(
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Consider setting speaker_selection_method to 'round_robin' or allow_repeat_speaker to False, "
@@ -366,11 +400,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # Use the selected speaker selection method
         select_speaker_messages = None
-        if self.speaker_selection_method.lower() == "manual":
+        if speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "round_robin":
+        elif speaker_selection_method.lower() == "round_robin":
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "random":
+        elif speaker_selection_method.lower() == "random":
             selected_agent = self.random_select_speaker(graph_eligible_agents)
         else:
             selected_agent = None
@@ -596,9 +630,11 @@ class GroupChatManager(ConversableAgent):
             if (
                 groupchat.enable_clear_history
                 and isinstance(reply, dict)
+                and reply["content"]
                 and "CLEAR HISTORY" in reply["content"].upper()
             ):
-                reply["content"] = self.clear_agents_history(reply["content"], groupchat)
+                reply["content"] = self.clear_agents_history(reply, groupchat)
+
             # The speaker sends the message without requesting a reply
             speaker.send(reply, self, request_reply=False)
             message = self.last_message(speaker)
@@ -684,7 +720,7 @@ class GroupChatManager(ConversableAgent):
         for agent in self._groupchat.agents:
             agent._raise_exception_on_async_reply_functions()
 
-    def clear_agents_history(self, reply: str, groupchat: GroupChat) -> str:
+    def clear_agents_history(self, reply: dict, groupchat: GroupChat) -> str:
         """Clears history of messages for all agents or selected one. Can preserve selected number of last messages.
         That function is called when user manually provide "clear history" phrase in his reply.
         When "clear history" is provided, the history of messages for all agents is cleared.
@@ -696,23 +732,27 @@ class GroupChatManager(ConversableAgent):
         Phrase "clear history" and optional arguments are cut out from the reply before it passed to the chat.
 
         Args:
-            reply (str): Admin reply to analyse.
+            reply (dict): reply message dict to analyze.
             groupchat (GroupChat): GroupChat object.
         """
+        reply_content = reply["content"]
         # Split the reply into words
-        words = reply.split()
+        words = reply_content.split()
         # Find the position of "clear" to determine where to start processing
         clear_word_index = next(i for i in reversed(range(len(words))) if words[i].upper() == "CLEAR")
         # Extract potential agent name and steps
         words_to_check = words[clear_word_index + 2 : clear_word_index + 4]
         nr_messages_to_preserve = None
+        nr_messages_to_preserve_provided = False
         agent_to_memory_clear = None
 
         for word in words_to_check:
             if word.isdigit():
                 nr_messages_to_preserve = int(word)
+                nr_messages_to_preserve_provided = True
             elif word[:-1].isdigit():  # for the case when number of messages is followed by dot or other sign
                 nr_messages_to_preserve = int(word[:-1])
+                nr_messages_to_preserve_provided = True
             else:
                 for agent in groupchat.agents:
                     if agent.name == word:
@@ -721,6 +761,12 @@ class GroupChatManager(ConversableAgent):
                     elif agent.name == word[:-1]:  # for the case when agent name is followed by dot or other sign
                         agent_to_memory_clear = agent
                         break
+        # preserve last tool call message if clear history called inside of tool response
+        if "tool_responses" in reply and not nr_messages_to_preserve:
+            nr_messages_to_preserve = 1
+            logger.warning(
+                "The last tool call message will be saved to prevent errors caused by tool response without tool call."
+            )
         # clear history
         if agent_to_memory_clear:
             if nr_messages_to_preserve:
@@ -746,7 +792,7 @@ class GroupChatManager(ConversableAgent):
                 agent.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
 
         # Reconstruct the reply without the "clear history" command and parameters
-        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(bool(nr_messages_to_preserve))
-        reply = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
+        skip_words_number = 2 + int(bool(agent_to_memory_clear)) + int(nr_messages_to_preserve_provided)
+        reply_content = " ".join(words[:clear_word_index] + words[clear_word_index + skip_words_number :])
 
-        return reply
+        return reply_content

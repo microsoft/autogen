@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from types import TracebackType
 import uuid
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Optional, Type, Union
 import sys
 
 if sys.version_info >= (3, 11):
@@ -22,23 +22,6 @@ from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
-    """(Experimental) A code executor class that executes code statefully using an embedded
-    IPython kernel managed by this class.
-
-    **This will execute LLM generated code on the local machine.**
-
-    Each execution is stateful and can access variables created from previous
-    executions in the same session. The kernel must be installed before using
-    this class. The kernel can be installed using the following command:
-    `python -m ipykernel install --user --name {kernel_name}`
-    where `kernel_name` is the name of the kernel to install.
-
-    Args:
-        timeout (int): The timeout for code execution, by default 60.
-        kernel_name (str): The kernel name to use. Make sure it is installed.
-            By default, it is "python3".
-        output_dir (str): The directory to save output files, by default ".".
-    """
 
     def __init__(
         self,
@@ -47,6 +30,19 @@ class JupyterCodeExecutor(CodeExecutor):
         timeout: int = 60,
         output_dir: Union[Path, str] = Path("."),
     ):
+        """(Experimental) A code executor class that executes code statefully using
+        a Jupyter server supplied to this class.
+
+        Each execution is stateful and can access variables created from previous
+        executions in the same session.
+
+        Args:
+            jupyter_server (Union[JupyterConnectable, JupyterConnectionInfo]): The Jupyter server to use.
+            timeout (int): The timeout for code execution, by default 60.
+            kernel_name (str): The kernel name to use. Make sure it is installed.
+                By default, it is "python3".
+            output_dir (str): The directory to save output files, by default ".".
+        """
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
@@ -82,8 +78,7 @@ class JupyterCodeExecutor(CodeExecutor):
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> IPythonCodeResult:
         """(Experimental) Execute a list of code blocks and return the result.
 
-        This method executes a list of code blocks as cells in an IPython kernel
-        managed by this class.
+        This method executes a list of code blocks as cells in the Jupyter kernel.
         See: https://jupyter-client.readthedocs.io/en/stable/messaging.html
         for the message protocol.
 
@@ -166,6 +161,6 @@ class JupyterCodeExecutor(CodeExecutor):
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
