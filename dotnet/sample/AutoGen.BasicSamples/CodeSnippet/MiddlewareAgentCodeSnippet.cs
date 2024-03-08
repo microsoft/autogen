@@ -2,12 +2,62 @@
 // MiddlewareAgentCodeSnippet.cs
 
 using System.Text.Json;
+using AutoGen.OpenAI;
 using FluentAssertions;
 
 namespace AutoGen.BasicSample.CodeSnippet;
 
 public class MiddlewareAgentCodeSnippet
 {
+    public async Task CreateMiddlewareAgentAsync()
+    {
+        #region create_middleware_agent_with_original_agent
+        // Create an agent that always replies "Hello World"
+        IAgent agent = new DefaultReplyAgent(name: "assistant", defaultReply: "Hello World");
+
+        // Create a middleware agent on top of default reply agent
+        var middlewareAgent = new MiddlewareAgent(innerAgent: agent);
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
+        {
+            var lastMessage = messages.Last() as TextMessage;
+            lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+            return await agent.GenerateReplyAsync(messages, options, ct);
+        });
+
+        var reply = await middlewareAgent.SendAsync("Hello World");
+        reply.GetContent().Should().Be("[middleware 0] Hello World");
+        #endregion create_middleware_agent_with_original_agent
+
+        #region register_middleware_agent
+        middlewareAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
+        {
+            var lastMessage = messages.Last() as TextMessage;
+            lastMessage.Content = $"[middleware 0] {lastMessage.Content}";
+            return await agent.GenerateReplyAsync(messages, options, ct);
+        });
+        #endregion register_middleware_agent
+
+        #region short_circuit_middleware_agent
+        // This middleware will short circuit the agent and return the last message directly.
+        middlewareAgent.Use(async (messages, options, agent, ct) =>
+        {
+            var lastMessage = messages.Last() as TextMessage;
+            lastMessage.Content = $"[middleware shortcut]";
+            return lastMessage;
+        });
+        #endregion short_circuit_middleware_agent
+    }
+
+    public async Task RegisterStreamingMiddlewareAsync()
+    {
+        IStreamingAgent streamingAgent = default;
+        #region register_streaming_middleware
+        var connector = new OpenAIChatRequestMessageConnector();
+        var agent = streamingAgent!
+                .RegisterStreamingMiddleware(connector);
+        #endregion register_streaming_middleware
+    }
+
     public async Task CodeSnippet1()
     {
         #region code_snippet_1

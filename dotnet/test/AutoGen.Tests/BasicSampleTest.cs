@@ -46,6 +46,7 @@ namespace AutoGen.Tests
         public async Task DynamicGroupChatCalculateFibonacciAsync()
         {
             await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync();
+            await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunWorkflowAsync();
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]

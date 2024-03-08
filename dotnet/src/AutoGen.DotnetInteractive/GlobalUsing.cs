@@ -1,4 +1,4 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// globalUsing.cs
+// GlobalUsing.cs
 
 global using AutoGen.Core;

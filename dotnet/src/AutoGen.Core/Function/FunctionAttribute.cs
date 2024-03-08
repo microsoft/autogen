@@ -71,7 +71,7 @@ public class FunctionParameterContract
 
     /// <summary>
     /// The description of the parameter.
-    /// This will be extracted from the <param> section of the structured comment if available.
+    /// This will be extracted from the param section of the structured comment if available.
     /// Otherwise, the description will be null.
     /// </summary>
     public string? Description { get; set; }

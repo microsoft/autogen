@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example09_SemanticKernel.cs
+// Example10_SemanticKernel.cs
 
 using System.ComponentModel;
 using AutoGen.SemanticKernel.Extension;
-using AutoGen.SemanticKernel.Middleware;
+using AutoGen.SemanticKernel;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;

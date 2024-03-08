@@ -1,6 +1,4 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using AutoGen.BasicSample;
-
-await Example10_SemanticKernel.RunAsync();
+await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunWorkflowAsync();
