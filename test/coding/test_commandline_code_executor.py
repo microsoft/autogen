@@ -142,7 +142,8 @@ def _test_restart(executor: CodeExecutor) -> None:
         executor.restart()
 
 
-def test_local_commandline_executor_conversable_agent_code_execution() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_conversable_agent_code_execution(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir)
         with pytest.MonkeyPatch.context() as mp:

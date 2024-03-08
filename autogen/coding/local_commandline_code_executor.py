@@ -27,7 +27,6 @@ class CommandLineCodeResult(CodeResult):
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-
     def __init__(
         self,
         timeout: int = 60,

@@ -22,7 +22,6 @@ from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
-
     def __init__(
         self,
         jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
