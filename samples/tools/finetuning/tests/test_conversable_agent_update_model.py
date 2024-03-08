@@ -1,7 +1,6 @@
 import pytest
 from autogen import AssistantAgent, UserProxyAgent
 import sys
-import os
 
 sys.path.append("samples/tools/finetuning")
 
@@ -9,13 +8,11 @@ from finetuning import update_model  # noqa: E402
 from typing import Dict  # noqa: E402
 
 sys.path.append("test")
-from conftest import skip_openai  # noqa: E402
 
 TEST_CUSTOM_RESPONSE = "This is a custom response."
 TEST_LOCAL_MODEL_NAME = "local_model_name"
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_custom_model_client():
     TEST_LOSS = 0.5
 
@@ -78,7 +75,6 @@ def test_custom_model_client():
     assert update_model_stats["update_stats"]["loss"] == TEST_LOSS
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_update_model_without_client_raises_error():
     assistant = AssistantAgent(
         "assistant",
@@ -102,7 +98,6 @@ def test_update_model_without_client_raises_error():
         update_model(assistant, [], user_proxy)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_custom_model_update_func_missing_raises_error():
     class UpdatableCustomModel:
         def __init__(self, config: Dict):
@@ -160,7 +155,6 @@ def test_custom_model_update_func_missing_raises_error():
         update_model(assistant, [], user_proxy)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_multiple_model_clients_raises_error():
     class UpdatableCustomModel:
         def __init__(self, config: Dict):
