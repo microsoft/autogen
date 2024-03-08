@@ -265,4 +265,4 @@ def test_logging_exception_will_not_crash_only_print_error(mock_logger_error, db
 
     args, _ = mock_logger_error.call_args
     error_message = args[0]
-    assert error_message.startswith("[SqliteLogger] log_chat_completion error:")
+    assert error_message.startswith("[sqlite logger]Error running query with query")
