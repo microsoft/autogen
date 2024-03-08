@@ -23,6 +23,11 @@
         },
         {
           type: 'doc',
+          id: 'tutorial/termination',
+          label: 'Termination',
+        },
+        {
+          type: 'doc',
           id: 'tutorial/human-in-the-loop',
           label: 'Human in the Loop',
         },
