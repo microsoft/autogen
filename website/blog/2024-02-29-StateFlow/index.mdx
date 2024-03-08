@@ -15,12 +15,43 @@ and interacting with external environments and tools. To facilitate the developm
 that conceptualizes complex task-solving processes backed by LLMs as state machines. With proper construction of states and definition of
 state transitions, we can ground the progress of task-solving, ensuring clear tracking and management of LLMs' responses throughout the task-solving process.
 
-We evaluate **StateFlow** on the SQL task and Bash task from the InterCode benchmark. 
-The results demonstrate the advantages of **StateFlow** over existing methods in terms of both effectiveness and efficiency.
-For instance, in the SQL task with GPT-4-turbo, **StateFlow** improves the success rate by 10% compared to ReAct prompting, while reducing costs by a factor of 4.  
+## StateFlow
+Finite State machines (FSMs) are used as control systems to monitor practical applications, such as traffic light control.
+A defined state machine is a model of behavior that decides what to do based on current status. A state represents one situation that the state machine might be in, and all states cover all possible situations of the FSM.
+Drawing from this concept, we want to use state machines to model the task-solving process of LLMs. When using an LLM to solve a task, each step of the task-solving process can be mapped to a state.
+For example, the process starts at the *Init* state when the task is given. When reaching a state, a sequence of output functions is called to add content to the context history, including sending a specific instruction, using a tool, or calling the LLM itself.
+Based on the current state and context history, the **StateFlow** model determines the next state to transit to. The task-solving process progresses by transitioning through different states and performing corresponding actions and ends until a final state is reached.
+Essentially, we are sending different instructions to an LLM to ask it to perform different actions based on its current status.
+
+In **StateFlow**, we construct a state machine to control a single LLM, sending different instructions to it at different states.
+We also provide an agent view of our framework, **SF_Agent**, that can use different LLM agents to perform actions at different states.
+In this case, we don't need to add instructions to the context history and call the LLM. Instead, we construct individual agents with pre-set instructions and (potentially) different LLMs.
+AutoGen is the perfect platform to implement **SF_Agent**.
+
+## Experiments
+We evaluate **StateFlow** on the SQL task and Bash task from the InterCode benchmark, with both GPT-3.5-Turbo and GPT-4.
+We construct different **StateFlow** models for each task (See the figure below). But note that most of the states are shared between the two tasks.
+Within each state, we define a sequence of actions to be performed. The most common action sequence is P->M->E, meaning we first send a prompt, then call the LLM to generate a response, and finally execute commands from the response.
+![Intercode Example](./img/intercode.png)
+
+We record different metrics for a comprehensive comparison. The 'SR' (success rate) and 'rewards' measure the performance,
+'Turns represents a number of interactions with the environment, and 'Error Rate' represents the percentage of errors of the commands executed.
+We also record the cost and token counts to show the LLM usage.
+
+We compare with the following baselines:
+(1) ReAct: a few-shot prompting method that prompts the model to generate thoughts and actions.
+(2) Plan & Solve: A two-step prompting strategy to first ask the model to propose a plan and then execute it.
+
+We show the results of the Bash task in the figure below:
+
+![Bash Result](./image/bash_result.png)
+
+Our evaluation demonstrates the advantages of **StateFlow** and **SF_Agent** over existing methods in terms of both effectiveness and efficiency.
+For example, in the Bash task with GPT-4, **SF_Agent** improves the success rate by 8% and has 4x less cost compared to ReAct prompting.
+
 
 ## Implement StateFlow With GroupChat
-AutoGen GroupChat can be used to build a state-oriented workflow. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
+We illustrate how to build **StateFlow** with GroupChat. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
 introduces a way how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
 GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for the next speaker.
 These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
@@ -97,16 +128,14 @@ groupchat = autogen.GroupChat(
 )
 ```
 
-
 We recommend implementing the transition logic for each speaker in the customized function. In analogy to a state machine, a state transition function determines the next state based on the current state and input.
 Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
-For example, we can always default to the built-in `auto` method to employ a LLM-based groupchat manager to select the next speaker.
-When returning `None`, the groupchat will terminate.
-
+For example, we can always default to the built-in `auto` method to employ a LLM-based group chat manager to select the next speaker.
+When returning `None`, the group chat will terminate.
 
 
 ## For Further Reading
 * [StateFlow notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_stateflow/)
 * [GroupChat with Customized Speaker Selection notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_customized/)
-* [FSM Group Chat](https://microsoft.github.io/autogen/blog/2024/02/11/FSM-GroupChat/)
+* [FSM Group Chat](/blog/2024/02/11/FSM-GroupChat/)
 * [Documentation about `autogen`](/docs/Getting-Started)
