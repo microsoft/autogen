@@ -16,6 +16,7 @@ from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
 from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from autogen.browser_utils.abstract_browser import AbstractBrowser
+from autogen.browser_utils.bing_utils import bing_search_markdown
 
 
 class SimpleTextBrowser(AbstractBrowser):
@@ -206,94 +207,9 @@ class SimpleTextBrowser(AbstractBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _bing_api_call(self, query: str) -> Dict[str, Dict[str, List[Dict[str, Union[str, Dict[str, str]]]]]]:
-        # Make sure the key was set
-        if self.bing_api_key is None:
-            raise ValueError("Missing Bing API key.")
-
-        # Prepare the request parameters
-        request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
-
-        if "headers" not in request_kwargs:
-            request_kwargs["headers"] = {}
-        request_kwargs["headers"]["Ocp-Apim-Subscription-Key"] = self.bing_api_key
-
-        if "params" not in request_kwargs:
-            request_kwargs["params"] = {}
-        request_kwargs["params"]["q"] = query
-        request_kwargs["params"]["textDecorations"] = False
-        request_kwargs["params"]["textFormat"] = "raw"
-
-        request_kwargs["stream"] = False
-
-        # Make the request
-        response = requests.get("https://api.bing.microsoft.com/v7.0/search", **request_kwargs)
-        response.raise_for_status()
-        results = response.json()
-
-        return results  # type: ignore[no-any-return]
-
     def _bing_search(self, query: str) -> None:
-        results = self._bing_api_call(query)
-
-        def _prev_visit(url):
-            for i in range(len(self.history) - 1, -1, -1):
-                if self.history[i][0] == url:
-                    # Todo make this more human-friendly
-                    return f"You previously visited this page {round(time.time() - self.history[i][1])} seconds ago.\n"
-            return ""
-
-        web_snippets: List[str] = list()
-        idx = 0
-        if "webPages" in results:
-            for page in results["webPages"]["value"]:
-                idx += 1
-                web_snippets.append(
-                    f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['snippet']}"
-                )
-                if "deepLinks" in page:
-                    for dl in page["deepLinks"]:
-                        idx += 1
-                        web_snippets.append(
-                            f"{idx}. [{dl['name']}]({dl['url']})\n{_prev_visit(dl['url'])}{dl['snippet'] if 'snippet' in dl else ''}"
-                        )
-
-        news_snippets = list()
-        if "news" in results:
-            for page in results["news"]["value"]:
-                idx += 1
-                datePublished = ""
-                if "datePublished" in page:
-                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
-                news_snippets.append(
-                    f"{idx}. [{page['name']}]({page['url']})\n{_prev_visit(page['url'])}{page['description']}{datePublished}"
-                )
-
-        video_snippets = list()
-        if "videos" in results:
-            for page in results["videos"]["value"]:
-                if not page["contentUrl"].startswith("https://www.youtube.com/watch?v="):
-                    continue
-                idx += 1
-                datePublished = ""
-                if "datePublished" in page:
-                    datePublished = "\nDate published: " + page["datePublished"].split("T")[0]
-                video_snippets.append(
-                    f"{idx}. [{page['name']}]({page['contentUrl']})\n{_prev_visit(page['contentUrl'])}{page['description']}{datePublished}"
-                )
-
         self.page_title = f"{query} - Search"
-
-        content = (
-            f"A Bing search for '{query}' found {len(web_snippets) + len(news_snippets) + len(video_snippets)} results:\n\n## Web Results\n"
-            + "\n\n".join(web_snippets)
-        )
-        if len(news_snippets) > 0:
-            content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
-        if len(video_snippets) > 0:
-            content += "\n\n## Video Results:\n" + "\n\n".join(video_snippets)
-
-        self._set_page_content(content, split_pages=False)
+        self._set_page_content(bing_search_markdown(query, self.bing_api_key), split_pages=False)
 
     def _fetch_page(self, url: str) -> None:
         download_path = ""
