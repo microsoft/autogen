@@ -7,7 +7,6 @@ from .utils import consolidate_chat_info
 import datetime
 import warnings
 from termcolor import colored
-from .utils import consolidate_chat_info
 
 
 logger = logging.getLogger(__name__)
@@ -190,7 +189,7 @@ def __system_now_str():
     return f" System time at {ct}. "
 
 
-def _on_chat_future_done(chat_id: int, chat_future: asyncio.Future[ChatResult]):
+def _on_chat_future_done(chat_id: int, chat_future: asyncio.Future):
     """
     Update ChatResult when async Task for Chat is completed.
     """
@@ -200,8 +199,8 @@ def _on_chat_future_done(chat_id: int, chat_future: asyncio.Future[ChatResult]):
 
 
 async def _dependent_chat_future(
-    chat_id: int, chat_info: Dict[str, Any], prerequisite_chat_futures: Dict[int, asyncio.Future[ChatResult]]
-) -> asyncio.Task[ChatResult]:
+    chat_id: int, chat_info: Dict[str, Any], prerequisite_chat_futures: Dict[int, asyncio.Future]
+) -> asyncio.Task:
     """
     Create an async Task for each chat.
     """
