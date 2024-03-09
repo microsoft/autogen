@@ -1,13 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-from typing import Any, Dict, List, Optional, Type
-from autogen import AgentNameConflict, Agent, GroupChat
-import pytest
-from unittest import mock
 import builtins
-import autogen
 import json
-import sys
+from typing import Any, Dict, List, Optional
+from unittest import mock
+
+import pytest
+
+import autogen
+from autogen import Agent, GroupChat
+from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
 
 
 def test_func_call_groupchat():
@@ -399,34 +401,21 @@ def test_termination():
 
 
 def test_next_agent():
-    agent1 = autogen.ConversableAgent(
-        "alice",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is alice speaking.",
-    )
-    agent2 = autogen.ConversableAgent(
-        "bob",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is bob speaking.",
-    )
-    agent3 = autogen.ConversableAgent(
-        "sam",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is sam speaking.",
-    )
-    agent4 = autogen.ConversableAgent(
-        "sally",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is sally speaking.",
-    )
+    def create_agent(name: str) -> autogen.ConversableAgent:
+        return autogen.ConversableAgent(
+            name,
+            max_consecutive_auto_reply=10,
+            human_input_mode="NEVER",
+            llm_config=False,
+            default_auto_reply=f"This is {name} speaking.",
+        )
+
+    agent1 = create_agent("alice")
+    agent2 = create_agent("bob")
+    agent3 = create_agent("sam")
+    agent4 = create_agent("sally")
+    agent5 = create_agent("samantha")
+    agent6 = create_agent("robert")
 
     # Test empty is_termination_msg function
     groupchat = autogen.GroupChat(
@@ -447,6 +436,9 @@ def test_next_agent():
     assert groupchat.next_agent(agent2, [agent1, agent3]) == agent3
     assert groupchat.next_agent(agent4, [agent1, agent3]) == agent1
     assert groupchat.next_agent(agent4, [agent1, agent2, agent3]) == agent1
+
+    with pytest.raises(UndefinedNextAgent):
+        groupchat.next_agent(agent4, [agent5, agent6])
 
 
 def test_send_intros():

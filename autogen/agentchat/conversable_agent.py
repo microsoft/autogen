@@ -11,6 +11,8 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 import warnings
 from openai import BadRequestError
 
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
+
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
@@ -76,7 +78,7 @@ class ConversableAgent(LLMAgent):
         system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "TERMINATE",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "TERMINATE",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
@@ -575,7 +577,7 @@ class ConversableAgent(LLMAgent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ) -> ChatResult:
+    ):
         """Send a message to another agent.
 
         Args:
@@ -607,9 +609,6 @@ class ConversableAgent(LLMAgent):
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
-
-        Returns:
-            ChatResult: a ChatResult object.
         """
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
@@ -628,7 +627,7 @@ class ConversableAgent(LLMAgent):
         recipient: Agent,
         request_reply: Optional[bool] = None,
         silent: Optional[bool] = False,
-    ) -> ChatResult:
+    ):
         """(async) Send a message to another agent.
 
         Args:
@@ -660,9 +659,6 @@ class ConversableAgent(LLMAgent):
 
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
-
-        Returns:
-            ChatResult: an ChatResult object.
         """
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
@@ -856,7 +852,7 @@ class ConversableAgent(LLMAgent):
     def initiate_chat(
         self,
         recipient: "ConversableAgent",
-        clear_history: Optional[bool] = True,
+        clear_history: bool = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
@@ -993,7 +989,7 @@ class ConversableAgent(LLMAgent):
     async def a_initiate_chat(
         self,
         recipient: "ConversableAgent",
-        clear_history: Optional[bool] = True,
+        clear_history: bool = True,
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
@@ -1606,8 +1602,6 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        # Function implementation...
-
         if config is None:
             config = self
         if messages is None:
@@ -1921,6 +1915,7 @@ class ConversableAgent(LLMAgent):
             reply_func = reply_func_tuple["reply_func"]
             if "exclude" in kwargs and reply_func in kwargs["exclude"]:
                 continue
+
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
                     final, reply = await reply_func(
@@ -1932,7 +1927,7 @@ class ConversableAgent(LLMAgent):
                     return reply
         return self._default_auto_reply
 
-    def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Agent) -> bool:
+    def _match_trigger(self, trigger: Union[None, str, type, Agent, Callable, List], sender: Optional[Agent]) -> bool:
         """Check if the sender matches the trigger.
 
         Args:
@@ -1949,6 +1944,8 @@ class ConversableAgent(LLMAgent):
         if trigger is None:
             return sender is None
         elif isinstance(trigger, str):
+            if sender is None:
+                raise SenderRequired()
             return trigger == sender.name
         elif isinstance(trigger, type):
             return isinstance(sender, trigger)
@@ -1957,7 +1954,7 @@ class ConversableAgent(LLMAgent):
             return trigger == sender
         elif isinstance(trigger, Callable):
             rst = trigger(sender)
-            assert rst in [True, False], f"trigger {trigger} must return a boolean value."
+            assert isinstance(rst, bool), f"trigger {trigger} must return a boolean value."
             return rst
         elif isinstance(trigger, list):
             return any(self._match_trigger(t, sender) for t in trigger)
@@ -2224,7 +2221,7 @@ class ConversableAgent(LLMAgent):
             elif isinstance(carryover, list):
                 message += "\nContext: \n" + ("\n").join([t for t in carryover])
             else:
-                raise warnings.warn(
+                raise InvalidCarryOverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
         return message
@@ -2287,6 +2284,11 @@ class ConversableAgent(LLMAgent):
                     func for func in self.llm_config["functions"] if func["name"] != func_sig
                 ]
         else:
+            if not isinstance(func_sig, dict):
+                raise ValueError(
+                    f"The function signature must be of the type dict. Received function signature type {type(func_sig)}"
+                )
+
             self._assert_valid_name(func_sig["name"])
             if "functions" in self.llm_config.keys():
                 self.llm_config["functions"] = [
@@ -2323,6 +2325,10 @@ class ConversableAgent(LLMAgent):
                     tool for tool in self.llm_config["tools"] if tool["function"]["name"] != tool_sig
                 ]
         else:
+            if not isinstance(tool_sig, dict):
+                raise ValueError(
+                    f"The tool signature must be of the type dict. Received tool signature type {type(tool_sig)}"
+                )
             self._assert_valid_name(tool_sig["function"]["name"])
             if "tools" in self.llm_config.keys():
                 self.llm_config["tools"] = [
