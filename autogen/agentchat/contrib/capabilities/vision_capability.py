@@ -38,14 +38,17 @@ class VisionCapability(AgentCapability):
     def __init__(
         self,
         lmm_config: Dict,
+        description_prompt: Optional[str] = "Describe the following image in details.",
     ):
         """
         Args:
             lmm_config (dict or False): LMM (multimodal) client configuration,
                 which will be used to call LMM to describe the image.
+            description_prompt (str, optional): The prompt to use for describing the image.
         """
         assert lmm_config, "Vision Capability requires a valid lmm_config."
         self._lmm_config = lmm_config
+        self._description_prompt = description_prompt
         self._lmm_client = OpenAIWrapper(**lmm_config)
 
     def add_to_agent(self, agent: ConversableAgent):
@@ -154,7 +157,7 @@ class VisionCapability(AgentCapability):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Describe the following image in details."},
+                        {"type": "text", "text": self._description_prompt},
                         {
                             "type": "image_url",
                             "image_url": {
