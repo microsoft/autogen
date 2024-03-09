@@ -6,7 +6,6 @@ import sys
 import requests
 import json
 import markdownify
-import uuid
 
 # File-format detection
 import puremagic

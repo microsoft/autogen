@@ -47,9 +47,8 @@ class PlaywrightChromeBrowser(SimpleTextBrowser):
         #    "channel": "msedge",
         #    "headless": False,
         #}
-        if self.downloads_folder is not None and self.downloads_folder.strip() != "":
-            playwright_args["accept_downloads"] = True
-            playwright_args["downloads_path"] = self.downloads_folder
+        #if self.downloads_folder:
+        #    playwright_args["downloads_path"] = self.downloads_folder
         self._browser = self._playwright.chromium.launch(**playwright_args)
 
         # Browser context
@@ -83,7 +82,7 @@ class PlaywrightChromeBrowser(SimpleTextBrowser):
                 return self._process_page(url, self._page)
             except Exception as e:
                 # Downloaded file
-                if "net::ERR_ABORTED" in str(e):
+                if self.downloads_folder and "net::ERR_ABORTED" in str(e):
                     with self._page.expect_download() as download_info:
                         try:
                             self._page.goto(url)
@@ -91,13 +90,13 @@ class PlaywrightChromeBrowser(SimpleTextBrowser):
                             if "net::ERR_ABORTED" in str(e):
                                 pass
                             else:
-                                raise (e)
+                                raise e
                         download = download_info.value
-                        fname = "./" + download.suggested_filename
+                        fname = os.path.join(self.downloads_folder, download.suggested_filename)
                         download.save_as(fname)
-                        self._process_download(download.url, fname)
+                        self._process_download(url, fname)
                 else:
-                    raise (e)
+                    raise e
 
     def _process_page(self, url, page):
         body = page.query_selector("body")
