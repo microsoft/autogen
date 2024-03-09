@@ -1,4 +1,12 @@
 from abc import ABC, abstractmethod
+from types import TracebackType
+from typing import Any, Optional, Type
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class AbstractCache(ABC):
@@ -11,7 +19,7 @@ class AbstractCache(ABC):
     """
 
     @abstractmethod
-    def get(self, key, default=None):
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the cache.
 
@@ -31,7 +39,7 @@ class AbstractCache(ABC):
         """
 
     @abstractmethod
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         """
         Set an item in the cache.
 
@@ -47,7 +55,7 @@ class AbstractCache(ABC):
         """
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """
         Close the cache.
 
@@ -60,7 +68,7 @@ class AbstractCache(ABC):
         """
 
     @abstractmethod
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """
         Enter the runtime context related to this object.
 
@@ -72,7 +80,12 @@ class AbstractCache(ABC):
         """
 
     @abstractmethod
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         """
         Exit the runtime context and close the cache.
 
