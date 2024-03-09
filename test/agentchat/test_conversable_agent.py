@@ -17,6 +17,7 @@ import autogen
 
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
@@ -461,6 +462,10 @@ def test_generate_reply():
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
     ), "generate_reply not working when messages is None"
+
+    dummy_agent_2.register_reply(["str", None], ConversableAgent.generate_oai_reply)
+    with pytest.raises(SenderRequired):
+        dummy_agent_2.generate_reply(messages=messages, sender=None)
 
 
 def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
@@ -1104,6 +1109,27 @@ def test_process_before_send():
     print_mock.assert_called_once_with(message="hello")
     dummy_agent_1.send("silent hello", dummy_agent_2, silent=True)
     print_mock.assert_called_once_with(message="hello")
+
+
+def test_messages_with_carryover():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    context = dict(message="hello", carryover="Testing carryover.")
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
 
 
 if __name__ == "__main__":

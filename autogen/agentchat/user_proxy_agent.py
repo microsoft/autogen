@@ -29,7 +29,7 @@ class UserProxyAgent(ConversableAgent):
         name: str,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "TERMINATE", "NEVER"] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
