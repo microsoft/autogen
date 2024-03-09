@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class CompressibleAgent(ConversableAgent):
-    """(Experimental) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
+    """(CompressibleAgent will be deprecated. Refer to https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb for long context handling capability.) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
         it also provides the added feature of compression when activated through the `compress_config` setting.
 
     `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
