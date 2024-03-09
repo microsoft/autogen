@@ -353,7 +353,8 @@ def retrieve_content(message, n_results=3):
             boss_aid.problem = message if not hasattr(boss_aid, "problem") else boss_aid.problem
             _, ret_msg = boss_aid._generate_retrieve_user_reply(message)
         else:
-            ret_msg = boss_aid.generate_init_message(message, n_results=n_results)
+            _context = {"problem": message, "n_results": n_results}
+            ret_msg = boss_aid.message_generator(boss_aid, None, _context)
         return ret_msg if ret_msg else message
 
 for agent in [boss, coder, pm, reviewer]:

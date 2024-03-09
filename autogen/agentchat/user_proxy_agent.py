@@ -14,7 +14,6 @@ class UserProxyAgent(ConversableAgent):
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
     `run_code`, and `execute_function` methods respectively.
-    To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
     # Default UserProxyAgent.description values, based on human_input_mode
