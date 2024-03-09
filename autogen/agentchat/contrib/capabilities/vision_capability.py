@@ -141,7 +141,7 @@ class VisionCapability(AgentCapability):
                 img_caption = self._get_image_caption(img_data)
                 aug_content += f'<img {item["image_url"]["url"]}> in case you can not see, the caption of this image is: {img_caption}\n'
             else:
-                raise ValueError(f"Unsupported content type: {item['type']}")
+                print(f"Warning: the input type should either be `test` or `image_url`. Skip {item['type']} here.")
         return aug_content
 
     def _get_image_caption(self, img_data: str) -> str:
