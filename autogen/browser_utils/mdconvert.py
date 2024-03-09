@@ -27,7 +27,7 @@ import pandas as pd
 import pdfminer
 import pdfminer.high_level
 
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, parse_qs, quote, unquote, urlunparse
 from urllib.request import url2pathname
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
@@ -61,6 +61,56 @@ try:
     IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
 except ModuleNotFoundError:
     pass
+
+
+class _CustomMarkdownify(markdownify.MarkdownConverter):
+    def convert_a(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes Javascript links and escapes URIs."""
+        prefix, suffix, text = markdownify.chomp(text)
+        if not text:
+            return ''
+        href = el.get('href')
+        title = el.get('title')
+
+        # Escape URIs and skip non-http or file schemes
+        if href:
+            try:
+                parsed_url = urlparse(href)
+                if parsed_url.scheme and parsed_url.scheme.lower() not in ["http", "https", "file"]:
+                    return '%s%s%s' % (prefix, text, suffix)
+                href = urlunparse(parsed_url._replace(path=quote(unquote(parsed_url.path))))
+            except ValueError: # It's not clear if this ever gets thrown
+                return '%s%s%s' % (prefix, text, suffix)
+
+        # For the replacement see #29: text nodes underscores are escaped
+        if (self.options['autolinks']
+                and text.replace(r'\_', '_') == href
+                and not title
+                and not self.options['default_title']):
+            # Shortcut syntax
+            return '<%s>' % href
+        if self.options['default_title'] and not title:
+            title = href
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        return '%s[%s](%s%s)%s' % (prefix, text, href, title_part, suffix) if href else text
+
+
+    def convert_img(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes data URIs """
+
+        alt = el.attrs.get('alt', None) or ''
+        src = el.attrs.get('src', None) or ''
+        title = el.attrs.get('title', None) or ''
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        if (convert_as_inline
+                and el.parent.name not in self.options['keep_inline_images_in']):
+            return alt
+
+        # Remove dataURIs
+        if src.startswith("data:"):
+            src = src.split(",")[0] + "..."
+
+        return '![%s](%s%s)' % (alt, src, title_part)
 
 
 class DocumentConverterResult:
@@ -129,43 +179,9 @@ class HtmlConverter(DocumentConverter):
         body_elm = soup.find("body")
         webpage_text = ""
         if body_elm:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
-
-        return DocumentConverterResult(
-            title=None if soup.title is None else soup.title.string,
-            text_content=webpage_text,
-        )
-
-
-class BingConverter(DocumentConverter):
-    """Handle Bing SERP pages separately, focusing only on the main document content."""
-
-    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        extension = kwargs.get("file_extension", "")
-        if extension.lower() not in [".html", ".htm"]:
-            return None
-        url = kwargs.get("url", "")
-        if not url.startswith("https://www.bing.com/search?q="):
-            return None
-
-        # Parse the file
-        soup = None
-        with open(local_path, "rt") as fh:
-            soup = BeautifulSoup(fh.read(), "html.parser")
-
-        # Remove javascript and style blocks
-        for script in soup(["script", "style"]):
-            script.extract()
-
-        # Print only the main content
-        main_elm = soup.find("main")
-        webpage_text = ""
-        if main_elm:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(main_elm)
-        else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=None if soup.title is None else soup.title.string,
@@ -201,19 +217,54 @@ class WikipediaConverter(DocumentConverter):
         webpage_text = ""
         if body_elm:
             # What's the title
-            main_title = (None if soup.title is None else soup.title.string,)
+            main_title = (None if soup.title is None else soup.title.string)
             if title_elm and len(title_elm) > 0:
                 main_title = title_elm.string
 
             # Convert the page
-            webpage_text = "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = f"# {main_title}\n\n" + _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=main_title,
             text_content=webpage_text,
         )
+
+class BingConverter(DocumentConverter):
+    """Handle Bing SERP pages separately, focusing only on the main document content."""
+
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".html", ".htm"]:
+            return None
+        url = kwargs.get("url", "")
+        if not url.startswith("https://www.bing.com/search?q="):
+            return None
+
+        # Parse the file
+        soup = None
+        with open(local_path, "rt") as fh:
+            soup = BeautifulSoup(fh.read(), "html.parser")
+
+        # Remove javascript and style blocks
+        for script in soup(["script", "style"]):
+            script.extract()
+
+        # Print only the main content
+        main_elm = soup.find("main")
+        webpage_text = ""
+        if main_elm:
+            webpage_text = markdownify.MarkdownConverter().convert_soup(main_elm)
+        else:
+            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+
+        return DocumentConverterResult(
+            title=None if soup.title is None else soup.title.string,
+            text_content=webpage_text,
+        )
+
+
 
 
 class YouTubeConverter(DocumentConverter):
@@ -709,8 +760,8 @@ class MarkdownConverter:
         # To this end, the most specific converters should appear below the most generic converters
         self.register_page_converter(PlainTextConverter())
         self.register_page_converter(HtmlConverter())
-        self.register_page_converter(BingConverter())
         self.register_page_converter(WikipediaConverter())
+        self.register_page_converter(BingConverter())
         self.register_page_converter(YouTubeConverter())
         self.register_page_converter(DocxConverter())
         self.register_page_converter(XlsxConverter())
