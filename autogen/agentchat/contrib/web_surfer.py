@@ -1,18 +1,14 @@
 import copy
-import logging
 import re
 import time
-from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser, SeleniumChromeBrowser, PlaywrightChromeBrowser
+from ...browser_utils import RequestsMarkdownBrowser, SeleniumMarkdownBrowser, PlaywrightMarkdownBrowser
 from ...code_utils import content_str
-from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
-
-logger = logging.getLogger(__name__)
 
 
 class WebSurferAgent(ConversableAgent):
@@ -58,11 +54,11 @@ class WebSurferAgent(ConversableAgent):
         # Create the browser
         headless = browser_config.pop("headless", False)
         if not headless:
-            self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+            self.browser = RequestsMarkownBrowser(**(browser_config if browser_config else {}))
         elif headless.lower() == "selenium":
-            self.browser = SeleniumChromeBrowser(**browser_config)
+            self.browser = SeleniumMarkdownBrowser(**browser_config)
         elif headless.lower() == "playwright":
-            self.browser = PlaywrightChromeBrowser(**browser_config)
+            self.browser = PlaywrightMarkdownBrowser(**browser_config)
         else:
             raise ValueError(f"Unknown headless option '{headless}'")
 

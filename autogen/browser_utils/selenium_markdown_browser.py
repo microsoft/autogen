@@ -1,16 +1,8 @@
-import re
 import os
-import pathlib
 import io
-import time
-import html
-import datetime
 from typing import Optional, Union, Dict
-
 from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
-from urllib.request import url2pathname
-
-from autogen.browser_utils.simple_text_browser import SimpleTextBrowser
+from .requests_markdown_browser import RequestsMarkdownBrowser
 
 # Check if Playwright dependencies are installed
 IS_SELENIUM_ENABLED = False
@@ -23,8 +15,11 @@ try:
 except ModuleNotFoundError:
     pass
 
-class SeleniumChromeBrowser(SimpleTextBrowser):
-    """(In preview) A Playwright powered headless Chromium browser. Suitable for Agentic use."""
+class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
+    """
+    (In preview) A Selenium and Chromium powered Markdown web browser.
+    See AbstractMarkdownBrowser for more details.
+    """
 
     def __init__(
         self,

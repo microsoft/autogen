@@ -14,13 +14,16 @@ import html
 from urllib.parse import urljoin, urlparse, unquote, parse_qs
 from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
-from autogen.browser_utils.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
-from autogen.browser_utils.abstract_browser import AbstractBrowser
-from autogen.browser_utils.bing_utils import bing_search_markdown
 
+from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from .abstract_markdown_browser import AbstractMarkdownBrowser
+from .bing_utils import bing_search_markdown
 
-class SimpleTextBrowser(AbstractBrowser):
-    """(In preview) An extremely simple text-based web browser comparable to Lynx. Suitable for Agentic use."""
+class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
+    """
+    (In preview) An extremely simple Python requests-powered Markdown web browser.
+    See AbstractMarkdownBrowser for more details.
+    """
 
     def __init__(
         self,

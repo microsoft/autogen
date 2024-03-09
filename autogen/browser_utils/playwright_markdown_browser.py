@@ -1,16 +1,8 @@
-import re
 import os
-import pathlib
 import io
-import time
-import html
-import datetime
 from typing import Optional, Union, Dict
-
 from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
-from urllib.request import url2pathname
-
-from autogen.browser_utils.simple_text_browser import SimpleTextBrowser
+from .requests_markdown_browser import RequestsMarkdownBrowser
 
 # Check if Playwright dependencies are installed
 IS_PLAYWRIGHT_ENABLED = False
@@ -23,8 +15,11 @@ except ModuleNotFoundError:
     pass
 
 
-class PlaywrightChromeBrowser(SimpleTextBrowser):
-    """(In preview) A Playwright powered headless Chromium browser. Suitable for Agentic use."""
+class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
+    """
+    (In preview) A Playwright and Chromium powered Markdown web browser.
+    See AbstractMarkdownBrowser for more details.
+    """
 
     def __init__(
         self,
@@ -47,8 +42,6 @@ class PlaywrightChromeBrowser(SimpleTextBrowser):
         #    "channel": "msedge",
         #    "headless": False,
         #}
-        #if self.downloads_folder:
-        #    playwright_args["downloads_path"] = self.downloads_folder
         self._browser = self._playwright.chromium.launch(**playwright_args)
 
         # Browser context

@@ -1,9 +1,19 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Dict
 
-
-class AbstractBrowser(ABC):
-    """An abstract class for a web browser."""
+class AbstractMarkdownBrowser(ABC):
+    """
+    An abstract class for a Markdown web browser.
+    
+    All MarkdownBrowers work by:
+        
+        (1) fetching a web page by URL (via requests, Selenium, Playwright, etc.)
+        (2) converting the page's HTML or DOM to Markdown
+        (3) operating on the Markdown
+    
+    Such browsers are simple, and suitable for read-only agentic use.
+    They cannot be used to interact with complex web applications.
+    """
 
     @abstractmethod
     def __init__(
