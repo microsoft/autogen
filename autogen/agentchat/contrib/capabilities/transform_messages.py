@@ -8,19 +8,51 @@ from autogen import ConversableAgent, token_count_utils
 
 
 class MessageTransform(Protocol):
-    def apply(self, messages: List[Dict]) -> List[Dict]:
+    """Defines a contract for message transformation.
+
+    Classes implementing this protocol should provide an `apply_transform` method
+    that takes a list of messages and returns the transformed list.
+    """
+
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """Applies a transformation to a list of messages.
+
+        Args:
+            messages: A list of dictionaries representing messages.
+
+        Returns:
+            A new list of dictionaries containing the transformed messages.
+        """
         ...
 
 
 class TransformMessages:
+    """Agent capability for transforming messages before reply generation.
+
+    This capability allows you to apply a series of message transformations to
+    a ConversableAgent's incoming messages before they are processed for response
+    generation. This is useful for tasks such as:
+
+    - Limiting the number of messages considered for context.
+    - Truncating messages to meet token limits.
+    - Filtering sensitive information.
+    - Customizing message formatting.
+
+    To use `TransformMessages`:
+
+    1. Create message transformations (e.g., `MaxMessagesTransform`, `TruncateMessageTransform`).
+    2. Instantiate `TransformMessages` with a list of these transformations.
+    3. Add the `TransformMessages` instance to your `ConversableAgent` using `add_to_agent`.
+
+    This capability registers a hook that automatically transforms messages
+    before they are processed for response generation.
+    """
+
     def __init__(self, *, transforms: List[MessageTransform] = []):
         self._transforms = transforms
 
     def add_to_agent(self, agent: ConversableAgent):
-        agent.register_hook(
-            hookable_method="process_all_messages_before_reply",
-            hook=self._transform_messages,
-        )
+        agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
         temp_messages = messages.copy()
@@ -31,20 +63,41 @@ class TransformMessages:
             temp_messages.pop(0)
 
         for transform in self._transforms:
-            temp_messages = transform.apply(temp_messages)
+            temp_messages = transform.apply_transform(temp_messages)
 
         if system_message:
             temp_messages.insert(0, system_message)
 
+        self._print_stats(messages, temp_messages)
+
         return temp_messages
+
+    def _print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+        pre_transform_messages_len = len(pre_transform_messages)
+        post_transform_messages_len = len(post_transform_messages)
+
+        if pre_transform_messages_len < post_transform_messages_len:
+            print(
+                colored(
+                    f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
+                    "yellow",
+                )
+            )
 
 
 class MaxMessagesTransform:
+    """Limits the number of messages considered by an agent for response generation."""
+
     def __init__(self, max_messages: Optional[int] = None):
+        """
+        Args:
+            max_messages (None or int): Maximum number of messages to keep in the context.
+            Must be greater than 0 if not None.
+        """
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages if max_messages else sys.maxsize
 
-    def apply(self, messages: List[Dict]) -> List[Dict]:
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         if self._max_messages is None:
             return messages
 
@@ -56,19 +109,34 @@ class MaxMessagesTransform:
 
 
 class TruncateMessageTransform:
+    """Truncates messages to meet token limits for efficient processing and response generation.
+
+    This class allows you to control the length of messages an agent receives and considers for response.
+    Truncation can be applied to individual messages or the entire conversation history
+    """
+
     def __init__(
         self,
         max_tokens_per_message: Optional[int] = None,
         max_tokens: Optional[int] = None,
         model: str = "gpt-3.5-turbo-0613",
     ):
+        """
+        Args:
+            max_tokens_per_message (None or int): Maximum number of tokens to keep in each message.
+                Must be greater than 0 if not None.
+            max_tokens (Optional[int]): Maximum number of tokens to keep in the chat history.
+                Must be greater than 0 if not None.
+            model (str): The target OpenAI model for tokenization alignment.
+        """
         self._validate_max_tokens(max_tokens_per_message)
+        self._validate_max_tokens(max_tokens)
 
         self._max_tokens_per_message = max_tokens_per_message if max_tokens_per_message else sys.maxsize
         self._max_tokens = max_tokens if max_tokens else sys.maxsize
         self._model = model
 
-    def apply(self, messages: List[Dict]) -> List[Dict]:
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         assert self._max_tokens_per_message is not None
         assert self._max_tokens is not None
 
@@ -80,7 +148,9 @@ class TruncateMessageTransform:
         total_tokens = sum(token_count_utils.count_token(msg["content"]) for msg in temp_messages)
 
         for msg in reversed(temp_messages):
-            msg["content"] = truncate_str_to_tokens(msg["content"], self._max_tokens_per_message, model=self._model)
+            msg["content"] = self._truncate_str_to_tokens(
+                msg["content"], self._max_tokens_per_message, model=self._model
+            )
             msg_tokens = token_count_utils.count_token(msg["content"])
 
             if processed_messages_tokens + msg_tokens > self._max_tokens:
@@ -100,27 +170,26 @@ class TruncateMessageTransform:
 
         return processed_messages
 
+    def _truncate_str_to_tokens(self, text: str, max_tokens: int, model: str = "gpt-3.5-turbo-0613"):
+        """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
+
+        Args:
+            text: The string to truncate.
+            max_tokens: The maximum number of tokens to keep.
+            model: The target OpenAI model for tokenization alignment.
+
+        Returns:
+            The truncated string.
+        """
+
+        encoding = tiktoken.encoding_for_model(model)  # Get the appropriate tokenizer
+
+        encoded_tokens = encoding.encode(text)
+        truncated_tokens = encoded_tokens[:max_tokens]
+        truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
+
+        return truncated_text
+
     def _validate_max_tokens(self, max_tokens: Optional[int] = None):
         if max_tokens is not None and max_tokens < 1:
             raise ValueError("max_tokens_per_message must be None or greater than 1")
-
-
-def truncate_str_to_tokens(text: str, max_tokens: int, model: str = "gpt-3.5-turbo-0613") -> str:
-    """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
-
-    Args:
-        text: The string to truncate.
-        max_tokens: The maximum number of tokens to keep.
-        model: The target OpenAI model for tokenization alignment.
-
-    Returns:
-        The truncated string.
-    """
-
-    encoding = tiktoken.encoding_for_model(model)  # Get the appropriate tokenizer
-
-    encoded_tokens = encoding.encode(text)
-    truncated_tokens = encoded_tokens[:max_tokens]
-    truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
-
-    return truncated_text
