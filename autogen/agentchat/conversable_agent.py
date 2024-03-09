@@ -66,8 +66,8 @@ class ConversableAgent(LLMAgent):
     DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
-    DEFAULT_summary_prompt = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
-    DEFAULT_summary_method = "last_msg"
+    DEFAULT_SUMMARY_PROMPT = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
+    DEFAULT_SUMMARY_METHOD = "last_msg"
     llm_config: Union[Dict, Literal[False]]
 
     def __init__(
@@ -860,7 +860,7 @@ class ConversableAgent(LLMAgent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
-        summary_method: Optional[Union[str, Callable]] = DEFAULT_summary_method,
+        summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
         message: Optional[Union[Dict, str, Callable]] = None,
         **context,
@@ -879,7 +879,7 @@ class ConversableAgent(LLMAgent):
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
             [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
             If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
-            summary_method (string or callable) : a method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+            summary_method (string or callable) : a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
                         - Supported string are "last_msg" and "reflection_with_llm":
                             when set "last_msg", it returns the last message of the dialog as the summary.
                             when set "reflection_with_llm", it returns a summary extracted using an llm client.
@@ -897,7 +897,7 @@ class ConversableAgent(LLMAgent):
             summary_args (dict): a dictionary of arguments to be passed to the summary_method.
                     E.g., a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                    Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+                    Default is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
             message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 - If a string or a dict is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
                     If dict, it may contain the following reserved fields (either content or function_call need to be provided).
@@ -997,7 +997,7 @@ class ConversableAgent(LLMAgent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
-        summary_method: Optional[Union[str, Callable]] = DEFAULT_summary_method,
+        summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
         message: Optional[Union[str, Callable]] = None,
         **context,
@@ -1115,7 +1115,7 @@ class ConversableAgent(LLMAgent):
     @staticmethod
     def _relfection_with_llm_as_summary(sender, recipient, summary_args):
         prompt = summary_args.get("summary_prompt")
-        prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
+        prompt = ConversableAgent.DEFAULT_SUMMARY_PROMPT if prompt is None else prompt
         if not isinstance(prompt, str):
             raise ValueError("The summary_prompt must be a string.")
         msg_list = recipient.chat_messages_for_summary(sender)
