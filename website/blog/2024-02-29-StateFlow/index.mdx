@@ -51,7 +51,7 @@ For example, in the Bash task with GPT-4, **SF_Agent** improves the success rate
 
 
 ## Implement StateFlow With GroupChat
-We illustrate how to build **StateFlow** with GroupChat. Previous blog on [FSM Group Chat](/blog/2024-02-11-FSM-GroupChat)
+We illustrate how to build **StateFlow** with GroupChat. Previous blog on [FSM Group Chat](/blog/2024/02/11/FSM-GroupChat/)
 introduces a way how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
 GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for the next speaker.
 These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
@@ -135,7 +135,7 @@ When returning `None`, the group chat will terminate.
 
 
 ## For Further Reading
-* [StateFlow notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_stateflow/)
-* [GroupChat with Customized Speaker Selection notebook](https://microsoft.github.io/autogen/docs/notebooks/agentchat_groupchat_customized/)
+* [StateFlow notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_stateflow.ipynb)
+* [GroupChat with Customized Speaker Selection notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_customized.ipynb)
 * [FSM Group Chat](/blog/2024/02/11/FSM-GroupChat/)
 * [Documentation about `autogen`](/docs/Getting-Started)
