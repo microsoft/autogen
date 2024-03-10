@@ -51,9 +51,11 @@ For example, in the Bash task with GPT-4, **SF_Agent** improves the success rate
 
 
 ## Implement StateFlow With GroupChat
-We illustrate how to build **StateFlow** with GroupChat. Previous blog on [FSM Group Chat](/blog/2024/02/11/FSM-GroupChat/)
-introduces a way how to define a graph of agents, and use natural language to describe the transition conditions of the FSM in the agent's `description` parameter.
-GroupChat also allows passing in a customized speaker selection function to the `speaker_selection_method` to customize the selection rule for the next speaker.
+We illustrate how to build **StateFlow** with GroupChat. Previous blog [FSM Group Chat](/blog/2024/02/11/FSM-GroupChat/)
+introduces a new feature of GroupChat that allows us to input a transition graph to constrain agent transitions.
+It requires us to use natural language to describe the transition conditions of the FSM in the agent's `description` parameter, and then use an LLM to take in the description and make decisions of the next agent.
+In this blog, we take advantages of a customized speaker selection function passed to the `speaker_selection_method` of the `GroupChat` object.
+This function allows us to custom the transition logic between agents, and can be used together with the transition graph introduced in FSM Group Chat.
 These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
 
 We present an example of how to build a state-oriented workflow using GroupChat.
@@ -101,7 +103,6 @@ Then we define a customized function to control the transition between states:
 def state_transition(last_speaker, groupchat):
    messages = groupchat.messages
 
-
    if last_speaker is initializer:
        # init -> retrieve
        return coder
@@ -131,7 +132,7 @@ groupchat = autogen.GroupChat(
 We recommend implementing the transition logic for each speaker in the customized function. In analogy to a state machine, a state transition function determines the next state based on the current state and input.
 Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
 For example, we can always default to the built-in `auto` method to employ a LLM-based group chat manager to select the next speaker.
-When returning `None`, the group chat will terminate.
+When returning `None`, the group chat will terminate. Note that some of the transitions, such as "initializer" -> "coder" can be defined with the transition graph
 
 
 ## For Further Reading
