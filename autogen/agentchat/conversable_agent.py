@@ -11,7 +11,6 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 import warnings
 from openai import BadRequestError
 
-from ..types import SystemMessage
 from ..coding.base import CodeExecutor, CodeExecutionConfig
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 

@@ -22,6 +22,7 @@ else:
 from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
 
+
 class DockerJupyterServer(JupyterConnectable):
     DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
 
