@@ -173,32 +173,36 @@ def test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10):
         "Can we add a new point to the graph? It's distance should be randomly between 0 - 5 to each of the existing points.",
     ]
 
-    class TSPUserProxyAgent(UserProxyAgent):
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            with open(f"{here}/tsp_prompt.txt", "r") as f:
-                self._prompt = f.read()
-
-        def generate_init_message(self, question) -> str:
-            return self._prompt.format(question=question)
+    def tsp_message(sender, recipient, context):
+        filename = context.get("prompt_filename", "")
+        with open(filename, "r") as f:
+            prompt = f.read()
+        question = context.get("question", "")
+        return prompt.format(question=question)
 
     # autogen.ChatCompletion.start_logging()
     assistant = AssistantAgent("assistant", llm_config={"temperature": 0, "config_list": config_list})
-    user = TSPUserProxyAgent(
+    user = UserProxyAgent(
         "user",
-        code_execution_config={"work_dir": here},
+        code_execution_config={
+            "work_dir": here,
+        },
         human_input_mode=human_input_mode,
         max_consecutive_auto_reply=max_consecutive_auto_reply,
     )
-    user.initiate_chat(assistant, question=hard_questions[2])
+    chat_res = user.initiate_chat(
+        assistant, message=tsp_message, question=hard_questions[2], prompt_filename=f"{here}/tsp_prompt.txt"
+    )
     # print(autogen.ChatCompletion.logged_history)
     # autogen.ChatCompletion.stop_logging()
+    # print(chat_res.summary)
+    print(chat_res.cost)
 
 
 if __name__ == "__main__":
-    test_gpt35()
+    # test_gpt35()
     # test_create_execute_script(human_input_mode="TERMINATE")
     # when GPT-4, i.e., the DEFAULT_MODEL, is used, conversation in the following test
     # should terminate in 2-3 rounds of interactions (because is_termination_msg should be true after 2-3 rounds)
     # although the max_consecutive_auto_reply is set to 10.
-    # test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)
+    test_tsp(human_input_mode="NEVER", max_consecutive_auto_reply=10)

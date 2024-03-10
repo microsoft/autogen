@@ -14,9 +14,10 @@ from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 import autogen
-
+import os
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
+from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
@@ -26,6 +27,8 @@ except ImportError:
     skip = True
 else:
     skip = False or skip_openai
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.fixture
@@ -461,6 +464,10 @@ def test_generate_reply():
     assert (
         dummy_agent_2.generate_reply(messages=None, sender=dummy_agent_1)["content"] == "15"
     ), "generate_reply not working when messages is None"
+
+    dummy_agent_2.register_reply(["str", None], ConversableAgent.generate_oai_reply)
+    with pytest.raises(SenderRequired):
+        dummy_agent_2.generate_reply(messages=messages, sender=None)
 
 
 def test_generate_reply_raises_on_messages_and_sender_none(conversable_agent):
@@ -1086,6 +1093,137 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+def test_message_func():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    def my_message_play(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Let's play a game."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
+    func = Function()
+    # autogen.ChatCompletion.start_logging()
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={
+            "work_dir": here,
+            "use_docker": False,
+        },
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+    )
+    player = autogen.AssistantAgent(
+        name="Player",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that makes function_calls.",
+        llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
+    )
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message=my_message_play,
+        max_turns=1,
+    )
+    print(chat_res_play.summary)
+
+
+@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+def test_summary():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
+    def my_message_play(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Let's play a game."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
+    def my_summary(sender, recipient, summary_args):
+        prefix = summary_args.get("prefix", "Summary:")
+        return prefix + recipient.chat_messages[sender][-1].get("content", "")
+
+    func = Function()
+    # autogen.ChatCompletion.start_logging()
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={
+            "work_dir": here,
+            "use_docker": False,
+        },
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=10,
+    )
+    player = autogen.AssistantAgent(
+        name="Player",
+        system_message="You will use function `get_random_number` to get a random number. Stop only when you get at least 1 even number and 1 odd number. Reply TERMINATE to stop.",
+        description="A player that makes function_calls.",
+        llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
+    )
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message=my_message_play,
+        # message="Make a joke about AI",
+        max_turns=1,
+        summary_method="reflection_with_llm",
+        summary_args={"summary_prompt": "Summarize the conversation into less than five words."},
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        # message=my_message_play,
+        message="Make a joke about AI",
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play.summary)
+
+    chat_res_play = user.initiate_chat(
+        player,
+        message={"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play.summary)
+
+
 def test_process_before_send():
     print_mock = unittest.mock.MagicMock()
 
@@ -1106,6 +1244,27 @@ def test_process_before_send():
     print_mock.assert_called_once_with(message="hello")
 
 
+def test_messages_with_carryover():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    context = dict(message="hello", carryover="Testing carryover.")
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, str)
+
+    context = dict(message="hello", carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()
@@ -1114,4 +1273,6 @@ if __name__ == "__main__":
     # test_conversable_agent()
     # test_no_llm_config()
     # test_max_turn()
-    test_process_before_send()
+    # test_process_before_send()
+    test_message_func()
+    test_summary()
