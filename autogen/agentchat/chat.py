@@ -1,4 +1,5 @@
 import asyncio
+from functools import partial
 import logging
 from collections import defaultdict, abc
 from typing import Dict, List, Any, Set, Tuple
@@ -189,7 +190,7 @@ def __system_now_str():
     return f" System time at {ct}. "
 
 
-def _on_chat_future_done(chat_id: int, chat_future: asyncio.Future):
+def _on_chat_future_done(chat_future: asyncio.Future, chat_id: int):
     """
     Update ChatResult when async Task for Chat is completed.
     """
@@ -221,7 +222,8 @@ async def _dependent_chat_future(
     __post_carryover_processing(chat_info)
     sender = chat_info["sender"]
     chat_res_future = asyncio.create_task(sender.a_initiate_chat(**chat_info))
-    chat_res_future.add_done_callback(_on_chat_future_done)
+    call_back_with_args = partial(_on_chat_future_done, chat_id=chat_id)
+    chat_res_future.add_done_callback(call_back_with_args)
     logger.debug(f"Task for chat {chat_id} created." + __system_now_str())
     return chat_res_future
 
