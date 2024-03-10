@@ -212,7 +212,7 @@ nvm install --lts
 
 Also, install [quarto](https://quarto.org/docs/get-started/).
 
-> Note: Support for Docusaurus 3.0 in Quarto is from version `1.4`. Ensure that your `quarto` version is `1.4` or higher.
+> Note: We require at least Quarto version `1.5.23` or later. It can be installed from [here](https://github.com/quarto-dev/quarto-cli/releases)
 
 Then:
 
