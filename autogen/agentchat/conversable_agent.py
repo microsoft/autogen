@@ -51,9 +51,6 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-HumanInputMode = Literal["ALWAYS", "TERMINATE", "NEVER"]
-
-
 class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
@@ -81,7 +78,7 @@ class ConversableAgent(LLMAgent):
         system_message: Union[str, List] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: int = MAX_CONSECUTIVE_AUTO_REPLY,
-        human_input_mode: HumanInputMode = "TERMINATE",
+        human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "TERMINATE",
         function_map: Dict[str, Callable] = {},
         code_execution_config: Union[CodeExecutionConfig, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
