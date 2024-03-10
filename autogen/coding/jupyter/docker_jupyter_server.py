@@ -4,7 +4,7 @@ from pathlib import Path
 import sys
 from types import TracebackType
 import uuid
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Type, Union
 import docker
 import secrets
 import io
@@ -21,17 +21,6 @@ else:
 
 from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
-
-
-def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
-    elapsed_time = 0.0
-    while container.status != "running" and elapsed_time < timeout:
-        sleep(stop_time)
-        elapsed_time += stop_time
-        container.reload()
-        continue
-    if container.status != "running":
-        raise ValueError("Container failed to start")
 
 class DockerJupyterServer(JupyterConnectable):
     DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation

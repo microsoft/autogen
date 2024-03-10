@@ -239,7 +239,7 @@ def get_powershell_command():
 powershell_command = get_powershell_command()
 
 
-def _cmd(lang):
+def _cmd(lang: str) -> str:
     if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
         return lang
     if lang in ["shell"]:
