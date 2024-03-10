@@ -79,7 +79,7 @@ class ConversableAgent(LLMAgent):
     def __init__(
         self,
         name: str,
-        system_message: str = "You are a helpful AI Assistant.",
+        system_message: Union[str, List] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: int = MAX_CONSECUTIVE_AUTO_REPLY,
         human_input_mode: HumanInputMode = "TERMINATE",
@@ -92,7 +92,7 @@ class ConversableAgent(LLMAgent):
         """
         Args:
             name (str): name of the agent.
-            system_message (str): system message for the ChatCompletion inference.
+            system_message (str or list): system message for the ChatCompletion inference.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
@@ -134,7 +134,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
-        self._oai_system_message: List[SystemMessage] = [{"content": system_message, "role": "system"}]
+        self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg

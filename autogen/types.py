@@ -1,4 +1,4 @@
-from typing import Dict, Literal, TypedDict
+from typing import Dict, List, Literal, TypedDict, Union
 
 
 class UserMessageTextContentPart(TypedDict):
@@ -11,7 +11,3 @@ class UserMessageImageContentPart(TypedDict):
     # Ignoring the other "detail param for now"
     image_url: Dict[Literal["url"], str]
 
-
-class SystemMessage(TypedDict):
-    content: str
-    role: Literal["system"]
