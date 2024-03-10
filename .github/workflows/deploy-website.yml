@@ -51,7 +51,6 @@ jobs:
           echo "$(pwd)/quarto-1.5.23/bin/" >> $GITHUB_PATH
       - name: Process notebooks
         run: |
-          pip install nbclient nbformat
           python process_notebooks.py render
       - name: Test Build
         run: |

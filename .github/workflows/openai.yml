@@ -12,6 +12,8 @@ on:
       - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
       - "notebook/agentchat_function_call.ipynb"
       - "notebook/agentchat_groupchat_finite_state_machine.ipynb"
+      - "notebook/agentchat_groupchat_customized.ipynb"
+      - "notebook/agentchat_groupchat_state_flow.ipynb"
       - ".github/workflows/openai.yml"
 permissions: {}
   # actions: read
