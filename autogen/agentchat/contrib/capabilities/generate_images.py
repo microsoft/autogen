@@ -1,12 +1,11 @@
 import re
 from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
-from diskcache import Cache
 from openai import OpenAI
 from PIL.Image import Image
 
-from autogen import ConversableAgent, code_utils
-from autogen.agentchat.agent import Agent
+from autogen import Agent, ConversableAgent, code_utils
+from autogen.cache import Cache
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
@@ -25,6 +24,9 @@ class ImageGenerator(Protocol):
     def generate_image(self, prompt: str) -> Image:
         ...
 
+    def cache_key(self, prompt: str) -> str:
+        ...
+
 
 class DalleImageGenerator:
     def __init__(
@@ -33,7 +35,6 @@ class DalleImageGenerator:
         resolution: Literal["256x256", "512x512", "1024x1024", "1792x1024", "1024x1792"] = "1024x1024",
         quality: Literal["standard", "hd"] = "standard",
         num_images: int = 1,
-        cache_settings: Dict = {},
     ):
         """
         Args:
@@ -41,7 +42,6 @@ class DalleImageGenerator:
             resolution (str): The resolution of the image you want to generate. Must be one of "256x256", "512x512", "1024x1024", "1792x1024", "1024x1792".
             quality (str): The quality of the image you want to generate. Must be one of "standard", "hd".
             num_images (int): The number of images to generate.
-            cache_settings (dict): The settings for the cache. Defaults to {}. Cache is implemented with the diskcache library.
         """
         config_list = llm_config["config_list"]
         _validate_dalle_model(config_list[0]["model"])
@@ -51,20 +51,9 @@ class DalleImageGenerator:
         self._resolution = resolution
         self._quality = quality
         self._num_images = num_images
-        self._cache_settings = cache_settings
         self._dalle_client = OpenAI(api_key=config_list[0]["api_key"])
 
     def generate_image(self, prompt: str) -> Image:
-        # Use cache if user has specified a cache directory
-        cache = None
-        if self._cache_settings:
-            cache = Cache(**self._cache_settings)
-            key = (self._model, prompt, self._resolution, self._quality, self._num_images)
-
-            if key in cache:
-                return img_utils._to_pil(cache[key])
-
-        # If not in cache, compute and store the result
         response = self._dalle_client.images.generate(
             model=self._model,
             prompt=prompt,
@@ -74,17 +63,23 @@ class DalleImageGenerator:
         )
 
         image_url = response.data[0].url
-        img_data = img_utils.get_image_data(image_url)
+        if image_url is None:
+            raise ValueError("Failed to generate image.")
 
-        if cache:
-            cache[key] = img_data
+        return img_utils.get_pil_image(image_url)
 
-        return img_utils._to_pil(img_data)
+    def cache_key(self, prompt: str) -> str:
+        keys = (prompt, self._model, self._resolution, self._quality, self._num_images)
+        return ",".join([str(k) for k in keys])
 
 
 class ImageGeneration(AgentCapability):
     def __init__(
-        self, image_generator: ImageGenerator, text_analyzer_llm_config: Optional[Dict] = None, verbosity: int = 0
+        self,
+        image_generator: ImageGenerator,
+        cache: Optional[Cache] = None,
+        text_analyzer_llm_config: Optional[Dict] = None,
+        verbosity: int = 0,
     ):
         """
         Args:
@@ -94,6 +89,7 @@ class ImageGeneration(AgentCapability):
             analyzer llm calls will be silent if verbosity is less than 2.
         """
         self._image_generator = image_generator
+        self._cache = cache
         self._text_analyzer_llm_config = text_analyzer_llm_config
         self._verbosity = verbosity
 
@@ -135,15 +131,15 @@ class ImageGeneration(AgentCapability):
             EXAMPLE: Blue background, 3D shapes, ...
             """
             analysis = self._text_analyzer.analyze_text(last_message, instructions)
+            prompt = self._extract_analysis(analysis)
 
-            image = self._image_generator.generate_image(self._extract_analysis(analysis))
+            image = self._cache_get(prompt)
+            if image is None:
+                image = self._image_generator.generate_image(prompt)
+                self._cache_set(prompt, image)
 
-            return True, {
-                "content": [
-                    {"type": "text", "text": f"I generated an image with the prompt: {analysis}"},
-                    {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
-                ]
-            }
+            return True, self._generate_content_message(prompt, image)
+
         else:
             return False, None
 
@@ -159,18 +155,41 @@ class ImageGeneration(AgentCapability):
 
         return "yes" in self._extract_analysis(analysis).lower()
 
+    def _cache_get(self, prompt: str) -> Optional[Image]:
+        if self._cache:
+            key = self._image_generator.cache_key(prompt)
+            cached_value = self._cache.get(key)
+
+            if cached_value:
+                return img_utils.get_pil_image(cached_value)
+
+    def _cache_set(self, prompt: str, image: Image):
+        if self._cache:
+            key = self._image_generator.cache_key(prompt)
+            self._cache.set(key, img_utils.pil_to_data_uri(image))
+
     def _extract_analysis(self, analysis: Union[str, Dict, None]) -> str:
         if isinstance(analysis, Dict):
             return code_utils.content_str(analysis["content"])
         else:
             return code_utils.content_str(analysis)
 
+    def _generate_content_message(self, prompt: str, image: Image) -> Dict[str, Any]:
+        return {
+            "content": [
+                {"type": "text", "text": f"I generated an image with the prompt: {prompt}"},
+                {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
+            ]
+        }
+
 
 ### Helpers
 def _validate_resolution_format(resolution: str):
     """Checks if a string is in a valid resolution format (e.g., "1024x768")."""
     pattern = r"^\d+x\d+$"  # Matches a pattern of digits, "x", and digits
-    return bool(re.match(pattern, resolution))
+    matched_resolution = re.match(pattern, resolution)
+    if matched_resolution is None:
+        raise ValueError(f"Invalid resolution format: {resolution}")
 
 
 def _validate_dalle_model(model: str):
