@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from time import sleep
 from types import TracebackType
 import uuid
 from typing import Any, Dict, Optional, Union
@@ -11,6 +10,8 @@ import secrets
 import io
 import atexit
 import logging
+
+from ..docker_commandline_code_executor import _wait_for_ready
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -31,7 +32,6 @@ def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -
         continue
     if container.status != "running":
         raise ValueError("Container failed to start")
-
 
 class DockerJupyterServer(JupyterConnectable):
     DEFAULT_DOCKERFILE = """FROM quay.io/jupyter/docker-stacks-foundation
@@ -162,6 +162,6 @@ WORKDIR "${HOME}"
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
