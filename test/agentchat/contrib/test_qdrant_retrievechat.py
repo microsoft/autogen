@@ -73,7 +73,7 @@ def test_retrievechat():
     assistant.reset()
 
     code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
-    ragproxyagent.initiate_chat(assistant, problem=code_problem, silent=True)
+    ragproxyagent.initiate_chat(assistant, message=ragproxyagent.message_generator, problem=code_problem, silent=True)
     print(conversations)
 
 
