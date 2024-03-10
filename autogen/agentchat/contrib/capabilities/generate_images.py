@@ -22,9 +22,30 @@ class ImageGenerator(Protocol):
     """
 
     def generate_image(self, prompt: str) -> Image:
+        """Generates an image based on the provided prompt.
+
+        Args:
+          prompt: A string describing the desired image.
+
+        Returns:
+          A PIL Image object representing the generated image.
+
+        Raises:
+          ValueError: If the image generation fails.
+        """
         ...
 
     def cache_key(self, prompt: str) -> str:
+        """Generates a unique cache key for the given prompt.
+
+        This key can be used to store and retrieve generated images based on the prompt.
+
+        Args:
+          prompt: A string describing the desired image.
+
+        Returns:
+          A unique string that can be used as a cache key.
+        """
         ...
 
 
