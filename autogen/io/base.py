@@ -40,15 +40,19 @@ class IOStream(InputStream, OutputStream, Protocol):
     """A protocol for input/output streams."""
 
     @staticmethod
-    def get_default() -> Optional["IOStream"]:
+    def get_default() -> "IOStream":
         """Get the default input/output stream.
 
         Returns:
             IOStream: The default input/output stream.
         """
-        return IOStream._default_io_stream.get()
+        iostream = IOStream._default_io_stream.get()
+        if iostream is None:
+            raise RuntimeError("No default IOStream has been set")
+        return iostream
 
-    _default_io_stream: ContextVar[Optional["IOStream"]] = ContextVar("default_io_stream")
+    # ContextVar must be used in multithreaded or async environments
+    _default_io_stream: ContextVar[Optional["IOStream"]] = ContextVar("default_iostream")
     _default_io_stream.set(None)
 
     @staticmethod
