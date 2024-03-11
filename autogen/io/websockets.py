@@ -46,7 +46,10 @@ class IOWebsockets(IOStream):
         # create a new IOWebsockets instance using the websocket that is create when a client connects
         iowebsocket = IOWebsockets(websocket)
         # call the on_connect function
-        on_connect(iowebsocket)
+        try:
+            on_connect(iowebsocket)
+        except Exception as e:
+            print(f" - _handler(): Error in on_connect: {e}", flush=True)
 
     @staticmethod
     @contextmanager
