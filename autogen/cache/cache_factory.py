@@ -1,6 +1,8 @@
-from typing import Optional, Union, Type
+from typing import Optional, Union
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
+
+import logging
 
 
 class CacheFactory:
@@ -45,6 +47,7 @@ class CacheFactory:
 
                 return RedisCache(seed, redis_url)
             except ImportError:
+                logging.warning("RedisCache is not available. Creating a DiskCache instance instead.")
                 return DiskCache(f"./{cache_path_root}/{seed}")
         else:
             return DiskCache(f"./{cache_path_root}/{seed}")
