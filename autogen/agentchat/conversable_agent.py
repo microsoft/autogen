@@ -63,14 +63,13 @@ class ConversableAgent(LLMAgent):
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
     `run_code`, and `execute_function` methods respectively.
-    To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
     DEFAULT_CONFIG = {}  # An empty configuration
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
-    DEFAULT_summary_prompt = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
-    DEFAULT_summary_method = "last_msg"
+    DEFAULT_SUMMARY_PROMPT = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
+    DEFAULT_SUMMARY_METHOD = "last_msg"
     llm_config: Union[Dict, Literal[False]]
 
     def __init__(
@@ -857,13 +856,16 @@ class ConversableAgent(LLMAgent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
+        summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
+        summary_args: Optional[dict] = {},
+        message: Optional[Union[Dict, str, Callable]] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
 
         Reset the consecutive auto reply counter.
         If `clear_history` is True, the chat history with the recipient agent will be cleared.
-        `generate_init_message` is called to generate the initial message for the agent.
+
 
         Args:
             recipient: the recipient agent.
@@ -873,9 +875,7 @@ class ConversableAgent(LLMAgent):
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
             [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
             If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
-            **context: any context information. It has the following reserved fields:
-                "message": a str of message. Needs to be provided. Otherwise, input() will be called to get the initial message.
-                "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+            summary_method (string or callable) : a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
                         - Supported string are "last_msg" and "reflection_with_llm":
                             when set "last_msg", it returns the last message of the dialog as the summary.
                             when set "reflection_with_llm", it returns a summary extracted using an llm client.
@@ -886,14 +886,53 @@ class ConversableAgent(LLMAgent):
                         def my_summary_method(
                             sender: ConversableAgent,
                             recipient: ConversableAgent,
+                            summary_args: dict,
                         ):
                             return recipient.last_message(sender)["content"]
                         ```
-                "summary_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
+            summary_args (dict): a dictionary of arguments to be passed to the summary_method.
+                    E.g., a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
                     on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                    Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
-                "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
-                    If provided, we will combine this carryover with the "message" content when generating the initial chat
+                    Default is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+            message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
+                - If a string or a dict is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
+                    If dict, it may contain the following reserved fields (either content or function_call need to be provided).
+                    1. "content": content of the message, can be None.
+                    2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                    3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                    4. "role": role of the message, can be "assistant", "user", "function".
+                        This field is only needed to distinguish between "function" or "assistant"/"user".
+                    5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                    6. "context" (dict): the context of the message, which will be passed to
+                        [OpenAIWrapper.create](../oai/client#create).
+                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict. If the returned value is a dict, it should contain the following reserved fields:
+                    If the returned type is dict, it may contain the reserved fields mentioned above.
+
+                    Example of a callable message (returning a string):
+                    ```python
+                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
+                        carryover = context.get("carryover", "")
+                        if isinstance(message, list):
+                            carryover = carryover[-1]
+                        final_msg = "Write a blogpost." + "\nContext: \n" + carryover
+                        return final_msg
+                    ```
+
+                    Example of a callable message (returning a dict):
+                    ```python
+                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
+                        final_msg = {}
+                        carryover = context.get("carryover", "")
+                        carryover = context.get("carryover", "")
+                        if isinstance(message, list):
+                            carryover = carryover[-1]
+                        final_msg["content"] = "Write a blogpost." + "\nContext: \n" + carryover
+                        final_msg["context"] = {"prefix": "Today I feel"}
+                        return final_msg
+                    ```
+            **context: any context information. It has the following reserved fields:
+                "carryover": a string or a list of string to specify the carryover information to be passed to this chat.
+                    If provided, we will combine this carryover (by attaching a "context: "string and the carryover content after the message content) with the "message" content when generating the initial chat
                     message in `generate_init_message`.
 
         Raises:
@@ -904,6 +943,7 @@ class ConversableAgent(LLMAgent):
         """
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
+        _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
             agent._raise_exception_on_async_reply_functions()
@@ -913,7 +953,10 @@ class ConversableAgent(LLMAgent):
             self._prepare_chat(recipient, clear_history, reply_at_receive=False)
             for _ in range(max_turns):
                 if _ == 0:
-                    msg2send = self.generate_init_message(**context)
+                    if isinstance(message, Callable):
+                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                    else:
+                        msg2send = self.generate_init_message(message, **context)
                 else:
                     msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
@@ -921,11 +964,15 @@ class ConversableAgent(LLMAgent):
                 self.send(msg2send, recipient, request_reply=True, silent=silent)
         else:
             self._prepare_chat(recipient, clear_history)
-            self.send(self.generate_init_message(**context), recipient, silent=silent)
+            if isinstance(message, Callable):
+                msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+            else:
+                msg2send = self.generate_init_message(message, **context)
+            self.send(msg2send, recipient, silent=silent)
         summary = self._summarize_chat(
-            context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
+            summary_method,
+            summary_args,
             recipient,
-            prompt=context.get("summary_prompt"),
             cache=cache,
         )
         for agent in [self, recipient]:
@@ -946,6 +993,9 @@ class ConversableAgent(LLMAgent):
         silent: Optional[bool] = False,
         cache: Optional[Cache] = None,
         max_turns: Optional[int] = None,
+        summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
+        summary_args: Optional[dict] = {},
+        message: Optional[Union[str, Callable]] = None,
         **context,
     ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
@@ -961,6 +1011,7 @@ class ConversableAgent(LLMAgent):
         """
         _chat_info = context.copy()
         _chat_info["recipient"] = recipient
+        _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
             agent.previous_cache = agent.client_cache
@@ -969,7 +1020,10 @@ class ConversableAgent(LLMAgent):
             self._prepare_chat(recipient, clear_history, reply_at_receive=False)
             for _ in range(max_turns):
                 if _ == 0:
-                    msg2send = await self.a_generate_init_message(**context)
+                    if isinstance(message, Callable):
+                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                    else:
+                        msg2send = await self.a_generate_init_message(message, **context)
                 else:
                     msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
@@ -977,11 +1031,15 @@ class ConversableAgent(LLMAgent):
                 await self.a_send(msg2send, recipient, request_reply=True, silent=silent)
         else:
             self._prepare_chat(recipient, clear_history)
-            await self.a_send(await self.a_generate_init_message(**context), recipient, silent=silent)
+            if isinstance(message, Callable):
+                msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+            else:
+                msg2send = await self.a_generate_init_message(message, **context)
+            await self.a_send(msg2send, recipient, silent=silent)
         summary = self._summarize_chat(
-            context.get("summary_method", ConversableAgent.DEFAULT_summary_method),
+            summary_method,
+            summary_args,
             recipient,
-            prompt=context.get("summary_prompt"),
             cache=cache,
         )
         for agent in [self, recipient]:
@@ -998,8 +1056,8 @@ class ConversableAgent(LLMAgent):
     def _summarize_chat(
         self,
         summary_method,
+        summary_args,
         recipient: Optional[Agent] = None,
-        prompt: Optional[str] = None,
         cache: Optional[Cache] = None,
     ) -> str:
         """Get a chat summary from an agent participating in a chat.
@@ -1011,35 +1069,60 @@ class ConversableAgent(LLMAgent):
                 def my_summary_method(
                     sender: ConversableAgent,
                     recipient: ConversableAgent,
+                    summary_args: dict,
                 ):
                     return recipient.last_message(sender)["content"]
                 ```
+            summary_args (dict): a dictionary of arguments to be passed to the summary_method.
             recipient: the recipient agent in a chat.
             prompt (str): the prompt used to get a summary when summary_method is "reflection_with_llm".
 
         Returns:
             str: a chat summary from the agent.
         """
-        agent = self if recipient is None else recipient
         summary = ""
         if summary_method is None:
             return summary
+        if "cache" not in summary_args:
+            summary_args["cache"] = cache
         if summary_method == "reflection_with_llm":
-            prompt = ConversableAgent.DEFAULT_summary_prompt if prompt is None else prompt
-            if not isinstance(prompt, str):
-                raise ValueError("The summary_prompt must be a string.")
-            msg_list = agent.chat_messages_for_summary(self)
-            try:
-                summary = self._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=cache)
-            except BadRequestError as e:
-                warnings.warn(f"Cannot extract summary using reflection_with_llm: {e}", UserWarning)
-        elif summary_method == "last_msg" or summary_method is None:
-            try:
-                summary = agent.last_message(self)["content"].replace("TERMINATE", "")
-            except (IndexError, AttributeError) as e:
-                warnings.warn(f"Cannot extract summary using last_msg: {e}", UserWarning)
-        elif isinstance(summary_method, Callable):
-            summary = summary_method(recipient, self)
+            summary_method = self._relfection_with_llm_as_summary
+        elif summary_method == "last_msg":
+            summary_method = self._last_msg_as_summary
+
+        if isinstance(summary_method, Callable):
+            summary = summary_method(self, recipient, summary_args)
+        else:
+            raise ValueError(
+                "If not None, the summary_method must be a string from [`reflection_with_llm`, `last_msg`] or a callable."
+            )
+        return summary
+
+    @staticmethod
+    def _last_msg_as_summary(sender, recipient, summary_args) -> str:
+        """Get a chat summary from the last message of the recipient."""
+        try:
+            summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
+        except (IndexError, AttributeError) as e:
+            warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
+            summary = ""
+        return summary
+
+    @staticmethod
+    def _relfection_with_llm_as_summary(sender, recipient, summary_args):
+        prompt = summary_args.get("summary_prompt")
+        prompt = ConversableAgent.DEFAULT_SUMMARY_PROMPT if prompt is None else prompt
+        if not isinstance(prompt, str):
+            raise ValueError("The summary_prompt must be a string.")
+        msg_list = recipient.chat_messages_for_summary(sender)
+        agent = sender if recipient is None else recipient
+        try:
+            summary = sender._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"))
+        except BadRequestError as e:
+            warnings.warn(
+                f"Cannot extract summary using reflection_with_llm: {e}. Using an empty str as summary.", UserWarning
+            )
+            summary = ""
         return summary
 
     def _reflection_with_llm(
@@ -1072,7 +1155,6 @@ class ConversableAgent(LLMAgent):
 
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
-        TODO: add async version of this method.
 
         Args:
             chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
@@ -2105,70 +2187,63 @@ class ConversableAgent(LLMAgent):
             "content": str(content),
         }
 
-    def generate_init_message(self, **context) -> Union[str, Dict]:
+    def generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
-        TODO: offer a way to customize initial message without overriding this function.
-
-        Override this function to customize the initial message based on user's request.
-        If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
+        If message is None, input() will be called to get the initial message.
 
         Args:
+            message (str or None): the message to be processed.
             **context: any context information. It has the following reserved fields:
-                "message": a str of message.
-                "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                        - Supported string are "last_msg" and "reflection_with_llm":
-                            when set "last_msg", it returns the last message of the dialog as the summary.
-                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                            `llm_config` must be set in either the recipient or sender.
-                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                        ```python
-                        def my_summary_method(
-                            sender: ConversableAgent,
-                            recipient: ConversableAgent,
-                        ):
-                            return recipient.last_message(sender)["content"]
-                        ```
-                    When both the sender and the recipient have an llm client, the recipient's llm client will be used.
-                "summary_prompt": a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
-                    on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                    Default is DEFAULT_summary_prompt, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
                 "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
                     message.
+        Returns:
+            str or dict: the processed message.
         """
-        if "message" not in context:
-            context["message"] = self.get_human_input(">")
-        self._process_carryover(context)
-        return context["message"]
+        if message is None:
+            message = self.get_human_input(">")
+        if isinstance(message, str):
+            return self._process_carryover(message, context)
+        elif isinstance(message, dict):
+            message = message.copy()
+            # TODO: Do we need to do the following?
+            # if message.get("content") is None:
+            #     message["content"] = self.get_human_input(">")
+            message["content"] = self._process_carryover(message.get("content", ""), context)
+            return message
 
-    def _process_carryover(self, context):
-        carryover = context.get("carryover", "")
+    def _process_carryover(self, message: str, context: dict) -> str:
+        carryover = context.get("carryover")
         if carryover:
             # if carryover is string
             if isinstance(carryover, str):
-                context["message"] = context["message"] + "\nContext: \n" + carryover
+                message += "\nContext: \n" + carryover
             elif isinstance(carryover, list):
-                context["message"] = context["message"] + "\nContext: \n" + ("\n").join([t for t in carryover])
+                message += "\nContext: \n" + ("\n").join([t for t in carryover])
             else:
                 raise InvalidCarryOverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
+        return message
 
-    async def a_generate_init_message(self, **context) -> Union[str, Dict]:
+    async def a_generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
-        TODO: offer a way to customize initial message without overriding this function.
-
-        Override this function to customize the initial message based on user's request.
-        If not overridden, "message" needs to be provided in the context, or input() will be called to get the initial message.
+        If message is None, input() will be called to get the initial message.
 
         Args:
             Please refer to `generate_init_message` for the description of the arguments.
+
+        Returns:
+            str or dict: the processed message.
         """
-        if "message" not in context:
-            context["message"] = await self.a_get_human_input(">")
-        self._process_carryover(context)
-        return context["message"]
+        if message is None:
+            message = await self.a_get_human_input(">")
+        if isinstance(message, str):
+            return self._process_carryover(message, context)
+        elif isinstance(message, dict):
+            message = message.copy()
+            message["content"] = self._process_carryover(message["content"], context)
+            return message
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.

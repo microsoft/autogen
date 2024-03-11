@@ -106,7 +106,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - To build the developer Docker image (`autogen_dev_img`), use the following commands:
 
   ```bash
-  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -232,7 +232,7 @@ Most changes are reflected live without having to restart the server.
 To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image
 
 ```bash
-docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine
