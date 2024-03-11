@@ -70,10 +70,11 @@ class UserProxyAgent(ConversableAgent):
                 - timeout (Optional, int): The maximum execution time in seconds.
                 - last_n_messages (Experimental, Optional, int): The number of messages to look back for code execution. Default to 1.
             default_auto_reply (str or dict or None): the default auto reply message when no code execution or llm based reply is generated.
-            llm_config (dict or False): llm inference configuration.
+            llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
-                Default to false, which disables llm-based auto reply.
+                Default to False, which disables llm-based auto reply.
+                When set to None, will use self.DEFAULT_CONFIG, which defaults to False.
             system_message (str or List): system message for ChatCompletion inference.
                 Only used when llm_config is not False. Use it to reprogram the agent.
             description (str): a short description of the agent. This description is used by other agents
