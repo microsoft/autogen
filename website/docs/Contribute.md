@@ -106,7 +106,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - To build the developer Docker image (`autogen_dev_img`), use the following commands:
 
   ```bash
-  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -203,22 +203,23 @@ Then you can see the coverage report by
 `coverage report -m` or `coverage html`.
 
 ### Documentation
-
-To build and test documentation locally, install [Node.js](https://nodejs.org/en/download/). For example,
-
+#### Build documentation locally
+1\. To build and test documentation locally, first install [Node.js](https://nodejs.org/en/download/). For example,
 ```bash
 nvm install --lts
 ```
 
-Also, install [quarto](https://quarto.org/docs/get-started/).
+Then, install `yarn` and other required packages:
+```bash
+npm install --global yarn
+pip install pydoc-markdown pyyaml termcolor
+```
 
-> Note: Support for Docusaurus 3.0 in Quarto is from version `1.4`. Ensure that your `quarto` version is `1.4` or higher.
+2\. You also need to install quarto. Please click on the `Pre-release` tab from [this website](https://quarto.org/docs/download/) to download the latest version of `quarto` and install it. Ensure that the `quarto` version is `1.5.23` or higher.
 
-Then:
+3\. Finally, run the following commands to build:
 
 ```console
-npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown pyyaml termcolor # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
@@ -229,10 +230,11 @@ yarn start
 The last command starts a local development server and opens up a browser window.
 Most changes are reflected live without having to restart the server.
 
-To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image
+#### Build with Docker
+To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image:
 
 ```bash
-docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine
