@@ -1228,7 +1228,7 @@ class ConversableAgent(LLMAgent):
                     first_msg_to_save = self._oai_messages[key][-nr_messages_to_preserve_internal]
                     if "tool_responses" in first_msg_to_save:
                         nr_messages_to_preserve_internal += 1
-                        print(
+                        iostream.print(
                             f"Preserving one more message for {self.name} to not divide history between tool call and "
                             f"tool response."
                         )
@@ -1318,6 +1318,8 @@ class ConversableAgent(LLMAgent):
         config: Optional[Union[Dict, Literal[False]]] = None,
     ):
         """Generate a reply using code executor."""
+        iostream = IOStream.get_default()
+
         if config is not None:
             raise ValueError("config is not supported for _generate_code_execution_reply_using_executor.")
         if self._code_execution_config is False:
@@ -1355,7 +1357,7 @@ class ConversableAgent(LLMAgent):
 
             num_code_blocks = len(code_blocks)
             if num_code_blocks == 1:
-                print(
+                iostream.print(
                     colored(
                         f"\n>>>>>>>> EXECUTING CODE BLOCK (inferred language is {code_blocks[0].language})...",
                         "red",
@@ -1363,7 +1365,7 @@ class ConversableAgent(LLMAgent):
                     flush=True,
                 )
             else:
-                print(
+                iostream.print(
                     colored(
                         f"\n>>>>>>>> EXECUTING {num_code_blocks} CODE BLOCKS (inferred languages are [{', '.join([x.language for x in code_blocks])}])...",
                         "red",
@@ -1998,7 +2000,6 @@ class ConversableAgent(LLMAgent):
         """
         loop = asyncio.get_running_loop()
         reply = await loop.run_in_executor(None, functools.partial(self.get_human_input, prompt))
-        reply = input(prompt)
         return reply
 
     def run_code(self, code, **kwargs):

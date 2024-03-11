@@ -5,6 +5,8 @@ from typing import Dict, List, Any, Set, Tuple
 from dataclasses import dataclass
 import warnings
 from termcolor import colored
+
+from ..io.base import IOStream
 from .utils import consolidate_chat_info
 
 
@@ -101,6 +103,8 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
 
 
 def __post_carryover_processing(chat_info: Dict[str, Any]):
+    iostream = IOStream.get_default()
+
     if "message" not in chat_info:
         warnings.warn(
             "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
@@ -120,15 +124,15 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
         print_message = "Dict: " + str(message)
     elif message is None:
         print_message = "None"
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-    print(
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    iostream.print(
         colored(
             "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
             "blue",
         ),
         flush=True,
     )
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
