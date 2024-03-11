@@ -36,7 +36,6 @@ from ..function_utils import get_function_schema, load_basemodels_if_needed, ser
 from .agent import Agent, LLMAgent
 from .._pydantic import model_dump
 from ..io.base import IOStream
-from ..io.console import IOConsole
 
 try:
     from termcolor import colored

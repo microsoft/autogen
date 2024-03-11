@@ -12,7 +12,6 @@ from typing import Protocol
 
 from autogen.cache.cache import Cache
 from autogen.io.base import IOStream
-from autogen.io.console import IOConsole
 from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
 
