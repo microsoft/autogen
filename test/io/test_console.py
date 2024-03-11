@@ -1,6 +1,4 @@
-from unittest.mock import patch, MagicMock
-
-import getpass
+from unittest.mock import MagicMock, patch
 
 import pytest
 

@@ -86,7 +86,6 @@ class ConversableAgent(LLMAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
-        iostream: Optional[IOStream] = None,
     ):
         """
         Args:
@@ -130,13 +129,11 @@ class ConversableAgent(LLMAgent):
             default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
-            iostream (IOStream): The input/output stream for the agent. If None, a ConsoleIO will be used.
         """
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
-        self._iostream = iostream or IOConsole()
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
@@ -158,7 +155,7 @@ class ConversableAgent(LLMAgent):
                 raise ValueError(
                     "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
                 )
-            self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
+            self.client = OpenAIWrapper(**self.llm_config)
 
         if logging_enabled():
             log_new_agent(self, locals())
@@ -275,17 +272,6 @@ class ConversableAgent(LLMAgent):
                 "To enable code execution, set code_execution_config."
             )
         return self._code_executor
-
-    @property
-    def iostream(self) -> IOStream:
-        """The input/output stream for the agent."""
-        return self._iostream
-
-    @iostream.setter
-    def iostream(self, iostream: IOStream) -> None:
-        self._iostream = iostream
-        if self.client is not None:
-            self.client.iostream = iostream
 
     def register_reply(
         self,
@@ -688,7 +674,7 @@ class ConversableAgent(LLMAgent):
             )
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
-        iostream = self._iostream
+        iostream = IOStream.get_default()
         # print the message received
         iostream.print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
         message = self._message_to_dict(message)
@@ -1233,7 +1219,7 @@ class ConversableAgent(LLMAgent):
             recipient: the agent with whom the chat history to clear. If None, clear the chat history with all agents.
             nr_messages_to_preserve: the number of newest messages to preserve in the chat history.
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
         if recipient is None:
             if nr_messages_to_preserve:
                 for key in self._oai_messages:
@@ -1620,8 +1606,7 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        # Function implementation...
-        iostream = self._iostream
+        iostream = IOStream.get_default()
 
         if config is None:
             config = self
@@ -1734,7 +1719,7 @@ class ConversableAgent(LLMAgent):
             - Tuple[bool, Union[str, Dict, None]]: A tuple containing a boolean indicating if the conversation
             should be terminated, and a human reply which can be a string, a dictionary, or None.
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
 
         if config is None:
             config = self
@@ -1995,7 +1980,8 @@ class ConversableAgent(LLMAgent):
         Returns:
             str: human input.
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
+
         reply = iostream.input(prompt)
         self._human_input.append(reply)
         return reply
@@ -2034,7 +2020,8 @@ class ConversableAgent(LLMAgent):
 
     def execute_code_blocks(self, code_blocks):
         """Execute the code blocks and return the result."""
-        iostream = self._iostream
+        iostream = IOStream.get_default()
+
         logs_all = ""
         for i, code_block in enumerate(code_blocks):
             lang, code = code_block
@@ -2121,7 +2108,8 @@ class ConversableAgent(LLMAgent):
         "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
+
         func_name = func_call.get("name", "")
         func = self._function_map.get(func_name, None)
 
@@ -2177,7 +2165,8 @@ class ConversableAgent(LLMAgent):
         "function_call" deprecated as of [OpenAI API v1.1.0](https://github.com/openai/openai-python/releases/tag/v1.1.0)
         See https://platform.openai.com/docs/api-reference/chat/create#chat-create-function_call
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
+
         func_name = func_call.get("name", "")
         func = self._function_map.get(func_name, None)
 
@@ -2328,7 +2317,7 @@ class ConversableAgent(LLMAgent):
         if len(self.llm_config["functions"]) == 0:
             del self.llm_config["functions"]
 
-        self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
+        self.client = OpenAIWrapper(**self.llm_config)
 
     def update_tool_signature(self, tool_sig: Union[str, Dict], is_remove: None):
         """update a tool_signature in the LLM configuration for tool_call.
@@ -2370,7 +2359,7 @@ class ConversableAgent(LLMAgent):
         if len(self.llm_config["tools"]) == 0:
             del self.llm_config["tools"]
 
-        self.client = OpenAIWrapper(iostream=self._iostream, **self.llm_config)
+        self.client = OpenAIWrapper(**self.llm_config)
 
     def can_execute_function(self, name: Union[List[str], str]) -> bool:
         """Whether the agent can execute the function."""
@@ -2635,7 +2624,8 @@ class ConversableAgent(LLMAgent):
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
-        iostream = self._iostream
+        iostream = IOStream.get_default()
+
         if self.client is None:
             iostream.print(f"No cost incurred from agent '{self.name}'.")
         else:

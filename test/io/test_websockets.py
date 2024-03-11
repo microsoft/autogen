@@ -1,15 +1,12 @@
-from contextlib import AbstractContextManager, contextmanager
 from tempfile import TemporaryDirectory
-import threading
-from time import sleep
-from typing import Dict, Iterator
-from unittest.mock import MagicMock
+from typing import Dict
 
 import pytest
+from autogen.io.base import IOStream
+from conftest import skip_openai
+
 import autogen
 from autogen.cache.cache import Cache
-
-from conftest import skip_openai
 from autogen.io import IOWebsockets
 
 KEY_LOC = "notebook"
@@ -97,58 +94,66 @@ class TestConsoleIOWithWebsockets:
 
         def on_connect(iostream: IOWebsockets, success_dict: Dict[str, bool] = success_dict) -> None:
             try:
-                print(f" - on_connect(): Connected to client using IOWebsockets {iostream}", flush=True)
+                with IOStream.set_default(iostream):
+                    print(f" - on_connect(): Connected to client using IOWebsockets {iostream}", flush=True)
 
-                print(" - on_connect(): Receiving message from client.", flush=True)
+                    print(" - on_connect(): Receiving message from client.", flush=True)
 
-                initial_msg = iostream.input()
+                    initial_msg = iostream.input()
 
-                config_list = autogen.config_list_from_json(
-                    OAI_CONFIG_LIST,
-                    filter_dict={
-                        "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
-                    },
-                    file_location=KEY_LOC,
-                )
+                    config_list = autogen.config_list_from_json(
+                        OAI_CONFIG_LIST,
+                        filter_dict={
+                            "model": [
+                                "gpt-3.5-turbo",
+                                "gpt-3.5-turbo-16k",
+                                "gpt-4",
+                                "gpt-4-0314",
+                                "gpt4",
+                                "gpt-4-32k",
+                                "gpt-4-32k-0314",
+                                "gpt-4-32k-v0314",
+                            ],
+                        },
+                        file_location=KEY_LOC,
+                    )
 
-                llm_config = {
-                    "config_list": config_list,
-                    "stream": True,
-                }
+                    llm_config = {
+                        "config_list": config_list,
+                        "stream": True,
+                    }
 
-                agent = autogen.ConversableAgent(
-                    name="chatbot",
-                    system_message="Complete a task given to you and reply TERMINATE when the task is done.",
-                    llm_config=llm_config,
-                    iostream=iostream,
-                )
+                    agent = autogen.ConversableAgent(
+                        name="chatbot",
+                        system_message="Complete a task given to you and reply TERMINATE when the task is done.",
+                        llm_config=llm_config,
+                    )
 
-                # create a UserProxyAgent instance named "user_proxy"
-                user_proxy = autogen.UserProxyAgent(
-                    name="user_proxy",
-                    system_message="A proxy for the user.",
-                    is_termination_msg=lambda x: x.get("content", "")
-                    and x.get("content", "").rstrip().endswith("TERMINATE"),
-                    human_input_mode="NEVER",
-                    max_consecutive_auto_reply=10,
-                    iostream=iostream,
-                )
+                    # create a UserProxyAgent instance named "user_proxy"
+                    user_proxy = autogen.UserProxyAgent(
+                        name="user_proxy",
+                        system_message="A proxy for the user.",
+                        is_termination_msg=lambda x: x.get("content", "")
+                        and x.get("content", "").rstrip().endswith("TERMINATE"),
+                        human_input_mode="NEVER",
+                        max_consecutive_auto_reply=10,
+                    )
 
-                # we will use a temporary directory as the cache path root to ensure fresh completion each time
-                with TemporaryDirectory() as cache_path_root:
-                    with Cache.disk(cache_path_root=cache_path_root) as cache:
-                        print(
-                            f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'",
-                            flush=True,
-                        )
-                        user_proxy.initiate_chat(  # noqa: F704
-                            agent,
-                            message=initial_msg,
-                            cache=cache,
-                        )
+                    # we will use a temporary directory as the cache path root to ensure fresh completion each time
+                    with TemporaryDirectory() as cache_path_root:
+                        with Cache.disk(cache_path_root=cache_path_root) as cache:
+                            print(
+                                f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'",
+                                flush=True,
+                            )
+                            user_proxy.initiate_chat(  # noqa: F704
+                                agent,
+                                message=initial_msg,
+                                cache=cache,
+                            )
 
-                success_dict["success"] = True
-                return
+                    success_dict["success"] = True
+                    return
             except Exception as e:
                 print(f" - on_connect(): Exception occurred: {e}", flush=True)
                 raise

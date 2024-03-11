@@ -81,7 +81,7 @@ class Cache:
             self.config.get("cache_path_root", None),
         )
 
-    def __enter__(self) -> AbstractCache:
+    def __enter__(self) -> "Cache":
         """
         Enter the runtime context related to the cache object.
 

@@ -1,7 +1,7 @@
-from contextlib import contextmanager
-from functools import partial
 import ssl
 import threading
+from contextlib import contextmanager
+from functools import partial
 from time import sleep
 from typing import Any, Callable, Dict, Iterator, Optional
 
@@ -10,7 +10,8 @@ from .base import IOStream
 # Check if the websockets module is available
 try:
     import websockets
-    from websockets.sync.server import ServerConnection, WebSocketServer, serve as ws_serve
+    from websockets.sync.server import ServerConnection, WebSocketServer
+    from websockets.sync.server import serve as ws_serve
 except ImportError as e:  # pragma: no cover
     websockets = None  # type: ignore[assignment]
     ws_serve = None  # type: ignore[assignment]

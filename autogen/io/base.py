@@ -1,4 +1,6 @@
-from typing import Any, Protocol, runtime_checkable
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, Iterator, Optional, Protocol, runtime_checkable
 
 __all__ = ("OutputStream", "InputStream", "IOStream")
 
@@ -37,4 +39,31 @@ class InputStream(Protocol):
 class IOStream(InputStream, OutputStream, Protocol):
     """A protocol for input/output streams."""
 
-    ...  # pragma: no cover
+    @staticmethod
+    def get_default() -> Optional["IOStream"]:
+        """Get the default input/output stream.
+
+        Returns:
+            IOStream: The default input/output stream.
+        """
+        return IOStream._default_io_stream.get()
+
+    _default_io_stream: ContextVar[Optional["IOStream"]] = ContextVar("default_io_stream")
+    _default_io_stream.set(None)
+
+    @staticmethod
+    @contextmanager
+    def set_default(stream: Optional["IOStream"]) -> Iterator[None]:
+        """Set the default input/output stream.
+
+        Args:
+            stream (IOStream): The input/output stream to set as the default.
+        """
+        global _default_io_stream
+        try:
+            token = IOStream._default_io_stream.set(stream)
+            yield
+        finally:
+            IOStream._default_io_stream.reset(token)
+
+        return

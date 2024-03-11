@@ -85,15 +85,6 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    @property
-    def iostream(self) -> IOStream:
-        """The input/output stream for the agent."""
-        ...
-
-    @iostream.setter
-    def iostream(self, iostream: IOStream) -> None:
-        ...
-
     def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol:
         ...  # pragma: no cover
 
@@ -125,9 +116,8 @@ class PlaceHolderClient:
 class OpenAIClient:
     """Follows the Client protocol and wraps the OpenAI client."""
 
-    def __init__(self, client: Union[OpenAI, AzureOpenAI], iostream: IOStream):
+    def __init__(self, client: Union[OpenAI, AzureOpenAI]):
         self._oai_client = client
-        self._iostream = iostream
         if (
             not isinstance(client, openai.AzureOpenAI)
             and str(client.base_url).startswith(OPEN_API_BASE_URL_PREFIX)
@@ -136,17 +126,6 @@ class OpenAIClient:
             logger.warning(
                 "The API key specified is not a valid OpenAI format; it won't work with the OpenAI-hosted model."
             )
-
-    @property
-    def iostream(self) -> IOStream:
-        """The input/output stream for the agent."""
-        return self._iostream
-
-    @iostream.setter
-    def iostream(self, iostream: IOStream) -> None:
-        self._iostream = iostream
-        if self._oai_client is not None:
-            self._oai_client.iostream = iostream
 
     def message_retrieval(
         self, response: Union[ChatCompletion, Completion]
@@ -181,7 +160,7 @@ class OpenAIClient:
         Returns:
             The completion.
         """
-        iostream = self._iostream
+        iostream = IOStream.get_default()
 
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
@@ -337,7 +316,6 @@ class OpenAIWrapper:
     extra_kwargs = {
         "cache",
         "cache_seed",
-        "iostream",
         "filter_func",
         "allow_format_str_template",
         "context",
@@ -392,7 +370,6 @@ class OpenAIWrapper:
 
         self._clients: List[ModelClient] = []
         self._config_list: List[Dict[str, Any]] = []
-        self._iostream: IOStream = extra_kwargs.get("iostream", None) or IOConsole()
 
         if config_list:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
@@ -405,18 +382,6 @@ class OpenAIWrapper:
             self._register_default_client(extra_kwargs, openai_config)
             self._config_list = [extra_kwargs]
         self.wrapper_id = id(self)
-
-    @property
-    def iostream(self) -> IOStream:
-        """The input/output stream for the agent."""
-        return self._iostream
-
-    @iostream.setter
-    def iostream(self, iostream: IOStream) -> None:
-        self._iostream = iostream
-        for client in self._clients:
-            if client is not None:
-                client.iostream = iostream
 
     def _separate_openai_config(self, config: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Separate the config into openai_config and extra_kwargs."""
@@ -460,10 +425,10 @@ class OpenAIWrapper:
             if api_type is not None and api_type.startswith("azure"):
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
-                self._clients.append(OpenAIClient(client, iostream=self._iostream))
+                self._clients.append(OpenAIClient(client))
             else:
                 client = OpenAI(**openai_config)
-                self._clients.append(OpenAIClient(client, iostream=self._iostream))
+                self._clients.append(OpenAIClient(client))
 
             if logging_enabled():
                 log_new_client(client, self, openai_config)
@@ -865,7 +830,7 @@ class OpenAIWrapper:
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
-        iostream = self._iostream
+        iostream = IOStream.get_default()
 
         def print_usage(usage_summary: Optional[Dict[str, Any]], usage_type: str = "total") -> None:
             word_from_type = "including" if usage_type == "total" else "excluding"
