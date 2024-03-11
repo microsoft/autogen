@@ -196,7 +196,7 @@
     "title": "Multimodal Webagent created with AutoGen and OpenAI's Assistants API",
     "link": "https://github.com/schauppi/MultimodalWebAgent",
     "description": "A multimodal webbrowsing agent that autonomously browses the web.",
-    "image": "default.png",
+    "image": "webagent.png",
     "tags": ["tools", "app"]
   }
 ]
