@@ -817,17 +817,21 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
+    agent = ConversableAgent(name="agent", llm_config=None)
     with pytest.raises(
-        ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        AssertionError,
+        match="To update a tool signature, agent must have an llm_config",
     ):
-        ConversableAgent(name="agent", llm_config=None)
+
+        @agent.register_for_llm(description="do things.")
+        def do_stuff(s: str) -> str:
+            return f"{s} done"
 
 
 def test_register_for_llm_without_configuration():
     with pytest.raises(
         ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
 
@@ -835,7 +839,7 @@ def test_register_for_llm_without_configuration():
 def test_register_for_llm_without_model_name():
     with pytest.raises(
         ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 

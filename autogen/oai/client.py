@@ -356,6 +356,7 @@ class OpenAIWrapper:
 
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
+                When using OpenAI or Azure OpenAI endpoints, please specify a non-empty 'model' either in `base_config` or in each config of `config_list`.
         """
 
         if logging_enabled():
