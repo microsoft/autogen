@@ -817,7 +817,15 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
-    ConversableAgent(name="agent", llm_config=None)
+    agent = ConversableAgent(name="agent", llm_config=None)
+    with pytest.raises(
+        AssertionError,
+        match="To update a tool signature, agent must have an llm_config",
+    ):
+
+        @agent.register_for_llm(description="do things.")
+        def do_stuff(s: str) -> str:
+            return f"{s} done"
 
 
 def test_register_for_llm_without_configuration():
