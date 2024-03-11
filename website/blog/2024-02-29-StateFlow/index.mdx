@@ -132,7 +132,7 @@ groupchat = autogen.GroupChat(
 We recommend implementing the transition logic for each speaker in the customized function. In analogy to a state machine, a state transition function determines the next state based on the current state and input.
 Instead of returning an `Agent` class representing the next speaker, we can also return a string from `['auto', 'manual', 'random', 'round_robin']` to select a default method to use.
 For example, we can always default to the built-in `auto` method to employ a LLM-based group chat manager to select the next speaker.
-When returning `None`, the group chat will terminate. Note that some of the transitions, such as "initializer" -> "coder" can be defined with the transition graph
+When returning `None`, the group chat will terminate. Note that some of the transitions, such as "initializer" -> "coder" can be defined with the transition graph.
 
 
 ## For Further Reading
