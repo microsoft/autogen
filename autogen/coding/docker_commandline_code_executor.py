@@ -171,7 +171,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
             try:
                 # Check if there is a filename comment
-                filename = _get_file_name_from_content(code, "/workspace")
+                filename = _get_file_name_from_content(code, Path("/workspace"))
             except ValueError:
                 return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
 
