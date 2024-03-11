@@ -337,7 +337,7 @@ const ChatBox = ({
           }, 200);
           // console.log("received message", data, socketMsgs.length);
         } else if (data && data.type === "agent_status") {
-          // indicates a status messsage update
+          // indicates a status message update
           const agentStatusSpan = document.getElementById("agentstatusspan");
           if (agentStatusSpan) {
             agentStatusSpan.innerHTML = data.data.message;
