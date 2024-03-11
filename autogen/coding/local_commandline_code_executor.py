@@ -193,7 +193,7 @@ If you want the user to save the code in a file before executing it, put # filen
 
 # From stack overflow: https://stackoverflow.com/a/52087847/2214524
 class _DeprecatedClassMeta(type):
-    def __new__(cls, name, bases, classdict, *args, **kwargs):  # type: ignore
+    def __new__(cls, name, bases, classdict, *args, **kwargs) -> "_DeprecatedClassMeta":
         alias = classdict.get("_DeprecatedClassMeta__alias")
 
         if alias is not None:
@@ -236,10 +236,10 @@ class _DeprecatedClassMeta(type):
 
         return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)  # type: ignore
 
-    def __instancecheck__(cls, instance):  # type: ignore
+    def __instancecheck__(cls, instance) -> bool:
         return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})  # type: ignore
 
-    def __subclasscheck__(cls, subclass):  # type: ignore
+    def __subclasscheck__(cls, subclass) -> bool:
         if subclass is cls:
             return True
         else:
