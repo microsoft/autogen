@@ -108,17 +108,18 @@ async def add_message(req: DBWebRequestModel):
         response_message: Message = managers["chat"].chat(
             message=message,
             history=user_history,
-            work_dir=user_dir,
+            user_dir=user_dir,
             flow_config=req.workflow,
             connection_id=req.connection_id,
         )
 
-        # save assistant response to db
-        dbutils.create_message(message=response_message, dbmanager=dbmanager)
+        # save agent's response to db
+        messages = dbutils.create_message(message=response_message, dbmanager=dbmanager)
         response = {
             "status": True,
-            "message": response_message.content,
-            "metadata": json.loads(response_message.metadata),
+            "message": "Message processed successfully",
+            "data": messages,
+            # "metadata": json.loads(response_message.metadata),
         }
         return response
     except Exception as ex_error:
@@ -196,6 +197,7 @@ async def create_user_session(req: DBWebRequestModel):
     try:
         session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
         user_sessions = dbutils.create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
+
         return {
             "status": True,
             "message": "Session created successfully",

@@ -326,7 +326,7 @@ const ChatBox = ({
         const data = JSON.parse(message.data);
         console.log("received message", data);
         if (data && data.type === "agent_message") {
-          // make copy of current socket data
+          // indicates an intermediate agent message update
           const newsocketMessages = Object.assign([], socketMessages);
           newsocketMessages.push(data.data);
           setSocketMessages(newsocketMessages);
@@ -337,12 +337,13 @@ const ChatBox = ({
           }, 200);
           // console.log("received message", data, socketMsgs.length);
         } else if (data && data.type === "agent_status") {
+          // indicates a status messsage update
           const agentStatusSpan = document.getElementById("agentstatusspan");
           if (agentStatusSpan) {
             agentStatusSpan.innerHTML = data.data.message;
           }
         } else if (data && data.type === "agent_response") {
-          console.log("got a final agent response");
+          // indicates a final agent response
           processAgentResponse(data.data);
         }
       };
@@ -373,23 +374,11 @@ const ChatBox = ({
 
   const processAgentResponse = (data: any) => {
     if (data && data.status) {
-      let messageHolder = Object.assign([], messages);
-      const botMesage: IChatMessage = {
-        text: data.message,
-        sender: "bot",
-        metadata: data.metadata,
-        msg_id: data.msg_id,
-      };
-      // if (data.metadata) {
-      //   setMetadata(data.metadata);
-      // }
-      messageHolder.push(botMesage);
-      messageHolder = Object.assign([], messageHolder);
-
+      const updatedMessages = parseMessages(data.data);
       setTimeout(() => {
         socketMsgs = [];
         setLoading(false);
-        setMessages(messageHolder);
+        setMessages(updatedMessages);
       }, 2000);
     } else {
       console.log("error", data);

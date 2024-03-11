@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import json
 from queue import Queue
 import time
@@ -40,6 +41,7 @@ class AutoGenChatManager:
         history: List[Dict[str, Any]],
         flow_config: Optional[AgentWorkFlowConfig] = None,
         connection_id: Optional[str] = None,
+        user_dir: Optional[str] = None,
         **kwargs,
     ) -> Message:
         """
@@ -53,12 +55,10 @@ class AutoGenChatManager:
         :param kwargs: Additional keyword arguments.
         :return: An instance of `Message` representing a response.
         """
-        work_dir = kwargs.get("work_dir", None)
-        if work_dir is None:
-            raise ValueError("work_dir must be specified")
 
-        scratch_dir = os.path.join(work_dir, "scratch")
-        os.makedirs(scratch_dir, exist_ok=True)
+        # create a working director for workflow based on user_dir/session_id/time_hash
+        work_dir = os.path.join(user_dir, message.session_id, datetime.now().strftime("%Y%m%d_%H-%M-%S"))
+        os.makedirs(work_dir, exist_ok=True)
 
         # if no flow config is provided, use the default
         if flow_config is None:
@@ -67,7 +67,7 @@ class AutoGenChatManager:
         flow = AutoGenWorkFlowManager(
             config=flow_config,
             history=history,
-            work_dir=scratch_dir,
+            work_dir=work_dir,
             send_message_function=self.send,
             connection_id=connection_id,
         )
@@ -82,8 +82,7 @@ class AutoGenChatManager:
             "messages": flow.agent_history,
             "summary_method": flow_config.summary_method,
             "time": end_time - start_time,
-            "code": "",  # Assuming that this is intentionally left empty
-            "files": get_modified_files(start_time, end_time, scratch_dir, dest_dir=work_dir),
+            "files": get_modified_files(start_time, end_time, source_dir=work_dir),
         }
 
         print("Modified files: ", len(metadata["files"]))
@@ -131,7 +130,6 @@ class AutoGenChatManager:
 
         elif flow_config.summary_method == "none":
             output = ""
-
         return output
 
 

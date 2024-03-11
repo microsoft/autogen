@@ -145,21 +145,17 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     return base64_encoded_content, file_type
 
 
-def get_modified_files(
-    start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str
-) -> List[Dict[str, str]]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str) -> List[Dict[str, str]]:
     """
-    Copy files from source_dir that were modified within a specified timestamp range
-    to dest_dir, renaming files if they already exist there. The function excludes
-    files with certain file extensions and names.
+    Identify files from source_dir that were modified within a specified timestamp range.
+    The function excludes files with certain file extensions and names.
 
-    :param start_timestamp: The start timestamp to filter modified files.
-    :param end_timestamp: The end timestamp to filter modified files.
+    :param start_timestamp: The floating-point number representing the start timestamp to filter modified files.
+    :param end_timestamp: The floating-point number representing the end timestamp to filter modified files.
     :param source_dir: The directory to search for modified files.
-    :param dest_dir: The destination directory to copy modified files to.
 
-    :return: A list of dictionaries with details of file paths in dest_dir that were modified and copied over.
-             Dictionary format: {path: "", name: "", extension: ""}
+    :return: A list of dictionaries with details of relative file paths that were modified.
+             Dictionary format: {path: "", name: "", extension: "", type: ""}
              Files with extensions "__pycache__", "*.pyc", "__init__.py", and "*.cache"
              are ignored.
     """
@@ -167,46 +163,33 @@ def get_modified_files(
     ignore_extensions = {".pyc", ".cache"}
     ignore_files = {"__pycache__", "__init__.py"}
 
+    # Walk through the directory tree
     for root, dirs, files in os.walk(source_dir):
-        # Excluding the directory "__pycache__" if present
+        # Update directories and files to exclude those to be ignored
         dirs[:] = [d for d in dirs if d not in ignore_files]
+        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[1] not in ignore_extensions]
 
         for file in files:
             file_path = os.path.join(root, file)
-            file_ext = os.path.splitext(file)[1]
-            file_name = os.path.basename(file)
-
-            if file_ext in ignore_extensions or file_name in ignore_files:
-                continue
-
             file_mtime = os.path.getmtime(file_path)
-            if start_timestamp < file_mtime < end_timestamp:
-                dest_file_path = os.path.join(dest_dir, file)
-                copy_idx = 1
-                while os.path.exists(dest_file_path):
-                    base, extension = os.path.splitext(file)
-                    # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
-                    copy_idx += 1
 
-                # Copying the modified file to the destination directory
-                shutil.copy2(file_path, dest_file_path)
+            # Verify if the file was modified within the given timestamp range
+            if start_timestamp <= file_mtime <= end_timestamp:
+                file_relative_path = (
+                    "files/user" + file_path.split("files/user", 1)[1] if "files/user" in file_path else ""
+                )
+                file_type = get_file_type(file_path)
 
-                # Extract user id from the dest_dir and file path
-
-                dest_dir_as_path = Path(dest_dir)
-                uid = dest_dir_as_path.name
-
-                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
-                file_type = get_file_type(dest_file_path)
                 file_dict = {
-                    "path": f"files/user/{uid}/{relative_file_path}",
-                    "name": file_name,
-                    "extension": file_ext.replace(".", ""),
+                    "path": file_relative_path,
+                    "name": os.path.basename(file),
+                    # Remove the dot
+                    "extension": os.path.splitext(file)[1].lstrip("."),
                     "type": file_type,
                 }
                 modified_files.append(file_dict)
-    # sort by extension
+
+    # Sort the modified files by extension
     modified_files.sort(key=lambda x: x["extension"])
     return modified_files
 
