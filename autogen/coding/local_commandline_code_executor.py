@@ -161,7 +161,12 @@ If you want the user to save the code in a file before executing it, put # filen
                 logs_all += "\n" + f"unknown language {lang}"
                 break
 
-            filename = _get_file_name_from_content(code, self._work_dir)
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, self._work_dir)
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
+
             if filename is None:
                 # create a file with an automatically generated name
                 code_hash = md5(code.encode()).hexdigest()

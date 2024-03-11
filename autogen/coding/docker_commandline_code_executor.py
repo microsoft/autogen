@@ -169,8 +169,12 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             lang = code_block.language
             code = code_block.code
 
-            # Check if there is a filename comment
-            filename = _get_file_name_from_content(code, "/workspace")
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, "/workspace")
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
+
             if filename is None:
                 # create a file with an automatically generated name
                 code_hash = md5(code.encode()).hexdigest()
