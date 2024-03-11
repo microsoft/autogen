@@ -1177,7 +1177,7 @@ export const AgentFlowSpecView = ({
           control={
             <Slider
               min={1}
-              max={30}
+              max={flowSpec.type === "groupchat" ? 600 : 30}
               defaultValue={flowSpec.config.max_consecutive_auto_reply}
               step={1}
               onChange={(value: any) => {

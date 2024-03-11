@@ -408,7 +408,7 @@ def delete_model(model: Model, dbmanager: DBManager) -> List[dict]:
     return models
 
 
-def create_message(message: Message, dbmanager: DBManager) -> None:
+def create_message(message: Message, dbmanager: DBManager) -> List[dict]:
     """
     Save a message in the database using the provided database manager.
 
@@ -427,6 +427,8 @@ def create_message(message: Message, dbmanager: DBManager) -> None:
         message.session_id,
     )
     dbmanager.query(query=query, args=args)
+    messages = get_messages(user_id=message.user_id, session_id=message.session_id, dbmanager=dbmanager)
+    return messages
 
 
 def get_messages(user_id: str, session_id: str, dbmanager: DBManager) -> List[dict]:
