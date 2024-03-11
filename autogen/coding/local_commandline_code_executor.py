@@ -196,7 +196,8 @@ If you want the user to save the code in a file before executing it, put # filen
             if exitcode != 0:
                 break
 
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=str(file_names[0]))
+        code_file = str(file_names[0]) if len(file_names) > 0 else None
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
