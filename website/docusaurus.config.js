@@ -50,7 +50,7 @@ module.exports = {
           type: "doc",
           docId: "reference/agentchat/conversable_agent",
           position: "left",
-          label: "SDK",
+          label: "API",
         },
         { to: "blog", label: "Blog", position: "left" },
         {
@@ -76,18 +76,9 @@ module.exports = {
         //   label: "Notebooks",
         // },
         {
-          label: "Resources",
-          type: "dropdown",
-          items: [
-            {
-              type: "doc",
-              docId: "Ecosystem",
-            },
-            {
-              type: "doc",
-              docId: "Gallery",
-            },
-          ],
+          type: "doc",
+          position: "left",
+          docId: "Gallery",
         },
         {
           label: "Other Languages",
@@ -138,6 +129,14 @@ module.exports = {
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+    },
+    announcementBar: {
+      id: 'whats_new',
+      content:
+        'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
+      backgroundColor: '#fafbfc',
+      textColor: '#091E42',
+      isCloseable: true,
     },
   },
   presets: [
@@ -192,8 +191,20 @@ module.exports = {
       {
         redirects: [
           {
-            to: "/docs/llm_configuration/",
+            to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_endpoint_configuration/"],
+          },
+          {
+            to: "/docs/ecosystem/memgpt/",
+            from: ["/docs/Ecosystem"],
+          },
+          {
+            to: "/docs/Getting-Started",
+            from: ["/docs/"],
+          },
+          {
+            to: "/docs/topics/llm_configuration",
+            from: ["/docs/llm_configuration"],
           },
         ],
       },

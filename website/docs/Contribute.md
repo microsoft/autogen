@@ -106,7 +106,7 @@ For developers contributing to the AutoGen project, we offer a specialized Docke
 - To build the developer Docker image (`autogen_dev_img`), use the following commands:
 
   ```bash
-  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
   ```
 
 - For building the developer image built from a specific Dockerfile in a branch other than main/master
@@ -175,6 +175,8 @@ Tests for the `autogen.agentchat.contrib` module may be skipped automatically if
 required dependencies are not installed. Please consult the documentation for
 each contrib module to see what dependencies are required.
 
+See [here](https://github.com/microsoft/autogen/blob/main/notebook/contributing.md#testing) for how to run notebook tests.
+
 #### Skip flags for tests
 
 - `--skip-openai` for skipping tests that require access to OpenAI services.
@@ -216,11 +218,11 @@ Then:
 
 ```console
 npm install --global yarn  # skip if you use the dev container we provided
-pip install pydoc-markdown  # skip if you use the dev container we provided
+pip install pydoc-markdown pyyaml termcolor # skip if you use the dev container we provided
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py render
 yarn start
 ```
 
@@ -230,7 +232,7 @@ Most changes are reflected live without having to restart the server.
 To build and test documentation within a docker container. Use the Dockerfile in the `dev` folder as described above to build your image
 
 ```bash
-docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git
+docker build -f .devcontainer/dev/Dockerfile -t autogen_dev_img https://github.com/microsoft/autogen.git#main
 ```
 
 Then start the container like so, this will log you in and ensure that Docker port 3000 is mapped to port 8081 on your local machine
@@ -245,7 +247,7 @@ Once at the CLI in Docker run the following commands:
 cd website
 yarn install --frozen-lockfile --ignore-engines
 pydoc-markdown
-quarto render ./docs
+python process_notebooks.py render
 yarn start --host 0.0.0.0 --port 3000
 ```
 

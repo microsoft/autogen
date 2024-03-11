@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from autogen import AssistantAgent, UserProxyAgent
 from autogen import GroupChat, GroupChatManager
 import asyncio
@@ -57,7 +59,7 @@ async def test_async_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
+    def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
 
     chat_res = await user.a_initiate_chats(

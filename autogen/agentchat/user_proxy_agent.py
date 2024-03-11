@@ -14,7 +14,6 @@ class UserProxyAgent(ConversableAgent):
     To modify the way to get human input, override `get_human_input` method.
     To modify the way to execute code blocks, single code block, or function call, override `execute_code_blocks`,
     `run_code`, and `execute_function` methods respectively.
-    To customize the initial message when a conversation starts, override `generate_init_message` method.
     """
 
     # Default UserProxyAgent.description values, based on human_input_mode
@@ -29,7 +28,7 @@ class UserProxyAgent(ConversableAgent):
         name: str,
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "ALWAYS",
+        human_input_mode: Literal["ALWAYS", "TERMINATE", "NEVER"] = "ALWAYS",
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
