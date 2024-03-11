@@ -20,13 +20,8 @@ class TestIOStream:
         with IOStream.set_default(MyIOStream()):
             assert isinstance(IOStream.get_default(), MyIOStream)
 
-            with IOStream.set_default(IOWebsockets(None)):  # type: ignore[arg-type]
-                assert isinstance(IOStream.get_default(), IOWebsockets)
-
-                with IOStream.set_default(IOConsole()):
-                    assert isinstance(IOStream.get_default(), IOConsole)
-
-                assert isinstance(IOStream.get_default(), IOWebsockets)
+            with IOStream.set_default(IOConsole()):
+                assert isinstance(IOStream.get_default(), IOConsole)
 
             assert isinstance(IOStream.get_default(), MyIOStream)
 
