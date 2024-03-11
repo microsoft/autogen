@@ -94,7 +94,7 @@ class ModelClient(Protocol):
     def iostream(self, iostream: IOStream) -> None:
         ...
 
-    def create(self, **params: Any) -> ModelClientResponseProtocol:
+    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol:
         ...  # pragma: no cover
 
     def message_retrieval(
