@@ -74,6 +74,7 @@ class UserProxyAgent(ConversableAgent):
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
                 Default to false, which disables llm-based auto reply.
+                When set to None, will use self.DEFAULT_CONFIG, which defaults to None.
             system_message (str or List): system message for ChatCompletion inference.
                 Only used when llm_config is not False. Use it to reprogram the agent.
             description (str): a short description of the agent. This description is used by other agents
