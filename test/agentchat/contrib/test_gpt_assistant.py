@@ -8,6 +8,7 @@ import sys
 import openai
 import autogen
 from autogen import OpenAIWrapper
+from autogen import UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.oai.openai_utils import retrieve_assistants_by_name
 
@@ -207,6 +208,7 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
+    skip,
     reason="requested to skip",
 )
 def test_gpt_assistant_existing_no_instructions() -> None:
@@ -586,11 +588,43 @@ def test_gpt_assistant_tools_overwrite() -> None:
         )
 
         # Add logic to retrieve the tools from the assistant and assert
-        retrieved_tools = assistant.llm_config.get("tools", [])
+        retrieved_tools = assistant.openai_assistant.tools
+        retrieved_tools_name = [tool.function.name for tool in retrieved_tools]
     finally:
         assistant_org.delete_assistant()
 
-    assert retrieved_tools == new_tools
+    assert retrieved_tools_name == [tool["function"]["name"] for tool in new_tools]
+
+
+@pytest.mark.skipif(
+    skip,
+    reason="requested to skip",
+)
+def test_gpt_reflection_with_llm() -> None:
+    gpt_assistant = GPTAssistantAgent(
+        name="assistant", llm_config={"config_list": openai_config_list, "assistant_id": None}
+    )
+
+    user_proxy = UserProxyAgent(
+        name="user_proxy",
+        code_execution_config=False,
+        is_termination_msg=lambda msg: "TERMINATE" in msg["content"],
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=1,
+    )
+    result = user_proxy.initiate_chat(gpt_assistant, message="Write a Joke!", summary_method="reflection_with_llm")
+    assert result is not None
+
+    # use the assistant configuration
+    agent_using_assistant_config = GPTAssistantAgent(
+        name="assistant",
+        llm_config={"config_list": openai_config_list},
+        assistant_config={"assistant_id": gpt_assistant.assistant_id},
+    )
+    result = user_proxy.initiate_chat(
+        agent_using_assistant_config, message="Write a Joke!", summary_method="reflection_with_llm"
+    )
+    assert result is not None
 
 
 if __name__ == "__main__":
