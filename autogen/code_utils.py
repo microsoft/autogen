@@ -239,7 +239,7 @@ def get_powershell_command():
         
     except PermissionError:
         logging.warning("The application has no permission to run powershell")
-        return "None"
+        return None
 
 
 
