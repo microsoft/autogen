@@ -103,7 +103,6 @@ def _test_execute_code(executor: CodeExecutor) -> None:
             assert file_line.strip() == code_line.strip()
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_commandline_code_executor_timeout(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
