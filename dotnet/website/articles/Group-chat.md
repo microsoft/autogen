@@ -1,4 +1,4 @@
-@AutoGen.Core.GroupChat invokes agents in a dynamic way. On one hand, It relies on its admin agent to intellegently determines the next speaker based on conversation context, and on the other hand, it also allows you to control the conversation flow by using a @AutoGen.Core.Workflow. This makes it a more dynamic yet controlable way to determine the next speaker agent. You can use @AutoGen.Core.GroupChat to create a dynamic group chat with multiple agents working together to resolve a given task.
+@AutoGen.Core.GroupChat invokes agents in a dynamic way. On one hand, It relies on its admin agent to intellegently determines the next speaker based on conversation context, and on the other hand, it also allows you to control the conversation flow by using a @AutoGen.Core.Graph. This makes it a more dynamic yet controlable way to determine the next speaker agent. You can use @AutoGen.Core.GroupChat to create a dynamic group chat with multiple agents working together to resolve a given task.
 
 > [!NOTE]
 > In @AutoGen.Core.GroupChat, when only the group admin is used to determine the next speaker agent, it's recommented to use a more powerful llm model, such as `gpt-4` to ensure the best experience.
@@ -36,7 +36,7 @@ The code below shows how to create a dynamic group chat with @AutoGen.Core.Group
 [!code-csharp[](../../sample/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat)]
 
 > [!TIP]
-> You can set up initial context for the group chat using @AutoGen.GroupChatExtension.AddInitializeMessage*. The initial context can help group admin orchestrate the conversation flow.
+> You can set up initial context for the group chat using @AutoGen.Core.GroupChatExtension.SendIntroduction*. The initial context can help group admin orchestrates the conversation flow.
 
 Output:
 

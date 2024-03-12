@@ -38,12 +38,12 @@
       items:
         - name: group chat overview
           href: Group-chat-overview.md
-        - name: sequential group chat
-          href: Sequential-group-chat.md
+        - name: round robin group chat
+          href: Roundrobin-chat.md
         - name: dynamic group chat
           href: Group-chat.md
-        - name: use workflow to control group chat
-          href: Use-workflow-in-group-chat.md
+        - name: use graph to control dynamic group chat
+          href: Use-graph-in-group-chat.md
 
 - name: AutoGen.DotnetInteractive
   items:
