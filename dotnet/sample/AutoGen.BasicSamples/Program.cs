@@ -1,4 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunWorkflowAsync();
+using AutoGen.BasicSample;
+
+Console.ReadLine();
+await TwoAgent_Fill_Application.RunAsync();
