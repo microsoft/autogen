@@ -146,7 +146,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
                 'tool_calls': [
                     {'id': response.id,
                      'function':
-                         {'arguments': json.dumps(args_map),
+                         {'arguments': json.dumps(args_map), #TODO this json dumps is causing all args values to be wrapped in quotes
                           'name': function_name},
                      'type': 'function'}
                 ]
