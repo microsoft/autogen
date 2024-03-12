@@ -106,9 +106,6 @@ def add_nexus_raven_prompts(func):
 
 
 class NexusFunctionCallingAssistant(autogen.ConversableAgent):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.register_reply([autogen.Agent, None], NexusFunctionCallingAssistant.generate_oai_reply)
 
     def __init__(
         self,
