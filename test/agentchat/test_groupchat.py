@@ -1,14 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-from typing import Any, Dict, List, Optional, Type
-from autogen import AgentNameConflict
-import pytest
-from unittest import mock
 import builtins
-import autogen
 import json
-import sys
+from typing import Any, Dict, List, Optional
+from unittest import mock
+
+import pytest
+
+import autogen
 from autogen import Agent, GroupChat
+from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
 
 
 def test_func_call_groupchat():
@@ -400,34 +401,21 @@ def test_termination():
 
 
 def test_next_agent():
-    agent1 = autogen.ConversableAgent(
-        "alice",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is alice speaking.",
-    )
-    agent2 = autogen.ConversableAgent(
-        "bob",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is bob speaking.",
-    )
-    agent3 = autogen.ConversableAgent(
-        "sam",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is sam speaking.",
-    )
-    agent4 = autogen.ConversableAgent(
-        "sally",
-        max_consecutive_auto_reply=10,
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is sally speaking.",
-    )
+    def create_agent(name: str) -> autogen.ConversableAgent:
+        return autogen.ConversableAgent(
+            name,
+            max_consecutive_auto_reply=10,
+            human_input_mode="NEVER",
+            llm_config=False,
+            default_auto_reply=f"This is {name} speaking.",
+        )
+
+    agent1 = create_agent("alice")
+    agent2 = create_agent("bob")
+    agent3 = create_agent("sam")
+    agent4 = create_agent("sally")
+    agent5 = create_agent("samantha")
+    agent6 = create_agent("robert")
 
     # Test empty is_termination_msg function
     groupchat = autogen.GroupChat(
@@ -448,6 +436,9 @@ def test_next_agent():
     assert groupchat.next_agent(agent2, [agent1, agent3]) == agent3
     assert groupchat.next_agent(agent4, [agent1, agent3]) == agent1
     assert groupchat.next_agent(agent4, [agent1, agent2, agent3]) == agent1
+
+    with pytest.raises(UndefinedNextAgent):
+        groupchat.next_agent(agent4, [agent5, agent6])
 
 
 def test_send_intros():
@@ -663,7 +654,7 @@ def test_graceful_exit_before_max_round():
         max_consecutive_auto_reply=10,
         human_input_mode="NEVER",
         llm_config=False,
-        default_auto_reply="This is sam speaking. TERMINATE",
+        default_auto_reply="This is sam speaking.",
     )
 
     # This speaker_transitions limits the transition to be only from agent1 to agent2, and from agent2 to agent3 and end.
@@ -682,7 +673,7 @@ def test_graceful_exit_before_max_round():
 
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False, is_termination_msg=None)
 
-    agent1.initiate_chat(group_chat_manager, message="'None' is_termination_msg function.")
+    agent1.initiate_chat(group_chat_manager, message="")
 
     # Note that 3 is much lower than 10 (max_round), so the conversation should end before 10 rounds.
     assert len(groupchat.messages) == 3
@@ -777,6 +768,103 @@ def test_clear_agents_history():
         {"content": "hello", "name": "alice", "role": "user"},
         {"content": "This is bob speaking.", "name": "bob", "role": "user"},
         {"content": "How you doing?", "name": "sam", "role": "user"},
+    ]
+
+    # testing saving tool_call message when clear history going to remove it leaving only tool_response message
+    agent1.reset()
+    agent2.reset()
+    agent3.reset()
+    # we want to broadcast the message only in the preparation.
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=1, enable_clear_history=True)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    # We want to trigger the broadcast of group chat manager, which requires `request_reply` to be set to True.
+    agent1.send("dummy message", group_chat_manager, request_reply=True)
+    agent1.send(
+        {
+            "content": None,
+            "role": "assistant",
+            "function_call": None,
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
+            ],
+        },
+        group_chat_manager,
+        request_reply=True,
+    )
+    agent1.send(
+        {
+            "role": "tool",
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+            "content": "example tool response",
+        },
+        group_chat_manager,
+        request_reply=True,
+    )
+    # increase max_round to 3
+    groupchat.max_round = 3
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    with mock.patch.object(builtins, "input", lambda _: "clear history alice 1. How you doing?"):
+        agent1.initiate_chat(group_chat_manager, message="hello", clear_history=False)
+
+    agent1_history = list(agent1._oai_messages.values())[0]
+    assert agent1_history == [
+        {
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"},
+            ],
+            "content": None,
+            "role": "assistant",
+        },
+        {
+            "content": "example tool response",
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "example tool response"}],
+            "role": "tool",
+        },
+    ]
+
+    # testing clear history called from tool response
+    agent1.reset()
+    agent2.reset()
+    agent3.reset()
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply={
+            "role": "tool",
+            "tool_responses": [{"tool_call_id": "call_emulated", "role": "tool", "content": "USER INTERRUPTED"}],
+            "content": "Clear history. How you doing?",
+        },
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2, agent3], messages=[], max_round=1, enable_clear_history=True)
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    agent1.send("dummy message", group_chat_manager, request_reply=True)
+    agent1.send(
+        {
+            "content": None,
+            "role": "assistant",
+            "function_call": None,
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"}
+            ],
+        },
+        group_chat_manager,
+        request_reply=True,
+    )
+    groupchat.max_round = 2
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    agent1.initiate_chat(group_chat_manager, message="hello")
+    agent1_history = list(agent1._oai_messages.values())[0]
+    assert agent1_history == [
+        {
+            "tool_calls": [
+                {"id": "call_test_id", "function": {"arguments": "", "name": "test_tool"}, "type": "function"},
+            ],
+            "content": None,
+            "role": "assistant",
+        },
     ]
 
 
@@ -910,6 +998,184 @@ def test_nested_teams_chat():
     assert reply["content"] == team2_msg["content"]
 
 
+def test_custom_speaker_selection():
+    a1 = autogen.UserProxyAgent(
+        name="a1",
+        default_auto_reply="This is a1 speaking.",
+        human_input_mode="NEVER",
+        code_execution_config={},
+    )
+
+    a2 = autogen.UserProxyAgent(
+        name="a2",
+        default_auto_reply="This is a2 speaking.",
+        human_input_mode="NEVER",
+        code_execution_config={},
+    )
+
+    a3 = autogen.UserProxyAgent(
+        name="a3",
+        default_auto_reply="TERMINATE",
+        human_input_mode="NEVER",
+        code_execution_config={},
+    )
+
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Agent:
+        """Define a customized speaker selection function.
+        A recommended way is to define a transition for each speaker using the groupchat allowed_or_disallowed_speaker_transitions parameter.
+        """
+        if last_speaker is a1:
+            return a2
+        elif last_speaker is a2:
+            return a3
+
+    groupchat = autogen.GroupChat(
+        agents=[a1, a2, a3],
+        messages=[],
+        max_round=20,
+        speaker_selection_method=custom_speaker_selection_func,
+    )
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    result = a1.initiate_chat(manager, message="Hello, this is a1 speaking.")
+    assert len(result.chat_history) == 3
+
+
+def test_custom_speaker_selection_with_transition_graph():
+    """
+    In this test, although speaker_selection_method is defined, the speaker transitions are also defined.
+    There are 26 agents here, a to z.
+    The speaker transitions are defined such that the agents can transition to the next alphabet.
+    In addition, because we want the transition order to be a,u,t,o,g,e,n, we also define the speaker transitions for these agents.
+    The speaker_selection_method is defined to return the next agent in the expected sequence.
+    """
+
+    # For loop that creates UserProxyAgent with names from a to z
+    agents = [
+        autogen.UserProxyAgent(
+            name=chr(97 + i),
+            default_auto_reply=f"My name is {chr(97 + i)}",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        )
+        for i in range(26)
+    ]
+
+    # Initiate allowed speaker transitions
+    allowed_or_disallowed_speaker_transitions = {}
+
+    # Each agent can transition to the next alphabet as a baseline
+    # Key is Agent, value is a list of Agents that the key Agent can transition to
+    for i in range(25):
+        allowed_or_disallowed_speaker_transitions[agents[i]] = [agents[i + 1]]
+
+    # The test is to make sure that the agent sequence is a,u,t,o,g,e,n, so we need to add those transitions
+    expected_sequence = ["a", "u", "t", "o", "g", "e", "n"]
+    current_agent = None
+    previous_agent = None
+
+    for char in expected_sequence:
+        # convert char to i so that we can use chr(97+i)
+        current_agent = agents[ord(char) - 97]
+        if previous_agent is not None:
+            # Add transition
+            allowed_or_disallowed_speaker_transitions[previous_agent].append(current_agent)
+        previous_agent = current_agent
+
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Optional[Agent]:
+        """
+        Define a customized speaker selection function.
+        """
+        expected_sequence = ["a", "u", "t", "o", "g", "e", "n"]
+
+        last_speaker_char = last_speaker.name
+        # Find the index of last_speaker_char in the expected_sequence
+        last_speaker_index = expected_sequence.index(last_speaker_char)
+        # Return the next agent in the expected sequence
+        if last_speaker_index == len(expected_sequence) - 1:
+            return None  # terminate the conversation
+        else:
+            next_agent = agents[ord(expected_sequence[last_speaker_index + 1]) - 97]
+            return next_agent
+
+    groupchat = autogen.GroupChat(
+        agents=agents,
+        messages=[],
+        max_round=20,
+        speaker_selection_method=custom_speaker_selection_func,
+        allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
+        speaker_transitions_type="allowed",
+    )
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+
+    results = agents[0].initiate_chat(manager, message="My name is a")
+    actual_sequence = []
+
+    # Append to actual_sequence using results.chat_history[idx]['content'][-1]
+    for idx in range(len(results.chat_history)):
+        actual_sequence.append(results.chat_history[idx]["content"][-1])  # append the last character of the content
+
+    assert expected_sequence == actual_sequence
+
+
+def test_custom_speaker_selection_overrides_transition_graph():
+    """
+    In this test, team A engineer can transition to team A executor and team B engineer, but team B engineer cannot transition to team A executor.
+    The expected behaviour is that the custom speaker selection function will override the constraints of the graph.
+    """
+
+    # For loop that creates UserProxyAgent with names from a to z
+    agents = [
+        autogen.UserProxyAgent(
+            name="teamA_engineer",
+            default_auto_reply="My name is teamA_engineer",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+        autogen.UserProxyAgent(
+            name="teamA_executor",
+            default_auto_reply="My name is teamA_executor",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+        autogen.UserProxyAgent(
+            name="teamB_engineer",
+            default_auto_reply="My name is teamB_engineer",
+            human_input_mode="NEVER",
+            code_execution_config={},
+        ),
+    ]
+
+    allowed_or_disallowed_speaker_transitions = {}
+
+    # teamA_engineer can transition to teamA_executor and teamB_engineer
+    # teamB_engineer can transition to no one
+    allowed_or_disallowed_speaker_transitions[agents[0]] = [agents[1], agents[2]]
+
+    def custom_speaker_selection_func(last_speaker: Agent, groupchat: GroupChat) -> Optional[Agent]:
+        if last_speaker.name == "teamA_engineer":
+            return agents[2]  # Goto teamB_engineer
+        elif last_speaker.name == "teamB_engineer":
+            return agents[1]  # Goto teamA_executor and contradict the graph
+
+    groupchat = autogen.GroupChat(
+        agents=agents,
+        messages=[],
+        max_round=20,
+        speaker_selection_method=custom_speaker_selection_func,
+        allowed_or_disallowed_speaker_transitions=allowed_or_disallowed_speaker_transitions,
+        speaker_transitions_type="allowed",
+    )
+    manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=False)
+    results = agents[0].initiate_chat(manager, message="My name is teamA_engineer")
+
+    speakers = []
+    for idx in range(len(results.chat_history)):
+        speakers.append(results.chat_history[idx].get("name"))
+
+    assert "teamA_executor" in speakers
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -920,7 +1186,9 @@ if __name__ == "__main__":
     # test_agent_mentions()
     # test_termination()
     # test_next_agent()
-    test_send_intros()
+    # test_send_intros()
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
+    test_custom_speaker_selection_overrides_transition_graph()
+    # pass

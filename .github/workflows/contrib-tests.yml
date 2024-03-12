@@ -172,7 +172,7 @@ jobs:
       - name: Coverage
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_teachable_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
