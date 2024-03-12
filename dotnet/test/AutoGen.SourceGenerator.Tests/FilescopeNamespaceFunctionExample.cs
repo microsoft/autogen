@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // FilescopeNamespaceFunctionExample.cs
 
+using AutoGen.Core;
+
 namespace AutoGen.SourceGenerator.Tests;
 public partial class FilescopeNamespaceFunctionExample
 {

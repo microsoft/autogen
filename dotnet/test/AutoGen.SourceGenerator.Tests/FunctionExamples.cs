@@ -2,6 +2,7 @@
 // FunctionExamples.cs
 
 using System.Text.Json;
+using AutoGen.Core;
 
 namespace AutoGen.SourceGenerator.Tests
 {
