@@ -1,4 +1,7 @@
-## AutoGen
+#### Update on 0.0.10 (2024-03-12)
+- Rename `Workflow` to `Graph`
+- Rename `AddInitializeMessage` to `SendIntroduction`
+- Rename `SequentialGroupChat` to `RoundRobinGroupChat`
 #### Update on 0.0.9 (2024-03-02)
 - Refactor over @AutoGen.Message and introducing `TextMessage`, `ImageMessage`, `MultiModalMessage` and so on. PR [#1676](https://github.com/microsoft/autogen/pull/1676)
 - Add `AutoGen.SemanticKernel` to support seamless integration with Semantic Kernel
