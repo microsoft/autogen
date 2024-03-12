@@ -38,9 +38,10 @@ public class RoundRobinGroupChat : IGroupChat
         this.initializeMessages = initializeMessages ?? new List<IMessage>();
     }
 
+    /// <inheritdoc />
     public void AddInitializeMessage(IMessage message)
     {
-        this.initializeMessages.Add(message);
+        this.SendInstruction(message);
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
@@ -78,6 +79,11 @@ public class RoundRobinGroupChat : IGroupChat
         }
 
         return conversationHistory;
+    }
+
+    public void SendInstruction(IMessage message)
+    {
+        this.initializeMessages.Add(message);
     }
 
     private IAgent SelectNextSpeaker(IAgent currentSpeaker)

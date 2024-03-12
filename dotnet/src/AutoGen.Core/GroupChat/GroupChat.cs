@@ -133,9 +133,10 @@ From admin:
         return this.agents.First(x => x.Name!.ToLower() == name.ToLower());
     }
 
+    /// <inheritdoc />
     public void AddInitializeMessage(IMessage message)
     {
-        this.initializeMessages = this.initializeMessages.Append(message);
+        this.SendInstruction(message);
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
@@ -173,5 +174,10 @@ From admin:
         }
 
         return conversationHistory;
+    }
+
+    public void SendInstruction(IMessage message)
+    {
+        this.initializeMessages = this.initializeMessages.Append(message);
     }
 }
