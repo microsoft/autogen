@@ -1,19 +1,15 @@
-import json
 import copy
-import logging
 import re
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser
+from ...browser_utils import RequestsMarkdownBrowser, SeleniumMarkdownBrowser, PlaywrightMarkdownBrowser
 from ...code_utils import content_str
-from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
-
-logger = logging.getLogger(__name__)
 
 
 class WebSurferAgent(ConversableAgent):
@@ -57,7 +53,15 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        headless = browser_config.pop("headless", False)
+        if not headless:
+            self.browser = RequestsMarkownBrowser(**(browser_config if browser_config else {}))
+        elif headless.lower() == "selenium":
+            self.browser = SeleniumMarkdownBrowser(**browser_config)
+        elif headless.lower() == "playwright":
+            self.browser = PlaywrightMarkdownBrowser(**browser_config)
+        else:
+            raise ValueError(f"Unknown headless option '{headless}'")
 
         inner_llm_config = copy.deepcopy(llm_config)
 
@@ -126,6 +130,7 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             address = self.browser.address
+
             for i in range(len(self.browser.history)-2,-1,-1): # Start from the second last
                 if self.browser.history[i][0] == address:
                     header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
@@ -141,7 +146,7 @@ class WebSurferAgent(ConversableAgent):
             description="Perform an INFORMATIONAL web search query then return the search results.",
         )
         def _informational_search(query: Annotated[str, "The informational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
@@ -151,9 +156,9 @@ class WebSurferAgent(ConversableAgent):
             description="Perform a NAVIGATIONAL web search query then immediately navigate to the top result. Useful, for example, to navigate to a particular Wikipedia article or other known destination. Equivalent to Google's \"I'm Feeling Lucky\" button.",
         )
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
 
-            # Extract the first linl
+            # Extract the first link
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
             if m:
                 self.browser.visit_page(m.group(1))
