@@ -23,7 +23,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
 
     def __init__(
         self,
-        launch_args: Dict[str,Any] = None,
+        launch_args: Dict[str,Any] = {},
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -83,8 +83,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
                     raise e
 
     def _process_page(self, url, page):
-        body = page.query_selector("body")
-        html = body.inner_html()
+        html = page.evaluate("document.documentElement.outerHTML;")
         res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=url)
         self.page_title = page.title
         self._set_page_content(res.text_content)

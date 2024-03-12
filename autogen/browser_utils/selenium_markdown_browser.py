@@ -52,7 +52,7 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
             super()._fetch_page(url)
         else:
             self._webdriver.get(url)
-            html = self._webdriver.execute_script("return document.body.innerHTML;")
+            html = self._webdriver.execute_script("return document.documentElement.outerHTML;")
 
             if not html: # Nothing... it's probably a download
                 super()._fetch_page(url)
