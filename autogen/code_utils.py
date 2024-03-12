@@ -228,11 +228,11 @@ def get_powershell_command():
             if result.returncode == 0:
                 return "pwsh"
 
-        except (FileNotFoundError, NotADirectoryError):
-            if WIN32 and FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError) as e:
+            if WIN32 and isinstance(e,FileNotFoundError):
                 logging.warning("Neither powershell.exe nor pwsh.exe is present but it is a Windows OS")
 
-            elif WIN32 and NotADirectoryError:
+            elif WIN32 and isinstance(e,NotADirectoryError):
                 logging.warning(
                     "PowerShell is either not installed or its path is not given properly in the environment variable PATH. Please check the path and try again."
                 )
