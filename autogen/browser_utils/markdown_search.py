@@ -46,7 +46,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
 
     def search(self, query: str):
         if self._bing_api_key is None:
-            return self._scrape_search(query)
+            return self._fallback_search(query)
         else:
             return self._api_search(query)
 
@@ -173,7 +173,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
         return results  
 
 
-    def _scrape_search(self, query: str):
+    def _fallback_search(self, query: str):
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
         headers = {"User-Agent": user_agent}
 
@@ -181,21 +181,22 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
      
-        # Parse the string
+        # Parse the html
         soup = BeautifulSoup(response.text, "html.parser")
         md = mdconvert._CustomMarkdownify()
 
-        # Add some padding
+        # Clean up some formatting
         for tptt in soup.find_all(class_="tptt"):
             if hasattr(tptt, "string") and tptt.string:
                 tptt.string += " "
-
         for slug in soup.find_all(class_="algoSlug_icon"):
             slug.extract()
 
+        # Parse the algoithmic results
         results = list()
         for result in soup.find_all(class_="b_algo"):
 
+            # Rewrite redirect urls
             for a in result.find_all("a", href=True):
                 parsed_href = urlparse(a["href"])
                 qs = parse_qs(parsed_href.query)
@@ -203,11 +204,8 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
                 # The destination is contained in the u parameter,
                 # but appears to be base64 encoded, with some prefix
                 if "u" in qs:
-                    u = qs["u"][0][2:].strip()
-                    while len(u) % 4 != 0:
-                        u += "="
+                    u = qs["u"][0][2:].strip() + "==" # Python 3 doesn't care about extra padding
                     
-                    # Decode the destination
                     try:
                         # RFC 4648 / Base64URL" variant, which uses "-" and "_"
                         a["href"] = base64.b64decode(u, altchars="-_").decode("utf-8")
@@ -216,11 +214,12 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
                     except binascii.Error:
                         pass
 
+            # Convert to markdown
             md_result = md.convert_soup(result).strip()
-            md_result = re.sub(r"\n+", "\n", md_result)
-            results.append(md_result)
+            lines = [line.strip() for line in re.split(r"\n+", md_result)]
+            results.append("\n".join([line for line in lines if len(line) > 0]))
 
-        return f"## A Bing search for '{query}' found {len(results)} results:\n\n" + "\n\n".join(results)
+        return f"## A Bing search for '{query}' found the following results:\n\n" + "\n\n".join(results)
 
 
     def _markdown_link(self, anchor, href):
