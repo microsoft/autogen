@@ -14,7 +14,7 @@ public class GroupChat : IGroupChat
     private IAgent? admin;
     private List<IAgent> agents = new List<IAgent>();
     private IEnumerable<IMessage> initializeMessages = new List<IMessage>();
-    private Workflow? workflow = null;
+    private Graph? workflow = null;
 
     public IEnumerable<IMessage>? Messages { get; private set; }
 
@@ -29,7 +29,7 @@ public class GroupChat : IGroupChat
         IEnumerable<IAgent> members,
         IAgent? admin,
         IEnumerable<IMessage>? initializeMessages = null,
-        Workflow? workflow = null)
+        Graph? workflow = null)
     {
         this.admin = admin;
         this.agents = members.ToList();
@@ -136,7 +136,7 @@ From admin:
     /// <inheritdoc />
     public void AddInitializeMessage(IMessage message)
     {
-        this.SendInstruction(message);
+        this.SendIntroduction(message);
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
@@ -176,7 +176,7 @@ From admin:
         return conversationHistory;
     }
 
-    public void SendInstruction(IMessage message)
+    public void SendIntroduction(IMessage message)
     {
         this.initializeMessages = this.initializeMessages.Append(message);
     }

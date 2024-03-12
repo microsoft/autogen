@@ -13,7 +13,7 @@ public interface IGroupChat
     /// <summary>
     /// Send an introduction message to the group chat.
     /// </summary>
-    void SendInstruction(IMessage message);
+    void SendIntroduction(IMessage message);
 
     [Obsolete("please use SendIntroduction")]
     void AddInitializeMessage(IMessage message);

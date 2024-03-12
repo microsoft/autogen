@@ -41,7 +41,7 @@ public class RoundRobinGroupChat : IGroupChat
     /// <inheritdoc />
     public void AddInitializeMessage(IMessage message)
     {
-        this.SendInstruction(message);
+        this.SendIntroduction(message);
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
@@ -81,7 +81,7 @@ public class RoundRobinGroupChat : IGroupChat
         return conversationHistory;
     }
 
-    public void SendInstruction(IMessage message)
+    public void SendIntroduction(IMessage message)
     {
         this.initializeMessages.Add(message);
     }
