@@ -81,7 +81,7 @@ public static class AgentExtension
             return await agent.SendMessageToGroupAsync(gc, chatHistory, maxRound, ct);
         }
 
-        var groupChat = new SequentialGroupChat(
+        var groupChat = new RoundRobinGroupChat(
             agents: new[]
             {
                 agent,
