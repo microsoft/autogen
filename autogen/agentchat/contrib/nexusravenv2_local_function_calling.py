@@ -17,6 +17,7 @@ from autogen.code_utils import content_str
     If you enjoyed this module consider giving me a follow on github or buying me a coffee at https://www.buymeacoffee.com/gregnwosu
     """
 
+
 # TODO this does not include return type
 def create_nexus_prompt_for_tool(tool: dict) -> str:
     '''takes a dictionary of form
@@ -61,21 +62,24 @@ def create_nexus_prompt_for_tool(tool: dict) -> str:
 
     args = ", ".join([f"{k}: {type_to_str(v['type'])}" for k, v in properties.items()])
     arg_types = "\n".join(
-        [f"{key} ({type_to_str(properties[key]['type'])}): {properties[key]['description']}" for key in properties.keys()]
+        [
+            f"{key} ({type_to_str(properties[key]['type'])}): {properties[key]['description']}"
+            for key in properties.keys()
+        ]
     )
     docstring = f'"""\n{description.strip()}\n\nArgs:\n{arg_types}\n"""'
     # Indent the docstring
     docstring = "\n".join(["    " + line for line in docstring.split("\n")])
 
-    return f'''Function:\ndef {name}({args}):\n{docstring}'''
+    return f"""Function:\ndef {name}({args}):\n{docstring}"""
+
 
 class NexusFunctionCallingAssistant(autogen.ConversableAgent):
-
     def __init__(
         self,
         llm_config,
         name="nexusraven2functioncaller",
-        system_message=f"""Function calling assistant""",
+        system_message="""Function calling assistant""",
         description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
                                    translates the standard nexusravenv2 responses
                                    from:
@@ -123,9 +127,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         query = content_str(messages[-1]["content"])
 
         tools = self.llm_config["tools"]
-        functions = "\n\n".join(
-            [create_nexus_prompt_for_tool(tool) for tool in tools if tool["type"] == "function"]
-        )
+        functions = "\n\n".join([create_nexus_prompt_for_tool(tool) for tool in tools if tool["type"] == "function"])
 
         prompt = f"""{functions}\n\nUser Query: {query}<human_end>"""
 
