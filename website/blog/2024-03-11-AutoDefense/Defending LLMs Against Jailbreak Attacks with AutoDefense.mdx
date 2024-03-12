@@ -29,13 +29,28 @@ The number of agents in the defense agency is flexible. We explore configuration
 
 ### Defense Agency
 
-The three-agent defense agency consists of:
+The defense agency is designed to classify whether a given response contains harmful content and is not appropriate to be presented to the user. We propose a three-step process for the agents to collaboratively determine if a response is harmful:
 
-1. **Intention Analyzer**: Analyzes the intention behind the given content. This helps identify potentially malicious motives.
-2. **Prompt Analyzer**: Infers possible original prompts that lead to the response.  By reconstructing these prompts without jailbreak elements, it activates the LLMs' safety mechanisms.
-3. **Judge**: Makes the final judgment on whether the response is harmful based on the analysis from the intention and prompt analyzers.
+- **Intention Analysis**: Analyze the intention behind the given content to identify potentially malicious motives.
+- **Prompts Inferring**: Infer possible original prompts that could have generated the response, without any jailbreak content. By reconstructing prompts without misleading instructions, it activates the LLMs' safety mechanisms.
+- **Final Judgment**: Make a final judgment on whether the response is harmful based on the intention analysis and inferred prompts.
+Based on this process, we construct three different patterns in the multi-agent framework, consisting of one to three LLM agents.
 
-A coordinator agent manages the workflow between these agents, passing messages and prompting each to perform their specialized task. This division of roles makes it easier for LLMs with limited steerability to follow instructions for their specific sub-task, resulting in a more accurate overall judgment.
+#### Single-Agent Design
+
+A simple design is to utilize a single LLM agent to analyze and make judgments in a chain-of-thought (CoT) style. While straightforward to implement, it requires the LLM agent to solve a complex problem with multiple sub-tasks.
+
+#### Multi-Agent Design
+
+Using multiple agents compared to using a single agent can make agents focus on the sub-task it is assigned. Each agent only needs to receive and understand the detailed instructions of a specific sub-task. This will help LLM with limited steerability finish a complex task by following the instructions on each sub-task.
+
+- **Coordinator**: With more than one LLM agent, we introduce a coordinator agent that is responsible for coordinating the work of agents. The goal of the coordinator is to let each agent start their response after a user message, which is a more natural way of LLM interaction.
+
+- **Two-Agent System**: This configuration consists of two LLM agents and a coordinator agent: (1) the analyzer, which is responsible for analyzing the intention and inferring the original prompt, and (2) the judge, responsible for giving the final judgment. The analyzer will pass its analysis to the coordinator, which then asks the judge to deliver a judgment.
+
+- **Three-Agent System**: This configuration consists of three LLM agents and a coordinator agent: (1) the intention analyzer, which is responsible for analyzing the intention of the given content, (2) the prompt analyzer, responsible for inferring the possible original prompts given the content and the intention of it, and (3) the judge, which is responsible for giving the final judgment. The coordinator agent acts as the bridge between them.
+
+Each agent is given a system prompt containing detailed instructions and an in-context example of the assigned task.
 
 ## Experiment Setup
 
