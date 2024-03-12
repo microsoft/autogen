@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Union, Tuple
 
 from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from .abstract_markdown_browser import AbstractMarkdownBrowser
-from .bing_utils import bing_search_markdown
+from .markdown_search import BingMarkdownSearch
 
 class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
     """
@@ -41,10 +41,11 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self.set_address(self.start_page)
-        self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
         self._mdconvert = MarkdownConverter()
         self._page_content: str = ""
+
+        self._search_engine = BingMarkdownSearch(bing_api_key=bing_api_key)
 
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
@@ -61,8 +62,11 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         # Handle special URIs
         if uri_or_path == "about:blank":
             self._set_page_content("")
-        elif uri_or_path.startswith("bing:"):
-            self._bing_search(uri_or_path[len("bing:") :].strip())
+        elif uri_or_path.startswith("search:"):
+            query = uri_or_path[len("search:") :].strip()
+            results = self._search_engine.search(query)
+            self.page_title = f"{query} - Search"
+            self._set_page_content(results, split_pages=False)
         else:
             if (
                 not uri_or_path.startswith("http:")
@@ -209,10 +213,6 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
                 end_idx += 1
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
-
-    def _bing_search(self, query: str) -> None:
-        self.page_title = f"{query} - Search"
-        self._set_page_content(bing_search_markdown(query, self.bing_api_key), split_pages=False)
 
     def _fetch_page(self, url: str) -> None:
         download_path = ""

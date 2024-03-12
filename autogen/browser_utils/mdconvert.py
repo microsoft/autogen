@@ -254,16 +254,14 @@ class BingConverter(DocumentConverter):
         main_elm = soup.find("main")
         webpage_text = ""
         if main_elm:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(main_elm)
+            webpage_text = _CustomMarkdownify().convert_soup(main_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=None if soup.title is None else soup.title.string,
             text_content=webpage_text,
         )
-
-
 
 
 class YouTubeConverter(DocumentConverter):
