@@ -55,7 +55,7 @@ We illustrate how to build **StateFlow** with GroupChat. Previous blog [FSM Grou
 introduces a new feature of GroupChat that allows us to input a transition graph to constrain agent transitions.
 It requires us to use natural language to describe the transition conditions of the FSM in the agent's `description` parameter, and then use an LLM to take in the description and make decisions of the next agent.
 In this blog, we take advantages of a customized speaker selection function passed to the `speaker_selection_method` of the `GroupChat` object.
-This function allows us to custom the transition logic between agents, and can be used together with the transition graph introduced in FSM Group Chat.
+This function allows us to custom the transition logic between agents, and can be used together with the transition graph introduced in FSM Group Chat. The current StateFlow implementation also allows the user to override the transition graph.
 These transitions can be based on the current speaker and static checking of the context history (for example, checking if 'Error' is in the last message).
 
 We present an example of how to build a state-oriented workflow using GroupChat.
