@@ -21,7 +21,7 @@ __all__ = ("LocalCommandLineCodeExecutor",)
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
-    
+
     def __init__(
         self,
         timeout: int = 60,
