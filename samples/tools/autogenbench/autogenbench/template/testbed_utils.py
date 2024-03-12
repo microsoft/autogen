@@ -7,11 +7,11 @@ import json
 AUTOGEN_VERSION = packaging.version.parse(autogen.__version__)
 
 # Try importing the runtime_logging module (only available in some branches)
-TELEMETRY_ENABLED = False
+LOGGING_ENABLED = False
 try:
     import autogen.runtime_logging
 
-    TELEMETRY_ENABLED = True
+    LOGGING_ENABLED = True
 except ImportError:
     pass
 
@@ -67,7 +67,7 @@ def init():
         autogen.Completion.start_logging(compact=False)
 
     # Start logging
-    if TELEMETRY_ENABLED:
+    if LOGGING_ENABLED:
         autogen.runtime_logging.start(config={"dbname": "telemetry.db"})
 
 
@@ -104,5 +104,5 @@ def finalize(agents):
         autogen.Completion.stop_logging()
 
     # Stop logging
-    if TELEMETRY_ENABLED:
+    if LOGGING_ENABLED:
         autogen.runtime_logging.stop()
