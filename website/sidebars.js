@@ -24,7 +24,7 @@
         {
           type: 'doc',
           id: 'tutorial/chat-termination',
-          label: 'Termination',
+          label: 'Chat Termination',
         },
         {
           type: 'doc',
