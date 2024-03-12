@@ -120,7 +120,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         return function_name, args_map, thought_part.strip()
 
     @override
-    def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache) -> Union[str, Dict, None]:
+    def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache:) -> Union[str, Dict, None]:
         llm_client._construct_create_params = add_nexus_raven_prompts(llm_client._construct_create_params)
         all_messages = []
         for message in messages:
