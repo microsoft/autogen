@@ -36,7 +36,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System;
-using AutoGen;
+using AutoGen.Core;
 using AutoGen.OpenAI.Extension;
 
 ");
