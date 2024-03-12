@@ -23,8 +23,8 @@
         },
         {
           type: 'doc',
-          id: 'tutorial/termination',
-          label: 'Termination',
+          id: 'tutorial/chat-termination',
+          label: 'Chat Termination',
         },
         {
           type: 'doc',
