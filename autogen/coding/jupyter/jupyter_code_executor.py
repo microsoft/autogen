@@ -22,48 +22,12 @@ from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
-    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
-        str
-    ] = """
-# IPython Coding Capability
-You have been given coding capability to solve tasks using Python code in a stateful IPython kernel.
-You are responsible for writing the code, and the user is responsible for executing the code.
-
-When you write Python code, put the code in a markdown code block with the language set to Python.
-For example:
-```python
-x = 3
-```
-You can use the variable `x` in subsequent code blocks.
-```python
-print(x)
-```
-
-Write code incrementally and leverage the statefulness of the kernel to avoid repeating code.
-Import libraries in a separate code block.
-Define a function or a class in a separate code block.
-Run code that produces output in a separate code block.
-Run code that involves expensive operations like download, upload, and call external APIs in a separate code block.
-
-When your code produces an output, the output will be returned to you.
-Because you have limited conversation memory, if your code creates an image,
-the output will be a path to the image instead of the image itself.
-"""
-
-    class UserCapability:
-        def __init__(self, system_message_update: str):
-            self._system_message_update = system_message_update
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            agent.update_system_message(agent.system_message + self._system_message_update)
-
     def __init__(
         self,
         jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
         kernel_name: str = "python3",
         timeout: int = 60,
         output_dir: Union[Path, str] = Path("."),
-        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
     ):
         """(Experimental) A code executor class that executes code statefully using
         a Jupyter server supplied to this class.
@@ -104,11 +68,6 @@ the output will be a path to the image instead of the image itself.
         self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
         self._timeout = timeout
         self._output_dir = output_dir
-        self._system_message_update = system_message_update
-
-    @property
-    def user_capability(self) -> "JupyterCodeExecutor.UserCapability":
-        return JupyterCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
