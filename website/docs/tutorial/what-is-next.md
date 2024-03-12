@@ -24,7 +24,7 @@ topics:
 
 - Read the [topic docs](/docs/topics) to learn more
 - Read the examples and guides in the [notebooks section](/docs/notebooks)
-- Check [research](/docs/Research) and [blog](/docs/blog)
+- Check [research](/docs/Research) and [blog](/blog)
 
 ## Get Help
 
