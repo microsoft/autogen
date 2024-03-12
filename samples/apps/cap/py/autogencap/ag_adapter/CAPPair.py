@@ -1,7 +1,7 @@
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 
 
-class Pair:
+class CAPPair:
     def __init__(self, network, first, second):
         self._network = network
         self._first_ag_agent = first

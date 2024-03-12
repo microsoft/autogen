@@ -1,7 +1,7 @@
 import time
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 from autogencap.DebugLog import Info
-from autogencap.ag_adapter.Pair import Pair
+from autogencap.ag_adapter.CAPPair import CAPPair
 from autogencap.LocalActorNetwork import LocalActorNetwork
 
 
@@ -17,7 +17,7 @@ def cap_ag_pair_demo():
     # Composable Agent Platform AutoGen Pair adapter
     network = LocalActorNetwork()
 
-    pair = Pair(network, user_proxy, assistant)
+    pair = CAPPair(network, user_proxy, assistant)
     pair.initiate_chat("Plot a chart of MSFT daily closing prices for last 1 Month.")
 
     # Wait for the pair to finish

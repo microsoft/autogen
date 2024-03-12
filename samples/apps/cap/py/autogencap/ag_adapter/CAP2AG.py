@@ -124,7 +124,8 @@ class CAP2AG(AGActor):
         connector = self.get_actor_connector(sender_topic)
 
         reply_msg = GenReplyResp()
-        reply_msg.data = reply.encode("utf8")
+        if reply:
+            reply_msg.data = reply.encode("utf8")
         serialized_msg = reply_msg.SerializeToString()
         connector.send_bin_msg(type(reply_msg).__name__, serialized_msg)
         return True
