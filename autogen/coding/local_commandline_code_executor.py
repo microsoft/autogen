@@ -27,23 +27,10 @@ class CommandLineCodeResult(CodeResult):
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
-        str
-    ] = """
-You have been given coding capability to solve tasks using Python code.
-In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
-    1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
-    2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
-Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
-When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
-If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
-"""
-
     def __init__(
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
-        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -66,10 +53,6 @@ If you want the user to save the code in a file before executing it, put # filen
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
-            system_message_update (str): The system message update for agent that
-            produces code to run on this executor.
-            Default is `LocalCommandLineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
-
         """
 
         if timeout < 1:
@@ -83,26 +66,6 @@ If you want the user to save the code in a file before executing it, put # filen
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
-        self._system_message_update = system_message_update
-
-    class UserCapability:
-        """An AgentCapability class that gives agent ability use a command line
-        code executor via a system message update. This capability can be added
-        to an agent using the `add_to_agent` method."""
-
-        def __init__(self, system_message_update: str) -> None:
-            self.system_message_update = system_message_update
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent by updating the agent's system
-            message."""
-            agent.update_system_message(agent.system_message + self.system_message_update)
-
-    @property
-    def user_capability(self) -> "LocalCommandLineCodeExecutor.UserCapability":
-        """Export a user capability for this executor that can be added to
-        an agent that produces code to be executed by this executor."""
-        return LocalCommandLineCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def timeout(self) -> int:
