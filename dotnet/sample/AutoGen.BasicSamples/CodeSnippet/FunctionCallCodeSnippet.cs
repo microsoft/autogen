@@ -86,6 +86,36 @@ public partial class FunctionCallCodeSnippet
         #endregion code_snippet_6_1
     }
 
+    public async Task OverriderFunctionContractAsync()
+    {
+        IAgent agent = default;
+        IEnumerable<IMessage> messages = new List<IMessage>();
+        #region overrider_function_contract
+        var function = new TypeSafeFunctionCall();
+        var reply = agent.GenerateReplyAsync(messages, new GenerateReplyOptions
+        {
+            Functions = new[] { function.WeatherReportFunctionContract },
+        });
+        #endregion overrider_function_contract
+    }
+
+    public async Task RegisterFunctionCallMiddlewareAsync()
+    {
+        IAgent agent = default;
+        #region register_function_call_middleware
+        var function = new TypeSafeFunctionCall();
+        var functionCallMiddleware = new FunctionCallMiddleware(
+            functions: new[] { function.WeatherReportFunctionContract },
+            functionMap: new Dictionary<string, Func<string, Task<string>>>
+            {
+                { function.WeatherReportFunctionContract.Name, function.WeatherReportWrapper },
+            });
+
+        agent = agent!.RegisterMiddleware(functionCallMiddleware);
+        var reply = await agent.SendAsync("What's the weather in Seattle today? today is 2024-01-01");
+        #endregion register_function_call_middleware
+    }
+
     public async Task TwoAgentWeatherChatTestAsync()
     {
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");

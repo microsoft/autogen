@@ -44,7 +44,7 @@ public partial class Example03_Agent_FunctionCall
     public static async Task RunAsync()
     {
         var instance = new Example03_Agent_FunctionCall();
-        var gpt35 = LLMConfiguration.GetOpenAIGPT3_5_Turbo();
+        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
 
         // AutoGen makes use of AutoGen.SourceGenerator to automatically generate FunctionDefinition and FunctionCallWrapper for you.
         // The FunctionDefinition will be created based on function signature and XML documentation.

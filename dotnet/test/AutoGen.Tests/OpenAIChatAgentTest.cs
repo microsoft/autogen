@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
-using AutoGen.OpenAI.Middleware;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 

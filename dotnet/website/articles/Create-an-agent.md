@@ -9,7 +9,3 @@
 ## Create an `AssistantAgent` using Azure OpenAI model.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/CreateAnAgent.cs?name=code_snippet_2)]
-
-## Function call
-
-You can use function call in `AssistantAgent` by passing `FunctionDefinition` when creating the agent. For more information, please check out [Use function call](./Use-function-call.md).

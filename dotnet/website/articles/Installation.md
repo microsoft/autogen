@@ -60,6 +60,6 @@ AutoGen.Net provides the following packages, you can choose to install one or mo
 
 #### Help me choose
 - If you just want to install one package and enjoy the core features of AutoGen, choose `AutoGen`.
-- If you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies, like `Azure.AI.OpenAI` or `Semantic Kernel`, choose `AutoGen.Core`.
+- If you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies, like `Azure.AI.OpenAI` or `Semantic Kernel`, choose `AutoGen.Core`. You will need to implement your own agent, but you can still use AutoGen core features like group chat, built-in message type, workflow and middleware.
 - If you want to use AutoGen with openai, choose `AutoGen.OpenAI`, similarly, choose `AutoGen.LMStudio` or `AutoGen.SemanticKernel` if you want to use agents from LM Studio or semantic kernel.
 - If you just want the type-safe source generation for function call and don't want any other features, which even include the AutoGen's abstraction, choose `AutoGen.SourceGenerator`.

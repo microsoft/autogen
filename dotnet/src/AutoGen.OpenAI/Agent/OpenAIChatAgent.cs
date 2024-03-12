@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// OpenAIClientAgent.cs
+// OpenAIChatAgent.cs
 
 using System;
 using System.Collections.Generic;
