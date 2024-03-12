@@ -107,7 +107,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Tuple[str, Dict[str, str], str] | None:
-        call_part, thought_part = input_string.split("<bot_end> \nThought: ")
+        call_part, thought_part = input_string.split("(<bot_end> \n)?Thought: ")
         function_name_match = re.search(r'Call: (\w+)', call_part)
         function_name = function_name_match.group(1) if function_name_match else None
         args_match = re.search(r'\((.*?)\)', call_part)
@@ -121,7 +121,6 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache) -> Union[str, Dict, None]:
-
         llm_client._construct_create_params = add_nexus_raven_prompts(llm_client._construct_create_params)
         all_messages = []
         for message in messages:
