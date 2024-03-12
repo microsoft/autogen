@@ -14,7 +14,6 @@ tags: [LLM, GPT, research]
 - AutoDefense employs a response-filtering mechanism with specialized LLM agents collaborating to analyze potentially harmful responses.
 - Experiments show our three-agent defense system with LLaMA-2-13B effectively reduces jailbreak attack success rate while maintaining low false positives on normal user requests.
 
-
 ## The AutoDefense Framework 
 
 AutoDefense is a multi-agent defense framework built on AutoGen that filters harmful responses from LLMs. It consists of three main components:
@@ -99,7 +98,6 @@ If none of the prompt-response pairs are deemed unsafe by Llama Guard, the agent
 As shown in Table 4, introducing Llama Guard as a custom agent significantly reduces the FPR from 37.32% to 6.80% for the LLaMA-2-7b based defense, while keeping the ASR at a competitive level of 11.08%. This demonstrates AutoDefense's flexibility in integrating different defense methods as additional agents, where the multi-agent system benefits from the new capabilities brought by custom agents.
 
 ![image-20240306193629333](imgs/image-20240306193629333.png)
-
 
 ## For Further Reading
 
