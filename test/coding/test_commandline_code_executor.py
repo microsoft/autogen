@@ -142,52 +142,6 @@ def _test_restart(executor: CodeExecutor) -> None:
         executor.restart()
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
-def test_local_commandline_executor_conversable_agent_capability() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
-        _test_conversable_agent_capability(executor=executor)
-
-
-def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    config_list = config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-            },
-        },
-    )
-    llm_config = {"config_list": config_list}
-    agent = ConversableAgent(
-        "coding_agent",
-        llm_config=llm_config,
-        code_execution_config=False,
-    )
-    executor.user_capability.add_to_agent(agent)
-
-    # Test updated system prompt.
-    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
-
-    # Test code generation.
-    reply = agent.generate_reply(
-        [{"role": "user", "content": "write a python script to print 'hello world' to the console"}],
-        sender=ConversableAgent(name="user", llm_config=False, code_execution_config=False),
-    )
-
-    # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    # Test code execution.
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
-
-
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_commandline_executor_conversable_agent_code_execution(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
