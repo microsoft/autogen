@@ -10,6 +10,8 @@ __all__ = (
     "RequestsMarkdownBrowser",
     "SeleniumMarkdownBrowser",
     "PlaywrightMarkdownBrowser",
+    "AbstractMarkdownSearch",
+    "BingMarkdownSearch",
     "MarkdownConverter",
     "UnsupportedFormatException",
     "FileConversionException",

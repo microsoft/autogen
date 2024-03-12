@@ -1,15 +1,18 @@
 import copy
 import re
 import time
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import RequestsMarkdownBrowser, SeleniumMarkdownBrowser, PlaywrightMarkdownBrowser
+from ...browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
 from ...code_utils import content_str
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
 
+
+logger = logging.getLogger(__name__)
 
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
@@ -34,7 +37,8 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser_config: Optional[Union[Dict, None]] = None,
+        browser_config: Optional[Union[Dict, None]] = None, # Deprecated
+        browser: Optional[Union[AbstractMarkdownBrowser, None]] = None,
     ):
         super().__init__(
             name=name,
@@ -52,19 +56,34 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        headless = browser_config.pop("headless", False)
-        if not headless:
-            self.browser = RequestsMarkownBrowser(**(browser_config if browser_config else {}))
-        elif headless.lower() == "selenium":
-            self.browser = SeleniumMarkdownBrowser(**browser_config)
-        elif headless.lower() == "playwright":
-            self.browser = PlaywrightMarkdownBrowser(**browser_config)
-        else:
-            raise ValueError(f"Unknown headless option '{headless}'")
+        if browser_config is not None:
+            if browser is not None:
+                raise ValueError("WebSurferAgent cannot accept both a 'browser_config' (deprecated) parameter and 'browser' parameter at the same time. Use only one or the other.")
 
-        inner_llm_config = copy.deepcopy(llm_config)
+            # Print a warning
+            logger.warning("Warning: the parameter 'browser_config' in WebSurferAgent.__init__() is deprecated. Use 'browser' instead.")
+
+
+            # Update the settings to the new format
+            _bconfig = {}
+            _bconfig.update(browser_config)
+
+            if "bing_api_key" in _bconfig:
+                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key = _bconfig["bing_api_key"])
+                del _bconfig["bing_api_key"]
+            else:
+                _bconfig["search_engine"] = BingMarkdownSearch()
+
+            if "request_kwargs" in _bconfig:
+                _bconfig["requests_get_kwargs"] = _bconfig["request_kwargs"]
+                del _bconfig["request_kwargs"]
+
+            self.browser = RequestsMarkdownBrowser(**_bconfig)
+        else:
+            self.browser = browser
 
         # Set up the inner monologue
+        inner_llm_config = copy.deepcopy(llm_config)
         self._assistant = AssistantAgent(
             self.name + "_inner_assistant",
             system_message=system_message,  # type: ignore[arg-type]

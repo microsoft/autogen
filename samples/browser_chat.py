@@ -16,7 +16,6 @@ def main():
         llm_config={"config_list": config_list},
         summarizer_llm_config={"config_list": config_list},
         browser_config={
-            "headless": "playwright",
             "viewport_size": 1024 * 2,
             "downloads_folder": os.getcwd(),
             "bing_api_key": os.environ.get("BING_API_KEY"),

@@ -34,6 +34,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         search_engine: Optional[Union[AbstractMarkdownSearch, None]] = None,
         markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
         requests_session: Optional[Union[requests.Session, None]] = None,
+        requests_get_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -59,6 +60,11 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self._requests_session = requests.Session()
         else:
             self._requests_session = requests_session
+
+        if requests_get_kwargs is None:
+            self._requests_get_kwargs = {}
+        else:
+            self._requests_get_kwargs = requests_get_kwargs
 
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
@@ -227,7 +233,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _fetch_page(self, url: str, session: requests.Session = None) -> None:
+    def _fetch_page(self, url: str, session: requests.Session = None, requests_get_kwargs: Dict[str, Any] = None) -> None:
         download_path = ""
         try:
             if url.startswith("file://"):
@@ -248,7 +254,14 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
                 # Send a HTTP request to the URL
                 if session is None:
                     session = self._requests_session
-                response = session.get(url, stream=True)
+
+                _get_kwargs = {}
+                _get_kwargs.update(self._requests_get_kwargs)
+                if requests_get_kwargs is not None:
+                    _get_kwargs.update(requests_get_kwargs)
+                _get_kwargs["stream"] = True
+
+                response = session.get(url, **_get_kwargs)
                 response.raise_for_status()
 
                 # If the HTTP request was successful
