@@ -230,7 +230,7 @@ def get_powershell_command():
 
         except (FileNotFoundError, NotADirectoryError, PermissionError):
             if PermissionError:
-                logging.warning("The application has no permission to run powershell")
+                return "The application has no permission to run powershell"
             
             elif WIN32:
                 logging.warning("Neither powershell nor pwsh is installed but it is a Windows OS")
@@ -246,6 +246,9 @@ def _cmd(lang):
     powershell_command = get_powershell_command()
     
     if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
+        if lang == "The application has no permission to run powershell":
+            logging.warning(lang)
+            
         return lang
     if lang in ["shell"]:
         return "sh"
