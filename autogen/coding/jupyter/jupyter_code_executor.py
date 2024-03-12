@@ -5,7 +5,7 @@ from pathlib import Path
 import re
 from types import TracebackType
 import uuid
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Optional, Type, Union
 import sys
 
 if sys.version_info >= (3, 11):
@@ -201,6 +201,6 @@ the output will be a path to the image instead of the image itself.
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
