@@ -65,7 +65,7 @@ class ConversableAgent(LLMAgent):
     `run_code`, and `execute_function` methods respectively.
     """
 
-    DEFAULT_CONFIG = {}  # An empty configuration
+    DEFAULT_CONFIG = False  # False or dict, the default config for llm inference
     MAX_CONSECUTIVE_AUTO_REPLY = 100  # maximum number of consecutive auto replies (subject to future change)
 
     DEFAULT_SUMMARY_PROMPT = "Summarize the takeaway from the conversation. Do not add any introductory phrases."
@@ -123,7 +123,9 @@ class ConversableAgent(LLMAgent):
             llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
+                When using OpenAI or Azure OpenAI endpoints, please specify a non-empty 'model' either in `llm_config` or in each config of 'config_list' in `llm_config`.
                 To disable llm-based auto reply, set to False.
+                When set to None, will use self.DEFAULT_CONFIG, which defaults to False.
             default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
@@ -139,21 +141,7 @@ class ConversableAgent(LLMAgent):
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
 
-        if llm_config is False:
-            self.llm_config = False
-            self.client = None
-        else:
-            self.llm_config = self.DEFAULT_CONFIG.copy()
-            if isinstance(llm_config, dict):
-                self.llm_config.update(llm_config)
-            if "model" not in self.llm_config and (
-                not self.llm_config.get("config_list")
-                or any(not config.get("model") for config in self.llm_config["config_list"])
-            ):
-                raise ValueError(
-                    "Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
-                )
-            self.client = OpenAIWrapper(**self.llm_config)
+        self._validate_llm_config(llm_config)
 
         if logging_enabled():
             log_new_agent(self, locals())
@@ -245,6 +233,20 @@ class ConversableAgent(LLMAgent):
             "process_all_messages_before_reply": [],
             "process_message_before_send": [],
         }
+
+    def _validate_llm_config(self, llm_config):
+        assert llm_config in (None, False) or isinstance(
+            llm_config, dict
+        ), "llm_config must be a dict or False or None."
+        if llm_config is None:
+            llm_config = self.DEFAULT_CONFIG
+        self.llm_config = self.DEFAULT_CONFIG if llm_config is None else llm_config
+        # TODO: more complete validity check
+        if self.llm_config in [{}, {"config_list": []}, {"config_list": [{"model": ""}]}]:
+            raise ValueError(
+                "When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+            )
+        self.client = None if self.llm_config is False else OpenAIWrapper(**self.llm_config)
 
     @property
     def name(self) -> str:
