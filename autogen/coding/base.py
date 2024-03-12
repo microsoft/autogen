@@ -42,30 +42,6 @@ class CodeExtractor(Protocol):
 class CodeExecutor(Protocol):
     """(Experimental) A code executor class that executes code blocks and returns the result."""
 
-    class UserCapability(Protocol):
-        """(Experimental) An AgentCapability class that gives agent ability use this code executor."""
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            ...  # pragma: no cover
-
-    @property
-    def user_capability(self) -> "CodeExecutor.UserCapability":
-        """(Experimental) Capability to use this code executor.
-
-        The exported capability can be added to an agent to allow it to use this
-        code executor:
-
-        ```python
-        code_executor = CodeExecutor()
-        agent = ConversableAgent("agent", ...)
-        code_executor.user_capability.add_to_agent(agent)
-        ```
-
-        A typical implementation is to update the system message of the agent with
-        instructions for how to use this code executor.
-        """
-        ...  # pragma: no cover
-
     @property
     def code_extractor(self) -> CodeExtractor:
         """(Experimental) The code extractor used by this code executor."""
