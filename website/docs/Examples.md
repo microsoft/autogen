@@ -10,32 +10,32 @@ Links to notebook examples:
 
 1. **Code Generation, Execution, and Debugging**
 
-   - Automated Task Solving with Code Generation, Execution & Debugging - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_auto_feedback_from_code_execution.ipynb)
-   - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_RetrieveChat.ipynb)
+   - Automated Task Solving with Code Generation, Execution & Debugging - [View Notebook](/docs/notebooks/agentchat_auto_feedback_from_code_execution)
+   - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
    - Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 
 1. **Multi-Agent Collaboration (>3 Agents)**
 
-   - Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb)
+   - Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat)
    - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_vis.ipynb)
-   - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_research.ipynb)
+   - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_research)
    - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
    - Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
-   - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_society_of_mind.ipynb)
+   - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](/docs/notebooks/agentchat_society_of_mind)
    - Running a group chat with custom speaker selection function - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_customized.ipynb)
 
 1. **Sequential Multi-Agent Chats**
-   - Solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_chats.ipynb)
-   - Async-solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_multi_task_async_chats.ipynb)
-   - Solving Multiple Tasks in a Sequence of Chats Initiated by Different Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchats_sequential_chats.ipynb)
+   - Solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](/docs/notebooks/agentchat_multi_task_chats)
+   - Async-solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](/docs/notebooks/agentchat_multi_task_async_chats)
+   - Solving Multiple Tasks in a Sequence of Chats Initiated by Different Agents - [View Notebook](/docs/notebooks/agentchats_sequential_chats)
 
 1. **Nested Chats**
-   - Solving Complex Tasks with Nested Chats - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nestedchat.ipynb)
+   - Solving Complex Tasks with Nested Chats - [View Notebook](/docs/notebooks/agentchat_nestedchat)
     - OptiGuide for Solving a Supply Chain Optimization Problem with Nested Chats with a Coding Agent and a Safeguard Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nestedchat_optiguide.ipynb)
 
 1. **Applications**
 
-   - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb)
+   - Automated Chess Game Playing & Chitchatting by GPT-4 Agents - [View Notebook](/docs/notebooks/agentchat_chess)
    - Automated Continual Learning from New Data - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_stream.ipynb)
    - [OptiGuide](https://github.com/microsoft/optiguide) - Coding, Tool Using, Safeguarding & Question Answering for Supply Chain Optimization
    - [AutoAnny](https://github.com/microsoft/autogen/tree/main/samples/apps/auto-anny) - A Discord bot built using AutoGen
@@ -44,11 +44,11 @@ Links to notebook examples:
 
    - **Web Search**: Solve Tasks Requiring Web Info - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_web_info.ipynb)
    - Use Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb)
-   - Use Tools via Sync and Async Function Calling - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_async.ipynb)
+   - Use Tools via Sync and Async Function Calling - [View Notebook](/docs/notebooks/agentchat_function_call_async)
    - Task Solving with Langchain Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_langchain.ipynb)
-   - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_RAG.ipynb)
+   - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_RAG)
    - Function Inception: Enable AutoGen agents to update/remove functions during conversations. - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_inception_function.ipynb)
-   - Agent Chat with Whisper - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_video_transcript_translate_with_whisper.ipynb)
+   - Agent Chat with Whisper - [View Notebook](/docs/notebooks/agentchat_video_transcript_translate_with_whisper)
    - Constrained Responses via Guidance - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_guidance.ipynb)
    - Browse the Web with Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_surfer.ipynb)
    - **SQL**: Natural Language Text to SQL Query using the [Spider](https://yale-lily.github.io/spider) Text-to-SQL Benchmark - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_sql_spider.ipynb)
@@ -62,8 +62,8 @@ Links to notebook examples:
 
 1. **Agent Teaching and Learning**
 
-   - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teaching.ipynb)
-   - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachability.ipynb)
+   - Teach Agents New Skills & Reuse via Automated Chat - [View Notebook](/docs/notebooks/agentchat_teaching)
+   - Teach Agents New Facts, User Preferences and Skills Beyond Coding - [View Notebook](/docs/notebooks/agentchat_teachability)
    - Teach OpenAI Assistants Through GPTAssistantAgent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_teachable_oai_assistants.ipynb)
    - Agent Optimizer: Train Agents in an Agentic Way - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb)
 
@@ -84,7 +84,7 @@ Links to notebook examples:
 1. **Long Context Handling**
 
    <!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
-   - Long Context Handling as A Capability - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb)
+   - Long Context Handling as A Capability - [View Notebook](/docs/notebooks/agentchat_capability_long_context_handling)
 
 1. **Evaluation and Assessment**
 

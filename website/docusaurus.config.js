@@ -69,12 +69,11 @@ module.exports = {
           position: "left",
           label: "Examples",
         },
-        // Uncomment below to add Notebooks to the navbar
-        // {
-        //   to: "docs/notebooks",
-        //   position: "left",
-        //   label: "Notebooks",
-        // },
+        {
+          to: "docs/notebooks",
+          position: "left",
+          label: "Notebooks",
+        },
         {
           type: "doc",
           position: "left",
