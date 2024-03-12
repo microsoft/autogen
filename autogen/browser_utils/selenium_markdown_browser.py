@@ -58,5 +58,5 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
                 super()._fetch_page(url)
             else:
                 self.page_title = self._webdriver.execute_script("return document.title;")
-                res = self._mdconvert.convert_stream(io.StringIO(html), file_extension=".html", url=url)
+                res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=url)
                 self._set_page_content(res.text_content)

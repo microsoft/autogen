@@ -1,6 +1,6 @@
 import os
 import io
-from typing import Optional, Union, Dict
+from typing import Optional, Union, Dict, Any
 from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
 from .requests_markdown_browser import RequestsMarkdownBrowser
 
@@ -23,6 +23,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
 
     def __init__(
         self,
+        launch_args: Dict[str,Any] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -38,21 +39,11 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
 
         # Create the playwright instance
         self._playwright = sync_playwright().start()
-        playwright_args = {}
-        #    "channel": "msedge",
-        #    "headless": False,
-        #}
-        self._browser = self._playwright.chromium.launch(**playwright_args)
+        self._browser = self._playwright.chromium.launch(**launch_args)
 
         # Browser context
         self._page = self._browser.new_page()
         self.set_address(self.start_page)
-
-    #def __enter__(self):
-    #    return self
-    #
-    #def __exit__(self, exc_type, exc_val, exc_tb):
-    #    self.close()
 
     def __del__(self):
         self.close()
@@ -94,11 +85,11 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
     def _process_page(self, url, page):
         body = page.query_selector("body")
         html = body.inner_html()
-        res = self._mdconvert.convert_stream(io.StringIO(html), file_extension=".html", url=url)
+        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=url)
         self.page_title = page.title
         self._set_page_content(res.text_content)
 
     def _process_download(self, url, path):
-        res = self._mdconvert.convert_local(path, url=url)
+        res = self._markdown_converter.convert_local(path, url=url)
         self.page_title = res.title
         self._set_page_content(res.text_content)

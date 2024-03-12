@@ -22,6 +22,7 @@ import traceback
 import shutil
 import subprocess
 import base64
+import binascii
 import pandas as pd
 import pdfminer
 import pdfminer.high_level
@@ -243,39 +244,6 @@ class WikipediaConverter(DocumentConverter):
             text_content=webpage_text,
         )
 
-class BingConverter(DocumentConverter):
-    """Handle Bing SERP pages separately, focusing only on the main document content."""
-
-    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        extension = kwargs.get("file_extension", "")
-        if extension.lower() not in [".html", ".htm"]:
-            return None
-        url = kwargs.get("url", "")
-        if not url.startswith("https://www.bing.com/search?q="):
-            return None
-
-        # Parse the file
-        soup = None
-        with open(local_path, "rt") as fh:
-            soup = BeautifulSoup(fh.read(), "html.parser")
-
-        # Remove javascript and style blocks
-        for script in soup(["script", "style"]):
-            script.extract()
-
-        # Print only the main content
-        main_elm = soup.find("main")
-        webpage_text = ""
-        if main_elm:
-            webpage_text = _CustomMarkdownify().convert_soup(main_elm)
-        else:
-            webpage_text = _CustomMarkdownify().convert_soup(soup)
-
-        return DocumentConverterResult(
-            title=None if soup.title is None else soup.title.string,
-            text_content=webpage_text,
-        )
-
 
 class YouTubeConverter(DocumentConverter):
     """Handle YouTube specially, focusing on the video title, description, and transcript."""
@@ -390,6 +358,74 @@ class YouTubeConverter(DocumentConverter):
                     if ret is not None:
                         return ret
         return None
+
+
+class BingSerpConverter(DocumentConverter):
+    """
+    Handle Bing results pages (only the organic search results). 
+    NOTE: It is better to use the Bing API
+    """
+
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        
+        # Bail if not a Bing SERP
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".html", ".htm"]:
+            return None
+        url = kwargs.get("url", "")
+        if not re.search(r"^https://www\.bing\.com/search\?q=", url):
+            return None
+
+        # Parse the query parameters
+        parsed_params = parse_qs(urlparse(url).query)
+        query = parsed_params.get("q", [""])[0]
+
+        # Parse the file
+        soup = None
+        with open(local_path, "rt") as fh:
+            soup = BeautifulSoup(fh.read(), "html.parser")
+
+        # Clean up some formatting
+        for tptt in soup.find_all(class_="tptt"):
+            if hasattr(tptt, "string") and tptt.string:
+                tptt.string += " "
+        for slug in soup.find_all(class_="algoSlug_icon"):
+            slug.extract()
+
+        # Parse the algoithmic results
+        _markdownify = _CustomMarkdownify()
+        results = list()
+        for result in soup.find_all(class_="b_algo"):
+
+            # Rewrite redirect urls
+            for a in result.find_all("a", href=True):
+                parsed_href = urlparse(a["href"])
+                qs = parse_qs(parsed_href.query)
+                
+                # The destination is contained in the u parameter,
+                # but appears to be base64 encoded, with some prefix
+                if "u" in qs:
+                    u = qs["u"][0][2:].strip() + "==" # Python 3 doesn't care about extra padding
+                    
+                    try:
+                        # RFC 4648 / Base64URL" variant, which uses "-" and "_"
+                        a["href"] = base64.b64decode(u, altchars="-_").decode("utf-8")
+                    except UnicodeDecodeError:
+                        pass
+                    except binascii.Error:
+                        pass
+
+            # Convert to markdown
+            md_result = _markdownify.convert_soup(result).strip()
+            lines = [line.strip() for line in re.split(r"\n+", md_result)]
+            results.append("\n".join([line for line in lines if len(line) > 0]))
+
+        webpage_text = f"## A Bing search for '{query}' found the following results:\n\n" + "\n\n".join(results)
+
+        return DocumentConverterResult(
+            title=None if soup.title is None else soup.title.string,
+            text_content=webpage_text,
+        )
 
 
 class PdfConverter(DocumentConverter):
@@ -771,8 +807,8 @@ class MarkdownConverter:
         self.register_page_converter(PlainTextConverter())
         self.register_page_converter(HtmlConverter())
         self.register_page_converter(WikipediaConverter())
-        self.register_page_converter(BingConverter())
         self.register_page_converter(YouTubeConverter())
+        self.register_page_converter(BingSerpConverter())
         self.register_page_converter(DocxConverter())
         self.register_page_converter(XlsxConverter())
         self.register_page_converter(PptxConverter())

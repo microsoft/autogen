@@ -19,6 +19,7 @@ from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConver
 from .abstract_markdown_browser import AbstractMarkdownBrowser
 from .markdown_search import AbstractMarkdownSearch, BingMarkdownSearch
 
+
 class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
     """
     (In preview) An extremely simple Python requests-powered Markdown web browser.
@@ -31,7 +32,8 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
         search_engine: Optional[Union[AbstractMarkdownSearch, None]] = None,
-        request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
+        markdown_converter: Optional[Union[MarkdownConverter, None]] = None,
+        requests_session: Optional[Union[requests.Session, None]] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
@@ -41,14 +43,22 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self.set_address(self.start_page)
-        self.request_kwargs = request_kwargs
-        self._mdconvert = MarkdownConverter()
         self._page_content: str = ""
 
         if search_engine is None:
-            self._search_engine = BingMarkdownSearch(bing_api_key=os.environ.get("BING_API_KEY"))
+            self._search_engine = BingMarkdownSearch()
         else:
             self._search_engine = search_engine
+
+        if markdown_converter is None:
+            self._markdown_converter = MarkdownConverter()
+        else:
+            self._markdown_converter = markdown_converter
+
+        if requests_session is None:
+            self._requests_session = requests.Session()
+        else:
+            self._requests_session = requests_session
 
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
@@ -217,13 +227,13 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _fetch_page(self, url: str) -> None:
+    def _fetch_page(self, url: str, session: requests.Session = None) -> None:
         download_path = ""
         try:
             if url.startswith("file://"):
                 download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
                 if os.path.isdir(download_path):
-                    res = self._mdconvert.convert_stream(
+                    res = self._markdown_converter.convert_stream(
                         io.StringIO(self._fetch_local_dir(download_path)), file_extension=".html"
                     )
                     self.page_title = res.title
@@ -231,16 +241,14 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
                         res.text_content, split_pages=False
                     )  # Like search results, don't split directory listings
                 else:
-                    res = self._mdconvert.convert_local(download_path)
+                    res = self._markdown_converter.convert_local(download_path)
                     self.page_title = res.title
                     self._set_page_content(res.text_content)
             else:
-                # Prepare the request parameters
-                request_kwargs = self.request_kwargs.copy() if self.request_kwargs is not None else {}
-                request_kwargs["stream"] = True
-
                 # Send a HTTP request to the URL
-                response = requests.get(url, **request_kwargs)
+                if session is None:
+                    session = self._requests_session
+                response = session.get(url, stream=True)
                 response.raise_for_status()
 
                 # If the HTTP request was successful
@@ -248,7 +256,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
 
                 # Text or HTML
                 if "text/" in content_type.lower():
-                    res = self._mdconvert.convert_response(response)
+                    res = self._markdown_converter.convert_response(response)
                     self.page_title = res.title
                     self._set_page_content(res.text_content)
                 # A download
@@ -302,7 +310,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             # If the error was rendered in HTML we might as well render it
             content_type = response.headers.get("content-type", "")
             if content_type is not None and "text/html" in content_type.lower():
-                res = self._mdconvert.convert(response)
+                res = self._markdown_converter.convert(response)
                 self.page_title = f"Error {response.status_code}"
                 self._set_page_content(f"## Error {response.status_code}\n\n{res.text_content}")
             else:
