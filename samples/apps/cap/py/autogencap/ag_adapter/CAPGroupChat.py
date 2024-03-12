@@ -4,13 +4,16 @@ from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from typing import List
 
+
 class CAPGroupChat(GroupChat):
-    def __init__(self,
-                 agents: List[AssistantAgent],
-                 messages: List[str],
-                 max_round: int,
-                 chat_initiator: str,
-                 network: LocalActorNetwork):
+    def __init__(
+        self,
+        agents: List[AssistantAgent],
+        messages: List[str],
+        max_round: int,
+        chat_initiator: str,
+        network: LocalActorNetwork,
+    ):
         self.chat_initiator: str = chat_initiator
         self._cap_network: LocalActorNetwork = network
         self._cap_proxies: List[CAP2AG] = []

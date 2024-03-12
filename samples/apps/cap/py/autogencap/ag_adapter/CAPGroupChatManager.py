@@ -5,12 +5,20 @@ from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
 import time
 
-class CAPGroupChatManager():
+
+class CAPGroupChatManager:
     def __init__(self, groupchat: CAPGroupChat, llm_config: dict, network: LocalActorNetwork):
         self._network: LocalActorNetwork = network
         self._cap_group_chat: CAPGroupChat = groupchat
-        self._ag_group_chat_manager: GroupChatManager = GroupChatManager(groupchat=self._cap_group_chat, llm_config=llm_config)
-        self._cap_proxy: CAP2AG = CAP2AG(ag_agent=self._ag_group_chat_manager, the_other_name=self._cap_group_chat.chat_initiator, init_chat=False, self_recursive=True)
+        self._ag_group_chat_manager: GroupChatManager = GroupChatManager(
+            groupchat=self._cap_group_chat, llm_config=llm_config
+        )
+        self._cap_proxy: CAP2AG = CAP2AG(
+            ag_agent=self._ag_group_chat_manager,
+            the_other_name=self._cap_group_chat.chat_initiator,
+            init_chat=False,
+            self_recursive=True,
+        )
         self._network.register(self._cap_proxy)
 
     def initiate_chat(self, txt_msg: str) -> None:
