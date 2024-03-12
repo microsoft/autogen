@@ -23,7 +23,7 @@
         },
         {
           type: 'doc',
-          id: 'tutorial/termination',
+          id: 'tutorial/chat-termination',
           label: 'Termination',
         },
         {
