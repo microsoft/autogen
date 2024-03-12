@@ -2,10 +2,18 @@
 import json
 import re
 import requests
+import logging
+import base64
+import mdconvert
+import binascii
+
+from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
-from urllib.parse import urlparse, quote, unquote, urlunparse
+from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
 from abc import ABC, abstractmethod
 from typing import Optional, Union, Dict
+
+logger = logging.getLogger(__name__)
 
 class AbstractMarkdownSearch(ABC):
     """
@@ -24,18 +32,25 @@ class AbstractMarkdownSearch(ABC):
 
 class BingMarkdownSearch(AbstractMarkdownSearch):
 
-    def __init__(self, bing_api_key: str):
+    def __init__(self, bing_api_key: str = None):
         super().__init__()
 
-        if not isinstance(bing_api_key, str):
-            raise ValueError("BingMarkdownSearch requires a valid Bing API key.")
+        if not None or bing_api_key.strip() == "":
+            self._bing_api_key = os.environ.get("BING_API_KEY")
+        else:
+            self._bing_api_key = bing_api_key
 
-        self._bing_api_key = bing_api_key.strip()
-        if len(self._bing_api_key) == 0:
-            raise ValueError("BingMarkdownSearch requires a valid Bing API key.")
+        if self._bing_api_key is None:
+            logger.warning("Warning: No Bing API key provided. BingMarkdownSearch will submit an HTTP request to the Bing landing page, but results may be missing or low quality. To resolve this warning provide a Bing API key by setting the BING_API_KEY environment variable, or using the 'bing_api_key' parameter in by BingMarkdownSearch's constructor. Bing API keys can be obtained via https://www.microsoft.com/en-us/bing/apis/bing-web-search-api\n")
 
 
     def search(self, query: str):
+        if self._bing_api_key is None:
+            return self._scrape_search(query)
+        else:
+            return self._api_search(query)
+
+    def _api_search(self, query: str):
         results = self._bing_api_call(query)
 
         snippets = dict()
@@ -156,6 +171,56 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
         results = response.json()
 
         return results  
+
+
+    def _scrape_search(self, query: str):
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
+        headers = {"User-Agent": user_agent}
+
+        url = f"https://www.bing.com/search?q={quote_plus(query)}&FORM=QBLH"
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+     
+        # Parse the string
+        soup = BeautifulSoup(response.text, "html.parser")
+        md = mdconvert._CustomMarkdownify()
+
+        # Add some padding
+        for tptt in soup.find_all(class_="tptt"):
+            if hasattr(tptt, "string") and tptt.string:
+                tptt.string += " "
+
+        for slug in soup.find_all(class_="algoSlug_icon"):
+            slug.extract()
+
+        results = list()
+        for result in soup.find_all(class_="b_algo"):
+
+            for a in result.find_all("a", href=True):
+                parsed_href = urlparse(a["href"])
+                qs = parse_qs(parsed_href.query)
+                
+                # The destination is contained in the u parameter,
+                # but appears to be base64 encoded, with some prefix
+                if "u" in qs:
+                    u = qs["u"][0][2:].strip()
+                    while len(u) % 4 != 0:
+                        u += "="
+                    
+                    # Decode the destination
+                    try:
+                        # RFC 4648 / Base64URL" variant, which uses "-" and "_"
+                        a["href"] = base64.b64decode(u, altchars="-_").decode("utf-8")
+                    except UnicodeDecodeError:
+                        pass
+                    except binascii.Error:
+                        pass
+
+            md_result = md.convert_soup(result).strip()
+            md_result = re.sub(r"\n+", "\n", md_result)
+            results.append(md_result)
+
+        return f"## A Bing search for '{query}' found {len(results)} results:\n\n" + "\n\n".join(results)
 
 
     def _markdown_link(self, anchor, href):

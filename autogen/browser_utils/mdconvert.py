@@ -63,6 +63,19 @@ except ModuleNotFoundError:
 
 
 class _CustomMarkdownify(markdownify.MarkdownConverter):
+
+    def __init__(self, **options):
+        options['heading_style'] = options.get("heading_style", markdownify.ATX)
+        super().__init__(**options)
+
+    def convert_hn(self, n, el, text, convert_as_inline):
+        """ Same as usual, but be sure to start with a new line """
+        if not convert_as_inline:
+            if not re.search(r"^\n", text):
+                return "\n" + super().convert_hn(n, el, text, convert_as_inline)
+
+        return super().convert_hn(n, el, text, convert_as_inline)
+
     def convert_a(self, el, text, convert_as_inline):
         """ Same as usual converter, but removes Javascript links and escapes URIs."""
         prefix, suffix, text = markdownify.chomp(text)

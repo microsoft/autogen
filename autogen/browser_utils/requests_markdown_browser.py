@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional, Union, Tuple
 
 from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
 from .abstract_markdown_browser import AbstractMarkdownBrowser
-from .markdown_search import BingMarkdownSearch
+from .markdown_search import AbstractMarkdownSearch, BingMarkdownSearch
 
 class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
     """
@@ -30,7 +30,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
-        bing_api_key: Optional[Union[str, None]] = None,
+        search_engine: Optional[Union[AbstractMarkdownSearch, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
         self.start_page: str = start_page if start_page else "about:blank"
@@ -45,7 +45,10 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         self._mdconvert = MarkdownConverter()
         self._page_content: str = ""
 
-        self._search_engine = BingMarkdownSearch(bing_api_key=bing_api_key)
+        if search_engine is None:
+            self._search_engine = BingMarkdownSearch(bing_api_key=os.environ.get("BING_API_KEY"))
+        else:
+            self._search_engine = search_engine
 
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result

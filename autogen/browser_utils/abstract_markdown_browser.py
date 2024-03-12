@@ -16,14 +16,7 @@ class AbstractMarkdownBrowser(ABC):
     """
 
     @abstractmethod
-    def __init__(
-        self,
-        start_page: Optional[str] = "about:blank",
-        viewport_size: Optional[int] = 1024 * 8,
-        downloads_folder: Optional[Union[str, None]] = None,
-        bing_api_key: Optional[Union[str, None]] = None,
-        request_kwargs: Optional[Union[Dict, None]] = None,
-    ):
+    def __init__(self):
         pass
 
     @property
