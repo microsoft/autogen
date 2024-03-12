@@ -184,7 +184,7 @@ public partial class TwoAgent_Fill_Application
         var applicationToAssistantTransition = Transition.Create(applicationAgent, assistantAgent);
         var assistantToUserTransition = Transition.Create(assistantAgent, userAgent);
 
-        var workflow = new Workflow(
+        var workflow = new Graph(
             [
                 userToApplicationTransition,
                 applicationToAssistantTransition,
