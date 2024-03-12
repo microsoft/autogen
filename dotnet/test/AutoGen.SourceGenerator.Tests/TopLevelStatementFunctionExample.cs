@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // TopLevelStatementFunctionExample.cs
 
+using AutoGen.Core;
+
 public partial class TopLevelStatementFunctionExample
 {
     [Function]
