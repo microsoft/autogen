@@ -11,7 +11,11 @@ public static class AgentExtension
     /// This hook will first detect if there's any dotnet code block (e.g. ```csharp and ```) in the most recent message.
     /// if there's any, it will run the code block and send the result back as reply.
     /// </summary>
-    /// <param name="agent"></param>
+    /// <param name="agent">agent</param>
+    /// <param name="interactiveService">interactive service</param>
+    /// <param name="codeBlockPrefix">code block prefix</param>
+    /// <param name="codeBlockSuffix">code block suffix</param>
+    /// <param name="maximumOutputToKeep">maximum output to keep</param>
     /// <example>
     /// <![CDATA[
     /// [!code-csharp[Example04_Dynamic_GroupChat_Coding_Task](~/../sample/AutoGen.BasicSamples/Example04_Dynamic_GroupChat_Coding_Task.cs)]

@@ -39,8 +39,6 @@ using System;
 using AutoGen;
 using AutoGen.OpenAI.Extension;
 
-#nullable enable
-
 ");
 if (!String.IsNullOrEmpty(NameSpace)) {
             this.Write("namespace ");
