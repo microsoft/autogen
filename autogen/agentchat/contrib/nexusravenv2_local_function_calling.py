@@ -5,9 +5,11 @@ import tempfile
 import datetime as dt
 
 from typing_extensions import override
+import warnings
 
 import autogen
 from autogen import OpenAIWrapper
+from autogen.code_utils import content_str
 
 """ This module contains the NexusFunctionCallingAssistant class, which is a subclass of the autogen.AssistantAgent class.
     Its used specifically for calling functions locally using <a href="https://huggingface.co/TheBloke/NexusRaven-V2-13
@@ -15,7 +17,7 @@ from autogen import OpenAIWrapper
     If you enjoyed this module consider giving me a follow on github or buying me a coffee at https://www.buymeacoffee.com/gregnwosu
     """
 
-
+# TODO this does not include return type
 def create_nexus_prompt_for_tool(tool: dict) -> str:
     '''takes a dictionary of form
         {'type': 'function',
@@ -47,63 +49,25 @@ def create_nexus_prompt_for_tool(tool: dict) -> str:
     description = function["description"]
     parameters = function["parameters"]
     properties = parameters["properties"]
-    args = ", ".join([f"{k}:{v['type']}" for k, v in properties.items()])
-    arg_types = ",\n".join(
-        [f"{key} ({properties[key]['type']}): {properties[key]['description']}" for key in properties.keys()]
+
+    def type_to_str(type: str) -> str:
+        if type == "integer":
+            return "int"
+        if type == "string":
+            return "str"
+        if type == "number":
+            return "float"
+        return type
+
+    args = ", ".join([f"{k}: {type_to_str(v['type'])}" for k, v in properties.items()])
+    arg_types = "\n".join(
+        [f"{key} ({type_to_str(properties[key]['type'])}): {properties[key]['description']}" for key in properties.keys()]
     )
-    return f'''OPTION:\n<func_start>def {name}({args})<func_end>\n<docstring_start>\n"""\n{description.strip()}\n\nArgs:\n{arg_types}\n"""\n<docstring_end>'''
+    docstring = f'"""\n{description.strip()}\n\nArgs:\n{arg_types}\n"""'
+    # Indent the docstring
+    docstring = "\n".join(["    " + line for line in docstring.split("\n")])
 
-
-def add_nexus_raven_prompts(func):
-    """
-    ->    messages:[{'content': ' functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word "${randomWord}," I will now solve this logic problem.`));',
-            'name': 'mistral', 'role': 'user'}],
-            'tools': [
-                    {'type': 'function',
-                    'function': {'description': 'terminate the group chat',
-                                 'name': 'terminate_group_chat',
-                                 'parameters': {'type': 'object',
-                                                'properties': {'message': {'type': 'string',
-                                                                           'description': 'Message to be sent to the group chat.'}},
-                                                'required': ['message']}}},
-                   {'type': 'function',
-                   'function': {'description': 'This is a random word generator.',
-                                'name': 'random_word_generator',
-                                'parameters': {'type': 'object',
-                                               'properties': {'seed':   {'type': 'integer',
-                                                                         'description': 'seed for initialising the random generator'},
-                                                              'prefix': {'type': 'string',
-                                                                         'description': 'string to prefix random word'}},
-                                               'required': ['seed', 'prefix']}}}],
-           'model': 'nexusraven'}]"""
-    if getattr(func, "_is_decorated", False):
-        # If the function is already decorated, return it as is
-        return func
-
-    def wrapper(*args, **kwargs):
-        result = func(*args, **kwargs)
-
-        # extract the tools element from the result
-        query_header = "\n\n".join(
-            [create_nexus_prompt_for_tool(tool) for tool in result["tools"] if tool["type"] == "function"]
-        )
-
-        query = "\n".join([m["content"] for m in result["messages"][-1:]])
-        prompt = f"""<human>:\n{query_header}\nUser Query: Question: {query} \n suggest a function and suitable argument values for the situation conversation:  """
-        del result["messages"]
-        del result["tools"]
-        result["prompt"] = prompt
-
-        result["extra_query"] = {
-            "inputs": prompt,
-            "parameters": {"temperature": 0.001, "do_sample": False, "max_new_tokens": 2000},
-        }
-        result["extra_body"] = {"prompt": prompt}
-        return result
-
-    wrapper._is_decorated = True
-    return wrapper
-
+    return f'''Function:\ndef {name}({args}):\n{docstring}'''
 
 class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
@@ -111,31 +75,32 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         self,
         llm_config,
         name="nexusraven2functioncaller",
-        system_message=f"""function calling assistant """,
+        system_message=f"""Function calling assistant""",
         description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
-                                   translates the standard nexusravenv2 responses 
+                                   translates the standard nexusravenv2 responses
                                    from:
                                       Call: function_name(arg1=value1, arg2=value2) <bot_end> Thought: some thought
                                    to:
                                    { "function_call": {"name": "function_name", "arguments": {"arg1": "value1", "arg2": "value2"}}}""",
-        code_execution_config={
-            "last_n_messages": 2,
-            "work_dir": tempfile.mkdtemp(prefix=f"code_execution-{dt.datetime.now().isoformat()}-"),
-            "use_docker": False,
-        },
     ):
+        for config in llm_config["config_list"]:
+            config["temperature"] = 0.001
+
         super().__init__(
             llm_config=llm_config,
             name=name,
             system_message=system_message,
-            code_execution_config=code_execution_config,
+            code_execution_config=False,
             description=description,
         )
 
     @staticmethod
-    def parse_function_details(input_string: str) -> Tuple[str, Dict[str, str], str] | None:
+    def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
+        if "<bot_end>" in input_string:
+            call_part, thought_part = input_string.split("<bot_end> \nThought: ")
+        else:
+            call_part, thought_part = input_string, ""
 
-        call_part, thought_part = input_string.split("<bot_end> \nThought: ")
         function_name_match = re.search(r"Call: (\w+)", call_part)
         function_name = function_name_match.group(1) if function_name_match else None
         args_match = re.search(r"\((.*?)\)", call_part)
@@ -154,25 +119,35 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
     def _generate_oai_reply_from_client(
         self, llm_client: OpenAIWrapper, messages: list[dict], cache: autogen.Cache
     ) -> Union[str, Dict, None]:
-        llm_client._construct_create_params = add_nexus_raven_prompts(llm_client._construct_create_params)
-        all_messages = []
-        for message in messages:
-            tool_responses = message.get("tool_responses", [])
-            if tool_responses:
-                all_messages += tool_responses
-                # tool role on the parent message means the content is just concatenation of all of the tool_responses
-                if message.get("role") != "tool":
-                    all_messages.append({key: message[key] for key in message if key != "tool_responses"})
-            else:
-                all_messages.append(message)
+        # We make a big assumption here that the last message is the user query.
+        query = content_str(messages[-1]["content"])
+
+        tools = self.llm_config["tools"]
+        functions = "\n\n".join(
+            [create_nexus_prompt_for_tool(tool) for tool in tools if tool["type"] == "function"]
+        )
+
+        prompt = f"""{functions}\n\nUser Query: {query}<human_end>"""
+
+        all_messages = [{"content": prompt, "role": "user"}]
 
         response = llm_client.create(
-            context=messages[-1].pop("context", dict()),
+            context=None,
             messages=all_messages,
             cache=cache,
         )
-        llm_response = response.choices[0].model_extra["message"]["content"]
-        function_name, args_map, thought_part = NexusFunctionCallingAssistant.parse_function_details(llm_response)
+
+        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
+
+        if extracted_response is None:
+            warnings.warn("Extracted_response from {response} is None.", UserWarning)
+            return None
+
+        if not isinstance(extracted_response, str):
+            raise ValueError(f"Expected extracted_response to be a string, but got {extracted_response}")
+
+        # TODO - handle if the produced call is nested.
+        function_name, args_map, thought_part = NexusFunctionCallingAssistant.parse_function_details(extracted_response)
         return {
             "content": thought_part,
             "function_call": None,
