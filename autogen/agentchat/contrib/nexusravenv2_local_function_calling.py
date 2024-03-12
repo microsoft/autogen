@@ -5,6 +5,8 @@ import autogen
 
 from typing_extensions import override
 
+from autogen import OpenAIWrapper
+
 """ This module contains the NexusFunctionCallingAssistant class, which is a subclass of the autogen.AssistantAgent class.
     Its used specifically for calling functions locally using <a href="https://huggingface.co/TheBloke/NexusRaven-V2-13
     The model can be imported from hugging face and the can use the standard function calling decorator to register the functions to be called.
@@ -98,7 +100,7 @@ def add_nexus_raven_prompts(func):
     return wrapper
 
 
-class NexusFunctionCallingAssistant(autogen.AssistantAgent):
+class NexusFunctionCallingAssistant(autogen.ConversableAgent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.register_reply([autogen.Agent, None], NexusFunctionCallingAssistant.generate_oai_reply)
@@ -118,18 +120,8 @@ class NexusFunctionCallingAssistant(autogen.AssistantAgent):
         return function_name, args_map, thought_part.strip()
 
     @override
-    def _generate_oai_reply_from_client(self, llm_client, messages, cache) -> Union[str, Dict, None]:
-        def decorator_function(func):
-            if getattr(func, '_is_decorated', False):
-                # If the function is already decorated, return it as is
-                return func
+    def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache) -> Union[str, Dict, None]:
 
-            def wrapper(*args, **kwargs):
-                result = func(*args, **kwargs)
-                return result
-
-            wrapper._is_decorated = True
-            return wrapper
         llm_client._construct_create_params = add_nexus_raven_prompts(llm_client._construct_create_params)
         all_messages = []
         for message in messages:
