@@ -1,10 +1,10 @@
 import json
 import re
 from typing import Dict, Union, Tuple
-import autogen
 
 from typing_extensions import override
 
+import autogen
 from autogen import OpenAIWrapper
 
 """ This module contains the NexusFunctionCallingAssistant class, which is a subclass of the autogen.AssistantAgent class.
@@ -120,7 +120,8 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         return function_name, args_map, thought_part.strip()
 
     @override
-    def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache: autogen.Cache) -> Union[str, Dict, None]:
+    def _generate_oai_reply_from_client(self, llm_client: OpenAIWrapper, messages: list[dict], cache: autogen.Cache) -> \
+    Union[str, Dict, None]:
         llm_client._construct_create_params = add_nexus_raven_prompts(llm_client._construct_create_params)
         all_messages = []
         for message in messages:
@@ -146,7 +147,8 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
                 'tool_calls': [
                     {'id': response.id,
                      'function':
-                         {'arguments': json.dumps(args_map), #TODO this json dumps is causing all args values to be wrapped in quotes
+                         {'arguments': json.dumps(args_map),
+                          # TODO this json dumps is causing all args values to be wrapped in quotes
                           'name': function_name},
                      'type': 'function'}
                 ]
