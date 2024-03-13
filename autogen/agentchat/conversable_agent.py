@@ -837,9 +837,7 @@ class ConversableAgent(LLMAgent):
             RuntimeError: if any async reply functions are registered.
         """
         reply_functions = {
-            f["reply_func"]
-            for f in self._reply_func_list
-            if not f.get("ignore_async_in_sync_chat", False)
+            f["reply_func"] for f in self._reply_func_list if not f.get("ignore_async_in_sync_chat", False)
         }
 
         async_reply_functions = [f for f in reply_functions if inspect.iscoroutinefunction(f)]
