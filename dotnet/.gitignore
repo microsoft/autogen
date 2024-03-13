@@ -25,3 +25,6 @@ artifacts/
 output/
 
 *.binlog
+
+# JetBrains Rider
+.idea/

@@ -1,29 +1,18 @@
 ### AutoGen for .NET
 
 [![dotnet-ci](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/dotnet-build.yml)
+[![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
 
-#### Get start with AutoGen for dotnet
-Firstly, select one of the following package feed to consume AutoGen packages:
-- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
-- ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
-- ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+> [!NOTE]
+> Nightly build is available at:
+> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/github-grey?style=flat): https://nuget.pkg.github.com/microsoft/index.json
+> - ![Static Badge](https://img.shields.io/badge/public-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/myget-grey?style=flat): https://www.myget.org/F/agentchat/api/v3/index.json
+> - ![Static Badge](https://img.shields.io/badge/internal-blue?style=flat) ![Static Badge](https://img.shields.io/badge/nightly-yellow?style=flat) ![Static Badge](https://img.shields.io/badge/azure_devops-grey?style=flat) : https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
 
 
-Then, add the following to your project file:
-```xml
-<ItemGroup>
-    <PackageReference Include="AutoGen" />
+Firstly, following the [installation guide](./website/articles/Installation.md) to install AutoGen packages.
 
-    <!-- Optional: This package carries a source generator that adds support for type-safe function definition generation. -->
-    <!-- For more information, please check out AutoGen.SourceGenerator README -->
-    <PackageReference Include="AutoGen.SourceGenerator" />
-
-    <!-- Optional: This packages carries dotnet interactive support to execute dotnet code snippet -->
-    <PackageReference Include="AutoGen.DotnetInteractive" />
-</ItemGroup>
-```
-
-Then, start using AutoGen in your code:
+Then you can start with the following code snippet to create a conversable agent and chat with it.
 
 ```csharp
 using AutoGen;
