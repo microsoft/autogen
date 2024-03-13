@@ -85,7 +85,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
     def _process_page(self, url, page):
         html = page.evaluate("document.documentElement.outerHTML;")
         res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=url)
-        self.page_title = page.title
+        self.page_title = page.title()
         self._set_page_content(res.text_content)
 
     def _process_download(self, url, path):
