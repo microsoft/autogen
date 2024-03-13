@@ -78,6 +78,11 @@ class GroupChat:
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
 
+    # Define a class attribute for the default introduction message
+    DEFAULT_INTRO_MSG = (
+        "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
+    )
+
     allowed_speaker_transitions_dict: Dict = field(init=False)
 
     def __post_init__(self):
@@ -244,10 +249,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
 
-        return f"""Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:
+        # Use the class attribute instead of a hardcoded string
+        intro_msg = self.DEFAULT_INTRO_MSG
+        participant_roles = self._participant_roles(agents)
 
-{self._participant_roles(agents)}
-"""
+        return f"{intro_msg}\n\n{participant_roles}"
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -508,7 +514,11 @@ class GroupChatManager(ConversableAgent):
         system_message: Optional[Union[str, List]] = "Group chat manager.",
         **kwargs,
     ):
-        if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
+        if (
+            kwargs.get("llm_config")
+            and isinstance(kwargs["llm_config"], dict)
+            and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools"))
+        ):
             raise ValueError(
                 "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
             )
