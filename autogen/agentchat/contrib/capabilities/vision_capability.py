@@ -1,3 +1,4 @@
+import copy
 from typing import Dict, List, Optional, Union
 
 from autogen.agentchat.assistant_agent import ConversableAgent
@@ -16,8 +17,7 @@ from autogen.oai.client import OpenAIWrapper
 
 
 class VisionCapability(AgentCapability):
-    """
-        We can add vision capability to regular ConversableAgent, even if the agent does not have the multimodal capability,
+    """We can add vision capability to regular ConversableAgent, even if the agent does not have the multimodal capability,
     such as GPT-3.5-turbo agent, Llama, Orca, or Mistral agents. This vision capability will invoke a LMM client to describe
     the image (captioning) before sending the information to the agent's actual client.
 
@@ -39,22 +39,20 @@ class VisionCapability(AgentCapability):
         self,
         lmm_config: Dict,
         description_prompt: Optional[str] = "Describe the following image in details.",
-        response_directly: Optional[bool] = False,
-    ):
+    ) -> None:
         """
         Args:
             lmm_config (dict or False): LMM (multimodal) client configuration,
                 which will be used to call LMM to describe the image.
             description_prompt (str, optional): The prompt to use for describing the image.
-            response_directly (bool, optional): Whether use the LMM to respond directly to the user or not.
         """
         assert lmm_config, "Vision Capability requires a valid lmm_config."
         self._lmm_config = lmm_config
         self._description_prompt = description_prompt
-        self._response_directly = response_directly
+        self._parent_agent = None
         self._lmm_client = OpenAIWrapper(**lmm_config)
 
-    def add_to_agent(self, agent: ConversableAgent):
+    def add_to_agent(self, agent: ConversableAgent) -> None:
         if isinstance(agent, MultimodalConversableAgent):
             print(
                 colored(
@@ -63,6 +61,8 @@ class VisionCapability(AgentCapability):
                 )
             )
             return  # do nothing
+
+        self._parent_agent = agent
 
         # Append extra info to the system message.
         agent.update_system_message(agent.system_message + "\nYou've been given the ability to interpret images.")
@@ -131,6 +131,7 @@ class VisionCapability(AgentCapability):
             A beautiful sunset over the mountains\n"
             (Caption added after the image)
         """
+        copy.deepcopy(content)
         # normalize the content into the gpt-4v format for multimodal
         # we want to keep the URL format to keep it concise.
         if isinstance(content, str):
@@ -147,6 +148,7 @@ class VisionCapability(AgentCapability):
                 aug_content += f'<img {item["image_url"]["url"]}> in case you can not see, the caption of this image is: {img_caption}\n'
             else:
                 print(f"Warning: the input type should either be `test` or `image_url`. Skip {item['type']} here.")
+
         return aug_content
 
     def _get_image_caption(self, img_data: str) -> str:
