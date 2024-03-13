@@ -191,5 +191,12 @@
     "description": "X-Force IDE is a low-code, agent-as-a-service UI framework that lets you create AutoGen-based workforces from a drag-and-drop-like user interface.",
     "image": "x-force-ide-ui.png",
     "tags": ["ui"]
+  },
+  {
+    "title": "Multimodal Webagent created with AutoGen and OpenAI's Assistants API",
+    "link": "https://github.com/schauppi/MultimodalWebAgent",
+    "description": "A multimodal webbrowsing agent that autonomously browses the web.",
+    "image": "webagent.jpg",
+    "tags": ["tools", "app"]
   }
 ]
