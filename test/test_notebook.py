@@ -118,6 +118,7 @@ def test_agentchat_groupchat_finite_state_machine(save=False):
 def test_agentchat_cost_token_tracking(save=False):
     run_notebook("agentchat_cost_token_tracking.ipynb", save=save)
 
+
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.11"),
     reason="do not run if openai is not installed or py!=3.11",
