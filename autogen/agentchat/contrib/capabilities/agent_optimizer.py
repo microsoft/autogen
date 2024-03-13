@@ -206,8 +206,8 @@ class AgentOptimizer:
         """
         record one conversation history.
         Args:
-            chat_messages (dict): the chat messages of the conversation.
-            is_satisfied: bool, whether the user is satisfied with the solution. If it is none, the user will be asked to input the satisfaction.
+            conversation_history (List[Dict]): the chat messages of the conversation.
+            is_satisfied (bool): whether the user is satisfied with the solution. If it is none, the user will be asked to input the satisfaction.
         """
         if is_satisfied is None:
             reply = input(
