@@ -32,7 +32,7 @@ class UserProxyAgent(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = {},
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        llm_config: Optional[Union[Dict, Literal[False]]] = False,
         system_message: Optional[Union[str, List]] = "",
         description: Optional[str] = None,
     ):
