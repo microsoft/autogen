@@ -95,8 +95,7 @@ def get_file_type(file_path: str) -> str:
     CSV_EXTENSIONS = {".csv", ".xlsx"}
 
     # Supported image extensions
-    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg",
-                        ".gif", ".bmp", ".tiff", ".svg", ".webp"}
+    IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
     VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".avi", ".wmv"}
 
@@ -141,8 +140,7 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     try:
         with open(file_path, "rb") as file:
             file_content = file.read()
-            base64_encoded_content = base64.b64encode(
-                file_content).decode("utf-8")
+            base64_encoded_content = base64.b64encode(file_content).decode("utf-8")
     except Exception as e:
         raise IOError(f"An error occurred while reading the file: {e}") from e
 
@@ -171,8 +169,7 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
     for root, dirs, files in os.walk(source_dir):
         # Update directories and files to exclude those to be ignored
         dirs[:] = [d for d in dirs if d not in ignore_files]
-        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[
-            1] not in ignore_extensions]
+        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[1] not in ignore_extensions]
 
         for file in files:
             file_path = os.path.join(root, file)
@@ -181,9 +178,7 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
             # Verify if the file was modified within the given timestamp range
             if start_timestamp <= file_mtime <= end_timestamp:
                 file_relative_path = (
-                    "files/user" +
-                    file_path.split(
-                        "files/user", 1)[1] if "files/user" in file_path else ""
+                    "files/user" + file_path.split("files/user", 1)[1] if "files/user" in file_path else ""
                 )
                 file_type = get_file_type(file_path)
 
@@ -214,8 +209,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     default_app_root = os.path.join(os.path.expanduser("~"), app_name)
     if not os.path.exists(default_app_root):
         os.makedirs(default_app_root, exist_ok=True)
-    app_root = os.environ.get(
-        "AUTOGENSTUDIO_APPDIR") or default_app_root
+    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
 
     if not os.path.exists(app_root):
         os.makedirs(app_root, exist_ok=True)
@@ -337,8 +331,7 @@ def get_default_agent_config(work_dir: str) -> AgentWorkFlowConfig:
             },
             max_consecutive_auto_reply=10,
             llm_config=llm_config,
-            is_termination_msg=lambda x: x.get(
-                "content", "").rstrip().endswith("TERMINATE"),
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
         ),
     )
 
@@ -399,8 +392,7 @@ def sanitize_model(model: Model):
         model = model.dict()
     valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
     # only add key if value is not None
-    sanitized_model = {k: v for k, v in model.items() if (
-        v is not None and v != "") and k in valid_keys}
+    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
     return sanitized_model
 
 
@@ -411,8 +403,7 @@ def test_model(model: Model):
 
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
-    response = client.create(
-        messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     return response.choices[0].message.content
 
 
