@@ -1,4 +1,4 @@
-# What is Next?
+# What Next?
 
 Now that you have learned the basics of AutoGen, you can start to build your own
 agents. Here are some ideas to get you started without going to the advanced
