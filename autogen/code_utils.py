@@ -230,18 +230,21 @@ def get_powershell_command():
 
         except (FileNotFoundError, NotADirectoryError) as e:
             if WIN32 and isinstance(e,FileNotFoundError):
-                logging.warning("Neither powershell.exe nor pwsh.exe is present but it is a Windows OS")
+                
+                raise FileNotFoundError("Neither powershell.exe nor pwsh.exe is present but it is a Windows OS")
 
             elif WIN32 and isinstance(e,NotADirectoryError):
-                logging.warning(
+                raise NotADirectoryError(
                     "PowerShell is either not installed or its path is not given properly in the environment variable PATH. Please check the path and try again."
                 )
 
-            return None
+            return "sh"
 
-    except PermissionError:
-        logging.warning("The application has no permission to run powershell")
-        return None
+    except PermissionError as e:
+        if WIN32 and isinstance(e,PermissionError):
+            raise PermissionError("The application has no permission to run powershell")
+        else:
+            logging.warning("The application has no permission to run powershell")
 
 
 def _cmd(lang):
@@ -251,7 +254,7 @@ def _cmd(lang):
         return "sh"
     if lang in ["ps1", "pwsh", "powershell"]:
         powershell_command = get_powershell_command()
-        return powershell_command if powershell_command is not None else "sh"
+        return powershell_command
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
 
