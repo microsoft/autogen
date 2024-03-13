@@ -24,6 +24,8 @@ class ImageGenerator(Protocol):
 
     Concrete implementations of this protocol must provide a `generate_image` method that takes a string prompt as
     input and returns a PIL Image object.
+
+    NOTE: Current implementation does not allow you to edit a previously existing image.
     """
 
     def generate_image(self, prompt: str) -> Image:
@@ -55,6 +57,14 @@ class ImageGenerator(Protocol):
 
 
 class DalleImageGenerator:
+    """Generates images using OpenAI's DALL-E models.
+
+    This class provides a convenient interface for generating images based on textual prompts using OpenAI's DALL-E
+    models. It allows you to specify the DALL-E model, resolution, quality, and the number of images to generate.
+
+    Note: Current implementation does not allow you to edit a previously existing image.
+    """
+
     def __init__(
         self,
         llm_config: Dict,
