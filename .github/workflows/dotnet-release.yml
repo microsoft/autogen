@@ -58,7 +58,7 @@ jobs:
         echo "Publish package to Nuget"
         echo "ls output directory"
         ls -R ./output/release
-        dotnet nuget push --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }} ./output/release/*.nupkg --skip-duplicate
+        dotnet nuget push --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json ./output/release/*.nupkg --skip-duplicate
     - name: Tag commit
       run: |
         Write-Host "Tag commit"
