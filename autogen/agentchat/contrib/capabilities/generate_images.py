@@ -120,6 +120,22 @@ class ImageGeneration(AgentCapability):
         self._text_analyzer: Optional[TextAnalyzerAgent] = None
 
     def add_to_agent(self, agent: ConversableAgent):
+        """Adds the Image Generation capability to the specified ConversableAgent.
+
+        This function performs the following modifications to the agent:
+
+        1. Registers a reply function: A new reply function is registered with the agent to handle messages that
+           potentially request image generation. This function analyzes the message and triggers image generation if
+           necessary.
+        2. Creates an Agent (TextAnalyzerAgent): This is used to analyze messages for image generation requirements.
+        3. Updates System Message: The agent's system message is updated to include a message indicating the
+           capability to generate images has been added.
+        4. Updates Description: The agent's description is updated to reflect the addition of the Image Generation
+           capability. This might be helpful in certain use cases, like group chats.
+
+        Args:
+          agent (ConversableAgent): The ConversableAgent to add the capability to.
+        """
         self._agent = agent
 
         agent.register_reply([Agent, None], self._image_gen_reply, position=2)
@@ -128,7 +144,6 @@ class ImageGeneration(AgentCapability):
         self._text_analyzer = TextAnalyzerAgent(llm_config=self._text_analyzer_llm_config)
 
         agent.update_system_message(agent.system_message + "\n" + SYSTEM_MESSAGE)
-        # Hack to update the description of the agent, useful when used in a group chat
         agent.description += "\n" + DESCRIPTION_MESSAGE
 
     def _image_gen_reply(
