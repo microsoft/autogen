@@ -93,7 +93,7 @@ AutoDefense outperforms other methods in defending GPT-3.5. Our three-agent defe
 
 ## Custom Agent: Llama Guard
 
-While the three-agent defense system with LLaMA-2-13B achieves a low ASR, its FPR on LLaMA-2-7b is relatively high. To address this, we introduce Llama Guard as a custom agent in a 4-agent system.
+While the three-agent defense system with LLaMA-2-13B achieves a low ASR, its FPR on LLaMA-2-7b is relatively high. To address this, we introduce Llama Guard as a custom agent in a 4-agents system.
 
 Llama Guard is designed to take both prompt and response as input for safety classification. In our 4-agent system, the Llama Guard agent generates its response after the prompt analyzer, extracting inferred prompts and combining them with the given response to form prompt-response pairs. These pairs are then passed to Llama Guard for safety inference.
 
