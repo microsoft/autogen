@@ -2,9 +2,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapability
-from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.agentchat.conversable_agent import ConversableAgent
+
+try:
+    from autogen.agentchat.contrib.capabilities.vision_capability import \
+        VisionCapability
+    from autogen.agentchat.contrib.multimodal_conversable_agent import \
+        MultimodalConversableAgent
+except:
+    skip_test = True
+else:
+    skip_test = False
 
 
 @pytest.fixture
@@ -31,11 +39,18 @@ def multimodal_agent():
     return MultimodalConversableAgent(name="sample mm agent", llm_config=False)
 
 
+@pytest.mark.skipif(
+    skip_test,
+    reason="do not run if dependency is not installed or requested to skip",
+)
 def test_add_to_conversable_agent(vision_capability, conversable_agent):
     vision_capability.add_to_agent(conversable_agent)
     assert hasattr(conversable_agent, "process_last_received_message")
 
-
+@pytest.mark.skipif(
+    skip_test,
+    reason="do not run if dependency is not installed or requested to skip",
+)
 def test_add_to_multimodal_agent(vision_capability, multimodal_agent, capsys):
     vision_capability.add_to_agent(multimodal_agent)
     captured = capsys.readouterr()
@@ -43,6 +58,10 @@ def test_add_to_multimodal_agent(vision_capability, multimodal_agent, capsys):
 
 
 @patch("autogen.oai.client.OpenAIWrapper")
+@pytest.mark.skipif(
+    skip_test,
+    reason="do not run if dependency is not installed or requested to skip",
+)
 def test_process_last_received_message_text(mock_lmm_client, vision_capability):
     mock_lmm_client.create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="A description"))])
     content = "Test message without image"
@@ -58,6 +77,10 @@ def test_process_last_received_message_text(mock_lmm_client, vision_capability):
 @patch(
     "autogen.agentchat.contrib.capabilities.vision_capability.VisionCapability._get_image_caption",
     return_value="A sample image caption.",
+)
+@pytest.mark.skipif(
+    skip_test,
+    reason="do not run if dependency is not installed or requested to skip",
 )
 def test_process_last_received_message_with_image(
     mock_get_caption, mock_convert_base64, mock_get_image_data, vision_capability
