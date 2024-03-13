@@ -53,7 +53,7 @@ public class WorkflowTest
         var aliceToBob = Transition.Create(alice, bob);
         var bobToCharlie = Transition.Create(bob, charlie);
         var charlieToAlice = Transition.Create(charlie, alice);
-        var workflow = new Workflow([aliceToBob, bobToCharlie, charlieToAlice]);
+        var workflow = new Graph([aliceToBob, bobToCharlie, charlieToAlice]);
         IAgent currentAgent = alice;
         var agentNames = new List<string>();
         do

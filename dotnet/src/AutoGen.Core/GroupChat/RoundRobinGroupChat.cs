@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// SequentialGroupChat.cs
+// RoundRobinGroupChat.cs
 
 using System;
 using System.Collections.Generic;
@@ -9,12 +9,28 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-public class SequentialGroupChat : IGroupChat
+/// <summary>
+/// Obsolete: please use <see cref="RoundRobinGroupChat"/>
+/// </summary>
+[Obsolete("please use RoundRobinGroupChat")]
+public class SequentialGroupChat : RoundRobinGroupChat
+{
+    [Obsolete("please use RoundRobinGroupChat")]
+    public SequentialGroupChat(IEnumerable<IAgent> agents, List<IMessage>? initializeMessages = null)
+        : base(agents, initializeMessages)
+    {
+    }
+}
+
+/// <summary>
+/// A group chat that allows agents to talk in a round-robin manner.
+/// </summary>
+public class RoundRobinGroupChat : IGroupChat
 {
     private readonly List<IAgent> agents = new List<IAgent>();
     private readonly List<IMessage> initializeMessages = new List<IMessage>();
 
-    public SequentialGroupChat(
+    public RoundRobinGroupChat(
         IEnumerable<IAgent> agents,
         List<IMessage>? initializeMessages = null)
     {
@@ -22,9 +38,10 @@ public class SequentialGroupChat : IGroupChat
         this.initializeMessages = initializeMessages ?? new List<IMessage>();
     }
 
+    /// <inheritdoc />
     public void AddInitializeMessage(IMessage message)
     {
-        this.initializeMessages.Add(message);
+        this.SendIntroduction(message);
     }
 
     public async Task<IEnumerable<IMessage>> CallAsync(
@@ -62,6 +79,11 @@ public class SequentialGroupChat : IGroupChat
         }
 
         return conversationHistory;
+    }
+
+    public void SendIntroduction(IMessage message)
+    {
+        this.initializeMessages.Add(message);
     }
 
     private IAgent SelectNextSpeaker(IAgent currentSpeaker)

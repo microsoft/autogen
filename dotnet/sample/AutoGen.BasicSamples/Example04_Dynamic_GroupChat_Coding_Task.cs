@@ -227,7 +227,7 @@ Here's some externel information
 
         var userToAdminTransition = Transition.Create(userProxy, admin);
 
-        var workflow = new Workflow(
+        var workflow = new Graph(
             [
                 adminToCoderTransition,
                 coderToReviewerTransition,

@@ -80,7 +80,7 @@ public partial class Sequential_GroupChat_Example
         var bingSearchAgent = await CreateBingSearchAgentAsync();
         var summarizerAgent = await CreateSummarizerAgentAsync();
 
-        var groupChat = new SequentialGroupChat(
+        var groupChat = new RoundRobinGroupChat(
             agents: [userProxyAgent, bingSearchAgent, summarizerAgent]);
 
         var groupChatAgent = new GroupChatManager(groupChat);

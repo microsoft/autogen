@@ -200,10 +200,10 @@ sorry, the answer should be 2, not 3
                 ],
                 admin);
 
-            admin.AddInitializeMessage($@"Welcome to the group chat! I'm admin", group);
-            teacher.AddInitializeMessage($@"Hey I'm Teacher", group);
-            student.AddInitializeMessage($@"Hey I'm Student", group);
-            admin.AddInitializeMessage(@$"Teacher, please create pre-school math question for student and check answer.
+            admin.SendIntroduction($@"Welcome to the group chat! I'm admin", group);
+            teacher.SendIntroduction($@"Hey I'm Teacher", group);
+            student.SendIntroduction($@"Hey I'm Student", group);
+            admin.SendIntroduction(@$"Teacher, please create pre-school math question for student and check answer.
 Student, for each question, please answer it and ask teacher to check if the answer is correct.
 I'll update the progress after each question is answered.
 The conversation will end after 5 correct answers.

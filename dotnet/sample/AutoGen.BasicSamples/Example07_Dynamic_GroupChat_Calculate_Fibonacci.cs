@@ -292,7 +292,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
         });
         var runner2AdminTransition = Transition.Create(runner, admin);
 
-        var workflow = new Workflow(
+        var workflow = new Graph(
             [
                 admin2CoderTransition,
                 coder2ReviewerTransition,
@@ -315,10 +315,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 reviewer,
             ]);
 
-        admin.AddInitializeMessage("Welcome to my group, work together to resolve my task", groupChat);
-        coder.AddInitializeMessage("I will write dotnet code to resolve task", groupChat);
-        reviewer.AddInitializeMessage("I will review dotnet code", groupChat);
-        runner.AddInitializeMessage("I will run dotnet code once the review is done", groupChat);
+        admin.SendIntroduction("Welcome to my group, work together to resolve my task", groupChat);
+        coder.SendIntroduction("I will write dotnet code to resolve task", groupChat);
+        reviewer.SendIntroduction("I will review dotnet code", groupChat);
+        runner.SendIntroduction("I will run dotnet code once the review is done", groupChat);
 
         var groupChatManager = new GroupChatManager(groupChat);
         var conversationHistory = await admin.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number?", maxRound: 10);
@@ -357,10 +357,10 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                 reviewer,
             ]);
 
-        admin.AddInitializeMessage("Welcome to my group, work together to resolve my task", groupChat);
-        coder.AddInitializeMessage("I will write dotnet code to resolve task", groupChat);
-        reviewer.AddInitializeMessage("I will review dotnet code", groupChat);
-        runner.AddInitializeMessage("I will run dotnet code once the review is done", groupChat);
+        admin.SendIntroduction("Welcome to my group, work together to resolve my task", groupChat);
+        coder.SendIntroduction("I will write dotnet code to resolve task", groupChat);
+        reviewer.SendIntroduction("I will review dotnet code", groupChat);
+        runner.SendIntroduction("I will run dotnet code once the review is done", groupChat);
 
         var groupChatManager = new GroupChatManager(groupChat);
         var conversationHistory = await admin.InitiateChatAsync(groupChatManager, "What's the 39th of fibonacci number?", maxRound: 10);

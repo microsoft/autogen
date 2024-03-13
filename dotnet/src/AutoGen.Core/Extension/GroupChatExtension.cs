@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // GroupChatExtension.cs
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,6 +12,7 @@ public static class GroupChatExtension
     public const string TERMINATE = "[GROUPCHAT_TERMINATE]";
     public const string CLEAR_MESSAGES = "[GROUPCHAT_CLEAR_MESSAGES]";
 
+    [Obsolete("please use SendIntroduction")]
     public static void AddInitializeMessage(this IAgent agent, string message, IGroupChat groupChat)
     {
         var msg = new TextMessage(Role.User, message)
@@ -18,7 +20,20 @@ public static class GroupChatExtension
             From = agent.Name
         };
 
-        groupChat.AddInitializeMessage(msg);
+        groupChat.SendIntroduction(msg);
+    }
+
+    /// <summary>
+    /// Send an instruction message to the group chat.
+    /// </summary>
+    public static void SendIntroduction(this IAgent agent, string message, IGroupChat groupChat)
+    {
+        var msg = new TextMessage(Role.User, message)
+        {
+            From = agent.Name
+        };
+
+        groupChat.SendIntroduction(msg);
     }
 
     public static IEnumerable<IMessage> MessageToKeep(
