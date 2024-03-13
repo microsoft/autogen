@@ -59,7 +59,7 @@ jobs:
         echo "ls output directory"
         ls -R ./output/release
         # remove AutoGen.SourceGenerator.snupkg because it's an empty package
-        rm ./output/release/AutoGen.SourceGenerator.snupkg
+        rm ./output/release/AutoGen.SourceGenerator.*.snupkg
         dotnet nuget push --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json ./output/release/*.nupkg --skip-duplicate
     - name: Tag commit
       run: |
