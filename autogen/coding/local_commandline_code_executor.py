@@ -1,49 +1,31 @@
+from hashlib import md5
 import os
 from pathlib import Path
 import re
+import sys
 import uuid
 import warnings
-from typing import ClassVar, List, Optional, Union
-from pydantic import Field
+from typing import ClassVar, List, Union
 
 from ..agentchat.agent import LLMAgent
-from ..code_utils import execute_code
-from .base import CodeBlock, CodeExecutor, CodeExtractor, CodeResult
+from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
+from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = (
-    "LocalCommandLineCodeExecutor",
-    "CommandLineCodeResult",
-)
+from .utils import _get_file_name_from_content
 
+import subprocess
 
-class CommandLineCodeResult(CodeResult):
-    """(Experimental) A code result class for command line code executor."""
-
-    code_file: Optional[str] = Field(
-        default=None,
-        description="The file that the executed code block was saved to.",
-    )
+__all__ = ("LocalCommandLineCodeExecutor",)
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
-        str
-    ] = """
-You have been given coding capability to solve tasks using Python code.
-In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute.
-    1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself.
-    2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly.
-Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill.
-When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user.
-If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user.
-"""
+    SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
 
     def __init__(
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
-        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -66,10 +48,6 @@ If you want the user to save the code in a file before executing it, put # filen
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
-            system_message_update (str): The system message update for agent that
-            produces code to run on this executor.
-            Default is `LocalCommandLineCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
-
         """
 
         if timeout < 1:
@@ -83,26 +61,6 @@ If you want the user to save the code in a file before executing it, put # filen
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
-        self._system_message_update = system_message_update
-
-    class UserCapability:
-        """An AgentCapability class that gives agent ability use a command line
-        code executor via a system message update. This capability can be added
-        to an agent using the `add_to_agent` method."""
-
-        def __init__(self, system_message_update: str) -> None:
-            self.system_message_update = system_message_update
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent by updating the agent's system
-            message."""
-            agent.update_system_message(agent.system_message + self.system_message_update)
-
-    @property
-    def user_capability(self) -> "LocalCommandLineCodeExecutor.UserCapability":
-        """Export a user capability for this executor that can be added to
-        an agent that produces code to be executed by this executor."""
-        return LocalCommandLineCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def timeout(self) -> int:
@@ -150,41 +108,59 @@ If you want the user to save the code in a file before executing it, put # filen
         Returns:
             CommandLineCodeResult: The result of the code execution."""
         logs_all = ""
+        file_names = []
         for code_block in code_blocks:
             lang, code = code_block.language, code_block.code
+            lang = lang.lower()
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
-            filename_uuid = uuid.uuid4().hex
-            filename = None
-            if lang in ["bash", "shell", "sh", "pwsh", "powershell", "ps1"]:
-                filename = f"{filename_uuid}.{lang}"
-                exitcode, logs, _ = execute_code(
-                    code=code,
-                    lang=lang,
-                    timeout=self._timeout,
-                    work_dir=str(self._work_dir),
-                    filename=filename,
-                    use_docker=False,
-                )
-            elif lang in ["python", "Python"]:
-                filename = f"{filename_uuid}.py"
-                exitcode, logs, _ = execute_code(
-                    code=code,
-                    lang="python",
-                    timeout=self._timeout,
-                    work_dir=str(self._work_dir),
-                    filename=filename,
-                    use_docker=False,
-                )
-            else:
+
+            if WIN32 and lang in ["sh", "shell"]:
+                lang = "ps1"
+
+            if lang not in self.SUPPORTED_LANGUAGES:
                 # In case the language is not supported, we return an error message.
-                exitcode, logs, _ = (1, f"unknown language {lang}", None)
-            logs_all += "\n" + logs
+                exitcode = 1
+                logs_all += "\n" + f"unknown language {lang}"
+                break
+
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, self._work_dir)
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
+
+            if filename is None:
+                # create a file with an automatically generated name
+                code_hash = md5(code.encode()).hexdigest()
+                filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
+
+            written_file = (self._work_dir / filename).resolve()
+            written_file.open("w", encoding="utf-8").write(code)
+            file_names.append(written_file)
+
+            program = sys.executable if lang.startswith("python") else _cmd(lang)
+            cmd = [program, str(written_file.absolute())]
+
+            try:
+                result = subprocess.run(
+                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                )
+            except subprocess.TimeoutExpired:
+                logs_all += "\n" + TIMEOUT_MSG
+                # Same exit code as the timeout command on linux.
+                exitcode = 124
+                break
+
+            logs_all += result.stderr
+            logs_all += result.stdout
+            exitcode = result.returncode
+
             if exitcode != 0:
                 break
 
-        code_filename = str(self._work_dir / filename) if filename is not None else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_filename)
+        code_file = str(file_names[0]) if len(file_names) > 0 else None
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
