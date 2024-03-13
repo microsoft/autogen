@@ -25,7 +25,9 @@ dependencies = [
     "uvicorn",
     "arxiv",
     "pyautogen>=0.2.0",
-    "websockets"
+    "python-dotenv",
+    "websockets",
+    "numpy < 2.0.0",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"]}
 
