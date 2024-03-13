@@ -8,8 +8,7 @@ import re
 import warnings
 from collections import defaultdict
 from functools import partial
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Type,
-                    TypeVar, Union)
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from openai import BadRequestError
 
@@ -17,13 +16,18 @@ from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from .._pydantic import model_dump
 from ..cache.cache import Cache
-from ..code_utils import (UNKNOWN, check_can_use_docker_or_throw, content_str,
-                          decide_use_docker, execute_code, extract_code,
-                          infer_lang)
+from ..code_utils import (
+    UNKNOWN,
+    check_can_use_docker_or_throw,
+    content_str,
+    decide_use_docker,
+    execute_code,
+    extract_code,
+    infer_lang,
+)
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
-from ..function_utils import (get_function_schema, load_basemodels_if_needed,
-                              serialize_to_str)
+from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
