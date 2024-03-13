@@ -1,14 +1,15 @@
 from typing import Dict, List, Optional, Union
 
 from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.contrib.capabilities.agent_capability import \
-    AgentCapability
-from autogen.agentchat.contrib.img_utils import (convert_base64_to_data_uri,
-                                                 get_image_data, get_pil_image,
-                                                 gpt4v_formatter,
-                                                 message_formatter_pil_to_b64)
-from autogen.agentchat.contrib.multimodal_conversable_agent import \
-    MultimodalConversableAgent
+from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen.agentchat.contrib.img_utils import (
+    convert_base64_to_data_uri,
+    get_image_data,
+    get_pil_image,
+    gpt4v_formatter,
+    message_formatter_pil_to_b64,
+)
+from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.agentchat.conversable_agent import colored
 from autogen.code_utils import content_str
 from autogen.oai.client import OpenAIWrapper
@@ -38,16 +39,19 @@ class VisionCapability(AgentCapability):
         self,
         lmm_config: Dict,
         description_prompt: Optional[str] = "Describe the following image in details.",
+        response_directly: Optional[bool] = False,
     ):
         """
         Args:
             lmm_config (dict or False): LMM (multimodal) client configuration,
                 which will be used to call LMM to describe the image.
             description_prompt (str, optional): The prompt to use for describing the image.
+            response_directly (bool, optional): Whether use the LMM to respond directly to the user or not.
         """
         assert lmm_config, "Vision Capability requires a valid lmm_config."
         self._lmm_config = lmm_config
         self._description_prompt = description_prompt
+        self._response_directly = response_directly
         self._lmm_client = OpenAIWrapper(**lmm_config)
 
     def add_to_agent(self, agent: ConversableAgent):
@@ -59,12 +63,9 @@ class VisionCapability(AgentCapability):
                 )
             )
             return  # do nothing
-        
+
         # Append extra info to the system message.
-        agent.update_system_message(
-            agent.system_message
-            + "\nYou've been given the ability to interpret images."
-        )
+        agent.update_system_message(agent.system_message + "\nYou've been given the ability to interpret images.")
 
         # Register a hook for processing the last message.
         agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)

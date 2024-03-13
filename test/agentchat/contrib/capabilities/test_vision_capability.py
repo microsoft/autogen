@@ -5,11 +5,9 @@ import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
 
 try:
-    from autogen.agentchat.contrib.capabilities.vision_capability import \
-        VisionCapability
-    from autogen.agentchat.contrib.multimodal_conversable_agent import \
-        MultimodalConversableAgent
-except:
+    from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapability
+    from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+except ImportError:
     skip_test = True
 else:
     skip_test = False
@@ -46,6 +44,7 @@ def multimodal_agent():
 def test_add_to_conversable_agent(vision_capability, conversable_agent):
     vision_capability.add_to_agent(conversable_agent)
     assert hasattr(conversable_agent, "process_last_received_message")
+
 
 @pytest.mark.skipif(
     skip_test,
