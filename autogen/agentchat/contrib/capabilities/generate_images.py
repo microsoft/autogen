@@ -100,6 +100,35 @@ class DalleImageGenerator:
 
 
 class ImageGeneration(AgentCapability):
+    """This capability allows a ConversableAgent to generate images based on the message received from other Agents.
+
+    1. Utilizes a TextAnalyzerAgent to analyze incoming messages to identify requests for image generation and
+        extract relevant details.
+    2. Leverages the provided ImageGenerator (e.g., DalleImageGenerator) to create the image.
+    3. Optionally caches generated images for faster retrieval in future conversations.
+
+    NOTE: This capability increases the token usage of the agent, as it uses TextAnalyzerAgent to analyze every
+        message received by the agent.
+
+    Example:
+        ```python
+        import autogen
+        from autogen.agentchat.contrib.capabilities.image_generation import ImageGeneration
+
+        # Assuming you have llm configs configured for the LLMs you want to use and Dalle.
+        # Create the agent
+        agent = autogen.ConversableAgent(
+            name="dalle", llm_config={...}, max_consecutive_auto_reply=3, human_input_mode="NEVER"
+        )
+
+        # Create an ImageGenerator with desired settings
+        dalle_gen = generate_images.DalleImageGenerator(llm_config={...})
+
+        # Add the ImageGeneration capability to the agent
+        agent.add_capability(ImageGeneration(image_generator=dalle_gen))
+        ```
+    """
+
     def __init__(
         self,
         image_generator: ImageGenerator,
@@ -108,34 +137,7 @@ class ImageGeneration(AgentCapability):
         text_analyzer_instructions: str = PROMPT_INSTRUCTIONS,
         verbosity: int = 0,
     ):
-        """This capability allows a ConversableAgent to generate images based on the message received from other Agents.
-
-        1. Utilizes a TextAnalyzerAgent to analyze incoming messages to identify requests for image generation and
-            extract relevant details.
-        2. Leverages the provided ImageGenerator (e.g., DalleImageGenerator) to create the image.
-        3. Optionally caches generated images for faster retrieval in future conversations.
-
-        NOTE: This capability increases the token usage of the agent, as it uses TextAnalyzerAgent to analyze every
-            message received by the agent.
-
-        Example:
-            ```python
-            import autogen
-            from autogen.agentchat.contrib.capabilities.image_generation import ImageGeneration
-
-            # Assuming you have llm configs configured for the LLMs you want to use and Dalle.
-            # Create the agent
-            agent = autogen.ConversableAgent(
-                name="dalle", llm_config={...}, max_consecutive_auto_reply=3, human_input_mode="NEVER"
-            )
-
-            # Create an ImageGenerator with desired settings
-            dalle_gen = generate_images.DalleImageGenerator(llm_config={...})
-
-            # Add the ImageGeneration capability to the agent
-            agent.add_capability(ImageGeneration(image_generator=dalle_gen))
-            ```
-
+        """
         Args:
             image_generator (ImageGenerator): The image generator you would like to use to generate images.
             cache (None or Cache): The cache client to use to store and retrieve generated images. If None,
