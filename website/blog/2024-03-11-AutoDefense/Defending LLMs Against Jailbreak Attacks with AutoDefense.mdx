@@ -16,7 +16,11 @@ tags: [LLM, GPT, research]
 
 ## The AutoDefense Framework 
 
-AutoDefense is a multi-agent defense framework built on AutoGen that filters harmful responses from LLMs. It consists of three main components:
+Despite extensive pre-training in moral alignment to prevent generating harmful information at user request, large language models (LLMs) remain vulnerable to jailbreak attacks. 
+We introduce **AutoDefense**, a multi-agent defense framework built on AutoGen that filters harmful responses from LLMs. 
+Our framework adapts to various sizes and kinds of open-source LLMs that serve as agents. 
+
+AutoDefense consists of three main components:
 
 1. **Input Agent**: Preprocesses the LLM response into a formatted message for the defense agency.
 2. **Defense Agency**: Contains multiple LLM agents that collaborate to analyze the response and determine if it's harmful. Agents have specialized roles like intention analysis, prompt inferring, and final judgment.
