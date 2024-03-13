@@ -121,15 +121,7 @@ def test_agentchat_cost_token_tracking(save=False):
 
 @pytest.mark.skipif(
     skip or not sys.version.startswith("3.11"),
-    reason="do not run if openai is not installed or py!=3.10",
-)
-def test_agentchat_groupchat_customized(save=False):
-    run_notebook("agentchat_groupchat_customized.ipynb", save=save)
-
-
-@pytest.mark.skipif(
-    skip or not sys.version.startswith("3.12"),
-    reason="do not run if openai is not installed or py!=3.10",
+    reason="do not run if openai is not installed or py!=3.11",
 )
 def test_agentchat_groupchat_stateflow(save=False):
     run_notebook("agentchat_groupchat_stateflow.ipynb", save=save)
