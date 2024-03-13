@@ -120,15 +120,15 @@ One function signature includes the following five elements:
 5. The code implementation
 
 Below are the signatures of the current functions:
-List A: {current_functions}.
+List A: {best_functions}.
 The following list are the function signatures that you have after taking {actions_num} actions to manipulate List A:
 List B: {incumbent_functions}.
 
 {accumerated_experience}
 
-Here are {conversations_num} conversation histories of solving {conversations_num} tasks using List B.
+Here are {best_conversations_num} conversation histories of solving {best_conversations_num} tasks using List A.
 History:
-{conversations_history}
+{best_conversations_history}
 
 {statistic_informations}
 
@@ -167,7 +167,7 @@ if result is not None: print(result)
 class AgentOptimizer:
     """
     Base class for optimizing AutoGen agents. Specifically, it is used to optimize the functions used in the agent.
-    More information could be found in the following paper: https://arxiv.org/abs/2402.11359
+    More information could be found in the following paper: https://arxiv.org/abs/2402.11359.
     """
 
     def __init__(
@@ -190,12 +190,12 @@ class AgentOptimizer:
         self._trial_conversations_performance = []
         self._trial_functions = []
 
-        self._cur_conversations_history = []
-        self._cur_conversations_performance = []
-        self._cur_functions = []
+        self._best_conversations_history = []
+        self._best_conversations_performance = []
+        self._best_functions = []
 
         self._failure_functions_performance = []
-        self._cur_performance = -1
+        self._best_performance = -1
 
         config_list = autogen.config_list_from_json(config_file_or_env, file_location=config_file_location)
         if len(config_list) == 0:
@@ -227,45 +227,47 @@ class AgentOptimizer:
 
     def step(self):
         """
-        one step of training.
+        One step of training. It will return register_for_llm and register_for_executor at each iteration,
+        which are subsequently utilized to update the assistant and executor agents, respectively.
+        See example: https://github.com/microsoft/autogen/blob/main/notebook/agentchat_agentoptimizer.ipynb
         """
         performance = sum(sum(d.values()) for d in self._trial_conversations_performance) / len(
             self._trial_conversations_performance
         )
-        if performance < self._cur_performance:
+
+        if performance < self._best_performance:
             self._failure_functions_performance.append({"functions": self._trial_functions, "performance": performance})
             self._failure_functions_performance = sorted(
                 self._failure_functions_performance, key=lambda x: x["performance"]
             )
         else:
             self._failure_functions_performance = []
-            self._cur_performance = performance
-            self._cur_functions = copy.deepcopy(self._trial_functions)
-            self._cur_conversations_history = copy.deepcopy(self._trial_conversations_history)
-            self._cur_conversations_performance = copy.deepcopy(self._trial_conversations_performance)
+            self._best_performance = performance
+            self._best_functions = copy.deepcopy(self._trial_functions)
+            self._best_conversations_history = copy.deepcopy(self._trial_conversations_history)
+            self._best_conversations_performance = copy.deepcopy(self._trial_conversations_performance)
         self._trial_conversations_history = []
         self._trial_conversations_performance = []
 
-        current_functions = copy.deepcopy(self._cur_functions)
-        incumbent_functions = copy.deepcopy(self._cur_functions)
-        failure_experience_prompt, performance_prompt = self._construct_intermediate_prompt()
+        best_functions = copy.deepcopy(self._best_functions)
+        incumbent_functions = copy.deepcopy(self._best_functions)
+        failure_experience_prompt, statistic_prompt = self._construct_intermediate_prompt()
 
         for action_index in range(self.max_actions_per_step):
             prompt = OPT_PROMPT.format(
-                conversations_history=self._cur_conversations_history,
-                conversations_num=len(self._cur_conversations_history),
+                best_conversations_history=self._best_conversations_history,
+                best_conversations_num=len(self._best_conversations_history),
                 actions_num=action_index,
-                current_functions=current_functions,
+                best_functions=best_functions,
                 incumbent_functions=incumbent_functions,
                 accumerated_experience=failure_experience_prompt,
-                statistic_informations=performance_prompt,
+                statistic_informations=statistic_prompt,
             )
             messages = [{"role": "user", "content": prompt}]
             for _ in range(self._max_trials):
                 response = self._client.create(
                     messages=messages, tools=[ADD_FUNC, REVISE_FUNC, REMOVE_FUNC], tool_choice="auto"
                 )
-                print(response)
                 actions = response.choices[0].message.tool_calls
                 if self._val_actions(actions, incumbent_functions):
                     break
@@ -302,7 +304,6 @@ class AgentOptimizer:
             )
 
         self._trial_functions = incumbent_functions
-
         return register_for_llm, register_for_exector
 
     def reset_optimizer(self):
@@ -314,11 +315,11 @@ class AgentOptimizer:
         self._trial_conversations_performance = []
         self._trial_functions = []
 
-        self._cur_conversations_history = []
-        self._cur_conversations_performance = []
-        self._cur_functions = []
+        self._best_conversations_history = []
+        self._best_conversations_performance = []
+        self._best_functions = []
 
-        self._cur_performance = -1
+        self._best_performance = -1
         self._failure_functions_performance = []
 
     def _update_function_call(self, incumbent_functions, actions):
@@ -386,15 +387,15 @@ class AgentOptimizer:
         else:
             failure_experience_prompt = "\n"
 
-        if len(self._cur_conversations_performance) != 0:
-            performance_prompt = "The following table shows the statistical information for solving each task in each conversation and indicates, whether the result is satisfied by the users. 1 represents satisfied. 0 represents not satisfied."
-            performance_prompt += "\n"
-            for item in self._cur_conversations_performance:
-                performance_prompt += str(item) + "\n"
+        if len(self._best_conversations_performance) != 0:
+            statistic_prompt = "The following table shows the statistical information for solving each task in each conversation and indicates, whether the result is satisfied by the users. 1 represents satisfied. 0 represents not satisfied."
+            statistic_prompt += "\n"
+            for item in self._best_conversations_performance:
+                statistic_prompt += str(item) + "\n"
         else:
-            performance_prompt = "\n"
+            statistic_prompt = "\n"
 
-        return failure_experience_prompt, performance_prompt
+        return failure_experience_prompt, statistic_prompt
 
     def _val_actions(self, actions, incumbent_functions):
         """
