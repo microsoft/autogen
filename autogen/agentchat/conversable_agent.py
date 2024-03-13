@@ -11,9 +11,9 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Ty
 import warnings
 from openai import BadRequestError
 
-from ..coding.base import CodeExecutor, CodeExecutionConfig
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
+from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 
 from ..oai.client import OpenAIWrapper, ModelClient
@@ -75,12 +75,12 @@ class ConversableAgent(LLMAgent):
     def __init__(
         self,
         name: str,
-        system_message: Union[str, List] = "You are a helpful AI Assistant.",
+        system_message: Optional[Union[str, List]] = "You are a helpful AI Assistant.",
         is_termination_msg: Optional[Callable[[Dict], bool]] = None,
-        max_consecutive_auto_reply: int = MAX_CONSECUTIVE_AUTO_REPLY,
+        max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Literal["ALWAYS", "NEVER", "TERMINATE"] = "TERMINATE",
-        function_map: Dict[str, Callable] = {},
-        code_execution_config: Union[CodeExecutionConfig, Literal[False]] = False,
+        function_map: Optional[Dict[str, Callable]] = None,
+        code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
@@ -92,7 +92,8 @@ class ConversableAgent(LLMAgent):
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
                 The dict can contain the following keys: "content", "role", "name", "function_call".
-            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies. Defaults to class attribute MAX_CONSECUTIVE_AUTO_REPLY.
+            max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
+                default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 When set to 0, no auto reply will be generated.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
@@ -149,24 +150,11 @@ class ConversableAgent(LLMAgent):
         self.client_cache = None
 
         self.human_input_mode = human_input_mode
-        if max_consecutive_auto_reply is None:
-            warnings.warn(
-                "Using None to signal a default max_consecutive_auto_reply is deprecated. Use the default value (MAX_CONSECUTIVE_AUTO_REPLY) directly.",
-                stacklevel=2,
-            )
-
         self._max_consecutive_auto_reply = (
             max_consecutive_auto_reply if max_consecutive_auto_reply is not None else self.MAX_CONSECUTIVE_AUTO_REPLY
         )
         self._consecutive_auto_reply_counter = defaultdict(int)
         self._max_consecutive_auto_reply_dict = defaultdict(self.max_consecutive_auto_reply)
-
-        if function_map is None:
-            warnings.warn(
-                "Using None to signal a default function_map is deprecated. Use {} to explicitly pass the default.",
-                stacklevel=2,
-            )
-
         self._function_map = (
             {}
             if function_map is None
