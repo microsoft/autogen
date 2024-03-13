@@ -58,7 +58,7 @@ jobs:
         echo "Publish package to Nuget"
         echo "ls output directory"
         ls -R ./output/release
-        dotnet nuget push --api-key AzureArtifacts ./output/release/*.nupkg --skip-duplicate --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }}
+        dotnet nuget push ./output/release/*.nupkg --skip-duplicate --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }}
     - name: Tag commit
       run: |
         Write-Host "Tag commit"
