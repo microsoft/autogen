@@ -4,7 +4,9 @@ Retrieval Augmented Generation (RAG) is a powerful technique that combines langu
 
 ## Example Setup: RAG with Retrieval Augmented Agents
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
-Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+
+### Step 1. Create an instance of `RetrieveAssistantAgent` and `RetrieveUserProxyAgent`.
+
 Here `RetrieveUserProxyAgent` instance acts as a proxy agent that retrieves relevant information based on the user's input.
 ```python
 assistant = RetrieveAssistantAgent(
@@ -38,7 +40,7 @@ ragproxyagent = RetrieveUserProxyAgent(
 )
 ```
 
-Step 2. Initiating Agent Chat with Retrieval Augmentation
+### Step 2. Initiating Agent Chat with Retrieval Augmentation
 
 Once the retrieval augmented agents are set up, you can initiate a chat with retrieval augmentation using the following code:
 
@@ -48,7 +50,9 @@ ragproxyagent.initiate_chat(
     assistant, message=ragproxyagent.message_generator, problem=code_problem, search_string="spark"
 )  # search_string is used as an extra filter for the embeddings search, in this case, we only want to search documents that contain "spark".
 ```
-### [Retrival-Augmented Chat Demo on Huggingface](https://huggingface.co/spaces/thinkall/autogen-demos)
+
+## Online Demo
+[Retrival-Augmented Chat Demo on Huggingface](https://huggingface.co/spaces/thinkall/autogen-demos)
 
 ## More Examples and Notebooks
 For more detailed examples and notebooks showcasing the usage of retrieval augmented agents in AutoGen, refer to the following:
