@@ -1,8 +1,11 @@
 import os
 import sys
+import tempfile
 import time
 
 import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
 from autogen.cache import Cache
@@ -107,23 +110,11 @@ def test_disk_cache():
 
 
 def run_conversation(cache_seed, human_input_mode="NEVER", max_consecutive_auto_reply=5, cache=None):
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    here = os.path.abspath(os.path.dirname(__file__))
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
-            },
+            "tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
         },
     )
     llm_config = {
@@ -131,55 +122,46 @@ def run_conversation(cache_seed, human_input_mode="NEVER", max_consecutive_auto_
         "config_list": config_list,
         "max_tokens": 1024,
     }
-    assistant = AssistantAgent(
-        "coding_agent",
-        llm_config=llm_config,
-    )
-    user = UserProxyAgent(
-        "user",
-        human_input_mode=human_input_mode,
-        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
-        max_consecutive_auto_reply=max_consecutive_auto_reply,
-        code_execution_config={
-            "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": "python:3",
-            "timeout": 60,
-        },
-        llm_config=llm_config,
-        system_message="""Is code provided but not enclosed in ``` blocks?
-    If so, remind that code blocks need to be enclosed in ``` blocks.
-    Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
-    If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
-    )
+    with tempfile.TemporaryDirectory() as work_dir:
+        assistant = AssistantAgent(
+            "coding_agent",
+            llm_config=llm_config,
+        )
+        user = UserProxyAgent(
+            "user",
+            human_input_mode=human_input_mode,
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            max_consecutive_auto_reply=max_consecutive_auto_reply,
+            code_execution_config={
+                "work_dir": work_dir,
+                "use_docker": "python:3",
+                "timeout": 60,
+            },
+            llm_config=llm_config,
+            system_message="""Is code provided but not enclosed in ``` blocks?
+        If so, remind that code blocks need to be enclosed in ``` blocks.
+        Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
+        If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
+        )
 
-    user.initiate_chat(assistant, message="TERMINATE", cache=cache)
-    # should terminate without sending any message
-    assert assistant.last_message()["content"] == assistant.last_message(user)["content"] == "TERMINATE"
-    coding_task = "Print hello world to a file called hello.txt"
+        user.initiate_chat(assistant, message="TERMINATE", cache=cache)
+        # should terminate without sending any message
+        assert assistant.last_message()["content"] == assistant.last_message(user)["content"] == "TERMINATE"
+        coding_task = "Print hello world to a file called hello.txt"
 
-    # track how long this takes
-    user.initiate_chat(assistant, message=coding_task, cache=cache)
-    return user.chat_messages[list(user.chat_messages.keys())[-0]]
+        # track how long this takes
+        user.initiate_chat(assistant, message=coding_task, cache=cache)
+        return user.chat_messages[assistant]
 
 
 def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_auto_reply=5):
     KEY_LOC = "notebook"
     OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    here = os.path.abspath(os.path.dirname(__file__))
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-                "gpt-3.5-turbo-16k",
-                "gpt-3.5-turbo-16k-0613",
-                "gpt-3.5-turbo-0301",
-                "chatgpt-35-turbo-0301",
-                "gpt-35-turbo-v0301",
-                "gpt",
-            },
+            "tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
         },
     )
     llm_config = {
@@ -187,41 +169,43 @@ def run_groupchat_conversation(cache, human_input_mode="NEVER", max_consecutive_
         "config_list": config_list,
         "max_tokens": 1024,
     }
-    assistant = AssistantAgent(
-        "coding_agent",
-        llm_config=llm_config,
-    )
 
-    planner = AssistantAgent(
-        "planner",
-        llm_config=llm_config,
-    )
+    with tempfile.TemporaryDirectory() as work_dir:
+        assistant = AssistantAgent(
+            "coding_agent",
+            llm_config=llm_config,
+        )
 
-    user = UserProxyAgent(
-        "user",
-        human_input_mode=human_input_mode,
-        is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
-        max_consecutive_auto_reply=max_consecutive_auto_reply,
-        code_execution_config={
-            "work_dir": f"{here}/test_agent_scripts",
-            "use_docker": "python:3",
-            "timeout": 60,
-        },
-        system_message="""Is code provided but not enclosed in ``` blocks?
-    If so, remind that code blocks need to be enclosed in ``` blocks.
-    Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
-    If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
-    )
+        planner = AssistantAgent(
+            "planner",
+            llm_config=llm_config,
+        )
 
-    group_chat = autogen.GroupChat(
-        agents=[planner, assistant, user],
-        messages=[],
-        max_round=4,
-        speaker_selection_method="round_robin",
-    )
-    manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
+        user = UserProxyAgent(
+            "user",
+            human_input_mode=human_input_mode,
+            is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+            max_consecutive_auto_reply=max_consecutive_auto_reply,
+            code_execution_config={
+                "work_dir": work_dir,
+                "use_docker": "python:3",
+                "timeout": 60,
+            },
+            system_message="""Is code provided but not enclosed in ``` blocks?
+        If so, remind that code blocks need to be enclosed in ``` blocks.
+        Reply TERMINATE to end the conversation if the task is finished. Don't say appreciation.
+        If "Thank you" or "You\'re welcome" are said in the conversation, then say TERMINATE and that is your last message.""",
+        )
 
-    coding_task = "Print hello world to a file called hello.txt"
+        group_chat = autogen.GroupChat(
+            agents=[planner, assistant, user],
+            messages=[],
+            max_round=4,
+            speaker_selection_method="round_robin",
+        )
+        manager = autogen.GroupChatManager(groupchat=group_chat, llm_config=llm_config)
 
-    user.initiate_chat(manager, message=coding_task, cache=cache)
-    return user.chat_messages[list(user.chat_messages.keys())[-0]]
+        coding_task = "Print hello world to a file called hello.txt"
+
+        user.initiate_chat(manager, message=coding_task, cache=cache)
+        return user.chat_messages[list(user.chat_messages.keys())[-0]]

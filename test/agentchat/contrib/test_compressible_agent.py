@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import pytest
 import sys
 import autogen
@@ -216,14 +218,14 @@ def test_mode_terminate():
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_new_compressible_agent_description():
-    assistant = CompressibleAgent(name="assistant", description="this is a description")
+    assistant = CompressibleAgent(name="assistant", description="this is a description", llm_config=False)
 
     assert assistant.description == "this is a description", "description is not set correctly"
 
 
 if __name__ == "__main__":
-    test_mode_compress()
-    test_mode_customized()
-    test_compress_message()
-    test_mode_terminate()
+    # test_mode_compress()
+    # test_mode_customized()
+    # test_compress_message()
+    # test_mode_terminate()
     test_new_compressible_agent_description()
