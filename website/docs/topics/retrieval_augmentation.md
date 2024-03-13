@@ -48,6 +48,8 @@ ragproxyagent.initiate_chat(
     assistant, message=ragproxyagent.message_generator, problem=code_problem, search_string="spark"
 )  # search_string is used as an extra filter for the embeddings search, in this case, we only want to search documents that contain "spark".
 ```
+### [Retrival-Augmented Chat Demo on Huggingface](https://huggingface.co/spaces/thinkall/autogen-demos)
+
 ## More Examples and Notebooks
 For more detailed examples and notebooks showcasing the usage of retrieval augmented agents in AutoGen, refer to the following:
 - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
