@@ -35,7 +35,7 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
-        args: ["-L", "ans,linar,nam,"]
+        args: ["-L", "ans,linar,nam,tread,ot,"]
         exclude: |
             (?x)^(
               pyproject.toml |
