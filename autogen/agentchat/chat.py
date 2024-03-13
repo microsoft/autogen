@@ -111,13 +111,19 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
         if isinstance(chat_info["carryover"], list)
         else chat_info["carryover"]
     )
+    message = chat_info.get("message")
+    if isinstance(message, str):
+        print_message = message
+    elif callable(message):
+        print_message = "Callable: " + message.__name__
+    elif isinstance(message, dict):
+        print_message = "Dict: " + str(message)
+    elif message is None:
+        print_message = "None"
     print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
     print(
         colored(
-            "Start a new chat with the following message: \n"
-            + chat_info.get("message")
-            + "\n\nWith the following carryover: \n"
-            + print_carryover,
+            "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
             "blue",
         ),
         flush=True,
@@ -132,35 +138,19 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
                 Each dictionary should contain the input arguments for `ConversableAgent.initiate_chat`.
                 More specifically, each dictionary could include the following fields:
-                - recipient: the recipient agent.
                 - "sender": the sender agent.
                 - "recipient": the recipient agent.
-                - clear_history (bool): whether to clear the chat history with the agent. Default is True.
-                - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
-                - cache (Cache or None): the cache client to be used for this conversation. Default is None.
-                - max_turns (int or None): the maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
-                - "message" needs to be provided if the `generate_init_message` method is not overridden.
-                        Otherwise, input() will be called to get the initial message.
-                - "summary_method": a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                    - Supported string are "last_msg" and "reflection_with_llm":
-                        when set "last_msg", it returns the last message of the dialog as the summary.
-                        when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                        `llm_config` must be set in either the recipient or sender.
-                        "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                    - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                    ```python
-                    def my_summary_method(
-                        sender: ConversableAgent,
-                        recipient: ConversableAgent,
-                    ):
-                        return recipient.last_message(sender)["content"]
-                    ```
-                - "summary_prompt": This filed can be used to specify the prompt used to extract a summary when summary_method is "reflection_with_llm".
-                    Default is None and the following default prompt will be used when "summary_method" is set to "reflection_with_llm":
-                    "Identify and extract the final solution to the originally asked question based on the conversation."
-                - "carryover": It can be used to specify the carryover information to be passed to this chat.
-                    If provided, we will combine this carryover with the "message" content when generating the initial chat
-                    message in `generate_init_message`.
+                - "clear_history" (bool): whether to clear the chat history with the agent. Default is True.
+                - "silent" (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
+                - "cache" (Cache or None): the cache client to be used for this conversation. Default is None.
+                - "max_turns" (int or None): the maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
+                - "summary_method" (str or callable): a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+                - "summary_args" (dict): a dictionary of arguments to be passed to the summary_method. Default is {}.
+                - "message" (str, callable or None): if None, input() will be called to get the initial message.
+                - **context: additional context information to be passed to the chat.
+                        - "carryover": It can be used to specify the carryover information to be passed to this chat.
+                        If provided, we will combine this carryover with the "message" content when generating the initial chat
+                            message in `generate_init_message`.
 
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.

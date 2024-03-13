@@ -1,9 +1,12 @@
 FROM python:3.11-slim-bookworm
 
+# add git lhs to apt
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+
 # Update and install dependencies
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        software-properties-common sudo\
+        software-properties-common sudo git-lfs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
