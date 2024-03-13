@@ -209,6 +209,10 @@ module.exports = {
             to: "/docs/tutorial/chat-termination",
             from: ["/docs/tutorial/termination"],
           },
+          {
+            to: "/docs/tutorial/what-next",
+            from: ["/docs/tutorial/what-is-next"],
+          }
         ],
       },
     ]
