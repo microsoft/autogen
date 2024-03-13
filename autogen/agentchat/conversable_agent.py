@@ -10,8 +10,10 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 import warnings
 from openai import BadRequestError
+from pydantic import BaseModel
 
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
+from autogen.io.messages import StreamMessageWrapper
 
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
@@ -668,17 +670,51 @@ class ConversableAgent(LLMAgent):
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
+            # TODO: remove me
+            IOStream.get_default()
             await recipient.a_receive(message, self, request_reply, silent)
         else:
             raise ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
 
+    @StreamMessageWrapper.register_message_type("agent.message")
+    class Message(BaseModel):
+        sender: str
+        receiver: str
+        message: Union[str, Dict]
+
+    @StreamMessageWrapper.register_message_type("agent.suggest_tool_call")
+    class SuggestToolCall(BaseModel):
+        sender: str
+        receiver: str
+        function_name: str
+        function_arguments: str
+
+    @StreamMessageWrapper.register_message_type("agent.executing_function_message")
+    class ExecutingFunctionMessage(BaseModel):
+        executor: str
+        function_name: str
+        function_args: Dict[str, Any]
+
+    @StreamMessageWrapper.register_message_type("agent.executed_function_message")
+    class ExecutedFunctionMessage(BaseModel):
+        executor: str
+        function_name: str
+        function_args: Dict[str, Any]
+        result: str
+
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
+        print("/" * 100, flush=True)
+
         iostream = IOStream.get_default()
+
         # print the message received
         iostream.print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
         message = self._message_to_dict(message)
+
+        # llm_message = self.LLMMessage(sender=sender.name, receiver=self.name, message=message)
+        # print("#"*10 + " " + str(llm_message), flush=True)
 
         if message.get("tool_responses"):  # Handle tool multi-call responses
             for tool_response in message["tool_responses"]:
@@ -706,6 +742,9 @@ class ConversableAgent(LLMAgent):
                         self.llm_config and self.llm_config.get("allow_format_str_template", False),
                     )
                 iostream.print(content_str(content), flush=True)
+                if content != "":
+                    iostream.output(self.Message(sender=sender.name, receiver=self.name, message=content_str(content)))
+
             if "function_call" in message and message["function_call"]:
                 function_call = dict(message["function_call"])
                 func_print = (
@@ -723,15 +762,22 @@ class ConversableAgent(LLMAgent):
                 for tool_call in message["tool_calls"]:
                     id = tool_call.get("id", "(No id found)")
                     function_call = dict(tool_call.get("function", {}))
-                    func_print = f"***** Suggested tool Call ({id}): {function_call.get('name', '(No function name found)')} *****"
+                    function_name = function_call.get("name", "(No function name found)")
+                    function_arguments = function_call.get("arguments", "(No arguments found)")
+                    func_print = f"***** Suggested tool Call ({id}): {function_name} *****"
+
                     iostream.print(colored(func_print, "green"), flush=True)
-                    iostream.print(
-                        "Arguments: \n",
-                        function_call.get("arguments", "(No arguments found)"),
-                        flush=True,
-                        sep="",
-                    )
+                    iostream.print("Arguments: \n", function_arguments, flush=True, sep="")
                     iostream.print(colored("*" * len(func_print), "green"), flush=True)
+
+                    iostream.output(
+                        self.SuggestToolCall(
+                            sender=sender.name,
+                            receiver=self.name,
+                            function_name=function_name,
+                            function_arguments=function_arguments,
+                        )
+                    )
 
         iostream.print("\n", "-" * 80, flush=True, sep="")
 
@@ -815,6 +861,8 @@ class ConversableAgent(LLMAgent):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
+        # TODO: remove me
+        IOStream.get_default()
         reply = await self.a_generate_reply(sender=sender)
         if reply is not None:
             await self.a_send(reply, sender, silent=silent)
@@ -1039,6 +1087,8 @@ class ConversableAgent(LLMAgent):
                 msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
             else:
                 msg2send = await self.a_generate_init_message(message, **context)
+            # TODO: remove me
+            IOStream.get_default()
             await self.a_send(msg2send, recipient, silent=silent)
         summary = self._summarize_chat(
             summary_method,
@@ -1213,6 +1263,12 @@ class ConversableAgent(LLMAgent):
         else:
             self._consecutive_auto_reply_counter[sender] = 0
 
+    @StreamMessageWrapper.register_message_type("agent.clear_history_message")
+    class ClearHistoryMessage(BaseModel):
+        sender: str
+        recipient: str
+        message: str
+
     def clear_history(self, recipient: Optional[Agent] = None, nr_messages_to_preserve: Optional[int] = None):
         """Clear the chat history of the agent.
 
@@ -1234,6 +1290,15 @@ class ConversableAgent(LLMAgent):
                             f"Preserving one more message for {self.name} to not divide history between tool call and "
                             f"tool response."
                         )
+                        iostream.output(
+                            self.ClearHistoryMessage(
+                                sender=self.name,
+                                recipient=key,
+                                message="Preserving one "
+                                f"more message for {self.name} to not dedide history between tool call and response.",
+                            )
+                        )
+
                     # Remove messages from history except last `nr_messages_to_preserve` messages.
                     self._oai_messages[key] = self._oai_messages[key][-nr_messages_to_preserve_internal:]
             else:
@@ -1261,6 +1326,8 @@ class ConversableAgent(LLMAgent):
             return False, None
         if messages is None:
             messages = self._oai_messages[sender]
+        # TODO: remove me
+        IOStream.get_default()
         extracted_response = self._generate_oai_reply_from_client(
             client, self._oai_system_message + messages, self.client_cache
         )
@@ -1309,8 +1376,20 @@ class ConversableAgent(LLMAgent):
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai asynchronously."""
+        # TODO: remove me
+        iostream = IOStream.get_default()
+
+        def _generate_oai_reply(
+            self, iostream: IOStream, *args: Any, **kwargs: Any
+        ) -> Tuple[bool, Union[str, Dict, None]]:
+            with IOStream.set_default(iostream):
+                return self.generate_oai_reply(*args, **kwargs)
+
         return await asyncio.get_event_loop().run_in_executor(
-            None, functools.partial(self.generate_oai_reply, messages=messages, sender=sender, config=config)
+            None,
+            functools.partial(
+                _generate_oai_reply, self=self, iostream=iostream, messages=messages, sender=sender, config=config
+            ),
         )
 
     def _generate_code_execution_reply_using_executor(
@@ -1929,6 +2008,8 @@ class ConversableAgent(LLMAgent):
 
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 if inspect.iscoroutinefunction(reply_func):
+                    # TODO: remove me
+                    IOStream.get_default()
                     final, reply = await reply_func(
                         self, messages=messages, sender=sender, config=reply_func_tuple["config"]
                     )
@@ -2131,6 +2212,12 @@ class ConversableAgent(LLMAgent):
                     colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"),
                     flush=True,
                 )
+                executing_function_message = self.ExecutingFunctionMessage(
+                    executor=self.name,
+                    function_name=func_name,
+                    function_args=arguments,
+                )
+                iostream.output(executing_function_message)
                 try:
                     content = func(**arguments)
                     is_exec_success = True
@@ -2144,6 +2231,14 @@ class ConversableAgent(LLMAgent):
                 colored(f"\nInput arguments: {arguments}\nOutput:\n{content}", "magenta"),
                 flush=True,
             )
+
+        executed_function_message = self.ExecutedFunctionMessage(
+            executor=self.name,
+            function_name=func_name,
+            function_args=arguments,
+            result=str(content),
+        )
+        iostream.output(executed_function_message)
 
         return is_exec_success, {
             "name": func_name,

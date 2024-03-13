@@ -139,6 +139,11 @@ class TestConsoleIOWithWebsockets:
                         max_consecutive_auto_reply=10,
                     )
 
+                    @user_proxy.register_for_execution()
+                    @agent.register_for_llm(description="Weather forecast for a city")
+                    def weather_forecast(city: str) -> str:
+                        return f"The weather forecast for {city} is rainy and somewhat dreamy."
+
                     # we will use a temporary directory as the cache path root to ensure fresh completion each time
                     with TemporaryDirectory() as cache_path_root:
                         with Cache.disk(cache_path_root=cache_path_root) as cache:
@@ -165,8 +170,9 @@ class TestConsoleIOWithWebsockets:
                 print(f" - Connected to server on {uri}", flush=True)
 
                 print(" - Sending message to server.", flush=True)
-                # websocket.send("2+2=?")
-                websocket.send("Please write a poem about spring in a city of your choice.")
+                websocket.send(
+                    "Check out the weather in Paris and write a poem about Paris taking the weather into consideration."
+                )
 
                 while True:
                     message = websocket.recv()

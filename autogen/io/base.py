@@ -56,9 +56,10 @@ class IOStream(InputStream, OutputStream, Protocol):
         Returns:
             IOStream: The default input/output stream.
         """
-        iostream = IOStream._default_io_stream.get()
+        iostream = IOStream._default_io_stream.get(None)
         if iostream is None:
             raise RuntimeError("No default IOStream has been set")
+
         return iostream
 
     # ContextVar must be used in multithreaded or async environments
@@ -67,7 +68,7 @@ class IOStream(InputStream, OutputStream, Protocol):
 
     @staticmethod
     @contextmanager
-    def set_default(stream: Optional["IOStream"]) -> Iterator[None]:
+    def set_default(iostream: Optional["IOStream"]) -> Iterator[None]:
         """Set the default input/output stream.
 
         Args:
@@ -75,7 +76,11 @@ class IOStream(InputStream, OutputStream, Protocol):
         """
         global _default_io_stream
         try:
-            token = IOStream._default_io_stream.set(stream)
+            token = IOStream._default_io_stream.set(iostream)
+
+            if IOStream.get_default() != iostream:
+                raise RuntimeError("Failed to set default IOStream")
+
             yield
         finally:
             IOStream._default_io_stream.reset(token)

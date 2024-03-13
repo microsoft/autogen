@@ -2,24 +2,26 @@
 
 import asyncio
 import copy
+import inspect
+import os
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
 import unittest
-import inspect
-from unittest.mock import MagicMock
+from typing import Any, Callable, Dict, Literal
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import patch
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 from pydantic import BaseModel, Field
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
+
 import autogen
-import os
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
+from autogen.io.base import IOStream
+from autogen.io.console import IOConsole
 
 try:
     import openai
@@ -1003,6 +1005,10 @@ def test_function_registration_e2e_sync() -> None:
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
+    IOStream.set_default(IOConsole())
+
+    IOStream.get_default()
+
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={

@@ -55,7 +55,7 @@ class StreamMessageWrapper(BaseModel):
         return MyStreamMessageWrapper
 
     @classmethod
-    def register_message_type(cls, *, message_type: str) -> Callable[[BM_T], BM_T]:
+    def register_message_type(cls, message_type: str) -> Callable[[BM_T], BM_T]:
         """Register a message type with the message."""
 
         def _decorator(content_cls: BM_T) -> BM_T:
