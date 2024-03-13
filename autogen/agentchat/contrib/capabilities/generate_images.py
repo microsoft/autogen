@@ -13,6 +13,11 @@ from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 SYSTEM_MESSAGE = "You've been given the special ability to generate images."
 DESCRIPTION_MESSAGE = "This agent has the ability to generate images."
 
+PROMPT_INSTRUCTIONS = """In detail, please summarize the provided prompt to generate the image described in the TEXT.
+DO NOT include any advice. RESPOND like the following example:
+EXAMPLE: Blue background, 3D shapes, ...
+"""
+
 
 class ImageGenerator(Protocol):
     """This class defines an interface for image generators.
@@ -100,6 +105,7 @@ class ImageGeneration(AgentCapability):
         image_generator: ImageGenerator,
         cache: Optional[Cache] = None,
         text_analyzer_llm_config: Optional[Dict] = None,
+        text_analyzer_instructions: str = PROMPT_INSTRUCTIONS,
         verbosity: int = 0,
     ):
         """This capability allows a ConversableAgent to generate images based on the message received from other Agents.
@@ -132,15 +138,22 @@ class ImageGeneration(AgentCapability):
 
         Args:
             image_generator (ImageGenerator): The image generator you would like to use to generate images.
-            cache (None or Cache): The cache client to use to store and retrieve generated images. If None, no caching will be used.
+            cache (None or Cache): The cache client to use to store and retrieve generated images. If None,
+                no caching will be used.
             text_analyzer_llm_config (Dict or None): The LLM config for the text analyzer. If None, the LLM config will
                 be retrieved from the agent you're adding the ability to.
+            text_analyzer_instructions (str): Instructions provided to the TextAnalyzerAgent used to analyze
+                incoming messages and extract the prompt for image generation. The default instructions focus on
+                summarizing the prompt. You can customize the instructions to achieve more granular control over prompt
+                extraction.
+                Example: 'Extract specific details from the message, like desired objects, styles, or backgrounds.'
             verbosity (int): The verbosity level. Defaults to 0 and must be greater than or equal to 0. The text
                 analyzer llm calls will be silent if verbosity is less than 2.
         """
         self._image_generator = image_generator
         self._cache = cache
         self._text_analyzer_llm_config = text_analyzer_llm_config
+        self._text_analyzer_instructions = text_analyzer_instructions
         self._verbosity = verbosity
 
         self._agent: Optional[ConversableAgent] = None
@@ -191,11 +204,7 @@ class ImageGeneration(AgentCapability):
         if self._should_generate_image(last_message):
             assert self._text_analyzer is not None
 
-            instructions = """In detail, please summarize the provided prompt to generate the image described in the
-            TEXT. DO NOT include any advice. RESPOND like the following example:
-            EXAMPLE: Blue background, 3D shapes, ...
-            """
-            analysis = self._text_analyzer.analyze_text(last_message, instructions)
+            analysis = self._text_analyzer.analyze_text(last_message, self._text_analyzer_instructions)
             prompt = self._extract_analysis(analysis)
 
             image = self._cache_get(prompt)
