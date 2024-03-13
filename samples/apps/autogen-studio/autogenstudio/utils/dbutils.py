@@ -134,7 +134,8 @@ class DBManager:
             self.init_db(path=self.path, **kwargs)
 
         try:
-            self.conn = sqlite3.connect(self.path, check_same_thread=False, **kwargs)
+            self.conn = sqlite3.connect(
+                self.path, check_same_thread=False, **kwargs)
             self.cursor = self.conn.cursor()
             self.migrate()
         except Exception as e:
@@ -146,6 +147,7 @@ class DBManager:
         Run migrations to update the database schema.
         """
         self.add_column_if_not_exists("sessions", "name", "TEXT")
+        self.add_column_if_not_exists("models", "description", "TEXT")
 
     def add_column_if_not_exists(self, table: str, column: str, column_type: str):
         """
@@ -160,11 +162,14 @@ class DBManager:
             self.cursor.execute(f"PRAGMA table_info({table})")
             column_names = [row[1] for row in self.cursor.fetchall()]
             if column not in column_names:
-                self.cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
+                self.cursor.execute(
+                    f"ALTER TABLE {table} ADD COLUMN {column} {column_type}")
                 self.conn.commit()
-                logger.info(f"Migration: New '{column}' column has been added to the '{table}' table.")
+                logger.info(
+                    f"Migration: New '{column}' column has been added to the '{table}' table.")
             else:
-                logger.info(f"'{column}' column already exists in the '{table}' table.")
+                logger.info(
+                    f"'{column}' column already exists in the '{table}' table.")
 
         except Exception as e:
             print(f"Error while checking and updating '{table}' table: {e}")
@@ -192,7 +197,8 @@ class DBManager:
 
         # Create the version table
         self.cursor.execute(VERSION_TABLE_SQL)
-        self.cursor.execute("INSERT INTO version (version) VALUES (?)", (__db_version__,))
+        self.cursor.execute(
+            "INSERT INTO version (version) VALUES (?)", (__db_version__,))
 
         # Create the models table
         self.cursor.execute(MODELS_TABLE_SQL)
@@ -244,11 +250,13 @@ class DBManager:
 
                 self.cursor.execute(
                     "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)",
-                    (skill.id, "default", skill.timestamp, skill.content, skill.title, skill.file_name),
+                    (skill.id, "default", skill.timestamp,
+                     skill.content, skill.title, skill.file_name),
                 )
             for agent in agents:
                 agent = AgentFlowSpec(**agent)
-                agent.skills = [skill.dict() for skill in agent.skills] if agent.skills else None
+                agent.skills = [skill.dict()
+                                for skill in agent.skills] if agent.skills else None
                 self.cursor.execute(
                     "INSERT INTO agents (id, user_id, timestamp, config, type, skills) VALUES (?, ?, ?, ?, ?, ?)",
                     (
@@ -299,10 +307,12 @@ class DBManager:
                 result = self.cursor.fetchall()
                 self.commit()
                 if return_json:
-                    result = [dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
+                    result = [
+                        dict(zip([key[0] for key in self.cursor.description], row)) for row in result]
                 return result
         except Exception as e:
-            logger.error("Error running query with query %s and args %s: %s", query, args, e)
+            logger.error(
+                "Error running query with query %s and args %s: %s", query, args, e)
             raise e
 
     def commit(self) -> None:
@@ -427,7 +437,8 @@ def create_message(message: Message, dbmanager: DBManager) -> List[dict]:
         message.session_id,
     )
     dbmanager.query(query=query, args=args)
-    messages = get_messages(user_id=message.user_id, session_id=message.session_id, dbmanager=dbmanager)
+    messages = get_messages(user_id=message.user_id,
+                            session_id=message.session_id, dbmanager=dbmanager)
     return messages
 
 
@@ -476,7 +487,8 @@ def create_session(user_id: str, session: Session, dbmanager: DBManager) -> List
     :return: A list of dictionaries, each representing a session
     """
     query = "INSERT INTO sessions (user_id, id, timestamp, flow_config) VALUES (?, ?, ?,?)"
-    args = (session.user_id, session.id, session.timestamp, json.dumps(session.flow_config.dict()))
+    args = (session.user_id, session.id, session.timestamp,
+            json.dumps(session.flow_config.dict()))
     dbmanager.query(query=query, args=args)
     sessions = get_sessions(user_id=user_id, dbmanager=dbmanager)
 
@@ -530,7 +542,8 @@ def create_gallery(session: Session, dbmanager: DBManager, tags: List[str] = [])
     :return: A gallery object containing the session and messages objects
     """
 
-    messages = get_messages(user_id=session.user_id, session_id=session.id, dbmanager=dbmanager)
+    messages = get_messages(user_id=session.user_id,
+                            session_id=session.id, dbmanager=dbmanager)
     gallery_item = Gallery(session=session, messages=messages, tags=tags)
     query = "INSERT INTO gallery (id, session, messages, tags, timestamp) VALUES (?, ?, ?, ?,?)"
     args = (
@@ -567,7 +580,8 @@ def get_gallery(gallery_id, dbmanager: DBManager) -> List[Gallery]:
         gallery_item = Gallery(
             id=row["id"],
             session=Session(**json.loads(row["session"])),
-            messages=[Message(**message) for message in json.loads(row["messages"])],
+            messages=[Message(**message)
+                      for message in json.loads(row["messages"])],
             tags=json.loads(row["tags"]),
             timestamp=row["timestamp"],
         )
@@ -621,7 +635,8 @@ def upsert_skill(skill: Skill, dbmanager: DBManager) -> List[Skill]:
         update_item("skills", skill.id, updated_data, dbmanager)
     else:
         query = "INSERT INTO skills (id, user_id, timestamp, content, title, file_name) VALUES (?, ?, ?, ?, ?, ?)"
-        args = (skill.id, skill.user_id, skill.timestamp, skill.content, skill.title, skill.file_name)
+        args = (skill.id, skill.user_id, skill.timestamp,
+                skill.content, skill.title, skill.file_name)
         dbmanager.query(query=query, args=args)
 
     skills = get_skills(user_id=skill.user_id, dbmanager=dbmanager)
@@ -668,7 +683,8 @@ def delete_message(
         query = "DELETE FROM messages WHERE user_id = ? AND msg_id = ? AND session_id = ?"
         args = (user_id, msg_id, session_id)
         dbmanager.query(query=query, args=args)
-        messages = get_messages(user_id=user_id, session_id=session_id, dbmanager=dbmanager)
+        messages = get_messages(
+            user_id=user_id, session_id=session_id, dbmanager=dbmanager)
         return messages
 
 
@@ -707,7 +723,8 @@ def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
     :return: A list of dictionaries, each representing an agent after insertion or update
     """
 
-    existing_agent = get_item_by_field("agents", "id", agent_flow_spec.id, dbmanager)
+    existing_agent = get_item_by_field(
+        "agents", "id", agent_flow_spec.id, dbmanager)
 
     if existing_agent:
         updated_data = {
@@ -720,7 +737,7 @@ def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
         update_item("agents", agent_flow_spec.id, updated_data, dbmanager)
     else:
         query = (
-            "INSERT INTO agents (id, user_id, timestamp, config, type, description, skills) VALUES (?, ?, ?, ?, ?,?)"
+            "INSERT INTO agents (id, user_id, timestamp, config, type, skills) VALUES (?, ?, ?, ?, ?,?)"
         )
         config_json = json.dumps(agent_flow_spec.config.dict())
         args = (
@@ -729,7 +746,8 @@ def upsert_agent(agent_flow_spec: AgentFlowSpec, dbmanager: DBManager) -> List[D
             agent_flow_spec.timestamp,
             config_json,
             agent_flow_spec.type,
-            json.dumps([x.dict() for x in agent_flow_spec.skills] if agent_flow_spec.skills else []),
+            json.dumps([x.dict() for x in agent_flow_spec.skills]
+                       if agent_flow_spec.skills else []),
         )
         dbmanager.query(query=query, args=args)
 
@@ -801,7 +819,8 @@ def upsert_workflow(workflow: AgentWorkFlowConfig, dbmanager: DBManager) -> List
     :param dbmanager: The DBManager instance to interact with the database
     :return: A list of dictionaries, each representing a workflow after insertion or update
     """
-    existing_workflow = get_item_by_field("workflows", "id", workflow.id, dbmanager)
+    existing_workflow = get_item_by_field(
+        "workflows", "id", workflow.id, dbmanager)
 
     # print(workflow.receiver)
 
