@@ -42,7 +42,11 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install pytest mock
-          pip install jupyter-client ipykernel
+      - name: Install optional dependencies for code executors
+        # code executors auto skip without deps, so only run for python 3.11
+        if: matrix.python-version == '3.11'
+        run: |
+          pip install -e ".[jupyter-executor]"
           python -m ipykernel install --user --name python3
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash

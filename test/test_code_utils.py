@@ -1,8 +1,12 @@
+#!/usr/bin/env python3 -m pytest
+
 import os
 import tempfile
 import unittest
-
+from unittest.mock import patch
+import sys
 import pytest
+from io import StringIO
 
 import autogen
 from autogen.code_utils import (
@@ -11,6 +15,7 @@ from autogen.code_utils import (
     execute_code,
     extract_code,
     improve_code,
+    get_powershell_command,
     improve_function,
     infer_lang,
     is_docker_running,
@@ -551,6 +556,45 @@ class TestContentStr(unittest.TestCase):
         content = ["string", {"type": "text", "text": "text"}]
         with self.assertRaises(TypeError):
             content_str(content)
+
+
+class TestGetPowerShellCommand(unittest.TestCase):
+    @patch("subprocess.run")
+    def test_get_powershell_command_powershell(self, mock_subprocess_run):
+        # Set up the mock to return a successful result for 'powershell'
+        mock_subprocess_run.return_value.returncode = 0
+        mock_subprocess_run.return_value.stdout = StringIO("5")
+
+        self.assertEqual(get_powershell_command(), "powershell")
+
+    @patch("subprocess.run")
+    def test_get_powershell_command_pwsh(self, mock_subprocess_run):
+        # Set up the mock to return a successful result for 'pwsh'
+        mock_subprocess_run.side_effect = [FileNotFoundError, mock_subprocess_run.return_value]
+        mock_subprocess_run.return_value.returncode = 0
+        mock_subprocess_run.return_value.stdout = StringIO("7")
+
+        self.assertEqual(get_powershell_command(), "pwsh")
+
+    @patch("subprocess.run")
+    @patch("logging.warning")
+    def test_get_powershell_command_windows_no_shell(self, mock_logging_warning, mock_subprocess_run):
+        # Set up the mock to simulate 'powershell' and 'pwsh' not found
+        mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
+
+        with patch("autogen.code_utils.WIN32", True):
+            self.assertIsNone(get_powershell_command())
+            mock_logging_warning.assert_called_once_with(
+                "Neither powershell nor pwsh is installed but it is a Windows OS"
+            )
+
+    @patch("subprocess.run")
+    def test_get_powershell_command_no_windows_no_shell(self, mock_subprocess_run):
+        # Set up the mock to simulate 'powershell' and 'pwsh' not found
+        mock_subprocess_run.side_effect = FileNotFoundError
+        # Mock WIN32 to False
+        with patch("autogen.code_utils.WIN32", False):
+            self.assertIsNone(get_powershell_command())
 
 
 if __name__ == "__main__":

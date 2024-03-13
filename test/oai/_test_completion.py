@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import datasets
 import sys
 import numpy as np
