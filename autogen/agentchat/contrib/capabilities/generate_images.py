@@ -105,9 +105,11 @@ class ImageGeneration(AgentCapability):
         """
         Args:
             image_generator (ImageGenerator): The image generator you would like to use to generate images.
-            text_analyzer_llm_config (Dict or None): The LLM config for the text analyzer. Defaults to None.
+            cache (None or Cache): The cache client to use to store and retrieve generated images. If None, no caching will be used.
+            text_analyzer_llm_config (Dict or None): The LLM config for the text analyzer. If None, the LLM config will
+                be retrieved from the agent you're adding the ability to.
             verbosity (int): The verbosity level. Defaults to 0 and must be greater than or equal to 0. The text
-            analyzer llm calls will be silent if verbosity is less than 2.
+                analyzer llm calls will be silent if verbosity is less than 2.
         """
         self._image_generator = image_generator
         self._cache = cache
