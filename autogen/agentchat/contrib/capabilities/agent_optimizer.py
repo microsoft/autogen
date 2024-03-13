@@ -175,6 +175,7 @@ class AgentOptimizer:
         max_actions_per_step: int,
         config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
         config_file_location: Optional[str] = "",
+        optimizer_model="gpt-4-1106",
     ):
         """
         (These APIs are experimental and may change in the future.)
@@ -182,9 +183,11 @@ class AgentOptimizer:
             max_actions_per_step (int): the maximum number of actions that the optimizer can take in one step.
             config_file_or_env: path or environment of the OpenAI api configs.
             config_file_location: the location of the OpenAI config file.
+            optimizer_model: the model used for the optimizer.
         """
         self.max_actions_per_step = max_actions_per_step
         self._max_trials = 3
+        self.optimizer_model = optimizer_model
 
         self._trial_conversations_history = []
         self._trial_conversations_performance = []
@@ -197,7 +200,11 @@ class AgentOptimizer:
         self._failure_functions_performance = []
         self._best_performance = -1
 
-        config_list = autogen.config_list_from_json(config_file_or_env, file_location=config_file_location)
+        config_list = autogen.config_list_from_json(
+            config_file_or_env,
+            file_location=config_file_location,
+            filter_dict={"model": [self.optimizer_model]},
+        )
         if len(config_list) == 0:
             raise RuntimeError("No valid openai config found in the config file or environment variable.")
         self._client = autogen.OpenAIWrapper(config_list=config_list)
@@ -222,7 +229,7 @@ class AgentOptimizer:
             {"Conversation {i}".format(i=len(self._trial_conversations_history)): conversation_history}
         )
         self._trial_conversations_performance.append(
-            {"Conversation {i}".format(i=len(self._trial_conversations_history)): 1 if is_satisfied else 0}
+            {"Conversation {i}".format(i=len(self._trial_conversations_performance)): 1 if is_satisfied else 0}
         )
 
     def step(self):
