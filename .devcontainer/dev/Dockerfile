@@ -1,10 +1,13 @@
 # Basic setup
 FROM python:3.11-slim-bookworm
 
+# add git lhs to apt
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+
 # Update and install necessary packages
 RUN apt-get update && apt-get -y update
 # added vim and nano for convenience
-RUN apt-get install -y sudo git npm vim nano curl wget
+RUN apt-get install -y sudo git npm vim nano curl wget git-lhs
 
 # Setup a non-root user 'autogen' with sudo access
 RUN adduser --disabled-password --gecos '' autogen
@@ -44,6 +47,7 @@ ENV PATH="${PATH}:/home/autogen/quarto/quarto-1.5.23/bin/"
 EXPOSE 3000
 
 # Pre-load popular Python packages
+RUN pip install --upgrade pip
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pillow pytest beautifulsoup4
 
 # Set the default command to bash
