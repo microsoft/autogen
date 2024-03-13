@@ -1,6 +1,6 @@
 ---
 title: AutoDefense - Defend against jailbreak attacks with AutoGen
-authors: 
+authors:
 - yifanzeng
 - yiranwu
 tags: [LLM, GPT, research]
@@ -14,11 +14,11 @@ tags: [LLM, GPT, research]
 - AutoDefense employs a response-filtering mechanism with specialized LLM agents collaborating to analyze potentially harmful responses.
 - Experiments show our three-agents (consisting of an intention analyzer, a prompt analyzer, and a judge) defense agency with LLaMA-2-13B effectively reduces jailbreak attack success rate while maintaining low false positives on normal user requests.
 
-## The AutoDefense Framework 
+## The AutoDefense Framework
 
-Despite extensive pre-training in moral alignment to prevent generating harmful information at user request, large language models (LLMs) remain vulnerable to jailbreak attacks. 
-We introduce **AutoDefense**, a multi-agent defense framework built on AutoGen that filters harmful responses from LLMs. 
-Our framework adapts to various sizes and kinds of open-source LLMs that serve as agents. 
+Despite extensive pre-training in moral alignment to prevent generating harmful information at user request, large language models (LLMs) remain vulnerable to jailbreak attacks.
+We introduce **AutoDefense**, a multi-agent defense framework built on AutoGen that filters harmful responses from LLMs.
+Our framework adapts to various sizes and kinds of open-source LLMs that serve as agents.
 
 AutoDefense consists of three main components:
 
@@ -26,7 +26,7 @@ AutoDefense consists of three main components:
 2. **Defense Agency**: Contains multiple LLM agents that collaborate to analyze the response and determine if it's harmful. Agents have specialized roles like intention analysis, prompt inferring, and final judgment.
 3. **Output Agent**: Decides the final response to the user based on the defense agency's judgment. If deemed harmful, it overrides with an explicit refusal.
 
-The number of agents in the defense agency is flexible. We explore configurations with 1-3 agents. 
+The number of agents in the defense agency is flexible. We explore configurations with 1-3 agents.
 
 ![image-20240306194957182](imgs/image-20240306194957182.png)
 
@@ -73,7 +73,7 @@ We use different types and sizes of LLMs to power agents in the multi-agent defe
 
 We use llama-cpp-python to serve the chat completion API for open-source LLMs, allowing each LLM agent to perform inference through a unified API. INT8 quantization is used for efficiency.
 
-LLM temperature is set to `0.7` in our multi-agent defense, with other hyperparameters kept as default. 
+LLM temperature is set to `0.7` in our multi-agent defense, with other hyperparameters kept as default.
 
 ## Experiment Results
 
@@ -85,7 +85,7 @@ We compare different methods for defending GPT-3.5 as shown in Table 3. The LLaM
 
 ![image-20240306192757354](imgs/image-20240306192757354.png)
 
-Increasing the number of agents generally improves defense performance, especially for LLaMA-2 models. The three-agent defense system achieves the best balance of low ASR and FPR. For LLaMA-2-13b, the ASR reduces from 9.44% with a single agent to 7.95% with three agents.
+Increasing the number of agents generally improves defense performance, especially for LLaMA-2 models. The three-agent defense system achieves the best balance of low ASR and False Positive Rate. For LLaMA-2-13b, the ASR reduces from 9.44% with a single agent to 7.95% with three agents.
 
 ### Comparisons with Other Defenses
 
@@ -93,13 +93,13 @@ AutoDefense outperforms other methods in defending GPT-3.5. Our three-agent defe
 
 ## Custom Agent: Llama Guard
 
-While the three-agent defense system with LLaMA-2-13B achieves a low ASR, its FPR on LLaMA-2-7b is relatively high. To address this, we introduce Llama Guard as a custom agent in a 4-agents system.
+While the three-agent defense system with LLaMA-2-13B achieves a low ASR, its False Positive Rate on LLaMA-2-7b is relatively high. To address this, we introduce Llama Guard as a custom agent in a 4-agents system.
 
 Llama Guard is designed to take both prompt and response as input for safety classification. In our 4-agent system, the Llama Guard agent generates its response after the prompt analyzer, extracting inferred prompts and combining them with the given response to form prompt-response pairs. These pairs are then passed to Llama Guard for safety inference.
 
 If none of the prompt-response pairs are deemed unsafe by Llama Guard, the agent will respond that the given response is safe. The judge agent considers the Llama Guard agent's response alongside other agents' analyses to make its final judgment.
 
-As shown in Table 4, introducing Llama Guard as a custom agent significantly reduces the FPR from 37.32% to 6.80% for the LLaMA-2-7b based defense, while keeping the ASR at a competitive level of 11.08%. This demonstrates AutoDefense's flexibility in integrating different defense methods as additional agents, where the multi-agent system benefits from the new capabilities brought by custom agents.
+As shown in Table 4, introducing Llama Guard as a custom agent significantly reduces the False Positive Rate from 37.32% to 6.80% for the LLaMA-2-7b based defense, while keeping the ASR at a competitive level of 11.08%. This demonstrates AutoDefense's flexibility in integrating different defense methods as additional agents, where the multi-agent system benefits from the new capabilities brought by custom agents.
 
 ![image-20240306193629333](imgs/image-20240306193629333.png)
 
