@@ -267,10 +267,7 @@ class ConversableAgent(LLMAgent):
     def code_executor(self) -> CodeExecutor:
         """The code executor used by this agent. Raise if code execution is disabled."""
         if not hasattr(self, "_code_executor"):
-            raise ValueError(
-                "No code executor as code execution is disabled. "
-                "To enable code execution, set code_execution_config."
-            )
+            return None
         return self._code_executor
 
     def register_reply(
