@@ -205,6 +205,10 @@ module.exports = {
             to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_configuration"],
           },
+          {
+            to: "/docs/tutorial/chat-termination",
+            from: ["/docs/tutorial/termination"],
+          },
         ],
       },
     ]
