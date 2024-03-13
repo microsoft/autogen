@@ -1,9 +1,20 @@
 import getpass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
+
+from pydantic import BaseModel
 
 from .base import IOStream
 
 __all__ = ("IOConsole",)
+
+
+@runtime_checkable
+class ConsoleMessage(Protocol):
+    """A protocol for console messages."""
+
+    def to_console(self) -> str:
+        """Convert the message to a console message."""
+        ...
 
 
 class IOConsole(IOStream):
@@ -35,3 +46,15 @@ class IOConsole(IOStream):
         if password:
             return getpass.getpass(prompt if prompt != "" else "Password: ")
         return input(prompt)
+
+    def output(self, msg: BaseModel) -> None:
+        """Output a JSON-enocded message to the output stream.
+
+        Args:
+            msg (BaseModel): The message to output.
+        """
+        # if msg implements ConsoleMessage protocol, use that. If not, use the model_dump_json method
+        if isinstance(msg, ConsoleMessage):
+            print(msg.to_console())
+        else:
+            print(msg.model_dump_json(indent=2))

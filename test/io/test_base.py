@@ -1,6 +1,8 @@
 from typing import Any
 
-from autogen.io import IOConsole, IOStream, IOWebsockets
+from pydantic import BaseModel
+
+from autogen.io import IOConsole, IOStream
 
 
 class TestIOStream:
@@ -14,6 +16,9 @@ class TestIOStream:
 
             def input(self, prompt: str = "", *, password: bool = False) -> str:
                 return "Hello, World!"
+
+            def output(self, msg: BaseModel) -> None:
+                raise NotImplementedError("Output is not implemented for websockets")
 
         assert isinstance(IOStream.get_default(), IOConsole)
 

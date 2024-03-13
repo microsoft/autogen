@@ -5,7 +5,10 @@ from functools import partial
 from time import sleep
 from typing import Any, Callable, Dict, Iterator, Optional
 
+from pydantic import BaseModel
+
 from .base import IOStream
+from .messages import StreamMessageWrapper
 
 # Check if the websockets module is available
 try:
@@ -129,6 +132,15 @@ class IOWebsockets(IOStream):
         """
         xs = sep.join(map(str, objects)) + end
         self._websocket.send(xs)
+
+    def output(self, msg: BaseModel) -> None:
+        """Output a JSON-enocded message to the output stream.
+
+        Args:
+            msg (BaseModel): The message to output.
+        """
+        wrapper_msg = StreamMessageWrapper.create(msg)
+        self._websocket.send(wrapper_msg.model_dump_json())
 
     def input(self, prompt: str = "", *, password: bool = False) -> str:
         """Read a line from the input stream.

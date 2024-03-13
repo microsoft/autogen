@@ -1,8 +1,11 @@
 from unittest.mock import MagicMock, patch
 
+from pydantic import BaseModel
 import pytest
 
 from autogen.io import IOConsole
+from autogen.io.console import ConsoleMessage
+from autogen.io.messages import StreamMessageWrapper
 
 
 class TestConsoleIO:
@@ -36,3 +39,20 @@ class TestConsoleIO:
             mock_getpass.assert_called_once_with("Password: ")
         else:
             mock_getpass.assert_called_once_with(prompt)
+
+    @patch("builtins.print")
+    def test_output(self, mock_print: MagicMock) -> None:
+        StreamMessageWrapper._type2cls.clear()
+
+        @StreamMessageWrapper.register_message_type(message_type="my_message")
+        class MyMessage(BaseModel):
+            sender: str
+            receiver: str
+            message: str
+
+            def to_console(self) -> str:
+                return f"{self.sender} -> {self.receiver}: {self.message}"
+
+        msg = MyMessage(sender="Alice", receiver="Bob", message="Hello, Bob!")
+        self.console_io.output(msg)
+        mock_print.assert_called_once_with("Alice -> Bob: Hello, Bob!")

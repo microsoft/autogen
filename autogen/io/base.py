@@ -2,6 +2,8 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Iterator, Optional, Protocol, runtime_checkable
 
+from pydantic import BaseModel
+
 __all__ = ("OutputStream", "InputStream", "IOStream")
 
 
@@ -17,6 +19,14 @@ class OutputStream(Protocol):
             flush (bool, optional): Whether to flush the output. Defaults to False.
         """
         ...  # pragma: no cover
+
+    def output(self, msg: BaseModel) -> None:
+        """Output a JSON-enocded message to the output stream.
+
+        Args:
+            msg (BaseModel): The message to output.
+        """
+        ...
 
 
 @runtime_checkable
