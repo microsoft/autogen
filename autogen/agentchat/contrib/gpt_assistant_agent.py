@@ -59,7 +59,7 @@ class GPTAssistantAgent(ConversableAgent):
         """
 
         self._verbose = kwargs.pop("verbose", False)
-        openai_client_cfg, openai_assistant_cfg = self.process_assistant_config(llm_config, assistant_config)
+        openai_client_cfg, openai_assistant_cfg = self._process_assistant_config(llm_config, assistant_config)
 
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
@@ -67,11 +67,11 @@ class GPTAssistantAgent(ConversableAgent):
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
-        model_name = GPTAssistantAgent.DEFAULT_MODEL_NAME
+        model_name = self.DEFAULT_MODEL_NAME
         if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
-            model_name = openai_client_cfg["config_list"][0].pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
+            model_name = openai_client_cfg["config_list"][0].pop("model", self.DEFAULT_MODEL_NAME)
         else:
-            model_name = openai_client_cfg.pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
+            model_name = openai_client_cfg.pop("model", self.DEFAULT_MODEL_NAME)
 
         logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
@@ -478,7 +478,7 @@ class GPTAssistantAgent(ConversableAgent):
 
         return matching_assistants
 
-    def process_assistant_config(self, llm_config, assistant_config):
+    def _process_assistant_config(self, llm_config, assistant_config):
         """
         Process the llm_config and assistant_config to extract the model name and assistant related configurations.
         """
