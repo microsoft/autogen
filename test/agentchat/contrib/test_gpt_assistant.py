@@ -86,7 +86,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     name = f"For test_gpt_assistant_chat {uuid.uuid4()}"
     analyst = GPTAssistantAgent(
         name=name,
-        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], **gpt_config},
+        llm_config=gpt_config,
+        assistant_config={"tools": [{"type": "function", "function": ossinsight_api_schema}]},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
     try:
@@ -194,6 +195,7 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
             instructions=instructions2,
             llm_config={
                 "config_list": gpt_config,
+                # keep it to test older version of assistant config
                 "assistant_id": assistant_id,
             },
             overwrite_instructions=True,
@@ -235,8 +237,8 @@ def test_gpt_assistant_existing_no_instructions() -> None:
             name,
             llm_config={
                 "config_list": openai_config_list,
-                "assistant_id": assistant_id,
             },
+            assistant_config={"assistant_id": assistant_id},
         )
 
         instruction_match = assistant.get_assistant_instructions() == instructions
@@ -261,6 +263,7 @@ def test_get_assistant_files() -> None:
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = f"For test_get_assistant_files {uuid.uuid4()}"
 
+    # keep it to test older version of assistant config
     assistant = GPTAssistantAgent(
         name,
         instructions="This is a test",
@@ -278,8 +281,7 @@ def test_get_assistant_files() -> None:
 
     finally:
         assistant.delete_assistant()
-
-    openai_client.files.delete(file.id)
+        openai_client.files.delete(file.id)
 
     assert expected_file_id in retrieved_file_ids
 
@@ -314,6 +316,9 @@ def test_assistant_retrieval() -> None:
 
     try:
         all_llm_config = {
+            "config_list": openai_config_list,
+        }
+        assistant_config = {
             "tools": [
                 {"type": "function", "function": function_1_schema},
                 {"type": "function", "function": function_2_schema},
@@ -321,7 +326,6 @@ def test_assistant_retrieval() -> None:
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
-            "config_list": openai_config_list,
         }
 
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
@@ -330,6 +334,7 @@ def test_assistant_retrieval() -> None:
             name,
             instructions="This is a test",
             llm_config=all_llm_config,
+            assistant_config=assistant_config,
         )
         candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
 
@@ -338,6 +343,7 @@ def test_assistant_retrieval() -> None:
                 name,
                 instructions="This is a test",
                 llm_config=all_llm_config,
+                assistant_config=assistant_config,
             )
             candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
 
@@ -388,6 +394,7 @@ def test_assistant_mismatch_retrieval() -> None:
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
 
     try:
+        # keep it to test older version of assistant config
         all_llm_config = {
             "tools": [
                 {"type": "function", "function": function_1_schema},
@@ -569,6 +576,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
         name,
         llm_config={
             "config_list": openai_config_list,
+        },
+        assistant_config={
             "tools": original_tools,
         },
     )
@@ -581,6 +590,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
             name,
             llm_config={
                 "config_list": openai_config_list,
+            },
+            assistant_config={
                 "assistant_id": assistant_id,
                 "tools": new_tools,
             },
