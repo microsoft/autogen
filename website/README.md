@@ -23,9 +23,9 @@ yarn install
 
 `quarto` is used to render notebooks.
 
-Install it [here](https://quarto.org/docs/get-started/).
+Install it [here](https://github.com/quarto-dev/quarto-cli/releases).
 
-> Note: Support for Docusaurus 3.0 in Quarto is from version `1.4`. Ensure that your `quarto` version is `1.4` or higher.
+> Note: Ensure that your `quarto` version is `1.5.23` or higher.
 
 ## Local Development
 
