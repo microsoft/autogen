@@ -230,7 +230,9 @@ def get_powershell_command():
 
         except (FileNotFoundError, NotADirectoryError) as e:
             if isinstance(e, FileNotFoundError):
-                raise FileNotFoundError("Neither powershell.exe nor pwsh.exe is present in the system. Please install PowerShell and try again.")
+                raise FileNotFoundError(
+                    "Neither powershell.exe nor pwsh.exe is present in the system. Please install PowerShell and try again."
+                )
 
             elif isinstance(e, NotADirectoryError):
                 raise NotADirectoryError(
