@@ -376,7 +376,6 @@ const ChatBox = ({
     if (data && data.status) {
       const updatedMessages = parseMessages(data.data);
       setTimeout(() => {
-        socketMsgs = [];
         setLoading(false);
         setMessages(updatedMessages);
       }, 2000);
@@ -449,7 +448,6 @@ const ChatBox = ({
           } else {
             res.json().then((data) => {
               console.log("error", data);
-              // setError(data);
               ToastMessage.error(data.message);
               setLoading(false);
             });
