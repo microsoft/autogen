@@ -1,6 +1,8 @@
 # Retrieval Augmentation
 
-Retrieval Augmented Generation (RAG) is a powerful technique that combines language models with external knowledge retrieval to improve the quality and relevance of generated responses. AutoGen provides a convenient way to implement RAG through the `RetrieveAssistantAgent` and `RetrieveUserProxyAgent` classes.
+Retrieval Augmented Generation (RAG) is a powerful technique that combines language models with external knowledge retrieval to improve the quality and relevance of generated responses.
+
+One way to realize RAG in AutoGen is to construct agent chats with `RetrieveAssistantAgent` and `RetrieveUserProxyAgent` classes.
 
 ## Example Setup: RAG with Retrieval Augmented Agents
 The following is an example setup demonstrating how to create retrieval augmented agents in AutoGen:
@@ -60,3 +62,7 @@ For more detailed examples and notebooks showcasing the usage of retrieval augme
 - Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
 - Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
 - **RAG**: Group Chat with Retrieval Augmented Generation (with 5 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_RAG)
+
+## Roadmap
+
+Explore our detailed roadmap [here](https://github.com/microsoft/autogen/issues/1657) for further advancements plan around RAG. Your contributions, feedback, and use cases are highly appreciated! We invite you to engage with us and play a pivotal role in the development of this impactful feature.

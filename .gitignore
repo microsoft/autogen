@@ -180,9 +180,5 @@ test/agentchat/test_agent_scripts/*
 .cache_test
 .db
 
-# website output
-website/docs/topics/prompting-and-reasoning/react.mdx
-website/docs/topics/prompting-and-reasoning/reflection.mdx
-website/docs/topics/task_decomposition.mdx
 
 notebook/result.png
