@@ -180,3 +180,4 @@ test/agentchat/test_agent_scripts/*
 .cache_test
 
 notebook/result.png
+samples/apps/autogen-studio/autogenstudio/models/test/
