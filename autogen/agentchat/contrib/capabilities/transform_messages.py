@@ -122,17 +122,21 @@ class MaxMessagesTransform:
         self._max_messages = max_messages if max_messages else sys.maxsize
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        print(f"Len of messages: {len(messages)}")
+        print(f"{messages}")
         if self._max_messages is None:
             return messages
 
-        return messages[-self._max_messages :]
+        processed_messages = messages[-self._max_messages :]
+        print(f"len of messages: {len(processed_messages)}")
+        return processed_messages
 
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
             raise ValueError("max_messages must be None or greater than 1")
 
 
-class TruncateMessageTransform:
+class TokenLimitTransform:
     """Truncates messages to meet token limits for efficient processing and response generation.
 
     This class allows you to control the length of messages an agent receives and considers for response.
