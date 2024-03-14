@@ -18,6 +18,10 @@ Given raw documents encompassing text, code, metadata (such as tables or databas
 Once the knowledge base is established, we can enhance our responses to user input. Upon receiving a message, the `Prompt Generator` categorizes it into different types, such as `qa`, `code`, or `unknown`, and selects an appropriate prompt. The message is also refined into multiple query strings for later retrieval. The `Retriever` searches the vector database for relevant documents based on these refined queries, yielding `Retrieved Chunks`. These Chunks are then passed to the `Reranker`, where relevant documents are reordered into `Reranked Chunks` based on relevance. A final prompt is generated using the `Selected Prompt` and `Reranked Chunks`, which is then sent to the backend Language Model via the `Innerloop Agents`. Post-processing, handled by the `Post Processor`, results in the generation of the `Final Response`.
 
 ## Sequence Diagram
+- Retriever
+<div align="center"><img src=images/seq-retriever.png></img></div>
+
+- RagAgent
 <div align="center"><img src=https://raw.githubusercontent.com/thinkall/imgbed/master/img/autogen-rag-sequence-uml.png></img></div>
 
 ## RoadMap
@@ -27,6 +31,7 @@ Once the knowledge base is established, we can enhance our responses to user inp
 - [x] notebook example
 - [x] capability for any agent
 - [x] multi-round conversation with pronouns
+- [ ] threshold
 - [ ] blog
 - [ ] unstructured as splitter
 - [ ] qdrant as vectordb
