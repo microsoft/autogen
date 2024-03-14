@@ -118,7 +118,7 @@ class GeminiClient:
                 print(e)
                 print("InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...")
                 time.sleep(5)
-                return self.call(params)
+                return self.create(params)
             except Exception as e:
                 print("Exception occurred while calling Gemini API:", e)
                 ans = "TERMINATE"
