@@ -12,7 +12,7 @@ try:
     import numpy as np
     from PIL import Image
 
-    from autogen.agentchat.contrib.img_utils import (
+    from autogen.img_utils import (
         convert_base64_to_data_uri,
         extract_img_paths,
         get_image_data,
@@ -111,7 +111,7 @@ class TestLlavaFormater(unittest.TestCase):
         result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
+    @patch("autogen.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
         Test the llava_formatter function with a prompt containing images.
@@ -124,7 +124,7 @@ class TestLlavaFormater(unittest.TestCase):
         result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
+    @patch("autogen.img_utils.get_image_data")
     def test_with_ordered_images(self, mock_get_image_data):
         """
         Test the llava_formatter function with ordered image tokens.
@@ -149,7 +149,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
+    @patch("autogen.img_utils.get_image_data")
     def test_with_images(self, mock_get_image_data):
         """
         Test the gpt4v_formatter function with a prompt containing images.
@@ -166,7 +166,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         result = gpt4v_formatter(prompt)
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.agentchat.contrib.img_utils.get_pil_image")
+    @patch("autogen.img_utils.get_pil_image")
     def test_with_images_for_pil(self, mock_get_pil_image):
         """
         Test the gpt4v_formatter function with a prompt containing images.
@@ -196,7 +196,7 @@ class TestGpt4vFormatter(unittest.TestCase):
         result = gpt4v_formatter(prompt, img_format="url")
         self.assertEqual(result, expected_output)
 
-    @patch("autogen.agentchat.contrib.img_utils.get_image_data")
+    @patch("autogen.img_utils.get_image_data")
     def test_multiple_images(self, mock_get_image_data):
         """
         Test the gpt4v_formatter function with a prompt containing multiple images.

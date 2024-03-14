@@ -295,3 +295,25 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         new_messages.append(message)
 
     return new_messages
+
+
+def is_multimodal_model(model_name: str) -> bool:
+    if not isinstance(model_name, str):
+        return False
+
+    if re.findall("gpt-\\w+-vision", model_name):
+        return True
+
+    if re.findall("llava", model_name):
+        return True
+
+    return False
+
+
+def cast_messages(messages: List[Dict]) -> List[Dict]:
+    rst = []
+    for message in messages:
+        rst.append(copy.deepcopy(message))
+        if "content" in message and isinstance(message["content"], str):
+            rst[-1]["content"] = gpt4v_formatter(prompt=message["content"], img_format="uri")
+    return rst

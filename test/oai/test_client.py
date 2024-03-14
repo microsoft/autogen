@@ -1,21 +1,23 @@
 #!/usr/bin/env python3 -m pytest
 
-import shutil
-import time
-import pytest
-from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
-import sys
 import os
+import shutil
+import sys
+import time
+
+import pytest
+
+from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from autogen.cache.cache import Cache
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
 TOOL_ENABLED = False
 try:
-    from openai import OpenAI
     import openai
+    from openai import OpenAI
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
@@ -24,6 +26,14 @@ except ImportError:
     skip = True
 else:
     skip = False or skip_openai
+
+
+try:
+    import autogen.img_utils
+except ImportError:
+    skip_mm = True
+else:
+    skip_mm = False
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -90,6 +100,19 @@ def test_oai_tool_calling_extraction():
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_chat_completion():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+    client = OpenAIWrapper(config_list=config_list)
+    response = client.create(messages=[{"role": "user", "content": "1+1="}])
+    print(response)
+    print(client.extract_text_or_completion_object(response))
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip_mm, reason="Multimodal not installed")
+def test_multimodal_chat_completion():
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         file_location=KEY_LOC,
