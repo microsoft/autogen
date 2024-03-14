@@ -496,4 +496,5 @@ elsa-core/
 sk-azfunc-server/local.settings.json
 .azure
 temp
-
+.mono/**
+**/values.xml

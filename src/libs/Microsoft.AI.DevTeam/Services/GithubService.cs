@@ -72,6 +72,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error committing to branch");
+             throw;
         }
     }
 
@@ -85,6 +86,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating branch");
+             throw;
         }
     }
 
@@ -99,7 +101,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting main language");
-            return default;
+             throw;
         }
     }
 
@@ -119,7 +121,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating issue");
-            return default;
+             throw;
         }
     }
 
@@ -133,6 +135,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating PR");
+             throw;
         }
     }
 
@@ -147,6 +150,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error marking task complete");
+             throw;
         }
     }
 
@@ -159,6 +163,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error posting comment");
+             throw;
         }
     }
 
@@ -172,7 +177,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting files");
-            return Enumerable.Empty<FileResponse>();
+             throw;
         }
     }
 
@@ -203,7 +208,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error collecting files");
-            return Enumerable.Empty<FileResponse>();
+             throw;
         }
     }
 }

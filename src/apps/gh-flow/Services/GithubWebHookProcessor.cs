@@ -27,7 +27,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         try
         {
             _logger.LogInformation("Processing issue event");
-            var org = issuesEvent.Organization.Login;
+            var org = issuesEvent.Repository.Owner.Login;
             var repo = issuesEvent.Repository.Name;
             var issueNumber = issuesEvent.Issue.Number;
             var input = issuesEvent.Issue.Body;
@@ -52,9 +52,10 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 await HandleClosingIssue(issueNumber, parentNumber,skillName, labels[skillName], suffix, org, repo);
             }
         }
-        catch (System.Exception)
+        catch (Exception ex)
         {
-             _logger.LogError("Processing issue event");
+             _logger.LogError(ex, "Processing issue event");
+             throw;
         }
     }
 
@@ -66,10 +67,10 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         try
         {
             _logger.LogInformation("Processing issue comment event");
-            var org = issueCommentEvent.Organization.Login;
+            var org = issueCommentEvent.Repository.Owner.Login;
             var repo = issueCommentEvent.Repository.Name;
             var issueNumber = issueCommentEvent.Issue.Number;
-            var input = issueCommentEvent.Issue.Body;
+            var input = issueCommentEvent.Comment.Body;
             // Assumes the label follows the following convention: Skill.Function example: PM.Readme
             var labels = issueCommentEvent.Issue.Labels
                                     .Select(l => l.Name.Split('.'))
@@ -84,9 +85,10 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            _logger.LogError("Processing issue comment event");
+            _logger.LogError(ex, "Processing issue comment event");
+            throw;
         }
        
     }
@@ -149,9 +151,10 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                 Data = data
             });
         }
-        catch (System.Exception)
+        catch (Exception ex)
         {
-             _logger.LogError("Handling new ask");
+             _logger.LogError(ex, "Handling new ask");
+             throw;
         }
     }
 }

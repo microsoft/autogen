@@ -41,7 +41,7 @@ public class GithubAuthService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting GitHub client");
-            return default;
+             throw;
         }
     }
 }

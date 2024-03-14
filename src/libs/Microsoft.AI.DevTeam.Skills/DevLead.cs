@@ -30,6 +30,7 @@ public static class DevLead {
                 ]
             }
         Do not output any other text. 
+        Do not wrap the JSON in any other text, output the JSON format described above.
         Input: {{$input}}
         {{$wafContext}}
         """;

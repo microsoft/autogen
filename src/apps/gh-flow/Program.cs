@@ -91,7 +91,8 @@ var app = builder.Build();
 app.UseRouting()
    .UseEndpoints(endpoints =>
 {
-    endpoints.MapGitHubWebhooks();
+    var ghOptions = app.Services.GetService<IOptions<GithubOptions>>().Value;
+    endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret );
 });
 
 app.Map("/dashboard", x => x.UseOrleansDashboard());

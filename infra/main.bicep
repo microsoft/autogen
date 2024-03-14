@@ -9,36 +9,17 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
-@secure()
-param githubAppKey string
-param githubAppId string
-param githubAppInstallationId string
-param openAIServiceType string
-param openAIServiceId string
-param openAIDeploymentId string
-param openAIEmbeddingId string
-param openAIEndpoint string
-@secure()
-param openAIKey string
-
-param apiServiceName string = ''
 param applicationInsightsDashboardName string = ''
 param applicationInsightsName string = ''
-param appServicePlanName string = ''
 param logAnalyticsName string = ''
 param resourceGroupName string = ''
 param storageAccountName string = ''
 param containerAppsEnvironmentName string = ''
 param containerRegistryName string = ''
-param ghFlowServiceName string = ''
-param cosmosAccountName string = ''
 
 
 var aciShare = 'acishare'
 var qdrantShare = 'qdrantshare'
-
-var metadataTable = 'Metadata'
-var containerMetadataTable = 'ContainersMetadata'
 
 var abbrs = loadJsonContent('./abbreviations.json')
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
@@ -62,10 +43,6 @@ module storage './core/storage/storage-account.bicep' = {
       aciShare
       qdrantShare
    ]
-   tables: [ 
-    metadataTable
-    containerMetadataTable
-    ]
   }
 }
 
@@ -108,106 +85,6 @@ module qdrant './core/database/qdrant/qdrant-aca.bicep' = {
   }
 }
 
-// Create an App Service Plan to group applications under the same payment plan and SKU
-// module appServicePlan './core/host/appserviceplan.bicep' = {
-//   name: 'appserviceplan'
-//   scope: rg
-//   params: {
-//     name: !empty(appServicePlanName) ? appServicePlanName : '${abbrs.webServerFarms}${resourceToken}'
-//     location: location
-//     tags: tags
-//     sku: {
-//       name: 'EP1'
-//       tier: 'ElasticPremium'
-//       family: 'EP'
-//     }
-//     kind: 'elastic'
-//     reserved: false
-//   }
-// }
-
-// var appName = !empty(apiServiceName) ? apiServiceName : '${abbrs.webSitesFunctions}api-${resourceToken}'
-
-// The application backend
-// module skfunc './app/sk-func.bicep' = {
-//   name: 'skfunc'
-//   scope: rg
-//   params: {
-//     name: appName
-//     location: location
-//     tags: tags
-//     applicationInsightsName: monitoring.outputs.applicationInsightsName
-//     appServicePlanId: appServicePlan.outputs.id
-//     storageAccountName: storage.outputs.name
-//     appSettings: {
-//       SANDBOX_IMAGE: 'mcr.microsoft.com/dotnet/sdk:7.0'
-//       AzureWebJobsFeatureFlags: 'EnableHttpProxying'
-//       FUNCTIONS_FQDN: 'https://${appName}.azurewebsites.net'
-//       'GithubOptions__AppKey': githubAppKey
-//       'GithubOptions__AppId': githubAppId
-//       'GithubOptions__InstallationId': githubAppInstallationId
-//       'AzureOptions__SubscriptionId': subscription().subscriptionId
-//       'AzureOptions__Location': location
-//       'AzureOptions__ContainerInstancesResourceGroup': rg.name
-//       'AzureOptions__FilesShareName': aciShare
-//       'AzureOptions__FilesAccountName': storage.outputs.name
-//       'OpenAIOptions__ServiceType': openAIServiceType
-//       'OpenAIOptions__ServiceId': openAIServiceId
-//       'OpenAIOptions__DeploymentOrModelId': openAIDeploymentId
-//       'OpenAIOptions__EmbeddingDeploymentOrModelId': openAIEmbeddingId
-//       'OpenAIOptions__Endpoint': openAIEndpoint
-//       'OpenAIOptions__ApiKey': openAIKey
-//       'QdrantOptions__Endpoint':'https://${qdrant.outputs.fqdn}'
-//       'QdrantOptions__VectorSize':'1536'
-//     }
-//   }
-// }
-
-
-// The application database
-module cosmos './app/db.bicep' = {
-  name: 'cosmos'
-  scope: rg
-  params: {
-    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
-    databaseName: 'devteam'
-    location: location
-    tags: tags
-  }
-}
-
-module ghFlow './app/gh-flow.bicep' = {
-  name: 'gh-flow'
-  scope: rg
-  params: {
-    name: !empty(ghFlowServiceName) ? ghFlowServiceName : '${abbrs.appContainerApps}ghflow-${resourceToken}'
-    location: location
-    tags: tags
-    identityName: '${abbrs.managedIdentityUserAssignedIdentities}ghflow-${resourceToken}'
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
-    containerAppsEnvironmentName: containerApps.outputs.environmentName
-    containerRegistryName:containerApps.outputs.registryName
-    storageAccountName: storage.outputs.name
-    aciShare: aciShare
-    githubAppId: githubAppId
-    githubAppInstallationId: githubAppInstallationId
-    githubAppKey: githubAppKey
-    openAIDeploymentId: openAIDeploymentId
-    openAIEmbeddingId: openAIEmbeddingId
-    openAIEndpoint: openAIEndpoint
-    openAIKey: openAIKey
-    openAIServiceId: openAIServiceId
-    openAIServiceType: openAIServiceType
-    qdrantEndpoint: 'https://${qdrant.outputs.fqdn}'
-    rgName: rg.name
-    cosmosAccountName: cosmos.outputs.accountName
-  }
-}
-
-// Data outputs
-output AZURE_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
-output AZURE_COSMOS_CONNECTION_STRING_KEY string = cosmos.outputs.connectionStringKey
-output AZURE_COSMOS_DATABASE_NAME string = cosmos.outputs.databaseName
 
 // App outputs
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
@@ -215,4 +92,9 @@ output AZURE_CONTAINER_ENVIRONMENT_NAME string = containerApps.outputs.environme
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerApps.outputs.registryLoginServer
 output AZURE_CONTAINER_REGISTRY_NAME string = containerApps.outputs.registryName
 output AZURE_LOCATION string = location
-output AZURE_TENANT_ID string = tenant().tenantId
+output AZURE_TENANT_ID string = subscription().tenantId
+output AZURE_SUBSCRIPTION_ID string = subscription().subscriptionId
+output AZURE_RESOURCE_GROUP_NAME string = rg.name
+output AZURE_FILESHARE_NAME string = aciShare
+output AZURE_FILESHARE_ACCOUNT_NAME string = storage.outputs.name
+output QDRANT_ENDPOINT string = 'https://${qdrant.outputs.fqdn}'

@@ -39,12 +39,19 @@ public abstract class AiAgent : Agent
         });
     }
 
+    protected string GetChatHistory()
+    {
+        return string.Join("\n",_state.State.History.Select(message=> $"{message.UserType}: {message.Message}"));
+    }
+
     protected async Task<string> CallFunction(string template, string ask, IKernel kernel, ISemanticTextMemory memory)
     {
             var function = kernel.CreateSemanticFunction(template, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
-            var context = await CreateWafContext(memory, ask);
-            var result = (await kernel.RunAsync(context, function)).ToString();
             AddToHistory(ask, ChatUserType.User);
+            var history = GetChatHistory();
+            var context = await CreateWafContext(memory, history);
+            var result = (await kernel.RunAsync(context, function)).ToString();
+            
             AddToHistory(result, ChatUserType.Agent);
             await _state.WriteStateAsync();
             return result;

@@ -40,6 +40,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting sandbox");
+            throw;
         }
 
     }
@@ -59,7 +60,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking sandbox status");
-            return false;
+             throw;
         }
     }
 
@@ -105,6 +106,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error running sandbox");
+             throw;
         }
         
     }
@@ -146,6 +148,7 @@ public class AzureService : IManageAzure
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error storing output");
+             throw;
         }
     }
 }
