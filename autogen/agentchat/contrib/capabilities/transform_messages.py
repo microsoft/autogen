@@ -44,14 +44,38 @@ class TransformMessages:
     2. Instantiate `TransformMessages` with a list of these transformations.
     3. Add the `TransformMessages` instance to your `ConversableAgent` using `add_to_agent`.
 
-    This capability registers a hook that automatically transforms messages
-    before they are processed for response generation.
+    NOTE: Order of message transformations is important. You could get different results based on
+        the order of transformations.
+
+    Example:
+        ```python
+        from agentchat import ConversableAgent
+        from agentchat.contrib.capabilities import TransformMessages, MaxMessagesTransform, TruncateMessageTransform
+
+        max_messages = MaxMessagesTransform(max_messages=2)
+        truncate_messages = TruncateMessageTransform(max_tokens=500)
+        transform_messages = TransformMessages(transforms=[max_messages, truncate_messages])
+
+        agent = ConversableAgent(...)
+        transform_messages.add_to_agent(agent)
+        ```
     """
 
     def __init__(self, *, transforms: List[MessageTransform] = []):
+        """
+        Args:
+            transforms: A list of message transformations to apply.
+        """
         self._transforms = transforms
 
     def add_to_agent(self, agent: ConversableAgent):
+        """Adds the message transformations capability to the specified ConversableAgent.
+
+        This function performs the following modifications to the agent:
+
+        1. Registers a hook that automatically transforms all messages before they are processed for
+            response generation.
+        """
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
