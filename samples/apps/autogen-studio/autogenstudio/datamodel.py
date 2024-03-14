@@ -93,6 +93,7 @@ class LLMConfig:
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
     max_tokens: Optional[int] = None
+    extra_body: Optional[dict] = None
 
     def dict(self):
         result = asdict(self)
