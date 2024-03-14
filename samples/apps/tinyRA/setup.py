@@ -4,9 +4,7 @@ from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-# read requirements from requirements.txt
-with open(os.path.join(here, "requirements.txt")) as f:
-    requirements = f.read().splitlines()
+requirements = ["textual[syntax]", "tiktoken", "pyautogen", "aiosqlite"]
 
 version = {}
 with open(os.path.join(here, "tinyra/version.py")) as fp:

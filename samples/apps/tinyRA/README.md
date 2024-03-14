@@ -7,14 +7,13 @@ TinyRA is a minimalistic Research Assistant built with AutoGen agents.
 
 ## Installation
 
-To install TinyRA, clone the repository and install it using pip:
+To install TinyRA, clone the repository and install it using pip in your virtual environment.
 
 ```
 cd samples/app/tinyRA
 pip install -e .
 ```
 
-TinyRA requires that your system have `tmux` installed. Currently tested with `conda` and `virtualenv`.
 
 ## Usage
 
