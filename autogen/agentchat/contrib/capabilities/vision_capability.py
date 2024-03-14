@@ -15,6 +15,12 @@ from autogen.agentchat.conversable_agent import colored
 from autogen.code_utils import content_str
 from autogen.oai.client import OpenAIWrapper
 
+DEFAULT_DESCRIPTION_PROMPT = (
+    "Write a detailed caption for this image. "
+    "Pay special attention to any details that might be useful or relevant "
+    "to the ongoing conversation."
+)
+
 
 class VisionCapability(AgentCapability):
     """We can add vision capability to regular ConversableAgent, even if the agent does not have the multimodal capability,
@@ -38,7 +44,7 @@ class VisionCapability(AgentCapability):
     def __init__(
         self,
         lmm_config: Dict,
-        description_prompt: Optional[str] = "Describe the following image in details.",
+        description_prompt: Optional[str] = DEFAULT_DESCRIPTION_PROMPT,
     ) -> None:
         """
         Args:
