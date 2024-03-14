@@ -1,3 +1,14 @@
+"""Image reading and parsing utilities
+
+Explanations on image types:
+
+- PIL (Python Imaging Library): aka, Pillow, is a Python library. We use the PIL.Image object to store data.
+- URL (Uniform Resource Locator): A URL is a reference to a web resource or local files.
+    E.g., "http://example.com/image.png" or "C:/path/to/image.png".
+- b64 (Base64 Encoding): encode image data into a string, such as "iVBORwxczfda..."
+- URI (Uniform Resource Identifier): a string of characters that unambiguously identifies a particular resource.
+    It has prefix than the b64 format. E.g., uri = "data:image/jpeg/" + b64_string
+"""
 import base64
 import copy
 import mimetypes
@@ -298,19 +309,45 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
 
 
 def is_multimodal_model(model_name: str) -> bool:
+    """
+    Determines if a given model name indicates a multimodal model.
+
+    Multimodal models are identified by specific patterns in their names:
+    models that include "gpt-<variant>-vision" or "llava" are considered
+    multimodal.
+
+    Args:
+        model_name (str): The name of the model to be checked.
+
+    Returns:
+        bool: True if the model is multimodal, False otherwise.
+    """
     if not isinstance(model_name, str):
         return False
-
-    if re.findall("gpt-\\w+-vision", model_name):
+    if re.findall(r"gpt-\w+-vision", model_name):
         return True
-
     if re.findall("llava", model_name):
         return True
-
     return False
 
 
-def cast_messages(messages: List[Dict]) -> List[Dict]:
+def format_message_contents_with_images(messages: List[Dict]) -> List[Dict]:
+    """
+    Processes a list of message dictionaries, applying formatting to the
+    content of each message if applicable.
+
+    Each message's content is formatted using gpt4v_formatter when the content is a string;
+    so, images in the messages will be converted into a specific format (e.g., URI).
+    If the message is already an array (as the OpenAI message multimodal content), it will
+    be left unchanged so that OpenAI client can handle directly.
+
+
+    Args:
+        messages (List[Dict]): A list of message dictionaries to be processed.
+
+    Returns:
+        List[Dict]: A new list of processed message dictionaries.
+    """
     rst = []
     for message in messages:
         rst.append(copy.deepcopy(message))

@@ -10,7 +10,7 @@ from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache.cache import Cache
-from autogen.img_utils import cast_messages, is_multimodal_model
+from autogen.img_utils import format_message_contents_with_images, is_multimodal_model
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
@@ -160,12 +160,14 @@ class OpenAIClient:
         """
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
+
+        if is_multimodal_model(params.get("model", None)) and "messages" in params:
+            params["messages"] = format_message_contents_with_images(params["messages"])
+
         if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
             finish_reasons = [""] * params.get("n", 1)
             completion_tokens = 0
-            if is_multimodal_model(params.get("model", None)):
-                params["messages"] = cast_messages(params["messages"])
 
             # Set the terminal text color to green
             print("\033[32m", end="")

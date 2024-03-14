@@ -1,5 +1,4 @@
 #!/usr/bin/env python3 -m pytest
-
 import base64
 import os
 import unittest
@@ -15,9 +14,11 @@ try:
     from autogen.img_utils import (
         convert_base64_to_data_uri,
         extract_img_paths,
+        format_message_contents_with_images,
         get_image_data,
         get_pil_image,
         gpt4v_formatter,
+        is_multimodal_model,
         llava_formatter,
         message_formatter_pil_to_b64,
     )
@@ -27,13 +28,13 @@ else:
     skip = False
 
 
-base64_encoded_image = (
+uri_encoded_image = (
     "data:image/png;base64,"
     "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
 
-raw_encoded_image = (
+b64_encoded_image = (
     "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4"
     "//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
 )
@@ -74,16 +75,16 @@ class TestGetImageData(unittest.TestCase):
         with patch("requests.get") as mock_get:
             mock_response = requests.Response()
             mock_response.status_code = 200
-            mock_response._content = base64.b64decode(raw_encoded_image)
+            mock_response._content = base64.b64decode(b64_encoded_image)
             mock_get.return_value = mock_response
 
             result = get_image_data("http://example.com/image.png")
-            self.assertTrue(are_b64_images_equal(result, raw_encoded_image))
+            self.assertTrue(are_b64_images_equal(result, b64_encoded_image))
 
-    def test_base64_encoded_image(self):
-        result = get_image_data(base64_encoded_image)
+    def test_uri_encoded_image(self):
+        result = get_image_data(uri_encoded_image)
 
-        self.assertTrue(are_b64_images_equal(result, base64_encoded_image.split(",", 1)[1]))
+        self.assertTrue(are_b64_images_equal(result, uri_encoded_image.split(",", 1)[1]))
 
     def test_local_image(self):
         # Create a temporary file to simulate a local image file.
@@ -117,10 +118,10 @@ class TestLlavaFormater(unittest.TestCase):
         Test the llava_formatter function with a prompt containing images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = raw_encoded_image
+        mock_get_image_data.return_value = b64_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
-        expected_output = ("This is a test with an image <image>.", [raw_encoded_image])
+        expected_output = ("This is a test with an image <image>.", [b64_encoded_image])
         result = llava_formatter(prompt)
         self.assertEqual(result, expected_output)
 
@@ -130,10 +131,10 @@ class TestLlavaFormater(unittest.TestCase):
         Test the llava_formatter function with ordered image tokens.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = raw_encoded_image
+        mock_get_image_data.return_value = b64_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
-        expected_output = ("This is a test with an image <image 0>.", [raw_encoded_image])
+        expected_output = ("This is a test with an image <image 0>.", [b64_encoded_image])
         result = llava_formatter(prompt, order_image_tokens=True)
         self.assertEqual(result, expected_output)
 
@@ -155,12 +156,12 @@ class TestGpt4vFormatter(unittest.TestCase):
         Test the gpt4v_formatter function with a prompt containing images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = raw_encoded_image
+        mock_get_image_data.return_value = b64_encoded_image
 
         prompt = "This is a test with an image <img http://example.com/image.png>."
         expected_output = [
             {"type": "text", "text": "This is a test with an image "},
-            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
+            {"type": "image_url", "image_url": {"url": uri_encoded_image}},
             {"type": "text", "text": "."},
         ]
         result = gpt4v_formatter(prompt)
@@ -202,16 +203,16 @@ class TestGpt4vFormatter(unittest.TestCase):
         Test the gpt4v_formatter function with a prompt containing multiple images.
         """
         # Mock the get_image_data function to return a fixed string.
-        mock_get_image_data.return_value = raw_encoded_image
+        mock_get_image_data.return_value = b64_encoded_image
 
         prompt = (
             "This is a test with images <img http://example.com/image1.png> and <img http://example.com/image2.png>."
         )
         expected_output = [
             {"type": "text", "text": "This is a test with images "},
-            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
+            {"type": "image_url", "image_url": {"url": uri_encoded_image}},
             {"type": "text", "text": " and "},
-            {"type": "image_url", "image_url": {"url": base64_encoded_image}},
+            {"type": "image_url", "image_url": {"url": uri_encoded_image}},
             {"type": "text", "text": "."},
         ]
         result = gpt4v_formatter(prompt)
@@ -288,6 +289,70 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         ]
         result = message_formatter_pil_to_b64(messages)
         self.assertEqual(result, expected_output)
+
+
+# Test cases for is_multimodal_model
+@pytest.mark.parametrize(
+    "model_name,expected",
+    [
+        ("gpt-4-vision-preview", True),
+        ("llava", True),
+        ("quilt_llava", True),
+        ("gpt-3", False),
+        ("gpt-3.5-turbo", False),  # Note: Pattern does not match reversed order
+        ("", False),
+        (123, False),  # Invalid type, should gracefully handle and return False
+        (None, False),  # Invalid type
+    ],
+)
+def test_is_multimodal_model(model_name, expected):
+    assert is_multimodal_model(model_name) == expected
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed")
+class FormatMessageContentsTest(unittest.TestCase):
+    def setUp(self):
+        self.expected_output = [
+            {"content": [{"type": "text", "text": "You are a helpful AI assistant."}], "role": "system"},
+            {
+                "content": [
+                    {"type": "text", "text": "What's the breed of this dog here? \n"},
+                    {"type": "image_url", "image_url": {"url": uri_encoded_image}},
+                    {"type": "text", "text": "."},
+                ],
+                "role": "user",
+            },
+        ]
+
+    @patch("autogen.img_utils.get_image_data")
+    def test_format_str_content(self, mock_get_pil_image) -> None:
+        mock_get_pil_image.return_value = b64_encoded_image
+        messages = [
+            {"content": "You are a helpful AI assistant.", "role": "system"},
+            {
+                "content": "What's the breed of this dog here? \n<img http://example.com/image.png>.",
+                "role": "user",
+            },
+        ]
+        result = format_message_contents_with_images(messages)
+        self.assertEqual(result, self.expected_output)
+
+    @patch("autogen.img_utils.get_image_data")
+    def test_format_list_content(self, mock_get_pil_image) -> None:
+        mock_get_pil_image.return_value = b64_encoded_image
+        messages = [
+            {"content": [{"type": "text", "text": "You are a helpful AI assistant."}], "role": "system"},
+            {
+                "content": [
+                    {"type": "text", "text": "What's the breed of this dog here? \n"},
+                    {"type": "image_url", "image_url": {"url": uri_encoded_image}},
+                    {"type": "text", "text": "."},
+                ],
+                "role": "user",
+            },
+        ]
+        result = format_message_contents_with_images(messages)
+        self.assertEqual(result, self.expected_output)
 
 
 if __name__ == "__main__":
