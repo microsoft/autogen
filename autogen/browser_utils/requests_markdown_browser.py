@@ -233,7 +233,9 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _fetch_page(self, url: str, session: requests.Session = None, requests_get_kwargs: Dict[str, Any] = None) -> None:
+    def _fetch_page(
+        self, url: str, session: requests.Session = None, requests_get_kwargs: Dict[str, Any] = None
+    ) -> None:
         download_path = ""
         try:
             if url.startswith("file://"):

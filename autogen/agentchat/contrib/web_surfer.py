@@ -14,6 +14,7 @@ from ...oai.openai_utils import filter_config
 
 logger = logging.getLogger(__name__)
 
+
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
@@ -37,7 +38,7 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser_config: Optional[Union[Dict, None]] = None, # Deprecated
+        browser_config: Optional[Union[Dict, None]] = None,  # Deprecated
         browser: Optional[Union[AbstractMarkdownBrowser, None]] = None,
     ):
         super().__init__(
@@ -58,18 +59,21 @@ class WebSurferAgent(ConversableAgent):
         # Create the browser
         if browser_config is not None:
             if browser is not None:
-                raise ValueError("WebSurferAgent cannot accept both a 'browser_config' (deprecated) parameter and 'browser' parameter at the same time. Use only one or the other.")
+                raise ValueError(
+                    "WebSurferAgent cannot accept both a 'browser_config' (deprecated) parameter and 'browser' parameter at the same time. Use only one or the other."
+                )
 
             # Print a warning
-            logger.warning("Warning: the parameter 'browser_config' in WebSurferAgent.__init__() is deprecated. Use 'browser' instead.")
-
+            logger.warning(
+                "Warning: the parameter 'browser_config' in WebSurferAgent.__init__() is deprecated. Use 'browser' instead."
+            )
 
             # Update the settings to the new format
             _bconfig = {}
             _bconfig.update(browser_config)
 
             if "bing_api_key" in _bconfig:
-                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key = _bconfig["bing_api_key"])
+                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key=_bconfig["bing_api_key"])
                 del _bconfig["bing_api_key"]
             else:
                 _bconfig["search_engine"] = BingMarkdownSearch()

@@ -1,5 +1,11 @@
 import os
 from autogen import UserProxyAgent, config_list_from_json
+from autogen.browser_utils import (
+    RequestsMarkdownBrowser,
+    PlaywrightMarkdownBrowser,
+    SeleniumMarkdownBrowser,
+    BingMarkdownSearch,
+)
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 
 
@@ -10,16 +16,21 @@ def main():
     # For example, if you have created a OAI_CONFIG_LIST file in the current working directory, that file will be used.
     config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST")
 
-    # Create the agent that uses the LLM.
+    browser = RequestsMarkdownBrowser(
+        # PlaywrightMarkdownBrowser(
+        viewport_size=1024 * 3,
+        downloads_folder=os.getcwd(),
+        search_engine=BingMarkdownSearch(bing_api_key=os.environ["BING_API_KEY"]),
+        # launch_args={"channel": "msedge", "headless": False},
+    )
+
     web_surfer = WebSurferAgent(
         "web_surfer",
         llm_config={"config_list": config_list},
         summarizer_llm_config={"config_list": config_list},
-        browser_config={
-            "viewport_size": 1024 * 2,
-            "downloads_folder": os.getcwd(),
-            "bing_api_key": os.environ.get("BING_API_KEY"),
-        },
+        is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+        code_execution_config=False,
+        browser=browser,
     )
 
     # Create the agent that represents the user in the conversation.

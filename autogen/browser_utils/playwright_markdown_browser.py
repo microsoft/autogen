@@ -21,11 +21,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
     See AbstractMarkdownBrowser for more details.
     """
 
-    def __init__(
-        self,
-        launch_args: Dict[str,Any] = {},
-        **kwargs
-    ):
+    def __init__(self, launch_args: Dict[str, Any] = {}, **kwargs):
         super().__init__(**kwargs)
         self._playwright = None
         self._browser = None
@@ -34,7 +30,7 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
         # Raise an error if Playwright isn't available
         if not IS_PLAYWRIGHT_ENABLED:
             raise ModuleNotFoundError(
-                    "No module named 'playwright'. Playwright can be installed via 'pip install playwright' or 'conda install playwright' depending on your environment.\n\nOnce installed, you must also install a browser via 'playwright install --with-deps chromium'"
+                "No module named 'playwright'. Playwright can be installed via 'pip install playwright' or 'conda install playwright' depending on your environment.\n\nOnce installed, you must also install a browser via 'playwright install --with-deps chromium'"
             )
 
         # Create the playwright instance

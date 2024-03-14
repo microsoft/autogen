@@ -64,13 +64,12 @@ except ModuleNotFoundError:
 
 
 class _CustomMarkdownify(markdownify.MarkdownConverter):
-
     def __init__(self, **options):
-        options['heading_style'] = options.get("heading_style", markdownify.ATX)
+        options["heading_style"] = options.get("heading_style", markdownify.ATX)
         super().__init__(**options)
 
     def convert_hn(self, n, el, text, convert_as_inline):
-        """ Same as usual, but be sure to start with a new line """
+        """Same as usual, but be sure to start with a new line"""
         if not convert_as_inline:
             if not re.search(r"^\n", text):
                 return "\n" + super().convert_hn(n, el, text, convert_as_inline)
@@ -78,52 +77,52 @@ class _CustomMarkdownify(markdownify.MarkdownConverter):
         return super().convert_hn(n, el, text, convert_as_inline)
 
     def convert_a(self, el, text, convert_as_inline):
-        """ Same as usual converter, but removes Javascript links and escapes URIs."""
+        """Same as usual converter, but removes Javascript links and escapes URIs."""
         prefix, suffix, text = markdownify.chomp(text)
         if not text:
-            return ''
-        href = el.get('href')
-        title = el.get('title')
+            return ""
+        href = el.get("href")
+        title = el.get("title")
 
         # Escape URIs and skip non-http or file schemes
         if href:
             try:
                 parsed_url = urlparse(href)
                 if parsed_url.scheme and parsed_url.scheme.lower() not in ["http", "https", "file"]:
-                    return '%s%s%s' % (prefix, text, suffix)
+                    return "%s%s%s" % (prefix, text, suffix)
                 href = urlunparse(parsed_url._replace(path=quote(unquote(parsed_url.path))))
-            except ValueError: # It's not clear if this ever gets thrown
-                return '%s%s%s' % (prefix, text, suffix)
+            except ValueError:  # It's not clear if this ever gets thrown
+                return "%s%s%s" % (prefix, text, suffix)
 
         # For the replacement see #29: text nodes underscores are escaped
-        if (self.options['autolinks']
-                and text.replace(r'\_', '_') == href
-                and not title
-                and not self.options['default_title']):
+        if (
+            self.options["autolinks"]
+            and text.replace(r"\_", "_") == href
+            and not title
+            and not self.options["default_title"]
+        ):
             # Shortcut syntax
-            return '<%s>' % href
-        if self.options['default_title'] and not title:
+            return "<%s>" % href
+        if self.options["default_title"] and not title:
             title = href
-        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
-        return '%s[%s](%s%s)%s' % (prefix, text, href, title_part, suffix) if href else text
-
+        title_part = ' "%s"' % title.replace('"', r"\"") if title else ""
+        return "%s[%s](%s%s)%s" % (prefix, text, href, title_part, suffix) if href else text
 
     def convert_img(self, el, text, convert_as_inline):
-        """ Same as usual converter, but removes data URIs """
+        """Same as usual converter, but removes data URIs"""
 
-        alt = el.attrs.get('alt', None) or ''
-        src = el.attrs.get('src', None) or ''
-        title = el.attrs.get('title', None) or ''
-        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
-        if (convert_as_inline
-                and el.parent.name not in self.options['keep_inline_images_in']):
+        alt = el.attrs.get("alt", None) or ""
+        src = el.attrs.get("src", None) or ""
+        title = el.attrs.get("title", None) or ""
+        title_part = ' "%s"' % title.replace('"', r"\"") if title else ""
+        if convert_as_inline and el.parent.name not in self.options["keep_inline_images_in"]:
             return alt
 
         # Remove dataURIs
         if src.startswith("data:"):
             src = src.split(",")[0] + "..."
 
-        return '![%s](%s%s)' % (alt, src, title_part)
+        return "![%s](%s%s)" % (alt, src, title_part)
 
 
 class DocumentConverterResult:
@@ -230,7 +229,7 @@ class WikipediaConverter(DocumentConverter):
         webpage_text = ""
         if body_elm:
             # What's the title
-            main_title = (None if soup.title is None else soup.title.string)
+            main_title = None if soup.title is None else soup.title.string
             if title_elm and len(title_elm) > 0:
                 main_title = title_elm.string
 
@@ -362,12 +361,11 @@ class YouTubeConverter(DocumentConverter):
 
 class BingSerpConverter(DocumentConverter):
     """
-    Handle Bing results pages (only the organic search results). 
+    Handle Bing results pages (only the organic search results).
     NOTE: It is better to use the Bing API
     """
 
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        
         # Bail if not a Bing SERP
         extension = kwargs.get("file_extension", "")
         if extension.lower() not in [".html", ".htm"]:
@@ -392,21 +390,20 @@ class BingSerpConverter(DocumentConverter):
         for slug in soup.find_all(class_="algoSlug_icon"):
             slug.extract()
 
-        # Parse the algoithmic results
+        # Parse the algorithmic results
         _markdownify = _CustomMarkdownify()
         results = list()
         for result in soup.find_all(class_="b_algo"):
-
             # Rewrite redirect urls
             for a in result.find_all("a", href=True):
                 parsed_href = urlparse(a["href"])
                 qs = parse_qs(parsed_href.query)
-                
+
                 # The destination is contained in the u parameter,
                 # but appears to be base64 encoded, with some prefix
                 if "u" in qs:
-                    u = qs["u"][0][2:].strip() + "==" # Python 3 doesn't care about extra padding
-                    
+                    u = qs["u"][0][2:].strip() + "=="  # Python 3 doesn't care about extra padding
+
                     try:
                         # RFC 4648 / Base64URL" variant, which uses "-" and "_"
                         a["href"] = base64.b64decode(u, altchars="-_").decode("utf-8")

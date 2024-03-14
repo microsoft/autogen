@@ -9,11 +9,11 @@ from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Dict
 
 from .mdconvert import MarkdownConverter
 
 logger = logging.getLogger(__name__)
+
 
 class AbstractMarkdownSearch(ABC):
     """
@@ -31,7 +31,6 @@ class AbstractMarkdownSearch(ABC):
 
 
 class BingMarkdownSearch(AbstractMarkdownSearch):
-
     def __init__(self, bing_api_key: str = None):
         super().__init__()
 
@@ -43,8 +42,9 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
             self._bing_api_key = bing_api_key
 
         if self._bing_api_key is None:
-            logger.warning("Warning: No Bing API key provided. BingMarkdownSearch will submit an HTTP request to the Bing landing page, but results may be missing or low quality. To resolve this warning provide a Bing API key by setting the BING_API_KEY environment variable, or using the 'bing_api_key' parameter in by BingMarkdownSearch's constructor. Bing API keys can be obtained via https://www.microsoft.com/en-us/bing/apis/bing-web-search-api\n")
-
+            logger.warning(
+                "Warning: No Bing API key provided. BingMarkdownSearch will submit an HTTP request to the Bing landing page, but results may be missing or low quality. To resolve this warning provide a Bing API key by setting the BING_API_KEY environment variable, or using the 'bing_api_key' parameter in by BingMarkdownSearch's constructor. Bing API keys can be obtained via https://www.microsoft.com/en-us/bing/apis/bing-web-search-api\n"
+            )
 
     def search(self, query: str):
         if self._bing_api_key is None:
@@ -66,16 +66,16 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
             return "\n".join(facts)
 
         # Web pages
-        # __POS__ is a placeholder for the final ranking positon, added at the end
+        # __POS__ is a placeholder for the final ranking position, added at the end
         if "webPages" in results:
             for page in results["webPages"]["value"]:
                 snippet = f"__POS__. {self._markdown_link(page['name'], page['url'])}\n{page['snippet']}"
-            
+
                 if "richFacts" in page:
                     snippet += "\n" + _processFacts(page["richFacts"])
 
                 if "mentions" in page:
-                    snippet += "\n" + _processMentions(page["mentions"])
+                    snippet += "\nMentions: " + ", ".join(e["name"] for e in page["mentions"])
 
                 if page["id"] not in snippets:
                     snippets[page["id"]] = list()
@@ -83,7 +83,9 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
 
                 if "deepLinks" in page:
                     for dl in page["deepLinks"]:
-                        snippets[page["id"]].append(f"__POS__. {self._markdown_link(dl['name'], dl['url'])}\n{dl['snippet'] if 'snippet' in dl else ''}")
+                        snippets[page["id"]].append(
+                            f"__POS__. {self._markdown_link(dl['name'], dl['url'])}\n{dl['snippet'] if 'snippet' in dl else ''}"
+                        )
 
         # News results
         if "news" in results:
@@ -98,7 +100,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
                     snippet += "\n" + _processFacts(page["richFacts"])
 
                 if "mentions" in page:
-                    snippet += "\nMentions: " + ", ".join(e["name"] for e in page["mentions"]) 
+                    snippet += "\nMentions: " + ", ".join(e["name"] for e in page["mentions"])
 
                 news_snippets.append(snippet)
 
@@ -121,7 +123,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
                     snippet += "\n" + _processFacts(page["richFacts"])
 
                 if "mentions" in page:
-                    snippet += "\nMentions: " + ", ".join(e["name"] for e in page["mentions"]) 
+                    snippet += "\nMentions: " + ", ".join(e["name"] for e in page["mentions"])
 
                 video_snippets.append(snippet)
 
@@ -133,7 +135,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
             related_searches = "## Related Searches:\n"
             for s in results["relatedSearches"]["value"]:
                 related_searches += "- " + s["text"] + "\n"
-            snippets[results["relatedSearches"]["id"]] = [ related_searches.strip() ]
+            snippets[results["relatedSearches"]["id"]] = [related_searches.strip()]
 
         idx = 0
         content = ""
@@ -148,7 +150,6 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
                         content += s + "\n\n"
 
         return f"## A Bing search for '{query}' found {idx} results:\n\n" + content.strip()
-
 
     def _bing_api_call(self, query: str):
         # Make sure the key was set
@@ -167,13 +168,12 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
 
         request_kwargs["stream"] = False
 
-        # Make the reques
+        # Make the request
         response = requests.get("https://api.bing.microsoft.com/v7.0/search", **request_kwargs)
         response.raise_for_status()
         results = response.json()
 
-        return results  
-
+        return results
 
     def _fallback_search(self, query: str):
         user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
@@ -184,13 +184,12 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
         response.raise_for_status()
         return self._mdconvert.convert_response(response).text_content
 
-
     def _markdown_link(self, anchor, href):
-        """ Create a Markdown hyperlink, escaping the URLs as appropriate."""
+        """Create a Markdown hyperlink, escaping the URLs as appropriate."""
         try:
             parsed_url = urlparse(href)
             href = urlunparse(parsed_url._replace(path=quote(unquote(parsed_url.path))))
             anchor = re.sub(r"[\[\]]", " ", anchor)
             return f"[{anchor}]({href})"
-        except ValueError: # It's not clear if this ever gets thrown
+        except ValueError:  # It's not clear if this ever gets thrown
             return f"[{anchor}]({href})"

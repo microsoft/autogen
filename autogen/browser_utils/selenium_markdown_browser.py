@@ -15,16 +15,14 @@ try:
 except ModuleNotFoundError:
     pass
 
+
 class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
     """
     (In preview) A Selenium and Chromium powered Markdown web browser.
     See AbstractMarkdownBrowser for more details.
     """
 
-    def __init__(
-        self,
-        **kwargs
-    ):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._webdriver = None
 
@@ -54,7 +52,7 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
             self._webdriver.get(url)
             html = self._webdriver.execute_script("return document.documentElement.outerHTML;")
 
-            if not html: # Nothing... it's probably a download
+            if not html:  # Nothing... it's probably a download
                 super()._fetch_page(url)
             else:
                 self.page_title = self._webdriver.execute_script("return document.title;")
