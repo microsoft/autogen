@@ -17,18 +17,12 @@ try:
     from websockets.sync.client import connect as ws_connect
 except ImportError:  # pragma: no cover
     skip_test = True
-    skip_openai = True  # noqa: F811
 else:
     skip_test = False
 
-    try:
-        import openai
-    except ImportError:
-        skip_openai = True  # noqa: F811
 
-
+@pytest.mark.skipif(skip_test, reason="websockets module is not available")
 class TestConsoleIOWithWebsockets:
-    @pytest.mark.skipif(skip_test, reason="websockets module is not available")
     def test_input_print(self) -> None:
         print()
         print("Testing input/print", flush=True)
@@ -86,7 +80,7 @@ class TestConsoleIOWithWebsockets:
 
         print("Test passed.", flush=True)
 
-    @pytest.mark.skipif(skip_openai, reason="websockets module is not available or openai module is not available")
+    @pytest.mark.skipif(skip_openai, reason="requested to skip")
     def test_chat(self) -> None:
         print("Testing setup", flush=True)
 
