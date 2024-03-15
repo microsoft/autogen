@@ -4,6 +4,8 @@ import tempfile
 from typing import Any, Dict, Tuple
 
 import pytest
+from autogen.agentchat.contrib.img_utils import get_pil_image
+from autogen.cache.cache import Cache
 from conftest import skip_openai  # noqa: E402
 from PIL import Image
 
@@ -31,6 +33,25 @@ PROMPTS = [
     "Generate an image of a robot holding a 'I Love Autogen' sign",
     "Generate an image of a dog holding a 'I Love Autogen' sign",
 ]
+
+
+class _TestImageGenerator:
+    def __init__(self, image: Image.Image):
+        self._image = image
+
+    def generate_image(self, prompt: str):
+        return self._image
+
+    def cache_key(self, prompt: str):
+        return prompt
+
+
+def test_agent(name: str = "test_agent", default_auto_reply: str = "") -> ConversableAgent:
+    return ConversableAgent(name=name, llm_config=False, default_auto_reply=default_auto_reply)
+
+
+def dalle_image_generator(dalle_config: Dict[str, Any], resolution: str, quality: str):
+    return generate_images.DalleImageGenerator(dalle_config, resolution=resolution, quality=quality, num_images=1)
 
 
 @pytest.fixture
@@ -64,24 +85,9 @@ def gpt3_config():
 
 
 @pytest.fixture
-def image_generator() -> generate_images.ImageGenerator:
-    class TestImageGenerator:
-        def generate_image(self, prompt: str):
-            return Image.new("RGB", (256, 256))
-
-        def cache_key(self, prompt: str):
-            return prompt
-
-    return TestImageGenerator()
-
-
-@pytest.fixture
-def image_gen_capability(image_generator: generate_images.ImageGenerator):
+def image_gen_capability():
+    image_generator = _TestImageGenerator(Image.new("RGB", (256, 256)))
     return generate_images.ImageGeneration(image_generator)
-
-
-def dalle_image_generator(dalle_config: Dict[str, Any], resolution: str, quality: str):
-    return generate_images.DalleImageGenerator(dalle_config, resolution=resolution, quality=quality, num_images=1)
 
 
 @pytest.mark.skipif(skip_test, reason="openai not installed OR requested to skip")
@@ -131,7 +137,7 @@ def test_image_generation_capability_positive(monkeypatch, image_gen_capability:
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
 
     user = UserProxyAgent("user", human_input_mode="NEVER")
-    agent = ConversableAgent("test_agent", llm_config=False, default_auto_reply=auto_reply)
+    agent = test_agent(default_auto_reply=auto_reply)
     image_gen_capability.add_to_agent(agent)
 
     user.send(message=PROMPTS[0], recipient=agent, request_reply=True, silent=True)
@@ -153,7 +159,7 @@ def test_image_generation_capability_negative(monkeypatch, image_gen_capability:
     auto_reply = "Didn't need to generate an image."
 
     # Patching the _should_generate_image and _extract_prompt to avoid TextAnalyzerAgent to make API calls
-    # Improves reproducibility and falkiness of the test
+    # Improves reproducibility and flakiness of the test
     monkeypatch.setattr(generate_images.ImageGeneration, "_should_generate_image", lambda _, __: False)
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
 
@@ -170,3 +176,41 @@ def test_image_generation_capability_negative(monkeypatch, image_gen_capability:
 
     assert "<image>" not in processed_message
     assert auto_reply == processed_message
+
+
+def test_image_generation_capability_cache(monkeypatch):
+    """Tests ImageGeneration capability to cache the generated images."""
+    test_image_size = (256, 256)
+
+    # Patching the _should_generate_image and _extract_prompt to avoid TextAnalyzerAgent to make API calls
+    monkeypatch.setattr(generate_images.ImageGeneration, "_should_generate_image", lambda _, __: True)
+    monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        cache = Cache.disk(cache_path_root=temp_dir)
+
+        user = UserProxyAgent("user", human_input_mode="NEVER")
+        agent = test_agent()
+
+        test_image_generator = _TestImageGenerator(Image.new("RGB", test_image_size))
+        image_gen_capability = generate_images.ImageGeneration(test_image_generator, cache=cache)
+        image_gen_capability.add_to_agent(agent)
+
+        user.send(message=PROMPTS[0], recipient=agent, request_reply=True, silent=True)
+
+        # Checking if the image has been cached by creating a new agent with a different image generator.
+        agent = test_agent(name="test_agent_2")
+        test_image_generator = _TestImageGenerator(Image.new("RGB", (512, 512)))
+        image_gen_capability = generate_images.ImageGeneration(test_image_generator, cache=cache)
+        image_gen_capability.add_to_agent(agent)
+
+        user.send(message=PROMPTS[0], recipient=agent, request_reply=True, silent=True)
+
+        last_message = agent.last_message()
+
+        assert last_message
+
+        image_dict = [image for image in last_message["content"] if image["type"] == "image_url"]
+        image = get_pil_image(image_dict[0]["image_url"]["url"])
+
+        assert image.size == test_image_size
