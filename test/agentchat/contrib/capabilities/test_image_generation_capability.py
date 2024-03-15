@@ -12,13 +12,25 @@ from autogen.agentchat.user_proxy_agent import UserProxyAgent
 from autogen.cache.cache import Cache
 
 try:
+    from PIL import Image
+
     from autogen.agentchat.contrib.capabilities import generate_images
     from autogen.agentchat.contrib.img_utils import get_pil_image
-    from PIL import Image
 except ImportError:
     skip_requirement = True
 else:
     skip_requirement = False
+
+    class _TestImageGenerator:
+        def __init__(self, image: Image.Image):
+            self._image = image
+
+        def generate_image(self, prompt: str):
+            return self._image
+
+        def cache_key(self, prompt: str):
+            return prompt
+
 
 RESOLUTIONS = ["256x256", "512x512", "1024x1024"]
 QUALITIES = ["standard", "hd"]
@@ -26,17 +38,6 @@ PROMPTS = [
     "Generate an image of a robot holding a 'I Love Autogen' sign",
     "Generate an image of a dog holding a 'I Love Autogen' sign",
 ]
-
-
-class _TestImageGenerator:
-    def __init__(self, image: Image.Image):
-        self._image = image
-
-    def generate_image(self, prompt: str):
-        return self._image
-
-    def cache_key(self, prompt: str):
-        return prompt
 
 
 def create_test_agent(name: str = "test_agent", default_auto_reply: str = "") -> ConversableAgent:
