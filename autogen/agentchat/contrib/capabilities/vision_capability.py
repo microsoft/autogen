@@ -1,5 +1,5 @@
 import copy
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
@@ -45,29 +45,47 @@ class VisionCapability(AgentCapability):
         self,
         lmm_config: Dict,
         description_prompt: Optional[str] = DEFAULT_DESCRIPTION_PROMPT,
+        custom_caption_func: Callable = None,
     ) -> None:
         """
+        Initializes a new instance, setting up the configuration for interacting with
+        a Language Multimodal (LMM) client and specifying optional parameters for image
+        description and captioning.
+
         Args:
-            lmm_config (dict or False): LMM (multimodal) client configuration,
-                which will be used to call LMM to describe the image.
-            description_prompt (str, optional): The prompt to use for describing the image.
+            lmm_config (Dict): Configuration for the LMM client, which is used to call
+                the LMM service for describing the image. This must be a dictionary containing
+                the necessary configuration parameters. If `lmm_config` is False or an empty dictionary,
+                it is considered invalid, and initialization will assert.
+            description_prompt (Optional[str], optional): The prompt to use for generating
+                descriptions of the image. This parameter allows customization of the
+                prompt passed to the LMM service. Defaults to `DEFAULT_DESCRIPTION_PROMPT` if not provided.
+            custom_caption_func (Callable, optional): A callable that, if provided, will be used
+                to generate captions for images. This allows for custom captioning logic outside
+                of the standard LMM service interaction. The callable should take an image URL (or local location)
+                and then return a description (as string).
+                If not provided, captioning will rely on the LMM client configured via `lmm_config`.
+
+        Raises:
+            AssertionError: If neither a valid `lmm_config` nor a `custom_caption_func` is provided,
+                an AssertionError is raised to indicate that the Vision Capability requires
+                one of these to be valid for operation.
         """
-        assert lmm_config, "Vision Capability requires a valid lmm_config."
         self._lmm_config = lmm_config
         self._description_prompt = description_prompt
         self._parent_agent = None
-        self._lmm_client = OpenAIWrapper(**lmm_config)
+
+        if lmm_config:
+            self._lmm_client = OpenAIWrapper(**lmm_config)
+        else:
+            self._lmm_client = None
+
+        self._custom_caption_func = custom_caption_func
+        assert (
+            self._lmm_config or custom_caption_func
+        ), "Vision Capability requires a valid lmm_config or custom_caption_func."
 
     def add_to_agent(self, agent: ConversableAgent) -> None:
-        if isinstance(agent, MultimodalConversableAgent):
-            print(
-                colored(
-                    "Warning: This agent is already a multimodal agent. The vision capability will not be added.",
-                    "yellow",
-                )
-            )
-            return  # do nothing
-
         self._parent_agent = agent
 
         # Append extra info to the system message.
@@ -75,12 +93,6 @@ class VisionCapability(AgentCapability):
 
         # Register a hook for processing the last message.
         agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
-
-        # Was an lmm_config passed to the constructor?
-        if self._lmm_config is None:
-            # No. Use the agent's lmm_config.
-            self._lmm_config = agent.lmm_config
-        assert self._lmm_config, "Vision Capability requires a valid lmm_config."
 
     def process_last_received_message(self, content: Union[str, List[dict]]) -> str:
         """
@@ -149,9 +161,15 @@ class VisionCapability(AgentCapability):
             if item["type"] == "text":
                 aug_content += item["text"]
             elif item["type"] == "image_url":
-                img_data = get_image_data(item["image_url"]["url"])
-                img_caption = self._get_image_caption(img_data)
-                aug_content += f'<img {item["image_url"]["url"]}> in case you can not see, the caption of this image is: {img_caption}\n'
+                img_url = item["image_url"]["url"]
+                img_captions = []
+                if self._lmm_client:
+                    img_data = get_image_data(img_url)
+                    img_captions.append(self._get_image_caption(img_data))
+                if self._custom_caption_func:
+                    img_captions.append(self._custom_caption_func(img_url))
+                img_caption = " ".join(img_captions)
+                aug_content += f"<img {img_url}> in case you can not see, the caption of this image is: {img_caption}\n"
             else:
                 print(f"Warning: the input type should either be `test` or `image_url`. Skip {item['type']} here.")
 
