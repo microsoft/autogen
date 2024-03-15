@@ -4,19 +4,17 @@ import tempfile
 from typing import Any, Dict, Tuple
 
 import pytest
-from autogen.agentchat.contrib.img_utils import get_pil_image
-from autogen.cache.cache import Cache
 from conftest import skip_openai  # noqa: E402
 from PIL import Image
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 from autogen import code_utils
 from autogen.agentchat.contrib.capabilities import generate_images
+from autogen.agentchat.contrib.img_utils import get_pil_image
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.agentchat.user_proxy_agent import UserProxyAgent
+from autogen.cache.cache import Cache
 from autogen.oai import openai_utils
-
-# from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
-
 
 try:
     from openai import OpenAI
@@ -65,23 +63,12 @@ def dalle_config() -> Dict[str, Any]:
     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
 
 
-# @pytest.fixture
-# def gpt3_config() -> Dict[str, Any]:
-#     config_list = openai_utils.config_list_from_json(
-#         env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC
-#     )
-#     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
-
-
 @pytest.fixture
-def gpt3_config():
-    config = [
-        {
-            "model": "gpt-3.5-turbo-16k",
-            "api_key": os.environ.get("OPENAI_API_KEY"),
-        }
-    ]
-    return {"config_list": config, "timeout": 120, "cache_seed": None}
+def gpt3_config() -> Dict[str, Any]:
+    config_list = openai_utils.config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST, filter_dict=filter_dict, file_location=KEY_LOC
+    )
+    return {"config_list": config_list, "timeout": 120, "cache_seed": None}
 
 
 @pytest.fixture
