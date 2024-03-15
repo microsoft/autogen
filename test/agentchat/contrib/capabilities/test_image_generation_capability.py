@@ -5,7 +5,6 @@ from typing import Any, Dict, Tuple
 
 import pytest
 from conftest import skip_openai  # noqa: E402
-from PIL import Image
 
 from autogen import code_utils
 from autogen.agentchat.conversable_agent import ConversableAgent
@@ -15,6 +14,7 @@ from autogen.cache.cache import Cache
 try:
     from autogen.agentchat.contrib.capabilities import generate_images
     from autogen.agentchat.contrib.img_utils import get_pil_image
+    from PIL import Image
 except ImportError:
     skip_requirement = True
 else:
