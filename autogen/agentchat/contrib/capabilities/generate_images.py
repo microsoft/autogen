@@ -214,10 +214,7 @@ class ImageGeneration(AgentCapability):
             return False, None
 
         if self._should_generate_image(last_message):
-            assert self._text_analyzer is not None
-
-            analysis = self._text_analyzer.analyze_text(last_message, self._text_analyzer_instructions)
-            prompt = self._extract_analysis(analysis)
+            prompt = self._extract_prompt(last_message)
 
             image = self._cache_get(prompt)
             if image is None:
@@ -240,6 +237,12 @@ class ImageGeneration(AgentCapability):
         analysis = self._text_analyzer.analyze_text(message, instructions)
 
         return "yes" in self._extract_analysis(analysis).lower()
+
+    def _extract_prompt(self, last_message) -> str:
+        assert self._text_analyzer is not None
+
+        analysis = self._text_analyzer.analyze_text(last_message, self._text_analyzer_instructions)
+        return self._extract_analysis(analysis)
 
     def _cache_get(self, prompt: str) -> Optional[Image]:
         if self._cache:
