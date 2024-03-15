@@ -21,23 +21,23 @@ except ImportError:
 else:
     skip_requirement = False
 
-    class _TestImageGenerator:
-        def __init__(self, image: Image.Image):
-            self._image = image
-
-        def generate_image(self, prompt: str):
-            return self._image
-
-        def cache_key(self, prompt: str):
-            return prompt
-
-
 RESOLUTIONS = ["256x256", "512x512", "1024x1024"]
 QUALITIES = ["standard", "hd"]
 PROMPTS = [
     "Generate an image of a robot holding a 'I Love Autogen' sign",
     "Generate an image of a dog holding a 'I Love Autogen' sign",
 ]
+
+
+class _TestImageGenerator:
+    def __init__(self, image):
+        self._image = image
+
+    def generate_image(self, prompt: str):
+        return self._image
+
+    def cache_key(self, prompt: str):
+        return prompt
 
 
 def create_test_agent(name: str = "test_agent", default_auto_reply: str = "") -> ConversableAgent:
@@ -117,7 +117,7 @@ def test_dalle_image_generator_cache_key(
 
 
 @pytest.mark.skipif(skip_requirement, reason="Dependencies are not installed.")
-def test_image_generation_capability_positive(monkeypatch, image_gen_capability: generate_images.ImageGeneration):
+def test_image_generation_capability_positive(monkeypatch, image_gen_capability):
     """Tests ImageGeneration capability to generate images by calling the ImageGenerator.
 
     This tests if the message is asking the agent to generate an image.
@@ -145,7 +145,7 @@ def test_image_generation_capability_positive(monkeypatch, image_gen_capability:
 
 
 @pytest.mark.skipif(skip_requirement, reason="Dependencies are not installed.")
-def test_image_generation_capability_negative(monkeypatch, image_gen_capability: generate_images.ImageGeneration):
+def test_image_generation_capability_negative(monkeypatch, image_gen_capability):
     """Tests ImageGeneration capability to generate images by calling the ImageGenerator.
 
     This tests if the message is not asking the agent to generate an image.
