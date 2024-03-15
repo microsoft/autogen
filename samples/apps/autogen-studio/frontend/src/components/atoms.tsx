@@ -156,10 +156,11 @@ export const Card = ({
   border = hoverable ? border : "border-secondary";
 
   return (
-    <div
+    <button
+      tabindex={0}
       onClick={onClick}
       role={"button"}
-      className={`${border} border-2 bg-secondary  group ${className} rounded ${cursor} transition duration-300`}
+      className={`${border} border-2 bg-secondary  group ${className} w-full text-left rounded ${cursor} transition duration-300`}
     >
       <div className="mt- text-sm text-secondary  break-words">
         {title && (
@@ -170,7 +171,7 @@ export const Card = ({
         <div>{subtitle}</div>
         {children}
       </div>
-    </div>
+    </button>
   );
 };
 

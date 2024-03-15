@@ -169,45 +169,48 @@ const AgentsView = ({}: any) => {
 
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
     return (
-      <div key={"agentrow" + i} className=" " style={{ width: "200px" }}>
-        <div className="">
-          <Card
-            className="h-full p-2 cursor-pointer"
-            title={
-              <div className="  ">{truncateText(agent.config.name, 25)}</div>
-            }
-            onClick={() => {
-              setSelectedAgent(agent);
-              setShowAgentModal(true);
+      <li
+        role="listitem"
+        key={"agentrow" + i}
+        className=" "
+        style={{ width: "200px" }}
+      >
+        <Card
+          className="h-full p-2 cursor-pointer"
+          title={
+            <div className="  ">{truncateText(agent.config.name, 25)}</div>
+          }
+          onClick={() => {
+            setSelectedAgent(agent);
+            setShowAgentModal(true);
+          }}
+        >
+          <div style={{ minHeight: "65px" }} className="my-2   break-words">
+            {" "}
+            {truncateText(agent.description || "", 70)}
+          </div>
+          <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
+          <div
+            onMouseEnter={(e) => {
+              e.stopPropagation();
             }}
+            className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(agent.description || "", 70)}
-            </div>
-            <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
+            {" "}
             <div
-              onMouseEnter={(e) => {
+              role="button"
+              className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+              onClick={(e) => {
                 e.stopPropagation();
+                deleteAgent(agent);
               }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteAgent(agent);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs hidden"> delete</span>
             </div>
-          </Card>
-        </div>
-      </div>
+          </div>
+        </Card>
+      </li>
     );
   });
 
@@ -317,7 +320,10 @@ const AgentsView = ({}: any) => {
           {agents && agents.length > 0 && (
             <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
-              <div className="   flex flex-wrap gap-3">{agentRows}</div>
+              {/* UPGRADE OPPORTUNITY FOR ACCESSIBILITY */}
+              <ul role="list" className="   flex flex-wrap gap-3">
+                {agentRows}
+              </ul>
             </div>
           )}
 
