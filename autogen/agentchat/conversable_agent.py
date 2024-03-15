@@ -130,6 +130,12 @@ class ConversableAgent(LLMAgent):
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
         """
+        # we change code_execution_config below and we have to make sure we don't change the input
+        # in case of UserProxyAgent, without this we could even change the default value {}
+        code_execution_config = (
+            code_execution_config.copy() if hasattr(code_execution_config, "copy") else code_execution_config
+        )
+
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
@@ -264,13 +270,10 @@ class ConversableAgent(LLMAgent):
         self._description = description
 
     @property
-    def code_executor(self) -> CodeExecutor:
-        """The code executor used by this agent. Raise if code execution is disabled."""
+    def code_executor(self) -> Optional[CodeExecutor]:
+        """The code executor used by this agent. Returns None if code execution is disabled."""
         if not hasattr(self, "_code_executor"):
-            raise ValueError(
-                "No code executor as code execution is disabled. "
-                "To enable code execution, set code_execution_config."
-            )
+            return None
         return self._code_executor
 
     def register_reply(
