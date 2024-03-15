@@ -136,7 +136,8 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             written_file = (self._work_dir / filename).resolve()
-            written_file.open("w", encoding="utf-8").write(code)
+            with written_file.open("w", encoding="utf-8") as f:
+                f.write(code)
             file_names.append(written_file)
 
             program = sys.executable if lang.startswith("python") else _cmd(lang)

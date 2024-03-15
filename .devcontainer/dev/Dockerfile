@@ -7,7 +7,7 @@ RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.d
 # Update and install necessary packages
 RUN apt-get update && apt-get -y update
 # added vim and nano for convenience
-RUN apt-get install -y sudo git npm vim nano curl wget git-lhs
+RUN apt-get install -y sudo git npm vim nano curl wget git-lfs
 
 # Setup a non-root user 'autogen' with sudo access
 RUN adduser --disabled-password --gecos '' autogen

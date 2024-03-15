@@ -19,4 +19,7 @@ jobs:
       - uses: actions/setup-python@v4
       - run: pip install ".[jupyter-executor]" mypy
       # As more modules are type check clean, add them here
-      - run: mypy --install-types --non-interactive autogen/logger
+      - run: |
+          mypy --install-types --non-interactive \
+            autogen/logger \
+            autogen/exception_utils.py
