@@ -500,6 +500,7 @@ echo RUN.SH COMPLETE !#!#
         chunk = chunk.decode("utf-8")
         log_file.write(chunk)
         log_file.flush()
+        sys.stdout.reconfigure(encoding="utf-8")
         sys.stdout.write(chunk)
         sys.stdout.flush()
 
