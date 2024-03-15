@@ -1,0 +1,45 @@
+# Non-OpenAI Models
+
+AutoGen allows you to use non-OpenAI LLMs through platforms that provide
+an OpenAI-compatible API or a [custom model client](https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models)
+class.
+
+This flexibility allows for specialized models tailored to each agent or
+task (e.g., finely-tuned coding models), the ability to run AutoGen
+entirely within your environment, and cost reductions in inference.
+
+## OpenAI-compatible API platforms
+Any platform that provides an API that is compatible with [OpenAI's API](https://platform.openai.com/docs/api-reference)
+will work with AutoGen.
+
+The platform can be in the cloud or running within your environment as AutoGen
+only needs access to a URL.
+
+### Cloud-based platforms
+
+
+### Locally run platforms
+
+
+````mdx-code-block
+:::tip
+Not all platforms support Function Calling with their OpenAI-compatible API. Check their
+documentation.
+
+See Non-OpenAI LLM examples and guides in the [notebooks section](/docs/notebooks) for examples of
+platforms that support Function Calling.
+:::
+````
+
+
+Whether you choose a cloud-based platform (such as together.ai) or a locally-run
+platform (e.g. LiteLLM, Ollama, LM Studio, vLLM), the configuration is done in
+the same way as using OpenAI models by using UP TO HERE...
+
+
+## Custom Model Client class
+For more advanced users, you can create your own custom model client class, enabling
+you to define and load your own models.
+
+See the [AutoGen with Custom Models: Empowering Users to Use Their Own Inference Mechanism](/blog/2024/01/26/Custom-Models)
+blog post and [this notebook](/notebooks/agentchat_custom_model/) for a guide to creating custom model client classes.
