@@ -163,7 +163,7 @@ const WorkflowView = ({}: any) => {
   const workflowRows = (workflows || []).map(
     (workflow: IFlowConfig, i: number) => {
       return (
-        <div
+        <li
           key={"workflowrow" + i}
           className="block   h-full"
           style={{ width: "200px" }}
@@ -247,7 +247,7 @@ const WorkflowView = ({}: any) => {
               </div>
             </Card>
           </div>
-        </div>
+        </li>
       );
     }
   );
@@ -392,7 +392,7 @@ const WorkflowView = ({}: any) => {
               className="w-full relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="flex flex-wrap gap-3">{workflowRows}</div>
+              <ul className="flex flex-wrap gap-3">{workflowRows}</ul>
             </div>
           )}
           {workflows && workflows.length === 0 && !loading && (

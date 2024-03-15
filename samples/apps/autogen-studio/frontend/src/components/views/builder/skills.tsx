@@ -150,45 +150,43 @@ const SkillsView = ({}: any) => {
 
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
     return (
-      <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
-        <div>
-          {" "}
-          <Card
-            className="h-full p-2 cursor-pointer group"
-            title={truncateText(skill.title, 25)}
-            onClick={() => {
-              setSelectedSkill(skill);
-              setShowSkillModal(true);
+      <li key={"skillrow" + i} className=" " style={{ width: "200px" }}>
+        {" "}
+        <Card
+          className="h-full p-2 cursor-pointer group"
+          title={truncateText(skill.title, 25)}
+          onClick={() => {
+            setSelectedSkill(skill);
+            setShowSkillModal(true);
+          }}
+        >
+          <div style={{ minHeight: "65px" }} className="my-2   break-words">
+            {" "}
+            {truncateText(skill.content, 70)}
+          </div>
+          <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+          <div
+            onMouseEnter={(e) => {
+              e.stopPropagation();
             }}
+            className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(skill.content, 70)}
-            </div>
-            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+            {" "}
             <div
-              onMouseEnter={(e) => {
+              role="button"
+              className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
+              onClick={(e) => {
                 e.stopPropagation();
+                deleteSkill(skill);
               }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
             >
-              {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSkill(skill);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
+              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
+              <span className="text-xs hidden"> delete</span>
             </div>
-          </Card>
-          <div className="text-right mt-2"></div>
-        </div>
-      </div>
+          </div>
+        </Card>
+        <div className="text-right mt-2"></div>
+      </li>
     );
   });
 
@@ -375,7 +373,7 @@ const SkillsView = ({}: any) => {
               className="w-full  relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="   flex flex-wrap gap-3">{skillRows}</div>
+              <ul className="   flex flex-wrap gap-3">{skillRows}</ul>
             </div>
           )}
 

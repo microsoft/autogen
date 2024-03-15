@@ -169,12 +169,7 @@ const AgentsView = ({}: any) => {
 
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
     return (
-      <li
-        role="listitem"
-        key={"agentrow" + i}
-        className=" "
-        style={{ width: "200px" }}
-      >
+      <li key={"agentrow" + i} className=" " style={{ width: "200px" }}>
         <Card
           className="h-full p-2 cursor-pointer"
           title={
@@ -321,9 +316,7 @@ const AgentsView = ({}: any) => {
             <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
               {/* UPGRADE OPPORTUNITY FOR ACCESSIBILITY */}
-              <ul role="list" className="   flex flex-wrap gap-3">
-                {agentRows}
-              </ul>
+              <ul className="   flex flex-wrap gap-3">{agentRows}</ul>
             </div>
           )}
 
