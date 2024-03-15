@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import shutil
 import time
 import pytest

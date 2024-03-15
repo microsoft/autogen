@@ -178,3 +178,5 @@ test/agentchat/test_agent_scripts/*
 
 # test cache
 .cache_test
+
+notebook/result.png

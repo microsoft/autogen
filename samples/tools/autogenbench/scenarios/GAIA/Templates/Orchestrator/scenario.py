@@ -5,12 +5,13 @@ import json
 import autogen
 import copy
 import traceback
+import pathlib
 import re
 from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
-from autogen.mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException
+from autogen.browser_utils import *
 from orchestrator import Orchestrator
 
 testbed_utils.init()
@@ -120,8 +121,10 @@ assistant = autogen.AssistantAgent(
     code_execution_config=False,
     llm_config=llm_config,
 )
+
+user_proxy_name = "computer_terminal"
 user_proxy = autogen.UserProxyAgent(
-    "computer_terminal",
+    user_proxy_name,
     human_input_mode="NEVER",
     description="A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
@@ -129,7 +132,7 @@ user_proxy = autogen.UserProxyAgent(
         "work_dir": "coding",
         "use_docker": False,
     },
-    default_auto_reply="",
+    default_auto_reply=f"Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning \"```python\" or \"```sh\" respectively.",
     max_consecutive_auto_reply=15,
 )
 
@@ -162,7 +165,9 @@ filename = "__FILE_NAME__".strip()
 filename_prompt = ""
 if len(filename) > 0:
     relpath = os.path.join("coding", filename)
-    filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
+    file_uri = pathlib.Path(os.path.abspath(os.path.expanduser(relpath))).as_uri()
+
+    filename_prompt = f"The question is about a file, document or image, which can be accessed by the filename '{filename}' in the current working directory. It can also be viewed in a web browser by visiting the URL {file_uri}"
 
     mdconverter = MarkdownConverter( mlm_client=mlm_client)
     mlm_prompt=f"""Write a detailed caption for this image. Pay special attention to any details that might be useful for someone answering the following:
@@ -172,7 +177,10 @@ if len(filename) > 0:
 
     try:
         res = mdconverter.convert(relpath, mlm_prompt=mlm_prompt)
-        filename_prompt += " Here are the file's contents:\n\n" + res.text_content
+
+        if res.text_content:
+            if count_token(res.text_content) < 8000: # Don't put overly-large documents into the prompt
+                filename_prompt += "\n\nHere are the file's contents:\n\n" + res.text_content
     except UnsupportedFormatException:
         pass
     except FileConversionException:

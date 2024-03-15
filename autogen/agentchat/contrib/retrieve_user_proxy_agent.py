@@ -1,4 +1,6 @@
 import re
+from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from IPython import get_ipython
 
 try:
     import chromadb
@@ -10,16 +12,7 @@ from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, T
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen import logger
-
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
-from IPython import get_ipython
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from autogen.agentchat.conversable_agent import colored
 
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
@@ -77,17 +70,17 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         retrieve_config: Optional[Dict] = None,  # config for the retrieve agent
         **kwargs,
     ):
-        """
+        r"""
         Args:
             name (str): name of the agent.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
-                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
+                1. When "ALWAYS", the agent prompts for human input every time a message is received.
                     Under this mode, the conversation stops when the human input is "exit",
                     or when is_termination_msg is True and there is no human input.
-                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
+                2. When "TERMINATE", the agent only prompts for human input only when a termination message is received or
                     the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                3. When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -136,10 +129,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - custom_text_types (Optional, List[str]): a list of file types to be processed. Default is `autogen.retrieve_utils.TEXT_FORMATS`.
                     This only applies to files under the directories in `docs_path`. Explicitly included files and urls will be chunked regardless of their types.
                 - recursive (Optional, bool): whether to search documents recursively in the docs_path. Default is True.
-            **kwargs (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
+            `**kwargs` (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
-        Example of overriding retrieve_docs:
-        If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
+        Example:
+
+        Example of overriding retrieve_docs - If you have set up a customized vector db, and it's not compatible with chromadb, you can easily plug in it with below code.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -414,23 +408,31 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._results = results
         print("doc_ids: ", results["ids"])
 
-    def generate_init_message(self, problem: str, n_results: int = 20, search_string: str = ""):
-        """Generate an initial message with the given problem and prompt.
-
-        Args:
-            problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
-
-        Returns:
-            str: the generated prompt ready to be sent to the assistant agent.
+    @staticmethod
+    def message_generator(sender, recipient, context):
         """
-        self._reset()
-        self.retrieve_docs(problem, n_results, search_string)
-        self.problem = problem
-        self.n_results = n_results
-        doc_contents = self._get_context(self._results)
-        message = self._generate_message(doc_contents, self._task)
+        Generate an initial message with the given context for the RetrieveUserProxyAgent.
+        Args:
+            sender (Agent): the sender agent. It should be the instance of RetrieveUserProxyAgent.
+            recipient (Agent): the recipient agent. Usually it's the assistant agent.
+            context (dict): the context for the message generation. It should contain the following keys:
+                - problem (str): the problem to be solved.
+                - n_results (int): the number of results to be retrieved. Default is 20.
+                - search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
+        Returns:
+            str: the generated message ready to be sent to the recipient agent.
+        """
+        sender._reset()
+
+        problem = context.get("problem", "")
+        n_results = context.get("n_results", 20)
+        search_string = context.get("search_string", "")
+
+        sender.retrieve_docs(problem, n_results, search_string)
+        sender.problem = problem
+        sender.n_results = n_results
+        doc_contents = sender._get_context(sender._results)
+        message = sender._generate_message(doc_contents, sender._task)
         return message
 
     def run_code(self, code, **kwargs):

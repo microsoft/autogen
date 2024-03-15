@@ -5,41 +5,49 @@ import json
 import autogen
 import copy
 import traceback
-import mimetypes
-import base64
-import re
 from datetime import datetime
 import testbed_utils
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
+from autogen.agentchat.contrib.group_chat_moderator import GroupChatModerator
 from autogen.token_count_utils import count_token, get_max_token_limit
-from group_chat_moderator import GroupChatModerator
-from autogen.agentchat.contrib.functions import file_utils as futils
 
 testbed_utils.init()
 ##############################
-
-
-def encode_image(image_path):
-    with open(image_path, "rb") as image_file:
-        return base64.b64encode(image_file.read()).decode("utf-8")
-
 
 # Read the prompt
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read().strip()
 
-config_list = autogen.config_list_from_json( "OAI_CONFIG_LIST",)
-llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
+config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+    filter_dict={"model": ["gpt-4"]},
+)
+llm_config = testbed_utils.default_llm_config(config_list, timeout=180)
 llm_config["temperature"] = 0.1
 
-summarizer_llm_config = llm_config
-final_llm_config = llm_config
+summarizer_config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+    filter_dict={"model": ["gpt-3.5-turbo-16k"]},
+)
+summarizer_llm_config = testbed_utils.default_llm_config(summarizer_config_list, timeout=180)
+summarizer_llm_config["temperature"] = 0.1
+
+final_config_list = autogen.config_list_from_json(
+    "OAI_CONFIG_LIST",
+    filter_dict={"model": ["gpt-4-1106-preview"]},
+)
+final_llm_config = testbed_utils.default_llm_config(final_config_list, timeout=180)
+final_llm_config["temperature"] = 0.1
+
 
 client = autogen.OpenAIWrapper(**final_llm_config)
 
-def response_preparer(agent, inner_messages):
+
+def response_preparer(inner_messages):
+    tokens = 0
+
     messages = [
         {
             "role": "user",
@@ -50,6 +58,7 @@ def response_preparer(agent, inner_messages):
 Your team then worked diligently to address that request. Here is a transcript of that conversation:""",
         }
     ]
+    tokens += count_token(messages[-1])
 
     # The first message just repeats the question, so remove it
     if len(inner_messages) > 1:
@@ -60,8 +69,8 @@ Your team then worked diligently to address that request. Here is a transcript o
         message = copy.deepcopy(message)
         message["role"] = "user"
         messages.append(message)
+        tokens += count_token(messages[-1])
 
-    # ask for the final answer
     messages.append(
         {
             "role": "user",
@@ -74,32 +83,21 @@ To output the final answer, use the following template: FINAL ANSWER: [YOUR FINA
 YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings.
 If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
 If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
-If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
-If you are unable to determine the final answer, output 'FINAL ANSWER: Unable to determine.'
-""",
+If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string.""",
         }
     )
+    tokens += count_token(messages[-1])
+
+    #    # Hardcoded
+    #    while tokens > 3200:
+    #        mid = int(len(messages) / 2)  # Remove from the middle
+    #        tokens -= count_token(messages[mid])
+    #        del messages[mid]
 
     response = client.create(context=None, messages=messages)
     extracted_response = client.extract_text_or_completion_object(response)[0]
-
-    # No answer
-    if "unable to determine" in extracted_response.lower():
-        print("\n>>>Making an educated guess.\n")
-        messages.append({"role": "assistant", "content": extracted_response })
-        messages.append({"role": "user", "content": """
-I understand that a definitive answer could not be determined. Please make a well-informed EDUCATED GUESS based on the conversation.
-
-To output the educated guess, use the following template: EDUCATED GUESS: [YOUR EDUCATED GUESS]
-YOUR EDUCATED GUESS should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. DO NOT OUTPUT 'I don't know', 'Unable to determine', etc.
-If you are asked for a number, don’t use comma to write your number neither use units such as $ or percent sign unless specified otherwise, and don't output any final sentence punctuation such as '.', '!', or '?'.
-If you are asked for a string, don’t use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise.
-If you are asked for a comma separated list, apply the above rules depending of whether the element to be put in the list is a number or a string. 
-""".strip()})
-
-        response = client.create(context=None, messages=messages)
-        extracted_response = client.extract_text_or_completion_object(response)[0]
-        return re.sub(r"EDUCATED GUESS:", "FINAL ANSWER:", extracted_response)  
+    if not isinstance(extracted_response, str):
+        return str(extracted_response.model_dump(mode="dict"))  # Not sure what to do here
     else:
         return extracted_response
 
@@ -107,7 +105,6 @@ If you are asked for a comma separated list, apply the above rules depending of 
 assistant = autogen.AssistantAgent(
     "assistant",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
-    code_execution_config=False,
     llm_config=llm_config,
 )
 user_proxy = autogen.UserProxyAgent(
@@ -130,7 +127,6 @@ web_surfer = WebSurferAgent(
     llm_config=llm_config,
     summarizer_llm_config=summarizer_llm_config,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
-    code_execution_config=False,
     browser_config={
         "bing_api_key": os.environ["BING_API_KEY"],
         "viewport_size": 1024 * 5,
@@ -141,74 +137,15 @@ web_surfer = WebSurferAgent(
     },
 )
 
-filename = "__FILE_NAME__".strip()
+filename_prompt = "__FILE_NAME__".strip()
+if len(filename_prompt) > 0:
+    filename_prompt = f"Consider the file '{filename_prompt}' which can be read from the current working directory. If you need to read or write it, output python code in a code block (```python) to do so. "
 
-filename_prompt = ""
-if len(filename) > 0:
-    content_type, encoding = mimetypes.guess_type(filename)
-    relpath = os.path.join("coding", filename)
-    filename_prompt = f"The question is about a file, document or image, which can be read from the file '{filename}' in current working directory."
-    if re.search(r"\.docx?$", filename.lower()):
-        filename_prompt += " It is a word document. Its contents are:\n\n" + futils.read_text_from_docx(relpath)
-    elif re.search(r"\.xlsx?$", filename.lower()):
-        filename_prompt += " It is an excel document. Its contents are:\n\n" + futils.read_text_from_xlsx(relpath)
-    elif re.search(r"\.pptx?$", filename.lower()):
-        filename_prompt += " It is an powerpoint document. Its contents are:\n\n" + futils.read_text_from_pptx(relpath)
-    elif re.search(r"\.pdf$", filename.lower()):
-        filename_prompt += " It is a PDF. Its contents are:\n\n" + futils.read_text_from_pdf(relpath)
-    elif re.search(r"\.mp3$", filename.lower()):
-        from pydub import AudioSegment
-
-        sound = AudioSegment.from_mp3(relpath)
-        wave_fname = relpath + ".wav"
-        sound.export(wave_fname, format="wav")
-        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(wave_fname)
-    elif re.search(r"\.wav$", filename.lower()):
-        filename_prompt += " It is an Audio file. Here is its transcript:\n\n" + futils.read_text_from_audio(relpath)
-    elif re.search(r"\.jpe?g$", filename.lower()):
-        filename_prompt += " It is an image with the following description:\n\n "
-
-        img_prompt = f"""
-Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
-
-{PROMPT}
-        """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v( "data:image/jpeg;base64," + encode_image(relpath), img_prompt)
-        ocr = futils.read_text_from_image(relpath).strip()
-        if ocr != "":
-            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
-    elif re.search(r"\.png$", filename.lower()):
-        filename_prompt += " It is an image with the following description:\n\n "
-
-        img_prompt = f"""
-Provide a meaningful but concise alt-text description of the image following established best practices (which focus on conveying context, meaning, information and purpose in addition to "looks"). This text should be useful for a low-vision or blind user encountering the image in the context of addressing the following request:
-
-{PROMPT}
-        """.strip()
-        filename_prompt += futils.caption_image_using_gpt4v( "data:image/png;base64," + encode_image(relpath), img_prompt)
-
-        from PIL import Image
-
-        img = Image.open(relpath)
-        # Remove transparency
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        jpg_name = relpath + ".jpg"
-        img.save(jpg_name)
-
-        ocr = futils.read_text_from_image(jpg_name).strip()
-        if ocr != "":
-            filename_prompt += "\n\nAdditionally, OCR analysis has detected the following text in the image: \"" + ocr + "\""
-    elif content_type is not None and "text/" in content_type.lower():
-        with open(relpath, "rt") as fh:
-            filename_prompt += "Here are the file's contents:\n\n" + fh.read().strip()
 
 question = f"""
 Below I will pose a question to you that I would like you to answer. You should begin by listing all the relevant facts necessary to derive an answer, then fill in those facts from memory where possible, including specific names, numbers and statistics. You are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from. After listing the facts, begin to solve the question in earnest. Here is the question:
 
-{PROMPT}
-
-{filename_prompt}
+{filename_prompt}{PROMPT}
 """.strip()
 
 groupchat = GroupChatModerator(
@@ -218,14 +155,13 @@ groupchat = GroupChatModerator(
     messages=[],
     speaker_selection_method="auto",
     allow_repeat_speaker=[web_surfer, assistant],
-    send_introductions=True,
 )
 
 manager = autogen.GroupChatManager(
     groupchat=groupchat,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    send_introductions=True,
     llm_config=llm_config,
-    code_execution_config=False,
 )
 
 soc = SocietyOfMindAgent(
@@ -233,7 +169,6 @@ soc = SocietyOfMindAgent(
     chat_manager=manager,
     response_preparer=response_preparer,
     llm_config=llm_config,
-    code_execution_config=False,
 )
 
 try:

@@ -1,45 +1,55 @@
 # ruff: noqa: E722
-import json
 import os
-import requests
 import re
-import markdownify
 import io
-import uuid
+import sys
+import requests
+import json
+import markdownify
+
+# File-format detection
+import puremagic
 import mimetypes
+from binaryornot.check import is_binary
+
 import html
 import pathlib
-import puremagic
 import tempfile
 import copy
 import mammoth
 import pptx
-import pydub
-import pandas as pd
-import speech_recognition as sr
-import sys
 import traceback
-
-import PIL
 import shutil
 import subprocess
-import easyocr
-import numpy as np
-
 import base64
+import binascii
+import pandas as pd
+import pdfminer
+import pdfminer.high_level
 
-from urllib.parse import urljoin, urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, parse_qs, quote, unquote, urlunparse
 from urllib.request import url2pathname
 from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
 
-# Optional PDF support
-IS_PDF_CAPABLE = False
+# Optional OCR support
+IS_OCR_CAPABLE = False
 try:
-    import pdfminer
-    import pdfminer.high_level
+    import easyocr
+    import PIL
+    import numpy as np
 
-    IS_PDF_CAPABLE = True
+    IS_OCR_CAPABLE = True
+except ModuleNotFoundError:
+    pass
+
+# Optional Transcription support
+IS_AUDIO_TRANSCRIPTION_CAPABLE = False
+try:
+    import pydub
+    import speech_recognition as sr
+
+    IS_AUDIO_TRANSCRIPTION_CAPABLE = True
 except ModuleNotFoundError:
     pass
 
@@ -51,6 +61,69 @@ try:
     IS_YOUTUBE_TRANSCRIPT_CAPABLE = True
 except ModuleNotFoundError:
     pass
+
+
+class _CustomMarkdownify(markdownify.MarkdownConverter):
+
+    def __init__(self, **options):
+        options['heading_style'] = options.get("heading_style", markdownify.ATX)
+        super().__init__(**options)
+
+    def convert_hn(self, n, el, text, convert_as_inline):
+        """ Same as usual, but be sure to start with a new line """
+        if not convert_as_inline:
+            if not re.search(r"^\n", text):
+                return "\n" + super().convert_hn(n, el, text, convert_as_inline)
+
+        return super().convert_hn(n, el, text, convert_as_inline)
+
+    def convert_a(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes Javascript links and escapes URIs."""
+        prefix, suffix, text = markdownify.chomp(text)
+        if not text:
+            return ''
+        href = el.get('href')
+        title = el.get('title')
+
+        # Escape URIs and skip non-http or file schemes
+        if href:
+            try:
+                parsed_url = urlparse(href)
+                if parsed_url.scheme and parsed_url.scheme.lower() not in ["http", "https", "file"]:
+                    return '%s%s%s' % (prefix, text, suffix)
+                href = urlunparse(parsed_url._replace(path=quote(unquote(parsed_url.path))))
+            except ValueError: # It's not clear if this ever gets thrown
+                return '%s%s%s' % (prefix, text, suffix)
+
+        # For the replacement see #29: text nodes underscores are escaped
+        if (self.options['autolinks']
+                and text.replace(r'\_', '_') == href
+                and not title
+                and not self.options['default_title']):
+            # Shortcut syntax
+            return '<%s>' % href
+        if self.options['default_title'] and not title:
+            title = href
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        return '%s[%s](%s%s)%s' % (prefix, text, href, title_part, suffix) if href else text
+
+
+    def convert_img(self, el, text, convert_as_inline):
+        """ Same as usual converter, but removes data URIs """
+
+        alt = el.attrs.get('alt', None) or ''
+        src = el.attrs.get('src', None) or ''
+        title = el.attrs.get('title', None) or ''
+        title_part = ' "%s"' % title.replace('"', r'\"') if title else ''
+        if (convert_as_inline
+                and el.parent.name not in self.options['keep_inline_images_in']):
+            return alt
+
+        # Remove dataURIs
+        if src.startswith("data:"):
+            src = src.split(",")[0] + "..."
+
+        return '![%s](%s%s)' % (alt, src, title_part)
 
 
 class DocumentConverterResult:
@@ -70,15 +143,14 @@ class PlainTextConverter(DocumentConverter):
     """Anything with content type text/plain"""
 
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
-        extension = kwargs.get("file_extension", "")
-        if extension == "":
-            return None
+        # Guess the content type from any file extension that might be around
+        content_type, encoding = mimetypes.guess_type("__placeholder" + kwargs.get("file_extension", ""))
 
-        content_type, encoding = mimetypes.guess_type("__placeholder" + extension)
         if content_type is None:
-            return None
-
-        if "text/" not in content_type.lower():
+            # No content type, so peek at the file and see if it's binary
+            if is_binary(local_path):
+                return None
+        elif "text/" not in content_type.lower():
             return None
 
         text_content = ""
@@ -120,9 +192,9 @@ class HtmlConverter(DocumentConverter):
         body_elm = soup.find("body")
         webpage_text = ""
         if body_elm:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
             title=None if soup.title is None else soup.title.string,
@@ -158,17 +230,17 @@ class WikipediaConverter(DocumentConverter):
         webpage_text = ""
         if body_elm:
             # What's the title
-            main_title = soup.title.string
+            main_title = (None if soup.title is None else soup.title.string)
             if title_elm and len(title_elm) > 0:
                 main_title = title_elm.string
 
             # Convert the page
-            webpage_text = "# " + main_title + "\n\n" + markdownify.MarkdownConverter().convert_soup(body_elm)
+            webpage_text = f"# {main_title}\n\n" + _CustomMarkdownify().convert_soup(body_elm)
         else:
-            webpage_text = markdownify.MarkdownConverter().convert_soup(soup)
+            webpage_text = _CustomMarkdownify().convert_soup(soup)
 
         return DocumentConverterResult(
-            title=soup.title.string,
+            title=main_title,
             text_content=webpage_text,
         )
 
@@ -286,6 +358,74 @@ class YouTubeConverter(DocumentConverter):
                     if ret is not None:
                         return ret
         return None
+
+
+class BingSerpConverter(DocumentConverter):
+    """
+    Handle Bing results pages (only the organic search results). 
+    NOTE: It is better to use the Bing API
+    """
+
+    def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
+        
+        # Bail if not a Bing SERP
+        extension = kwargs.get("file_extension", "")
+        if extension.lower() not in [".html", ".htm"]:
+            return None
+        url = kwargs.get("url", "")
+        if not re.search(r"^https://www\.bing\.com/search\?q=", url):
+            return None
+
+        # Parse the query parameters
+        parsed_params = parse_qs(urlparse(url).query)
+        query = parsed_params.get("q", [""])[0]
+
+        # Parse the file
+        soup = None
+        with open(local_path, "rt") as fh:
+            soup = BeautifulSoup(fh.read(), "html.parser")
+
+        # Clean up some formatting
+        for tptt in soup.find_all(class_="tptt"):
+            if hasattr(tptt, "string") and tptt.string:
+                tptt.string += " "
+        for slug in soup.find_all(class_="algoSlug_icon"):
+            slug.extract()
+
+        # Parse the algoithmic results
+        _markdownify = _CustomMarkdownify()
+        results = list()
+        for result in soup.find_all(class_="b_algo"):
+
+            # Rewrite redirect urls
+            for a in result.find_all("a", href=True):
+                parsed_href = urlparse(a["href"])
+                qs = parse_qs(parsed_href.query)
+                
+                # The destination is contained in the u parameter,
+                # but appears to be base64 encoded, with some prefix
+                if "u" in qs:
+                    u = qs["u"][0][2:].strip() + "==" # Python 3 doesn't care about extra padding
+                    
+                    try:
+                        # RFC 4648 / Base64URL" variant, which uses "-" and "_"
+                        a["href"] = base64.b64decode(u, altchars="-_").decode("utf-8")
+                    except UnicodeDecodeError:
+                        pass
+                    except binascii.Error:
+                        pass
+
+            # Convert to markdown
+            md_result = _markdownify.convert_soup(result).strip()
+            lines = [line.strip() for line in re.split(r"\n+", md_result)]
+            results.append("\n".join([line for line in lines if len(line) > 0]))
+
+        webpage_text = f"## A Bing search for '{query}' found the following results:\n\n" + "\n\n".join(results)
+
+        return DocumentConverterResult(
+            title=None if soup.title is None else soup.title.string,
+            text_content=webpage_text,
+        )
 
 
 class PdfConverter(DocumentConverter):
@@ -424,22 +564,65 @@ class PptxConverter(HtmlConverter):
         return False
 
 
-class WavConverter(DocumentConverter):
+class MediaConverter(DocumentConverter):
+    def _get_metadata(self, local_path):
+        exiftool = shutil.which("exiftool")
+        if not exiftool:
+            return None
+        else:
+            try:
+                result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
+                return json.loads(result)[0]
+            except:
+                return None
+
+
+class WavConverter(MediaConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
         if extension.lower() != ".wav":
             return None
 
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(local_path) as source:
-            audio = recognizer.record(source)
-            text_content = recognizer.recognize_google(audio).strip()
+        md_content = ""
+
+        # Add metadata
+        metadata = self._get_metadata(local_path)
+        if metadata:
+            for f in [
+                "Title",
+                "Artist",
+                "Band",
+                "Album",
+                "Genre",
+                "Track",
+                "DateTimeOriginal",
+                "CreateDate",
+                "Duration",
+            ]:
+                if f in metadata:
+                    md_content += f"{f}: {metadata[f]}\n"
+
+        # Transcribe
+        if IS_AUDIO_TRANSCRIPTION_CAPABLE:
+            try:
+                transcript = self._transcribe_audio(local_path)
+                md_content += "\n\n### Audio Transcript:\n" + (
+                    "[No speech detected]" if transcript == "" else transcript
+                )
+            except:
+                md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
 
         return DocumentConverterResult(
             title=None,
-            text_content="### Audio Transcript:\n" + ("[No speech detected]" if text_content == "" else text_content),
+            text_content=md_content.strip(),
         )
+
+    def _transcribe_audio(self, local_path) -> str:
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(local_path) as source:
+            audio = recognizer.record(source)
+            return recognizer.recognize_google(audio).strip()
 
 
 class Mp3Converter(WavConverter):
@@ -449,24 +632,56 @@ class Mp3Converter(WavConverter):
         if extension.lower() != ".mp3":
             return None
 
-        handle, temp_path = tempfile.mkstemp(suffix=".wav")
-        os.close(handle)
-        try:
-            sound = pydub.AudioSegment.from_mp3(local_path)
-            sound.export(temp_path, format="wav")
+        md_content = ""
 
-            _args = dict()
-            _args.update(kwargs)
-            _args["file_extension"] = ".wav"
+        # Add metadata
+        metadata = self._get_metadata(local_path)
+        if metadata:
+            for f in [
+                "Title",
+                "Artist",
+                "Band",
+                "Album",
+                "Genre",
+                "Track",
+                "DateTimeOriginal",
+                "CreateDate",
+                "Duration",
+            ]:
+                if f in metadata:
+                    md_content += f"{f}: {metadata[f]}\n"
 
-            result = super().convert(temp_path, **_args)
-        finally:
-            os.unlink(temp_path)
+        # Transcribe
+        if IS_AUDIO_TRANSCRIPTION_CAPABLE:
+            handle, temp_path = tempfile.mkstemp(suffix=".wav")
+            os.close(handle)
+            try:
+                sound = pydub.AudioSegment.from_mp3(local_path)
+                sound.export(temp_path, format="wav")
 
-        return result
+                _args = dict()
+                _args.update(kwargs)
+                _args["file_extension"] = ".wav"
+
+                try:
+                    transcript = super()._transcribe_audio(temp_path).strip()
+                    md_content += "\n\n### Audio Transcript:\n" + (
+                        "[No speech detected]" if transcript == "" else transcript
+                    )
+                except:
+                    md_content += "\n\n### Audio Transcript:\nError. Could not transcribe this audio."
+
+            finally:
+                os.unlink(temp_path)
+
+        # Return the result
+        return DocumentConverterResult(
+            title=None,
+            text_content=md_content.strip(),
+        )
 
 
-class ImageConverter(DocumentConverter):
+class ImageConverter(MediaConverter):
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
@@ -481,6 +696,7 @@ class ImageConverter(DocumentConverter):
         metadata = self._get_metadata(local_path)
         if metadata:
             for f in [
+                "ImageSize",
                 "Title",
                 "Caption",
                 "Description",
@@ -502,39 +718,29 @@ class ImageConverter(DocumentConverter):
                 + "\n"
             )
 
-        image = PIL.Image.open(local_path)
-        # Remove transparency
-        if image.mode in ("RGBA", "P"):
-            image = image.convert("RGB")
+        if IS_OCR_CAPABLE:
+            image = PIL.Image.open(local_path)
+            # Remove transparency
+            if image.mode in ("RGBA", "P"):
+                image = image.convert("RGB")
 
-        reader = easyocr.Reader(["en"])  # specify the language(s)
-        output = reader.readtext(np.array(image))  # local_path)
-        # The output is a list of tuples, each containing the coordinates of the text and the text itself.
-        # We join all the text pieces together to get the final text.
-        ocr_text = " "
-        for item in output:
-            if item[2] >= ocr_min_confidence:
-                ocr_text += item[1] + " "
-        ocr_text = ocr_text.strip()
+            reader = easyocr.Reader(["en"])  # specify the language(s)
+            output = reader.readtext(np.array(image))  # local_path)
+            # The output is a list of tuples, each containing the coordinates of the text and the text itself.
+            # We join all the text pieces together to get the final text.
+            ocr_text = " "
+            for item in output:
+                if item[2] >= ocr_min_confidence:
+                    ocr_text += item[1] + " "
+            ocr_text = ocr_text.strip()
 
-        if len(ocr_text) > 0:
-            md_content += "\n# Text detected by OCR:\n" + ocr_text
+            if len(ocr_text) > 0:
+                md_content += "\n# Text detected by OCR:\n" + ocr_text
 
         return DocumentConverterResult(
             title=None,
             text_content=md_content,
         )
-
-    def _get_metadata(self, local_path):
-        exiftool = shutil.which("exiftool")
-        if not exiftool:
-            return None
-        else:
-            try:
-                result = subprocess.run([exiftool, "-json", local_path], capture_output=True, text=True).stdout
-                return json.loads(result)[0]
-            except:
-                return None
 
     def _get_mlm_description(self, local_path, extension, client, prompt=None):
         if prompt is None or prompt.strip() == "":
@@ -568,11 +774,14 @@ class ImageConverter(DocumentConverter):
             response = client.create(messages=messages)
             return client.extract_text_or_completion_object(response)[0]
 
+
 class FileConversionException(BaseException):
     pass
 
+
 class UnsupportedFormatException(BaseException):
     pass
+
 
 class MarkdownConverter:
     """(In preview) An extremely simple text-based document reader, suitable for LLM use.
@@ -599,15 +808,14 @@ class MarkdownConverter:
         self.register_page_converter(HtmlConverter())
         self.register_page_converter(WikipediaConverter())
         self.register_page_converter(YouTubeConverter())
+        self.register_page_converter(BingSerpConverter())
         self.register_page_converter(DocxConverter())
         self.register_page_converter(XlsxConverter())
         self.register_page_converter(PptxConverter())
         self.register_page_converter(WavConverter())
         self.register_page_converter(Mp3Converter())
         self.register_page_converter(ImageConverter())
-
-        if IS_PDF_CAPABLE:
-            self.register_page_converter(PdfConverter())
+        self.register_page_converter(PdfConverter())
 
     def convert(self, source, **kwargs):
         """
@@ -638,6 +846,39 @@ class MarkdownConverter:
 
         # Convert
         return self._convert(path, extensions, **kwargs)
+
+    def convert_stream(self, stream, **kwargs):
+        # Prepare a list of extensions to try (in order of priority)
+        ext = kwargs.get("file_extension")
+        extensions = [ext] if ext is not None else []
+
+        # Save the file locally to a temporary file. It will be deleted before this method exits
+        handle, temp_path = tempfile.mkstemp()
+        fh = os.fdopen(handle, "wb")
+        result = None
+        try:
+            # Write to the temporary file
+            content = stream.read()
+            if isinstance(content, str):
+                fh.write(content.encode("utf-8"))
+            else:
+                fh.write(content)
+            fh.close()
+
+            # Use puremagic to check for more extension options
+            self._append_ext(extensions, self._guess_ext_magic(temp_path))
+
+            # Convert
+            result = self._convert(temp_path, extensions, **kwargs)
+        # Clean up
+        finally:
+            try:
+                fh.close()
+            except:
+                pass
+            os.unlink(temp_path)
+
+        return result
 
     def convert_url(self, url, **kwargs):
         # Send a HTTP request to the URL
@@ -693,20 +934,26 @@ class MarkdownConverter:
 
     def _convert(self, local_path, extensions, **kwargs):
         error_trace = ""
-        for ext in extensions:
+        for ext in extensions + [None]:  # Try last with no extension
             for converter in self._page_converters:
                 _kwargs = copy.deepcopy(kwargs)
-                _kwargs.update({"file_extension": ext})
+
+                # Overwrite file_extension appropriately
+                if ext is None:
+                    if "file_extension" in _kwargs:
+                        del _kwargs["file_extension"]
+                else:
+                    _kwargs.update({"file_extension": ext})
 
                 # Copy any additional global options
                 if "mlm_client" not in _kwargs and self._mlm_client is not None:
                     _kwargs["mlm_client"] = self._mlm_client
 
                 # If we hit an error log it and keep trying
-                try:
-                    res = converter.convert(local_path, **_kwargs)
-                except Exception as e:
-                    error_trace = ("\n\n" + traceback.format_exc()).strip()
+                # try:
+                res = converter.convert(local_path, **_kwargs)
+                # except Exception:
+                #    error_trace = ("\n\n" + traceback.format_exc()).strip()
 
                 if res is not None:
                     # Normalize the content

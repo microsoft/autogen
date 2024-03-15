@@ -18,6 +18,8 @@ install_requires = [
     "diskcache",
     "termcolor",
     "flaml",
+    # numpy is installed by flaml, but we want to pin the version to below 2.x (see https://github.com/microsoft/autogen/issues/1960)
+    "numpy>=1.17.0,<2",
     "python-dotenv",
     "tiktoken",
     # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
@@ -53,9 +55,27 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+        "websurfer": [
+            "beautifulsoup4",
+            "markdownify",
+            "pathvalidate",
+            # mdconvert
+            "puremagic",  # File identification
+            "binaryornot",  # More file identification
+            "pdfminer.six",  # Pdf
+            "mammoth",  # Docx
+            "python-pptx",  # Ppts
+            "pandas",  # Xlsx
+            "openpyxl",
+        ],
         "redis": ["redis"],
-        "ipython": ["jupyter-client>=8.6.0", "ipykernel>=6.29.0"],
+        "jupyter-executor": [
+            "jupyter-kernel-gateway",
+            "websocket-client",
+            "requests",
+            "jupyter-client>=8.6.0",
+            "ipykernel>=6.29.0",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",

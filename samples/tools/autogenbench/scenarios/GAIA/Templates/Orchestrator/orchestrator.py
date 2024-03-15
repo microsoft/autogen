@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
+from autogen.code_utils import extract_code
 
 
 class Orchestrator(ConversableAgent):
@@ -34,6 +35,7 @@ class Orchestrator(ConversableAgent):
         )
 
         self._agents = agents
+
         self.orchestrated_messages = []
 
         # NOTE: Async reply functions are not yet supported with this contrib agent
@@ -84,6 +86,8 @@ class Orchestrator(ConversableAgent):
         team = "\n".join([a.name + ": " + a.description for a in self._agents])
         names = ", ".join([a.name for a in self._agents])
 
+        execution_enabled_agents = [a for a in self._agents if isinstance(a._code_execution_config, dict)]
+
         # A place to store relevant facts
         facts = ""
 
@@ -93,7 +97,6 @@ class Orchestrator(ConversableAgent):
         #################
 
         # Start by writing what we know
-        
         closed_book_prompt = f"""Below I will present you a request. Before we begin addressing the request, please answer the following pre-survey to the best of your ability. Keep in mind that you are Ken Jennings-level with trivia, and Mensa-level with puzzles, so there should be a deep well to draw from.
 
 Here is the request:
@@ -177,7 +180,61 @@ Some additional points to consider:
             while total_turns < max_turns:
                 total_turns += 1
 
-                step_prompt = f"""
+                prev_message = self.orchestrated_messages[-1]["content"]
+                code_blocks = [t for t in extract_code(prev_message) if t[0] in ["python", "sh"]]
+
+                data = None
+                if len(code_blocks) > 0 and len(execution_enabled_agents) > 0:
+                    step_prompt = f"""
+Recall we are working on the following request:
+
+{task}
+
+To make progress on the request, please answer the following questions, including necessary reasoning:
+
+    - Is the request fully satisfied? (True if complete, or False if the original request has yet to be SUCCESSFULLY addressed)
+    - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
+
+Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
+
+    {{
+        "is_request_satisfied": {{
+            "reason": string,
+            "answer": boolean
+        }},
+        "is_progress_being_made": {{
+            "reason": string,
+            "answer": boolean
+        }}
+    }}
+""".strip()
+
+                    # This is a temporary message we will immediately pop
+                    self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
+                    response = self.client.create(
+                        messages=self.orchestrated_messages,
+                        cache=self.client_cache,
+                        response_format={"type": "json_object"},
+                    )
+                    self.orchestrated_messages.pop()
+
+                    extracted_response = self.client.extract_text_or_completion_object(response)[0]
+                    try:
+                        data = json.loads(extracted_response)
+                        data["next_speaker"] = {
+                            "reason": "Assigning to an agent that can execute the script.",
+                            "answer": execution_enabled_agents[0].name,
+                        }
+                        data["instruction_or_question"] = {
+                            "reason": "Assigning to an agent that can execute the script.",
+                            "answer": "Please execute the above script."
+                        }
+                    except json.decoder.JSONDecodeError as e:
+                        # Something went wrong. Restart this loop.
+                        self._print_thought(str(e))
+                        break
+                else:
+                    step_prompt = f"""
 Recall we are working on the following request:
 
 {task}
@@ -214,24 +271,22 @@ Please output an answer in pure JSON format according to the following schema. T
         }}
     }}
 """.strip()
+                    # This is a temporary message we will immediately pop
+                    self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
+                    response = self.client.create(
+                        messages=self.orchestrated_messages,
+                        cache=self.client_cache,
+                        response_format={"type": "json_object"},
+                    )
+                    self.orchestrated_messages.pop()
 
-                # This is a temporary message we will immediately pop
-                self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
-                response = self.client.create(
-                    messages=self.orchestrated_messages,
-                    cache=self.client_cache,
-                    response_format={"type": "json_object"},
-                )
-                self.orchestrated_messages.pop()
-
-                extracted_response = self.client.extract_text_or_completion_object(response)[0]
-                data = None
-                try:
-                    data = json.loads(extracted_response)
-                except json.decoder.JSONDecodeError as e:
-                    # Something went wrong. Restart this loop.
-                    self._print_thought(str(e))
-                    break
+                    extracted_response = self.client.extract_text_or_completion_object(response)[0]
+                    try:
+                        data = json.loads(extracted_response)
+                    except json.decoder.JSONDecodeError as e:
+                        # Something went wrong. Restart this loop.
+                        self._print_thought(str(e))
+                        break
 
                 self._print_thought(json.dumps(data, indent=4))
 

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class CompressibleAgent(ConversableAgent):
-    """(Experimental) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
+    """(CompressibleAgent will be deprecated. Refer to https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb for long context handling capability.) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
         it also provides the added feature of compression when activated through the `compress_config` setting.
 
     `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
@@ -73,6 +73,7 @@ Reply "TERMINATE" in the end when everything is done.
             system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
             llm_config (dict): llm inference configuration.
+                Note: you must set `model` in llm_config. It will be used to compute the token count.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
                 for available options.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
@@ -84,10 +85,9 @@ Reply "TERMINATE" in the end when everything is done.
             compress_config (dict or True/False): config for compression before oai_reply. Default to False.
                 You should contain the following keys:
                 - "mode" (Optional, str, default to "TERMINATE"): Choose from ["COMPRESS", "TERMINATE", "CUSTOMIZED"].
-                    "TERMINATE": terminate the conversation ONLY when token count exceeds the max limit of current model.
-                        `trigger_count` is NOT used in this mode.
-                    "COMPRESS": compress the messages when the token count exceeds the limit.
-                    "CUSTOMIZED": pass in a customized function to compress the messages.
+                    1. `TERMINATE`: terminate the conversation ONLY when token count exceeds the max limit of current model. `trigger_count` is NOT used in this mode.
+                    2. `COMPRESS`: compress the messages when the token count exceeds the limit.
+                    3. `CUSTOMIZED`: pass in a customized function to compress the messages.
                 - "compress_function" (Optional, callable, default to None): Must be provided when mode is "CUSTOMIZED".
                     The function should takes a list of messages and returns a tuple of (is_compress_success: bool, compressed_messages: List[Dict]).
                 - "trigger_count" (Optional, float, int, default to 0.7): the threshold to trigger compression.
@@ -122,6 +122,8 @@ Reply "TERMINATE" in the end when everything is done.
             self.llm_compress_config = False
             self.compress_client = None
         else:
+            if "model" not in llm_config:
+                raise ValueError("llm_config must contain the 'model' field.")
             self.llm_compress_config = self.llm_config.copy()
             # remove functions
             if "functions" in self.llm_compress_config:

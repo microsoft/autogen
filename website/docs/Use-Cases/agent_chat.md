@@ -3,7 +3,7 @@
 AutoGen offers a unified multi-agent conversation framework as a high-level abstraction of using foundation models. It features capable, customizable and conversable agents which integrate LLMs, tools, and humans via automated agent chat.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
-This framework simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcome their weaknesses. It enables building next-gen LLM applications based on multi-agent conversations with minimal effort.
+This framework simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses. It enables building next-gen LLM applications based on multi-agent conversations with minimal effort.
 
 ### Agents
 
@@ -52,7 +52,7 @@ or Pydantic models:
 
 2. [`ConversableAgent.register_for_execution`](../reference/agentchat/conversable_agent#register_for_execution) is used to register the function in the `function_map` of a UserProxy agent.
 
-The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
+The following examples illustrate the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
 
 1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](/docs/FAQ#set-your-api-endpoints) function:
 
@@ -316,6 +316,7 @@ On the one hand, one can achieve fully autonomous conversations after an initial
 AutoGen, by integrating conversation-driven control utilizing both programming and natural language, inherently supports dynamic conversations. This dynamic nature allows the agent topology to adapt based on the actual conversation flow under varying input problem scenarios. Conversely, static conversations adhere to a predefined topology. Dynamic conversations are particularly beneficial in complex settings where interaction patterns cannot be predetermined.
 
 1. Registered auto-reply
+
 With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. For example:
 - Hierarchical chat like in [OptiGuide](https://github.com/microsoft/optiguide).
 - [Dynamic Group Chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb) which is a special form of hierarchical chat. In the system, we register a reply function in the group chat manager, which broadcasts messages and decides who the next speaker will be in a group chat setting.
@@ -323,57 +324,8 @@ With the pluggable auto-reply function, one can choose to invoke conversations w
 - Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb).
 
 2. LLM-Based Function Call
+
 Another approach involves LLM-based function calls, where LLM decides if a specific function should be invoked based on the conversation's status during each inference. This approach enables dynamic multi-agent conversations, as seen in scenarios like [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant automatically seeks expertise via function calls.
-
-### LLM Caching
-
-Since version 0.2.8, a configurable context manager allows you to easily
-configure LLM cache, using either DiskCache or Redis. All agents inside the
-context manager will use the same cache.
-
-```python
-from autogen import Cache
-
-# Use Redis as cache
-with Cache.redis(redis_url="redis://localhost:6379/0") as cache:
-    user.initiate_chat(assistant, message=coding_task, cache=cache)
-
-# Use DiskCache as cache
-with Cache.disk() as cache:
-    user.initiate_chat(assistant, message=coding_task, cache=cache)
-```
-
-You can vary the `cache_seed` parameter to get different LLM output while
-still using cache.
-
-```python
-# Setting the cache_seed to 1 will use a different cache from the default one
-# and you will see different output.
-with Cache.disk(cache_seed=1) as cache:
-    user.initiate_chat(assistant, message=coding_task, cache=cache)
-```
-
-By default DiskCache uses `.cache` for storage. To change the cache directory,
-set `cache_path_root`:
-
-```python
-with Cache.disk(cache_path_root="/tmp/autogen_cache") as cache:
-    user.initiate_chat(assistant, message=coding_task, cache=cache)
-```
-
-For backward compatibility, DiskCache is on by default with `cache_seed` set to 41.
-To disable caching completely, set `cache_seed` to `None` in the `llm_config` of the agent.
-
-```python
-assistant = AssistantAgent(
-    "coding_agent",
-    llm_config={
-        "cache_seed": None,
-        "config_list": OAI_CONFIG_LIST,
-        "max_tokens": 1024,
-    },
-)
-```
 
 ### Diverse Applications Implemented with AutoGen
 

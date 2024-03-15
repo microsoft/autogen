@@ -1,26 +1,25 @@
-import json
 import copy
-import logging
 import re
 import time
+import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser
+from ...browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
 from ...code_utils import content_str
-from datetime import datetime
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 class WebSurferAgent(ConversableAgent):
     """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
 
     DEFAULT_PROMPT = (
-        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
+        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Though you have access to many browser functions, use at most one function per response. Today's date is "
         + datetime.now().date().isoformat()
     )
 
@@ -39,7 +38,8 @@ class WebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         summarizer_llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        browser_config: Optional[Union[Dict, None]] = None,
+        browser_config: Optional[Union[Dict, None]] = None, # Deprecated
+        browser: Optional[Union[AbstractMarkdownBrowser, None]] = None,
     ):
         super().__init__(
             name=name,
@@ -57,11 +57,34 @@ class WebSurferAgent(ConversableAgent):
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        if browser_config is not None:
+            if browser is not None:
+                raise ValueError("WebSurferAgent cannot accept both a 'browser_config' (deprecated) parameter and 'browser' parameter at the same time. Use only one or the other.")
 
-        inner_llm_config = copy.deepcopy(llm_config)
+            # Print a warning
+            logger.warning("Warning: the parameter 'browser_config' in WebSurferAgent.__init__() is deprecated. Use 'browser' instead.")
+
+
+            # Update the settings to the new format
+            _bconfig = {}
+            _bconfig.update(browser_config)
+
+            if "bing_api_key" in _bconfig:
+                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key = _bconfig["bing_api_key"])
+                del _bconfig["bing_api_key"]
+            else:
+                _bconfig["search_engine"] = BingMarkdownSearch()
+
+            if "request_kwargs" in _bconfig:
+                _bconfig["requests_get_kwargs"] = _bconfig["request_kwargs"]
+                del _bconfig["request_kwargs"]
+
+            self.browser = RequestsMarkdownBrowser(**_bconfig)
+        else:
+            self.browser = browser
 
         # Set up the inner monologue
+        inner_llm_config = copy.deepcopy(llm_config)
         self._assistant = AssistantAgent(
             self.name + "_inner_assistant",
             system_message=system_message,  # type: ignore[arg-type]
@@ -126,6 +149,7 @@ class WebSurferAgent(ConversableAgent):
             total_pages = len(self.browser.viewport_pages)
 
             address = self.browser.address
+
             for i in range(len(self.browser.history)-2,-1,-1): # Start from the second last
                 if self.browser.history[i][0] == address:
                     header += f"You previously visited this page {round(time.time() - self.browser.history[i][1])} seconds ago.\n"
@@ -141,7 +165,7 @@ class WebSurferAgent(ConversableAgent):
             description="Perform an INFORMATIONAL web search query then return the search results.",
         )
         def _informational_search(query: Annotated[str, "The informational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
 
@@ -151,9 +175,9 @@ class WebSurferAgent(ConversableAgent):
             description="Perform a NAVIGATIONAL web search query then immediately navigate to the top result. Useful, for example, to navigate to a particular Wikipedia article or other known destination. Equivalent to Google's \"I'm Feeling Lucky\" button.",
         )
         def _navigational_search(query: Annotated[str, "The navigational web search query to perform."]) -> str:
-            self.browser.visit_page(f"bing: {query}")
+            self.browser.visit_page(f"search: {query}")
 
-            # Extract the first linl
+            # Extract the first link
             m = re.search(r"\[.*?\]\((http.*?)\)", self.browser.page_content)
             if m:
                 self.browser.visit_page(m.group(1))

@@ -4,16 +4,17 @@
 name: OpenAI
 
 on:
-  pull_request_target:
+  pull_request:
     branches: ["main"]
     paths:
       - "autogen/**"
       - "test/**"
       - "notebook/agentchat_auto_feedback_from_code_execution.ipynb"
       - "notebook/agentchat_function_call.ipynb"
+      - "notebook/agentchat_groupchat_finite_state_machine.ipynb"
       - ".github/workflows/openai.yml"
 permissions: {}
-    # actions: read
+  # actions: read
   # checks: read
   # contents: read
   # deployments: read

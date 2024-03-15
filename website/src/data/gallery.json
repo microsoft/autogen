@@ -1,5 +1,12 @@
 [
   {
+    "title": "Function Generator & Validator",
+    "link": "https://github.com/abhaymathur21/TensionCode",
+    "description": "A platform where user-required code is generated and simultaneously validated against sample data by AutoGen.",
+    "image": "TensionCode.png",
+    "tags": ["app", "ui"]
+  },
+  {
     "title": "Autogen Robot",
     "link": "https://github.com/AaronWard/generative-ai-workbook/tree/main/personal_projects/19.autogen-robot",
     "description": "This project showcases how agent's can act as a brain to control a physical robot.",

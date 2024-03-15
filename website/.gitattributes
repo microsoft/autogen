@@ -1,0 +1,9 @@
+docs/tutorial/assets/conversable-agent.jpg filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/code-executor-no-docker.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/group-chat.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/human-in-the-loop.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/nested-chats.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/sequential-two-agent-chat.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/two-agent-chat.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/code-execution-in-conversation.png filter=lfs diff=lfs merge=lfs -text
+docs/tutorial/assets/code-executor-docker.png filter=lfs diff=lfs merge=lfs -text
