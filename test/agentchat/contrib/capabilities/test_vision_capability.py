@@ -94,6 +94,10 @@ def custom_caption_func():
     return caption_func
 
 
+@pytest.mark.skipif(
+    skip_test,
+    reason="do not run if dependency is not installed or requested to skip",
+)
 class TestCustomCaptionFunc:
     def test_custom_caption_func_with_valid_url(self, custom_caption_func):
         """Test custom caption function with a valid image URL."""
