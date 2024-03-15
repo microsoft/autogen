@@ -716,7 +716,6 @@ class ConversableAgent(LLMAgent):
         iostream.print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
         message = self._message_to_dict(message)
 
-        # llm_message = self.LLMMessage(sender=sender.name, receiver=self.name, message=message)
         # print("#"*10 + " " + str(llm_message), flush=True)
 
         if message.get("tool_responses"):  # Handle tool multi-call responses

@@ -2,12 +2,14 @@
 
 import os
 import sys
+from tempfile import TemporaryDirectory
 import time
 import unittest
 from typing import Any, Callable, Dict, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from autogen.cache.cache import Cache
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 from pydantic import BaseModel, Field
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
@@ -28,13 +30,20 @@ else:
 here = os.path.abspath(os.path.dirname(__file__))
 
 
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.10"),
+    reason="do not run if openai is not installed or py!=3.10",
+)
+@pytest.mark.parametrize("stream", [True, False])
 class TestOutput:
-    @pytest.mark.parametrize("stream", [True, False])
-    def setup_method(self, stream: bool) -> None:
+    @pytest.fixture(scope="function", autouse=True)
+    def setup_and_teardown(self, stream: bool) -> None:
+        assert stream in [True, False]
+
         config_list = autogen.config_list_from_json(
             OAI_CONFIG_LIST,
             filter_dict={
-                "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+                "model": ["gpt-3.5-turbo", "gpt-4", "gpt-4-32k"],
             },
             file_location=KEY_LOC,
         )
@@ -46,7 +55,9 @@ class TestOutput:
 
         self.agent = autogen.AssistantAgent(
             name="chatbot",
-            system_message="For coding tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
+            system_message="You are a helpful assistant that is given a single task. Use only the functions you have been provided with. "
+            "Do not forget to write 'TERMINATE' when the task is done in the last line of the response. "
+            "Do not ask for further instructions after the task is done.",
             llm_config=llm_config,
         )
 
@@ -60,15 +71,30 @@ class TestOutput:
             code_execution_config={"work_dir": "coding"},
         )
 
-    @pytest.mark.skipif(
-        skip or not sys.version.startswith("3.10"),
-        reason="do not run if openai is not installed or py!=3.10",
-    )
+        @self.user_proxy.register_for_execution()
+        @self.agent.register_for_llm(description="Get the weather forecast for a location.")
+        def get_weather(location: Annotated[str, "The location to get the weather forecast for."]) -> str:
+            return f"The weather in {location} is sunny."
+
+        with TemporaryDirectory() as t:
+            with Cache.disk(cache_path_root=t) as cache:
+                self.cache = cache if stream else None
+                yield
+
     @patch("autogen.io.IOConsole.output")
-    def test_llm_messages(self, mock_print: MagicMock) -> None:
+    def test_llm_messages(self, mock_output: MagicMock, stream: bool) -> None:
         self.user_proxy.initiate_chat(  # noqa: F704
             self.agent,
-            message="Write a poem about Paris.",
+            message="Write a haiku about Paris.",
+            cache=self.cache,
+        )
+
+    @patch("autogen.io.IOConsole.output")
+    def test_tool_function_call_messages(self, mock_output: MagicMock, stream: bool) -> None:
+        self.user_proxy.initiate_chat(  # noqa: F704
+            self.agent,
+            message="Check the weather forecast in Paris and then write a haiku about it.",
+            cache=self.cache,
         )
 
         # # define functions according to the function description
