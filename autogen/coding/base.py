@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Protocol, Union, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -76,4 +76,13 @@ class IPythonCodeResult(CodeResult):
     output_files: List[str] = Field(
         default_factory=list,
         description="The list of files that the executed code blocks generated.",
+    )
+
+
+class CommandLineCodeResult(CodeResult):
+    """(Experimental) A code result class for command line code executor."""
+
+    code_file: Optional[str] = Field(
+        default=None,
+        description="The file that the executed code block was saved to.",
     )

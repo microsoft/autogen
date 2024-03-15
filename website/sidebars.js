@@ -23,8 +23,8 @@
         },
         {
           type: 'doc',
-          id: 'tutorial/termination',
-          label: 'Termination',
+          id: 'tutorial/chat-termination',
+          label: 'Chat Termination',
         },
         {
           type: 'doc',
@@ -43,8 +43,8 @@
         },
         {
           type: 'doc',
-          id: 'tutorial/what-is-next',
-          label: 'What is Next?',
+          id: 'tutorial/what-next',
+          label: 'What Next?',
         }
       ],
     },

@@ -103,7 +103,6 @@ def _test_execute_code(executor: CodeExecutor) -> None:
             assert file_line.strip() == code_line.strip()
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_commandline_code_executor_timeout(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -193,36 +192,29 @@ def test_dangerous_commands(lang, code, expected_message):
     ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
 
 
-# This is kind of hard to test because each exec is a new env
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
-def test_docker_invalid_relative_path() -> None:
-    with DockerCommandLineCodeExecutor() as executor:
-        code = """# filename: /tmp/test.py
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_invalid_relative_path(cls) -> None:
+    executor = cls()
+    code = """# filename: /tmp/test.py
+
+print("hello world")
+"""
+    result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
+    assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_valid_relative_path(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        executor = cls(work_dir=temp_dir)
+        code = """# filename: test.py
 
 print("hello world")
 """
         result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-        assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
-
-
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
-def test_docker_valid_relative_path() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
-        with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-            code = """# filename: test.py
-
-print("hello world")
-"""
-            result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-            assert result.exit_code == 0
-            assert "hello world" in result.output
-            assert "test.py" in result.code_file
-            assert (temp_dir / "test.py") == Path(result.code_file)
-            assert (temp_dir / "test.py").exists()
+        assert result.exit_code == 0
+        assert "hello world" in result.output
+        assert "test.py" in result.code_file
+        assert (temp_dir / "test.py").resolve() == Path(result.code_file).resolve()
+        assert (temp_dir / "test.py").exists()
