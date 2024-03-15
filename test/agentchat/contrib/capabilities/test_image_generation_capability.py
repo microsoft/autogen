@@ -2,12 +2,9 @@ import itertools
 import os
 import tempfile
 from typing import Any, Dict, Tuple
-
 import pytest
-from conftest import skip_openai  # noqa: E402
+import sys
 from PIL import Image
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
-
 from autogen import code_utils
 from autogen.agentchat.contrib.capabilities import generate_images
 from autogen.agentchat.contrib.img_utils import get_pil_image
@@ -15,6 +12,11 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.agentchat.user_proxy_agent import UserProxyAgent
 from autogen.cache.cache import Cache
 from autogen.oai import openai_utils
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
@@ -47,12 +49,7 @@ def dalle_image_generator(dalle_config: Dict[str, Any], resolution: str, quality
 
 @pytest.fixture
 def dalle_config() -> Dict[str, Any]:
-    config_list = [
-        {
-            "model": "dall-e-2",
-            "api_key": os.environ.get("OPENAI_API_KEY"),
-        }
-    ]
+    config_list = openai_utils.config_list_from_models(model_list=["dall-e-2"], exclude="aoai")
     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
 
 
@@ -194,3 +191,9 @@ def test_image_generation_capability_cache(monkeypatch):
         image = get_pil_image(image_dict[0]["image_url"]["url"])
 
         assert image.size == test_image_size
+
+
+if __name__ == "__main__":
+    test_dalle_image_generator(
+        dalle_config={"config_list": openai_utils.config_list_from_models(model_list=["dall-e-2"], exclude="aoai")}
+    )
