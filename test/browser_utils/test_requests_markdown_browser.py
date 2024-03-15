@@ -7,6 +7,7 @@ import requests
 import hashlib
 import re
 import math
+import pathlib
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
@@ -27,6 +28,17 @@ DOWNLOAD_URL = "https://arxiv.org/src/2308.08155"
 
 PDF_URL = "https://arxiv.org/pdf/2308.08155.pdf"
 PDF_STRING = "Figure 1: AutoGen enables diverse LLM-based applications using multi-agent conversations."
+
+DIR_TEST_STRINGS = [
+    "# Index of ",
+    "[.. (parent directory)]",
+    "/test/browser_utils/test_requests_markdown_browser.py",
+]
+
+LOCAL_FILE_TEST_STRINGS = [
+    BLOG_POST_STRING,
+    BLOG_POST_FIND_ON_PAGE_MATCH,
+]
 
 try:
     from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
@@ -185,6 +197,33 @@ def test_requests_markdown_browser():
     _rm_folder(downloads_folder)
 
 
+def test_local_file_browsing():
+    directory = os.path.dirname(__file__)
+    test_file = os.path.join(directory, "test_files", "test.html")
+    browser = RequestsMarkdownBrowser()
+
+    # Directory listing via open_local_file
+    viewport = browser.open_local_file(directory)
+    for target_string in DIR_TEST_STRINGS:
+        assert target_string in viewport
+
+    # Directory listing via file URI
+    viewport = browser.visit_page(pathlib.Path(os.path.abspath(directory)).as_uri())
+    for target_string in DIR_TEST_STRINGS:
+        assert target_string in viewport
+
+    # File access via file open_local_file
+    browser.open_local_file(test_file)
+    for target_string in LOCAL_FILE_TEST_STRINGS:
+        assert target_string in browser.page_content
+
+    # File access via file URI
+    browser.visit_page(pathlib.Path(os.path.abspath(test_file)).as_uri())
+    for target_string in LOCAL_FILE_TEST_STRINGS:
+        assert target_string in browser.page_content
+
+
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
     test_requests_markdown_browser()
+    test_local_file_browsing()

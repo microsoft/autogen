@@ -201,7 +201,7 @@ class WebSurferAgent(ConversableAgent):
         @self._assistant.register_for_llm(
             name="download_file", description="Download a file at a given URL and, if possible, return its text."
         )
-        def _visit_page(url: Annotated[str, "The relative or absolute url of the file to be downloaded."]) -> str:
+        def _download_file(url: Annotated[str, "The relative or absolute url of the file to be downloaded."]) -> str:
             self.browser.visit_page(url)
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
