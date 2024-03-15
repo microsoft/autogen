@@ -160,11 +160,20 @@ const ModelsView = ({}: any) => {
             setShowModelModal(true);
           }}
         >
-          <div style={{ minHeight: "65px" }} className="my-2   break-words">
+          <div
+            style={{ minHeight: "65px" }}
+            className="my-2   break-words"
+            aria-hidden="true"
+          >
             {" "}
             {truncateText(model.description || model.model || "", 70)}
           </div>
-          <div className="text-xs">{timeAgo(model.timestamp || "")}</div>
+          <div
+            className="text-xs"
+            aria-label={`Last updated ${timeAgo(model.timestamp || "")}`}
+          >
+            {timeAgo(model.timestamp || "")}
+          </div>
           <div
             onMouseEnter={(e) => {
               e.stopPropagation();

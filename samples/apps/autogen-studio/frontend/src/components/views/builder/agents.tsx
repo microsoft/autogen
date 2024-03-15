@@ -180,11 +180,20 @@ const AgentsView = ({}: any) => {
             setShowAgentModal(true);
           }}
         >
-          <div style={{ minHeight: "65px" }} className="my-2   break-words">
+          <div
+            style={{ minHeight: "65px" }}
+            className="my-2   break-words"
+            aria-hidden="true"
+          >
             {" "}
             {truncateText(agent.description || "", 70)}
           </div>
-          <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
+          <div
+            className="text-xs"
+            aria-label={`Last updated ${timeAgo(agent.timestamp || "")}`}
+          >
+            {timeAgo(agent.timestamp || "")}
+          </div>
           <div
             onMouseEnter={(e) => {
               e.stopPropagation();

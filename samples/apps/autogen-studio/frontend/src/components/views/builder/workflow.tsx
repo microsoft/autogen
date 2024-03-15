@@ -179,11 +179,20 @@ const WorkflowView = ({}: any) => {
                 setSelectedWorkflow(workflow);
               }}
             >
-              <div style={{ minHeight: "65px" }} className="break-words  my-2">
+              <div
+                style={{ minHeight: "65px" }}
+                className="break-words  my-2"
+                aria-hidden="true"
+              >
                 {" "}
                 {truncateText(workflow.description, 70)}
               </div>
-              <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
+              <div
+                className="text-xs"
+                aria-label={`Last updated ${timeAgo(workflow.timestamp || "")}`}
+              >
+                {timeAgo(workflow.timestamp || "")}
+              </div>
 
               <div
                 onMouseEnter={(e) => {

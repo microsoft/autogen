@@ -160,11 +160,20 @@ const SkillsView = ({}: any) => {
             setShowSkillModal(true);
           }}
         >
-          <div style={{ minHeight: "65px" }} className="my-2   break-words">
+          <div
+            style={{ minHeight: "65px" }}
+            className="my-2   break-words"
+            aria-hidden="true"
+          >
             {" "}
             {truncateText(skill.content, 70)}
           </div>
-          <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
+          <div
+            className="text-xs"
+            aria-label={`Last updated ${timeAgo(skill.timestamp || "")}`}
+          >
+            {timeAgo(skill.timestamp || "")}
+          </div>
           <div
             onMouseEnter={(e) => {
               e.stopPropagation();
