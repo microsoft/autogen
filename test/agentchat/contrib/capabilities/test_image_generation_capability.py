@@ -4,7 +4,10 @@ import tempfile
 from typing import Any, Dict, Tuple
 
 import pytest
-from conftest import skip_openai  # noqa: E402
+from conftest import (
+    MOCK_OPEN_AI_API_KEY,
+    skip_openai,  # noqa: E402
+)
 
 from autogen import code_utils
 from autogen.agentchat.conversable_agent import ConversableAgent
@@ -48,12 +51,16 @@ def dalle_image_generator(dalle_config: Dict[str, Any], resolution: str, quality
     return generate_images.DalleImageGenerator(dalle_config, resolution=resolution, quality=quality, num_images=1)
 
 
+def api_key():
+    return MOCK_OPEN_AI_API_KEY if skip_openai else os.environ.get("OPENAI_API_KEY")
+
+
 @pytest.fixture
 def dalle_config() -> Dict[str, Any]:
     config_list = [
         {
             "model": "dall-e-2",
-            "api_key": os.environ.get("OPENAI_API_KEY"),
+            "api_key": api_key(),
         }
     ]
     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
@@ -64,11 +71,11 @@ def gpt3_config() -> Dict[str, Any]:
     config_list = [
         {
             "model": "gpt-35-turbo-16k",
-            "api_key": os.environ.get("OPENAI_API_KEY"),
+            "api_key": api_key(),
         },
         {
             "model": "gpt-3.5-turbo-16k",
-            "api_key": os.environ.get("OPENAI_API_KEY"),
+            "api_key": api_key(),
         },
     ]
     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
