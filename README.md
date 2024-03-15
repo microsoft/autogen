@@ -45,7 +45,7 @@
 
 ## What is AutoGen
 
-AutoGen is a programming framework for agentic AI. It enables the development of LLM applications using multiple agents that can converse with each other to solve tasks. AutoGen agents are customizable, conversable, and seamlessly allow human participation. They can operate in various modes that employ combinations of LLMs, human inputs, and tools.
+AutoGen is a library for building AI agents and complex applications, especially using cooperation among multiple agents. Like other popular AI frameworks such as PyTorch, AutoGen aims to provide an easy-to-use but flexible platform for accelerating development of agentic applications and research. It offers features such as agents that can converse with other agents, LLM and tool use support, autonomous and human-in-the-loop workflows, and intuitively specifying complex multi-agent patterns. AutoGen is one of the most popular agentic libraries and is released under MIT license.
 
 ![AutoGen Overview](https://github.com/microsoft/autogen/blob/main/website/static/img/autogen_agentchat.png)
 
