@@ -197,6 +197,10 @@ def test_requests_markdown_browser():
     _rm_folder(downloads_folder)
 
 
+@pytest.mark.skipif(
+    skip_all,
+    reason="do not run if dependency is not installed",
+)
 def test_local_file_browsing():
     directory = os.path.dirname(__file__)
     test_file = os.path.join(directory, "test_files", "test.html")
