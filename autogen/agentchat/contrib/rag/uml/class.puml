@@ -1,0 +1,338 @@
+@startuml
+
+scale 1600 width
+skinparam handwritten true
+skinparam titleFontSize 32
+skinparam PackageFontSize 24
+skinparam ArrowFontSize 24
+skinparam NodeFontSize 24
+skinparam FrameFontSize 24
+skinparam ComponentFontSize 24
+skinparam ActorFontSize 24
+
+title Retrieval Augmented Generation (RAG) Agent Class Diagram
+
+
+package rag{
+     frame datamodel{
+        class ItemID
+        class Metadata
+        class Chunk {
+            + content: string
+            + id: ItemID
+            + metadata: Metadata
+
+            + dict(): dict
+        }
+        class Document {
+            + content_embedding: Vector
+            + embedding_model: str
+            + dimensions: int
+
+            + dict(): dict
+        }
+        Document <|-- Chunk
+        class QueryResults {
+            + ids: List[List[ItemID]]
+            + texts: List[List[str]]
+            + embeddings: List[List[Vector]]
+            + metadata: List[List[Metadata]]
+            + distances: List[List[float]]
+
+            + dict(): dict
+        }
+
+        class Query {
+            + text: str
+            + k: int
+            + filter_metadata: Dict[str, Any]
+            + filter_document: Dict[str, Any]
+            + include: List[str]
+
+            + dict(): dict
+        }
+        class GetResults {
+            + ids: List[ItemID]
+            + texts: List[str]
+            + embeddings: List[Vector]
+            + metadatas: List[Metadata]
+
+            + dict(): dict
+        }
+    }
+
+    frame encoder{
+        class EmbeddingFunction {
+            + model_name: str
+            - dimensions: int
+
+            - __call__(self, input: Union[str, List[str]]) -> List[Vector]
+        }
+
+        class SentenceTransformerEmbeddingFunction{
+            + model_name: str
+            + sentence_transformer: SentenceTransformer
+            + dimensions: int
+
+            - __init__(self, model_name: str): None
+            - __call__(self, input: Union[str, List[str]]) -> List[Vector]
+        }
+
+        class EmbeddingFunctionFactory{
+            + create_embedding_function(
+                embedding_function: Union[str, Callable]) -> EmbeddingFunction
+        }
+
+        class Encoder{
+            - _embedding_function: EmbeddingFunction
+            - _model_name: str
+            - _dimensions: int
+            - _print_embedding_function_warning: bool
+
+            + encode_chunks(self, chunks: List[Chunk]) -> List[Document]
+            + embedding_function(self) -> EmbeddingFunction
+            + embedding_function(self, new_embedding_function: EmbeddingFunction) -> None
+            + model_name(self) -> str
+            + dimensions(self) -> int
+        }
+
+        SentenceTransformerEmbeddingFunction <|-- EmbeddingFunction
+        ' Encoder -[hidden]-> EmbeddingFunctionFactory
+
+    }
+    frame promptgenerator{
+        class PromptGenerator {
+            + assistant: AssistantAgent
+            + llm_config: Union[Dict, Literal[False]]
+            + prompt_rag: str = None,
+            + prompt_refine: str = None,
+            + prompt_select: str = None,
+            + post_process_func: Optional[Callable] = None,
+
+            - __init__(self, llm_config: Union[Dict, Literal[False]] = False,
+                prompt_rag: str = None,
+                prompt_refine: str = None,
+                prompt_select: str = None,
+                post_process_func: Optional[Callable] = None) -> None
+            - _call_llm(self, message: str, silent: bool = True) -> str
+            - __call__(self, input_question: str, n: int = 3, silent=True) -> str
+            - _post_process(self, last_message: str) -> str
+            - _ensure_task(self, task: str) -> str
+            + get_cost(self) -> Dict[str, float]
+        }
+    }
+
+    frame reranker{
+        class Reranker {
+            + rerank( self, query: Query, docs: Optional[List[str]] = None,
+                return_docs: bool = False) -> List[Tuple[str, float]]
+        }
+
+        class TfidfReranker{
+            + vectorizer: TfidfVectorizer
+            + docs: List[str]
+
+            - __init__(self) -> None
+            + vectorize(self, docs: List[str]) -> None
+            + rerank( self, query: Query, docs: Optional[List[str]] = None,
+                return_docs: bool = False) -> List[Tuple[str, float]]
+        }
+
+        class RerankerFactory{
+            + create_reranker(reranker_name: str, **kwargs) -> Reranker
+        }
+
+        TfidfReranker <|-- Reranker
+        ' Reranker -[hidden]-> RerankerFactory
+    }
+
+    frame retriever{
+        class Retriever{
+            + db_type: str
+            + collection_name: str
+            + path: str
+            + db_config: Dict
+            + vector_db: VectorDB
+
+            + retrieve_docs(self, queries: List[Query]) -> QueryResults
+            + get_docs_by_ids(self, ids: List[ItemID]) -> GetResults
+            + convert_get_results_to_query_results(self,
+                get_result: GetResults) -> QueryResults
+        }
+
+        class ChromaRetriever{}
+
+        class RetrieverFactory{
+            - PREDEFINED_RETRIEVERS: frozenset
+
+            + create_retriever(retriever_name: str, collection_name: str = "default",
+                path: str = None, encoder: Encoder = None,
+                db_config: Dict = None) -> Retriever
+        }
+
+        ChromaRetriever <|-- Retriever
+        ' Retriever -[hidden]-> RetrieverFactory
+    }
+
+    frame splitter{
+        class Splitter{
+            + split(self) -> List[Chunk]
+            + get_files_from_dir(dir_path: Union[str, List[str]],
+                types: list, recursive: bool = True) -> List[str]
+            + get_file_from_url(url: str, save_path: str = None) -> str
+            + is_url(string: str) -> bool
+        }
+
+        class TextLineSplitter{
+            + docs_path: Union[str, List[str]]
+            + recursive: bool = True
+            + chunk_size: int = 1024
+            + chunk_mode: str = "multi_lines"
+            + must_break_at_empty_line: bool = True
+            + overlap: int = 1
+            + token_count_function: Callable = count_token
+            + custom_text_split_function: Callable = None
+
+            + split_text_to_chunks(self, text: str, chunk_size: int = 1024,
+                chunk_mode: str = "multi_lines",
+                must_break_at_empty_line: bool = True,
+                overlap: int = 1) -> List[str]
+            + extract_text_from_pdf(file: str) -> str
+            + split_files_to_chunks(self, files: list, chunk_size: int = 1024,
+                chunk_mode: str = "multi_lines",
+                must_break_at_empty_line: bool = True,
+                overlap: int = 1,
+                custom_text_split_function: Callable = None) -> Tuple[List, List]
+        }
+
+        TextLineSplitter <|-- Splitter
+
+        class SplitterFactory{
+            - PREDEFINED_SPLITTERS: frozenset
+
+            + def create_splitter(
+                splitter: str,
+                docs_path: Union[str, List[str]],
+                recursive: bool = True,
+                chunk_size: int = 1024,  # number of tokens
+                chunk_mode: str = "multi_lines",
+                must_break_at_empty_line: bool = True,
+                overlap: int = 1,  # number of overlapping lines
+                token_count_function: Callable = count_token,
+                custom_text_split_function: Callable = None,
+            ) -> Splitter
+        }
+        ' Splitter -[hidden]-> SplitterFactory
+    }
+
+    frame vectordb{
+        class VectorDB{
+            - __init__(self, path: str = None,
+                embedding_function: Callable = None,
+                metadata: dict = None, **kwargs) -> None
+            + create_collection(self, collection_name: str,
+                overwrite: bool = False, get_or_create: bool = True) -> Any
+            + get_collection(self, collection_name: str = None) -> Any
+            + delete_collection(self, collection_name: str) -> None
+            + insert_docs(self, docs: List[Document],
+                collection_name: str = None, upsert: bool = False) -> None
+            + update_docs(self, docs: List[Document], collection_name: str = None) -> None
+            + delete_docs(self, ids: List[Any], collection_name: str = None,
+                **kwargs) -> None
+            + retrieve_docs(self, queries: List[Query],
+                collection_name: str = None) -> QueryResults
+            + get_docs_by_ids(self, ids: List[Any], collection_name: str = None,
+                include=None, **kwargs) -> GetResults
+            + convert_get_results_to_query_results(self, get_result: GetResults) -> QueryResults
+        }
+
+        class VectorDBFactory{
+            - PREDEFINED_VECTORDBS: frozenset
+
+            + create_vector_db(db_type: str, path: str = None,
+                encoder: Encoder = None, db_config: dict = None) -> VectorDB
+        }
+        ' VectorDB -[hidden]-> VectorDBFactory
+    }
+    frame chromadb{
+        class ChromaVectorDB{}
+    }
+    ChromaVectorDB <|-- VectorDB
+    frame rag_agent{
+        class RagAgent{
+            + rag_config: Dict
+            + llm_model: str
+            + rag_promptgen_n: int
+            + rag_top_k: int
+            + rag_filter_document: Dict
+            + rag_filter_metadata: Dict
+            + rag_include: List[str]
+            + rag_llm_config: Dict
+            + max_token_ration_for_context: float
+            - splitter: Splitter
+            + docs_path: Union[str, List[str]]
+            + recursive: bool
+            + chunk_size: int
+            + chunk_mode: str
+            + must_break_at_empty_line: bool
+            + overlap: int
+            + token_count_function: Callable
+            + max_token_limit: int
+            + custom_text_split_function: Callable
+            + embedding_function: EmbeddingFunction
+            + prompt_generator_post_process_func: Optional[Callable]
+            + prompt_refine: str
+            + prompt_select: str
+            + prompt_rag: str
+            + promptgen: PromptGenerator
+            + encoder: Encoder
+            + retriever: Retriever
+            + reranker: Reranker
+            + overwrite: bool
+            + get_or_create: bool
+            + upsert: bool
+            - _assistant: AssistantAgent
+            - _user_proxy: UserProxyAgent
+            + post_process_func: Optional[Callable]
+            + enable_update_context: bool
+            + customized_trigger_words: List[str]
+            + vector_db_get_is_fast: bool
+
+
+            - _is_termination_msg_rag(self, message) -> bool
+            - _merge_docs(self, query_results: QueryResults, key: str,
+                unique_pos=None) -> Tuple[List[str], List[int]]
+            + merge_documents(self, query_results: QueryResults) -> QueryResults
+            + sort_query_results(self, query_results: QueryResults,
+                order: List[int]) -> QueryResults
+            + merge_document_ids(self, query_results: QueryResults) -> List[ItemID]
+            + sort_get_results_ids(self, get_results: GetResults,
+                order: List[int]) -> List[ItemID]
+            + retrieve_rerank(self, raw_message: str,
+                refined_questions: List[str]) -> QueryResults
+            + check_update_context(self, message: str) -> Tuple[bool, str]
+            + perform_rag(self, raw_message: str) -> None
+            + query_results_to_context(self, query_results: QueryResults,
+                token_limits: int = -1) -> str
+            + process_message(self, message: str, tokens_in_history: int = 0) -> str
+            + count_messages_tokens(messages: List[Dict[str, str]]) -> int
+            + remove_old_context(messages: List[Dict[str, str]],
+                token_limit: int = 1000) -> List[Dict[str, str]]
+            + add_source_to_reply(self, reply: str) -> str
+            - _generate_llm_reply(self, message_to_llm: str, tokens_in_history: int = 0
+                ) -> Tuple[str, Dict, Union[str, Dict], int]
+            + reset(self) -> None
+            + generate_rag_reply(self, messages: Optional[List[Dict[str, str]]] = None,
+                sender: Optional[Agent] = None, config: Optional[OpenAIWrapper] = None,
+                ) -> Tuple[bool, Optional[Union[str, Dict[str, str]]]]
+            + run_code(self, code, **kwargs) -> Tuple[int, str, None]
+        }
+        RagAgent <|-- ConversableAgent
+    }
+
+    rag_agent -[hidden]-> chromadb
+    Splitter -[hidden]-> promptgenerator
+    Retriever -[hidden]-> TfidfReranker
+    EmbeddingFunction -[hidden]-> datamodel
+
+@enduml

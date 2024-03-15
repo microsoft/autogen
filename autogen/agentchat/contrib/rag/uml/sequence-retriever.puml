@@ -1,0 +1,40 @@
+@startuml
+skinparam Handwritten true
+skinparam BackgroundColor #EEEBDC
+
+skinparam sequence {
+    ArrowColor DeepSkyBlue
+    ActorBorderColor DeepSkyBlue
+    LifeLineBorderColor blue
+    LifeLineBackgroundColor #A9DCDF
+
+    ParticipantBorderColor DeepSkyBlue
+    ParticipantBackgroundColor DodgerBlue
+    ParticipantFontName Impact
+    ParticipantFontSize 17
+    ParticipantFontColor #A9DCDF
+
+    ActorBackgroundColor aqua
+    ActorFontColor DeepSkyBlue
+    ActorFontSize 17
+    ActorFontName Aapex
+}
+
+title Retriever Sequence Diagram
+
+autonumber
+
+actor ConversableAgent
+actor Retriever
+
+Retriever -> Retriever: init_retriever(rag_config: {"db": "chromadb",\n"collection":"autogen",\n"top_k": 5,\n"threshold": 0.5,\n"context_token_limit": 2048, ...})
+ConversableAgent -> Retriever: message: {"content": "What is autogen?"}
+Retriever -> Retriever: retrieve_from_db(query="What is autogen?",\nsearch_method="bm25",\ntop_k=5,\nthreshold=0.5,\nsearch_fields=["content"],\nreturn_fields=["content", "title", "source"],\ntoken_limit=2048,\nused_doc_ids=[])
+Retriever -> ConversableAgent: message: {"content": {"contents": ["Autogen is ...", ...],\n"titles": ["Autogen", ...],\n"sources": ["https://github.com/microsoft/autogen", ...]}}
+ConversableAgent -> Retriever: message: {"content": "update context"}
+Retriever -> Retriever: retrieve_from_db(query="What is autogen?",\nsearch_method="bm25",\ntop_k=5,\nthreshold=0.5,\nsearch_fields=["content"],\nreturn_fields=["content", "title", "source"],\ntoken_limit=2048,\nused_doc_ids=[...])
+Retriever -> ConversableAgent: message: {"content": {"contents": ["Autogen provides ...", ...],\n"titles": ["Autogen", ...],\n"sources": ["https://microsoft.github.io/autogen/", ...]}}
+ConversableAgent -> Retriever: message: {"content": "How can I terminateconversations\nbetween agents?"}
+Retriever -> Retriever: retrieve_from_db(query="How can I terminate\nconversations between agents?",\nsearch_method="bm25",\ntop_k=5,\nthreshold=0.5,\nsearch_fields=["content"],\nreturn_fields=["content", "title", "source"],\ntoken_limit=2048,\nused_doc_ids=[...])
+Retriever -> ConversableAgent: message: {"content": {"contents": ["You can terminate ...", ...],\n"titles": ["Terminating Conversations", ...],\n"sources": ["https://microsoft.github.io/autogen/\ndocs/tutorial/chat-termination", ...]}}
+@enduml

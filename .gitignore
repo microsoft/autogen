@@ -182,3 +182,6 @@ test/agentchat/test_agent_scripts/*
 
 
 notebook/result.png
+
+# RAG DB folders
+.db/
