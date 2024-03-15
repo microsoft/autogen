@@ -6,7 +6,7 @@ authors:
 tags: [LLM, GPT, research]
 ---
 
-![image-20240306191435555](imgs/image-20240306191435555.png)
+![architecture](imgs/architecture.png)
 
 ## TL;DR
 
@@ -28,7 +28,7 @@ AutoDefense consists of three main components:
 
 The number of agents in the defense agency is flexible. We explore configurations with 1-3 agents.
 
-![image-20240306194957182](imgs/image-20240306194957182.png)
+![defense-agency-design](imgs/defense-agency-design.png)
 
 ### Defense Agency
 
@@ -77,13 +77,15 @@ LLM temperature is set to `0.7` in our multi-agent defense, with other hyperpara
 
 ## Experiment Results
 
-![image-20240311175815518](imgs/image-20240311175815518.png)
+We design experiments to compare AutoDefense with other defense methods and different numbers of agents.
+
+![table-compared-methods](imgs/table-compared-methods.png)
 
 We compare different methods for defending GPT-3.5 as shown in Table 3. The LLaMA-2-13B is used as the defense LLM in AutoDefense. We find our AutoDefense outperforms other methods in terms of Attack Success Rate (ASR; lower is better).
 
 ### Number of Agents vs Attack Success Rate (ASR)
 
-![image-20240306192757354](imgs/image-20240306192757354.png)
+![table-agents](imgs/table-agents.png)
 
 Increasing the number of agents generally improves defense performance, especially for LLaMA-2 models. The three-agent defense system achieves the best balance of low ASR and False Positive Rate. For LLaMA-2-13b, the ASR reduces from 9.44% with a single agent to 7.95% with three agents.
 
@@ -101,7 +103,7 @@ If none of the prompt-response pairs are deemed unsafe by Llama Guard, the agent
 
 As shown in Table 4, introducing Llama Guard as a custom agent significantly reduces the False Positive Rate from 37.32% to 6.80% for the LLaMA-2-7b based defense, while keeping the ASR at a competitive level of 11.08%. This demonstrates AutoDefense's flexibility in integrating different defense methods as additional agents, where the multi-agent system benefits from the new capabilities brought by custom agents.
 
-![image-20240306193629333](imgs/image-20240306193629333.png)
+![table-4agents](imgs/table-4agents.png)
 
 ## For Further Reading
 We have included samples of our prompt designs in the paper appendix below.
