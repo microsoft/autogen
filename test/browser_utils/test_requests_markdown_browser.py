@@ -203,7 +203,7 @@ def test_requests_markdown_browser():
 )
 def test_local_file_browsing():
     directory = os.path.dirname(__file__)
-    test_file = os.path.join(directory, "test_files", "test.html")
+    test_file = os.path.join(directory, "test_files", "test_blog.html")
     browser = RequestsMarkdownBrowser()
 
     # Directory listing via open_local_file

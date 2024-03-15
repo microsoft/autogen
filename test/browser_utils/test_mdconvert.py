@@ -58,6 +58,34 @@ PPTX_TEST_STRINGS = [
     "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation",
 ]
 
+BLOG_TEST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
+BLOG_TEST_STRINGS = [
+    "Large language models (LLMs) are powerful tools that can generate natural language texts for various applications, such as chatbots, summarization, translation, and more. GPT-4 is currently the state of the art LLM in the world. Is model selection irrelevant? What about inference parameters?",
+    "an example where high cost can easily prevent a generic complex",
+]
+
+WIKIPEDIA_TEST_URL = "https://en.wikipedia.org/wiki/Microsoft"
+WIKIPEDIA_TEST_STRINGS = [
+    "Microsoft entered the operating system (OS) business in 1980 with its own version of [Unix]",
+    'Microsoft was founded by [Bill Gates](/wiki/Bill_Gates "Bill Gates")',
+]
+WIKIPEDIA_TEST_EXCLUDES = [
+    "You are encouraged to create an account and log in",
+    "154 languages",
+    "move to sidebar",
+]
+
+SERP_TEST_URL = "https://www.bing.com/search?q=microsoft+wikipedia"
+SERP_TEST_STRINGS = [
+    "](https://en.wikipedia.org/wiki/Microsoft",
+    "Microsoft Corporation is **an American multinational corporation and technology company headquartered** in Redmond",
+    "1995–2007: Foray into the Web, Windows 95, Windows XP, and Xbox",
+]
+SERP_TEST_EXCLUDES = [
+    "https://www.bing.com/ck/a?!&&p=",
+    "data:image/svg+xml,%3Csvg%20width%3D",
+]
+
 
 @pytest.mark.skipif(
     skip_all,
@@ -105,6 +133,25 @@ def test_mdconvert_local():
     for test_string in PPTX_TEST_STRINGS:
         assert test_string in result.text_content
 
+    # Test HTML processing
+    result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_blog.html"), url=BLOG_TEST_URL)
+    for test_string in BLOG_TEST_STRINGS:
+        assert test_string in result.text_content
+
+    # Test Wikipedia processing
+    result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_wikipedia.html"), url=WIKIPEDIA_TEST_URL)
+    for test_string in WIKIPEDIA_TEST_EXCLUDES:
+        assert test_string not in result.text_content
+    for test_string in WIKIPEDIA_TEST_STRINGS:
+        assert test_string in result.text_content
+
+    # Test Bing processing
+    result = mdconvert.convert(os.path.join(TEST_FILES_DIR, "test_serp.html"), url=SERP_TEST_URL)
+    for test_string in SERP_TEST_EXCLUDES:
+        assert test_string not in result.text_content
+    for test_string in SERP_TEST_STRINGS:
+        assert test_string in result.text_content
+
 
 @pytest.mark.skipif(
     skip_exiftool,
@@ -122,6 +169,6 @@ def test_mdconvert_exiftool():
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
-    test_mdconvert_remote()
+    # test_mdconvert_remote()
     test_mdconvert_local()
-    test_mdconvert_exiftool()
+    # test_mdconvert_exiftool()

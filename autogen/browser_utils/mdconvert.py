@@ -227,9 +227,10 @@ class WikipediaConverter(DocumentConverter):
         title_elm = soup.find("span", {"class": "mw-page-title-main"})
 
         webpage_text = ""
+        main_title = None if soup.title is None else soup.title.string
+
         if body_elm:
             # What's the title
-            main_title = None if soup.title is None else soup.title.string
             if title_elm and len(title_elm) > 0:
                 main_title = title_elm.string
 
