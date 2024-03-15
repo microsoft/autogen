@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Protocol, Union, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -42,30 +42,6 @@ class CodeExtractor(Protocol):
 class CodeExecutor(Protocol):
     """(Experimental) A code executor class that executes code blocks and returns the result."""
 
-    class UserCapability(Protocol):
-        """(Experimental) An AgentCapability class that gives agent ability use this code executor."""
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            ...  # pragma: no cover
-
-    @property
-    def user_capability(self) -> "CodeExecutor.UserCapability":
-        """(Experimental) Capability to use this code executor.
-
-        The exported capability can be added to an agent to allow it to use this
-        code executor:
-
-        ```python
-        code_executor = CodeExecutor()
-        agent = ConversableAgent("agent", ...)
-        code_executor.user_capability.add_to_agent(agent)
-        ```
-
-        A typical implementation is to update the system message of the agent with
-        instructions for how to use this code executor.
-        """
-        ...  # pragma: no cover
-
     @property
     def code_extractor(self) -> CodeExtractor:
         """(Experimental) The code extractor used by this code executor."""
@@ -100,4 +76,13 @@ class IPythonCodeResult(CodeResult):
     output_files: List[str] = Field(
         default_factory=list,
         description="The list of files that the executed code blocks generated.",
+    )
+
+
+class CommandLineCodeResult(CodeResult):
+    """(Experimental) A code result class for command line code executor."""
+
+    code_file: Optional[str] = Field(
+        default=None,
+        description="The file that the executed code block was saved to.",
     )

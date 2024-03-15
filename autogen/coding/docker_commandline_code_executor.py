@@ -11,7 +11,8 @@ import docker
 from docker.models.containers import Container
 from docker.errors import ImageNotFound
 
-from .local_commandline_code_executor import CommandLineCodeResult
+from .utils import _get_file_name_from_content
+from .base import CommandLineCodeResult
 
 from ..code_utils import TIMEOUT_MSG, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor
@@ -168,25 +169,15 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             lang = code_block.language
             code = code_block.code
 
-            code_hash = md5(code.encode()).hexdigest()
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, Path("/workspace"))
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
 
-            # Check if there is a filename comment
-            # Get first line
-            first_line = code.split("\n")[0]
-            if first_line.startswith("# filename:"):
-                filename = first_line.split(":")[1].strip()
-
-                # Handle relative paths in the filename
-                path = Path(filename)
-                if not path.is_absolute():
-                    path = Path("/workspace") / path
-                path = path.resolve()
-                try:
-                    path.relative_to(Path("/workspace"))
-                except ValueError:
-                    return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
-            else:
-                # create a file with a automatically generated name
+            if filename is None:
+                # create a file with an automatically generated name
+                code_hash = md5(code.encode()).hexdigest()
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             code_path = self._work_dir / filename

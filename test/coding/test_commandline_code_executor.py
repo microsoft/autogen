@@ -103,7 +103,6 @@ def _test_execute_code(executor: CodeExecutor) -> None:
             assert file_line.strip() == code_line.strip()
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_commandline_code_executor_timeout(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -140,52 +139,6 @@ def _test_restart(executor: CodeExecutor) -> None:
     # Check warning.
     with pytest.warns(UserWarning, match=r".*No action is taken."):
         executor.restart()
-
-
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
-def test_local_commandline_executor_conversable_agent_capability() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
-        _test_conversable_agent_capability(executor=executor)
-
-
-def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    config_list = config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-            },
-        },
-    )
-    llm_config = {"config_list": config_list}
-    agent = ConversableAgent(
-        "coding_agent",
-        llm_config=llm_config,
-        code_execution_config=False,
-    )
-    executor.user_capability.add_to_agent(agent)
-
-    # Test updated system prompt.
-    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
-
-    # Test code generation.
-    reply = agent.generate_reply(
-        [{"role": "user", "content": "write a python script to print 'hello world' to the console"}],
-        sender=ConversableAgent(name="user", llm_config=False, code_execution_config=False),
-    )
-
-    # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    # Test code execution.
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
@@ -239,36 +192,29 @@ def test_dangerous_commands(lang, code, expected_message):
     ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
 
 
-# This is kind of hard to test because each exec is a new env
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
-def test_docker_invalid_relative_path() -> None:
-    with DockerCommandLineCodeExecutor() as executor:
-        code = """# filename: /tmp/test.py
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_invalid_relative_path(cls) -> None:
+    executor = cls()
+    code = """# filename: /tmp/test.py
+
+print("hello world")
+"""
+    result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
+    assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_valid_relative_path(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        executor = cls(work_dir=temp_dir)
+        code = """# filename: test.py
 
 print("hello world")
 """
         result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-        assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
-
-
-@pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
-    reason="docker is not running or requested to skip docker tests",
-)
-def test_docker_valid_relative_path() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_dir = Path(temp_dir)
-        with DockerCommandLineCodeExecutor(work_dir=temp_dir) as executor:
-            code = """# filename: test.py
-
-print("hello world")
-"""
-            result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-            assert result.exit_code == 0
-            assert "hello world" in result.output
-            assert "test.py" in result.code_file
-            assert (temp_dir / "test.py") == Path(result.code_file)
-            assert (temp_dir / "test.py").exists()
+        assert result.exit_code == 0
+        assert "hello world" in result.output
+        assert "test.py" in result.code_file
+        assert (temp_dir / "test.py").resolve() == Path(result.code_file).resolve()
+        assert (temp_dir / "test.py").exists()
