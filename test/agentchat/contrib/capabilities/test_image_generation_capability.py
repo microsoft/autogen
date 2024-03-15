@@ -16,13 +16,6 @@ from autogen.agentchat.user_proxy_agent import UserProxyAgent
 from autogen.cache.cache import Cache
 from autogen.oai import openai_utils
 
-try:
-    from openai import OpenAI
-except ImportError:
-    skip_test = True
-else:
-    skip_test = False or skip_openai
-
 filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
 RESOLUTIONS = ["256x256", "512x512", "1024x1024"]
@@ -77,7 +70,7 @@ def image_gen_capability():
     return generate_images.ImageGeneration(image_generator)
 
 
-@pytest.mark.skipif(skip_test, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason="Requested to skip.")
 def test_dalle_image_generator(dalle_config: Dict[str, Any]):
     """Tests DalleImageGenerator capability to generate images by calling the OpenAI API."""
     dalle_generator = dalle_image_generator(dalle_config, RESOLUTIONS[0], QUALITIES[0])
@@ -118,7 +111,7 @@ def test_image_generation_capability_positive(monkeypatch, image_gen_capability:
     """
     auto_reply = "Didn't need to generate an image."
 
-    # Patching the _should_generate_image and _extract_prompt to avoid TextAnalyzerAgent to make API calls
+    # Patching the _should_generate_image and _extract_prompt methods to avoid TextAnalyzerAgent to make API calls
     # Improves reproducibility and falkiness of the test
     monkeypatch.setattr(generate_images.ImageGeneration, "_should_generate_image", lambda _, __: True)
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
@@ -145,8 +138,8 @@ def test_image_generation_capability_negative(monkeypatch, image_gen_capability:
     """
     auto_reply = "Didn't need to generate an image."
 
-    # Patching the _should_generate_image and _extract_prompt to avoid TextAnalyzerAgent to make API calls
-    # Improves reproducibility and flakiness of the test
+    # Patching the _should_generate_image and _extract_prompt methods to avoid TextAnalyzerAgent making API calls.
+    # Improves reproducibility and flakiness of the test.
     monkeypatch.setattr(generate_images.ImageGeneration, "_should_generate_image", lambda _, __: False)
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
 
@@ -169,7 +162,7 @@ def test_image_generation_capability_cache(monkeypatch):
     """Tests ImageGeneration capability to cache the generated images."""
     test_image_size = (256, 256)
 
-    # Patching the _should_generate_image and _extract_prompt to avoid TextAnalyzerAgent to make API calls
+    # Patching the _should_generate_image and _extract_prompt methods to avoid TextAnalyzerAgent making API calls.
     monkeypatch.setattr(generate_images.ImageGeneration, "_should_generate_image", lambda _, __: True)
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
 
