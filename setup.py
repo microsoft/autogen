@@ -67,6 +67,7 @@ setuptools.setup(
             "python-pptx",  # Ppts
             "pandas",  # Xlsx
             "openpyxl",
+            "youtube_transcript_api==0.6.0",  # Transcription
         ],
         "redis": ["redis"],
         "jupyter-executor": [

@@ -503,11 +503,6 @@ class PptxConverter(HtmlConverter):
 
                     # A placeholder name
                     filename = re.sub(r"\W", "", shape.name) + ".jpg"
-                    # try:
-                    #    filename = shape.image.filename
-                    # except:
-                    #    pass
-
                     md_content += "\n![" + (alt_text if alt_text else shape.name) + "](" + filename + ")\n"
 
                 # Tables
@@ -529,9 +524,9 @@ class PptxConverter(HtmlConverter):
                 # Text areas
                 elif shape.has_text_frame:
                     if shape == title:
-                        md_content += "# " + shape.text.lstrip() + " "
+                        md_content += "# " + shape.text.lstrip() + "\n"
                     else:
-                        md_content += shape.text + " "
+                        md_content += shape.text + "\n"
 
             md_content = md_content.strip()
 
@@ -589,6 +584,7 @@ class WavConverter(MediaConverter):
             for f in [
                 "Title",
                 "Artist",
+                "Author",
                 "Band",
                 "Album",
                 "Genre",
@@ -637,6 +633,7 @@ class Mp3Converter(WavConverter):
             for f in [
                 "Title",
                 "Artist",
+                "Author",
                 "Band",
                 "Album",
                 "Genre",
@@ -699,6 +696,7 @@ class ImageConverter(MediaConverter):
                 "Description",
                 "Keywords",
                 "Artist",
+                "Author",
                 "DateTimeOriginal",
                 "CreateDate",
                 "GPSPosition",
