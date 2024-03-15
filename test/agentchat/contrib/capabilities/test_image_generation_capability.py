@@ -23,7 +23,6 @@ else:
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 filter_dict = {"model": ["gpt-35-turbo-16k", "gpt-3.5-turbo-16k"]}
 
@@ -61,6 +60,8 @@ def api_key():
 @pytest.fixture
 def dalle_config() -> Dict[str, Any]:
     config_list = openai_utils.config_list_from_models(model_list=["dall-e-2"], exclude="aoai")
+    if not config_list:
+        config_list = [{"model": "dall-e-2", "api_key": MOCK_OPEN_AI_API_KEY}]
     return {"config_list": config_list, "timeout": 120, "cache_seed": None}
 
 
@@ -109,6 +110,7 @@ def test_dalle_image_generator_cache_key(
         gen_config_1: A tuple containing the resolution, quality, and prompt for the first image generator.
         gen_config_2: A tuple containing the resolution, quality, and prompt for the second image generator.
     """
+
     dalle_generator_1 = dalle_image_generator(dalle_config, resolution=gen_config_1[0], quality=gen_config_1[1])
     dalle_generator_2 = dalle_image_generator(dalle_config, resolution=gen_config_2[0], quality=gen_config_2[1])
 
