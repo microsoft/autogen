@@ -146,6 +146,7 @@ class ImageGeneration(AgentCapability):
         text_analyzer_llm_config: Optional[Dict] = None,
         text_analyzer_instructions: str = PROMPT_INSTRUCTIONS,
         verbosity: int = 0,
+        register_reply_position: int = 2,
     ):
         """
         Args:
@@ -161,12 +162,16 @@ class ImageGeneration(AgentCapability):
                 Example: 'Extract specific details from the message, like desired objects, styles, or backgrounds.'
             verbosity (int): The verbosity level. Defaults to 0 and must be greater than or equal to 0. The text
                 analyzer llm calls will be silent if verbosity is less than 2.
+            register_reply_position (int): The position of the reply function in the agent's list of reply functions.
+                This capability registers a new reply function to handle messages with image generation requests.
+                Defaults to 2 to place it after the check termination and human reply for a ConversableAgent.
         """
         self._image_generator = image_generator
         self._cache = cache
         self._text_analyzer_llm_config = text_analyzer_llm_config
         self._text_analyzer_instructions = text_analyzer_instructions
         self._verbosity = verbosity
+        self._register_reply_position = register_reply_position
 
         self._agent: Optional[ConversableAgent] = None
         self._text_analyzer: Optional[TextAnalyzerAgent] = None
@@ -190,7 +195,7 @@ class ImageGeneration(AgentCapability):
         """
         self._agent = agent
 
-        agent.register_reply([Agent, None], self._image_gen_reply, position=2)
+        agent.register_reply([Agent, None], self._image_gen_reply, position=self._register_reply_position)
 
         self._text_analyzer_llm_config = self._text_analyzer_llm_config or agent.llm_config
         self._text_analyzer = TextAnalyzerAgent(llm_config=self._text_analyzer_llm_config)
