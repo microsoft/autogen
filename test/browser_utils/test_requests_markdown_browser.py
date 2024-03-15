@@ -28,23 +28,12 @@ DOWNLOAD_URL = "https://arxiv.org/src/2308.08155"
 PDF_URL = "https://arxiv.org/pdf/2308.08155.pdf"
 PDF_STRING = "Figure 1: AutoGen enables diverse LLM-based applications using multi-agent conversations."
 
-BING_QUERY = "Microsoft"
-BING_TITLE = f"{BING_QUERY} - Search"
-BING_STRING = f"A Bing search for '{BING_QUERY}' found"
-
 try:
     from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
 except ImportError:
     skip_all = True
 else:
     skip_all = False
-
-try:
-    BING_API_KEY = os.environ["BING_API_KEY"]
-except KeyError:
-    skip_bing = True
-else:
-    skip_bing = False
 
 
 def _rm_folder(path):
@@ -72,7 +61,7 @@ def test_requests_markdown_browser():
     browser = RequestsMarkdownBrowser(
         viewport_size=viewport_size,
         downloads_folder=downloads_folder,
-        search_engine=BingMarkdownSearch(bing_api_key=os.environ["BING_API_KEY"]),
+        search_engine=BingMarkdownSearch(),
     )
 
     # Test that we can visit a page and find what we expect there

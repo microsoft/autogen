@@ -36,7 +36,7 @@ class BingMarkdownSearch(AbstractMarkdownSearch):
 
         self._mdconvert = MarkdownConverter()
 
-        if not None or bing_api_key.strip() == "":
+        if bing_api_key is None or bing_api_key.strip() == "":
             self._bing_api_key = os.environ.get("BING_API_KEY")
         else:
             self._bing_api_key = bing_api_key
