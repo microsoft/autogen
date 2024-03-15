@@ -172,6 +172,7 @@ def test_image_generation_capability_negative(monkeypatch, image_gen_capability)
     assert auto_reply == processed_message
 
 
+@pytest.mark.skipif(skip_requirement, reason="Dependencies are not installed.")
 def test_image_generation_capability_cache(monkeypatch):
     """Tests ImageGeneration capability to cache the generated images."""
     test_image_size = (256, 256)
