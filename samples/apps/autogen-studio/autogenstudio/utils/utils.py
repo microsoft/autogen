@@ -8,6 +8,8 @@ import re
 import autogen
 from autogen.oai.client import OpenAIWrapper
 from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
+from dotenv import load_dotenv
+from ..version import APP_NAME
 
 
 def md5_hash(text: str) -> str:
@@ -145,21 +147,17 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     return base64_encoded_content, file_type
 
 
-def get_modified_files(
-    start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str
-) -> List[Dict[str, str]]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str) -> List[Dict[str, str]]:
     """
-    Copy files from source_dir that were modified within a specified timestamp range
-    to dest_dir, renaming files if they already exist there. The function excludes
-    files with certain file extensions and names.
+    Identify files from source_dir that were modified within a specified timestamp range.
+    The function excludes files with certain file extensions and names.
 
-    :param start_timestamp: The start timestamp to filter modified files.
-    :param end_timestamp: The end timestamp to filter modified files.
+    :param start_timestamp: The floating-point number representing the start timestamp to filter modified files.
+    :param end_timestamp: The floating-point number representing the end timestamp to filter modified files.
     :param source_dir: The directory to search for modified files.
-    :param dest_dir: The destination directory to copy modified files to.
 
-    :return: A list of dictionaries with details of file paths in dest_dir that were modified and copied over.
-             Dictionary format: {path: "", name: "", extension: ""}
+    :return: A list of dictionaries with details of relative file paths that were modified.
+             Dictionary format: {path: "", name: "", extension: "", type: ""}
              Files with extensions "__pycache__", "*.pyc", "__init__.py", and "*.cache"
              are ignored.
     """
@@ -167,63 +165,63 @@ def get_modified_files(
     ignore_extensions = {".pyc", ".cache"}
     ignore_files = {"__pycache__", "__init__.py"}
 
+    # Walk through the directory tree
     for root, dirs, files in os.walk(source_dir):
-        # Excluding the directory "__pycache__" if present
+        # Update directories and files to exclude those to be ignored
         dirs[:] = [d for d in dirs if d not in ignore_files]
+        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[1] not in ignore_extensions]
 
         for file in files:
             file_path = os.path.join(root, file)
-            file_ext = os.path.splitext(file)[1]
-            file_name = os.path.basename(file)
-
-            if file_ext in ignore_extensions or file_name in ignore_files:
-                continue
-
             file_mtime = os.path.getmtime(file_path)
-            if start_timestamp < file_mtime < end_timestamp:
-                dest_file_path = os.path.join(dest_dir, file)
-                copy_idx = 1
-                while os.path.exists(dest_file_path):
-                    base, extension = os.path.splitext(file)
-                    # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
-                    copy_idx += 1
 
-                # Copying the modified file to the destination directory
-                shutil.copy2(file_path, dest_file_path)
+            # Verify if the file was modified within the given timestamp range
+            if start_timestamp <= file_mtime <= end_timestamp:
+                file_relative_path = (
+                    "files/user" + file_path.split("files/user", 1)[1] if "files/user" in file_path else ""
+                )
+                file_type = get_file_type(file_path)
 
-                # Extract user id from the dest_dir and file path
-
-                dest_dir_as_path = Path(dest_dir)
-                uid = dest_dir_as_path.name
-
-                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
-                file_type = get_file_type(dest_file_path)
                 file_dict = {
-                    "path": f"files/user/{uid}/{relative_file_path}",
-                    "name": file_name,
-                    "extension": file_ext.replace(".", ""),
+                    "path": file_relative_path,
+                    "name": os.path.basename(file),
+                    # Remove the dot
+                    "extension": os.path.splitext(file)[1].lstrip("."),
                     "type": file_type,
                 }
                 modified_files.append(file_dict)
-    # sort by extension
+
+    # Sort the modified files by extension
     modified_files.sort(key=lambda x: x["extension"])
     return modified_files
 
 
-def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
+def init_app_folders(app_file_path: str) -> Dict[str, str]:
     """
     Initialize folders needed for a web server, such as static file directories
-    and user-specific data directories.
+    and user-specific data directories. Also load any .env file if it exists.
 
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
 
-    if not os.path.exists(root_file_path):
-        os.makedirs(root_file_path, exist_ok=True)
-    files_static_root = os.path.join(root_file_path, "files/")
-    static_folder_root = os.path.join(root_file_path, "ui")
+    app_name = f".{APP_NAME}"
+    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
+    if not os.path.exists(default_app_root):
+        os.makedirs(default_app_root, exist_ok=True)
+    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+
+    if not os.path.exists(app_root):
+        os.makedirs(app_root, exist_ok=True)
+
+    # load .env file if it exists
+    env_file = os.path.join(app_root, ".env")
+    if os.path.exists(env_file):
+        print(f"Loading environment variables from {env_file}")
+        load_dotenv(env_file)
+
+    files_static_root = os.path.join(app_root, "files/")
+    static_folder_root = os.path.join(app_file_path, "ui")
 
     os.makedirs(files_static_root, exist_ok=True)
     os.makedirs(os.path.join(files_static_root, "user"), exist_ok=True)
@@ -231,7 +229,9 @@ def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
     folders = {
         "files_static_root": files_static_root,
         "static_folder_root": static_folder_root,
+        "app_root": app_root,
     }
+    print(f"Initialized application data folder: {app_root}")
     return folders
 
 
@@ -267,9 +267,6 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
-    # overwrite skills.py in work_dir
-    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
         f.write(prompt)
@@ -407,4 +404,37 @@ def test_model(model: Model):
     sanitized_model = sanitize_model(model)
     client = OpenAIWrapper(config_list=[sanitized_model])
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    return response.choices[0].message.content
+
+
+# summarize_chat_history (messages, model) .. returns a summary of the chat history
+
+
+def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Model):
+    """
+    Summarize the chat history using the model endpoint and returning the response.
+    """
+
+    sanitized_model = sanitize_model(model)
+    client = OpenAIWrapper(config_list=[sanitized_model])
+    summarization_system_prompt = f"""
+    You are a helpful assistant that is able to review the chat history between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive enough to allow others (who cannot see the chat history) understand and recreate the solution.
+
+    The task requested by the user is:
+    ===
+    {task}
+    ===
+    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
+    """
+    summarization_prompt = [
+        {
+            "role": "system",
+            "content": summarization_system_prompt,
+        },
+        {
+            "role": "user",
+            "content": f"Summarize the following chat history. {str(messages)}",
+        },
+    ]
+    response = client.create(messages=summarization_prompt, cache_seed=None)
     return response.choices[0].message.content

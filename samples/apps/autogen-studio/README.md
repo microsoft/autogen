@@ -14,6 +14,9 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 > [!WARNING]
 > AutoGen Studio is currently under active development and we are iterating quickly. Kindly consider that we may introduce breaking changes in the releases during the upcoming weeks, and also the `README` might be outdated. We'll update the `README` as soon as we stabilize the API.
 
+> [!NOTE] Updates
+> March 12: Default directory for AutoGen Studio is now /home/<user>/.autogenstudio. You can also specify this directory using the `--appdir` argument when running the application. For example, `autogenstudio ui --appdir /path/to/folder`. This will store the database and other files in the specified directory e.g. `/path/to/folder/database.sqlite`. `.env` files in that directory will be used to set environment variables for the app.
+
 ### Capabilities / Roadmap
 
 Some of the capabilities supported by the app frontend include the following:
