@@ -228,16 +228,6 @@ class MessageTokenLimiter:
         return processed_messages
 
     def _truncate_str_to_tokens(self, contents: Union[str, List]):
-        """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
-
-        Args:
-            text: The string to truncate.
-            max_tokens: The maximum number of tokens to keep.
-            model: The target OpenAI model for tokenization alignment.
-
-        Returns:
-            The truncated string.
-        """
         if isinstance(contents, str):
             return self._truncate_tokens(contents)
         elif isinstance(contents, list):
@@ -249,7 +239,7 @@ class MessageTokenLimiter:
         tmp_contents = []
         for content in contents:
             if content["type"] == "text":
-                truncated_text = self._truncate_str_to_tokens(content["text"])
+                truncated_text = self._truncate_tokens(content["text"])
                 tmp_contents.append({"type": "text", "text": truncated_text})
             else:
                 tmp_contents.append(content)
