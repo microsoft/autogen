@@ -218,7 +218,6 @@ def get_powershell_command():
         result = subprocess.run(["powershell", "$PSVersionTable.PSVersion.Major"], capture_output=True, text=True)
         if result.returncode == 0:
             return "powershell"
-
     except (FileNotFoundError, NotADirectoryError):
         # This means that 'powershell' command is not found so now we try looking for 'pwsh'
         try:
@@ -227,21 +226,21 @@ def get_powershell_command():
             )
             if result.returncode == 0:
                 return "pwsh"
-
-        except (FileNotFoundError, NotADirectoryError) as e:
-            if isinstance(e, FileNotFoundError):
-                raise FileNotFoundError(
-                    "Neither powershell.exe nor pwsh.exe is present in the system. Please install PowerShell and try again."
-                )
-
-            elif isinstance(e, NotADirectoryError):
-                raise NotADirectoryError(
-                    "PowerShell is either not installed or its path is not given properly in the environment variable PATH. Please check the path and try again."
-                )
-
+        except FileExistsError as e:
+            raise FileNotFoundError(
+                "Neither powershell.exe nor pwsh.exe is present in the system. "
+                "Please install PowerShell and try again. "
+                f"Original error: {e}"
+            )
+        except NotADirectoryError as e:
+            raise NotADirectoryError(
+                "PowerShell is either not installed or its path is not given "
+                "properly in the environment variable PATH. Please check the "
+                "path and try again. "
+                f"Original error: {e}"
+            )
     except PermissionError as e:
-        if isinstance(e, PermissionError):
-            raise PermissionError("The application has no permission to run powershell")
+        raise PermissionError(f"No permission to run powershell. Original error: {e}")
 
 
 def _cmd(lang):
@@ -461,9 +460,7 @@ def execute_code(
     image_list = (
         ["python:3-slim", "python:3", "python:3-windowsservercore"]
         if use_docker is True
-        else [use_docker]
-        if isinstance(use_docker, str)
-        else use_docker
+        else [use_docker] if isinstance(use_docker, str) else use_docker
     )
     for image in image_list:
         # check if the image exists
