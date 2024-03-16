@@ -309,7 +309,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install packages and dependencies for Context Handling
+      - name: Install packages and dependencies for Transform Messages
         run: |
           pip install -e .
       - name: Set AUTOGEN_USE_DOCKER based on OS
@@ -327,4 +327,4 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
-          flags: unittests
+          flags: unittest
