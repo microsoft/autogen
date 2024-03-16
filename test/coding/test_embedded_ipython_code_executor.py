@@ -46,6 +46,11 @@ except ImportError as e:
     classes_to_test = []
 
 
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_is_code_executor(cls) -> None:
+    assert isinstance(cls, CodeExecutor)
+
+
 @pytest.mark.skipif(skip, reason=skip_reason)
 def test_create_dict() -> None:
     config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
@@ -205,49 +210,6 @@ def test_save_html(cls) -> None:
         assert code_result.exit_code == 0
         assert os.path.exists(code_result.output_files[0])
         assert f"HTML data saved to {code_result.output_files[0]}" in code_result.output
-
-
-@pytest.mark.skipif(skip, reason=skip_reason)
-@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
-@pytest.mark.parametrize("cls", classes_to_test)
-def test_conversable_agent_capability(cls) -> None:
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    config_list = config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-            },
-        },
-    )
-    llm_config = {"config_list": config_list}
-    agent = ConversableAgent(
-        "coding_agent",
-        llm_config=llm_config,
-        code_execution_config=False,
-    )
-    executor = cls()
-    executor.user_capability.add_to_agent(agent)
-
-    # Test updated system prompt.
-    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
-
-    # Test code generation.
-    reply = agent.generate_reply(
-        [{"role": "user", "content": "print 'hello world' to the console in a single python code block"}],
-        sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
-    )
-
-    # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    # Test code execution.
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower()
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)

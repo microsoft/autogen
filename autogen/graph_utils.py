@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 import logging
 
 from autogen.agentchat.groupchat import Agent

@@ -408,23 +408,31 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._results = results
         print("doc_ids: ", results["ids"])
 
-    def generate_init_message(self, problem: str, n_results: int = 20, search_string: str = ""):
-        """Generate an initial message with the given problem and prompt.
-
-        Args:
-            problem (str): the problem to be solved.
-            n_results (int): the number of results to be retrieved.
-            search_string (str): only docs containing this string will be retrieved.
-
-        Returns:
-            str: the generated prompt ready to be sent to the assistant agent.
+    @staticmethod
+    def message_generator(sender, recipient, context):
         """
-        self._reset()
-        self.retrieve_docs(problem, n_results, search_string)
-        self.problem = problem
-        self.n_results = n_results
-        doc_contents = self._get_context(self._results)
-        message = self._generate_message(doc_contents, self._task)
+        Generate an initial message with the given context for the RetrieveUserProxyAgent.
+        Args:
+            sender (Agent): the sender agent. It should be the instance of RetrieveUserProxyAgent.
+            recipient (Agent): the recipient agent. Usually it's the assistant agent.
+            context (dict): the context for the message generation. It should contain the following keys:
+                - problem (str): the problem to be solved.
+                - n_results (int): the number of results to be retrieved. Default is 20.
+                - search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
+        Returns:
+            str: the generated message ready to be sent to the recipient agent.
+        """
+        sender._reset()
+
+        problem = context.get("problem", "")
+        n_results = context.get("n_results", 20)
+        search_string = context.get("search_string", "")
+
+        sender.retrieve_docs(problem, n_results, search_string)
+        sender.problem = problem
+        sender.n_results = n_results
+        doc_contents = sender._get_context(sender._results)
+        message = sender._generate_message(doc_contents, sender._task)
         return message
 
     def run_code(self, code, **kwargs):

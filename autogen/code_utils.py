@@ -219,7 +219,7 @@ def get_powershell_command():
         if result.returncode == 0:
             return "powershell"
 
-    except FileNotFoundError:
+    except (FileNotFoundError, NotADirectoryError):
         # This means that 'powershell' command is not found so now we try looking for 'pwsh'
         try:
             result = subprocess.run(
@@ -228,7 +228,7 @@ def get_powershell_command():
             if result.returncode == 0:
                 return "pwsh"
 
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             if WIN32:
                 logging.warning("Neither powershell nor pwsh is installed but it is a Windows OS")
             return None

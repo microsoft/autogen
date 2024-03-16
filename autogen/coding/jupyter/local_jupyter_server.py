@@ -1,7 +1,7 @@
 from __future__ import annotations
 from types import TracebackType
 
-from typing import Optional, Union, cast
+from typing import Optional, Type, Union, cast
 import subprocess
 import signal
 import sys
@@ -157,6 +157,6 @@ class LocalJupyterServer(JupyterConnectable):
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()

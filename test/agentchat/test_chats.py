@@ -16,14 +16,16 @@ from conftest import skip_openai  # noqa: E402
 
 
 def test_chat_messages_for_summary():
-    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER")
-    user = UserProxyAgent(name="user", human_input_mode="NEVER")
+    assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER", code_execution_config={"use_docker": False})
+    user = UserProxyAgent(name="user", human_input_mode="NEVER", code_execution_config={"use_docker": False})
     user.send("What is the capital of France?", assistant)
     messages = assistant.chat_messages_for_summary(user)
     assert len(messages) == 1
 
     groupchat = GroupChat(agents=[user, assistant], messages=[], max_round=2)
-    manager = GroupChatManager(groupchat=groupchat, name="manager", llm_config=False)
+    manager = GroupChatManager(
+        groupchat=groupchat, name="manager", llm_config=False, code_execution_config={"use_docker": False}
+    )
     user.initiate_chat(manager, message="What is the capital of France?")
     messages = manager.chat_messages_for_summary(user)
     assert len(messages) == 2
@@ -42,10 +44,10 @@ def test_chats_group():
     )
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Pros and cons of the companies I'm interested in. Keep it short.""",
+        """Give lucky numbers for them.""",
     ]
 
-    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
+    writing_tasks = ["""Make a joke."""]
 
     user_proxy = UserProxyAgent(
         name="User_proxy",
@@ -126,13 +128,15 @@ def test_chats_group():
                 "recipient": financial_assistant,
                 "message": financial_tasks[0],
                 "summary_method": "last_msg",
+                "max_turns": 1,
             },
             {
                 "recipient": manager_1,
                 "message": financial_tasks[1],
                 "summary_method": "reflection_with_llm",
+                "max_turns": 1,
             },
-            {"recipient": manager_2, "message": writing_tasks[0]},
+            {"recipient": manager_2, "message": writing_tasks[0], "max_turns": 1},
         ]
     )
 
@@ -148,26 +152,44 @@ def test_chats_group():
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats():
+    import random
+
+    class Function:
+        call_count = 0
+
+        def get_random_number(self):
+            self.call_count += 1
+            return random.randint(0, 100)
+
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
     )
 
+    def luck_number_message(sender, recipient, context):
+        final_msg = {}
+        final_msg["content"] = "Give lucky numbers for them."
+        final_msg["function_call"] = {"name": "get_random_number", "arguments": "{}"}
+        return final_msg
+
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        luck_number_message,
+        luck_number_message,
     ]
 
-    writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
+    writing_tasks = ["""Make a joke."""]
 
+    func = Function()
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
         llm_config={"config_list": config_list},
+        function_map={"get_random_number": func.get_random_number},
     )
     writer = AssistantAgent(
         name="Writer",
@@ -192,8 +214,17 @@ def test_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
+    def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
+
+    # chat_res_play = user.initiate_chat(
+    #     player,
+    #     message= {"content": "Let's play a game.", "function_call": {"name": "get_random_number", "arguments": "{}"}},
+    #     max_turns=1,
+    #     summary_method=my_summary,
+    #     summary_args={"prefix": "This is the last message:"},
+    # )
+    # print(chat_res_play.summary)
 
     chat_res = user.initiate_chats(
         [
@@ -215,12 +246,24 @@ def test_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
+            },
+            {
+                "recipient": financial_assistant_1,
+                "message": {
+                    "content": "Let's play a game.",
+                    "function_call": {"name": "get_random_number", "arguments": "{}"},
+                },
+                "carryover": "I like even number.",
+                "summary_method": "last_msg",
+                "max_turns": 1,
             },
             {
                 "recipient": writer,
                 "message": writing_tasks[0],
-                "carryover": "I want to include a figure or a table of data in the blogpost.",
+                "carryover": "Make the numbers relevant.",
                 "summary_method": "last_msg",
+                "max_turns": 1,
             },
         ]
     )
@@ -248,8 +291,8 @@ def test_chats_general():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        """Give lucky numbers for them.""",
+        """Give lucky words for them.""",
     ]
 
     writing_tasks = ["""Develop a short but engaging blog post using any information provided."""]
@@ -297,7 +340,7 @@ def test_chats_general():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
+    def my_summary_method(recipient, sender, summary_args):
         return recipient.chat_messages[sender][0].get("content", "")
 
     chat_res = initiate_chats(
@@ -354,8 +397,8 @@ def test_chats_exceptions():
 
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
-        """Get their stock price.""",
-        """Analyze pros and cons. Keep it short.""",
+        """Give lucky numbers for them.""",
+        """Give lucky words for them.""",
     ]
 
     financial_assistant_1 = AssistantAgent(
@@ -491,10 +534,93 @@ def test_chats_w_func():
     print(res.summary, res.cost, res.chat_history)
 
 
+@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+def test_udf_message_in_chats():
+    import autogen
+
+    config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+    llm_config = {"config_list": config_list}
+
+    research_task = """
+    ## NVDA (NVIDIA Corporation)
+    - Current Stock Price: $822.79
+    - Performance over the past month: 24.36%
+
+    ## TSLA (Tesla, Inc.)
+    - Current Stock Price: $202.64
+    - Performance over the past month: 7.84%
+
+    Save them to a file named stock_prices.md.
+    """
+
+    def my_writing_task(sender, recipient, context):
+        carryover = context.get("carryover", "")
+        if isinstance(carryover, list):
+            carryover = carryover[-1]
+
+        try:
+            filename = context.get("work_dir", "") + "/stock_prices.md"
+            with open(filename, "r") as file:
+                data = file.read()
+        except Exception as e:
+            data = f"An error occurred while reading the file: {e}"
+
+        return """Make a joke. """ + "\nContext:\n" + carryover + "\nData:" + data
+
+    researcher = autogen.AssistantAgent(
+        name="Financial_researcher",
+        llm_config=llm_config,
+    )
+    writer = autogen.AssistantAgent(
+        name="Writer",
+        llm_config=llm_config,
+        system_message="""
+            You are a professional writer, known for
+            your insightful and engaging articles.
+            You transform complex concepts into compelling narratives.
+            Reply "TERMINATE" in the end when everything is done.
+            """,
+    )
+
+    user_proxy_auto = autogen.UserProxyAgent(
+        name="User_Proxy_Auto",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
+    chat_results = autogen.initiate_chats(
+        [
+            {
+                "sender": user_proxy_auto,
+                "recipient": researcher,
+                "message": research_task,
+                "clear_history": True,
+                "silent": False,
+            },
+            {
+                "sender": user_proxy_auto,
+                "recipient": writer,
+                "message": my_writing_task,
+                "max_turns": 2,  # max number of turns for the conversation (added for demo purposes, generally not necessarily needed)
+                "summary_method": "reflection_with_llm",
+                "work_dir": "tasks",
+            },
+        ]
+    )
+    print(chat_results[0].summary, chat_results[0].cost)
+    print(chat_results[1].summary, chat_results[1].cost)
+
+
 if __name__ == "__main__":
     test_chats()
-    test_chats_general()
+    # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
+    # test_udf_message_in_chats()

@@ -11,8 +11,13 @@ package-lock.json
 docs/reference
 /docs/notebooks
 
+docs/tutorial/*.mdx
+docs/tutorial/**/*.png
+!docs/tutorial/assets/*.png
 docs/topics/llm_configuration.mdx
-docs/topics/code-execution/jupyter-code-executor.mdx
+docs/topics/code-execution/*.mdx
+docs/topics/task_decomposition.mdx
+docs/topics/prompting-and-reasoning/*.mdx
 
 # Misc
 .DS_Store
