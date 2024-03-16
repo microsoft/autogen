@@ -1,11 +1,11 @@
+import copy
 import sys
-from typing import Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import tiktoken
 from termcolor import colored
 
 from autogen import ConversableAgent, token_count_utils
-from autogen import code_utils
 
 
 class MessageTransform(Protocol):
@@ -80,11 +80,11 @@ class TransformMessages:
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
-        temp_messages = messages.copy()
+        temp_messages = copy.deepcopy(messages)
         system_message = None
 
         if messages[0]["role"] == "system":
-            system_message = messages[0].copy()
+            system_message = copy.deepcopy(messages[0])
             temp_messages.pop(0)
 
         for transform in self._transforms:
@@ -111,7 +111,11 @@ class TransformMessages:
 
 
 class MessageHistoryLimiter:
-    """Limits the number of messages considered by an agent for response generation."""
+    """Limits the number of messages considered by an agent for response generation.
+
+    This transform is handy when you want to limit the conversational context to a specific number of recent messages,
+    ensuring efficient processing and response generation.
+    """
 
     def __init__(self, max_messages: Optional[int] = None):
         """
@@ -126,9 +130,7 @@ class MessageHistoryLimiter:
         if self._max_messages is None:
             return messages
 
-        processed_messages = messages[-self._max_messages :]
-        print(f"len of messages: {len(processed_messages)}")
-        return processed_messages
+        return messages[-self._max_messages :]
 
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
@@ -138,8 +140,10 @@ class MessageHistoryLimiter:
 class MessageTokenLimiter:
     """Truncates messages to meet token limits for efficient processing and response generation.
 
-    This class allows you to control the length of messages an agent receives and considers for response.
-    Truncation can be applied to individual messages or the entire conversation history
+    Truncation can be applied to individual messages or the entire conversation history.
+
+    This transformation is handy when you need to adhere to strict token limits imposed by your API provider,
+    preventing unnecessary costs or errors caused by exceeding the allowed token count.
     """
 
     def __init__(
@@ -172,13 +176,11 @@ class MessageTokenLimiter:
         processed_messages_tokens = 0
 
         # calculate tokens for all messages
-        total_tokens = sum(token_count_utils.count_token(msg["content"]) for msg in temp_messages)
+        total_tokens = sum(_count_tokens(msg["content"]) for msg in temp_messages)
 
         for msg in reversed(temp_messages):
-            msg["content"] = self._truncate_str_to_tokens(
-                msg["content"], self._max_tokens_per_message, model=self._model
-            )
-            msg_tokens = token_count_utils.count_token(msg["content"])
+            msg["content"] = self._truncate_str_to_tokens(msg["content"])
+            msg_tokens = _count_tokens(msg["content"])
 
             if processed_messages_tokens + msg_tokens > self._max_tokens:
                 break
@@ -197,7 +199,7 @@ class MessageTokenLimiter:
 
         return processed_messages
 
-    def _truncate_str_to_tokens(self, text: Union[str, List], max_tokens: int, model: str = "gpt-3.5-turbo-0613"):
+    def _truncate_str_to_tokens(self, contents: Union[str, List]):
         """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
 
         Args:
@@ -208,11 +210,28 @@ class MessageTokenLimiter:
         Returns:
             The truncated string.
         """
+        if isinstance(contents, str):
+            return self._truncate_tokens(contents)
+        elif isinstance(contents, list):
+            return self._truncate_multimodal_text(contents)
+        else:
+            raise ValueError(f"Contents must be a string or a list of dictionaries. Received type: {type(contents)}")
 
-        encoding = tiktoken.encoding_for_model(model)  # Get the appropriate tokenizer
+    def _truncate_multimodal_text(self, contents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        tmp_contents = []
+        for content in contents:
+            if content["type"] == "text":
+                truncated_text = self._truncate_str_to_tokens(content["text"])
+                tmp_contents.append({"type": "text", "text": truncated_text})
+            else:
+                tmp_contents.append(content)
+        return tmp_contents
 
-        encoded_tokens = encoding.encode(code_utils.content_str(text))
-        truncated_tokens = encoded_tokens[:max_tokens]
+    def _truncate_tokens(self, text: str):
+        encoding = tiktoken.encoding_for_model(self._model)  # Get the appropriate tokenizer
+
+        encoded_tokens = encoding.encode(text)
+        truncated_tokens = encoded_tokens[: self._max_tokens_per_message]
         truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
 
         return truncated_text
@@ -220,3 +239,13 @@ class MessageTokenLimiter:
     def _validate_max_tokens(self, max_tokens: Optional[int] = None):
         if max_tokens is not None and max_tokens < 0:
             raise ValueError("max_tokens and max_tokens_per_message must be None or greater than or equal to 0")
+
+
+def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
+    token_count = 0
+    if isinstance(content, str):
+        token_count = token_count_utils.count_token(content)
+    elif isinstance(content, list):
+        for item in content:
+            token_count += _count_tokens(item.get("text", ""))
+    return token_count
