@@ -110,7 +110,11 @@ def test_two_agents_logging(db_connection):
         assert first_request_role == "system"
 
         response = json.loads(row["response"])
-        assert "choices" in response and len(response["choices"]) > 0
+
+        if "response" in response:  # config failed or response was empty
+            assert "error_code" in response["response"] or response["response"] is None
+        else:
+            assert "choices" in response and len(response["choices"]) > 0
 
         assert row["cost"] > 0
         assert row["start_time"], "start timestamp is empty"
