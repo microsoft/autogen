@@ -270,13 +270,10 @@ class ConversableAgent(LLMAgent):
         self._description = description
 
     @property
-    def code_executor(self) -> CodeExecutor:
-        """The code executor used by this agent. Raise if code execution is disabled."""
+    def code_executor(self) -> Optional[CodeExecutor]:
+        """The code executor used by this agent. Returns None if code execution is disabled."""
         if not hasattr(self, "_code_executor"):
-            raise ValueError(
-                "No code executor as code execution is disabled. "
-                "To enable code execution, set code_execution_config."
-            )
+            return None
         return self._code_executor
 
     def register_reply(
@@ -367,6 +364,8 @@ class ConversableAgent(LLMAgent):
         chat_to_run = []
         for i, c in enumerate(chat_queue):
             current_c = c.copy()
+            if current_c.get("sender") is None:
+                current_c["sender"] = recipient
             message = current_c.get("message")
             # If message is not provided in chat_queue, we by default use the last message from the original chat history as the first message in this nested chat (for the first chat in the chat queue).
             # NOTE: This setting is prone to change.
@@ -380,7 +379,7 @@ class ConversableAgent(LLMAgent):
                 chat_to_run.append(current_c)
         if not chat_to_run:
             return True, None
-        res = recipient.initiate_chats(chat_to_run)
+        res = initiate_chats(chat_to_run)
         return True, res[-1].summary
 
     def register_nested_chats(
