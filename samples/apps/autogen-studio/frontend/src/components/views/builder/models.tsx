@@ -1,15 +1,24 @@
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Dropdown, Input, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IModelConfig, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
-import { BounceLoader, Card, LaunchButton, LoadingOverlay } from "../../atoms";
+import {
+  fetchJSON,
+  getServerUrl,
+  sanitizeConfig,
+  timeAgo,
+  truncateText,
+} from "../../utils";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import TextArea from "antd/es/input/TextArea";
 
 const ModelsView = ({}: any) => {
@@ -25,10 +34,6 @@ const ModelsView = ({}: any) => {
   const saveModelsUrl = `${serverUrl}/models`;
   const deleteModelUrl = `${serverUrl}/models/delete`;
   const testModelUrl = `${serverUrl}/models/test`;
-  const [modelStatus, setModelStatus] = React.useState<IStatus | null>({
-    status: true,
-    message: "All good",
-  });
 
   const defaultModel: IModelConfig = {
     model: "gpt-4-1106-preview",
@@ -148,6 +153,52 @@ const ModelsView = ({}: any) => {
   }, []);
 
   const modelRows = (models || []).map((model: IModelConfig, i: number) => {
+    const cardItems = [
+      {
+        title: "Download",
+        icon: ArrowDownTrayIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          // download workflow as workflow.name.json
+          const element = document.createElement("a");
+          const sanitizedSkill = sanitizeConfig(model);
+          const file = new Blob([JSON.stringify(sanitizedSkill)], {
+            type: "application/json",
+          });
+          element.href = URL.createObjectURL(file);
+          element.download = `model_${model.model}.json`;
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+        },
+        hoverText: "Download",
+      },
+      {
+        title: "Make a Copy",
+        icon: DocumentDuplicateIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          let newModel = { ...model };
+          newModel.model = `${model.model} Copy`;
+          newModel.user_id = user?.email;
+          newModel.timestamp = new Date().toISOString();
+          if (newModel.id) {
+            delete newModel.id;
+          }
+          setNewModel(newModel);
+          setShowNewModelModal(true);
+        },
+        hoverText: "Make a Copy",
+      },
+      {
+        title: "Delete",
+        icon: TrashIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          deleteModel(model);
+        },
+        hoverText: "Delete",
+      },
+    ];
     return (
       <div key={"modelrow" + i} className=" " style={{ width: "200px" }}>
         <div className="">
@@ -166,25 +217,7 @@ const ModelsView = ({}: any) => {
               {truncateText(model.description || model.model || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(model.timestamp || "")}</div>
-            <div
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-              }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-            >
-              {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteModel(model);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
-            </div>
+            <CardHoverBar items={cardItems} />
           </Card>
         </div>
       </div>
@@ -386,6 +419,54 @@ const ModelsView = ({}: any) => {
     );
   };
 
+  const uploadModel = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const model = JSON.parse(contents);
+            if (model) {
+              setNewModel(model);
+              setShowNewModelModal(true);
+            }
+          } catch (e) {
+            message.error("Invalid model file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const modelsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadmodel",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Model
+        </div>
+      ),
+    },
+  ];
+
+  const modelsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadmodel") {
+      uploadModel();
+      return;
+    }
+  };
+
   return (
     <div className="text-primary  ">
       <ModelModal
@@ -401,7 +482,7 @@ const ModelsView = ({}: any) => {
       />
 
       <ModelModal
-        model={defaultModel}
+        model={newModel}
         setModel={setNewModel}
         setShowModelModal={setShowNewModelModal}
         showModelModal={showNewModelModal}
@@ -419,16 +500,23 @@ const ModelsView = ({}: any) => {
               {" "}
               Models ({modelRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewModelModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Model
-            </LaunchButton>
+            <div>
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: modelsMenuItems,
+                  onClick: modelsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
+                onClick={() => {
+                  setShowNewModelModal(true);
+                }}
+              >
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Model
+              </Dropdown.Button>
+            </div>
           </div>
 
           <div className="text-xs mb-2 pb-1  ">
