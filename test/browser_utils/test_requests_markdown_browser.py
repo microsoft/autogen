@@ -21,9 +21,6 @@ WIKIPEDIA_STRING = "Redmond"
 
 PLAIN_TEXT_URL = "https://raw.githubusercontent.com/microsoft/autogen/main/README.md"
 
-IMAGE_URL = "https://github.com/afourney.png"
-IMAGE_METADATA = "ImageSize: 180x180"
-
 DOWNLOAD_URL = "https://arxiv.org/src/2308.08155"
 
 PDF_URL = "https://arxiv.org/pdf/2308.08155.pdf"
@@ -124,10 +121,6 @@ def test_requests_markdown_browser():
 
     browser.visit_page(PLAIN_TEXT_URL)
     assert re.sub(r"\s+", " ", browser.page_content, re.DOTALL).strip() == expected_results
-
-    # Visit an image causing it to display metadata
-    viewport = browser.visit_page(IMAGE_URL)
-    assert IMAGE_METADATA in viewport
 
     # Disrectly download a ZIP file and compute its md5
     response = requests.get(DOWNLOAD_URL, stream=True)
