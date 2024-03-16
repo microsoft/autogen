@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { v4 as uuidv4 } from "uuid";
 
 import { IChatMessage, IChatSession, IFlowConfig } from "../components/types";
 
@@ -13,6 +14,8 @@ interface ConfigState {
   setSessions: (sessions: IChatSession[]) => void;
   version: string | null;
   setVersion: (version: string) => void;
+  connectionId: string;
+  setConnectionId: (connectionId: string) => void;
 }
 
 export const useConfigStore = create<ConfigState>()((set) => ({
@@ -26,4 +29,6 @@ export const useConfigStore = create<ConfigState>()((set) => ({
   setSessions: (sessions) => set({ sessions }),
   version: null,
   setVersion: (version) => set({ version }),
+  connectionId: uuidv4(),
+  setConnectionId: (connectionId) => set({ connectionId }),
 }));
