@@ -12,17 +12,17 @@ Links to notebook examples:
 
    - Automated Task Solving with Code Generation, Execution & Debugging - [View Notebook](/docs/notebooks/agentchat_auto_feedback_from_code_execution)
    - Automated Code Generation and Question Answering with Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_RetrieveChat)
-   - Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_qdrant_RetrieveChat.ipynb)
+   - Automated Code Generation and Question Answering with [Qdrant](https://qdrant.tech/) based Retrieval Augmented Agents - [View Notebook](/docs/notebooks/agentchat_qdrant_RetrieveChat)
 
 1. **Multi-Agent Collaboration (>3 Agents)**
 
    - Automated Task Solving by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat)
-   - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_vis.ipynb)
+   - Automated Data Visualization by Group Chat (with 3 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_vis)
    - Automated Complex Task Solving by Group Chat (with 6 group member agents and 1 manager agent) - [View Notebook](/docs/notebooks/agentchat_groupchat_research)
    - Automated Task Solving with Coding & Planning Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_planning.ipynb)
    - Automated Task Solving with transition paths specified in a graph - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb)
    - Running a group chat as an inner-monolgue via the SocietyOfMindAgent - [View Notebook](/docs/notebooks/agentchat_society_of_mind)
-   - Running a group chat with custom speaker selection function - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat_customized.ipynb)
+   - Running a group chat with custom speaker selection function - [View Notebook](/docs/notebooks/agentchat_groupchat_customized)
 
 1. **Sequential Multi-Agent Chats**
    - Solving Multiple Tasks in a Sequence of Chats Initiated by a Single Agent - [View Notebook](/docs/notebooks/agentchat_multi_task_chats)
@@ -31,7 +31,8 @@ Links to notebook examples:
 
 1. **Nested Chats**
    - Solving Complex Tasks with Nested Chats - [View Notebook](/docs/notebooks/agentchat_nestedchat)
-    - OptiGuide for Solving a Supply Chain Optimization Problem with Nested Chats with a Coding Agent and a Safeguard Agent - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_nestedchat_optiguide.ipynb)
+   - Solving Complex Tasks with A Sequence of Nested Chats - [View Notebook](/docs/notebooks/agentchat_nested_sequential_chats)
+   - OptiGuide for Solving a Supply Chain Optimization Problem with Nested Chats with a Coding Agent and a Safeguard Agent - [View Notebook](/docs/notebooks/agentchat_nestedchat_optiguide)
 
 1. **Applications**
 

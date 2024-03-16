@@ -1,12 +1,18 @@
 import {
   ArrowPathIcon,
   Cog6ToothIcon,
+  DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   PaperAirplaneIcon,
-  TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, message } from "antd";
+import {
+  Button,
+  Dropdown,
+  MenuProps,
+  message as ToastMessage,
+  Tooltip,
+} from "antd";
 import * as React from "react";
 import {
   IChatMessage,
@@ -15,26 +21,59 @@ import {
   IMessage,
   IStatus,
 } from "../../types";
-import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
+import { examplePrompts, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
-import { BounceLoader, MarkdownView } from "../../atoms";
+import {
+  AgentRow,
+  BounceLoader,
+  CollapseBox,
+  LoadingBar,
+  MarkdownView,
+} from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
 
+let socketMsgs: any[] = [];
 const ChatBox = ({
   initMessages,
   editable = true,
+  connectionId,
 }: {
   initMessages: IMessage[] | null;
   editable?: boolean;
+  connectionId: string;
 }) => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const textAreaInputRef = React.useRef<HTMLTextAreaElement>(null);
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
+  const wsClient = React.useRef<WebSocket | null>(null);
+  const [wsConnectionStatus, setWsConnectionStatus] =
+    React.useState<string>("disconnected");
+
+  const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
+
+  const MAX_RETRIES = 10;
+  const RETRY_INTERVAL = 2000;
+
+  const [retries, setRetries] = React.useState(0);
 
   const serverUrl = getServerUrl();
   const deleteMsgUrl = `${serverUrl}/messages/delete`;
+
+  let websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
+
+  // check if there is a protocol in the serverUrl e.g. /api. if use the page url
+  if (!serverUrl.includes("http")) {
+    const pageUrl = window.location.href;
+    const url = new URL(pageUrl);
+    const protocol = url.protocol;
+    const host = url.host;
+    const baseUrl = protocol + "//" + host + serverUrl;
+    websocketUrl = baseUrl.replace("http", "ws") + "/ws/";
+  } else {
+    websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
+  }
 
   const [loading, setLoading] = React.useState(false);
   const [text, setText] = React.useState("");
@@ -42,6 +81,8 @@ const ChatBox = ({
     status: true,
     message: "All good",
   });
+
+  const socketDivRef = React.useRef<HTMLDivElement>(null);
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
@@ -52,7 +93,7 @@ const ChatBox = ({
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
     pageHeight = window.innerHeight;
-    chatMaxHeight = pageHeight - 300 + "px";
+    chatMaxHeight = pageHeight - 310 + "px";
   }
 
   const parseMessages = (messages: any) => {
@@ -77,6 +118,7 @@ const ChatBox = ({
     // console.log("initMessages changed", initMessages);
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
+    socketMsgs = [];
   }, [initMessages]);
 
   const promptButtons = examplePrompts.map((prompt, i) => {
@@ -129,6 +171,25 @@ const ChatBox = ({
         ),
         key: "retrymessage",
       });
+      items.push({
+        label: (
+          <div
+            onClick={() => {
+              // copy to clipboard
+              navigator.clipboard.writeText(message.text);
+              ToastMessage.success("Message copied to clipboard");
+            }}
+          >
+            <DocumentDuplicateIcon
+              role={"button"}
+              title={"Copy"}
+              className="h-4 w-4 mr-1 inline-block"
+            />
+            Copy
+          </div>
+        ),
+        key: "copymessage",
+      });
     }
 
     const menu = (
@@ -154,9 +215,7 @@ const ChatBox = ({
             isUser ? "USER" : "AGENTS"
           }`}</div>
           <div
-            className={`inline-block group relative ${
-              isUser ? "" : " w-full "
-            } p-2 rounded  ${css}`}
+            className={`inline-block group relative w-full p-2 rounded  ${css}`}
           >
             {" "}
             {items.length > 0 && editable && (
@@ -191,10 +250,9 @@ const ChatBox = ({
 
   React.useEffect(() => {
     // console.log("messages updated, scrolling");
-
     setTimeout(() => {
-      scrollChatBox();
-    }, 200);
+      scrollChatBox(messageBoxInputRef);
+    }, 500);
   }, [messages]);
 
   const textAreaDefaultHeight = "50px";
@@ -218,6 +276,87 @@ const ChatBox = ({
     }
   }, [text]);
 
+  const [waitingToReconnect, setWaitingToReconnect] = React.useState<
+    boolean | null
+  >(null);
+
+  React.useEffect(() => {
+    if (waitingToReconnect) {
+      return;
+    }
+    // Only set up the websocket once
+    const socketUrl = websocketUrl + connectionId;
+    console.log("socketUrl", socketUrl);
+    if (!wsClient.current) {
+      const client = new WebSocket(socketUrl);
+      wsClient.current = client;
+      client.onerror = (e) => {
+        console.log("ws error", e);
+      };
+
+      client.onopen = () => {
+        setWsConnectionStatus("connected");
+        console.log("ws opened");
+      };
+
+      client.onclose = () => {
+        if (wsClient.current) {
+          // Connection failed
+          console.log("ws closed by server");
+        } else {
+          // Cleanup initiated from app side, can return here, to not attempt a reconnect
+          return;
+        }
+
+        if (waitingToReconnect) {
+          return;
+        }
+
+        // Parse event code and log
+        setWsConnectionStatus("disconnected");
+
+        setWaitingToReconnect(true);
+        setWsConnectionStatus("reconnecting");
+        setTimeout(() => {
+          setWaitingToReconnect(null);
+        }, RETRY_INTERVAL);
+      };
+
+      client.onmessage = (message) => {
+        const data = JSON.parse(message.data);
+        console.log("received message", data);
+        if (data && data.type === "agent_message") {
+          // indicates an intermediate agent message update
+          const newsocketMessages = Object.assign([], socketMessages);
+          newsocketMessages.push(data.data);
+          setSocketMessages(newsocketMessages);
+          socketMsgs.push(data.data);
+          setTimeout(() => {
+            scrollChatBox(socketDivRef);
+            scrollChatBox(messageBoxInputRef);
+          }, 200);
+          // console.log("received message", data, socketMsgs.length);
+        } else if (data && data.type === "agent_status") {
+          // indicates a status message update
+          const agentStatusSpan = document.getElementById("agentstatusspan");
+          if (agentStatusSpan) {
+            agentStatusSpan.innerHTML = data.data.message;
+          }
+        } else if (data && data.type === "agent_response") {
+          // indicates a final agent response
+          processAgentResponse(data.data);
+        }
+      };
+
+      return () => {
+        console.log("Cleanup");
+        // Dereference, so it will set up next time
+        wsClient.current = null;
+        client.close();
+      };
+    }
+  }, [waitingToReconnect]);
+
   const chatHistory = (messages: IChatMessage[] | null) => {
     let history = "";
     messages?.forEach((message) => {
@@ -226,15 +365,31 @@ const ChatBox = ({
     return history;
   };
 
-  const scrollChatBox = () => {
-    messageBoxInputRef.current?.scroll({
-      top: messageBoxInputRef.current.scrollHeight,
+  const scrollChatBox = (element: any) => {
+    element.current?.scroll({
+      top: element.current.scrollHeight,
       behavior: "smooth",
     });
   };
 
+  const processAgentResponse = (data: any) => {
+    if (data && data.status) {
+      const updatedMessages = parseMessages(data.data);
+      setTimeout(() => {
+        setLoading(false);
+        setMessages(updatedMessages);
+      }, 2000);
+    } else {
+      console.log("error", data);
+      // setError(data);
+      ToastMessage.error(data.message);
+      setLoading(false);
+    }
+  };
+
   const getCompletion = (query: string) => {
     setError(null);
+    socketMsgs = [];
     let messageHolder = Object.assign([], messages);
 
     const userMessage: IChatMessage = {
@@ -255,56 +410,65 @@ const ChatBox = ({
     };
 
     const textUrl = `${serverUrl}/messages`;
+    const postBody = {
+      message: messagePayload,
+      workflow: workflowConfig,
+      session: session,
+      user_id: user?.email,
+      connection_id: connectionId,
+    };
     const postData = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        message: messagePayload,
-        flow_config: workflowConfig,
-      }),
+      body: JSON.stringify(postBody),
     };
     setLoading(true);
-    fetch(textUrl, postData)
-      .then((res) => {
-        setLoading(false);
-        if (res.status === 200) {
-          res.json().then((data) => {
-            if (data && data.status) {
-              const botMesage: IChatMessage = {
-                text: data.message,
-                sender: "bot",
-                metadata: data.metadata,
-                msg_id: data.msg_id,
-              };
-              // if (data.metadata) {
-              //   setMetadata(data.metadata);
-              // }
-              messageHolder.push(botMesage);
-              messageHolder = Object.assign([], messageHolder);
-              setMessages(messageHolder);
-            } else {
-              console.log("error", data);
-              // setError(data);
-              message.error(data.message);
-            }
-          });
-        } else {
-          res.json().then((data) => {
-            console.log("error", data);
-            // setError(data);
-            message.error(data.message);
-          });
-          message.error("Connection error. Ensure server is up and running.");
-        }
-      })
-      .catch(() => {
-        setLoading(false);
 
-        message.error("Connection error. Ensure server is up and running.");
-      });
+    // check if socket connected, send on socket
+    // else send on fetch
+    if (wsClient.current && wsClient.current.readyState === 1) {
+      wsClient.current.send(
+        JSON.stringify({
+          connection_id: connectionId,
+          data: postBody,
+          type: "user_message",
+        })
+      );
+      console.log("sending on socket ..");
+    } else {
+      fetch(textUrl, postData)
+        .then((res) => {
+          if (res.status === 200) {
+            res.json().then((data) => {
+              processAgentResponse(data);
+            });
+          } else {
+            res.json().then((data) => {
+              console.log("error", data);
+              ToastMessage.error(data.message);
+              setLoading(false);
+            });
+            ToastMessage.error(
+              "Connection error. Ensure server is up and running."
+            );
+          }
+        })
+        .catch(() => {
+          setLoading(false);
+
+          ToastMessage.error(
+            "Connection error. Ensure server is up and running."
+          );
+        })
+        .finally(() => {
+          setTimeout(() => {
+            scrollChatBox(messageBoxInputRef);
+          }, 500);
+        });
+    }
   };
 
   const handleTextChange = (
@@ -324,8 +488,21 @@ const ChatBox = ({
     }
   };
 
+  const getConnectionColor = (status: string) => {
+    if (status === "connected") {
+      return "bg-green-500";
+    } else if (status === "reconnecting") {
+      return "bg-orange-500";
+    } else if (status === "disconnected") {
+      return "bg-red-500";
+    }
+  };
+
   return (
-    <div className="text-primary     relative  h-full rounded  ">
+    <div
+      style={{ height: "calc(100vh - 160px)" }}
+      className="text-primary    relative  h-full rounded  "
+    >
       <div
         style={{ zIndex: 100 }}
         className=" absolute right-0  text-secondary -top-8 rounded p-2"
@@ -333,17 +510,11 @@ const ChatBox = ({
         {" "}
         <div className="text-xs"> {session?.flow_config.name}</div>
       </div>
-      <div
-        style={{ zIndex: 100 }}
-        className=" absolute right-0  text-secondary -top-8 rounded p-2"
-      >
-        {" "}
-        <div className="text-xs"> {session?.flow_config.name}</div>
-      </div>
+
       <div
         ref={messageBoxInputRef}
         className="flex h-full  flex-col rounded  scroll pr-2 overflow-auto  "
-        style={{ minHeight: "300px", maxHeight: chatMaxHeight }}
+        style={{ minHeight: "30px", height: "calc(100vh - 310px)" }}
       >
         <div className="scroll-gradient h-10">
           {" "}
@@ -367,9 +538,63 @@ const ChatBox = ({
           </div>
         )}
         <div className="ml-2"> {messageListView}</div>
-        <div className="ml-2 h-6   mb-4 mt-2   ">
-          {loading && <BounceLoader />}
-        </div>
+
+        {loading && (
+          <div className={` inline-flex gap-2 duration-300 `}>
+            <div className=""></div>
+            <div className="font-semibold text-secondary text-sm w-16">
+              AGENTS
+            </div>
+            <div className="relative w-full  ">
+              <div className="mb-2  ">
+                <LoadingBar>
+                  <div className="mb-1  inline-block ml-2 text-xs text-secondary">
+                    <span className="innline-block text-sm ml-2">
+                      {" "}
+                      <span id="agentstatusspan">
+                        {" "}
+                        agents working on task ..
+                      </span>
+                    </span>{" "}
+                    {socketMsgs.length > 0 && (
+                      <span className="border-l inline-block text-right ml-2 pl-2">
+                        {socketMsgs.length} agent message
+                        {socketMsgs.length > 1 && "s"} sent/received.
+                      </span>
+                    )}
+                  </div>
+                </LoadingBar>
+              </div>
+
+              {socketMsgs.length > 0 && (
+                <div
+                  ref={socketDivRef}
+                  style={{
+                    minHeight: "300px",
+                    maxHeight: "400px",
+                    overflowY: "auto",
+                  }}
+                  className={`inline-block scroll group relative   p-2 rounded w-full bg-light `}
+                >
+                  <CollapseBox
+                    open={true}
+                    title={`Agent Messages (${socketMsgs.length} message${
+                      socketMsgs.length > 1 ? "s" : ""
+                    }) `}
+                  >
+                    {socketMsgs?.map((message: any, i: number) => {
+                      return (
+                        <div key={i}>
+                          <AgentRow message={message} />
+                        </div>
+                      );
+                    })}
+                  </CollapseBox>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       {editable && (
         <div className="mt-2 p-2 absolute   bg-primary  bottom-0 w-full">
@@ -424,8 +649,16 @@ const ChatBox = ({
           </div>{" "}
           <div>
             <div className="mt-2 text-xs text-secondary">
+              <Tooltip title={`Socket ${wsConnectionStatus}`}>
+                <div
+                  className={`w-1 h-3 rounded  inline-block mr-1 ${getConnectionColor(
+                    wsConnectionStatus
+                  )}`}
+                ></div>{" "}
+              </Tooltip>
               Blank slate? Try one of the example prompts below{" "}
             </div>
+
             <div
               className={`mt-2 inline-flex gap-2 flex-wrap  ${
                 loading ? "brightness-75 pointer-events-none" : ""
@@ -435,7 +668,7 @@ const ChatBox = ({
             </div>
           </div>
           {error && !error.status && (
-            <div className="p-2 border rounded mt-4 text-orange-500 text-sm">
+            <div className="p-2   rounded mt-4 text-orange-500 text-sm">
               {" "}
               <ExclamationTriangleIcon className="h-5 text-orange-500 inline-block mr-2" />{" "}
               {error.message}
