@@ -14,7 +14,7 @@ else:
 
 skip_exiftool = shutil.which("exiftool") is None
 
-TEST_FILES_DIR = "test_files"
+TEST_FILES_DIR = os.path.join(os.path.dirname(__file__), "test_files")
 
 JPG_TEST_EXIFTOOL = {
     "Author": "AutoGen Authors",
