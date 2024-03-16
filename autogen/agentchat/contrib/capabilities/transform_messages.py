@@ -127,6 +127,16 @@ class MessageHistoryLimiter:
         self._max_messages = max_messages if max_messages else sys.maxsize
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """This method returns a new list containing the most recent messages up to the specified
+        maximum number of messages (max_messages). If max_messages is `None`,
+        it returns the original list of messages unmodified.
+
+        Args:
+            messages (List[Dict]): The list of messages representing the conversation history.
+
+        Returns:
+            List[Dict]: A new list containing the most recent messages up to the specified maximum.
+        """
         if self._max_messages is None:
             return messages
 
@@ -168,6 +178,24 @@ class MessageTokenLimiter:
         self._model = model
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """This method applies two levels of truncation:
+
+        1. Truncates each individual message to the max number of tokens (max_tokens_per_message).
+        2. Truncates the overall conversation history to max number of tokens (max_tokens).
+
+        Messages are processed in reverse order, and the truncated conversation history is
+        reconstructed by appending messages to the beginning of the list to preserve order.
+
+        If the total number of tokens in the original conversation history exceeds the
+        number of tokens in the truncated history, a warning message is printed indicating
+        the number of tokens reduced.
+
+        Args:
+            messages (List[Dict]): The list of messages representing the conversation history.
+
+        Returns:
+            List[Dict]: A new list containing the truncated messages up to the specified token limits.
+        """
         assert self._max_tokens_per_message is not None
         assert self._max_tokens is not None
 
