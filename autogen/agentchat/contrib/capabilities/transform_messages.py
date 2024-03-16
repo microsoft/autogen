@@ -1,10 +1,11 @@
 import sys
-from typing import Dict, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol, Union
 
 import tiktoken
 from termcolor import colored
 
 from autogen import ConversableAgent, token_count_utils
+from autogen import code_utils
 
 
 class MessageTransform(Protocol):
@@ -109,7 +110,7 @@ class TransformMessages:
             )
 
 
-class MaxMessagesTransform:
+class MessageHistoryLimiter:
     """Limits the number of messages considered by an agent for response generation."""
 
     def __init__(self, max_messages: Optional[int] = None):
@@ -122,8 +123,6 @@ class MaxMessagesTransform:
         self._max_messages = max_messages if max_messages else sys.maxsize
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
-        print(f"Len of messages: {len(messages)}")
-        print(f"{messages}")
         if self._max_messages is None:
             return messages
 
@@ -136,7 +135,7 @@ class MaxMessagesTransform:
             raise ValueError("max_messages must be None or greater than 1")
 
 
-class TokenLimitTransform:
+class MessageTokenLimiter:
     """Truncates messages to meet token limits for efficient processing and response generation.
 
     This class allows you to control the length of messages an agent receives and considers for response.
@@ -152,9 +151,9 @@ class TokenLimitTransform:
         """
         Args:
             max_tokens_per_message (None or int): Maximum number of tokens to keep in each message.
-                Must be greater than 0 if not None.
+                Must be greater than or equal to 0 if not None.
             max_tokens (Optional[int]): Maximum number of tokens to keep in the chat history.
-                Must be greater than 0 if not None.
+                Must be greater than or equal to 0 if not None.
             model (str): The target OpenAI model for tokenization alignment.
         """
         self._validate_max_tokens(max_tokens_per_message)
@@ -198,7 +197,7 @@ class TokenLimitTransform:
 
         return processed_messages
 
-    def _truncate_str_to_tokens(self, text: str, max_tokens: int, model: str = "gpt-3.5-turbo-0613"):
+    def _truncate_str_to_tokens(self, text: Union[str, List], max_tokens: int, model: str = "gpt-3.5-turbo-0613"):
         """Truncate a string so that the number of tokens is less than or equal to max_tokens using tiktoken.
 
         Args:
@@ -212,12 +211,12 @@ class TokenLimitTransform:
 
         encoding = tiktoken.encoding_for_model(model)  # Get the appropriate tokenizer
 
-        encoded_tokens = encoding.encode(text)
+        encoded_tokens = encoding.encode(code_utils.content_str(text))
         truncated_tokens = encoded_tokens[:max_tokens]
         truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
 
         return truncated_text
 
     def _validate_max_tokens(self, max_tokens: Optional[int] = None):
-        if max_tokens is not None and max_tokens < 1:
-            raise ValueError("max_tokens_per_message must be None or greater than 1")
+        if max_tokens is not None and max_tokens < 0:
+            raise ValueError("max_tokens and max_tokens_per_message must be None or greater than or equal to 0")
