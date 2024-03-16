@@ -41,7 +41,7 @@ class TransformMessages:
 
     To use `TransformMessages`:
 
-    1. Create message transformations (e.g., `MaxMessagesTransform`, `TruncateMessageTransform`).
+    1. Create message transformations (e.g., `MessageHistoryLimiter`, `MessageTokenLimiter`).
     2. Instantiate `TransformMessages` with a list of these transformations.
     3. Add the `TransformMessages` instance to your `ConversableAgent` using `add_to_agent`.
 
@@ -51,10 +51,10 @@ class TransformMessages:
     Example:
         ```python
         from agentchat import ConversableAgent
-        from agentchat.contrib.capabilities import TransformMessages, MaxMessagesTransform, TruncateMessageTransform
+        from agentchat.contrib.capabilities import TransformMessages, MessageHistoryLimiter, MessageTokenLimiter
 
-        max_messages = MaxMessagesTransform(max_messages=2)
-        truncate_messages = TruncateMessageTransform(max_tokens=500)
+        max_messages = MessageHistoryLimiter(max_messages=2)
+        truncate_messages = MessageTokenLimiter(max_tokens=500)
         transform_messages = TransformMessages(transforms=[max_messages, truncate_messages])
 
         agent = ConversableAgent(...)
