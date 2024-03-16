@@ -43,7 +43,7 @@ repos:
               website/yarn.lock |
               website/docs/tutorial/code-executors.ipynb |
               notebook/.* |
-              test/browser_utils/test_files/*.*
+              test/browser_utils/test_files/.*
             )$
   - repo: https://github.com/nbQA-dev/nbQA
     rev: 1.7.1
