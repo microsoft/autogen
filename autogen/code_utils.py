@@ -460,7 +460,9 @@ def execute_code(
     image_list = (
         ["python:3-slim", "python:3", "python:3-windowsservercore"]
         if use_docker is True
-        else [use_docker] if isinstance(use_docker, str) else use_docker
+        else [use_docker]
+        if isinstance(use_docker, str)
+        else use_docker
     )
     for image in image_list:
         # check if the image exists
