@@ -1,6 +1,7 @@
 import os
 import sys
 import copy
+from typing import Any, Dict, List, Union
 
 import pytest
 
@@ -19,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
 
 
-def test_token_limit_transform():
+def test_limit_token_transform():
     """
     Test the TokenLimitTransform capability.
     """
@@ -38,7 +39,7 @@ def test_token_limit_transform():
     transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
 
     for message in transformed_messages:
-        assert token_count_utils.count_token(message["content"]) <= max_tokens_per_message
+        assert _count_tokens(message["content"]) <= max_tokens_per_message
 
     # check if total token limit is not exceeded.
     max_tokens = 10
@@ -47,7 +48,7 @@ def test_token_limit_transform():
 
     token_count = 0
     for message in transformed_messages:
-        token_count += token_count_utils.count_token(message["content"])
+        token_count += _count_tokens(message["content"])
 
     assert token_count <= max_tokens
     assert len(transformed_messages) <= len(messages)
@@ -59,7 +60,7 @@ def test_token_limit_transform():
 
     token_count = 0
     for message in transformed_messages:
-        token_count_local = token_count_utils.count_token(message["content"])
+        token_count_local = _count_tokens(message["content"])
         token_count += token_count_local
         assert token_count_local <= max_tokens_per_message
 
@@ -142,3 +143,13 @@ def test_transform_messages_capability():
         )
     except Exception as e:
         assert False, f"Chat initiation failed with error {str(e)}"
+
+
+def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
+    token_count = 0
+    if isinstance(content, str):
+        token_count = token_count_utils.count_token(content)
+    elif isinstance(content, list):
+        for item in content:
+            token_count += _count_tokens(item.get("text", ""))
+    return token_count
