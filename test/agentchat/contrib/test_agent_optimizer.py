@@ -7,7 +7,7 @@ from autogen.agentchat.contrib.agent_builder import AgentBuilder
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
-from autogen.agentchat.contrib.capabilities.agent_optimizer import AgentOptimizer
+from autogen.extensions import AgentOptimizer
 
 here = os.path.abspath(os.path.dirname(__file__))
 

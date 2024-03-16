@@ -1,6 +1,4 @@
-from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.code_utils import execute_code
-from openai import AzureOpenAI
 from typing import List, Dict, Optional
 import json
 import copy
