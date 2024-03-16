@@ -1,0 +1,61 @@
+# Non-OpenAI LLMs
+
+AutoGen allows you to use non-OpenAI LLMs through proxy servers that provide
+an OpenAI-compatible API or a [custom model client](https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models)
+class.
+
+Benefits of this flexibility include access to hundreds of LLMs, assigning specialized
+models to agents (e.g., finely-tuned coding models), the ability to run AutoGen entirely
+within your environment, utilising both OpenAI and non-OpenAI LLMs in one system, and cost
+reductions in inference.
+
+## OpenAI-compatible API proxy server
+Any proxy server that provides an API that is compatible with [OpenAI's API](https://platform.openai.com/docs/api-reference)
+will work with AutoGen.
+
+These proxy servers can be cloud-based or running locally within your environment.
+
+### Cloud-based proxy servers
+By using cloud-based proxy servers, you are able to use LLMs without requiring the hardware
+and software to run them.
+
+These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/),
+or their own closed models, like [Anthropic](https://www.anthropic.com/).
+
+See [Cloud-based Proxy Servers](cloud-based-proxy-servers) for a guide on how to
+use them with AutoGen.
+
+### Locally run proxy servers
+An increasing number of LLM proxy servers are available for use locally. These can be 
+open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio).
+
+See [Local Proxy Servers](local-proxy-servers) for a guide on how to use them with
+AutoGen.
+
+
+````mdx-code-block
+:::tip
+Not all proxy servers support Function Calling with their OpenAI-compatible API. Check their
+documentation.
+
+See Non-OpenAI LLM examples and guides in the [notebooks section](/docs/notebooks) for examples of
+proxy servers that support Function Calling.
+:::
+````
+
+### Configuring models to agents
+
+Whether you choose a cloud-based or locally-run proxy server, the configuration is done in
+the same way as using OpenAI models, see [LLM Configuration](/docs/topics/llm_configuration)
+for further information.
+
+You can use [model configuration filtering](/docs/topics/llm_configuration#config-list-filtering)
+to assign specific LLMs to agents.
+
+
+## Custom Model Client class
+For more advanced users, you can create your own custom model client class, enabling
+you to define and load your own models.
+
+See the [AutoGen with Custom Models: Empowering Users to Use Their Own Inference Mechanism](/blog/2024/01/26/Custom-Models)
+blog post and [this notebook](/notebooks/agentchat_custom_model/) for a guide to creating custom model client classes.
