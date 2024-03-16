@@ -1,0 +1,144 @@
+import os
+import sys
+import copy
+
+import pytest
+
+import autogen
+from autogen import token_count_utils
+from autogen.agentchat.contrib.capabilities.transform_messages import (
+    MessageHistoryLimiter,
+    MessageTokenLimiter,
+    TransformMessages,
+)
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
+from conftest import skip_openai  # noqa: E402
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
+from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+
+
+def test_token_limit_transform():
+    """
+    Test the TokenLimitTransform capability.
+    """
+
+    messages = [
+        {"role": "user", "content": "short string"},
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "very very very very very very very very long string"}],
+        },
+    ]
+
+    # check if token limit per message is not exceeded.
+    max_tokens_per_message = 5
+    token_limit_transform = MessageTokenLimiter(max_tokens_per_message=max_tokens_per_message)
+    transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
+
+    for message in transformed_messages:
+        assert token_count_utils.count_token(message["content"]) <= max_tokens_per_message
+
+    # check if total token limit is not exceeded.
+    max_tokens = 10
+    token_limit_transform = MessageTokenLimiter(max_tokens=max_tokens)
+    transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
+
+    token_count = 0
+    for message in transformed_messages:
+        token_count += token_count_utils.count_token(message["content"])
+
+    assert token_count <= max_tokens
+    assert len(transformed_messages) <= len(messages)
+
+    # check if token limit per message works nicely with total token limit.
+    token_limit_transform = MessageTokenLimiter(max_tokens=max_tokens, max_tokens_per_message=max_tokens_per_message)
+
+    transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
+
+    token_count = 0
+    for message in transformed_messages:
+        token_count_local = token_count_utils.count_token(message["content"])
+        token_count += token_count_local
+        assert token_count_local <= max_tokens_per_message
+
+    assert token_count <= max_tokens
+    assert len(transformed_messages) <= len(messages)
+
+
+def test_max_message_history_length_trasnform():
+    """
+    Test the MessageHistoryLimiter capability to limit the number of messages.
+    """
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": [{"type": "text", "text": "there"}]},
+        {"role": "user", "content": "how"},
+        {"role": "assistant", "content": [{"type": "text", "text": "are you doing?"}]},
+    ]
+
+    max_messages = 2
+    messages_limiter = MessageHistoryLimiter(max_messages=max_messages)
+    transformed_messages = messages_limiter.apply_transform(copy.deepcopy(messages))
+
+    assert len(transformed_messages) == max_messages
+    assert transformed_messages == messages[max_messages:]
+
+
+@pytest.mark.skipif(skip_openai, reason="Requested to skip openai test.")
+def test_transform_messages_capability():
+    """Test the TransformMessages capability to handle long contexts.
+
+    This test is a replica of test_transform_chat_history_with_agents in test_context_handling.py
+    """
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        KEY_LOC,
+        filter_dict={
+            "model": "gpt-3.5-turbo",
+        },
+    )
+
+    # TODO: DELETE AFTER TESTING
+    # config_list = [
+    #     {
+    #         "model": "gpt-3.5-turbo",
+    #         "api_key": os.environ.get("OPENAI_API_KEY"),
+    #     }
+    # ]
+
+    assistant = autogen.AssistantAgent(
+        "assistant", llm_config={"config_list": config_list}, max_consecutive_auto_reply=1
+    )
+
+    context_handling = TransformMessages(
+        transforms=[
+            MessageHistoryLimiter(max_messages=10),
+            MessageTokenLimiter(max_tokens=10, max_tokens_per_message=5),
+        ]
+    )
+    context_handling.add_to_agent(assistant)
+    user = autogen.UserProxyAgent(
+        "user",
+        code_execution_config={"work_dir": "coding"},
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+        max_consecutive_auto_reply=1,
+    )
+
+    # Create a very long chat history that is bound to cause a crash
+    # for gpt 3.5
+    for i in range(1000):
+        assitant_msg = {"role": "assistant", "content": "test " * 1000}
+        user_msg = {"role": "user", "content": ""}
+
+        assistant.send(assitant_msg, user, request_reply=False)
+        user.send(user_msg, assistant, request_reply=False)
+
+    try:
+        user.initiate_chat(
+            assistant, message="Plot a chart of nvidia and tesla stock prices for the last 5 years", clear_history=False
+        )
+    except Exception as e:
+        assert False, f"Chat initiation failed with error {str(e)}"
