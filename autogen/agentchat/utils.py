@@ -1,4 +1,6 @@
-from typing import Any, List, Dict, Tuple, Callable
+import re
+from typing import Any, Callable, Dict, List, Tuple, Union
+
 from .agent import Agent
 
 
@@ -76,3 +78,69 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
             aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
 
     return total_usage_summary, actual_usage_summary
+
+
+def parse_tags_from_content(
+    tag: str, content: Union[str, List[Dict[str, Any]]]
+) -> List[Dict[str, Union[str, Dict[str, str]]]]:
+    """Parses HTML style tags from message contents.
+
+    The parsing is done by looking for patterns in the text that match the format of HTML tags. The tag to be parsed is
+    specified as an argument to the function. The function looks for this tag in the text and extracts its content. The
+    content of a tag is everything that is inside the tag, between the opening and closing angle brackets. The content
+    can be a single string or a set of attribute-value pairs.
+
+    Args:
+        tag (str): The HTML style tag to be parsed.
+        content (Union[str, List[Dict[str, Any]]]): The message content to parse. Can be a string or a list of content
+            items.
+
+    Returns:
+        List[Dict[str, str]]: A list of dictionaries, where each dictionary represents a parsed tag. Each dictionary
+            contains two key-value pairs: 'type' which is the tag, and 'content' which is a dictionary of the parsed
+            attributes.
+
+    Raises:
+        ValueError: If the content is not a string or a list.
+    """
+    results = []
+    if isinstance(content, str):
+        results.extend(_parse_tags_from_text(tag, content))
+    # Handles case for multimodal messages.
+    elif isinstance(content, list):
+        for item in content:
+            if item.get("type") == "text":
+                results.extend(_parse_tags_from_text(tag, item["text"]))
+    else:
+        raise ValueError(f"content must be str or list, but got {type(content)}")
+
+    return results
+
+
+def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
+    pattern = f"<{tag} (.*?)>"
+    tag_contents = re.findall(pattern, text)
+
+    results = []
+    for tag_content in tag_contents:
+        content = _parse_attributes_from_tags(tag_content)
+        results.append({"tag": tag, "content": content})
+
+    return results
+
+
+def _parse_attributes_from_tags(tag_content: str):
+    # Find all attribute-value pairs and standalone words in the tag content
+    attributes = re.findall(r'[^=\s]*="[^"]*"|[^=\s]*=\'[^\']*\'|\S+', tag_content)
+    content = {}
+    src_found = False
+    for attribute in attributes:
+        if "=" in attribute:
+            key, value = attribute.split("=", 1)
+            content[key] = value.strip("'\"")
+        else:
+            # If the attribute does not include an equals sign, assume it's the src
+            if not src_found:
+                content["src"] = attribute
+                src_found = True
+    return content
