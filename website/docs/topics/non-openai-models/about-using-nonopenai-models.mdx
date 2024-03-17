@@ -1,12 +1,12 @@
-# Non-OpenAI LLMs
+# Non-OpenAI Models
 
-AutoGen allows you to use non-OpenAI LLMs through proxy servers that provide
+AutoGen allows you to use non-OpenAI models through proxy servers that provide
 an OpenAI-compatible API or a [custom model client](https://microsoft.github.io/autogen/blog/2024/01/26/Custom-Models)
 class.
 
-Benefits of this flexibility include access to hundreds of LLMs, assigning specialized
+Benefits of this flexibility include access to hundreds of models, assigning specialized
 models to agents (e.g., fine-tuned coding models), the ability to run AutoGen entirely
-within your environment, utilising both OpenAI and non-OpenAI LLMs in one system, and cost
+within your environment, utilising both OpenAI and non-OpenAI models in one system, and cost
 reductions in inference.
 
 ## OpenAI-compatible API proxy server
@@ -16,7 +16,7 @@ will work with AutoGen.
 These proxy servers can be cloud-based or running locally within your environment.
 
 ### Cloud-based proxy servers
-By using cloud-based proxy servers, you are able to use LLMs without requiring the hardware
+By using cloud-based proxy servers, you are able to use models without requiring the hardware
 and software to run them.
 
 These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/),
@@ -33,14 +33,14 @@ typically used for running the full-stack within your environment.
 See [Local Proxy Servers](local-proxy-servers) for a guide on how to use them with
 AutoGen.
 
-### Configuration for Non-OpenAI LLMs
+### Configuration for Non-OpenAI models
 
 Whether you choose a cloud-based or locally-run proxy server, the configuration is done in
 the same way as using OpenAI's models, see [LLM Configuration](/docs/topics/llm_configuration)
 for further information.
 
 You can use [model configuration filtering](/docs/topics/llm_configuration#config-list-filtering)
-to assign specific LLMs to agents.
+to assign specific models to agents.
 
 
 ## Custom Model Client class
