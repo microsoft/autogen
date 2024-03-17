@@ -78,6 +78,7 @@ async def test_async_chats():
                 "message": financial_tasks[1],
                 "silent": True,
                 "summary_method": "reflection_with_llm",
+                "max_turns": 3,
             },
             {
                 "chat_id": 3,
