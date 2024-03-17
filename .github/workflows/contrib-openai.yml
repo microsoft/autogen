@@ -336,7 +336,7 @@ jobs:
           file: ./coverage.xml
           flags: unittests
 
-  TransfromMessages:
+  TransformMessages:
     strategy:
       matrix:
         os: [ubuntu-latest]
