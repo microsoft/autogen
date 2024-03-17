@@ -22,6 +22,7 @@ from autogen.code_utils import (
     in_docker_container,
     decide_use_docker,
     check_can_use_docker_or_throw,
+    check_and_update_powershell_execution_policy,
 )
 from conftest import skip_docker
 
@@ -336,13 +337,24 @@ def test_execute_code(use_docker=True):
         assert exit_code == 0 and msg == "hello world\n", msg
 
         # execute code in a file using shell command directly
-        exit_code, msg, image = execute_code(
-            f"python {filename}",
-            lang="sh",
-            use_docker=use_docker,
-            work_dir=tempdir,
-        )
-        assert exit_code == 0 and msg == "hello world\n", msg
+        if not use_docker:
+            # with user input yes, ensure the powershell execution unrestricted
+            with patch("builtins.input", return_value="yes"):
+                exit_code, msg, image = execute_code(
+                    f"python {filename}",
+                    lang="sh",
+                    use_docker=use_docker,
+                    work_dir=tempdir,
+                )
+                assert exit_code == 0 and msg == "hello world\n", msg
+        else:
+            exit_code, msg, image = execute_code(
+                f"python {filename}",
+                lang="sh",
+                use_docker=use_docker,
+                work_dir=tempdir,
+            )
+            assert exit_code == 0 and msg == "hello world\n", msg
 
     with tempfile.TemporaryDirectory() as tempdir:
         # execute code for assertion error
@@ -366,6 +378,10 @@ def test_execute_code(use_docker=True):
         assert exit_code and error == "Timeout"
         if use_docker is True:
             assert isinstance(image, str)
+
+
+def test_execute_code_no_docker():
+    test_execute_code(use_docker=False)
 
 
 @pytest.mark.skipif(
@@ -407,8 +423,22 @@ def test_execute_code_raises_when_code_and_filename_are_both_none():
         execute_code(code=None, filename=None)
 
 
-def test_execute_code_no_docker():
-    test_execute_code(use_docker=False)
+@pytest.mark.skipif(
+    skip_docker or not is_docker_running() and sys.platform != "win32",
+    reason="execution policy matters only without docker in window",
+)
+def test_check_and_update_powershell_execution_policy():
+    with patch("subprocess.check_output", return_value="Restricted"):
+        with patch("builtins.input", return_value="yes"):
+            with patch("subprocess.check_call") as mocked_check_call:
+                check_and_update_powershell_execution_policy()
+                mocked_check_call.assert_called_once_with(
+                    ["powershell", "Set-ExecutionPolicy", "RemoteSigned", "-Scope", "CurrentUser"], text=True
+                )
+
+        with patch("builtins.input", return_value="no"):
+            with pytest.raises(SystemExit):
+                check_and_update_powershell_execution_policy()
 
 
 def test_execute_code_timeout_no_docker():
