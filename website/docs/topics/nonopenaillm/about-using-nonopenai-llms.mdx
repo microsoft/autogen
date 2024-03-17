@@ -5,7 +5,7 @@ an OpenAI-compatible API or a [custom model client](https://microsoft.github.io/
 class.
 
 Benefits of this flexibility include access to hundreds of LLMs, assigning specialized
-models to agents (e.g., finely-tuned coding models), the ability to run AutoGen entirely
+models to agents (e.g., fine-tuned coding models), the ability to run AutoGen entirely
 within your environment, utilising both OpenAI and non-OpenAI LLMs in one system, and cost
 reductions in inference.
 
@@ -27,26 +27,16 @@ use them with AutoGen.
 
 ### Locally run proxy servers
 An increasing number of LLM proxy servers are available for use locally. These can be 
-open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio).
+open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio), and are
+typically used for running the full-stack within your environment.
 
 See [Local Proxy Servers](local-proxy-servers) for a guide on how to use them with
 AutoGen.
 
-
-````mdx-code-block
-:::tip
-Not all proxy servers support Function Calling with their OpenAI-compatible API. Check their
-documentation.
-
-See Non-OpenAI LLM examples and guides in the [notebooks section](/docs/notebooks) for examples of
-proxy servers that support Function Calling.
-:::
-````
-
-### Configuring models to agents
+### Configuration for Non-OpenAI LLMs
 
 Whether you choose a cloud-based or locally-run proxy server, the configuration is done in
-the same way as using OpenAI models, see [LLM Configuration](/docs/topics/llm_configuration)
+the same way as using OpenAI's models, see [LLM Configuration](/docs/topics/llm_configuration)
 for further information.
 
 You can use [model configuration filtering](/docs/topics/llm_configuration#config-list-filtering)
