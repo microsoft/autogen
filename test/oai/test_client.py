@@ -168,7 +168,7 @@ def test_legacy_cache():
     )
 
     # Prompt to use for testing.
-    prompt = "Write a 1000 word essay on the topic of the history of human civilization."
+    prompt = "Write a 100 word summary on the topic of the history of human civilization."
 
     # Clear cache.
     if os.path.exists(LEGACY_CACHE_DIR):
@@ -237,7 +237,7 @@ def test_cache():
     )
 
     # Prompt to use for testing.
-    prompt = "Write a 1000 word essay on the topic of the history of artificial intelligence."
+    prompt = "Write a 100 word summary on the topic of the history of artificial intelligence."
 
     # Clear cache.
     if os.path.exists(LEGACY_CACHE_DIR):
