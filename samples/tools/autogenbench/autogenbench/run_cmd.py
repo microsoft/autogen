@@ -492,7 +492,7 @@ echo RUN.SH COMPLETE !#!#
     docker_timeout = timeout + 60  # One full minute after the bash timeout command should have already triggered
     start_time = time.time()
     logs = container.logs(stream=True)
-    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt")
+    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt", encoding="utf-8")
     stopping = False
 
     for chunk in logs:  # When streaming it should return a generator
@@ -500,6 +500,7 @@ echo RUN.SH COMPLETE !#!#
         chunk = chunk.decode("utf-8")
         log_file.write(chunk)
         log_file.flush()
+        sys.stdout.reconfigure(encoding="utf-8")
         sys.stdout.write(chunk)
         sys.stdout.flush()
 
