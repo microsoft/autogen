@@ -1,9 +1,12 @@
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Input, Modal, message } from "antd";
+import { Button, Input, Modal, message, MenuProps, Dropdown } from "antd";
 import * as React from "react";
 import { ISkill, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -11,18 +14,17 @@ import {
   fetchJSON,
   getSampleSkill,
   getServerUrl,
+  sanitizeConfig,
   timeAgo,
   truncateText,
 } from "../../utils";
 import {
   BounceLoader,
   Card,
-  CodeBlock,
-  LaunchButton,
+  CardHoverBar,
   LoadingOverlay,
   MonacoEditor,
 } from "../../atoms";
-import TextArea from "antd/es/input/TextArea";
 
 const SkillsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -149,6 +151,52 @@ const SkillsView = ({}: any) => {
   }, []);
 
   const skillRows = (skills || []).map((skill: ISkill, i: number) => {
+    const cardItems = [
+      {
+        title: "Download",
+        icon: ArrowDownTrayIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          // download workflow as workflow.name.json
+          const element = document.createElement("a");
+          const sanitizedSkill = sanitizeConfig(skill);
+          const file = new Blob([JSON.stringify(sanitizedSkill)], {
+            type: "application/json",
+          });
+          element.href = URL.createObjectURL(file);
+          element.download = `skill_${skill.title}.json`;
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+        },
+        hoverText: "Download",
+      },
+      {
+        title: "Make a Copy",
+        icon: DocumentDuplicateIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          let newSkill = { ...skill };
+          newSkill.title = `${skill.title} Copy`;
+          newSkill.user_id = user?.email;
+          newSkill.timestamp = new Date().toISOString();
+          if (newSkill.id) {
+            delete newSkill.id;
+          }
+          setNewSkill(newSkill);
+          setShowNewSkillModal(true);
+        },
+        hoverText: "Make a Copy",
+      },
+      {
+        title: "Delete",
+        icon: TrashIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          deleteSkill(skill);
+        },
+        hoverText: "Delete",
+      },
+    ];
     return (
       <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
         <div>
@@ -166,25 +214,7 @@ const SkillsView = ({}: any) => {
               {truncateText(skill.content, 70)}
             </div>
             <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-            <div
-              onMouseEnter={(e) => {
-                e.stopPropagation();
-              }}
-              className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-            >
-              {" "}
-              <div
-                role="button"
-                className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSkill(skill);
-                }}
-              >
-                <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                <span className="text-xs hidden"> delete</span>
-              </div>
-            </div>
+            <CardHoverBar items={cardItems} />
           </Card>
           <div className="text-right mt-2"></div>
         </div>
@@ -288,45 +318,56 @@ const SkillsView = ({}: any) => {
     );
   };
 
+  const uploadSkill = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+    fileInput.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const content = e.target?.result;
+        if (content) {
+          try {
+            const skill = JSON.parse(content as string);
+            if (skill) {
+              setNewSkill(skill);
+              setShowNewSkillModal(true);
+            }
+          } catch (e) {
+            message.error("Invalid skill file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    fileInput.click();
+  };
+
+  const skillsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadskill",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Skill
+        </div>
+      ),
+    },
+  ];
+
+  const skillsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadskill") {
+      uploadSkill();
+      return;
+    }
+  };
+
   return (
     <div className=" text-primary ">
-      {/* <Modal
-        title={
-          <div>
-            <PlusIcon className="w-5 h-5 inline-block mr-1" /> Create New Skill
-          </div>
-        }
-        width={800}
-        open={showNewSkillModal}
-        onOk={() => {
-          saveSkill();
-          setShowNewSkillModal(false);
-        }}
-        onCancel={() => {
-          setShowNewSkillModal(false);
-        }}
-      >
-        <>
-          <div className="mb-2">
-            Provide code for a new skill or create from current conversation.
-          </div>
-          <Input
-            className="mb-2"
-            placeholder="Skill Title"
-            onChange={(e) => {
-              setNewSkillTitle(e.target.value);
-            }}
-          />
-          <TextArea
-            value={skillCode}
-            onChange={(e) => {
-              setSkillCode(e.target.value);
-            }}
-            rows={10}
-          />
-        </>
-      </Modal> */}
-
       <SkillModal
         skill={selectedSkill}
         setSkill={setSelectedSkill}
@@ -350,20 +391,27 @@ const SkillsView = ({}: any) => {
       <div className="mb-2   relative">
         <div className="">
           <div className="flex mt-2 pb-2 mb-2 border-b">
-            <div className="flex-1 font-semibold mb-2 ">
+            <div className="flex-1   font-semibold mb-2 ">
               {" "}
               Skills ({skillRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewSkillModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Skill
-            </LaunchButton>
+            <div>
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: skillsMenuItems,
+                  onClick: skillsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
+                onClick={() => {
+                  setShowNewSkillModal(true);
+                }}
+              >
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Skill
+              </Dropdown.Button>
+            </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">
             {" "}

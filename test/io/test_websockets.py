@@ -17,18 +17,12 @@ try:
     from websockets.sync.client import connect as ws_connect
 except ImportError:  # pragma: no cover
     skip_test = True
-    skip_openai = True  # noqa: F811
 else:
     skip_test = False
 
-    try:
-        import openai
-    except ImportError:
-        skip_openai = True  # noqa: F811
 
-
+@pytest.mark.skipif(skip_test, reason="websockets module is not available")
 class TestConsoleIOWithWebsockets:
-    @pytest.mark.skipif(skip_test, reason="websockets module is not available")
     def test_input_print(self) -> None:
         print()
         print("Testing input/print", flush=True)
@@ -86,82 +80,73 @@ class TestConsoleIOWithWebsockets:
 
         print("Test passed.", flush=True)
 
-    @pytest.mark.skipif(skip_openai, reason="websockets module is not available or openai module is not available")
+    @pytest.mark.skipif(skip_openai, reason="requested to skip")
     def test_chat(self) -> None:
         print("Testing setup", flush=True)
 
         success_dict = {"success": False}
 
         def on_connect(iostream: IOWebsockets, success_dict: Dict[str, bool] = success_dict) -> None:
-            try:
-                with IOStream.set_default(iostream):
-                    print(f" - on_connect(): Connected to client using IOWebsockets {iostream}", flush=True)
+            print(f" - on_connect(): Connected to client using IOWebsockets {iostream}", flush=True)
 
-                    print(" - on_connect(): Receiving message from client.", flush=True)
+            print(" - on_connect(): Receiving message from client.", flush=True)
 
-                    initial_msg = iostream.input()
+            initial_msg = iostream.input()
 
-                    config_list = autogen.config_list_from_json(
-                        OAI_CONFIG_LIST,
-                        filter_dict={
-                            "model": [
-                                "gpt-3.5-turbo",
-                                "gpt-3.5-turbo-16k",
-                                "gpt-4",
-                                "gpt-4-0314",
-                                "gpt4",
-                                "gpt-4-32k",
-                                "gpt-4-32k-0314",
-                                "gpt-4-32k-v0314",
-                            ],
-                        },
-                        file_location=KEY_LOC,
+            config_list = autogen.config_list_from_json(
+                OAI_CONFIG_LIST,
+                filter_dict={
+                    "model": [
+                        "gpt-3.5-turbo",
+                        "gpt-3.5-turbo-16k",
+                        "gpt-4",
+                        "gpt-4-0314",
+                        "gpt4",
+                        "gpt-4-32k",
+                        "gpt-4-32k-0314",
+                        "gpt-4-32k-v0314",
+                    ],
+                },
+                file_location=KEY_LOC,
+            )
+
+            llm_config = {
+                "config_list": config_list,
+                "stream": True,
+            }
+
+            agent = autogen.ConversableAgent(
+                name="chatbot",
+                system_message="Complete a task given to you and reply TERMINATE when the task is done.",
+                llm_config=llm_config,
+            )
+
+            # create a UserProxyAgent instance named "user_proxy"
+            user_proxy = autogen.UserProxyAgent(
+                name="user_proxy",
+                system_message="A proxy for the user.",
+                is_termination_msg=lambda x: x.get("content", "")
+                and x.get("content", "").rstrip().endswith("TERMINATE"),
+                human_input_mode="NEVER",
+                max_consecutive_auto_reply=10,
+            )
+
+            # we will use a temporary directory as the cache path root to ensure fresh completion each time
+            with TemporaryDirectory() as cache_path_root:
+                with Cache.disk(cache_path_root=cache_path_root) as cache:
+                    print(
+                        f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'",
+                        flush=True,
+                    )
+                    user_proxy.initiate_chat(  # noqa: F704
+                        agent,
+                        message=initial_msg,
+                        cache=cache,
                     )
 
-                    llm_config = {
-                        "config_list": config_list,
-                        "stream": True,
-                    }
+            success_dict["success"] = True
 
-                    agent = autogen.ConversableAgent(
-                        name="chatbot",
-                        system_message="Complete a task given to you and reply TERMINATE when the task is done.",
-                        llm_config=llm_config,
-                    )
-
-                    # create a UserProxyAgent instance named "user_proxy"
-                    user_proxy = autogen.UserProxyAgent(
-                        name="user_proxy",
-                        system_message="A proxy for the user.",
-                        is_termination_msg=lambda x: x.get("content", "")
-                        and x.get("content", "").rstrip().endswith("TERMINATE"),
-                        human_input_mode="NEVER",
-                        max_consecutive_auto_reply=10,
-                    )
-
-                    @user_proxy.register_for_execution()
-                    @agent.register_for_llm(description="Weather forecast for a city")
-                    def weather_forecast(city: str) -> str:
-                        return f"The weather forecast for {city} is rainy and somewhat dreamy."
-
-                    # we will use a temporary directory as the cache path root to ensure fresh completion each time
-                    with TemporaryDirectory() as cache_path_root:
-                        with Cache.disk(cache_path_root=cache_path_root) as cache:
-                            print(
-                                f" - on_connect(): Initiating chat with agent {agent} using message '{initial_msg}'",
-                                flush=True,
-                            )
-                            user_proxy.initiate_chat(  # noqa: F704
-                                agent,
-                                message=initial_msg,
-                                cache=cache,
-                            )
-
-                    success_dict["success"] = True
-                    return
-            except Exception as e:
-                print(f" - on_connect(): Exception occurred: {e}", flush=True)
-                raise
+            return
 
         with IOWebsockets.run_server_in_thread(on_connect=on_connect, port=8765) as uri:
             print(f" - test_setup() with websocket server running on {uri}.", flush=True)
