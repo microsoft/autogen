@@ -936,7 +936,6 @@ class ConversableAgent(LLMAgent):
             def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
                 final_msg = {}
                 carryover = context.get("carryover", "")
-                carryover = context.get("carryover", "")
                 if isinstance(message, list):
                     carryover = carryover[-1]
                 final_msg["content"] = "Write a blogpost." + "\\nContext: \\n" + carryover
