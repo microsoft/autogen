@@ -113,8 +113,8 @@ class TransformMessages:
 class MessageHistoryLimiter:
     """Limits the number of messages considered by an agent for response generation.
 
-    This transform is handy when you want to limit the conversational context to a specific number of recent messages,
-    ensuring efficient processing and response generation.
+    This transform keeps only the most recent messages up to the specified maximum number of messages (max_messages).
+    It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
     def __init__(self, max_messages: Optional[int] = None):
@@ -124,12 +124,14 @@ class MessageHistoryLimiter:
             Must be greater than 0 if not None.
         """
         self._validate_max_messages(max_messages)
-        self._max_messages = max_messages if max_messages else sys.maxsize
+        self._max_messages = max_messages
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
-        """This method returns a new list containing the most recent messages up to the specified
-        maximum number of messages (max_messages). If max_messages is `None`,
-        it returns the original list of messages unmodified.
+        """Truncates the conversation history to the specified maximum number of messages.
+
+        This method returns a new list containing the most recent messages up to the specified
+        maximum number of messages (max_messages). If max_messages is None, it returns the
+        original list of messages unmodified.
 
         Args:
             messages (List[Dict]): The list of messages representing the conversation history.
@@ -150,10 +152,26 @@ class MessageHistoryLimiter:
 class MessageTokenLimiter:
     """Truncates messages to meet token limits for efficient processing and response generation.
 
-    Truncation can be applied to individual messages or the entire conversation history.
+    This transformation applies two levels of truncation to the conversation history:
 
-    This transformation is handy when you need to adhere to strict token limits imposed by your API provider,
-    preventing unnecessary costs or errors caused by exceeding the allowed token count.
+    1. Truncates each individual message to the maximum number of tokens specified by max_tokens_per_message.
+    2. Truncates the overall conversation history to the maximum number of tokens specified by max_tokens.
+
+    NOTE: Tokens are counted using the encoder for the specified model. Different models may yield different token
+        counts for the same text.
+
+    NOTE: For multimodal LLMs, the token count may be inaccurate as it does not account for the non-text input
+        (e.g images).
+
+    The truncation process follows these steps in order:
+
+    1. Messages are processed in reverse order (newest to oldest).
+    2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
+        and other types of content, only the text content is truncated.
+    3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
+        exceeds this limit, the remaining messages are discarded.
+    4. The truncated conversation history is reconstructed by appending messages to the beginning of a new list to
+        preserve the original message order.
     """
 
     def __init__(
@@ -178,17 +196,17 @@ class MessageTokenLimiter:
         self._model = model
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
-        """This method applies two levels of truncation:
+        """Applies token truncation to the conversation history.
 
-        1. Truncates each individual message to the max number of tokens (max_tokens_per_message).
-        2. Truncates the overall conversation history to max number of tokens (max_tokens).
+        The truncation process follows these steps in order:
 
-        Messages are processed in reverse order, and the truncated conversation history is
-        reconstructed by appending messages to the beginning of the list to preserve order.
-
-        If the total number of tokens in the original conversation history exceeds the
-        number of tokens in the truncated history, a warning message is printed indicating
-        the number of tokens reduced.
+        1. Messages are processed in reverse order (newest to oldest).
+        2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
+            and other types of content, only the text content is truncated.
+        3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
+            exceeds this limit, the remaining messages are discarded.
+        4. The truncated conversation history is reconstructed by appending messages to the beginning of a new list to
+            preserve the original message order.
 
         Args:
             messages (List[Dict]): The list of messages representing the conversation history.
@@ -227,7 +245,7 @@ class MessageTokenLimiter:
 
         return processed_messages
 
-    def _truncate_str_to_tokens(self, contents: Union[str, List]):
+    def _truncate_str_to_tokens(self, contents: Union[str, List]) -> Union[str, List]:
         if isinstance(contents, str):
             return self._truncate_tokens(contents)
         elif isinstance(contents, list):
@@ -236,6 +254,7 @@ class MessageTokenLimiter:
             raise ValueError(f"Contents must be a string or a list of dictionaries. Received type: {type(contents)}")
 
     def _truncate_multimodal_text(self, contents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Truncates text content within a list of multimodal elements, preserving the overall structure."""
         tmp_contents = []
         for content in contents:
             if content["type"] == "text":
@@ -245,7 +264,7 @@ class MessageTokenLimiter:
                 tmp_contents.append(content)
         return tmp_contents
 
-    def _truncate_tokens(self, text: str):
+    def _truncate_tokens(self, text: str) -> str:
         encoding = tiktoken.encoding_for_model(self._model)  # Get the appropriate tokenizer
 
         encoded_tokens = encoding.encode(text)
