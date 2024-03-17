@@ -198,16 +198,6 @@ class MessageTokenLimiter:
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies token truncation to the conversation history.
 
-        The truncation process follows these steps in order:
-
-        1. Messages are processed in reverse order (newest to oldest).
-        2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
-            and other types of content, only the text content is truncated.
-        3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
-            exceeds this limit, the remaining messages are discarded.
-        4. The truncated conversation history is reconstructed by appending messages to the beginning of a new list to
-            preserve the original message order.
-
         Args:
             messages (List[Dict]): The list of messages representing the conversation history.
 
