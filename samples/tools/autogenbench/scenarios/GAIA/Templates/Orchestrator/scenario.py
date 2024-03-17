@@ -138,20 +138,20 @@ user_proxy = autogen.UserProxyAgent(
 
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0"
 
+
+browser = RequestsMarkdownBrowser( #SeleniumMarkdownBrowser(
+        viewport_size = 1024 * 5,
+        downloads_folder = "coding",
+        search_engine = BingMarkdownSearch(bing_api_key = os.environ["BING_API_KEY"])
+    )
+
 web_surfer = WebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
     summarizer_llm_config=summarizer_llm_config,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
     code_execution_config=False,
-    browser_config={
-        "bing_api_key": os.environ["BING_API_KEY"],
-        "viewport_size": 1024 * 5,
-        "downloads_folder": "coding",
-        "request_kwargs": {
-            "headers": {"User-Agent": user_agent},
-        },
-    },
+    browser = browser,
 )
 
 maestro = Orchestrator(
