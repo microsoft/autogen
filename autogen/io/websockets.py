@@ -1,3 +1,4 @@
+import logging
 import ssl
 import threading
 from contextlib import contextmanager
@@ -23,6 +24,10 @@ else:
 __all__ = ("IOWebsockets",)
 
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
 class IOWebsockets(IOStream):
     """A websocket input/output stream."""
 
@@ -43,14 +48,18 @@ class IOWebsockets(IOStream):
     @staticmethod
     def _handler(websocket: "ServerConnection", on_connect: Callable[["IOWebsockets"], None]) -> None:
         """The handler function for the websocket server."""
-        print(f" - _handler(): Client connected on {websocket}", flush=True)
+        logger.info(f" - IOWebsockets._handler(): Client connected on {websocket}")
         # create a new IOWebsockets instance using the websocket that is create when a client connects
-        iowebsocket = IOWebsockets(websocket)
-        # call the on_connect function
         try:
-            on_connect(iowebsocket)
+            iowebsocket = IOWebsockets(websocket)
+            with IOStream.set_default(iowebsocket):
+                # call the on_connect function
+                try:
+                    on_connect(iowebsocket)
+                except Exception as e:
+                    logger.warning(f" - IOWebsockets._handler(): Error in on_connect: {e}")
         except Exception as e:
-            print(f" - _handler(): Error in on_connect: {e}", flush=True)
+            logger.error(f" - IOWebsockets._handler(): Unexpected error in IOWebsockets: {e}")
 
     @staticmethod
     @contextmanager
