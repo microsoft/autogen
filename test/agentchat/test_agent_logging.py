@@ -112,7 +112,7 @@ def test_two_agents_logging(db_connection):
         response = json.loads(row["response"])
 
         if "response" in response:  # config failed or response was empty
-            assert "error_code" in response["response"] or response["response"] is None
+            assert response["response"] is None or "error_code" in response["response"]
         else:
             assert "choices" in response and len(response["choices"]) > 0
 
