@@ -220,7 +220,6 @@ def get_powershell_command():
         result = subprocess.run(["powershell", "$PSVersionTable.PSVersion.Major"], capture_output=True, text=True)
         if result.returncode == 0:
             return "powershell"
-
     except (FileNotFoundError, NotADirectoryError):
         # This means that 'powershell' command is not found so now we try looking for 'pwsh'
         try:
@@ -229,22 +228,30 @@ def get_powershell_command():
             )
             if result.returncode == 0:
                 return "pwsh"
-
-        except (FileNotFoundError, NotADirectoryError):
-            if WIN32:
-                logging.warning("Neither powershell nor pwsh is installed but it is a Windows OS")
-            return None
-
-
-powershell_command = get_powershell_command()
+        except FileExistsError as e:
+            raise FileNotFoundError(
+                "Neither powershell.exe nor pwsh.exe is present in the system. "
+                "Please install PowerShell and try again. "
+                f"Original error: {e}"
+            )
+        except NotADirectoryError as e:
+            raise NotADirectoryError(
+                "PowerShell is either not installed or its path is not given "
+                "properly in the environment variable PATH. Please check the "
+                "path and try again. "
+                f"Original error: {e}"
+            )
+    except PermissionError as e:
+        raise PermissionError(f"No permission to run powershell. Original error: {e}")
 
 
 def _cmd(lang: str) -> str:
-    if lang.startswith("python") or lang in ["bash", "sh", powershell_command]:
+    if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
     if lang in ["shell"]:
         return "sh"
     if lang in ["ps1", "pwsh", "powershell"]:
+        powershell_command = get_powershell_command()
         return powershell_command
 
     raise NotImplementedError(f"{lang} not recognized in code execution")
