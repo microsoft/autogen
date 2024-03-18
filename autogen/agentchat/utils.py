@@ -80,9 +80,7 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
     return total_usage_summary, actual_usage_summary
 
 
-def parse_tags_from_content(
-    tag: str, content: Union[str, List[Dict[str, Any]]]
-) -> List[Dict[str, Union[str, Dict[str, str]]]]:
+def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Dict[str, str]]]:
     """Parses HTML style tags from message contents.
 
     The parsing is done by looking for patterns in the text that match the format of HTML tags. The tag to be parsed is
@@ -123,16 +121,15 @@ def parse_tags_from_content(
 
 
 def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
-    # Improved pattern to match the entire tag and handle standalone URLs correctly
-    pattern = f"<{tag} (.*?)>"
-    tag_contents = re.findall(pattern, text, re.DOTALL)
+    pattern = re.compile(f"<{tag} (.*?)>")
 
     results = []
-    for tag_content in tag_contents:
-        # Remove any leading/trailing whitespace from the tag content
-        tag_content = tag_content.strip()
+    for match in re.finditer(pattern, text):
+        tag_content = match.group(1).strip()
+        print(tag_content)
         content = _parse_attributes_from_tags(tag_content)
-        results.append({"tag": tag, "content": content})
+
+        results.append({"tag": tag, "content": content, "start": match.start(), "end": match.end()})
     return results
 
 
