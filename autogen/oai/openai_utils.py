@@ -8,16 +8,6 @@ from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
 
-try:
-    from openai import OpenAI
-    from openai.types.beta.assistant import Assistant
-
-    ERROR = None
-except ImportError:
-    ERROR = ImportError("Please install openai>=1 to use autogen.OpenAIWrapper.")
-    OpenAI = object
-    Assistant = object
-
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
@@ -75,7 +65,7 @@ def get_key(config: Dict[str, Any]) -> str:
     return json.dumps(config, sort_keys=True)
 
 
-def is_valid_api_key(api_key: str):
+def is_valid_api_key(api_key: str) -> bool:
     """Determine if input is valid OpenAI API key.
 
     Args:
@@ -89,8 +79,11 @@ def is_valid_api_key(api_key: str):
 
 
 def get_config_list(
-    api_keys: List, base_urls: Optional[List] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
-) -> List[Dict]:
+    api_keys: List[str],
+    base_urls: Optional[List[str]] = None,
+    api_type: Optional[str] = None,
+    api_version: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """Get a list of configs for OpenAI API client.
 
     Args:
@@ -143,7 +136,7 @@ def config_list_openai_aoai(
     openai_api_base_file: Optional[str] = "base_openai.txt",
     aoai_api_base_file: Optional[str] = "base_aoai.txt",
     exclude: Optional[str] = None,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """Get a list of configs for OpenAI API client (including Azure or local model deployments that support OpenAI's chat completion API).
 
     This function constructs configurations by reading API keys and base URLs from environment variables or text files.
@@ -250,8 +243,8 @@ def config_list_openai_aoai(
         else []
     )
     # process openai base urls
-    base_urls = os.environ.get("OPENAI_API_BASE", None)
-    base_urls = base_urls if base_urls is None else base_urls.split("\n")
+    base_urls_env_var = os.environ.get("OPENAI_API_BASE", None)
+    base_urls = base_urls_env_var if base_urls_env_var is None else base_urls_env_var.split("\n")
     openai_config = (
         get_config_list(
             # Assuming OpenAI API_KEY in os.environ["OPENAI_API_KEY"]
@@ -271,8 +264,8 @@ def config_list_from_models(
     aoai_api_key_file: Optional[str] = "key_aoai.txt",
     aoai_api_base_file: Optional[str] = "base_aoai.txt",
     exclude: Optional[str] = None,
-    model_list: Optional[list] = None,
-) -> List[Dict]:
+    model_list: Optional[List[str]] = None,
+) -> List[Dict[str, Any]]:
     """
     Get a list of configs for API calls with models specified in the model list.
 
@@ -338,7 +331,7 @@ def config_list_gpt4_gpt35(
     aoai_api_key_file: Optional[str] = "key_aoai.txt",
     aoai_api_base_file: Optional[str] = "base_aoai.txt",
     exclude: Optional[str] = None,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """Get a list of configs for 'gpt-4' followed by 'gpt-3.5-turbo' API calls.
 
     Args:
@@ -361,7 +354,10 @@ def config_list_gpt4_gpt35(
     )
 
 
-def filter_config(config_list, filter_dict):
+def filter_config(
+    config_list: List[Dict[str, Any]],
+    filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]],
+) -> List[Dict[str, Any]]:
     """
     This function filters `config_list` by checking each configuration dictionary against the
     criteria specified in `filter_dict`. A configuration dictionary is retained if for every
@@ -426,7 +422,7 @@ def filter_config(config_list, filter_dict):
           dictionaries that do not have that key will also be considered a match.
     """
 
-    def _satisfies(config_value, acceptable_values):
+    def _satisfies(config_value: Any, acceptable_values: Any) -> bool:
         if isinstance(config_value, list):
             return bool(set(config_value) & set(acceptable_values))  # Non-empty intersection
         else:
@@ -445,7 +441,7 @@ def config_list_from_json(
     env_or_file: str,
     file_location: Optional[str] = "",
     filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]] = None,
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """
     Retrieves a list of API configurations from a JSON stored in an environment variable or a file.
 
@@ -497,7 +493,11 @@ def config_list_from_json(
     else:
         # The environment variable does not exist.
         # So, `env_or_file` is a filename. We should use the file location.
-        config_list_path = os.path.join(file_location, env_or_file)
+        if file_location is not None:
+            config_list_path = os.path.join(file_location, env_or_file)
+        else:
+            config_list_path = env_or_file
+
         with open(config_list_path) as json_file:
             config_list = json.load(json_file)
     return filter_config(config_list, filter_dict)
@@ -505,7 +505,7 @@ def config_list_from_json(
 
 def get_config(
     api_key: str, base_url: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
-) -> Dict:
+) -> Dict[str, Any]:
     """
     Constructs a configuration dictionary for a single model with the provided API configurations.
 
@@ -544,7 +544,9 @@ def get_config(
 
 
 def config_list_from_dotenv(
-    dotenv_file_path: Optional[str] = None, model_api_key_map: Optional[dict] = None, filter_dict: Optional[dict] = None
+    dotenv_file_path: Optional[str] = None,
+    model_api_key_map: Optional[Dict[str, Any]] = None,
+    filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]] = None,
 ) -> List[Dict[str, Union[str, Set[str]]]]:
     """
     Load API configurations from a specified .env file or environment variables and construct a list of configurations.
@@ -582,9 +584,10 @@ def config_list_from_dotenv(
         else:
             logging.warning(f"The specified .env file {dotenv_path} does not exist.")
     else:
-        dotenv_path = find_dotenv()
-        if not dotenv_path:
+        dotenv_path_str = find_dotenv()
+        if not dotenv_path_str:
             logging.warning("No .env file found. Loading configurations from environment variables.")
+        dotenv_path = Path(dotenv_path_str)
         load_dotenv(dotenv_path)
 
     # Ensure the model_api_key_map is not None to prevent TypeErrors during key assignment.
@@ -604,9 +607,9 @@ def config_list_from_dotenv(
     for model, config in model_api_key_map.items():
         if isinstance(config, str):
             api_key_env_var = config
-            config_dict = get_config(api_key=os.getenv(api_key_env_var))
+            config_dict = get_config(api_key=os.environ[api_key_env_var])
         elif isinstance(config, dict):
-            api_key = os.getenv(config.get("api_key_env_var", "OPENAI_API_KEY"))
+            api_key = os.environ[config.get("api_key_env_var", "OPENAI_API_KEY")]
             config_without_key_var = {k: v for k, v in config.items() if k != "api_key_env_var"}
             config_dict = get_config(api_key=api_key, **config_without_key_var)
         else:
@@ -643,15 +646,22 @@ def config_list_from_dotenv(
     return config_list
 
 
-def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
-    """
-    Return the assistants with the given name from OAI assistant API
-    """
-    if ERROR:
-        raise ERROR
-    assistants = client.beta.assistants.list()
-    candidate_assistants = []
-    for assistant in assistants.data:
-        if assistant.name == name:
-            candidate_assistants.append(assistant)
-    return candidate_assistants
+try:
+    from openai import OpenAI
+    from openai.types.beta.assistant import Assistant
+
+    def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
+        """
+        Return the assistants with the given name from OAI assistant API
+        """
+        assistants = client.beta.assistants.list()
+        candidate_assistants = []
+        for assistant in assistants.data:
+            if assistant.name == name:
+                candidate_assistants.append(assistant)
+        return candidate_assistants
+
+except ImportError:
+
+    def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
+        raise ImportError("Please install openai>=1 to use autogen.OpenAIWrapper.")
