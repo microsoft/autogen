@@ -140,7 +140,6 @@ def _parse_attributes_from_tags(tag_content: str):
     pattern = r"([^ ]+)"
     attrs = re.findall(pattern, tag_content)
     reconstructed_attrs = _reconstruct_attributes(attrs)
-    print()
 
     def _append_src_value(content, value):
         if "src" in content:
@@ -148,7 +147,6 @@ def _parse_attributes_from_tags(tag_content: str):
         else:
             content["src"] = value
 
-    print(f"Attributes reconstruction: {reconstructed_attrs}")
     content = {}
     for attr in reconstructed_attrs:
         if "=" not in attr:
@@ -156,7 +154,6 @@ def _parse_attributes_from_tags(tag_content: str):
             continue
 
         key, value = attr.split("=", 1)
-        print(f"key: {key}, value: {value}")
         if value.startswith("'") or value.startswith('"'):
             content[key] = value[1:-1]  # remove quotes
         else:
