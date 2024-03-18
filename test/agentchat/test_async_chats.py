@@ -1,15 +1,14 @@
 #!/usr/bin/env python3 -m pytest
 
-from autogen import AssistantAgent, UserProxyAgent
-from autogen import GroupChat, GroupChatManager
-import asyncio
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
-from conftest import skip_openai
+import sys
+import os
 import autogen
-from typing import Literal
-from typing_extensions import Annotated
-from autogen import initiate_chats
+from autogen import AssistantAgent, UserProxyAgent
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
@@ -31,6 +30,7 @@ async def test_async_chats():
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
+        system_message="You are a knowledgeable AI Assistant.",
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
@@ -60,7 +60,7 @@ async def test_async_chats():
     )
 
     def my_summary_method(recipient, sender, summary_args):
-        return recipient.chat_messages[sender][0].get("content", "")
+        return recipient.chat_messages[sender][-1].get("content", "")
 
     chat_res = await user.a_initiate_chats(
         [
@@ -78,6 +78,7 @@ async def test_async_chats():
                 "message": financial_tasks[1],
                 "silent": True,
                 "summary_method": "reflection_with_llm",
+                "max_turns": 3,
             },
             {
                 "chat_id": 3,
