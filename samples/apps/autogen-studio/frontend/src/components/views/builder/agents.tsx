@@ -406,7 +406,6 @@ const AgentsView = ({}: any) => {
           {agents && agents.length > 0 && (
             <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
-              {/* UPGRADE OPPORTUNITY FOR ACCESSIBILITY */}
               <ul className="   flex flex-wrap gap-3">{agentRows}</ul>
             </div>
           )}
