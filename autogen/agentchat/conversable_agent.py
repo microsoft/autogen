@@ -296,18 +296,18 @@ class ConversableAgent(LLMAgent):
         from both sync and async chats. However, an async reply function will only be triggered from async
         chats (initiated with `ConversableAgent.a_initiate_chat`). If an `async` reply function is registered
         and a chat is initialized with a sync function, `ignore_async_in_sync_chat` determines the behaviour as follows:
-        - if `ignore_async_in_sync_chat` is set to `False` (default value), an exception will be raised, and
-        - if `ignore_async_in_sync_chat` is set to `True`, the reply function will be ignored.
+                if `ignore_async_in_sync_chat` is set to `False` (default value), an exception will be raised, and
+                if `ignore_async_in_sync_chat` is set to `True`, the reply function will be ignored.
 
         Args:
             trigger (Agent class, str, Agent instance, callable, or list): the trigger.
-                - If a class is provided, the reply function will be called when the sender is an instance of the class.
-                - If a string is provided, the reply function will be called when the sender's name matches the string.
-                - If an agent instance is provided, the reply function will be called when the sender is the agent instance.
-                - If a callable is provided, the reply function will be called when the callable returns True.
-                - If a list is provided, the reply function will be called when any of the triggers in the list is activated.
-                - If None is provided, the reply function will be called only when the sender is None.
-                Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
+                    If a class is provided, the reply function will be called when the sender is an instance of the class.
+                    If a string is provided, the reply function will be called when the sender's name matches the string.
+                    If an agent instance is provided, the reply function will be called when the sender is the agent instance.
+                    If a callable is provided, the reply function will be called when the callable returns True.
+                    If a list is provided, the reply function will be called when any of the triggers in the list is activated.
+                    If None is provided, the reply function will be called only when the sender is None.
+                    Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
             reply_func (Callable): the reply function.
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
             position: the position of the reply function in the reply function list.
@@ -880,66 +880,71 @@ class ConversableAgent(LLMAgent):
             silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
             cache (Cache or None): the cache client to be used for this conversation. Default is None.
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
-            [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
-            If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
-            summary_method (string or callable) : a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
-                        - Supported string are "last_msg" and "reflection_with_llm":
-                            when set "last_msg", it returns the last message of the dialog as the summary.
-                            when set "reflection_with_llm", it returns a summary extracted using an llm client.
-                            `llm_config` must be set in either the recipient or sender.
-                            "reflection_with_llm" requires the llm_config to be set in either the sender or the recipient.
-                        - A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
-                        ```python
-                        def my_summary_method(
-                            sender: ConversableAgent,
-                            recipient: ConversableAgent,
-                            summary_args: dict,
-                        ):
-                            return recipient.last_message(sender)["content"]
-                        ```
+                [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
+                If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
+            summary_method (str or callable): a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
+
+            Supported strings are "last_msg" and "reflection_with_llm":
+                - when set to "last_msg", it returns the last message of the dialog as the summary.
+                - when set to "reflection_with_llm", it returns a summary extracted using an llm client.
+                    `llm_config` must be set in either the recipient or sender.
+
+            A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g.,
+
+            ```python
+            def my_summary_method(
+                sender: ConversableAgent,
+                recipient: ConversableAgent,
+                summary_args: dict,
+            ):
+                return recipient.last_message(sender)["content"]
+            ```
             summary_args (dict): a dictionary of arguments to be passed to the summary_method.
-                    E.g., a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflext
-                    on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                    Default is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+                One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
+                on the conversation and extract a summary when summary_method is "reflection_with_llm".
+                The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
             message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
-                - If a string or a dict is provided, it will be used as the initial message. `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
-                    If dict, it may contain the following reserved fields (either content or function_call need to be provided).
-                    1. "content": content of the message, can be None.
-                    2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
-                    3. "tool_calls": a list of dictionaries containing the function name and arguments.
-                    4. "role": role of the message, can be "assistant", "user", "function".
-                        This field is only needed to distinguish between "function" or "assistant"/"user".
-                    5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
-                    6. "context" (dict): the context of the message, which will be passed to
-                        [OpenAIWrapper.create](../oai/client#create).
-                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict. If the returned value is a dict, it should contain the following reserved fields:
+                - If a string or a dict is provided, it will be used as the initial message.        `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
+                    If dict, it may contain the following reserved fields (either content or tool_calls need to be provided).
+
+                        1. "content": content of the message, can be None.
+                        2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
+                        3. "tool_calls": a list of dictionaries containing the function name and arguments.
+                        4. "role": role of the message, can be "assistant", "user", "function".
+                            This field is only needed to distinguish between "function" or "assistant"/"user".
+                        5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
+                        6. "context" (dict): the context of the message, which will be passed to
+                            [OpenAIWrapper.create](../oai/client#create).
+
+                - If a callable is provided, it will be called to get the initial message in the form of a string or a dict.
                     If the returned type is dict, it may contain the reserved fields mentioned above.
 
                     Example of a callable message (returning a string):
-                    ```python
-                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
-                        carryover = context.get("carryover", "")
-                        if isinstance(message, list):
-                            carryover = carryover[-1]
-                        final_msg = "Write a blogpost." + "\nContext: \n" + carryover
-                        return final_msg
-                    ```
+
+            ```python
+            def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
+                carryover = context.get("carryover", "")
+                if isinstance(message, list):
+                    carryover = carryover[-1]
+                final_msg = "Write a blogpost." + "\\nContext: \\n" + carryover
+                return final_msg
+            ```
 
                     Example of a callable message (returning a dict):
-                    ```python
-                    def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
-                        final_msg = {}
-                        carryover = context.get("carryover", "")
-                        carryover = context.get("carryover", "")
-                        if isinstance(message, list):
-                            carryover = carryover[-1]
-                        final_msg["content"] = "Write a blogpost." + "\nContext: \n" + carryover
-                        final_msg["context"] = {"prefix": "Today I feel"}
-                        return final_msg
-                    ```
+
+            ```python
+            def my_message(sender: ConversableAgent, recipient: ConversableAgent, context: dict) -> Union[str, Dict]:
+                final_msg = {}
+                carryover = context.get("carryover", "")
+                if isinstance(message, list):
+                    carryover = carryover[-1]
+                final_msg["content"] = "Write a blogpost." + "\\nContext: \\n" + carryover
+                final_msg["context"] = {"prefix": "Today I feel"}
+                return final_msg
+            ```
             **context: any context information. It has the following reserved fields:
-                "carryover": a string or a list of string to specify the carryover information to be passed to this chat.
-                    If provided, we will combine this carryover (by attaching a "context: "string and the carryover content after the message content) with the "message" content when generating the initial chat
+                - "carryover": a string or a list of string to specify the carryover information to be passed to this chat.
+                    If provided, we will combine this carryover (by attaching a "context: " string and the carryover content after the message content) with the "message" content when generating the initial chat
                     message in `generate_init_message`.
 
         Raises:
