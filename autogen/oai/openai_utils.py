@@ -504,7 +504,10 @@ def config_list_from_json(
 
 
 def get_config(
-    api_key: str, base_url: Optional[str] = None, api_type: Optional[str] = None, api_version: Optional[str] = None
+    api_key: Optional[str],
+    base_url: Optional[str] = None,
+    api_type: Optional[str] = None,
+    api_version: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Constructs a configuration dictionary for a single model with the provided API configurations.
@@ -607,9 +610,9 @@ def config_list_from_dotenv(
     for model, config in model_api_key_map.items():
         if isinstance(config, str):
             api_key_env_var = config
-            config_dict = get_config(api_key=os.environ[api_key_env_var])
+            config_dict = get_config(api_key=os.getenv(api_key_env_var))
         elif isinstance(config, dict):
-            api_key = os.environ[config.get("api_key_env_var", "OPENAI_API_KEY")]
+            api_key = os.getenv(config.get("api_key_env_var", "OPENAI_API_KEY"))
             config_without_key_var = {k: v for k, v in config.items() if k != "api_key_env_var"}
             config_dict = get_config(api_key=api_key, **config_without_key_var)
         else:
