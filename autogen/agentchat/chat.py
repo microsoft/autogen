@@ -131,8 +131,8 @@ def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
         flush=True,
     )
     if chat_info.get("verbose", False):
-        print(colored("Message:\n", "blue"), print_message, flush=True)
-        print(colored("Carryover:\n", "blue"), print_carryover, flush=True)
+        print(colored("Message:\n" + print_message, "blue"), flush=True)
+        print(colored("Carryover:\n" + print_carryover, "blue"), flush=True)
     print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
