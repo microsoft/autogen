@@ -17,7 +17,7 @@ import os
 from typing import Dict, Optional, Tuple, Union
 from dataclasses import dataclass
 from multiprocessing import current_process
-from termcolor import colored
+from autogen.formatting_utils import colored
 
 try:
     import yaml
