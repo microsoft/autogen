@@ -10,7 +10,6 @@ import inspect
 from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 import autogen
@@ -19,16 +18,12 @@ from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
+REASON = "requested to skip openai tests"
 
 
 @pytest.fixture
@@ -921,8 +916,8 @@ def test_register_functions():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=REASON,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
@@ -998,8 +993,8 @@ def test_function_registration_e2e_sync() -> None:
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=REASON,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
@@ -1075,7 +1070,7 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="5")
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_max_turn():
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
@@ -1097,7 +1092,7 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_message_func():
     import random
 
@@ -1153,7 +1148,7 @@ def test_message_func():
     print(chat_res_play.summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_summary():
     import random
 
