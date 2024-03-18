@@ -4,7 +4,7 @@ exclude: 'dotnet'
 ci:
   autofix_prs: true
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
-  autoupdate_schedule: 'quarterly'
+  autoupdate_schedule: 'monthly'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
