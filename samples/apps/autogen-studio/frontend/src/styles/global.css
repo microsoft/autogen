@@ -292,6 +292,10 @@ iiz__zoom-img {
 .ant-btn {
   @apply text-primary !important;
 }
+:where(.ant-btn).ant-btn-compact-item.ant-btn-primary:not([disabled])
+  + .ant-btn-compact-item.ant-btn-primary:not([disabled]):before {
+  @apply bg-secondary !important;
+}
 .ant-btn-primary {
   @apply bg-accent text-white !important;
 }
@@ -330,7 +334,9 @@ iiz__zoom-img {
   margin: 0px !important;
 }
 
-.monaco-editor {
+.monaco-editor,
+.monaco-scrollable-element,
+.overflow-guard {
   @apply rounded !important;
 }
 
