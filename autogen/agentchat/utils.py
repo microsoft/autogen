@@ -126,7 +126,6 @@ def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
     results = []
     for match in re.finditer(pattern, text):
         tag_content = match.group(1).strip()
-        print(tag_content)
         content = _parse_attributes_from_tags(tag_content)
 
         results.append({"tag": tag, "content": content, "start": match.start(), "end": match.end()})
@@ -159,50 +158,28 @@ def _parse_attributes_from_tags(tag_content: str):
     return content
 
 
-def _reconstruct_attributes(attributes: List[str]) -> List[str]:
-    """Reconstructs attributes from a list of strings where some attributes may be split across multiple elements.
+def _reconstruct_attributes(attrs: List[str]) -> List[str]:
+    """Reconstructs attributes from a list of strings where some attributes may be split across multiple elements."""
 
-    This function iterates through a list of attribute strings, identifying and reconstructing attributes that
-    are split across multiple elements due to the presence of spaces within quoted values. Attributes that
-    are not split are appended directly to the result list. This reconstruction is necessary to accurately
-    parse and utilize attribute data that was incorrectly split during an initial parsing process.
-    """
-    reconstructed_content = []
-
-    def reconstruct_attribute(attrs: List[str], start_index: int) -> Tuple[int, str]:
-        """Reconstructs an attribute that is split across multiple elements."""
-        # Directly use the split part of the first attribute as the key.
-        key = attrs[start_index].split("=", 1)[0]
-        # Initialize value with the first part.
-        value = attrs[start_index].split("=", 1)[1]
-        i = start_index + 1
-        # Loop until you find the attribute part that properly closes the quote.
-        while i < len(attrs) and not (attrs[i].endswith("'") or attrs[i].endswith('"')):
-            value += " " + attrs[i]
-            i += 1
-        if i < len(attrs):  # Add the last part that closes the quote
-            value += " " + attrs[i]
-        # Return the new index and the reconstructed attribute.
-        return i, f"{key}={value}"
-
-    i = 0
-    while i < len(attributes):
-        attr = attributes[i]
+    def is_attr(attr: str) -> bool:
         if "=" in attr:
-            # Check if the attribute value starts but doesn't properly end with a quote.
             key, value = attr.split("=", 1)
-            if (value.startswith("'") and not value.endswith("'")) or (
-                value.startswith('"') and not value.endswith('"')
-            ):
-                # If the attribute is split, reconstruct it.
-                i, reconstructed_attr = reconstruct_attribute(attributes, i)
-                reconstructed_content.append(reconstructed_attr)
-            else:
-                # If the attribute doesn't need reconstruction, add it directly.
-                reconstructed_content.append(attr)
+            if value.startswith("'") or value.startswith('"'):
+                return True
+        return False
+
+    reconstructed = []
+    found_attr = False
+    for attr in attrs:
+        if is_attr(attr):
+            reconstructed.append(attr)
+            found_attr = True
         else:
-            # For attributes without "=", add them directly.
-            reconstructed_content.append(attr)
-        # Ensure to increment `i` correctly to avoid infinite loops.
-        i += 1
-    return reconstructed_content
+            if found_attr:
+                reconstructed[-1] += f" {attr}"
+                found_attr = True
+            elif reconstructed:
+                reconstructed[-1] += f" {attr}"
+            else:
+                reconstructed.append(attr)
+    return reconstructed
