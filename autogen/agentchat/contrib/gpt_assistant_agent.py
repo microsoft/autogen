@@ -28,6 +28,7 @@ class GPTAssistantAgent(ConversableAgent):
         name="GPT Assistant",
         instructions: Optional[str] = None,
         llm_config: Optional[Union[Dict, bool]] = None,
+        assistant_config: Optional[Dict] = None,
         overwrite_instructions: bool = False,
         overwrite_tools: bool = False,
         **kwargs,
@@ -43,8 +44,9 @@ class GPTAssistantAgent(ConversableAgent):
             AssistantAgent.DEFAULT_SYSTEM_MESSAGE. If the assistant exists, the
             system message will be set to the existing assistant instructions.
             llm_config (dict or False): llm inference configuration.
-                - assistant_id: ID of the assistant to use. If None, a new assistant will be created.
                 - model: Model to use for the assistant (gpt-4-1106-preview, gpt-3.5-turbo-1106).
+            assistant_config
+                - assistant_id: ID of the assistant to use. If None, a new assistant will be created.
                 - check_every_ms: check thread run status interval
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
@@ -57,23 +59,19 @@ class GPTAssistantAgent(ConversableAgent):
         """
 
         self._verbose = kwargs.pop("verbose", False)
-        super().__init__(
-            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=llm_config, **kwargs
-        )
+        openai_client_cfg, openai_assistant_cfg = self._process_assistant_config(llm_config, assistant_config)
 
-        if llm_config is False:
-            raise ValueError("llm_config=False is not supported for GPTAssistantAgent.")
-        # Use AutooGen OpenAIWrapper to create a client
-        openai_client_cfg = copy.deepcopy(llm_config)
-        # Use the class variable
-        model_name = GPTAssistantAgent.DEFAULT_MODEL_NAME
+        super().__init__(
+            name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
+        )
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
+        model_name = self.DEFAULT_MODEL_NAME
         if openai_client_cfg.get("config_list") is not None and len(openai_client_cfg["config_list"]) > 0:
-            model_name = openai_client_cfg["config_list"][0].pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
+            model_name = openai_client_cfg["config_list"][0].pop("model", self.DEFAULT_MODEL_NAME)
         else:
-            model_name = openai_client_cfg.pop("model", GPTAssistantAgent.DEFAULT_MODEL_NAME)
+            model_name = openai_client_cfg.pop("model", self.DEFAULT_MODEL_NAME)
 
         logger.warning("OpenAI client config of GPTAssistantAgent(%s) - model: %s", name, model_name)
 
@@ -82,14 +80,17 @@ class GPTAssistantAgent(ConversableAgent):
             logger.warning("GPT Assistant only supports one OpenAI client. Using the first client in the list.")
 
         self._openai_client = oai_wrapper._clients[0]._oai_client
-        openai_assistant_id = llm_config.get("assistant_id", None)
+        openai_assistant_id = openai_assistant_cfg.get("assistant_id", None)
         if openai_assistant_id is None:
             # try to find assistant by name first
             candidate_assistants = retrieve_assistants_by_name(self._openai_client, name)
             if len(candidate_assistants) > 0:
                 # Filter out candidates with the same name but different instructions, file IDs, and function names.
                 candidate_assistants = self.find_matching_assistant(
-                    candidate_assistants, instructions, llm_config.get("tools", []), llm_config.get("file_ids", [])
+                    candidate_assistants,
+                    instructions,
+                    openai_assistant_cfg.get("tools", []),
+                    openai_assistant_cfg.get("file_ids", []),
                 )
 
             if len(candidate_assistants) == 0:
@@ -103,9 +104,9 @@ class GPTAssistantAgent(ConversableAgent):
                 self._openai_assistant = self._openai_client.beta.assistants.create(
                     name=name,
                     instructions=instructions,
-                    tools=llm_config.get("tools", []),
+                    tools=openai_assistant_cfg.get("tools", []),
                     model=model_name,
-                    file_ids=llm_config.get("file_ids", []),
+                    file_ids=openai_assistant_cfg.get("file_ids", []),
                 )
             else:
                 logger.warning(
@@ -135,8 +136,8 @@ class GPTAssistantAgent(ConversableAgent):
                     "overwrite_instructions is False. Provided instructions will be used without permanently modifying the assistant in the API."
                 )
 
-            # Check if tools are specified in llm_config
-            specified_tools = llm_config.get("tools", None)
+            # Check if tools are specified in assistant_config
+            specified_tools = openai_assistant_cfg.get("tools", None)
 
             if specified_tools is None:
                 # Check if the current assistant has tools defined
@@ -155,7 +156,7 @@ class GPTAssistantAgent(ConversableAgent):
                 )
                 self._openai_assistant = self._openai_client.beta.assistants.update(
                     assistant_id=openai_assistant_id,
-                    tools=llm_config.get("tools", []),
+                    tools=openai_assistant_cfg.get("tools", []),
                 )
             else:
                 # Tools are specified but overwrite_tools is False; do not update the assistant's tools
@@ -414,6 +415,10 @@ class GPTAssistantAgent(ConversableAgent):
     def openai_client(self):
         return self._openai_client
 
+    @property
+    def openai_assistant(self):
+        return self._openai_assistant
+
     def get_assistant_instructions(self):
         """Return the assistant instructions from OAI assistant API"""
         return self._openai_assistant.instructions
@@ -472,3 +477,31 @@ class GPTAssistantAgent(ConversableAgent):
             matching_assistants.append(assistant)
 
         return matching_assistants
+
+    def _process_assistant_config(self, llm_config, assistant_config):
+        """
+        Process the llm_config and assistant_config to extract the model name and assistant related configurations.
+        """
+
+        if llm_config is False:
+            raise ValueError("llm_config=False is not supported for GPTAssistantAgent.")
+
+        if llm_config is None:
+            openai_client_cfg = {}
+        else:
+            openai_client_cfg = copy.deepcopy(llm_config)
+
+        if assistant_config is None:
+            openai_assistant_cfg = {}
+        else:
+            openai_assistant_cfg = copy.deepcopy(assistant_config)
+
+        # Move the assistant related configurations to assistant_config
+        # It's important to keep forward compatibility
+        assistant_config_items = ["assistant_id", "tools", "file_ids", "check_every_ms"]
+        for item in assistant_config_items:
+            if openai_client_cfg.get(item) is not None and openai_assistant_cfg.get(item) is None:
+                openai_assistant_cfg[item] = openai_client_cfg[item]
+            openai_client_cfg.pop(item, None)
+
+        return openai_client_cfg, openai_assistant_cfg
