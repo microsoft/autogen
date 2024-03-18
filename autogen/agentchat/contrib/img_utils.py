@@ -1,13 +1,14 @@
 import base64
 import copy
-import mimetypes
 import os
 import re
 from io import BytesIO
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import requests
 from PIL import Image
+
+from autogen.agentchat import utils
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
