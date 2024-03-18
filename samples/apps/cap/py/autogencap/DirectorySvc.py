@@ -3,10 +3,19 @@ from autogencap.Config import xpub_url, xsub_url
 from autogencap.DebugLog import Debug, Info, Error
 from autogencap.ActorConnector import ActorConnector
 from autogencap.Actor import Actor
-from autogencap.proto.CAP_pb2 import ActorRegistration, ActorInfo, ActorLookup, ActorLookupResponse, Ping, Pong
+from autogencap.proto.CAP_pb2 import (
+    ActorRegistration,
+    ActorInfo,
+    ActorLookup,
+    ActorLookupResponse,
+    Ping,
+    Pong,
+    ActorInfoCollection,
+)
 import zmq
 import threading
 import time
+import re
 
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful
@@ -52,18 +61,27 @@ class DirectoryActor(Actor):
         actor_lookup = ActorLookup()
         actor_lookup.ParseFromString(msg)
         Debug("DirectorySvc", f"Actor lookup: {actor_lookup.actor_info.name}")
-        actor: ActorInfo = None
-        if actor_lookup.actor_info.name in self._registered_actors:
-            Info("DirectorySvc", f"Actor found: {actor_lookup.actor_info.name}")
-            actor = self._registered_actors[actor_lookup.actor_info.name]
+        actor_lookup_resp = ActorLookupResponse()
+        actor_lookup_resp.found = False
+        try:
+            pattern = re.compile(actor_lookup.actor_info.name)
+        except re.error:
+            Error("DirectorySvc", f"Invalid regex pattern: {actor_lookup.actor_info.name}")
+        else:
+            found_actor_list = [
+                self._registered_actors[registered_actor]
+                for registered_actor in self._registered_actors
+                if pattern.match(registered_actor)
+            ]
+
+        if found_actor_list:
+            for actor in found_actor_list:
+                Info("DirectorySvc", f"Actor found: {actor}")
+            actor_lookup_resp.found = True
+            actor_lookup_resp.actor.info_coll.extend(found_actor_list)
         else:
             Error("DirectorySvc", f"Actor not found: {actor_lookup.actor_info.name}")
-        actor_lookup_resp = ActorLookupResponse()
-        if actor is not None:
-            actor_lookup_resp.actor.info_coll.extend([actor])
-            actor_lookup_resp.found = True
-        else:
-            actor_lookup_resp.found = False
+
         sender_connection = ActorConnector(self._context, sender_topic)
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
@@ -110,16 +128,27 @@ class DirectorySvc:
         actor_info = ActorInfo(name=actor_name)
         self.register_actor(actor_info)
 
-    def lookup_actor_by_name(self, actor_name: str) -> ActorInfo:
-        actor_info = ActorInfo(name=actor_name)
+    def _lookup_actors_by_name(self, name_regex: str):
+        actor_info = ActorInfo(name=name_regex)
         actor_lookup = ActorLookup(actor_info=actor_info)
         serialized_msg = actor_lookup.SerializeToString()
         _, _, _, resp = self._directory_connector.binary_request(ActorLookup.__name__, serialized_msg)
         actor_lookup_resp = ActorLookupResponse()
         actor_lookup_resp.ParseFromString(resp)
+        return actor_lookup_resp
+
+    def lookup_actor_by_name(self, actor_name: str) -> ActorInfo:
+        actor_lookup_resp = self._lookup_actors_by_name(actor_name)
         if actor_lookup_resp.found:
             if len(actor_lookup_resp.actor.info_coll) > 0:
                 return actor_lookup_resp.actor.info_coll[0]
+        return None
+
+    def lookup_actor_info_by_name(self, actor_name: str) -> ActorInfoCollection:
+        actor_lookup_resp = self._lookup_actors_by_name(actor_name)
+        if actor_lookup_resp.found:
+            if len(actor_lookup_resp.actor.info_coll) > 0:
+                return actor_lookup_resp.actor
         return None
 
 
