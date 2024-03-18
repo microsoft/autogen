@@ -27,6 +27,13 @@ TAG_PARSING_TESTS = [
         "expected": [{"tag": "audio", "content": {"text": "Hello I'm a robot", "prompt": "whisper"}}],
     },
     {
+        "message": "Can you describe what's in this image <img http://example.com/image.png> and this image <img http://hello.com/image=.png>?",
+        "expected": [
+            {"tag": "img", "content": {"src": "http://example.com/image.png"}},
+            {"tag": "img", "content": {"src": "http://hello.com/image=.png"}},
+        ],
+    },
+    {
         "message": "Text with no tags",
         "expected": [],
     },
