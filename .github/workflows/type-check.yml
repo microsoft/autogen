@@ -22,4 +22,6 @@ jobs:
       - run: |
           mypy --install-types --non-interactive \
             autogen/logger \
-            autogen/exception_utils.py
+            autogen/exception_utils.py \
+            autogen/io \
+            test/io
