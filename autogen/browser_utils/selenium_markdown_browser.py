@@ -34,6 +34,8 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
 
         chrome_options = Options()
         chrome_options.add_argument("--headless")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--no-sandbox")
         self._webdriver = webdriver.Chrome(options=chrome_options)
         self._webdriver.implicitly_wait(99)
         self._webdriver.get(self.start_page)
