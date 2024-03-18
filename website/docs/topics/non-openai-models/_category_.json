@@ -1,5 +1,8 @@
 {
     "position": 5,
     "label": "Using Non-OpenAI Models",
-    "collapsible": true
+    "collapsible": true,
+    {
+        "type": "generated-index"
+    }
 }
