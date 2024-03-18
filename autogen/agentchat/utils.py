@@ -90,6 +90,11 @@ def parse_tags_from_content(
     content of a tag is everything that is inside the tag, between the opening and closing angle brackets. The content
     can be a single string or a set of attribute-value pairs.
 
+    Examples:
+        <img http://example.com/image.png> -> [{"tag": "img", "content": {"src": "http://example.com/image.png"}}]
+        <audio text="Hello I'm a robot" prompt="whisper"> ->
+                [{"tag": "audio", "content": {"text": "Hello I'm a robot", "prompt": "whisper"}}]
+
     Args:
         tag (str): The HTML style tag to be parsed.
         content (Union[str, List[Dict[str, Any]]]): The message content to parse. Can be a string or a list of content
@@ -118,29 +123,92 @@ def parse_tags_from_content(
 
 
 def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
+    # Improved pattern to match the entire tag and handle standalone URLs correctly
     pattern = f"<{tag} (.*?)>"
-    tag_contents = re.findall(pattern, text)
+    tag_contents = re.findall(pattern, text, re.DOTALL)
 
     results = []
     for tag_content in tag_contents:
+        # Remove any leading/trailing whitespace from the tag content
+        tag_content = tag_content.strip()
         content = _parse_attributes_from_tags(tag_content)
         results.append({"tag": tag, "content": content})
-
     return results
 
 
 def _parse_attributes_from_tags(tag_content: str):
-    # Find all attribute-value pairs and standalone words in the tag content
-    attributes = re.findall(r'[^=\s]*="[^"]*"|[^=\s]*=\'[^\']*\'|\S+', tag_content)
-    content = {}
-    src_found = False
-    for attribute in attributes:
-        if "=" in attribute:
-            key, value = attribute.split("=", 1)
-            content[key] = value.strip("'\"")
+    pattern = r"([^ ]+)"
+    attrs = re.findall(pattern, tag_content)
+    reconstructed_attrs = _reconstruct_attributes(attrs)
+    print()
+
+    def _append_src_value(content, value):
+        if "src" in content:
+            content["src"] += f" {value}"
         else:
-            # If the attribute does not include an equals sign, assume it's the src
-            if not src_found:
-                content["src"] = attribute
-                src_found = True
+            content["src"] = value
+
+    print(f"Attributes reconstruction: {reconstructed_attrs}")
+    content = {}
+    for attr in reconstructed_attrs:
+        if "=" not in attr:
+            _append_src_value(content, attr)
+            continue
+
+        key, value = attr.split("=", 1)
+        print(f"key: {key}, value: {value}")
+        if value.startswith("'") or value.startswith('"'):
+            content[key] = value[1:-1]  # remove quotes
+        else:
+            _append_src_value(content, attr)
+
     return content
+
+
+def _reconstruct_attributes(attributes: List[str]) -> List[str]:
+    """Reconstructs attributes from a list of strings where some attributes may be split across multiple elements.
+
+    This function iterates through a list of attribute strings, identifying and reconstructing attributes that
+    are split across multiple elements due to the presence of spaces within quoted values. Attributes that
+    are not split are appended directly to the result list. This reconstruction is necessary to accurately
+    parse and utilize attribute data that was incorrectly split during an initial parsing process.
+    """
+    reconstructed_content = []
+
+    def reconstruct_attribute(attrs: List[str], start_index: int) -> Tuple[int, str]:
+        """Reconstructs an attribute that is split across multiple elements."""
+        # Directly use the split part of the first attribute as the key.
+        key = attrs[start_index].split("=", 1)[0]
+        # Initialize value with the first part.
+        value = attrs[start_index].split("=", 1)[1]
+        i = start_index + 1
+        # Loop until you find the attribute part that properly closes the quote.
+        while i < len(attrs) and not (attrs[i].endswith("'") or attrs[i].endswith('"')):
+            value += " " + attrs[i]
+            i += 1
+        if i < len(attrs):  # Add the last part that closes the quote
+            value += " " + attrs[i]
+        # Return the new index and the reconstructed attribute.
+        return i, f"{key}={value}"
+
+    i = 0
+    while i < len(attributes):
+        attr = attributes[i]
+        if "=" in attr:
+            # Check if the attribute value starts but doesn't properly end with a quote.
+            key, value = attr.split("=", 1)
+            if (value.startswith("'") and not value.endswith("'")) or (
+                value.startswith('"') and not value.endswith('"')
+            ):
+                # If the attribute is split, reconstruct it.
+                i, reconstructed_attr = reconstruct_attribute(attributes, i)
+                reconstructed_content.append(reconstructed_attr)
+            else:
+                # If the attribute doesn't need reconstruction, add it directly.
+                reconstructed_content.append(attr)
+        else:
+            # For attributes without "=", add them directly.
+            reconstructed_content.append(attr)
+        # Ensure to increment `i` correctly to avoid infinite loops.
+        i += 1
+    return reconstructed_content
