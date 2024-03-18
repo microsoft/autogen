@@ -72,4 +72,4 @@ def colored(
             text=text, color=color, on_color=on_color, attrs=attrs, no_color=no_color, force_color=force_color
         )
     except ImportError:
-        return text
+        return str(text)
