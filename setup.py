@@ -64,6 +64,10 @@ setuptools.setup(
             "jupyter-client>=8.6.0",
             "ipykernel>=6.29.0",
         ],
+        "types": [
+            "mypy==1.9.0",
+            ".[jupyter-executor]",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
