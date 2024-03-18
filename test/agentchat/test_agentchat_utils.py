@@ -27,9 +27,9 @@ TAG_PARSING_TESTS = [
         "expected": [{"tag": "audio", "content": {"text": "Hello I'm a robot", "prompt": "whisper"}}],
     },
     {
-        "message": "Can you describe what's in this image <img http://example.com/image.png> and this image <img http://hello.com/image=.png>?",
+        "message": "Can you describe what's in this image <img http://example.com/image.png width='100'> and this image <img http://hello.com/image=.png>?",
         "expected": [
-            {"tag": "img", "content": {"src": "http://example.com/image.png"}},
+            {"tag": "img", "content": {"src": "http://example.com/image.png", "width": "100"}},
             {"tag": "img", "content": {"src": "http://hello.com/image=.png"}},
         ],
     },
@@ -38,6 +38,13 @@ TAG_PARSING_TESTS = [
         "expected": [],
     },
 ]
+
+
+def _delete_unused_keys(d: Dict) -> None:
+    if "start" in d:
+        del d["start"]
+    if "end" in d:
+        del d["end"]
 
 
 @pytest.mark.parametrize("test_case", TAG_PARSING_TESTS)
@@ -49,13 +56,21 @@ def test_tag_parsing(test_case: Dict[str, Union[str, List[Dict[str, Union[str, D
 
     result = []
     for tag in tags:
-        result.extend(agentchat.utils.parse_tags_from_content(tag, message))
+        parsed_tags = agentchat.utils.parse_tags_from_content(tag, message)
+        for item in parsed_tags:
+            _delete_unused_keys(item)
+
+        result.extend(parsed_tags)
     assert result == expected
 
     result = []
     for tag in tags:
         content = [{"type": "text", "text": message}]
-        result.extend(agentchat.utils.parse_tags_from_content(tag, content))
+        parsed_tags = agentchat.utils.parse_tags_from_content(tag, content)
+        for item in parsed_tags:
+            _delete_unused_keys(item)
+
+        result.extend(parsed_tags)
     assert result == expected
 
 
