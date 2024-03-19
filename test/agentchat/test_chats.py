@@ -14,9 +14,13 @@ from autogen import initiate_chats
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
-config_list = autogen.config_list_from_json(
-    OAI_CONFIG_LIST,
-    file_location=KEY_LOC,
+config_list = (
+    []
+    if skip_openai
+    else autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
 )
 
 
