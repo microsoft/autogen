@@ -2,11 +2,7 @@ import time
 from typing import List
 from AppAgents import GreeterAgent, FidelityAgent
 from autogencap.LocalActorNetwork import LocalActorNetwork
-
-
-class ActorInfo:
-    pass
-
+from autogencap.proto.CAP_pb2 import ActorInfo
 
 def list_agents():
     """
