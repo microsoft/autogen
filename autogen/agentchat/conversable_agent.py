@@ -15,6 +15,7 @@ from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
+from ..formatting_utils import colored
 
 from ..oai.client import OpenAIWrapper, ModelClient
 from ..runtime_logging import logging_enabled, log_new_agent
@@ -35,14 +36,6 @@ from .chat import ChatResult, initiate_chats, a_initiate_chats
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from .agent import Agent, LLMAgent
 from .._pydantic import model_dump
-
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
 
 __all__ = ("ConversableAgent",)
 
