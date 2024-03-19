@@ -57,16 +57,16 @@ jobs:
       - name: Test with pytest skipping openai tests
         if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
-          pytest test --skip-openai
+          pytest test --skip-openai --durations=10 --durations-min=1.0
       - name: Test with pytest skipping openai and docker tests
         if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
         run: |
-          pytest test --skip-openai --skip-docker
+          pytest test --skip-openai --skip-docker --durations=10 --durations-min=1.0
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
           pip install -e .[test,redis]
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
