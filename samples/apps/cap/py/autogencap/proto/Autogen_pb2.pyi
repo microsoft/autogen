@@ -15,6 +15,7 @@ class DataMap(_message.Message):
         key: str
         value: str
         def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+
     DATA_FIELD_NUMBER: _ClassVar[int]
     data: _containers.ScalarMap[str, str]
     def __init__(self, data: _Optional[_Mapping[str, str]] = ...) -> None: ...
