@@ -6,7 +6,7 @@ import pickle
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from autogen.agentchat.conversable_agent import colored
+from ....formatting_utils import colored
 
 
 class Teachability(AgentCapability):
