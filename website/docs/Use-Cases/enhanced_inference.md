@@ -165,6 +165,10 @@ Total cost: 0.00027
 
 Note: if using a custom model client (see [here](/blog/2024/01/26/Custom-Models) for details) and if usage summary is not implemented, then the usage summary will not be available.
 
+## Caching
+
+Moved to [here](/docs/topics/llm-caching).
+
 ## Error handling
 
 ### Runtime error
