@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from ..agentchat.agent import LLMAgent
 
@@ -86,3 +86,14 @@ class CommandLineCodeResult(CodeResult):
         default=None,
         description="The file that the executed code block was saved to.",
     )
+    max_output_length: Optional[int] = Field(
+        default=10,
+        description="The maximum number of characters in the output.",
+    )
+
+    @validator('output', always=True)
+    def set_output(cls, v, values):
+        max_output_length = values.get('max_output_length')
+        if max_output_length is not None:
+            return v[-max_output_length:]
+        return v

@@ -161,7 +161,8 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 break
 
         code_file = str(file_names[0]) if len(file_names) > 0 else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
+        
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file, max_output_length=2000)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
