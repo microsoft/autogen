@@ -1,11 +1,7 @@
 using Elsa.Extensions;
-using Elsa.Workflows.Core;
-using Elsa.Workflows.Core.Attributes;
-using Elsa.Workflows.Core.Models;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Orchestration;
 
 using System;
 using System.Text;
@@ -14,7 +10,15 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AI.DevTeam.Skills;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
+using Elsa.Workflows;
+using Elsa.Workflows.Attributes;
+using Elsa.Workflows.UIHints;
+using Elsa.Workflows.Models;
+using Azure.AI.OpenAI;
+using Azure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 
 namespace Elsa.SemanticKernel;
@@ -88,23 +92,14 @@ public class SemanticKernelSkill : CodeActivity<string>
             // load the skill
             var promptTemplate = Skills.ForSkillAndFunction(skillName, functionName);
 
-            var function = kernel.CreateSemanticFunction(promptTemplate, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
+            var function = kernel.CreateFunctionFromPrompt(promptTemplate, new OpenAIPromptExecutionSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
             // set the context (our prompt)
-            var contextVars = new ContextVariables();
-            contextVars.Set("input", prompt);
+            var arguments =  new KernelArguments{
+                ["input"] = prompt
+            };
 
-            /*         var interestingMemories = kernel.Memory.SearchAsync("ImportedMemories", prompt, 2);
-                    var wafContext = "Consider the following contextual snippets:";
-                    await foreach (var memory in interestingMemories)
-                    {
-                        wafContext += $"\n {memory.Metadata.Text}";
-                    } */
-
-
-            //context.Set("wafContext", wafContext);
-
-            var answer = await kernel.RunAsync(contextVars, function);
+            var answer = await kernel.InvokeAsync(function, arguments);
             workflowContext.SetResult(answer);
         }
     }
@@ -112,12 +107,11 @@ public class SemanticKernelSkill : CodeActivity<string>
     /// <summary>
     /// Load the skills into the kernel
     /// </summary>
-    private string ListSkillsInKernel(IKernel kernel)
+    private string ListSkillsInKernel(Kernel kernel)
     {
 
         var theSkills = LoadSkillsFromAssemblyAsync("skills", kernel);
-        SKContext context = kernel.CreateNewContext();
-        var functionsAvailable = context.Functions.GetFunctionViews();
+        var functionsAvailable = kernel.Plugins.GetFunctionsMetadata();
 
         var list = new StringBuilder();
         foreach (var function in functionsAvailable)
@@ -142,7 +136,7 @@ public class SemanticKernelSkill : CodeActivity<string>
                 foreach (var p in function.Parameters)
                 {
                     var description = string.IsNullOrEmpty(p.Description) ? p.Name : p.Description;
-                    var defaultValueString = string.IsNullOrEmpty(p.DefaultValue) ? string.Empty : $" (default value: {p.DefaultValue})";
+                    var defaultValueString =  p.DefaultValue == null ? string.Empty : $" (default value: {p.DefaultValue})";
                     list.AppendLine($"Parameter \"{p.Name}\": {description} {defaultValueString}");
                 }
         }
@@ -155,34 +149,30 @@ public class SemanticKernelSkill : CodeActivity<string>
     /// Gets a semantic kernel instance
     /// </summary>
     /// <returns>Microsoft.SemanticKernel.IKernel</returns>
-    private IKernel KernelBuilder()
+    private Kernel KernelBuilder()
     {
         var kernelSettings = KernelSettings.LoadSettings();
 
-        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+        var clientOptions = new OpenAIClientOptions();
+        clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
+        var openAIClient = new OpenAIClient(new Uri(kernelSettings.Endpoint), new AzureKeyCredential(kernelSettings.ApiKey), clientOptions);
+        var builder = Kernel.CreateBuilder();
+        builder.Services.AddLogging( c=> c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
+        builder.Services.AddAzureOpenAIChatCompletion(kernelSettings.DeploymentOrModelId, openAIClient);
+        builder.Services.ConfigureHttpClientDefaults(c=>
         {
-            builder.SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
+            c.AddStandardResilienceHandler().Configure( o=> {
+                o.Retry.MaxRetryAttempts = 5;
+                o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+            });
         });
-
-        /* 
-        var memoryStore = new QdrantMemoryStore(new QdrantVectorDbClient("http://qdrant", 1536, port: 6333));
-        var embedingGeneration = new AzureTextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey);
-        var semanticTextMemory = new SemanticTextMemory(memoryStore, embedingGeneration);
-        */
-
-        var kernel = new KernelBuilder()
-        .WithLoggerFactory(loggerFactory)
-        .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-        //.WithMemory(semanticTextMemory)
-        .Build();
-
-        return kernel;
+        return builder.Build();
     }
 
     ///<summary>
     /// Gets a list of the skills in the assembly
     ///</summary>
-    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, IKernel kernel)
+    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, Kernel kernel)
     {
         var skills = new List<string>();
         var assembly = Assembly.Load(assemblyName);
@@ -199,10 +189,10 @@ public class SemanticKernelSkill : CodeActivity<string>
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
                         var prompt = Skills.ForSkillAndFunction(skillType.Name, function.Name);
-                        var skfunc = kernel.CreateSemanticFunction(
-                            prompt, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
+                        var skfunc = kernel.CreateFunctionFromPrompt(
+                            prompt, new OpenAIPromptExecutionSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
-                        Console.WriteLine($"SK Added function: {skfunc.SkillName}.{skfunc.Name}");
+                        Console.WriteLine($"SK Added function: {skfunc.Metadata.PluginName}.{skfunc.Metadata.Name}");
                     }
                 }
             }

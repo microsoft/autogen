@@ -2,8 +2,6 @@ using Elsa.EntityFrameworkCore.Extensions;
 using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.EntityFrameworkCore.Modules.Runtime;
 using Elsa.Extensions;
-using Elsa.Workflows.Core.Models;
-using Elsa.Identity.Features;
 using Elsa.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);

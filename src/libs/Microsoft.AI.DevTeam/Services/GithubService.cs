@@ -15,7 +15,7 @@ public class GithubService : IManageGithub
     private readonly ILogger<GithubService> _logger;
     private readonly HttpClient _httpClient;
 
-    public GithubService(GitHubClient ghClient, IOptions<AzureOptions> azOptions, ILogger<GithubService> logger, HttpClient httpClient)
+    public GithubService(IOptions<AzureOptions> azOptions, GitHubClient ghClient, ILogger<GithubService> logger, HttpClient httpClient)
     {
         _ghClient = ghClient;
         _azSettings = azOptions.Value;
@@ -139,21 +139,6 @@ public class GithubService : IManageGithub
         }
     }
 
-    public async Task MarkTaskComplete(string org, string repo, int commentId)
-    {
-        try
-        {
-            var comment = await _ghClient.Issue.Comment.Get(org, repo, commentId);
-            var updatedComment = comment.Body.Replace("[ ]", "[x]");
-            await _ghClient.Issue.Comment.Update(org, repo, commentId, updatedComment);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error marking task complete");
-             throw;
-        }
-    }
-
     public async Task PostComment(string org, string repo, long issueNumber, string comment)
     {
         try
@@ -222,8 +207,6 @@ public class FileResponse
 public interface IManageGithub
 {
     Task<int> CreateIssue(string org, string repo, string input, string function, long parentNumber);
-    Task MarkTaskComplete(string org, string repo, int commentId);
-
     Task CreatePR(string org, string repo, long number, string branch);
     Task CreateBranch(string org, string repo, string branch);
     Task CommitToBranch(string org, string repo, long parentNumber, long issueNumber, string rootDir, string branch);

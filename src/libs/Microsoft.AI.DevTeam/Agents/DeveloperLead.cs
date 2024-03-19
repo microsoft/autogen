@@ -1,25 +1,23 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
+using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 using Orleans.Streams;
-using System.Text.Json;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
 public class DeveloperLead : AiAgent, ILeadDevelopers
 {
-    private readonly IKernel _kernel;
-    private readonly ISemanticTextMemory _memory;
+    private readonly Kernel _kernel;
     private readonly ILogger<DeveloperLead> _logger;
 
     private readonly IManageGithub _ghService;
 
-    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<AgentState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger, IManageGithub ghService) : base(state)
+    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<AgentState> state, Kernel kernel, IKernelMemory memory, ILogger<DeveloperLead> logger, IManageGithub ghService)
+     : base(state, memory)
     {
         _kernel = kernel;
-        _memory = memory;
         _logger = logger;
         _ghService = ghService;
     }
@@ -65,7 +63,7 @@ public class DeveloperLead : AiAgent, ILeadDevelopers
     {
         try
         {
-            return await CallFunction(DevLead.Plan, ask, _kernel, _memory);
+            return await CallFunction(DevLead.Plan, ask, _kernel);
         }
         catch (Exception ex)
         {

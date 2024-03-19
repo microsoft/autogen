@@ -11,11 +11,13 @@
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
     <UserSecretsId>c073c86e-8483-4956-942f-331fd09172d4</UserSecretsId>
+    <AnalysisMode>All</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.0.3" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Memory.Qdrant" Version="1.0.0-beta5" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.6.2-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.6.2-alpha" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.0.0" />
@@ -25,6 +27,9 @@
     <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.0.0" />
     <PackageReference Include="OrleansDashboard" Version="7.2.2" />
     <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.2" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="8.0.0" />
+    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.Qdrant" Version="0.35.240318.1" />
+    
   </ItemGroup>
   
 

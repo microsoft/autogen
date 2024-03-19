@@ -4,15 +4,19 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using Azure;
+using Azure.AI.OpenAI;
 using Elsa.Extensions;
-using Elsa.Workflows.Core;
-using Elsa.Workflows.Core.Contracts;
-using Elsa.Workflows.Core.Models;
+using Elsa.Workflows;
+using Elsa.Workflows.Contracts;
+using Elsa.Workflows.Models;
+using Elsa.Workflows.UIHints;
 using Microsoft.AI.DevTeam.Skills;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
-using Microsoft.SemanticKernel.Orchestration;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace Elsa.SemanticKernel;
 
@@ -36,9 +40,8 @@ public class SemanticKernelActivityProvider : IActivityProvider
 
         // get a list of skills in the assembly
         var skills = LoadSkillsFromAssemblyAsync("skills", kernel);
-        SKContext context = kernel.CreateNewContext();
-        var functionsAvailable = context.Functions.GetFunctionViews();
-
+        var functionsAvailable = kernel.Plugins.GetFunctionsMetadata();
+        
         // create activity descriptors for each skilland function
         var activities = new List<ActivityDescriptor>();
         foreach (var function in functionsAvailable)
@@ -56,7 +59,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// <param name="function">The semantic kernel function</param>
     /// <param name="cancellationToken">An optional cancellation token.</param>
     /// <returns>An activity descriptor.</returns>
-    private ActivityDescriptor CreateActivityDescriptorFromSkillAndFunction(FunctionView function, CancellationToken cancellationToken = default)
+    private ActivityDescriptor CreateActivityDescriptorFromSkillAndFunction(KernelFunctionMetadata function, CancellationToken cancellationToken = default)
     {
         // Create a fully qualified type name for the activity 
         var thisNamespace = GetType().Namespace;
@@ -128,12 +131,12 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// </summary>
     /// <param name="parameter">The function parameter.</param>
     /// <returns>An input descriptor.</returns>
-    private InputDescriptor CreateInputDescriptorFromSKParameter(ParameterView parameter)
+    private InputDescriptor CreateInputDescriptorFromSKParameter(KernelParameterMetadata parameter)
     {
         var inputDescriptor = new InputDescriptor
         {
             Description = string.IsNullOrEmpty(parameter.Description) ? parameter.Name : parameter.Description,
-            DefaultValue = string.IsNullOrEmpty(parameter.DefaultValue) ? string.Empty : parameter.DefaultValue,
+            DefaultValue = parameter.DefaultValue == null ? string.Empty : parameter.DefaultValue,
             Type = typeof(string),
             Name = parameter.Name,
             DisplayName = parameter.Name,
@@ -150,7 +153,7 @@ public class SemanticKernelActivityProvider : IActivityProvider
     ///<summary>
     /// Gets a list of the skills in the assembly
     ///</summary>
-    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, IKernel kernel)
+    private IEnumerable<string> LoadSkillsFromAssemblyAsync(string assemblyName, Kernel kernel)
     {
         var skills = new List<string>();
         var assembly = Assembly.Load(assemblyName);
@@ -167,10 +170,10 @@ public class SemanticKernelActivityProvider : IActivityProvider
                     if (field.Equals("Microsoft.SKDevTeam.SemanticFunctionConfig"))
                     {
                         var promptTemplate = Skills.ForSkillAndFunction(skillType.Name, function.Name);
-                        var skfunc = kernel.CreateSemanticFunction(
-                            promptTemplate, new OpenAIRequestSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
+                        var skfunc = kernel.CreateFunctionFromPrompt(
+                            promptTemplate, new OpenAIPromptExecutionSettings { MaxTokens = 8000, Temperature = 0.4, TopP = 1 });
 
-                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.PluginName}.{skfunc.Name}");
+                        Console.WriteLine($"SKActivityProvider Added SK function: {skfunc.Metadata.PluginName}.{skfunc.Name}");
                     }
                 }
             }
@@ -182,22 +185,24 @@ public class SemanticKernelActivityProvider : IActivityProvider
     /// Gets a semantic kernel instance
     /// </summary>
     /// <returns>Microsoft.SemanticKernel.IKernel</returns>
-    private IKernel KernelBuilder()
+    private Kernel KernelBuilder()
     {
         var kernelSettings = KernelSettings.LoadSettings();
 
-        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
+        var clientOptions = new OpenAIClientOptions();
+        clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
+        var openAIClient = new OpenAIClient(new Uri(kernelSettings.Endpoint), new AzureKeyCredential(kernelSettings.ApiKey), clientOptions);
+        var builder = Kernel.CreateBuilder();
+        builder.Services.AddLogging( c=> c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
+        builder.Services.AddAzureOpenAIChatCompletion(kernelSettings.DeploymentOrModelId, openAIClient);
+        builder.Services.ConfigureHttpClientDefaults(c=>
         {
-            builder.SetMinimumLevel(kernelSettings.LogLevel ?? LogLevel.Warning);
+            c.AddStandardResilienceHandler().Configure( o=> {
+                o.Retry.MaxRetryAttempts = 5;
+                o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
+            });
         });
-
-        var kernel = new KernelBuilder()
-        .WithLoggerFactory(loggerFactory)
-        .WithAzureChatCompletionService(kernelSettings.DeploymentOrModelId, kernelSettings.Endpoint, kernelSettings.ApiKey, true, kernelSettings.ServiceId, true)
-        .Build();
-
-        return kernel;
+        return builder.Build();
     }
-
 }
 

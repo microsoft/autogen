@@ -4,21 +4,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <AnalysisMode>All</AnalysisMode>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.0.0-beta5" />
+      <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
     <PackageReference Include="Octokit" Version="10.0.0" />
-    <PackageReference Include="GitHubJwt" Version="0.0.6" />
     <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.0" />
     <PackageReference Include="Azure.Storage.Files.Shares" Version="12.16.0-beta.1" />
     <PackageReference Include="Azure.Data.Tables" Version="12.8.1" />
     <PackageReference Include="Azure.Identity" Version="1.11.0-beta.1" />
     <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.0.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.35.240318.1" />
   </ItemGroup>
 
   <ItemGroup>

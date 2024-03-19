@@ -1,9 +1,8 @@
 using Microsoft.AI.DevTeam.Skills;
 using Microsoft.Extensions.Logging;
+using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AI.OpenAI;
 using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.Orchestration;
 using Orleans.Runtime;
 using Orleans.Streams;
 
@@ -12,14 +11,13 @@ namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
 public class Dev : AiAgent, IDevelopApps
 {
-    private readonly IKernel _kernel;
-    private readonly ISemanticTextMemory _memory;
+    private readonly Kernel _kernel;
     private readonly ILogger<Dev> _logger;
 
-    public Dev([PersistentState("state", "messages")] IPersistentState<AgentState> state, IKernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) : base(state)
+    public Dev([PersistentState("state", "messages")] IPersistentState<AgentState> state, Kernel kernel, IKernelMemory memory, ILogger<Dev> logger) 
+    : base(state, memory)
     {
         _kernel = kernel;
-        _memory = memory;
         _logger = logger;
     }
 
@@ -63,7 +61,7 @@ public class Dev : AiAgent, IDevelopApps
     {
         try
         {
-            return await CallFunction(Developer.Implement, ask, _kernel, _memory);
+            return await CallFunction(Developer.Implement, ask, _kernel);
         }
         catch (Exception ex)
         {
@@ -72,39 +70,39 @@ public class Dev : AiAgent, IDevelopApps
         }
     }
 
-    public async Task<UnderstandingResult> BuildUnderstanding(string content)
-    {
-        try
-        {
-            var explainFunction = _kernel.CreateSemanticFunction(Developer.Explain, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
-            var consolidateFunction = _kernel.CreateSemanticFunction(Developer.ConsolidateUnderstanding, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
-            var explainContext = new ContextVariables();
-            explainContext.Set("input", content);
-            var explainResult = await _kernel.RunAsync(explainContext, explainFunction);
-            var explainMesage = explainResult.ToString();
+    // public async Task<UnderstandingResult> BuildUnderstanding(string content)
+    // {
+    //     try
+    //     {
+    //         var explainFunction = _kernel.CreateSemanticFunction(Developer.Explain, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
+    //         var consolidateFunction = _kernel.CreateSemanticFunction(Developer.ConsolidateUnderstanding, new OpenAIRequestSettings { MaxTokens = 15000, Temperature = 0.8, TopP = 1 });
+    //         var explainContext = new ContextVariables();
+    //         explainContext.Set("input", content);
+    //         var explainResult = await _kernel.RunAsync(explainContext, explainFunction);
+    //         var explainMesage = explainResult.ToString();
 
-            var consolidateContext = new ContextVariables();
-            consolidateContext.Set("input", _state.State.Understanding);
-            consolidateContext.Set("newUnderstanding", explainMesage);
+    //         var consolidateContext = new ContextVariables();
+    //         consolidateContext.Set("input", _state.State.Understanding);
+    //         consolidateContext.Set("newUnderstanding", explainMesage);
 
-            var consolidateResult = await _kernel.RunAsync(consolidateContext, consolidateFunction);
-            var consolidateMessage = consolidateResult.ToString();
+    //         var consolidateResult = await _kernel.RunAsync(consolidateContext, consolidateFunction);
+    //         var consolidateMessage = consolidateResult.ToString();
 
-            _state.State.Understanding = consolidateMessage;
-            await _state.WriteStateAsync();
+    //         _state.State.Understanding = consolidateMessage;
+    //         await _state.WriteStateAsync();
 
-            return new UnderstandingResult
-            {
-                NewUnderstanding = consolidateMessage,
-                Explanation = explainMesage
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error building understanding");
-            return default;
-        }
-    }
+    //         return new UnderstandingResult
+    //         {
+    //             NewUnderstanding = consolidateMessage,
+    //             Explanation = explainMesage
+    //         };
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, "Error building understanding");
+    //         return default;
+    //     }
+    // }
 }
 
 public interface IDevelopApps
