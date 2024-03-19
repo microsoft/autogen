@@ -27,14 +27,6 @@ install_requires = [
     "docker",
 ]
 
-jupyter_executor = [
-    "jupyter-kernel-gateway",
-    "websocket-client",
-    "requests",
-    "jupyter-client>=8.6.0",
-    "ipykernel>=6.29.0",
-]
-
 setuptools.setup(
     name="pyautogen",
     version=__version__,
@@ -65,8 +57,13 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
-        "jupyter-executor": jupyter_executor,
-        "types": ["mypy==1.9.0"] + jupyter_executor,
+        "jupyter-executor": [
+            "jupyter-kernel-gateway",
+            "websocket-client",
+            "requests",
+            "jupyter-client>=8.6.0",
+            "ipykernel>=6.29.0",
+        ],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
