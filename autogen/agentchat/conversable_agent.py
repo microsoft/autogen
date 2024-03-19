@@ -2223,8 +2223,8 @@ class ConversableAgent(LLMAgent):
             message["content"] = self._process_carryover(message.get("content", ""), kwargs)
             return message
 
-    def _process_carryover(self, message: str, context: dict) -> str:
-        carryover = context.get("carryover")
+    def _process_carryover(self, message: str, kwargs: dict) -> str:
+        carryover = kwargs.get("carryover")
         if carryover:
             # if carryover is string
             if isinstance(carryover, str):
