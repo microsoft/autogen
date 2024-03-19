@@ -215,7 +215,7 @@ def test_chats():
     )
 
     def my_summary_method(recipient, sender, summary_args):
-        return recipient.chat_messages[sender][0].get("content", "")
+        return recipient.chat_messages[sender][1].get("content", "")
 
     # chat_res_play = user.initiate_chat(
     #     player,
@@ -233,6 +233,7 @@ def test_chats():
                 "message": financial_tasks[0],
                 "silent": False,
                 "summary_method": my_summary_method,
+                "max_turns": 1,
             },
             {
                 "recipient": financial_assistant_2,
