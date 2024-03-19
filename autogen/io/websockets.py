@@ -4,7 +4,7 @@ import threading
 from contextlib import contextmanager
 from functools import partial
 from time import sleep
-from typing import Any, Callable, Dict, Iterator, Optional
+from typing import Any, Callable, Dict, Iterable, Iterator, Optional, TYPE_CHECKING, Protocol, Union
 
 from pydantic import BaseModel
 
@@ -13,12 +13,8 @@ from .messages import StreamMessageWrapper
 
 # Check if the websockets module is available
 try:
-    import websockets
-    from websockets.sync.server import ServerConnection, WebSocketServer
     from websockets.sync.server import serve as ws_serve
-except ImportError as e:  # pragma: no cover
-    websockets = None  # type: ignore[assignment]
-    ws_serve = None  # type: ignore[assignment]
+except ImportError as e:
     _import_error: Optional[ImportError] = e
 else:
     _import_error = None
@@ -30,11 +26,60 @@ __all__ = ("IOWebsockets",)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# The following type and protocols are used to define the ServerConnection and WebSocketServer classes
+# if websockets is not installed, they would be untyped
+Data = Union[str, bytes]
+
+
+class ServerConnection(Protocol):
+    def send(self, message: Union[Data, Iterable[Data]]) -> None:
+        """Send a message to the client.
+
+        Args:
+            message (Union[Data, Iterable[Data]]): The message to send.
+
+        """
+        ...  # pragma: no cover
+
+    def recv(self, timeout: Optional[float] = None) -> Data:
+        """Receive a message from the client.
+
+        Args:
+            timeout (Optional[float], optional): The timeout for the receive operation. Defaults to None.
+
+        Returns:
+            Data: The message received from the client.
+
+        """
+        ...  # pragma: no cover
+
+    def close(self) -> None:
+        """Close the connection."""
+        ...
+
+
+class WebSocketServer(Protocol):
+    def serve_forever(self) -> None:
+        """Run the server forever."""
+        ...  # pragma: no cover
+
+    def shutdown(self) -> None:
+        """Shutdown the server."""
+        ...  # pragma: no cover
+
+    def __enter__(self) -> "WebSocketServer":
+        """Enter the server context."""
+        ...  # pragma: no cover
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
+        """Exit the server context."""
+        ...  # pragma: no cover
+
 
 class IOWebsockets(IOStream):
     """A websocket input/output stream."""
 
-    def __init__(self, websocket: "ServerConnection") -> None:
+    def __init__(self, websocket: ServerConnection) -> None:
         """Initialize the websocket input/output stream.
 
         Args:
@@ -43,13 +88,13 @@ class IOWebsockets(IOStream):
         Raises:
             ImportError: If the websockets module is not available.
         """
-        if websockets is None:
+        if _import_error is not None:
             raise _import_error  # pragma: no cover
 
         self._websocket = websocket
 
     @staticmethod
-    def _handler(websocket: "ServerConnection", on_connect: Callable[["IOWebsockets"], None]) -> None:
+    def _handler(websocket: ServerConnection, on_connect: Callable[["IOWebsockets"], None]) -> None:
         """The handler function for the websocket server."""
         logger.info(f" - IOWebsockets._handler(): Client connected on {websocket}")
         # create a new IOWebsockets instance using the websocket that is create when a client connects
@@ -81,6 +126,7 @@ class IOWebsockets(IOStream):
             port (int, optional): The port to bind the server to. Defaults to 8765.
             on_connect (Callable[[IOWebsockets], None]): The function to be executed on client connection. Typically creates agents and initiate chat.
             ssl_context (Optional[ssl.SSLContext], optional): The SSL context to use for secure connections. Defaults to None.
+            kwargs (Any): Additional keyword arguments to pass to the websocket server.
 
         Yields:
             str: The URI of the websocket server.
@@ -88,6 +134,9 @@ class IOWebsockets(IOStream):
         server_dict: Dict[str, WebSocketServer] = {}
 
         def _run_server() -> None:
+            if _import_error is not None:
+                raise _import_error
+
             # print(f" - _run_server(): starting server on ws://{host}:{port}", flush=True)
             with ws_serve(
                 handler=partial(IOWebsockets._handler, on_connect=on_connect),

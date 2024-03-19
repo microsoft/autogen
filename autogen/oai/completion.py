@@ -792,7 +792,7 @@ class Completion(openai_Completion):
             raise ERROR
 
         # Warn if a config list was provided but was empty
-        if type(config_list) is list and len(config_list) == 0:
+        if isinstance(config_list, list) and len(config_list) == 0:
             logger.warning(
                 "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
             )
@@ -866,12 +866,14 @@ class Completion(openai_Completion):
         if prompt is None:
             params["messages"] = (
                 [
-                    {
-                        **m,
-                        "content": cls.instantiate(m["content"], context, allow_format_str_template),
-                    }
-                    if m.get("content")
-                    else m
+                    (
+                        {
+                            **m,
+                            "content": cls.instantiate(m["content"], context, allow_format_str_template),
+                        }
+                        if m.get("content")
+                        else m
+                    )
                     for m in messages
                 ]
                 if context

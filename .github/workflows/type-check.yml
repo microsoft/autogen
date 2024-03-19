@@ -13,13 +13,21 @@ permissions: {}
 
 jobs:
   type-check:
+    strategy:
+      fail-fast: true
+      matrix:
+        version: ["3.8", "3.9", "3.10", "3.11"]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-      - run: pip install ".[jupyter-executor]" mypy
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+            python-version: ${{ matrix.version }}
+      - run: pip install ".[test,jupyter-executor,websockets]" mypy==1.9.0
       # As more modules are type check clean, add them here
       - run: |
           mypy --install-types --non-interactive \
             autogen/logger \
-            autogen/exception_utils.py
+            autogen/exception_utils.py \
+            autogen/io \
+            test/io
