@@ -985,11 +985,11 @@ def test_function_registration_e2e_sync() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     user_proxy.initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="2")
-    stopwatch_mock.assert_called_once_with(num_seconds="3")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
 @pytest.mark.skipif(
@@ -1063,11 +1063,11 @@ async def test_function_registration_e2e_async() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     await user_proxy.a_initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="4")
-    stopwatch_mock.assert_called_once_with(num_seconds="5")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
 @pytest.mark.skipif(skip_openai, reason=REASON)

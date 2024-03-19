@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 import pytest
+import asyncio
 import sys
 import os
 import autogen
@@ -30,7 +31,7 @@ async def test_async_chats():
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
-        system_message="You are a knowledgeable AI Assistant.",
+        system_message="You are a knowledgeable AI Assistant. Reply TERMINATE when everything is done.",
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
@@ -60,7 +61,7 @@ async def test_async_chats():
     )
 
     def my_summary_method(recipient, sender, summary_args):
-        return recipient.chat_messages[sender][-1].get("content", "")
+        return recipient.chat_messages[sender][1].get("content", "")
 
     chat_res = await user.a_initiate_chats(
         [
@@ -70,6 +71,7 @@ async def test_async_chats():
                 "message": financial_tasks[0],
                 "silent": False,
                 "summary_method": my_summary_method,
+                "max_turns": 1,
             },
             {
                 "chat_id": 2,
@@ -87,6 +89,7 @@ async def test_async_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
             },
             {
                 "chat_id": 4,
@@ -95,6 +98,7 @@ async def test_async_chats():
                 "message": writing_tasks[0],
                 "carryover": "I want to include a figure or a table of data in the blogpost.",
                 "summary_method": "last_msg",
+                "max_turns": 2,
             },
         ]
     )
@@ -116,4 +120,4 @@ async def test_async_chats():
 
 
 if __name__ == "__main__":
-    test_async_chats()
+    asyncio.run(test_async_chats())
