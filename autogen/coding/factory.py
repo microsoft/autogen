@@ -1,6 +1,4 @@
-from typing import Any, Dict
-
-from .base import CodeExecutor
+from .base import CodeExecutor, CodeExecutionConfig
 
 __all__ = ("CodeExecutorFactory",)
 
@@ -9,7 +7,7 @@ class CodeExecutorFactory:
     """(Experimental) A factory class for creating code executors."""
 
     @staticmethod
-    def create(code_execution_config: Dict[str, Any]) -> CodeExecutor:
+    def create(code_execution_config: CodeExecutionConfig) -> CodeExecutor:
         """(Experimental) Get a code executor based on the code execution config.
 
         Args:
