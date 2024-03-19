@@ -18,6 +18,7 @@ docs/topics/llm_configuration.mdx
 docs/topics/code-execution/*.mdx
 docs/topics/task_decomposition.mdx
 docs/topics/prompting-and-reasoning/*.mdx
+docs/topics/non-openai-models/*.mdx
 
 # Misc
 .DS_Store

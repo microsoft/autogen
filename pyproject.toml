@@ -65,6 +65,8 @@ max-complexity = 10
 files = [
     "autogen/logger",
     "autogen/exception_utils.py",
+    "autogen/coding",
+    "autogen/oai/openai_utils.py",
 ]
 
 strict = true
