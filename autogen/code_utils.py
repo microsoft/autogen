@@ -14,6 +14,8 @@ from autogen import oai
 
 import docker
 
+from .types import UserMessageImageContentPart, UserMessageTextContentPart
+
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
 FAST_MODEL = "gpt-3.5-turbo"
@@ -37,8 +39,8 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List[Dict[str, Any]], None]) -> str:
-    """Converts `content` into a string format.
+def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
+    """Converts the `content` field of an OpenAI merssage into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
     and converts it into a string. Text is directly appended to the result string, while image URLs are
@@ -241,7 +243,7 @@ def get_powershell_command():
         raise PermissionError("No permission to run powershell.") from e
 
 
-def _cmd(lang):
+def _cmd(lang: str) -> str:
     if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
     if lang in ["shell"]:
@@ -458,9 +460,7 @@ def execute_code(
     image_list = (
         ["python:3-slim", "python:3", "python:3-windowsservercore"]
         if use_docker is True
-        else [use_docker]
-        if isinstance(use_docker, str)
-        else use_docker
+        else [use_docker] if isinstance(use_docker, str) else use_docker
     )
     for image in image_list:
         # check if the image exists
