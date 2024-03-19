@@ -89,6 +89,7 @@ async def test_async_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
             },
             {
                 "chat_id": 4,
@@ -97,6 +98,7 @@ async def test_async_chats():
                 "message": writing_tasks[0],
                 "carryover": "I want to include a figure or a table of data in the blogpost.",
                 "summary_method": "last_msg",
+                "max_turns": 2,
             },
         ]
     )
