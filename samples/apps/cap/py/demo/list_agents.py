@@ -3,8 +3,10 @@ from typing import List
 from AppAgents import GreeterAgent, FidelityAgent
 from autogencap.LocalActorNetwork import LocalActorNetwork
 
+
 class ActorInfo:
     pass
+
 
 def list_agents():
     """
