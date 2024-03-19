@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
             python-version: ${{ matrix.version }}
-      - run: pip install ".[jupyter-executor,websockets]" mypy==1.9.0
+      - run: pip install ".[test,jupyter-executor,websockets]" mypy==1.9.0
       # As more modules are type check clean, add them here
       - run: |
           mypy --install-types --non-interactive \
