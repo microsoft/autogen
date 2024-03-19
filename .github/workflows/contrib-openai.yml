@@ -299,3 +299,38 @@ jobs:
           with:
             file: ./coverage.xml
             flags: unittests
+  ImageGen:
+      strategy:
+        matrix:
+          os: [ubuntu-latest]
+          python-version: ["3.12"]
+      runs-on: ${{ matrix.os }}
+      environment: openai1
+      steps:
+        # checkout to pr branch
+        - name: Checkout
+          uses: actions/checkout@v3
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Install packages and dependencies
+          run: |
+            docker --version
+            python -m pip install --upgrade pip wheel
+            pip install -e .[lmm]
+            python -c "import autogen"
+            pip install coverage pytest
+        - name: Coverage
+          env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          run: |
+            coverage run -a -m pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py
+            coverage xml
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v3
+          with:
+            file: ./coverage.xml
+            flags: unittests
