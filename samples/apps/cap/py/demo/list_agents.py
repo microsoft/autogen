@@ -4,6 +4,7 @@ from AppAgents import GreeterAgent, FidelityAgent
 from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.proto.CAP_pb2 import ActorInfo
 
+
 def list_agents():
     """
     Demonstrates the usage of the CAP platform by registering an actor, connecting to the actor,
