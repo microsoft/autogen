@@ -15,12 +15,14 @@ will work with AutoGen.
 
 These proxy servers can be cloud-based or running locally within your environment.
 
+![Cloud or Local Proxy Servers](images/cloudlocalproxy.png)
+
 ### Cloud-based proxy servers
 By using cloud-based proxy servers, you are able to use models without requiring the hardware
 and software to run them.
 
 These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/),
-or their own closed models, like [Anthropic](https://www.anthropic.com/).
+or their own closed models.
 
 See [Cloud-based Proxy Servers](cloud-based-proxy-servers) for a guide on how to
 use them with AutoGen.
@@ -48,4 +50,4 @@ For more advanced users, you can create your own custom model client class, enab
 you to define and load your own models.
 
 See the [AutoGen with Custom Models: Empowering Users to Use Their Own Inference Mechanism](/blog/2024/01/26/Custom-Models)
-blog post and [this notebook](/notebooks/agentchat_custom_model/) for a guide to creating custom model client classes.
+blog post and [this notebook](/docs/notebooks/agentchat_custom_model/) for a guide to creating custom model client classes.

@@ -4,13 +4,13 @@ is straightforward. With [LLM Configuration](/docs/topics/llm_configuration) don
 as when using OpenAI's models, the primary difference is typically the authentication which is
 usually handled through an API key.
 
-Examples of some cloud-based proxy server providers that have OpenAI-compatible API are provided
+An example of a cloud-based proxy server provider that has an OpenAI-compatible API is provided
 below.
 
 ## Together AI
 ![together.ai](images/togetherai250.png)
 
-This example, using together.ai, is a group chat between a Python developer
+This example, using [together.ai](https://www.together.ai/), is a group chat between a Python developer
 and a code reviewer, who are given a coding task.
 
 Start by [installing AutoGen](/docs/installation/) and getting your [together.ai API key](https://api.together.xyz/settings/profile).
@@ -29,7 +29,7 @@ Windows (command prompt):
 set TOGETHER_API_KEY=YourTogetherAIKeyHere
 ```
 
-Create your LLM configuration
+Create your LLM configuration, with the [model you want](https://docs.together.ai/docs/inference-models).
 
 ```python
 import autogen
@@ -180,28 +180,8 @@ To terminate the conversation, please type "TERMINATE".
 Please give feedback to chat_manager. Press enter or type 'exit' to stop the conversation: exit
 ````
 
-## Hugging Face
-Hugging Face's Messages API provides OpenAI API compatibility using their [Inference Endpoints](https://huggingface.co/docs/inference-endpoints/index). Read more [here](https://huggingface.co/blog/tgi-messages-api).
-
-Start by installing AutoGen, creating your Hugging Face [Inference Endpoint](https://huggingface.co/docs/inference-endpoints/en/guides/create_endpoint), and getting your Hugging Face API key.
-
-Your Hugging Face Inference Endpoint will have an Endpoint URL, in the code example below we
-add '/v1' to the end of it to use the OpenAI-compatible API.
-
-# TO BE CONTINUED
-
-
-
 ````mdx-code-block
 :::tip
-An alternative to Hugging Face's Inference Endpoints is their [Text Generation Inference](https://huggingface.co/docs/text-generation-inference/index) library, which runs locally in your environment and is also OpenAI API compatible. See this [link](https://github.com/huggingface/text-generation-inference/issues/735#issuecomment-1981211578) for an example.
-:::
-````
-
-
-
-````mdx-code-block
-:::tip
-If you are planning to use Function Calling, not all proxy servers support Function Calling with their OpenAI-compatible API, so check their documentation.
+If you are planning to use Function Calling, not all cloud proxy servers support Function Calling with their OpenAI-compatible API, so check their documentation.
 :::
 ````
