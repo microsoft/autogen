@@ -14,8 +14,9 @@ permissions: {}
 jobs:
   type-check:
     strategy:
+      fail-fast: true
       matrix:
-        version: [3.8, 3.9, 3.10, 3.11]
+        version: ["3.8", "3.9", "3.10", "3.11"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
