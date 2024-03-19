@@ -200,27 +200,34 @@ const ModelsView = ({}: any) => {
       },
     ];
     return (
-      <div key={"modelrow" + i} className=" " style={{ width: "200px" }}>
-        <div className="">
-          <Card
-            className="h-full p-2 cursor-pointer"
-            title={
-              <div className="  ">{truncateText(model.model || "", 20)}</div>
-            }
-            onClick={() => {
-              setSelectedModel(model);
-              setShowModelModal(true);
-            }}
+      <li key={"modelrow" + i} className=" " style={{ width: "200px" }}>
+        <Card
+          className="h-full p-2 cursor-pointer"
+          title={
+            <div className="  ">{truncateText(model.model || "", 20)}</div>
+          }
+          onClick={() => {
+            setSelectedModel(model);
+            setShowModelModal(true);
+          }}
+        >
+          <div
+            style={{ minHeight: "65px" }}
+            className="my-2   break-words"
+            aria-hidden="true"
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(model.description || model.model || "", 70)}
-            </div>
-            <div className="text-xs">{timeAgo(model.timestamp || "")}</div>
-            <CardHoverBar items={cardItems} />
-          </Card>
-        </div>
-      </div>
+            {" "}
+            {truncateText(model.description || model.model || "", 70)}
+          </div>
+          <div
+            className="text-xs"
+            aria-label={`Last updated ${timeAgo(model.timestamp || "")}`}
+          >
+            {timeAgo(model.timestamp || "")}
+          </div>
+          <CardHoverBar items={cardItems} />
+        </Card>
+      </li>
     );
   });
 
@@ -538,7 +545,7 @@ const ModelsView = ({}: any) => {
           {models && models.length > 0 && (
             <div className="w-full  relative">
               <LoadingOverlay loading={loading} />
-              <div className="   flex flex-wrap gap-3">{modelRows}</div>
+              <ul className="   flex flex-wrap gap-3">{modelRows}</ul>
             </div>
           )}
 
