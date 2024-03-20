@@ -130,6 +130,13 @@ class Classify_log:
             return "RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
         elif any("FINAL ANSWER" in line for line in steps):
             if any("Making an educated guess" in line for line in steps):
+                # get index of that string in list of string
+                index = next((i for i, s in enumerate(steps) if "Making an educated guess" in s), None)
+                # if previous is delegating to an agent - then it failed while replying probably
+                if prev_validated_steps[-1][0] == "DELEGATE_TO_AGENT":
+                    prev_validated_steps.append(("RESPONSE_FROM_AGENT_FAILED", {}, steps[:index]))
+                    prev_validated_steps.append(("EDUCATED_GUESS", {}, steps[index:]))
+                    return "IGNORE", {}
                 return "EDUCATED_GUESS", {}
             return "FINAL_ANSWER", {}
         else:
