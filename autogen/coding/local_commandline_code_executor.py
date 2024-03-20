@@ -159,7 +159,7 @@ If you want the user to save the code in a file before executing it, put # filen
                     filename=filename,
                     use_docker=False,
                 )
-            elif lang in ["python", "Python"]:
+            elif lang in ["python", "Python", "py", "PY", "Py"]:
                 filename = f"{filename_uuid}.py"
                 exitcode, logs, _ = execute_code(
                     code=code,
