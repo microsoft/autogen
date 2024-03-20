@@ -59,7 +59,7 @@ def collate(results_dir, classify_reasoning_trace=False):
             prompt_file = os.path.join(instance_dir, "prompt.txt")
             prompt = None
             if os.path.isfile(prompt_file):
-                with open(prompt_file, "rt") as fh:
+                with open(prompt_file, "rt", encoding="utf8") as fh:
                     prompt = fh.read().strip()
 
             # Apply approximate string matching
@@ -88,7 +88,6 @@ def collate(results_dir, classify_reasoning_trace=False):
 
             with open(os.path.join(instance_dir, "results.json"), "wt") as fh:
                 fh.write(js_str)
-            print(instance_dir, "results.json")
             yield steps
 
 
@@ -99,7 +98,7 @@ class Classify_log:
         step_lines = list(filter(None, step_lines))
         return step_lines
 
-    find_string = lambda lst, substring: next((s for s in lst if substring in s), "Not found")
+    find_string = lambda lst, substring: next((s for s in lst if substring in s), None)
 
     @staticmethod
     def process_lines(steps: list[str], prev_validated_steps) -> Tuple[str, dict[str, str]]:
@@ -134,10 +133,11 @@ class Classify_log:
         stall_count = 0
         for step in steps:
             step_split = Classify_log.basic_clean(step)
-            if any("TERMINATE" in line for line in step_split):
-                match = Classify_log.find_string(step_split, "orchestrator (to").split(" ")
-                current_step = "ORCH_TERMINATE"
-                classified_steps.append((current_step, {"from": match[0], "to": match[2]}, step_split))
+            if any("orchestrator (to computer_terminal)" in line for line in step_split):
+                if any("TERMINATE" in line for line in step_split):
+                    match = Classify_log.find_string(step_split, "orchestrator (to").split(" ")
+                    current_step = "ORCH_TERMINATE"
+                    classified_steps.append((current_step, {"from": match[0], "to": match[2]}, step_split))
 
             if current_step == "INIT":
                 assert len(classified_steps) == 0
