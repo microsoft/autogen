@@ -47,6 +47,7 @@ Examples of using locally run proxy servers that have an OpenAI-compatible API a
 provided below:
 
 - [LiteLLM with Ollama example](local-litellm-ollama)
+- [LM Studio](local-lm-studio)
 - [vLLM example](local-vllm)
 
 ````mdx-code-block
