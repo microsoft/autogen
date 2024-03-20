@@ -146,7 +146,15 @@ class Classify_log:
             if current_step == "INIT":
                 assert len(classified_steps) == 0
                 if not any("powershell" in line for line in step_split):
-                    classified_steps.append(("NO_MATCH", {}, step_split))
+                    match = Classify_log.find_string(steps, "(to orchestrator)")
+                    if match:
+                        match = match.split(" ")
+                        classified_steps.append(
+                            ("RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}, step_split)
+                        )
+                        current_step = "FIRST_PLAN"
+                    else:
+                        classified_steps.append(("NO_MATCH", {}, step_split))
                     continue
                 assert len(step_split) >= 3, step_split
                 if any("MLM Prompt" in line for line in step_split):
