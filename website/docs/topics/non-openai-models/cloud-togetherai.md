@@ -1,16 +1,5 @@
-# Cloud-based Proxy Servers
-When cloud-based proxy servers provide an OpenAI-compatible API, using them in AutoGen
-is straightforward. With [LLM Configuration](/docs/topics/llm_configuration) done in the same way
-as when using OpenAI's models, the primary difference is typically the authentication which is
-usually handled through an API key.
-
-An example of a cloud-based proxy server provider that has an OpenAI-compatible API is provided
-below.
-
-## Together AI
-![together.ai](images/togetherai250.png)
-
-This example, using [together.ai](https://www.together.ai/), is a group chat between a Python developer
+# Together AI
+This cloud-based proxy server example, using [together.ai](https://www.together.ai/), is a group chat between a Python developer
 and a code reviewer, who are given a coding task.
 
 Start by [installing AutoGen](/docs/installation/) and getting your [together.ai API key](https://api.together.xyz/settings/profile).
@@ -19,13 +8,13 @@ Put your together.ai API key in an environment variable, TOGETHER_API_KEY.
 
 Linux / Mac OSX:
 
-```python
-$ export TOGETHER_API_KEY=YourTogetherAIKeyHere
+```bash
+export TOGETHER_API_KEY=YourTogetherAIKeyHere
 ```
 
 Windows (command prompt):
 
-```python
+```powershell
 set TOGETHER_API_KEY=YourTogetherAIKeyHere
 ```
 
@@ -178,10 +167,4 @@ To terminate the conversation, please type "TERMINATE".
 
 --------------------------------------------------------------------------------
 Please give feedback to chat_manager. Press enter or type 'exit' to stop the conversation: exit
-````
-
-````mdx-code-block
-:::tip
-If you are planning to use Function Calling, not all cloud proxy servers support Function Calling with their OpenAI-compatible API, so check their documentation.
-:::
 ````

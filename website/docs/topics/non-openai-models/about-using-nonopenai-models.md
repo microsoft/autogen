@@ -24,16 +24,37 @@ and software to run them.
 These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/),
 or their own closed models.
 
-See [Cloud-based Proxy Servers](cloud-based-proxy-servers) for a guide on how to
-use them with AutoGen.
+When cloud-based proxy servers provide an OpenAI-compatible API, using them in AutoGen
+is straightforward. With [LLM Configuration](/docs/topics/llm_configuration) done in
+the same way as when using OpenAI's models, the primary difference is typically the
+authentication which is usually handled through an API key.
+
+Examples of using cloud-based proxy servers providers that have an OpenAI-compatible API
+are provided below:
+
+- [together.ai example](cloud-togetherai)
+
 
 ### Locally run proxy servers
 An increasing number of LLM proxy servers are available for use locally. These can be 
 open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio), and are
 typically used for running the full-stack within your environment.
 
-See [Local Proxy Servers](local-proxy-servers) for a guide on how to use them with
-AutoGen.
+Similar to cloud-based proxy servers, as long as these proxy servers provide an
+OpenAI-compatible API, running them in AutoGen is straightforward.
+
+Examples of using locally run proxy servers that have an OpenAI-compatible API are
+provided below:
+
+- [LiteLLM with Ollama example](local-litellm-ollama)
+- [vLLM example](local-vllm)
+
+````mdx-code-block
+:::tip
+If you are planning to use Function Calling, not all cloud-based and local proxy servers support
+Function Calling with their OpenAI-compatible API, so check their documentation.
+:::
+````
 
 ### Configuration for Non-OpenAI models
 
