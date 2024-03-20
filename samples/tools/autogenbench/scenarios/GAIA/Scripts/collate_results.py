@@ -125,6 +125,8 @@ class Classify_log:
             match = Classify_log.find_string(steps, "(to orchestrator)").split(" ")
             return "RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
         elif any("FINAL ANSWER" in line for line in steps):
+            if any("Making an educated guess" in line for line in steps):
+                return "EDUCATED_GUESS", {}
             return "FINAL_ANSWER", {}
         else:
             return "NO_MATCH", {}
@@ -145,20 +147,18 @@ class Classify_log:
 
             if current_step == "INIT":
                 assert len(classified_steps) == 0
-                if not any("powershell" in line for line in step_split):
-                    match = Classify_log.find_string(steps, "(to orchestrator)")
-                    if match:
-                        match = match.split(" ")
-                        classified_steps.append(
-                            (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
-                        )
-                        current_step = "FIRST_PLAN"
-                    else:
-                        classified_steps.append(("NO_MATCH", {}, step_split))
+                if match := Classify_log.find_string(step_split, "(to orchestrator)"):
+                    match = match.split(" ")
+                    classified_steps.append(
+                        (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
+                    )
+                    current_step = "FIRST_PLAN"
+                else:
+                    classified_steps.append(("NO_MATCH", {}, step_split))
                     continue
-                assert len(step_split) >= 3, step_split
+                assert len(step_split) >= 2, step_split
                 if any("MLM Prompt" in line for line in step_split):
-                    current_step = "MLM_INIT"
+                    current_step = "INIT_MLM"
                 classified_steps.append((current_step, {}, step_split))
                 current_step = "FIRST_PLAN"
             elif current_step == "FIRST_PLAN":
