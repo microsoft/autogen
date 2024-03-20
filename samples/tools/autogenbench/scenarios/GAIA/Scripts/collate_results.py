@@ -150,7 +150,7 @@ class Classify_log:
                     if match:
                         match = match.split(" ")
                         classified_steps.append(
-                            ("RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}, step_split)
+                            (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
                         )
                         current_step = "FIRST_PLAN"
                     else:
@@ -186,6 +186,7 @@ class Classify_log:
                             stall_count += 1
                         stall_count = max(0, stall_count)
                     parsed["stall_count"] = stall_count
+                    step_split = None
 
                 classified_steps.append((current_step, parsed, step_split))
                 if "NEXT_STEP" in current_step:
