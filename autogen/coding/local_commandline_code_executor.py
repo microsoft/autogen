@@ -29,7 +29,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
-        functions: List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]] = []
+        functions: List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]] = [],
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -77,7 +77,6 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
     def functions(self) -> List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]]:
         """(Experimental) The functions that are available to the code executor."""
         return self._functions
-
 
     @property
     def timeout(self) -> int:
@@ -142,15 +141,12 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 raise ValueError(f"Pip install failed. {result.stdout}, {result.stderr}")
 
         # Attempt to load the function file to check for syntax errors, imports etc.
-        exec_result = self._execute_code_dont_check_setup([
-            CodeBlock(code = func_file_content, language="python")
-        ])
+        exec_result = self._execute_code_dont_check_setup([CodeBlock(code=func_file_content, language="python")])
 
         if exec_result.exit_code != 0:
             raise ValueError(f"Functions failed to load: {exec_result.output}")
 
         self._setup_functions_complete = True
-
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.

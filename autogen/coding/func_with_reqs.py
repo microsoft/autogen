@@ -17,17 +17,21 @@ def _to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T]]) -> str
         code = code[code.index("\n") + 1 :]
     return code
 
+
 @dataclass
 class Alias:
     name: str
     alias: str
+
 
 @dataclass
 class ImportFromModule:
     module: str
     imports: List[Union[str, Alias]]
 
+
 Import = Union[str, ImportFromModule, Alias]
+
 
 def import_to_str(im: Import) -> str:
     if isinstance(im, str):
@@ -35,13 +39,16 @@ def import_to_str(im: Import) -> str:
     elif isinstance(im, Alias):
         return f"import {im.name} as {im.alias}"
     else:
+
         def to_str(i: Union[str, Alias]) -> str:
             if isinstance(i, str):
                 return i
             else:
                 return f"{i.name} as {i.alias}"
+
         imports = ", ".join(map(to_str, im.imports))
         return f"from {im.module} import {imports}"
+
 
 @dataclass
 class FunctionWithRequirements(Generic[T, P]):
@@ -87,6 +94,7 @@ def build_python_functions_file(funcs: List[Union[FunctionWithRequirements[Any, 
         content += _to_code(func) + "\n\n"
 
     return content
+
 
 def to_stub(func: Callable[..., Any]) -> str:
     """Generate a stub for a function as a string

@@ -14,5 +14,5 @@ __all__ = (
     "MarkdownCodeExtractor",
     "LocalCommandLineCodeExecutor",
     "DockerCommandLineCodeExecutor",
-    "to_stub"
+    "to_stub",
 )
