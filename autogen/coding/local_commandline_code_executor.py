@@ -3,8 +3,8 @@ from pathlib import Path
 import re
 import sys
 import warnings
-from typing import Any, Callable, ClassVar, List, Union
-
+from typing import Any, Callable, ClassVar, List, TypeVar, Union
+from typing_extensions import ParamSpec
 from autogen.coding.func_with_reqs import FunctionWithRequirements, build_python_functions_file
 
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
@@ -19,6 +19,8 @@ import logging
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
+A = ParamSpec("A")
+
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
@@ -29,7 +31,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
-        functions: List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]] = [],
+        functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]] = [],
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -74,7 +76,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             self._setup_functions_complete = True
 
     @property
-    def functions(self) -> List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]]:
+    def functions(self) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]:
         """(Experimental) The functions that are available to the code executor."""
         return self._functions
 

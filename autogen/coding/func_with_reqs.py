@@ -81,7 +81,7 @@ def with_requirements(
     return wrapper
 
 
-def build_python_functions_file(funcs: List[Union[FunctionWithRequirements[Any, ...], Callable[..., Any]]]) -> str:
+def build_python_functions_file(funcs: List[Union[FunctionWithRequirements[Any, P], Callable[..., Any]]]) -> str:
     # First collect all global imports
     global_imports = set()
     for func in funcs:
