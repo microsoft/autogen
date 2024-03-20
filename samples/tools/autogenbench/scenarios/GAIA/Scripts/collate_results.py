@@ -111,6 +111,10 @@ class Classify_log:
                 parsed_json = json.loads(joined)
                 return "NEXT_STEP", parsed_json
             except json.JSONDecodeError:
+                # check if it could be a new plan if previous one was also runtime error
+                if prev_validated_steps[-1][0] == "RUNTIME_ERROR":
+                    if any("We are working to address" in line for line in steps):
+                        return "FIRST_PLAN_RECOVER", {}
                 return "RUNTIME_ERROR", {}
         elif any("orchestrator (to " in line for line in steps):
             assert prev_validated_steps[-1][1] != {}, prev_validated_steps[-1]
@@ -129,6 +133,11 @@ class Classify_log:
                 return "EDUCATED_GUESS", {}
             return "FINAL_ANSWER", {}
         else:
+            if prev_validated_steps[-1][1] != {}:
+                if prev_validated_steps[-1][0] == "RESPONSE_FROM_AGENT":
+                    # append to previous entry
+                    prev_validated_steps[-1][2].extend(steps)
+                    return "IGNORE", {}
             return "NO_MATCH", {}
 
     @staticmethod
@@ -149,27 +158,26 @@ class Classify_log:
                 assert len(classified_steps) == 0
                 if match := Classify_log.find_string(step_split, "(to orchestrator)"):
                     match = match.split(" ")
-                    classified_steps.append(
-                        (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
-                    )
+                    parsed_dict = {"from": match[0], "to": match[2].split(")")[0]}
+                    assert len(step_split) >= 2, step_split
+                    if any("MLM Prompt" in line for line in step_split):
+                        current_step = "INIT_MLM"
+                    classified_steps.append((current_step, parsed_dict, step_split))
                     current_step = "FIRST_PLAN"
                 else:
-                    classified_steps.append(("NO_MATCH", {}, step_split))
-                    continue
-                assert len(step_split) >= 2, step_split
-                if any("MLM Prompt" in line for line in step_split):
-                    current_step = "INIT_MLM"
-                classified_steps.append((current_step, {}, step_split))
-                current_step = "FIRST_PLAN"
+                    classified_steps.append(("ERROR_INIT?", {}, step_split))
             elif current_step == "FIRST_PLAN":
                 stall_count = 0
-                if not any("We are working" in line for line in step_split):
-                    classified_steps.append(("NO_MATCH", {}, step_split))
-                    continue
-                classified_steps.append((current_step, {}, step_split))
-                current_step = "PROCESS_LINE"
+                if any("We are working" in line for line in step_split):
+                    classified_steps.append((current_step, {}, step_split))
+                    current_step = "PROCESS_LINE"
+                else:
+                    classified_steps.append(("ERROR_FIRST_PLAN?", {}, step_split))
             elif current_step == "PROCESS_LINE":
                 current_step, parsed = Classify_log.process_lines(step_split, prev_validated_steps=classified_steps)
+
+                if current_step == "IGNORE":
+                    continue
 
                 if parsed != {}:
                     # check for termination
