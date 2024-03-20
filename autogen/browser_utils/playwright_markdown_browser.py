@@ -8,7 +8,6 @@ from .requests_markdown_browser import RequestsMarkdownBrowser
 IS_PLAYWRIGHT_ENABLED = False
 try:
     from playwright.sync_api import sync_playwright
-    from playwright._impl._errors import TimeoutError
 
     IS_PLAYWRIGHT_ENABLED = True
 except ModuleNotFoundError:
