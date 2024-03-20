@@ -26,7 +26,7 @@ pip install vllm
 
 vLLM will download new models when you run the server.
 
-The models are sourced from [Hugging Face](huggingface.co), a filtered list of Text
+The models are sourced from [Hugging Face](https://huggingface.co), a filtered list of Text
 Generation models is [here](https://huggingface.co/models?pipeline_tag=text-generation&sort=trending)
 and vLLM has a list of [commonly used models](https://docs.vllm.ai/en/latest/models/supported_models.html).
 Use the full model name, e.g. `mistralai/Mistral-7B-Instruct-v0.2`.
