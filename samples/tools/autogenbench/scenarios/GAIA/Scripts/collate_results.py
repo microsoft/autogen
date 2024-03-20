@@ -132,6 +132,10 @@ class Classify_log:
                 if error := Classify_log.find_string(steps, "## Error "):
                     error = error.split(" ")
                     parsed_dict["html_error_code"] = error[-1]
+            elif "computer_terminal" in match[0]:
+                if error := Classify_log.find_string(steps, "exitcode: "):
+                    error = error.split(" ")
+                    parsed_dict["exit_code"] = error[1]
             return "RESPONSE_FROM_AGENT", parsed_dict
         elif any("FINAL ANSWER" in line for line in steps):
             if any("Making an educated guess" in line for line in steps):
