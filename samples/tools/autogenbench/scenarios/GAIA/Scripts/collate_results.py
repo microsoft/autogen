@@ -149,7 +149,9 @@ class Classify_log:
                 current_step = "FIRST_PLAN"
             elif current_step == "FIRST_PLAN":
                 stall_count = 0
-                assert any("We are working" in line for line in step_split), step_split
+                if not any("We are working" in line for line in step_split):
+                    classified_steps.append(("NO_MATCH", {}, step_split))
+                    continue
                 classified_steps.append((current_step, {}, step_split))
                 current_step = "PROCESS_LINE"
             elif current_step == "PROCESS_LINE":
