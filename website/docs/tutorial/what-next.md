@@ -36,6 +36,7 @@ our [Discord Server](https://discord.gg/pAbnFJrkgZ).
 
 ## Get Involved
 
+- Check out [Roadmap Issues](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap) to see what we are working on.
 - Contribute your work to our [gallery](../Gallery)
 - Follow our [contribution guide](../Contribute) to make a pull request to AutoGen
 - You can also share your work with the community on the Discord server.
