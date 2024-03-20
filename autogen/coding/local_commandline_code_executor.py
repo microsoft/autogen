@@ -1,11 +1,12 @@
 from hashlib import md5
 from pathlib import Path
 import re
+from string import Template
 import sys
 import warnings
-from typing import Any, Callable, ClassVar, List, TypeVar, Union
+from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
 from typing_extensions import ParamSpec
-from autogen.coding.func_with_reqs import FunctionWithRequirements, build_python_functions_file
+from autogen.coding.func_with_reqs import FunctionWithRequirements, build_python_functions_file, to_stub
 
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
@@ -26,6 +27,13 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
     FUNCTIONS_MODULE: ClassVar[str] = "functions"
     FUNCTIONS_FILENAME: ClassVar[str] = "functions.py"
+    FUNCTION_PROMPT_TEMPLATE: ClassVar[
+        str
+    ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
+
+For example, if there was a function called `foo` you could import it by writing `from $module_name import foo`
+
+$functions"""
 
     def __init__(
         self,
@@ -54,6 +62,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
+            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         """
 
         if timeout < 1:
@@ -74,6 +83,26 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             self._setup_functions_complete = False
         else:
             self._setup_functions_complete = True
+
+    def format_functions_for_prompt(self, prompt_template: str=FUNCTION_PROMPT_TEMPLATE) -> str:
+        """(Experimental) Format the functions for a prompt.
+
+        The template includes two variables:
+        - `$module_name`: The module name.
+        - `$functions`: The functions formatted as stubs with two newlines between each function.
+
+        Args:
+            prompt_template (str): The prompt template. Default is the class default.
+
+        Returns:
+            str: The formatted prompt.
+        """
+
+        template = Template(prompt_template)
+        return template.substitute(
+            module_name=self.FUNCTIONS_MODULE,
+            functions="\n\n".join([to_stub(func) for func in self._functions]),
+        )
 
     @property
     def functions(self) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]:

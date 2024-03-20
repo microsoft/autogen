@@ -120,3 +120,17 @@ function_incorrect_dep()"""
                     CodeBlock(language="python", code=code),
                 ]
             )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_formatted_prompt(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
+
+        result = executor.format_functions_for_prompt()
+        assert (
+            '''def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+'''
+            in result
+        )
