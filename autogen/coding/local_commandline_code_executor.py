@@ -99,7 +99,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 if re.search(pattern, code):
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
-    def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
+    def execute_code_blocks(self, code_blocks: List[CodeBlock], max_output_length: Optional[int] = None) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
@@ -160,9 +160,12 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             if exitcode != 0:
                 break
 
+        if max_output_length is not None:
+            logs_all = logs_all[-max_output_length:]
+
         code_file = str(file_names[0]) if len(file_names) > 0 else None
-        
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file, max_output_length=2000)
+
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
