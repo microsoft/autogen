@@ -186,7 +186,8 @@ class Classify_log:
                             stall_count += 1
                         stall_count = max(0, stall_count)
                     parsed["stall_count"] = stall_count
-                    step_split = None
+                    if "NEXT_STEP" in current_step:
+                        step_split = None
 
                 classified_steps.append((current_step, parsed, step_split))
                 if "NEXT_STEP" in current_step:
