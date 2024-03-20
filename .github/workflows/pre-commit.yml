@@ -18,6 +18,8 @@ jobs:
 
   pre-commit-check:
     runs-on: ubuntu-latest
+    env:
+      SKIP: "mypy"
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4

@@ -24,6 +24,11 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+## Roadmaps
+
+To see what we are working on and what we plan to work on, please check our
+[Roadmap Issues](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap).
+
 ## How to make a good bug report
 
 When you submit an issue to [GitHub](https://github.com/microsoft/autogen/issues), please do your best to

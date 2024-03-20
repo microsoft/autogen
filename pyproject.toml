@@ -62,6 +62,13 @@ max-complexity = 10
 
 [tool.mypy]
 
+files = [
+    "autogen/logger",
+    "autogen/exception_utils.py",
+    "autogen/coding",
+    "autogen/oai/openai_utils.py",
+]
+
 strict = true
 python_version = "3.8"
 ignore_missing_imports = true
