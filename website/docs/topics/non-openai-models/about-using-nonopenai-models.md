@@ -36,7 +36,7 @@ are provided below:
 
 
 ### Locally run proxy servers
-An increasing number of LLM proxy servers are available for use locally. These can be 
+An increasing number of LLM proxy servers are available for use locally. These can be
 open-source (e.g., LiteLLM, Ollama, vLLM) or closed-source (e.g., LM Studio), and are
 typically used for running the full-stack within your environment.
 

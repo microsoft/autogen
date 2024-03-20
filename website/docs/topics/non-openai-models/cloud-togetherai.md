@@ -155,7 +155,7 @@ This implementation uses a loop to calculate the Fibonacci number iteratively, w
 UserProxy (to chat_manager):
 
 exitcode: 0 (execution succeeded)
-Code output: 
+Code output:
 
 
 --------------------------------------------------------------------------------

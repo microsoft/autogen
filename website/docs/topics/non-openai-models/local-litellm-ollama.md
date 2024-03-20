@@ -58,7 +58,7 @@ ollama list
 ````mdx-code-block
 :::tip
 Ollama enables the use of GGUF model files, available readily on Hugging Face. See Ollama`s [GitHub repository](https://github.com/ollama/ollama)
-for examples. 
+for examples.
 :::
 ````
 
@@ -209,17 +209,17 @@ local_llm_config={
 # to help guide the model
 chatbot = autogen.AssistantAgent(
     name="chatbot",
-    system_message="""For currency exchange tasks, 
-        only use the functions you have been provided with. 
-        Output 'TERMINATE' when an answer has been provided. 
+    system_message="""For currency exchange tasks,
+        only use the functions you have been provided with.
+        Output 'TERMINATE' when an answer has been provided.
         Do not include the function name or result in the JSON.
-        Example of the return JSON is: 
+        Example of the return JSON is:
         {
             "parameter_1_name": 100.00,
             "parameter_2_name": "ABC",
             "parameter_3_name": "DEF",
-        }. 
-        Another example of the return JSON is: 
+        }.
+        Another example of the return JSON is:
         {
             "parameter_1_name": "GHI",
             "parameter_2_name": "ABC",
@@ -281,7 +281,7 @@ How much is 123.45 EUR in USD?
 chatbot (to user_proxy):
 
 ***** Suggested tool Call (call_c93c4390-93d5-4a28-b40d-09fe74cc58da): currency_calculator *****
-Arguments: 
+Arguments:
 {
   "base_amount": 123.45,
   "base_currency": "EUR",
@@ -306,7 +306,7 @@ user_proxy (to chatbot):
 chatbot (to user_proxy):
 
 ***** Suggested tool Call (call_d8fd94de-5286-4ef6-b1f6-72c826531ff9): currency_calculator *****
-Arguments: 
+Arguments:
 {
   "base_amount": 123.45,
   "base_currency": "EUR",
