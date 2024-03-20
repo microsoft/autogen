@@ -145,7 +145,9 @@ class Classify_log:
 
             if current_step == "INIT":
                 assert len(classified_steps) == 0
-                assert any("powershell" in line for line in step_split), step_split
+                if not any("powershell" in line for line in step_split):
+                    classified_steps.append(("NO_MATCH", {}, step_split))
+                    continue
                 assert len(step_split) >= 3, step_split
                 if any("MLM Prompt" in line for line in step_split):
                     current_step = "MLM_INIT"
