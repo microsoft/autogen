@@ -212,7 +212,7 @@ const WorkflowView = ({}: any) => {
         },
       ];
       return (
-        <div
+        <li
           key={"workflowrow" + i}
           className="block   h-full"
           style={{ width: "200px" }}
@@ -228,16 +228,25 @@ const WorkflowView = ({}: any) => {
                 setSelectedWorkflow(workflow);
               }}
             >
-              <div style={{ minHeight: "65px" }} className="break-words  my-2">
+              <div
+                style={{ minHeight: "65px" }}
+                className="break-words  my-2"
+                aria-hidden="true"
+              >
                 {" "}
                 {truncateText(workflow.description, 70)}
               </div>
-              <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
+              <div
+                className="text-xs"
+                aria-label={`Last updated ${timeAgo(workflow.timestamp || "")}`}
+              >
+                {timeAgo(workflow.timestamp || "")}
+              </div>
 
               <CardHoverBar items={cardItems} />
             </Card>
           </div>
-        </div>
+        </li>
       );
     }
   );
@@ -418,7 +427,7 @@ const WorkflowView = ({}: any) => {
               className="w-full relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="flex flex-wrap gap-3">{workflowRows}</div>
+              <ul className="flex flex-wrap gap-3">{workflowRows}</ul>
             </div>
           )}
           {workflows && workflows.length === 0 && !loading && (

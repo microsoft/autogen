@@ -198,27 +198,32 @@ const SkillsView = ({}: any) => {
       },
     ];
     return (
-      <div key={"skillrow" + i} className=" " style={{ width: "200px" }}>
-        <div>
-          {" "}
-          <Card
-            className="h-full p-2 cursor-pointer group"
-            title={truncateText(skill.title, 25)}
-            onClick={() => {
-              setSelectedSkill(skill);
-              setShowSkillModal(true);
-            }}
+      <li key={"skillrow" + i} className=" " style={{ width: "200px" }}>
+        <Card
+          className="h-full p-2 cursor-pointer group"
+          title={truncateText(skill.title, 25)}
+          onClick={() => {
+            setSelectedSkill(skill);
+            setShowSkillModal(true);
+          }}
+        >
+          <div
+            style={{ minHeight: "65px" }}
+            className="my-2   break-words"
+            aria-hidden="true"
           >
-            <div style={{ minHeight: "65px" }} className="my-2   break-words">
-              {" "}
-              {truncateText(skill.content, 70)}
-            </div>
-            <div className="text-xs">{timeAgo(skill.timestamp || "")}</div>
-            <CardHoverBar items={cardItems} />
-          </Card>
-          <div className="text-right mt-2"></div>
-        </div>
-      </div>
+            {" "}
+            {truncateText(skill.content, 70)}
+          </div>
+          <div
+            className="text-xs"
+            aria-label={`Last updated ${timeAgo(skill.timestamp || "")}`}
+          >
+            {timeAgo(skill.timestamp || "")}
+          </div>
+          <CardHoverBar items={cardItems} />
+        </Card>
+      </li>
     );
   });
 
@@ -423,7 +428,7 @@ const SkillsView = ({}: any) => {
               className="w-full  relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="   flex flex-wrap gap-3">{skillRows}</div>
+              <ul className="   flex flex-wrap gap-3">{skillRows}</ul>
             </div>
           )}
 
