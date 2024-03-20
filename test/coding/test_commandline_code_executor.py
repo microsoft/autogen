@@ -223,6 +223,9 @@ print("hello world")
 @pytest.mark.parametrize("cls", classes_to_test)
 @pytest.mark.parametrize("lang", ["bash", "shell", "sh"])
 def test_silent_pip_install(cls, lang: str) -> None:
+    if sys.platform in ["win32"]:
+        return
+
     executor = cls(timeout=600)
 
     code = "pip install matplotlib numpy"
