@@ -107,7 +107,11 @@ class Classify_log:
                 return "RESET", {}
             # get actual json object of next_step
             joined = "\n".join(steps[1:])
-            return "NEXT_STEP", json.loads(joined)
+            try:
+                parsed_json = json.loads(joined)
+                return "NEXT_STEP", parsed_json
+            except json.JSONDecodeError:
+                return "RUNTIME_ERROR", {}
         elif any("orchestrator (to " in line for line in steps):
             assert prev_validated_steps[-1][1] != {}, prev_validated_steps[-1]
             assert "next_speaker" in prev_validated_steps[-1][1], (steps, prev_validated_steps[-1][1])
@@ -177,7 +181,14 @@ class Classify_log:
                 if "NEXT_STEP" in current_step:
                     current_step = "NEXT_STEP"
                 if current_step == "RESET":
-                    assert stall_count == 3, f"stall_count: {stall_count}"
+                    if stall_count != 3:
+                        classified_steps.append(
+                            (
+                                "STALL_COUNT_MISMATCH?",
+                                {"desc": f"stall_count should be 3 but its {stall_count}"},
+                                step_split,
+                            )
+                        )
                     current_step = "FIRST_PLAN"
                 else:
                     current_step = "PROCESS_LINE"
