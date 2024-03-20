@@ -84,7 +84,7 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
-    def format_functions_for_prompt(self, prompt_template: str=FUNCTION_PROMPT_TEMPLATE) -> str:
+    def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
 
         The template includes two variables:
