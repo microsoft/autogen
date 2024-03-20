@@ -48,6 +48,11 @@
         },
         {
           type: 'doc',
+          id: 'tutorial/tool-use',
+          label: 'Tool Use',
+        },
+        {
+          type: 'doc',
           id: 'tutorial/conversation-patterns',
           label: 'Conversation Patterns',
         },
