@@ -32,7 +32,7 @@ authentication which is usually handled through an API key.
 Examples of using cloud-based proxy servers providers that have an OpenAI-compatible API
 are provided below:
 
-- [together.ai example](cloud-togetherai)
+- [together.ai example](./cloud-togetherai)
 
 
 ### Locally run proxy servers
@@ -46,9 +46,9 @@ OpenAI-compatible API, running them in AutoGen is straightforward.
 Examples of using locally run proxy servers that have an OpenAI-compatible API are
 provided below:
 
-- [LiteLLM with Ollama example](local-litellm-ollama)
-- [LM Studio](local-lm-studio)
-- [vLLM example](local-vllm)
+- [LiteLLM with Ollama example](./local-litellm-ollama)
+- [LM Studio](./local-lm-studio)
+- [vLLM example](./local-vllm)
 
 ````mdx-code-block
 :::tip
