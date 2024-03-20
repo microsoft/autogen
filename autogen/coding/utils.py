@@ -25,7 +25,7 @@ def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str
 
 def silence_pip(code: str, lang: str) -> str:
     """Apply -qqq flag to pip install commands."""
-    if lang == "jupyter":
+    if lang == "python":
         regex = r"^! ?pip install"
     elif lang in ["bash", "shell", "sh", "pwsh", "powershell", "ps1"]:
         regex = r"^pip install"
