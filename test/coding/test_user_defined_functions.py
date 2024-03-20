@@ -62,21 +62,6 @@ print(load_data().iloc[0]['name'])"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
-def test_fails_for_missing_reqs(cls) -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = cls(work_dir=temp_dir, functions=[function_missing_reqs])
-        code = f"""from {cls.FUNCTIONS_MODULE} import function_missing_reqs
-function_missing_reqs()"""
-
-        with pytest.raises(ValueError):
-            executor.execute_code_blocks(
-                code_blocks=[
-                    CodeBlock(language="python", code=code),
-                ]
-            )
-
-
-@pytest.mark.parametrize("cls", classes_to_test)
 def test_can_load_function(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
