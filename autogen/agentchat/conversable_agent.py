@@ -277,6 +277,7 @@ class ConversableAgent(LLMAgent):
         reset_config: Optional[Callable] = None,
         *,
         ignore_async_in_sync_chat: bool = False,
+        remove_other_reply_funcs: bool = False,
     ):
         """Register a reply function.
 
@@ -302,20 +303,15 @@ class ConversableAgent(LLMAgent):
                     Note: Be sure to register `None` as a trigger if you would like to trigger an auto-reply function with non-empty messages and `sender=None`.
             reply_func (Callable): the reply function.
                 The function takes a recipient agent, a list of messages, a sender agent and a config as input and returns a reply message.
-            position: the position of the reply function in the reply function list.
-            config: the config to be passed to the reply function, see below.
-            reset_config: the function to reset the config, see below.
-            ignore_async_in_sync_chat: whether to ignore the async reply function in sync chats. If `False`, an exception
-                will be raised if an async reply function is registered and a chat is initialized with a sync
-                function.
-        ```python
-        def reply_func(
-            recipient: ConversableAgent,
-            messages: Optional[List[Dict]] = None,
-            sender: Optional[Agent] = None,
-            config: Optional[Any] = None,
-        ) -> Tuple[bool, Union[str, Dict, None]]:
-        ```
+
+                ```python
+                def reply_func(
+                    recipient: ConversableAgent,
+                    messages: Optional[List[Dict]] = None,
+                    sender: Optional[Agent] = None,
+                    config: Optional[Any] = None,
+                ) -> Tuple[bool, Union[str, Dict, None]]:
+                ```
             position (int): the position of the reply function in the reply function list.
                 The function registered later will be checked earlier by default.
                 To change the order, set the position to a positive integer.
@@ -323,9 +319,15 @@ class ConversableAgent(LLMAgent):
                 When an agent is reset, the config will be reset to the original value.
             reset_config (Callable): the function to reset the config.
                 The function returns None. Signature: ```def reset_config(config: Any)```
+            ignore_async_in_sync_chat (bool): whether to ignore the async reply function in sync chats. If `False`, an exception
+                will be raised if an async reply function is registered and a chat is initialized with a sync
+                function.
+            remove_other_reply_funcs (bool): whether to remove other reply functions when registering this reply function.
         """
         if not isinstance(trigger, (type, str, Agent, Callable, list)):
             raise ValueError("trigger must be a class, a string, an agent, a callable or a list.")
+        if remove_other_reply_funcs:
+            self._reply_func_list.clear()
         self._reply_func_list.insert(
             position,
             {
@@ -337,6 +339,17 @@ class ConversableAgent(LLMAgent):
                 "ignore_async_in_sync_chat": ignore_async_in_sync_chat and inspect.iscoroutinefunction(reply_func),
             },
         )
+
+    def replace_reply_func(self, old_reply_func: Callable, new_reply_func: Callable):
+        """Replace a registered reply function with a new one.
+
+        Args:
+            old_reply_func (Callable): the old reply function to be replaced.
+            new_reply_func (Callable): the new reply function to replace the old one.
+        """
+        for f in self._reply_func_list:
+            if f["reply_func"] == old_reply_func:
+                f["reply_func"] = new_reply_func
 
     @staticmethod
     def _summary_from_nested_chats(
@@ -839,7 +852,7 @@ class ConversableAgent(LLMAgent):
         }
 
         async_reply_functions = [f for f in reply_functions if inspect.iscoroutinefunction(f)]
-        if async_reply_functions != []:
+        if async_reply_functions:
             msg = (
                 "Async reply functions can only be used with ConversableAgent.a_initiate_chat(). The following async reply functions are found: "
                 + ", ".join([f.__name__ for f in async_reply_functions])

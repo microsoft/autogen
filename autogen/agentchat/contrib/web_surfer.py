@@ -79,8 +79,7 @@ class WebSurferAgent(ConversableAgent):
         if inner_llm_config not in [None, False]:
             self._register_functions()
 
-        self._reply_func_list = []
-        self.register_reply([Agent, None], WebSurferAgent.generate_surfer_reply)
+        self.register_reply([Agent, None], WebSurferAgent.generate_surfer_reply, remove_other_reply_funcs=True)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
