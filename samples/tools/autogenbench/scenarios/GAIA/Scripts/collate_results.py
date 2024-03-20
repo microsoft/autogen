@@ -117,10 +117,10 @@ class Classify_log:
                 return "DELEGATE_TO_AGENT_MISMATCH", {}
 
             match = Classify_log.find_string(steps, "orchestrator (to").split(" ")
-            return "DELEGATE_TO_AGENT", {"from": match[0], "to": match[2]}
+            return "DELEGATE_TO_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
         elif any("(to orchestrator)" in line for line in steps):
             match = Classify_log.find_string(steps, "(to orchestrator)").split(" ")
-            return "RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2]}
+            return "RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
         elif any("FINAL ANSWER" in line for line in steps):
             return "FINAL_ANSWER", {}
         else:
@@ -153,8 +153,8 @@ class Classify_log:
                 classified_steps.append((current_step, {}, step_split))
                 current_step = "PROCESS_LINE"
             elif current_step == "PROCESS_LINE":
-                # assert any("next_speaker" in line for line in step), step
                 current_step, parsed = Classify_log.process_lines(step_split, prev_validated_steps=classified_steps)
+
                 if parsed != {}:
                     # check for termination
                     if "is_request_satisfied" in parsed:
@@ -170,7 +170,7 @@ class Classify_log:
                             stall_count += 1
                         stall_count = max(0, stall_count)
                     parsed["stall_count"] = stall_count
-                    # next
+
                 classified_steps.append((current_step, parsed, step_split))
                 if "NEXT_STEP" in current_step:
                     current_step = "NEXT_STEP"
