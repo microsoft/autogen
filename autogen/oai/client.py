@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import inspect
 import logging
 import os
@@ -14,10 +15,8 @@ from autogen._pydantic import model_dump
 from autogen.cache.cache import Cache
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai import completion
-from autogen.oai.openai_utils import (DEFAULT_AZURE_API_VERSION, OAI_PRICE1K,
-                                      get_key, is_valid_api_key)
-from autogen.runtime_logging import (log_chat_completion, log_new_client,
-                                     log_new_wrapper, logging_enabled)
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -33,11 +32,12 @@ else:
     from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
-    from openai.types.chat.chat_completion import (  # type: ignore [attr-defined]
-        ChatCompletionMessage, Choice)
+    from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
-        ChoiceDeltaFunctionCall, ChoiceDeltaToolCall,
-        ChoiceDeltaToolCallFunction)
+        ChoiceDeltaFunctionCall,
+        ChoiceDeltaToolCall,
+        ChoiceDeltaToolCallFunction,
+    )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
 
