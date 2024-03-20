@@ -127,7 +127,12 @@ class Classify_log:
             return "DELEGATE_TO_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
         elif any("(to orchestrator)" in line for line in steps):
             match = Classify_log.find_string(steps, "(to orchestrator)").split(" ")
-            return "RESPONSE_FROM_AGENT", {"from": match[0], "to": match[2].split(")")[0]}
+            parsed_dict = {"from": match[0], "to": match[2].split(")")[0]}
+            if "web_surfer" in match[0]:
+                if error := Classify_log.find_string(steps, "## Error "):
+                    error = error.split(" ")
+                    parsed_dict["html_error_code"] = error[-1]
+            return "RESPONSE_FROM_AGENT", parsed_dict
         elif any("FINAL ANSWER" in line for line in steps):
             if any("Making an educated guess" in line for line in steps):
                 # get index of that string in list of string
