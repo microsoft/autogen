@@ -15,7 +15,7 @@ and a code reviewer, who are given a coding task.
 
 Start by [installing AutoGen](/docs/installation/) and getting your [together.ai API key](https://api.together.xyz/settings/profile).
 
-Put your togther.ai API key in an environment variable, TOGETHER_API_KEY.
+Put your together.ai API key in an environment variable, TOGETHER_API_KEY.
 
 Linux / Mac OSX:
 
