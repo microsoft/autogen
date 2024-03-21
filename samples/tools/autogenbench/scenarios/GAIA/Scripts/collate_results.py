@@ -6,11 +6,14 @@ import argparse
 
 
 def normalize_answer(a):
+    # Lower case
     # Trim (left and right)
+    # standardize comma separated values
     # Replace multiple spaces with one space
     # Remove trailing punctuation
-    # Trim again
-    return re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", a.strip())).strip()
+    norm_answer = ", ".join(a.strip().split(","))
+    norm_answer = re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", norm_answer))
+    return norm_answer.lower()
 
 
 def collate(results_dir):
@@ -75,8 +78,7 @@ def collate(results_dir):
                         "model_answer": final_answer,
                         "expected_answer": expected_answer,
                         "reasoning_trace": steps,
-                    },
-                    indent=4,
+                    }
                 )
             )
 
