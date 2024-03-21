@@ -173,7 +173,7 @@ class AgentOptimizer:
         max_actions_per_step: int,
         config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
         config_file_location: Optional[str] = "",
-        optimizer_model="gpt-4-1106",
+        optimizer_model: Optional[str] = "gpt-4-1106",
     ):
         """
         (These APIs are experimental and may change in the future.)
