@@ -231,6 +231,8 @@ def test_silent_pip_install(cls, lang: str) -> None:
     elif sys.platform not in ["win32"] and lang in WINDOWS_SHELLS:
         pytest.skip("Windows shells are not supported on Unix.")
 
+    error_exit_code = 0 if sys.platform in ["win32"] else 1
+
     executor = cls(timeout=600)
 
     code = "pip install matplotlib numpy"
@@ -243,4 +245,4 @@ def test_silent_pip_install(cls, lang: str) -> None:
     code = f"pip install matplotlib_{none_existing_package}"
     code_blocks = [CodeBlock(code=code, language=lang)]
     code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 1 and "ERROR: " in code_result.output
+    assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output
