@@ -88,6 +88,10 @@ AutoGen Studio also takes a `--host <host>` argument to specify the host address
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
+### One-Click Deployment
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploy.png)](https://repocloud.io/details/?app_id=257)
+
 ## Capabilities
 
 AutoGen Studio proposes some high-level concepts.
