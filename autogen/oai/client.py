@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import inspect
 import logging
 import os
@@ -432,8 +431,6 @@ class OpenAIWrapper:
                 self._clients.append(OpenAIClient(client))
             elif api_type is not None and api_type.startswith("google"):
                 self._clients.append(GeminiClient(**openai_config))
-                client = AzureOpenAI(**openai_config)
-                self._clients.append(OpenAIClient(client))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
