@@ -2,15 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-from time import sleep
 from types import TracebackType
 import uuid
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Type, Union
 import docker
 import secrets
 import io
 import atexit
 import logging
+
+from ..docker_commandline_code_executor import _wait_for_ready
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -20,17 +21,6 @@ else:
 
 from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
-
-
-def _wait_for_ready(container: docker.Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
-    while container.status != "running" and elapsed_time < timeout:
-        sleep(stop_time)
-        elapsed_time += stop_time
-        container.reload()
-        continue
-    if container.status != "running":
-        raise ValueError("Container failed to start")
 
 
 class DockerJupyterServer(JupyterConnectable):
@@ -133,7 +123,7 @@ WORKDIR "${HOME}"
         self._port = int(container_ports["8888/tcp"][0]["HostPort"])
         self._container_id = container.id
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 inner_container = client.containers.get(container.id)
                 inner_container.stop()
@@ -152,7 +142,7 @@ WORKDIR "${HOME}"
     def connection_info(self) -> JupyterConnectionInfo:
         return JupyterConnectionInfo(host="127.0.0.1", use_https=False, port=self._port, token=self._token)
 
-    def stop(self):
+    def stop(self) -> None:
         self._cleanup_func()
 
     def get_client(self) -> JupyterClient:
@@ -162,6 +152,6 @@ WORKDIR "${HOME}"
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()

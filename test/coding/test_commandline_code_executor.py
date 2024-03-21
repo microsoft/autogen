@@ -1,37 +1,65 @@
+from pathlib import Path
 import sys
 import tempfile
+import uuid
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
+from autogen.code_utils import is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
-from autogen.coding.local_commandline_code_executor import LocalCommandlineCodeExecutor
-from autogen.oai.openai_utils import config_list_from_json
+from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
+from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
+from conftest import MOCK_OPEN_AI_API_KEY, skip_docker
+
+if skip_docker or not is_docker_running():
+    classes_to_test = [LocalCommandLineCodeExecutor]
+else:
+    classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
+
+UNIX_SHELLS = ["bash", "sh", "shell"]
+WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
 
 
-def test_create() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_is_code_executor(cls) -> None:
+    assert isinstance(cls, CodeExecutor)
+
+
+def test_create_local() -> None:
     config = {"executor": "commandline-local"}
     executor = CodeExecutorFactory.create(config)
-    assert isinstance(executor, LocalCommandlineCodeExecutor)
+    assert isinstance(executor, LocalCommandLineCodeExecutor)
 
-    config = {"executor": LocalCommandlineCodeExecutor()}
+    config = {"executor": LocalCommandLineCodeExecutor()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
 
 
-def test_local_commandline_executor_init() -> None:
-    executor = LocalCommandlineCodeExecutor(timeout=10, work_dir=".")
-    assert executor.timeout == 10 and executor.work_dir == "."
+@pytest.mark.skipif(
+    skip_docker or not is_docker_running(),
+    reason="docker is not running or requested to skip docker tests",
+)
+def test_create_docker() -> None:
+    config = {"executor": DockerCommandLineCodeExecutor()}
+    executor = CodeExecutorFactory.create(config)
+    assert executor is config["executor"]
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_init(cls) -> None:
+    executor = cls(timeout=10, work_dir=".")
+    assert executor.timeout == 10 and str(executor.work_dir) == "."
 
     # Try invalid working directory.
     with pytest.raises(ValueError, match="Working directory .* does not exist."):
-        executor = LocalCommandlineCodeExecutor(timeout=111, work_dir="/invalid/directory")
+        executor = cls(timeout=111, work_dir="/invalid/directory")
 
 
-def test_local_commandline_executor_execute_code() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_execute_code(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = cls(work_dir=temp_dir)
         _test_execute_code(executor=executor)
 
 
@@ -78,10 +106,10 @@ def _test_execute_code(executor: CodeExecutor) -> None:
             assert file_line.strip() == code_line.strip()
 
 
-@pytest.mark.skipif(sys.platform in ["win32"], reason="do not run on windows")
-def test_local_commandline_code_executor_timeout() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_code_executor_timeout(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(timeout=1, work_dir=temp_dir)
+        executor = cls(timeout=1, work_dir=temp_dir)
         _test_timeout(executor)
 
 
@@ -92,8 +120,22 @@ def _test_timeout(executor: CodeExecutor) -> None:
 
 
 def test_local_commandline_code_executor_restart() -> None:
-    executor = LocalCommandlineCodeExecutor()
+    executor = LocalCommandLineCodeExecutor()
     _test_restart(executor)
+
+
+# This is kind of hard to test because each exec is a new env
+@pytest.mark.skipif(
+    skip_docker or not is_docker_running(),
+    reason="docker is not running or requested to skip docker tests",
+)
+def test_docker_commandline_code_executor_restart() -> None:
+    with DockerCommandLineCodeExecutor() as executor:
+        result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
+        assert result.exit_code == 0
+        executor.restart()
+        result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
+        assert result.exit_code == 0
 
 
 def _test_restart(executor: CodeExecutor) -> None:
@@ -102,55 +144,10 @@ def _test_restart(executor: CodeExecutor) -> None:
         executor.restart()
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
-def test_local_commandline_executor_conversable_agent_capability() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_commandline_executor_conversable_agent_code_execution(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
-        _test_conversable_agent_capability(executor=executor)
-
-
-def _test_conversable_agent_capability(executor: CodeExecutor) -> None:
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    config_list = config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-            },
-        },
-    )
-    llm_config = {"config_list": config_list}
-    agent = ConversableAgent(
-        "coding_agent",
-        llm_config=llm_config,
-        code_execution_config=False,
-    )
-    executor.user_capability.add_to_agent(agent)
-
-    # Test updated system prompt.
-    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
-
-    # Test code generation.
-    reply = agent.generate_reply(
-        [{"role": "user", "content": "write a python script to print 'hello world' to the console"}],
-        sender=ConversableAgent(name="user", llm_config=False, code_execution_config=False),
-    )
-
-    # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    # Test code execution.
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower().replace(",", "")
-
-
-def test_local_commandline_executor_conversable_agent_code_execution() -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandlineCodeExecutor(work_dir=temp_dir)
+        executor = cls(work_dir=temp_dir)
         with pytest.MonkeyPatch.context() as mp:
             mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
             _test_conversable_agent_code_execution(executor)
@@ -192,7 +189,63 @@ def _test_conversable_agent_code_execution(executor: CodeExecutor) -> None:
 )
 def test_dangerous_commands(lang, code, expected_message):
     with pytest.raises(ValueError) as exc_info:
-        LocalCommandlineCodeExecutor.sanitize_command(lang, code)
+        LocalCommandLineCodeExecutor.sanitize_command(lang, code)
     assert expected_message in str(
         exc_info.value
     ), f"Expected message '{expected_message}' not found in '{str(exc_info.value)}'"
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_invalid_relative_path(cls) -> None:
+    executor = cls()
+    code = """# filename: /tmp/test.py
+
+print("hello world")
+"""
+    result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
+    assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_valid_relative_path(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = Path(temp_dir)
+        executor = cls(work_dir=temp_dir)
+        code = """# filename: test.py
+
+print("hello world")
+"""
+        result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
+        assert result.exit_code == 0
+        assert "hello world" in result.output
+        assert "test.py" in result.code_file
+        assert (temp_dir / "test.py").resolve() == Path(result.code_file).resolve()
+        assert (temp_dir / "test.py").exists()
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.parametrize("lang", WINDOWS_SHELLS + UNIX_SHELLS)
+def test_silent_pip_install(cls, lang: str) -> None:
+    # Ensure that the shell is supported.
+    lang = "ps1" if lang in ["powershell", "pwsh"] else lang
+
+    if sys.platform in ["win32"] and lang in UNIX_SHELLS:
+        pytest.skip("Linux shells are not supported on Windows.")
+    elif sys.platform not in ["win32"] and lang in WINDOWS_SHELLS:
+        pytest.skip("Windows shells are not supported on Unix.")
+
+    error_exit_code = 0 if sys.platform in ["win32"] else 1
+
+    executor = cls(timeout=600)
+
+    code = "pip install matplotlib numpy"
+    code_blocks = [CodeBlock(code=code, language=lang)]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    none_existing_package = uuid.uuid4().hex
+
+    code = f"pip install matplotlib_{none_existing_package}"
+    code_blocks = [CodeBlock(code=code, language=lang)]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output

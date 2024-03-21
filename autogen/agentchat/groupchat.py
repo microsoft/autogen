@@ -3,25 +3,17 @@ import random
 import re
 import sys
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
+from autogen.agentchat.agent import Agent
+from autogen.agentchat.conversable_agent import ConversableAgent
 
 from ..code_utils import content_str
-from ..exception_utils import AgentNameConflict
-from .agent import Agent
-from .conversable_agent import ConversableAgent
-from ..runtime_logging import logging_enabled, log_new_agent
+from ..exception_utils import AgentNameConflict, NoEligibleSpeaker, UndefinedNextAgent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
+from ..runtime_logging import log_new_agent, logging_enabled
 
 logger = logging.getLogger(__name__)
-
-
-class NoEligibleSpeakerException(Exception):
-    """Exception raised for early termination of a GroupChat."""
-
-    def __init__(self, message="No eligible speakers."):
-        self.message = message
-        super().__init__(self.message)
 
 
 @dataclass
@@ -42,7 +34,16 @@ class GroupChat:
         - "manual": the next speaker is selected manually by user input.
         - "random": the next speaker is selected randomly.
         - "round_robin": the next speaker is selected in a round robin fashion, i.e., iterating in the same order as provided in `agents`.
-
+        - a customized speaker selection function (Callable): the function will be called to select the next speaker.
+            The function should take the last speaker and the group chat as input and return one of the following:
+                1. an `Agent` class, it must be one of the agents in the group chat.
+                2. a string from ['auto', 'manual', 'random', 'round_robin'] to select a default method to use.
+                3. None, which would terminate the conversation gracefully.
+            ```python
+            def custom_speaker_selection_func(
+                last_speaker: Agent, groupchat: GroupChat
+            ) -> Union[Agent, str, None]:
+            ```
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
@@ -67,15 +68,20 @@ class GroupChat:
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
-    speaker_selection_method: Optional[str] = "auto"
+    speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
-    speaker_transitions_type: Optional[str] = None
+    speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
-    send_introductions: Optional[bool] = False
+    send_introductions: bool = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
+
+    # Define a class attribute for the default introduction message
+    DEFAULT_INTRO_MSG = (
+        "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
+    )
 
     allowed_speaker_transitions_dict: Dict = field(init=False)
 
@@ -203,6 +209,10 @@ class GroupChat:
         if agents is None:
             agents = self.agents
 
+        # Ensure the provided list of agents is a subset of self.agents
+        if not set(agents).issubset(set(self.agents)):
+            raise UndefinedNextAgent()
+
         # What index is the agent? (-1 if not present)
         idx = self.agent_names.index(agent.name) if agent.name in self.agent_names else -1
 
@@ -214,6 +224,9 @@ class GroupChat:
             for i in range(len(self.agents)):
                 if self.agents[(offset + i) % len(self.agents)] in agents:
                     return self.agents[(offset + i) % len(self.agents)]
+
+        # Explicitly handle cases where no valid next agent exists in the provided subset.
+        raise UndefinedNextAgent()
 
     def select_speaker_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
@@ -236,10 +249,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         if agents is None:
             agents = self.agents
 
-        return f"""Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:
+        # Use the class attribute instead of a hardcoded string
+        intro_msg = self.DEFAULT_INTRO_MSG
+        participant_roles = self._participant_roles(agents)
 
-{self._participant_roles(agents)}
-"""
+        return f"{intro_msg}\n\n{participant_roles}"
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
@@ -277,11 +291,34 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         return random.choice(agents)
 
     def _prepare_and_select_agents(
-        self, last_speaker: Agent
+        self,
+        last_speaker: Agent,
     ) -> Tuple[Optional[Agent], List[Agent], Optional[List[Dict]]]:
-        if self.speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
+        # If self.speaker_selection_method is a callable, call it to get the next speaker.
+        # If self.speaker_selection_method is a string, return it.
+        speaker_selection_method = self.speaker_selection_method
+        if isinstance(self.speaker_selection_method, Callable):
+            selected_agent = self.speaker_selection_method(last_speaker, self)
+            if selected_agent is None:
+                raise NoEligibleSpeaker("Custom speaker selection function returned None. Terminating conversation.")
+            elif isinstance(selected_agent, Agent):
+                if selected_agent in self.agents:
+                    return selected_agent, self.agents, None
+                else:
+                    raise ValueError(
+                        f"Custom speaker selection function returned an agent {selected_agent.name} not in the group chat."
+                    )
+            elif isinstance(selected_agent, str):
+                # If returned a string, assume it is a speaker selection method
+                speaker_selection_method = selected_agent
+            else:
+                raise ValueError(
+                    f"Custom speaker selection function returned an object of type {type(selected_agent)} instead of Agent or str."
+                )
+
+        if speaker_selection_method.lower() not in self._VALID_SPEAKER_SELECTION_METHODS:
             raise ValueError(
-                f"GroupChat speaker_selection_method is set to '{self.speaker_selection_method}'. "
+                f"GroupChat speaker_selection_method is set to '{speaker_selection_method}'. "
                 f"It should be one of {self._VALID_SPEAKER_SELECTION_METHODS} (case insensitive). "
             )
 
@@ -300,7 +337,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Please add more agents to the GroupChat or use direct communication instead."
             )
-        elif n_agents == 2 and self.speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
+        elif n_agents == 2 and speaker_selection_method.lower() != "round_robin" and allow_repeat_speaker:
             logger.warning(
                 f"GroupChat is underpopulated with {n_agents} agents. "
                 "Consider setting speaker_selection_method to 'round_robin' or allow_repeat_speaker to False, "
@@ -344,9 +381,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # this condition means last_speaker is a sink in the graph, then no agents are eligible
         if last_speaker not in self.allowed_speaker_transitions_dict and is_last_speaker_in_group:
-            raise NoEligibleSpeakerException(
-                f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict."
-            )
+            raise NoEligibleSpeaker(f"Last speaker {last_speaker.name} is not in the allowed_speaker_transitions_dict.")
         # last_speaker is not in the group, so all agents are eligible
         elif last_speaker not in self.allowed_speaker_transitions_dict and not is_last_speaker_in_group:
             graph_eligible_agents = []
@@ -366,11 +401,11 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         # Use the selected speaker selection method
         select_speaker_messages = None
-        if self.speaker_selection_method.lower() == "manual":
+        if speaker_selection_method.lower() == "manual":
             selected_agent = self.manual_select_speaker(graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "round_robin":
+        elif speaker_selection_method.lower() == "round_robin":
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
-        elif self.speaker_selection_method.lower() == "random":
+        elif speaker_selection_method.lower() == "random":
             selected_agent = self.random_select_speaker(graph_eligible_agents)
         else:
             selected_agent = None
@@ -479,7 +514,11 @@ class GroupChatManager(ConversableAgent):
         system_message: Optional[Union[str, List]] = "Group chat manager.",
         **kwargs,
     ):
-        if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
+        if (
+            kwargs.get("llm_config")
+            and isinstance(kwargs["llm_config"], dict)
+            and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools"))
+        ):
             raise ValueError(
                 "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
             )
@@ -584,7 +623,7 @@ class GroupChatManager(ConversableAgent):
                 else:
                     # admin agent is not found in the participants
                     raise
-            except NoEligibleSpeakerException:
+            except NoEligibleSpeaker:
                 # No eligible speaker, terminate the conversation
                 break
 
