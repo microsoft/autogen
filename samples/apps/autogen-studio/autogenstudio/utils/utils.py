@@ -10,6 +10,8 @@ from autogen.oai.client import OpenAIWrapper
 from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
 from dotenv import load_dotenv
 from ..version import APP_NAME
+import ast
+import json
 
 
 def md5_hash(text: str) -> str:
@@ -235,6 +237,58 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     return folders
 
 
+def parse_skill_for_docs(module_code: str, title: str = "") -> str:
+    """
+    Analyzes the source code of a Python module to extract information about top-level functions,
+    including the name, docstring, parameters with their types and default values.
+
+    :param module_code: str, the source code of the Python module.
+    :param title: str, the name of the skill (function) we want.
+    :return: json dumps of the list of dicts,
+            a list containing dictionaries with information about each top-level function.
+    """
+    # Analyser source code to obtain AST
+    module_ast = ast.parse(module_code)
+
+    functions_name_list = [node.name for node in module_ast.body if isinstance(node, ast.FunctionDef)]
+    is_title_in_module = title in functions_name_list
+
+    # to store information about top-level functions
+    functions_docs = []
+
+    # walk only top-level nodes in AST
+    for node in module_ast.body:
+        if isinstance(node, ast.FunctionDef):
+            if is_title_in_module and (node.name != title):
+                continue
+            function_info = {
+                'function_name': node.name,
+                'docstring': ast.get_docstring(node),
+                'parameters': []
+            }
+
+            # Iterate arguments of function to extract names, types and default values
+            defaults = node.args.defaults
+            default_offset = len(node.args.args) - len(defaults)
+
+            for i, arg in enumerate(node.args.args):
+                param_info = {'name': arg.arg, 'type': None, 'default': None}
+
+                # Annotation de type
+                if arg.annotation:
+                    param_info['type'] = ast.unparse(arg.annotation)
+
+                # Default Value
+                if i >= default_offset:
+                    param_info['default'] = ast.unparse(defaults[i - default_offset])
+
+                function_info['parameters'].append(param_info)
+
+            functions_docs.append(function_info)
+
+    return json.dumps(functions_docs)
+
+
 def get_skills_from_prompt(skills: List[Skill], work_dir: str) -> str:
     """
     Create a prompt with the content of all skills and write the skills to a file named skills.py in the work_dir.
@@ -251,9 +305,10 @@ If you need to install python packages, write shell code to
 install via pip and use --quiet option.
 
          """
-    prompt = ""  # filename:  skills.py
+    prompt = ""
+    file_content = ""  # filename:  skills.py
     for skill in skills:
-        prompt += f"""
+        file_content += f"""
 
 ##### Begin of {skill.title} #####
 
@@ -262,6 +317,14 @@ install via pip and use --quiet option.
 #### End of {skill.title} ####
 
         """
+        prompt += f"""
+
+##### Begin of {skill.title} documentation #####        
+
+{parse_skill_for_docs(skill.content,skill.title)}
+
+#### End of {skill.title} documentation ####        
+        """
 
     # check if work_dir exists
     if not os.path.exists(work_dir):
@@ -269,7 +332,7 @@ install via pip and use --quiet option.
 
     # overwrite skills.py in work_dir
     with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-        f.write(prompt)
+        f.write(file_content)
 
     return instruction + prompt
 
