@@ -169,6 +169,7 @@ class Classify_log:
                     classified_steps.append(
                         (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
                     )
+                    continue
 
             if current_step == "INIT":
                 assert len(classified_steps) == 0
@@ -193,6 +194,7 @@ class Classify_log:
                 current_step, parsed = Classify_log.process_lines(step_split, prev_validated_steps=classified_steps)
 
                 if current_step == "IGNORE":
+                    current_step = "PROCESS_LINE"
                     continue
 
                 if parsed != {}:
@@ -228,6 +230,13 @@ class Classify_log:
                     current_step = "FIRST_PLAN"
                 else:
                     current_step = "PROCESS_LINE"
+            else:
+                if any("Making an educated guess" in line for line in step_split):
+                    classified_steps.append(("EDUCATED_GUESS", {}, step_split))
+                elif any("FINAL ANSWER:" in line for line in step_split):
+                    classified_steps.append(("FINAL_ANSWER", {}, step_split))
+                else:
+                    classified_steps.append(("EXTRA", {"current_state": current_step}, step_split))
 
         return classified_steps
 
