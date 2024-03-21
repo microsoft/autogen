@@ -1078,7 +1078,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             summary_method (str or callable): the summary_method to get the summary.
-                The callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                The callable summary_method should take the recipient and sender agent in a chat as input and return a summary (either str or list). E.g,
                 ```python
                 def my_summary_method(
                     sender: ConversableAgent,
@@ -1092,7 +1092,8 @@ class ConversableAgent(LLMAgent):
             prompt (str): the prompt used to get a summary when summary_method is "reflection_with_llm".
 
         Returns:
-            str: a chat summary from the agent.
+            Union[str, List]: a chat summary from the agent, following OpenAI's message format.
+                Str for LLMs, and List for LMMs.
         """
         summary = ""
         if summary_method is None:
