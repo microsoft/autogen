@@ -274,9 +274,9 @@ class AgentOptimizer:
                     messages=messages, tools=[ADD_FUNC, REVISE_FUNC, REMOVE_FUNC], tool_choice="auto"
                 )
                 actions = response.choices[0].message.tool_calls
-                if self._val_actions(actions, incumbent_functions):
+                if self._validate_actions(actions, incumbent_functions):
                     break
-            if actions is not None and self._val_actions(actions, incumbent_functions):
+            if actions is not None and self._validate_actions(actions, incumbent_functions):
                 incumbent_functions = self._update_function_call(incumbent_functions, actions)
 
         remove_functions = list(
@@ -402,7 +402,7 @@ class AgentOptimizer:
 
         return failure_experience_prompt, statistic_prompt
 
-    def _val_actions(self, actions, incumbent_functions):
+    def _validate_actions(self, actions, incumbent_functions):
         """
         validate whether the proposed actions are feasible.
         """
