@@ -104,7 +104,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
         Args:
             code_blocks (List[CodeBlock]): The code blocks to execute.
-            max_output_length (Optional[int]): The maximum length of the output. If needed, the output will be truncated to this length.
+            max_output_length (Optional[int]): The maximum length of the output. If needed, the output will be truncated to this length considering only the last characters assigned to this parameter.
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
