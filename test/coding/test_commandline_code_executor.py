@@ -17,6 +17,9 @@ if skip_docker or not is_docker_running():
 else:
     classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
 
+UNIX_SHELLS = ["bash", "sh", "shell"]
+WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
+
 
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_is_code_executor(cls) -> None:
@@ -221,10 +224,12 @@ print("hello world")
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
-@pytest.mark.parametrize("lang", ["bash", "shell", "sh"])
+@pytest.mark.parametrize("lang", WINDOWS_SHELLS + UNIX_SHELLS)
 def test_silent_pip_install(cls, lang: str) -> None:
-    if sys.platform in ["win32"]:
-        return
+    if sys.platform in ["win32"] and lang in UNIX_SHELLS:
+        pytest.skip("Linux shells are not supported on Windows.")
+    elif sys.platform not in ["win32"] and lang in WINDOWS_SHELLS:
+        pytest.skip("Windows shells are not supported on Unix.")
 
     executor = cls(timeout=600)
 
