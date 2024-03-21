@@ -6,7 +6,9 @@ topics:
 
 1.  **Chat with LLMs**: In [Human in the Loop](./human-in-the-loop) we covered
     the basic human-in-the-loop usage. You can try to hook up different LLMs
-    using proxy servers like [Ollama](https://github.com/ollama/ollama), and
+    using local model servers like
+    [Ollama](https://github.com/ollama/ollama)
+    and [LM Studio](https://lmstudio.ai/), and
     chat with them using the human-in-the-loop component of your human proxy
     agent.
 2.  **Prompt Engineering**: In [Code Executors](./code-executors) we
@@ -18,6 +20,7 @@ topics:
 3.  **Complex Tasks**: In [ConversationPatterns](./conversation-patterns)
     we covered the basic conversation patterns. You can try to find other tasks
     that can be decomposed into these patterns, and leverage the code executors
+    and tools
     to make the agents more powerful.
 
 ## Dig Deeper

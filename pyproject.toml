@@ -69,6 +69,13 @@ files = [
     "autogen/oai/openai_utils.py",
 ]
 
+exclude = [
+    "autogen/math_utils\\.py",
+    "autogen/oai/completion\\.py",
+    "autogen/agentchat/contrib/compressible_agent\\.py",
+    "autogen/agentchat/contrib/math_user_proxy_agent.py",
+]
+
 strict = true
 python_version = "3.8"
 ignore_missing_imports = true
