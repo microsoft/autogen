@@ -53,7 +53,7 @@ repos:
       language: python
       # use your preferred Python version
       # language_version: python3.8
-      additional_dependencies: [".[types]"]
+      additional_dependencies: []
       types: [python]
       # use require_serial so that script
       # is only called once per commit
