@@ -38,9 +38,7 @@ def collate(results_dir, classify_reasoning_trace=False):
                     console_log = fh.read()
 
                     # Trim the console log
-                    m = re.search(
-                        r"SCENARIO.PY STARTING !#!#(.*)", console_log, re.DOTALL
-                    )
+                    m = re.search(r"SCENARIO.PY STARTING !#!#(.*)", console_log, re.DOTALL)
                     if m:
                         console_log = m.group(1).strip()
 
@@ -168,7 +166,9 @@ class Classify_log:
                 if any("TERMINATE" in line for line in step_split):
                     match = Classify_log.find_string(step_split, "orchestrator (to").split(" ")
                     current_step = "ORCH_TERMINATE"
-                    classified_steps.append((current_step, {"from": match[0], "to": match[2]}, step_split))
+                    classified_steps.append(
+                        (current_step, {"from": match[0], "to": match[2].split(")")[0]}, step_split)
+                    )
 
             if current_step == "INIT":
                 assert len(classified_steps) == 0
