@@ -226,6 +226,9 @@ print("hello world")
 @pytest.mark.parametrize("cls", classes_to_test)
 @pytest.mark.parametrize("lang", WINDOWS_SHELLS + UNIX_SHELLS)
 def test_silent_pip_install(cls, lang: str) -> None:
+    # Ensure that the shell is supported.
+    lang = "ps1" if lang in ["powershell", "pwsh"] else lang
+
     if sys.platform in ["win32"] and lang in UNIX_SHELLS:
         pytest.skip("Linux shells are not supported on Windows.")
     elif sys.platform not in ["win32"] and lang in WINDOWS_SHELLS:
