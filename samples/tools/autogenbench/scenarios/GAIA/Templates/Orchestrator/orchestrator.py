@@ -291,6 +291,7 @@ Please output an answer in pure JSON format according to the following schema. T
                 self._print_thought(json.dumps(data, indent=4))
 
                 if data["is_request_satisfied"]["answer"]:
+                    self._print_thought("total_turns: " + str(total_turns))
                     return True, "TERMINATE"
 
                 if data["is_progress_being_made"]["answer"]:
@@ -311,14 +312,21 @@ Please output an answer in pure JSON format according to the following schema. T
                         cache=self.client_cache,
                     )
                     facts = self.client.extract_text_or_completion_object(response)[0]
+                    self._print_thought(facts)
                     self.orchestrated_messages.append({"role": "assistant", "content": facts, "name": self.name})
 
                     # If we've been stalled multiple times, see if we can just make an educated guess
                     times_stalled += 1
                     if times_stalled >= 2:
                         self._print_thought("Check if we can make an educated guess")
-                        educated_guess_promt = f"""Given this information, do you have two or more congruent pieces of information that will allow you to make an educated response for the original request?
+                        educated_guess_promt = f"""Given the following information
+
+{facts}
+
+Please answer the following question, including necessary reasoning:
+    - Do you have two or more congruent pieces of information that will allow you to make an educated guess for the original request? The educated guess MUST answer the question.
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
+
     {{
         "has_educated_guesses": {{
             "reason": string,
@@ -330,6 +338,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         response = self.client.create(
                             messages=self.orchestrated_messages,
                             cache=self.client_cache,
+                            response_format={"type": "json_object"},
                         )
                         self.orchestrated_messages.pop()
 
@@ -341,10 +350,10 @@ Please output an answer in pure JSON format according to the following schema. T
                             # Something went wrong. Restart this loop.
                             self._print_thought(str(e))
                             break
-                        self._print_thought(json.dumps(data, indent=4))
 
+                        self._print_thought(json.dumps(data, indent=4))
                         if data["has_educated_guesses"]["answer"]:
-                            self._print_thought("total: " + str(total_turns))
+                            self._print_thought("total_turns: " + str(total_turns))
                             return True, "TERMINATE"
 
                     new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
@@ -381,5 +390,4 @@ Team membership:
                         break
 
         self._print_thought("ran out of turns")
-
         return True, "TERMINATE"
