@@ -2116,12 +2116,11 @@ class ConversableAgent(LLMAgent):
                     colored(f"\n>>>>>>>> EXECUTING FUNCTION {func_name}...", "magenta"),
                     flush=True,
                 )
-                #try:
-                if True:
+                try:
                     content = func(**arguments)
                     is_exec_success = True
-                #except Exception as e:
-                #    content = f"Error: {e}"
+                except Exception as e:
+                    content = f"Error: {e}"
         else:
             content = f"Error: Function {func_name} not found."
 

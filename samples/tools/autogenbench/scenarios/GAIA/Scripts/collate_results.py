@@ -36,7 +36,7 @@ def collate(results_dir):
 
                     # Trim the console log
                     m = re.search(
-                        r"SCENARIO.PY STARTING !#!#(.*?)SCENARIO.PY (COMPLETE|EXITED .*?) !#!#", console_log, re.DOTALL
+                        r"SCENARIO.PY STARTING !#!#(.*)", console_log, re.DOTALL
                     )
                     if m:
                         console_log = m.group(1).strip()
