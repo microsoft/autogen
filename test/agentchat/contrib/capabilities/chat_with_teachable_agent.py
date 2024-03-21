@@ -2,10 +2,10 @@
 
 import os
 import sys
-from termcolor import colored
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.capabilities.teachability import Teachability
 from autogen import ConversableAgent
+from autogen.formatting_utils import colored
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
