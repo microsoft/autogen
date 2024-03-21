@@ -83,8 +83,7 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, **params: Any) -> ModelClientResponseProtocol:
-        ...  # pragma: no cover
+    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol: ...  # pragma: no cover
 
     def message_retrieval(
         self, response: ModelClientResponseProtocol
@@ -97,8 +96,7 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
-        ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
@@ -356,6 +354,7 @@ class OpenAIWrapper:
 
             base_config: base config. It can contain both keyword arguments for openai client
                 and additional kwargs.
+                When using OpenAI or Azure OpenAI endpoints, please specify a non-empty 'model' either in `base_config` or in each config of `config_list`.
         """
 
         if logging_enabled():

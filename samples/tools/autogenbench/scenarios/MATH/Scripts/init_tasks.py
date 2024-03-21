@@ -8,6 +8,7 @@ import tarfile
 import io
 import json
 import os
+import re
 import sys
 
 URL = "https://people.eecs.berkeley.edu/~hendrycks/MATH.tar"
@@ -91,7 +92,7 @@ def create_jsonl(name, problems, template):
 
             record = {
                 "id": task_id,
-                "template": os.path.join(os.path.pardir, template),
+                "template": template,
                 "substitutions": {
                     "prompt.txt": {"__PROMPT__": data["problem"]},
                     "expected_answer.txt": {"__ANSWER__": data["solution"]},
@@ -105,9 +106,12 @@ def create_jsonl(name, problems, template):
 def main():
     problems = download_math()
 
-    templates = {
-        "two_agents": "Templates/TwoAgents",
-    }
+    # list all directories in the Templates directory
+    # and populate a dictionary with the name and path
+    templates = {}
+    for entry in os.scandir(TEMPLATES_DIR):
+        if entry.is_dir():
+            templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     for t in templates.items():
         create_jsonl(f"math_{t[0]}", problems, t[1])

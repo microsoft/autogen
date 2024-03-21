@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from unittest.mock import MagicMock
 import uuid
 import pytest
@@ -6,6 +8,7 @@ import sys
 import openai
 import autogen
 from autogen import OpenAIWrapper
+from autogen import UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.oai.openai_utils import retrieve_assistants_by_name
 
@@ -17,7 +20,21 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 if not skip:
     openai_config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"api_type": ["openai"]}
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        # The Retrieval tool requires at least gpt-3.5-turbo-1106 (newer versions are supported) or gpt-4-turbo-preview models.
+        # https://platform.openai.com/docs/models/overview
+        filter_dict={
+            "api_type": ["openai"],
+            "model": [
+                "gpt-4-turbo-preview",
+                "gpt-4-0125-preview",
+                "gpt-4-1106-preview",
+                "gpt-3.5-turbo",
+                "gpt-3.5-turbo-0125",
+                "gpt-3.5-turbo-1106",
+            ],
+        },
     )
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -41,7 +58,8 @@ def test_config_list() -> None:
 )
 def test_gpt_assistant_chat() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
-        _test_gpt_assistant_chat(gpt_config)
+        _test_gpt_assistant_chat({"config_list": gpt_config})
+        _test_gpt_assistant_chat(gpt_config[0])
 
 
 def _test_gpt_assistant_chat(gpt_config) -> None:
@@ -68,7 +86,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
     name = f"For test_gpt_assistant_chat {uuid.uuid4()}"
     analyst = GPTAssistantAgent(
         name=name,
-        llm_config={"tools": [{"type": "function", "function": ossinsight_api_schema}], "config_list": gpt_config},
+        llm_config=gpt_config,
+        assistant_config={"tools": [{"type": "function", "function": ossinsight_api_schema}]},
         instructions="Hello, Open Source Project Analyst. You'll conduct comprehensive evaluations of open source projects or organizations on the GitHub platform",
     )
     try:
@@ -176,6 +195,7 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
             instructions=instructions2,
             llm_config={
                 "config_list": gpt_config,
+                # keep it to test older version of assistant config
                 "assistant_id": assistant_id,
             },
             overwrite_instructions=True,
@@ -190,6 +210,7 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
+    skip,
     reason="requested to skip",
 )
 def test_gpt_assistant_existing_no_instructions() -> None:
@@ -216,8 +237,8 @@ def test_gpt_assistant_existing_no_instructions() -> None:
             name,
             llm_config={
                 "config_list": openai_config_list,
-                "assistant_id": assistant_id,
             },
+            assistant_config={"assistant_id": assistant_id},
         )
 
         instruction_match = assistant.get_assistant_instructions() == instructions
@@ -242,6 +263,7 @@ def test_get_assistant_files() -> None:
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = f"For test_get_assistant_files {uuid.uuid4()}"
 
+    # keep it to test older version of assistant config
     assistant = GPTAssistantAgent(
         name,
         instructions="This is a test",
@@ -259,8 +281,7 @@ def test_get_assistant_files() -> None:
 
     finally:
         assistant.delete_assistant()
-
-    openai_client.files.delete(file.id)
+        openai_client.files.delete(file.id)
 
     assert expected_file_id in retrieved_file_ids
 
@@ -295,6 +316,9 @@ def test_assistant_retrieval() -> None:
 
     try:
         all_llm_config = {
+            "config_list": openai_config_list,
+        }
+        assistant_config = {
             "tools": [
                 {"type": "function", "function": function_1_schema},
                 {"type": "function", "function": function_2_schema},
@@ -302,7 +326,6 @@ def test_assistant_retrieval() -> None:
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
-            "config_list": openai_config_list,
         }
 
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
@@ -311,6 +334,7 @@ def test_assistant_retrieval() -> None:
             name,
             instructions="This is a test",
             llm_config=all_llm_config,
+            assistant_config=assistant_config,
         )
         candidate_first = retrieve_assistants_by_name(assistant_first.openai_client, name)
 
@@ -319,6 +343,7 @@ def test_assistant_retrieval() -> None:
                 name,
                 instructions="This is a test",
                 llm_config=all_llm_config,
+                assistant_config=assistant_config,
             )
             candidate_second = retrieve_assistants_by_name(assistant_second.openai_client, name)
 
@@ -369,6 +394,7 @@ def test_assistant_mismatch_retrieval() -> None:
     file_2 = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
 
     try:
+        # keep it to test older version of assistant config
         all_llm_config = {
             "tools": [
                 {"type": "function", "function": function_1_schema},
@@ -550,6 +576,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
         name,
         llm_config={
             "config_list": openai_config_list,
+        },
+        assistant_config={
             "tools": original_tools,
         },
     )
@@ -562,6 +590,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
             name,
             llm_config={
                 "config_list": openai_config_list,
+            },
+            assistant_config={
                 "assistant_id": assistant_id,
                 "tools": new_tools,
             },
@@ -569,11 +599,43 @@ def test_gpt_assistant_tools_overwrite() -> None:
         )
 
         # Add logic to retrieve the tools from the assistant and assert
-        retrieved_tools = assistant.llm_config.get("tools", [])
+        retrieved_tools = assistant.openai_assistant.tools
+        retrieved_tools_name = [tool.function.name for tool in retrieved_tools]
     finally:
         assistant_org.delete_assistant()
 
-    assert retrieved_tools == new_tools
+    assert retrieved_tools_name == [tool["function"]["name"] for tool in new_tools]
+
+
+@pytest.mark.skipif(
+    skip,
+    reason="requested to skip",
+)
+def test_gpt_reflection_with_llm() -> None:
+    gpt_assistant = GPTAssistantAgent(
+        name="assistant", llm_config={"config_list": openai_config_list, "assistant_id": None}
+    )
+
+    user_proxy = UserProxyAgent(
+        name="user_proxy",
+        code_execution_config=False,
+        is_termination_msg=lambda msg: "TERMINATE" in msg["content"],
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=1,
+    )
+    result = user_proxy.initiate_chat(gpt_assistant, message="Write a Joke!", summary_method="reflection_with_llm")
+    assert result is not None
+
+    # use the assistant configuration
+    agent_using_assistant_config = GPTAssistantAgent(
+        name="assistant",
+        llm_config={"config_list": openai_config_list},
+        assistant_config={"assistant_id": gpt_assistant.assistant_id},
+    )
+    result = user_proxy.initiate_chat(
+        agent_using_assistant_config, message="Write a Joke!", summary_method="reflection_with_llm"
+    )
+    assert result is not None
 
 
 if __name__ == "__main__":

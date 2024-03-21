@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import os
 import tempfile
 import unittest
@@ -575,20 +577,16 @@ class TestGetPowerShellCommand(unittest.TestCase):
         self.assertEqual(get_powershell_command(), "pwsh")
 
     @patch("subprocess.run")
-    def test_get_powershell_command_no_shell(self, mock_subprocess_run):
-        # Set up the mock to simulate 'powershell' and 'pwsh' not found
+    def test_get_powershell_command_not_found(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-
-        with patch("sys.stdout", new=StringIO()) as fake_out:
+        with self.assertRaises(FileNotFoundError):
             get_powershell_command()
-            self.assertEqual(fake_out.getvalue().strip(), "Neither powershell nor pwsh is installed.")
 
     @patch("subprocess.run")
-    def test_get_powershell_command_no_shell_no_output(self, mock_subprocess_run):
-        # Set up the mock to simulate 'powershell' and 'pwsh' not found without printing error message
-        mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-
-        self.assertIsNone(get_powershell_command())
+    def test_get_powershell_command_no_permission(self, mock_subprocess_run):
+        mock_subprocess_run.side_effect = [PermissionError, FileNotFoundError]
+        with self.assertRaises(PermissionError):
+            get_powershell_command()
 
 
 if __name__ == "__main__":

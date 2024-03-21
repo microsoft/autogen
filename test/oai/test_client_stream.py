@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import json
 from typing import Any, Dict, List, Literal, Optional, Union
 from unittest.mock import MagicMock

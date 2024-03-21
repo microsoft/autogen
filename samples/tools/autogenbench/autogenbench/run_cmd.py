@@ -11,6 +11,7 @@ import docker
 import random
 from autogen import config_list_from_json
 from autogen.oai.openai_utils import filter_config
+from .version import __version__
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -247,16 +248,24 @@ def get_scenario_env(config_list, env_file=DEFAULT_ENV_FILE):
     Returns: A dictionary of keys and values that need to be added to the system environment.
     """
     env = dict()
-    if os.path.isfile(env_file):
-        with open(env_file, "rt") as fh:
-            env = json.loads(fh.read())
 
-    config_list_json = json.dumps(config_list)
-    env["OAI_CONFIG_LIST"] = config_list_json
-
+    # Populate with commonly needed keys
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     if openai_api_key is not None and len(openai_api_key.strip()) > 0:
         env["OPENAI_API_KEY"] = openai_api_key
+
+    bing_api_key = os.environ.get("BING_API_KEY")
+    if bing_api_key is not None and len(bing_api_key.strip()) > 0:
+        env["BING_API_KEY"] = bing_api_key
+
+    # Update with any values from the ENV.json file
+    if os.path.isfile(env_file):
+        with open(env_file, "rt") as fh:
+            env.update(json.loads(fh.read()))
+
+    # Include the config_list that we are using
+    config_list_json = json.dumps(config_list)
+    env["OAI_CONFIG_LIST"] = config_list_json
 
     return env
 
@@ -286,6 +295,12 @@ def run_scenario_natively(work_dir, env, timeout=TASK_TIMEOUT):
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Native"
+echo "autogenbench version: {__version__}" > timestamp.txt
+
+# Create and activate the virtual environment
+# This is called in a subprocess, and will not impact the parent
+{sys.executable} -m venv .autogenbench_venv
+. .autogenbench_venv/bin/activate
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -298,6 +313,7 @@ if [ -f scenario_init.sh ] ; then
 fi
 
 # Run the scenario
+pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
 EXIT_CODE=$?
@@ -312,6 +328,10 @@ if [ -d .cache ] ; then
     rm -Rf .cache
 fi
 
+if [ -d __pycache__ ] ; then
+    rm -Rf __pycache__
+fi
+
 # Run the scenario finalize script if it exists
 if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
@@ -320,6 +340,12 @@ fi
 # Run the global finalize script if it exists
 if [ -f global_finalize.sh ] ; then
     . ./global_finalize.sh
+fi
+
+# We don't need to deactivate the venv because it's
+# contained in the subprocess; but we should clean it up
+if [ -d .autogenbench_venv ] ; then
+    rm -Rf .autogenbench_venv
 fi
 
 echo RUN.SH COMPLETE !#!#
@@ -387,7 +413,9 @@ def run_scenario_in_docker(work_dir, env, timeout=TASK_TIMEOUT, docker_image=Non
             f"""#
 echo RUN.SH STARTING !#!#
 export AUTOGEN_TESTBED_SETTING="Docker"
+
 umask 000
+echo "autogenbench version: {__version__}" > timestamp.txt
 
 # Run the global init script if it exists
 if [ -f global_init.sh ] ; then
@@ -415,6 +443,10 @@ if [ -d .cache ] ; then
     rm -Rf .cache
 fi
 
+if [ -d __pycache__ ] ; then
+    rm -Rf __pycache__
+fi
+
 # Run the scenario finalize script if it exists
 if [ -f scenario_finalize.sh ] ; then
     . ./scenario_finalize.sh
@@ -429,25 +461,38 @@ echo RUN.SH COMPLETE !#!#
 """
         )
 
-    print("\n\n" + work_dir + "\n===================================================================")
+    # Figure out what folders to mount
+    volumes = {str(pathlib.Path(work_dir).absolute()): {"bind": "/workspace", "mode": "rw"}}
+
+    # Add the autogen repo if we can find it
+    autogen_repo_base = os.environ.get("AUTOGENBENCH_REPO_BASE")
+    if autogen_repo_base is None:
+        autogen_repo_base = find_autogen_repo(os.getcwd())
+    elif not os.path.isdir(autogen_repo_base):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), autogen_repo_base)
+
+    if autogen_repo_base is not None:
+        volumes[str(pathlib.Path(autogen_repo_base).absolute())] = {"bind": "/autogen", "mode": "rw"}
+
+    print("Mounting:")
+    for k in volumes:
+        bind = volumes[k]["bind"]
+        mode = volumes[k]["mode"].upper()
+        if bind == "/workspace":
+            k = os.path.relpath(k)
+        print(f"[{mode}]\t'{k}' => '{bind}'")
+    print("===================================================================")
 
     # Create and run the container
-    abs_path = str(pathlib.Path(work_dir).absolute())
     container = client.containers.run(
-        image,
-        command=["sh", "run.sh"],
-        working_dir="/workspace",
-        environment=env,
-        detach=True,
-        # get absolute path to the working directory
-        volumes={abs_path: {"bind": "/workspace", "mode": "rw"}},
+        image, command=["sh", "run.sh"], working_dir="/workspace", environment=env, detach=True, volumes=volumes
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
     docker_timeout = timeout + 60  # One full minute after the bash timeout command should have already triggered
     start_time = time.time()
     logs = container.logs(stream=True)
-    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt")
+    log_file = open(os.path.join(work_dir, "console_log.txt"), "wt", encoding="utf-8")
     stopping = False
 
     for chunk in logs:  # When streaming it should return a generator
@@ -455,6 +500,7 @@ echo RUN.SH COMPLETE !#!#
         chunk = chunk.decode("utf-8")
         log_file.write(chunk)
         log_file.flush()
+        sys.stdout.reconfigure(encoding="utf-8")
         sys.stdout.write(chunk)
         sys.stdout.flush()
 
@@ -483,6 +529,34 @@ def build_default_docker_image(docker_client, image_tag):
     ):
         if "stream" in segment:
             sys.stdout.write(segment["stream"])
+
+
+def find_autogen_repo(path):
+    """
+    Utility for identifying if the path is a subdirectory of the autogen repo.
+
+    Returns: the path to the root of the autogen repo if one is found, otherwise None
+    """
+
+    # Normalize the path (we expect a directory)
+    path = os.path.abspath(path)
+    if os.path.isfile(path):
+        path = os.path.dirname(path)
+
+    while True:
+        test_path = os.path.join(path, "autogen", "agentchat", "conversable_agent.py")  # We found autogen
+        if os.path.isfile(test_path):
+            return path
+
+        # Stop if we hit the root
+        parent_dir = os.path.abspath(os.path.join(path, os.pardir))
+        if parent_dir == path:
+            break
+
+        # Keep searching
+        path = parent_dir
+
+    return None
 
 
 def run_cli(args):
@@ -581,12 +655,23 @@ def run_cli(args):
         if parsed_args.requirements is not None:
             sys.exit("--requirements is not compatible with --native. Exiting.")
 
-        choice = input(
-            'WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\nAre you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
+        sys.stderr.write(
+            "WARNING: Running natively, without Docker, not only poses the usual risks of executing arbitrary AI generated code on your machine, it also makes it impossible to ensure that each test starts from a known and consistent set of initial conditions. For example, if the agents spend time debugging and installing Python libraries to solve the task, then those libraries will be available to all other runs. In other words, earlier runs can influence later runs, leading to many confounds in testing.\n\n"
         )
 
-        if choice.strip().lower() != "yes":
-            sys.exit("Received '" + choice + "'. Exiting.")
+        # Does an environment variable override the prompt?
+        allow_native = os.environ.get("AUTOGENBENCH_ALLOW_NATIVE")
+        if allow_native is None or allow_native == "":
+            choice = input(
+                'Are you absolutely sure you want to continue with native execution? Type "Yes" exactly, and in full, to proceed: '
+            )
+            if choice.strip().lower() != "yes":
+                sys.exit("Received '" + choice + "'. Exiting.")
+        elif allow_native.strip().lower() != "yes":
+            sys.exit(f"Exiting because AUTOGENBENCH_ALLOW_NATIVE is '{allow_native}'\n")
+        else:
+            sys.stderr.write(f"Continuing because AUTOGENBENCH_ALLOW_NATIVE is '{allow_native}'\n")
+            time.sleep(0.75)  # Pause very briefly so the message isn't lost in the noise
 
     # Parse the subsample
     subsample = None

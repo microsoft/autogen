@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import sys
 import os
 import pytest
@@ -102,20 +104,11 @@ def _test_oai_chatgpt_gpt4(save=False):
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.11"),
-    reason="do not run if openai is not installed or py!=3.11",
-)
-def _test_hierarchy_flow_using_select_speaker(save=False):
-    # TODO: recover this test after rewriting after the new group chat api
-    run_notebook("agentchat_hierarchy_flow_using_select_speaker.ipynb", save=save)
-
-
-@pytest.mark.skipif(
     skip or not sys.version.startswith("3.12"),
     reason="do not run if openai is not installed or py!=3.12",
 )
-def test_graph_modelling_language_using_select_speaker(save=False):
-    run_notebook("agentchat_graph_modelling_language_using_select_speaker.ipynb", save=save)
+def test_agentchat_groupchat_finite_state_machine(save=False):
+    run_notebook("agentchat_groupchat_finite_state_machine.ipynb", save=save)
 
 
 @pytest.mark.skipif(
@@ -124,6 +117,14 @@ def test_graph_modelling_language_using_select_speaker(save=False):
 )
 def test_agentchat_cost_token_tracking(save=False):
     run_notebook("agentchat_cost_token_tracking.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
+)
+def test_agentchat_groupchat_stateflow(save=False):
+    run_notebook("agentchat_groupchat_stateflow.ipynb", save=save)
 
 
 if __name__ == "__main__":
