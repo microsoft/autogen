@@ -62,9 +62,14 @@ class VisionCapability(AgentCapability):
                 prompt passed to the LMM service. Defaults to `DEFAULT_DESCRIPTION_PROMPT` if not provided.
             custom_caption_func (Callable, optional): A callable that, if provided, will be used
                 to generate captions for images. This allows for custom captioning logic outside
-                of the standard LMM service interaction. The callable should take an image URL (or local location)
+                of the standard LMM service interaction.
+                The callable should take three parameters as input:
+                    1. an image URL (or local location)
+                    2. image_data (a PIL image)
+                    3. lmm_client (to call remote LMM)
                 and then return a description (as string).
                 If not provided, captioning will rely on the LMM client configured via `lmm_config`.
+                If provided, we will not run the default self._get_image_caption method.
 
         Raises:
             AssertionError: If neither a valid `lmm_config` nor a `custom_caption_func` is provided,
@@ -162,13 +167,16 @@ class VisionCapability(AgentCapability):
                 aug_content += item["text"]
             elif item["type"] == "image_url":
                 img_url = item["image_url"]["url"]
-                img_captions = []
-                if self._lmm_client:
-                    img_data = get_image_data(img_url)
-                    img_captions.append(self._get_image_caption(img_data))
+                img_caption = ""
+
                 if self._custom_caption_func:
-                    img_captions.append(self._custom_caption_func(img_url))
-                img_caption = " ".join(img_captions)
+                    img_caption = self._custom_caption_func(img_url, get_pil_image(img_url), self._lmm_client)
+                elif self._lmm_client:
+                    img_data = get_image_data(img_url)
+                    img_caption = self._get_image_caption(img_data)
+                else:
+                    img_caption = ""
+
                 aug_content += f"<img {img_url}> in case you can not see, the caption of this image is: {img_caption}\n"
             else:
                 print(f"Warning: the input type should either be `test` or `image_url`. Skip {item['type']} here.")
