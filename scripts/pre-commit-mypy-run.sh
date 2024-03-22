@@ -10,4 +10,6 @@ set -o errexit
 # Change directory to the project root directory.
 cd "$(dirname "$0")"/..
 
+pip install -q -e .[types]
+
 mypy
