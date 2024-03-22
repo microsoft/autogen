@@ -62,25 +62,43 @@ def speech_to_text(callable_func=record_audio):
 
     transcription = None
 
-    print("Press enter to start/stop recording.")
+    print("Listening... Press Enter to stop recording.")
+    thread.start()
 
-    while True:
-        input()
+    input()
 
-        if started:
-            if thread.is_alive():
-                stop_thread.set()
-                thread.join()
-                stop_thread.clear()
-                print("[debug] Stopped recording...")
-                transcription = result_queue.get()
-                print("[debug] The user said: ", transcription)
-                break
-        else:
-            started = True
-            print("[debug] Starting recording...")
-            thread.start()
+    if thread.is_alive():
+        stop_thread.set()
+        thread.join()
+        stop_thread.clear()
+        print("[debug] Stopped recording...")
+        transcription = result_queue.get()
+        print("[debug] The user said: ", transcription)
+
     return transcription
+
+
+class WhisperUserProxyAgent(UserProxyAgent):
+
+    def get_human_input(self, prompt: str) -> str:
+        """Get human input.
+
+        Override this method to customize the way to get human input.
+
+        Args:
+            prompt (str): prompt for the human input.
+
+        Returns:
+            str: human input.
+        """
+        reply = input(
+            f"Provide feedback to sender.\n- Press enter to skip and use auto-reply,\n- type 'exit' to end the conversation,\n- type 'v' to use voice: "
+        )
+        if reply == "v":
+            reply = speech_to_text()
+
+        self._human_input.append(reply)
+        return reply
 
 
 def demo_whisper_user_proxy():
@@ -91,13 +109,11 @@ def demo_whisper_user_proxy():
         }
     ]
     assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
-    user_proxy = UserProxyAgent("voice_user_proxy", code_execution_config={"work_dir": "coding", "use_docker": False})
-
-    def generate_speech_to_text_reply(recipient, messages, sender, **kwargs):
-        transcription = speech_to_text()
-        return True, transcription
-
-    user_proxy.register_reply([Agent], generate_speech_to_text_reply)
+    user_proxy = WhisperUserProxyAgent(
+        "voice_user_proxy",
+        code_execution_config={"work_dir": "coding", "use_docker": False},
+        human_input_mode="ALWAYS",
+    )
 
     assistant.initiate_chat(user_proxy, message="What can I help you with today?")
 
