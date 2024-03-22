@@ -1,3 +1,4 @@
+import copy
 import os
 from typing import List, Optional, Union, Dict
 
@@ -11,7 +12,7 @@ from .datamodel import (
     Message,
     SocketMessage,
 )
-from .utils import get_skills_from_prompt, clear_folder, sanitize_model
+from .utils import get_skills_prompt, clear_folder, sanitize_model, save_skills_to_file
 from datetime import datetime
 
 
@@ -38,6 +39,7 @@ class AutoGenWorkFlowManager:
             history: An optional list of previous messages to populate the agents' history.
 
         """
+        self.workflow_skills = []
         self.send_message_function = send_message_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
@@ -48,6 +50,8 @@ class AutoGenWorkFlowManager:
         self.sender = self.load(config.sender)
         # given the config, return an AutoGen agent object
         self.receiver = self.load(config.receiver)
+        # save all agent skills to skills.py
+        save_skills_to_file(self.workflow_skills, self.work_dir)
         self.agent_history = []
 
         if history:
@@ -89,8 +93,19 @@ class AutoGenWorkFlowManager:
             "connection_id": self.connection_id,
             "message_type": "agent_message",
         }
+
         # if the agent will respond to the message, or the message is sent by a groupchat agent. This avoids adding groupchat broadcast messages to the history (which are sent with request_reply=False), or when agent populated from history
-        if request_reply is not False or sender_type == "groupchat":
+        if request_reply is not False or (sender_type == "groupchat" and not silent):
+            print(
+                "Request reply",
+                request_reply,
+                "sender_type",
+                sender_type,
+                "silent",
+                silent,
+                "sender",
+                sender.name,
+            )
             self.agent_history.append(message_payload)  # add to history
             if self.send_message_function:  # send over the message queue
                 socket_msg = SocketMessage(
@@ -184,9 +199,11 @@ class AutoGenWorkFlowManager:
             agent_spec.config.code_execution_config = code_execution_config
 
         if agent_spec.skills:
-            # get skill prompt, also write skills to a file named skills.py
-            skills_prompt = ""
-            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            # add skills to workflow_skills
+            print("processing skills -- ", len(agent_spec.skills))
+            self.workflow_skills.extend(agent_spec.skills)
+            # get skill prompt
+            skills_prompt = get_skills_prompt(agent_spec.skills, self.work_dir)
             if agent_spec.config.system_message:
                 agent_spec.config.system_message = (
                     agent_spec.config.system_message + "\n\n" + skills_prompt
@@ -210,10 +227,17 @@ class AutoGenWorkFlowManager:
         """
         agent_spec = self.sanitize_agent_spec(agent_spec)
         if agent_spec.type == "groupchat":
-            agents = [
-                self.load(self.sanitize_agent_spec(agent_config))
-                for agent_config in agent_spec.groupchat_config.agents
-            ]
+            print(
+                "loading groupchat ....",
+                "# agents : ",
+                len(agent_spec.groupchat_config.agents),
+            )
+            agents = []
+            for group_agent_spec in agent_spec.groupchat_config.agents:
+                print("processing group agents ....")
+                agent = self.load(group_agent_spec)
+                agents.append(agent)
+
             group_chat_config = agent_spec.groupchat_config.dict()
             group_chat_config["agents"] = agents
             groupchat = autogen.GroupChat(**group_chat_config)
