@@ -160,21 +160,8 @@ ACTION:   <One single action from the element's list of actions>
 ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
 """.strip()
 
-        history.append(
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": text_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": screenshot,
-                        },
-                    },
-                ],
-            }
-        )
-
+        history.append(self._make_mm_message(text_prompt, screenshot))
+        screenshot = None
         response = self._mlm_client.create(messages=history)
         text_response = "\n" + self._mlm_client.extract_text_or_completion_object(response)[0].strip() + "\n"
 
@@ -210,9 +197,42 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         self._page.wait_for_load_state()
         time.sleep(1)
-        self._page.screenshot(path="/home/afourney/Desktop/my_image.png")
 
-        return True, text_response
+        new_screenshot = self._page.screenshot()
+        with open("/home/afourney/Desktop/my_image.png", "wb") as png:
+            png.write(new_screenshot)
+        return True, self._make_mm_message(text_response, new_screenshot)
+
+    def _image_to_data_uri(self, image):
+        """
+        Image can be a bytes string, a Binary file-like stream, or PIL Image.
+        """
+        image_bytes = image
+        if isinstance(image, Image.Image):
+            image_buffer = io.BytesIO()
+            image.save(image_buffer, format="PNG")
+            image_bytes = image_buffer.getvalue()
+        elif isinstance(image, io.BytesIO):
+            image_bytes = image_buffer.getvalue()
+        elif isinstance(image, io.BufferedIOBase):
+            image_bytes = image.read()
+
+        image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+        return f"data:image/png;base64,{image_base64}"
+
+    def _make_mm_message(self, text_content, image_content):
+        return {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": text_content},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": self._image_to_data_uri(image_content),
+                    },
+                },
+            ],
+        }
 
     def _som_screenshot(self, rectangles, url=None):
         if url is None:
@@ -354,11 +374,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
             comp = Image.alpha_composite(comp, overlay)
             comp.save("/home/afourney/Desktop/my_image.png")
-
-            img_byte_arr = io.BytesIO()
-            comp.save(img_byte_arr, format="PNG")
-            image_base64 = base64.b64encode(img_byte_arr.getvalue()).decode("utf-8")
-            return f"data:image/png;base64,{image_base64}", visible_rects
+            return comp, visible_rects
 
     def _trim_drawn_text(self, draw, text, font, max_width):
         buff = ""
@@ -388,7 +404,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         draw.text(anchor, str(idx), fill=text_color, font=font, anchor="rb", align="center")
 
     def _color(self, identifier):
-        rnd = random.Random()  # (int(identifier))
+        rnd = random.Random(int(identifier))
         color = [rnd.randint(0, 255), rnd.randint(125, 255), rnd.randint(0, 50)]
         rnd.shuffle(color)
         color.append(255)
