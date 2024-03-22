@@ -291,7 +291,6 @@ Please output an answer in pure JSON format according to the following schema. T
                 self._print_thought(json.dumps(data, indent=4))
 
                 if data["is_request_satisfied"]["answer"]:
-                    self._print_thought("total_turns: " + str(total_turns))
                     return True, "TERMINATE"
 
                 if data["is_progress_being_made"]["answer"]:
@@ -353,7 +352,6 @@ Please output an answer in pure JSON format according to the following schema. T
 
                         self._print_thought(json.dumps(data, indent=4))
                         if data["has_educated_guesses"]["answer"]:
-                            self._print_thought("total_turns: " + str(total_turns))
                             return True, "TERMINATE"
 
                     new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
@@ -389,5 +387,4 @@ Team membership:
                         self._broadcast(reply, exclude=[a])
                         break
 
-        self._print_thought("ran out of turns")
         return True, "TERMINATE"
