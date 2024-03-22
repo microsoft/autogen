@@ -1,10 +1,10 @@
 import functools
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from audio_generators import AudioGenerator, GeneratorConfig
+from audio_transcribers import AudioTranscriber, TranscriberConfig
 from termcolor import colored
 
-from autogen.agentchat.contrib.audio_generators import AudioGenerator, GeneratorConfig
-from autogen.agentchat.contrib.audio_transcribers import AudioTranscriber, TranscriberConfig
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.cache import Cache
@@ -134,7 +134,7 @@ class SpeechToText(AgentCapability):
             return message
 
         for tag in tags:
-            transcriber_cfg = tag.get("content", {})
+            transcriber_cfg = tag.get("attr", {})
             if not transcriber_cfg:
                 _empty_tag_warn(tag)
                 continue

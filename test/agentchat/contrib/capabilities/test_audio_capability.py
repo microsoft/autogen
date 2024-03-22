@@ -2,12 +2,11 @@ import os
 import tempfile
 
 import pytest
-
-from autogen.agentchat.contrib.audio_generators import TTS
-from autogen.agentchat.contrib.audio_transcribers import Whisper
-from autogen.oai import openai_utils
-
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
+
+from autogen.agentchat.contrib.capabilities.audio_generators import TTS
+from autogen.agentchat.contrib.capabilities.audio_transcribers import Whisper
+from autogen.oai import openai_utils
 
 test_dir = os.path.join(os.path.dirname(__file__), "../../..", "test_files")
 
@@ -48,7 +47,7 @@ def test_tts_generator():
         new_config = {
             "task": "generate",
             "text": "Hello AutoGen!",
-            "output_file_path": temp_file.name,
+            "output_file_path": f"{temp_file.name}.mp3",
         }
         tts_config = generator.build_config(new_config)
 
