@@ -176,7 +176,7 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
 
     # Find all image tags
     for match in utils.parse_tags_from_content("img", prompt):
-        image_location = match["content"]["src"]
+        image_location = match["attr"]["src"]
         try:
             if img_format == "pil":
                 img_data = get_pil_image(image_location)

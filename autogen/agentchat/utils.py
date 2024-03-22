@@ -125,10 +125,10 @@ def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
 
     results = []
     for match in re.finditer(pattern, text):
-        tag_content = match.group(1).strip()
-        content = _parse_attributes_from_tags(tag_content)
+        tag_attr = match.group(1).strip()
+        attr = _parse_attributes_from_tags(tag_attr)
 
-        results.append({"tag": tag, "content": content, "start": match.start(), "end": match.end()})
+        results.append({"tag": tag, "attr": attr, "start": match.start(), "end": match.end()})
     return results
 
 
@@ -163,7 +163,7 @@ def _reconstruct_attributes(attrs: List[str]) -> List[str]:
 
     def is_attr(attr: str) -> bool:
         if "=" in attr:
-            key, value = attr.split("=", 1)
+            _, value = attr.split("=", 1)
             if value.startswith("'") or value.startswith('"'):
                 return True
         return False
