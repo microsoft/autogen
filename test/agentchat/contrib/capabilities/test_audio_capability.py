@@ -41,13 +41,13 @@ def test_whisper_transcriber():
 
 @pytest.mark.skipif(skip_openai, reason="Requested to skip openai tests.")
 def test_tts_generator():
-    with tempfile.TemporaryFile() as temp_file:
+    with tempfile.TemporaryDirectory() as temp_dir:
         generator = TTS(llm_config=llm_config("tts-1"))
 
         new_config = {
             "task": "generate",
             "text": "Hello AutoGen!",
-            "output_file_path": f"{temp_file.name}.mp3",
+            "output_file_path": os.path.join(temp_dir, "hello_autogen.mp3"),
         }
         tts_config = generator.build_config(new_config)
 
