@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import base64
 import os
-import pdb
 import random
 import re
 import time
@@ -19,21 +18,13 @@ from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
 import google.generativeai as genai
-import httpx
 import requests
 from google.ai.generativelanguage import Content, Part
 from google.api_core.exceptions import InternalServerError
-from google.generativeai import ChatSession
-from openai import OpenAI, _exceptions, resources
-from openai._qs import Querystring
-from openai._types import NOT_GIVEN, NotGiven, Omit, ProxiesTypes, RequestOptions, Timeout, Transport
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 from PIL import Image
-from proto.marshal.collections.repeated import RepeatedComposite
-from pydash import max_
-from typing_extensions import Self, override
 
 # from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data
 from autogen.token_count_utils import count_token
