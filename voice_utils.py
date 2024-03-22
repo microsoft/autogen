@@ -6,6 +6,7 @@ from openai import OpenAI
 import numpy as np
 import sounddevice as sd
 import scipy.io.wavfile as wav
+from autogen import AssistantAgent, UserProxyAgent, Agent
 
 
 def record_audio(stop_event, result_queue):
@@ -44,7 +45,7 @@ def record_audio(stop_event, result_queue):
     with open(filename, "wb") as f:
         wav.write(f, fs, buffer)
 
-    print(f"[debug] Recording saved to {filename}")
+    # print(f"[debug] Recording saved to {filename}")
 
     client = OpenAI()
 
@@ -59,6 +60,8 @@ def speech_to_text(callable_func=record_audio):
     thread = threading.Thread(target=callable_func, args=(stop_thread, result_queue))
     started = False
 
+    transcription = None
+
     print("Press enter to start/stop recording.")
 
     while True:
@@ -69,15 +72,36 @@ def speech_to_text(callable_func=record_audio):
                 stop_thread.set()
                 thread.join()
                 stop_thread.clear()
-                print("[debug] Thread stopped. You can't start it again.")
-                result = result_queue.get()
-                print("\nThe user said: ", result)
+                print("[debug] Stopped recording...")
+                transcription = result_queue.get()
+                print("[debug] The user said: ", transcription)
                 break
         else:
             started = True
-            print("[debug] Starting thread.")
+            print("[debug] Starting recording...")
             thread.start()
+    return transcription
+
+
+def demo_whisper_user_proxy():
+    config_list = [
+        {
+            "model": "gpt-4",
+            "api_key": os.environ["OPENAI_API_KEY"],
+        }
+    ]
+    assistant = AssistantAgent("assistant", llm_config={"config_list": config_list})
+    user_proxy = UserProxyAgent("voice_user_proxy", code_execution_config={"work_dir": "coding", "use_docker": False})
+
+    def generate_speech_to_text_reply(recipient, messages, sender, **kwargs):
+        transcription = speech_to_text()
+        return True, transcription
+
+    user_proxy.register_reply([Agent], generate_speech_to_text_reply)
+
+    assistant.initiate_chat(user_proxy, message="What can I help you with today?")
 
 
 if __name__ == "__main__":
-    speech_to_text()
+    # speech_to_text()
+    demo_whisper_user_proxy()
