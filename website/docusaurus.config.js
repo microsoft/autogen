@@ -212,6 +212,10 @@ module.exports = {
           {
             to: "/docs/tutorial/what-next",
             from: ["/docs/tutorial/what-is-next"],
+          },
+          {
+            to: "/docs/topics/non-openai-models/local-lm-studio",
+            from: ["/docs/topics/non-openai-models/lm-studio"],
           }
         ],
       },

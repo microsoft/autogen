@@ -1,6 +1,7 @@
 """
 Demo App
 """
+
 import argparse
 import _paths
 from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS

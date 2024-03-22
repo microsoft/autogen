@@ -3,7 +3,7 @@
 import pytest
 import os
 import sys
-from termcolor import colored
+from autogen.formatting_utils import colored
 from autogen import ConversableAgent, config_list_from_json
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))

@@ -123,7 +123,7 @@ WORKDIR "${HOME}"
         self._port = int(container_ports["8888/tcp"][0]["HostPort"])
         self._container_id = container.id
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 inner_container = client.containers.get(container.id)
                 inner_container.stop()
@@ -142,7 +142,7 @@ WORKDIR "${HOME}"
     def connection_info(self) -> JupyterConnectionInfo:
         return JupyterConnectionInfo(host="127.0.0.1", use_https=False, port=self._port, token=self._token)
 
-    def stop(self):
+    def stop(self) -> None:
         self._cleanup_func()
 
     def get_client(self) -> JupyterClient:

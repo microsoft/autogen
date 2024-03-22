@@ -8,6 +8,8 @@ import uuid
 from typing import Any, ClassVar, List, Optional, Type, Union
 import sys
 
+from autogen.coding.utils import silence_pip
+
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
@@ -91,7 +93,7 @@ class JupyterCodeExecutor(CodeExecutor):
         outputs = []
         output_files = []
         for code_block in code_blocks:
-            code = self._process_code(code_block.code)
+            code = silence_pip(code_block.code, code_block.language)
             result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
             if result.is_ok:
                 outputs.append(result.output)
@@ -139,18 +141,6 @@ class JupyterCodeExecutor(CodeExecutor):
         with open(path, "w") as f:
             f.write(html_data)
         return os.path.abspath(path)
-
-    def _process_code(self, code: str) -> str:
-        """Process code before execution."""
-        # Find lines that start with `! pip install` and make sure "-qqq" flag is added.
-        lines = code.split("\n")
-        for i, line in enumerate(lines):
-            # use regex to find lines that start with `! pip install` or `!pip install`.
-            match = re.search(r"^! ?pip install", line)
-            if match is not None:
-                if "-qqq" not in line:
-                    lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
-        return "\n".join(lines)
 
     def stop(self) -> None:
         """Stop the kernel."""
