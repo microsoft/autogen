@@ -1,3 +1,4 @@
+from functools import reduce
 import os
 import json
 import re
@@ -145,7 +146,13 @@ class Classify_log:
                     prev_validated_steps.append(("EDUCATED_GUESS", {}, steps[index:]))
                     return "IGNORE", {}
                 return "EDUCATED_GUESS", {}
-            return "FINAL_ANSWER", {}
+            else:
+                index = next((i for i, s in enumerate(steps) if "FINAL ANSWER:" in s), None)
+                if prev_validated_steps[-1][0] == "DELEGATE_TO_AGENT":
+                    prev_validated_steps.append(("RESPONSE_FROM_AGENT_FAILED", {}, steps[:index]))
+                    prev_validated_steps.append(("FINAL_ANSWER", {}, steps[index:]))
+                    return "IGNORE", {}
+                return "FINAL_ANSWER", {}
         else:
             if prev_validated_steps[-1][1] != {}:
                 if prev_validated_steps[-1][0] == "RESPONSE_FROM_AGENT":
@@ -153,6 +160,16 @@ class Classify_log:
                     prev_validated_steps[-1][2].extend(steps)
                     return "IGNORE", {}
             return "NO_MATCH", {}
+
+    # Adjusted function for the desired behavior
+    @staticmethod
+    def split_on_reset_include(acc, item):
+        # Always add the current item to the last group
+        acc[-1].append(item)
+        # If the item is "RESET", start a new group
+        if item[0] == "RESET":
+            acc.append([])
+        return acc
 
     @staticmethod
     def classify_steps(steps):
@@ -238,6 +255,7 @@ class Classify_log:
                 else:
                     classified_steps.append(("EXTRA", {"current_state": current_step}, step_split))
 
+        classified_steps = reduce(Classify_log.split_on_reset_include, classified_steps, [[]])
         return classified_steps
 
 
