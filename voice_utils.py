@@ -1,48 +1,11 @@
+import os
 import threading
-import time
 import queue
 
-import os
+from openai import OpenAI
 import numpy as np
 import sounddevice as sd
 import scipy.io.wavfile as wav
-
-
-def print_numbers(stop_event, result_queue):
-    i = 1
-    result = []
-    while not stop_event.is_set():
-        result.append(i)
-        print(
-            i,
-        )
-        i += 1
-        time.sleep(1)
-    result_queue.put(result)
-
-
-import requests
-from bs4 import BeautifulSoup
-import time
-
-
-def stream_words_from_wiki(stop_event, result_queue):
-    url = "https://en.wikipedia.org/wiki/Barack_Obama"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-    text = soup.get_text()
-    words = text.split()
-
-    result = []
-    for word in words:
-        if stop_event.is_set():
-            break
-        print(
-            word,
-        )
-        result.append(word)
-        time.sleep(1)  # sleep for a bit between words for the "streaming" effect
-    result_queue.put(result)
 
 
 def record_audio(stop_event, result_queue):
@@ -81,17 +44,22 @@ def record_audio(stop_event, result_queue):
     with open(filename, "wb") as f:
         wav.write(f, fs, buffer)
 
-    print(f"Recording saved to {filename}")
-    result_queue.put(filename)
+    print(f"[debug] Recording saved to {filename}")
+
+    client = OpenAI()
+
+    audio_file = open(filename, "rb")
+    transcription = client.audio.transcriptions.create(model="whisper-1", file=audio_file)
+    result_queue.put(transcription.text)
 
 
-def start_printing_numbers_while_input_received(callable_func=print_numbers):
+def speech_to_text(callable_func=record_audio):
     stop_thread = threading.Event()
     result_queue = queue.Queue()
     thread = threading.Thread(target=callable_func, args=(stop_thread, result_queue))
     started = False
 
-    print("Press enter to start/stop.")
+    print("Press enter to start/stop recording.")
 
     while True:
         input()
@@ -101,17 +69,15 @@ def start_printing_numbers_while_input_received(callable_func=print_numbers):
                 stop_thread.set()
                 thread.join()
                 stop_thread.clear()
-                print("Thread stopped. You can't start it again.")
+                print("[debug] Thread stopped. You can't start it again.")
                 result = result_queue.get()
-                print("Result: ", result)
+                print("\nThe user said: ", result)
                 break
         else:
             started = True
-            print("Starting thread.")
+            print("[debug] Starting thread.")
             thread.start()
 
 
 if __name__ == "__main__":
-    # start_printing_numbers_while_input_received(callable_func=print_numbers)
-    # start_printing_numbers_while_input_received(callable_func=stream_words_from_wiki)
-    start_printing_numbers_while_input_received(callable_func=record_audio)
+    speech_to_text()
