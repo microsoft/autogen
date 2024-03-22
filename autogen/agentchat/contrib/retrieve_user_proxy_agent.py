@@ -12,7 +12,7 @@ from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, T
 from autogen.token_count_utils import count_token
 from autogen.code_utils import extract_code
 from autogen import logger
-from autogen.agentchat.conversable_agent import colored
+from ...formatting_utils import colored
 
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the

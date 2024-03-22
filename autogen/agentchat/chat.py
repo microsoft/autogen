@@ -7,8 +7,9 @@ from dataclasses import dataclass
 from .utils import consolidate_chat_info
 import datetime
 import warnings
-from termcolor import colored
 from ..io.base import IOStream
+from ..formatting_utils import colored
+
 
 logger = logging.getLogger(__name__)
 Prerequisite = Tuple[int, int]
