@@ -22,7 +22,7 @@
   "agents": [
     {
       "type": "userproxy",
-      "description": "A user proxy agent that executes code.",
+
       "config": {
         "name": "userproxy",
         "human_input_mode": "NEVER",
@@ -33,12 +33,12 @@
         "code_execution_config": {
           "work_dir": null,
           "use_docker": false
-        }
+        },
+        "description": "A user proxy agent that executes code."
       }
     },
     {
       "type": "assistant",
-      "description": "A primary assistant agent that writes plans and code to solve tasks.",
       "skills": [
         {
           "title": "find_papers_arxiv",
@@ -54,6 +54,7 @@
       ],
       "config": {
         "name": "primary_assistant",
+        "description": "A primary assistant agent that writes plans and code to solve tasks.",
         "llm_config": {
           "config_list": [
             {
@@ -138,7 +139,7 @@
                 },
                 "human_input_mode": "NEVER",
                 "max_consecutive_auto_reply": 8,
-                "system_message": "You are a helpful assistant that can suggest a travel plan for a user. You are the primary cordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN that ends with the word TERMINATE. "
+                "system_message": "You are a helpful assistant that can suggest a travel plan for a user. You are the primary cordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE."
               }
             },
             {
@@ -188,9 +189,9 @@
       "description": "This workflow is used for general purpose tasks.",
       "sender": {
         "type": "userproxy",
-        "description": "A user proxy agent that executes code.",
         "config": {
           "name": "userproxy",
+          "description": "A user proxy agent that executes code.",
           "human_input_mode": "NEVER",
           "max_consecutive_auto_reply": 10,
           "system_message": "You are a helpful assistant.",
@@ -204,7 +205,7 @@
       },
       "receiver": {
         "type": "assistant",
-        "description": "Default assistant to generate plans and write code to solve tasks.",
+
         "skills": [
           {
             "title": "find_papers_arxiv",
@@ -218,6 +219,7 @@
           }
         ],
         "config": {
+          "description": "Default assistant to generate plans and write code to solve tasks.",
           "name": "primary_assistant",
           "llm_config": {
             "config_list": [

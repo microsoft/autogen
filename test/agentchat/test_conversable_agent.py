@@ -10,7 +10,6 @@ import inspect
 from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import patch
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 import autogen
@@ -19,16 +18,12 @@ from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
+REASON = "requested to skip openai tests"
 
 
 @pytest.fixture
@@ -817,17 +812,21 @@ def test_register_for_llm_without_description():
 
 
 def test_register_for_llm_without_LLM():
+    agent = ConversableAgent(name="agent", llm_config=None)
     with pytest.raises(
-        ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        AssertionError,
+        match="To update a tool signature, agent must have an llm_config",
     ):
-        ConversableAgent(name="agent", llm_config=None)
+
+        @agent.register_for_llm(description="do things.")
+        def do_stuff(s: str) -> str:
+            return f"{s} done"
 
 
 def test_register_for_llm_without_configuration():
     with pytest.raises(
         ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
 
@@ -835,7 +834,7 @@ def test_register_for_llm_without_configuration():
 def test_register_for_llm_without_model_name():
     with pytest.raises(
         ValueError,
-        match="Please either set llm_config to False, or specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
 
@@ -917,8 +916,8 @@ def test_register_functions():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=REASON,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
@@ -986,16 +985,16 @@ def test_function_registration_e2e_sync() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     user_proxy.initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="2")
-    stopwatch_mock.assert_called_once_with(num_seconds="3")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=REASON,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
@@ -1064,14 +1063,14 @@ async def test_function_registration_e2e_async() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     await user_proxy.a_initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="4")
-    stopwatch_mock.assert_called_once_with(num_seconds="5")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_max_turn():
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
@@ -1093,7 +1092,7 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_message_func():
     import random
 
@@ -1149,7 +1148,7 @@ def test_message_func():
     print(chat_res_play.summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=REASON)
 def test_summary():
     import random
 
