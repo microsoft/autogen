@@ -2246,24 +2246,18 @@ class ConversableAgent(LLMAgent):
         return message
 
     def _process_multimodal_carryover(self, message: List, context: dict) -> List[Dict]:
-        carryover = context.get("carryover")
         reconstructed_messages = [{"type": "text", "text": ""}]
         for msg in message:
-            text_msg = ""
             if msg.get("type") == "text":
-                text_msg += msg["text"]
+                reconstructed_messages[0]["text"] += "\n" + msg["text"]
             else:
                 reconstructed_messages.append(msg)
 
-        if carryover:
-            if isinstance(carryover, str):
-                reconstructed_messages[0]["text"] += "\nContext: \n" + carryover
-            elif isinstance(carryover, list):
-                reconstructed_messages[0]["text"] += "\nContext: \n" + ("\n").join([t for t in carryover])
-            else:
-                raise InvalidCarryOverType(
-                    "Carryover should be a string or a list of strings. Not adding carryover to the message."
-                )
+        reconstructed_messages[0]["text"] = self._process_carryover(reconstructed_messages[0]["text"], context)
+
+        # Delete the text message if it is empty
+        if reconstructed_messages[0]["text"] == "":
+            del reconstructed_messages[0]
 
         return reconstructed_messages
 
