@@ -100,8 +100,8 @@ def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]])
 
     Returns:
         List[Dict[str, str]]: A list of dictionaries, where each dictionary represents a parsed tag. Each dictionary
-            contains two key-value pairs: 'type' which is the tag, and 'content' which is a dictionary of the parsed
-            attributes.
+            contains three key-value pairs: 'type' which is the tag, 'attr' which is a dictionary of the parsed attributes,
+            and 'match' which is a regular expression match object.
 
     Raises:
         ValueError: If the content is not a string or a list.
