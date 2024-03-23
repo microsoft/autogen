@@ -1263,6 +1263,43 @@ def test_messages_with_carryover():
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
+    # Test multimodal messages
+    mm_message = [
+        {"type": "text", "text": "hello"},
+        {"type": "text", "text": "goodbye"},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.png"},
+        },
+    ]
+    context = dict(
+        message=mm_message,
+        carryover="Testing carryover.",
+    )
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+
+    context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+
+    context = dict(message=mm_message, carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test without carryover
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+
+    # Test without text in multimodal message
+    mm_message = [
+        {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
+    ]
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+
 
 if __name__ == "__main__":
     # test_trigger()
