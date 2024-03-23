@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from .utils import consolidate_chat_info
 import datetime
 import warnings
-from termcolor import colored
+from ..formatting_utils import colored
 
 
 logger = logging.getLogger(__name__)
