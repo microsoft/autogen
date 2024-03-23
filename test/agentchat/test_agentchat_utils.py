@@ -41,10 +41,6 @@ TAG_PARSING_TESTS = [
 
 
 def _delete_unused_keys(d: Dict) -> None:
-    if "start" in d:
-        del d["start"]
-    if "end" in d:
-        del d["end"]
     if "match" in d:
         del d["match"]
 

@@ -175,8 +175,8 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
     image_count = 0
 
     # Find all image tags
-    for match in utils.parse_tags_from_content("img", prompt):
-        image_location = match["attr"]["src"]
+    for parsed_tag in utils.parse_tags_from_content("img", prompt):
+        image_location = parsed_tag["attr"]["src"]
         try:
             if img_format == "pil":
                 img_data = get_pil_image(image_location)
@@ -193,12 +193,12 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
             continue
 
         # Add text before this image tag to output list
-        output.append({"type": "text", "text": prompt[last_index : match["start"]]})
+        output.append({"type": "text", "text": prompt[last_index : parsed_tag["match"].start()]})
 
         # Add image data to output list
         output.append({"type": "image_url", "image_url": {"url": img_data}})
 
-        last_index = match["end"]
+        last_index = parsed_tag["match"].end()
         image_count += 1
 
     # Add remaining text to output list
