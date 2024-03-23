@@ -869,7 +869,7 @@ class ConversableAgent(LLMAgent):
         max_turns: Optional[int] = None,
         summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
-        message: Optional[Union[Dict, str, Callable]] = None,
+        message: Optional[Union[Dict, str, Callable, List[Dict]]] = None,
         **context,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
@@ -2203,7 +2203,7 @@ class ConversableAgent(LLMAgent):
             "content": str(content),
         }
 
-    def generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
+    def generate_init_message(self, message: Union[Dict, str, List, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
 
@@ -2227,6 +2227,8 @@ class ConversableAgent(LLMAgent):
             #     message["content"] = self.get_human_input(">")
             message["content"] = self._process_carryover(message.get("content", ""), context)
             return message
+        elif isinstance(message, list):
+            return {"content": self._process_multimodal_carryover(message, context)}
 
     def _process_carryover(self, message: str, context: dict) -> str:
         carryover = context.get("carryover")
@@ -2240,7 +2242,30 @@ class ConversableAgent(LLMAgent):
                 raise InvalidCarryOverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
+
         return message
+
+    def _process_multimodal_carryover(self, message: List, context: dict) -> List[Dict]:
+        carryover = context.get("carryover")
+        reconstructed_messages = [{"type": "text", "text": ""}]
+        for msg in message:
+            text_msg = ""
+            if msg.get("type") == "text":
+                text_msg += msg["text"]
+            else:
+                reconstructed_messages.append(msg)
+
+        if carryover:
+            if isinstance(carryover, str):
+                reconstructed_messages[0]["text"] += "\nContext: \n" + carryover
+            elif isinstance(carryover, list):
+                reconstructed_messages[0]["text"] += "\nContext: \n" + ("\n").join([t for t in carryover])
+            else:
+                raise InvalidCarryOverType(
+                    "Carryover should be a string or a list of strings. Not adding carryover to the message."
+                )
+
+        return reconstructed_messages
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
         """Generate the initial message for the agent.
@@ -2260,6 +2285,8 @@ class ConversableAgent(LLMAgent):
             message = message.copy()
             message["content"] = self._process_carryover(message["content"], context)
             return message
+        elif isinstance(message, list):
+            return {"content": self._process_multimodal_carryover(message, context)}
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.
