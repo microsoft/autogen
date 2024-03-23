@@ -128,7 +128,7 @@ def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
         tag_attr = match.group(1).strip()
         attr = _parse_attributes_from_tags(tag_attr)
 
-        results.append({"tag": tag, "attr": attr, "start": match.start(), "end": match.end()})
+        results.append({"tag": tag, "attr": attr, "start": match.start(), "end": match.end(), "raw_tag": match.group()})
     return results
 
 

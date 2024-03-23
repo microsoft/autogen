@@ -5,32 +5,32 @@ import pytest
 TAG_PARSING_TESTS = [
     {
         "message": "Hello agent, can you take a look at this image <img http://example.com/image.png>",
-        "expected": [{"tag": "img", "content": {"src": "http://example.com/image.png"}}],
+        "expected": [{"tag": "img", "attr": {"src": "http://example.com/image.png"}}],
     },
     {
         "message": "Can you transcribe this audio? <audio http://example.com/au=dio.mp3>",
-        "expected": [{"tag": "audio", "content": {"src": "http://example.com/au=dio.mp3"}}],
+        "expected": [{"tag": "audio", "attr": {"src": "http://example.com/au=dio.mp3"}}],
     },
     {
         "message": "Can you describe what's in this image <img url='http://example.com/=image.png'>",
-        "expected": [{"tag": "img", "content": {"url": "http://example.com/=image.png"}}],
+        "expected": [{"tag": "img", "attr": {"url": "http://example.com/=image.png"}}],
     },
     {
         "message": "Can you describe what's in this image <img http://example.com/image.png> and transcribe this audio? <audio http://example.com/audio.mp3>",
         "expected": [
-            {"tag": "img", "content": {"src": "http://example.com/image.png"}},
-            {"tag": "audio", "content": {"src": "http://example.com/audio.mp3"}},
+            {"tag": "img", "attr": {"src": "http://example.com/image.png"}},
+            {"tag": "audio", "attr": {"src": "http://example.com/audio.mp3"}},
         ],
     },
     {
         "message": "Can you generate this audio? <audio text='Hello I'm a robot' prompt='whisper'>",
-        "expected": [{"tag": "audio", "content": {"text": "Hello I'm a robot", "prompt": "whisper"}}],
+        "expected": [{"tag": "audio", "attr": {"text": "Hello I'm a robot", "prompt": "whisper"}}],
     },
     {
         "message": "Can you describe what's in this image <img http://example.com/image.png width='100'> and this image <img http://hello.com/image=.png>?",
         "expected": [
-            {"tag": "img", "content": {"src": "http://example.com/image.png", "width": "100"}},
-            {"tag": "img", "content": {"src": "http://hello.com/image=.png"}},
+            {"tag": "img", "attr": {"src": "http://example.com/image.png", "width": "100"}},
+            {"tag": "img", "attr": {"src": "http://hello.com/image=.png"}},
         ],
     },
     {
@@ -45,6 +45,8 @@ def _delete_unused_keys(d: Dict) -> None:
         del d["start"]
     if "end" in d:
         del d["end"]
+    if "raw_tag" in d:
+        del d["raw_tag"]
 
 
 @pytest.mark.parametrize("test_case", TAG_PARSING_TESTS)
