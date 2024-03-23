@@ -12,7 +12,7 @@ from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-from .utils import _get_file_name_from_content
+from .utils import _get_file_name_from_content, silence_pip
 
 import subprocess
 
@@ -201,6 +201,7 @@ $functions"""
             lang = lang.lower()
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
+            code = silence_pip(code, lang)
 
             if WIN32 and lang in ["sh", "shell"]:
                 lang = "ps1"
