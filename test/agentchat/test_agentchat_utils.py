@@ -45,8 +45,8 @@ def _delete_unused_keys(d: Dict) -> None:
         del d["start"]
     if "end" in d:
         del d["end"]
-    if "raw_tag" in d:
-        del d["raw_tag"]
+    if "match" in d:
+        del d["match"]
 
 
 @pytest.mark.parametrize("test_case", TAG_PARSING_TESTS)
