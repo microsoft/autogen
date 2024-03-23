@@ -514,7 +514,11 @@ class GroupChatManager(ConversableAgent):
         system_message: Optional[Union[str, List]] = "Group chat manager.",
         **kwargs,
     ):
-        if kwargs.get("llm_config") and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools")):
+        if (
+            kwargs.get("llm_config")
+            and isinstance(kwargs["llm_config"], dict)
+            and (kwargs["llm_config"].get("functions") or kwargs["llm_config"].get("tools"))
+        ):
             raise ValueError(
                 "GroupChatManager is not allowed to make function/tool calls. Please remove the 'functions' or 'tools' config in 'llm_config' you passed in."
             )
