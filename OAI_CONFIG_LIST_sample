@@ -20,5 +20,16 @@
         "base_url": "<your Azure OpenAI API base here>",
         "api_type": "azure",
         "api_version": "2024-02-15-preview"
+    },
+    {
+        "model": "<your open source LLM local path>",
+        "api_key": "<your key here>",
+        "base_url": "<your open source LLM url here>",
+        "api_type": "azure",
+        "api_version": "2024-02-15-preview",
+        "model_path_for_tokenizer": "<your open source LLM path i.e.(microsoft/Orca-2-13b)>",
+        "tokenizer_kwargs": {  
+            "use_fast": false
+        }
     }
 ]

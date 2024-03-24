@@ -3,7 +3,8 @@ import logging
 import json
 import tiktoken
 import re
-
+from transformers import AutoTokenizer
+from .oai.openai_utils import config_list_from_json
 
 logger = logging.getLogger(__name__)
 
@@ -68,16 +69,44 @@ def count_token(input: Union[str, List, Dict], model: str = "gpt-3.5-turbo-0613"
     else:
         raise ValueError("input must be str, list or dict")
 
+def _num_token_from_text(text: str, model: str = "gpt-3.5-turbo-0613", oai_config_file = "OAI_CONFIG_LIST"):
+    """Return the number of tokens used by a string.
+    If you are using an open source llm you can specify a custom tokenizer and its kwargs in your OAI_CONFIG_LIST.
+    """
 
-def _num_token_from_text(text: str, model: str = "gpt-3.5-turbo-0613"):
-    """Return the number of tokens used by a string."""
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-    except KeyError:
+    def use_cl100k_base_encoding():
         logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
         encoding = tiktoken.get_encoding("cl100k_base")
-    return len(encoding.encode(text))
+        return len(encoding.encode(text))
 
+    def use_autotokenizer(model_path_for_tokenizer: str, tokenizer_kwargs: dict):
+        logger.warning(f"Using AutoTokenizer with model_path:{model_path_for_tokenizer} for model:{model}.")
+        tokenizer = AutoTokenizer.from_pretrained(model_path_for_tokenizer, **tokenizer_kwargs)
+        return len(tokenizer(text, return_tensors="pt").input_ids[0])
+
+    try:
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+
+    except KeyError:
+        try:
+            config_list = config_list_from_json(
+                oai_config_file,
+                filter_dict={"model": [model]},
+            )
+
+            if len(config_list) != 1 or config_list[0].get('model_path_for_tokenizer') is None:
+                return use_cl100k_base_encoding()
+
+            model_path_for_tokenizer = config_list[0]['model_path_for_tokenizer']
+
+            # Extract additional parameters for tokenizer from the config
+            tokenizer_kwargs = config_list[0].get('tokenizer_kwargs', {})
+
+            return use_autotokenizer(model_path_for_tokenizer, tokenizer_kwargs)
+        except Exception as e:
+            logger.error(f"Error occurred: {str(e)}. Model path for tokenizer not found for model: {model}.")
+            return use_cl100k_base_encoding()
 
 def _num_token_from_messages(messages: Union[List, Dict], model="gpt-3.5-turbo-0613"):
     """Return the number of tokens used by a list of messages.
