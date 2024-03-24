@@ -8,11 +8,8 @@ import pytest
 
 import autogen
 from autogen import token_count_utils
-from autogen.agentchat.contrib.capabilities.transform_messages import (
-    MessageHistoryLimiter,
-    MessageTokenLimiter,
-    TransformMessages,
-)
+from autogen.agentchat.contrib.capabilities.transform_messages import TransformMessages
+from autogen.agentchat.contrib.capabilities.transforms import MessageHistoryLimiter, MessageTokenLimiter
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
