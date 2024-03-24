@@ -104,12 +104,9 @@ class MessageTokenLimiter:
                 Must be greater than or equal to 0 if not None.
             model (str): The target OpenAI model for tokenization alignment.
         """
-        self._validate_max_tokens(max_tokens_per_message)
-        self._validate_max_tokens(max_tokens)
-
-        self._max_tokens_per_message = max_tokens_per_message if max_tokens_per_message else sys.maxsize
-        self._max_tokens = max_tokens if max_tokens else sys.maxsize
         self._model = model
+        self._max_tokens_per_message = self._validate_max_tokens(max_tokens_per_message)
+        self._max_tokens = self._validate_max_tokens(max_tokens)
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies token truncation to the conversation history.
@@ -179,9 +176,27 @@ class MessageTokenLimiter:
 
         return truncated_text
 
-    def _validate_max_tokens(self, max_tokens: Optional[int] = None):
+    def _validate_max_tokens(self, max_tokens: Optional[int] = None) -> Optional[int]:
         if max_tokens is not None and max_tokens < 0:
             raise ValueError("max_tokens and max_tokens_per_message must be None or greater than or equal to 0")
+
+        try:
+            allowed_tokens = token_count_utils.get_max_token_limit(self._model)
+        except Exception:
+            print(colored(f"Model {self._model} not found in token_count_utils.", "yellow"))
+            allowed_tokens = None
+
+        if max_tokens is not None and allowed_tokens is not None:
+            if max_tokens > allowed_tokens:
+                print(
+                    colored(
+                        f"Max token was set to {max_tokens}, but {self._model} can only accept {allowed_tokens} tokens. Capping it to {allowed_tokens}.",
+                        "yellow",
+                    )
+                )
+                return allowed_tokens
+
+        return max_tokens if max_tokens is not None else sys.maxsize
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
