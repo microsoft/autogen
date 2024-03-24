@@ -1323,7 +1323,6 @@ class ConversableAgent(LLMAgent):
         config: Optional[Any] = None,
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai asynchronously."""
-        # TODO: remove me
         iostream = IOStream.get_default()
 
         def _generate_oai_reply(
