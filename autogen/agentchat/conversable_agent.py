@@ -5,37 +5,35 @@ import inspect
 import json
 import logging
 import re
+import warnings
 from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
-import warnings
+
 from openai import BadRequestError
 
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
-from ..coding.base import CodeExecutor
-from ..coding.factory import CodeExecutorFactory
-from ..formatting_utils import colored
-
-from ..oai.client import OpenAIWrapper, ModelClient
-from ..runtime_logging import logging_enabled, log_new_agent
+from .._pydantic import model_dump
 from ..cache.cache import Cache
 from ..code_utils import (
     UNKNOWN,
-    content_str,
     check_can_use_docker_or_throw,
+    content_str,
     decide_use_docker,
     execute_code,
     extract_code,
     infer_lang,
 )
-from .utils import gather_usage_summary, consolidate_chat_info
-from .chat import ChatResult, initiate_chats, a_initiate_chats
-
-
+from ..coding.base import CodeExecutor
+from ..coding.factory import CodeExecutorFactory
+from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..oai.client import ModelClient, OpenAIWrapper
+from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from .._pydantic import model_dump
+from .chat import ChatResult, a_initiate_chats, initiate_chats
+from .utils import consolidate_chat_info, gather_usage_summary
 
 __all__ = ("ConversableAgent",)
 
@@ -2603,22 +2601,25 @@ class ConversableAgent(LLMAgent):
             return messages  # Last message contains a context key.
         if "content" not in last_message:
             return messages  # Last message has no content.
-        user_text = last_message["content"]
-        if not isinstance(user_text, str):
-            return messages  # Last message content is not a string. TODO: Multimodal agents will use a dict here.
-        if user_text == "exit":
+
+        user_content = last_message["content"]
+        if not isinstance(user_content, str) and not isinstance(user_content, list):
+            # if the user_content is a string, it is for regular LLM
+            # if the user_content is a list, it should follow the multimodal LMM format.
+            return messages
+        if user_content == "exit":
             return messages  # Last message is an exit command.
 
         # Call each hook (in order of registration) to process the user's message.
-        processed_user_text = user_text
+        processed_user_content = user_content
         for hook in hook_list:
-            processed_user_text = hook(processed_user_text)
-        if processed_user_text == user_text:
+            processed_user_content = hook(processed_user_content)
+        if processed_user_content == user_content:
             return messages  # No hooks actually modified the user's message.
 
         # Replace the last user message with the expanded one.
         messages = messages.copy()
-        messages[-1]["content"] = processed_user_text
+        messages[-1]["content"] = processed_user_content
         return messages
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
