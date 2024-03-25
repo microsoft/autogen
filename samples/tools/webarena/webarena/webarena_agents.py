@@ -23,9 +23,7 @@ from browser_env.helper_functions import (
 from browser_env.actions import is_equivalent
 
 
-def early_stop(
-    trajectory: Trajectory, max_steps: int, thresholds: dict[str, int]
-) -> tuple[bool, str]:
+def early_stop(trajectory: Trajectory, max_steps: int, thresholds: dict[str, int]) -> tuple[bool, str]:
     """Check whether need to early stop"""
 
     # reach the max step
@@ -40,9 +38,7 @@ def early_stop(
     k = thresholds["parsing_failure"]
     last_k_actions = trajectory[1::2][-k:]  # type: ignore[assignment]
     if len(last_k_actions) >= k:
-        if all(
-            [action["action_type"] == ActionTypes.NONE for action in last_k_actions]
-        ):
+        if all([action["action_type"] == ActionTypes.NONE for action in last_k_actions]):
             return True, f"Failed to parse actions for {k} times"
 
     # Case: same action for k times
@@ -87,9 +83,7 @@ class EnvironmentAgent(autogen.ConversableAgent):
         self.meta_data = {"action_history": ["None"]}
         self.action_set_tag = action_set_tag
         self.render_helper = RenderHelper(config_file, result_dir, action_set_tag)
-        self.register_reply(
-            [autogen.Agent, None], EnvironmentAgent.generate_env_reply, position=1
-        )
+        self.register_reply([autogen.Agent, None], EnvironmentAgent.generate_env_reply, position=1)
         self.register_hook(
             hookable_method="process_message_before_send",
             hook=self.process_message_before_send,
@@ -143,9 +137,7 @@ class EnvironmentAgent(autogen.ConversableAgent):
 
 
 class ActionTakingCapability:
-    def __init__(
-        self, prompt_constructor, action_set_tag, max_steps, early_stop_thresholds
-    ):
+    def __init__(self, prompt_constructor, action_set_tag, max_steps, early_stop_thresholds):
         self.action_set_tag = action_set_tag
         self.prompt_constructor = prompt_constructor
         self.max_steps = max_steps
@@ -176,9 +168,7 @@ class ActionTakingCapability:
         return prompt
 
     def process_message_before_send(self, sender, message, recipient, silent):
-        force_prefix = self.prompt_constructor.instruction["meta_data"].get(
-            "force_prefix", ""
-        )
+        force_prefix = self.prompt_constructor.instruction["meta_data"].get("force_prefix", "")
         response = f"{force_prefix}{message}"
         try:
             parsed_response = self.prompt_constructor.extract_action(response)
@@ -187,8 +177,8 @@ class ActionTakingCapability:
             elif self.action_set_tag == "playwright":
                 action = create_playwright_action(parsed_response)
             else:
-                action = create_stop_action(f"ERROR: {str(e)}")
-        except ActionParsingError as e:
+                action = create_stop_action(f"ERROR: action tag not recognised: {self.action_set_tag}")
+        except ActionParsingError:
             action = create_none_action()
             action["raw_prediction"] = response
         except Exception as e:
@@ -200,9 +190,7 @@ class ActionTakingCapability:
             m = messages[-1]["context"]
             state_info = m["state_info"]
             trajectory = m["trajectory"]
-            early_stop_flag, stop_info = early_stop(
-                trajectory, self.max_steps, self.early_stop_thresholds
-            )
+            early_stop_flag, stop_info = early_stop(trajectory, self.max_steps, self.early_stop_thresholds)
 
             if early_stop_flag:
                 action = create_stop_action(f"Early stop: {stop_info}")
