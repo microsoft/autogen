@@ -2,7 +2,7 @@
 
 This directory is about the [WebArena](https://arxiv.org/pdf/2307.13854.pdf) benchmark in AutoGen.
 
-## Installation of WebArena
+## Installing WebArena
 
 WebArena can be installed by following the instructions from the [WebArena github](git@github.com:web-arena-x/webarena.git)
 
