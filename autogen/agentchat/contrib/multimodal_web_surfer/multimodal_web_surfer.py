@@ -8,6 +8,7 @@ import json
 import io
 import random
 import base64
+import pathlib
 from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
@@ -23,28 +24,36 @@ from ....oai.openai_utils import filter_config
 
 logger = logging.getLogger(__name__)
 
-MAX_SHORT_SIDE = 768
-MAX_LONG_SIDE = 2000
-SCREENSHOT_HEIGHT = MAX_SHORT_SIDE
-SCREENSHOT_WIDTH = int(4 / 3 * MAX_SHORT_SIDE)
-VIEWPORT_HEIGHT = SCREENSHOT_HEIGHT - 53  # Room for the address bar
-VIEWPORT_WIDTH = SCREENSHOT_WIDTH
+# Sentinels for constructor
+DEFAULT_CHANNEL = object()
+
+# Viewport dimensions
+VIEWPORT_HEIGHT = 1080
+VIEWPORT_WIDTH = 1920
+
+# Size of the image we send to the MLM
+# Current values represent a 2/3 scaling to fit within the GPT-4v short-edge constraints (768px)
+MLM_HEIGHT = 720
+MLM_WIDTH = 1280
+
+# State-of-mark IDs for static browser controls
+MARK_ID_ADDRESS_BAR = 0
+MARK_ID_BACK = 1
+MARK_ID_RELOAD = 2
+MARK_ID_SEARCH_BAR = 3
+MARK_ID_PAGE_UP = 4
+MARK_ID_PAGE_DOWN = 5
 
 
 class MultimodalWebSurferAgent(ConversableAgent):
-    """(In preview) An agent that acts as a basic web surfer that can search the web and visit web pages."""
+    """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
 
-    DEFAULT_PROMPT = (
-        "You are a helpful AI assistant with access to a web browser (via the provided functions). In fact, YOU ARE THE ONLY MEMBER OF YOUR PARTY WITH ACCESS TO A WEB BROWSER, so please help out where you can by performing web searches, navigating pages, and reporting what you find. Today's date is "
-        + datetime.now().date().isoformat()
-    )
-
-    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, navigate to Wikipedia, download files, etc. Once on a desired page, ask them to answer questions by reading the page, generate summaries, find specific words or phrases on the page (ctrl+f), or even just scroll up or down in the viewport."
+    DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.)"
 
     def __init__(
         self,
         name: str,
-        system_message: Optional[Union[str, List[str]]] = DEFAULT_PROMPT,
+        system_message: Optional[Union[str, List[str]]] = None,
         description: Optional[str] = DEFAULT_DESCRIPTION,
         is_termination_msg: Optional[Callable[[Dict[str, Any]], bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -54,6 +63,11 @@ class MultimodalWebSurferAgent(ConversableAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         mlm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
+        headless=True,
+        chromium_channel=DEFAULT_CHANNEL,
+        chromium_data_dir=None,
+        start_page="https://www.bing.com/",
+        debug_dir=os.getcwd(),
     ):
         super().__init__(
             name=name,
@@ -67,44 +81,58 @@ class MultimodalWebSurferAgent(ConversableAgent):
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
         )
-        self._mlm_config = mlm_config
-        self._mlm_client = OpenAIWrapper(**self._mlm_config)
+        # self._mlm_config = mlm_config
+        # self._mlm_client = OpenAIWrapper(**self._mlm_config)
+        self.start_page = start_page
+        self.debug_dir = debug_dir
 
         # Create the playwright instance
-        launch_args = {"channel": "msedge"}  # , "headless": False}
+        launch_args = {"headless": headless}
+        if chromium_channel is not DEFAULT_CHANNEL:
+            launch_args["channel"] = chromium_channel
         self._playwright = sync_playwright().start()
-        self._browser = self._playwright.chromium.launch(**launch_args)
-        self._context = self._browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
-        )
 
-        # self._context = self._playwright.chromium.launch_persistent_context(os.path.join(os.getcwd(), "data"), **launch_args)
+        # Create the context -- are we launching a persistent instance?
+        if chromium_data_dir is None:
+            browser = self._playwright.chromium.launch(**launch_args)
+            self._context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+            )
+        else:
+            self._context = self._playwright.chromium.launch_persistent_context(chromium_data_dir, **launch_args)
 
-        # self._context.on("page", lambda page: self._on_new_page(page))
+        # Create the page
         self._page = self._context.new_page()
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "add_labels.js"))
-        self._page.goto("https://www.bing.com")
+        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.goto(self.start_page)
         self._page.wait_for_load_state()
         time.sleep(1)
-        self._page.screenshot(path="/home/afourney/Desktop/my_image.png")
 
-        # Set up the inner monologue
-        inner_llm_config = copy.deepcopy(llm_config)
-        self._assistant = AssistantAgent(
-            self.name + "_inner_assistant",
-            system_message=system_message,  # type: ignore[arg-type]
-            llm_config=inner_llm_config,
-            is_termination_msg=lambda m: False,
-        )
-
-        self._user_proxy = UserProxyAgent(
-            self.name + "_inner_user_proxy",
-            human_input_mode="NEVER",
-            code_execution_config=False,
-            default_auto_reply="",
-            is_termination_msg=lambda m: False,
-        )
+        # Prepare the debug directory -- which stores the screenshots generated throughout the process
+        if self.debug_dir:
+            if not os.path.isdir(self.debug_dir):
+                os.mkdir(self.debug_dir)
+            debug_html = os.path.join(self.debug_dir, "screenshot.html")
+            with open(debug_html, "wt") as fh:
+                fh.write(
+                    """
+<html style="width:100%; margin: 0px; padding: 0px;">
+<body style="width: 100%; margin: 0px; padding: 0px;">
+    <img src="screenshot.png" id="main_image" style="width: 100%; margin: 0px; padding: 0px;">
+    <script language="JavaScript">
+var counter = 0;
+setInterval(function() {
+   counter += 1;
+   document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
+}, 300);
+    </script>
+</body>
+</html>
+""".strip()
+                )
+            self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
+            print(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
 
         self._reply_func_list = []
         self.register_reply([Agent, None], MultimodalWebSurferAgent.generate_surfer_reply)
@@ -122,21 +150,23 @@ class MultimodalWebSurferAgent(ConversableAgent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        self._user_proxy.reset()  # type: ignore[no-untyped-call]
-        self._assistant.reset()  # type: ignore[no-untyped-call]
-
         # Clone the messages to give context
         history = [m for m in messages]
 
+        # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
         screenshot, visible_rects = self._som_screenshot(rects, url=self._page.url)
 
-        text_labels = """
-  { "id": 0, "aria-role": "button",    "html_tag": "button", "actions": ["click"], "name": "browser back button" },
-  { "id": 1, "aria-role": "textbox",   "html_tag": "input, type=text", "actions": ["type"],  "name": "browser address input" },
-  { "id": 2, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" },
-  { "id": 3, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" },
-  { "id": 4, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll down control" },"""
+        if self.debug_dir:
+            screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
+
+        # Include all the static elements
+        text_labels = f"""
+  {{ "id": {MARK_ID_BACK}, "aria-role": "button", "html_tag": "button", "actions": ["click"], "name": "browser back button" }},
+  {{ "id": {MARK_ID_ADDRESS_BAR}, "aria-role": "textbox",   "html_tag": "input, type=text", "actions": ["type"],  "name": "browser address input" }},
+  {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},
+  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" }},
+  {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll down control" }},"""
 
         for r in visible_rects:
             if r in rects:
@@ -160,10 +190,13 @@ ACTION:   <One single action from the element's list of actions>
 ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
 """.strip()
 
-        history.append(self._make_mm_message(text_prompt, screenshot))
-        screenshot = None
-        response = self._mlm_client.create(messages=history)
-        text_response = "\n" + self._mlm_client.extract_text_or_completion_object(response)[0].strip() + "\n"
+        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        if self.debug_dir:
+            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))
+
+        history.append(self._make_mm_message(text_prompt, scaled_screenshot))
+        response = self.client.create(messages=history)
+        text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
 
         target = None
         m = re.search(r"\nTARGET:\s*(.*?)\n", text_response)
@@ -179,29 +212,36 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         if m:
             argument = m.group(1).strip()
 
-        if target == "1" and argument:
+        if target == str(MARK_ID_ADDRESS_BAR) and argument:
             if argument.startswith("https://") or argument.startswith("http://"):
                 self._visit_page(argument)
             else:
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-        elif target == "2" and argument:
+        elif target == str(MARK_ID_SEARCH_BAR) and argument:
             self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-        elif target == "3":
+        elif target == str(MARK_ID_PAGE_UP):
             self._page_up()
-        elif target == "4":
+        elif target == str(MARK_ID_PAGE_DOWN):
             self._page_down()
         elif action == "click":
             self._click_id(target)
         elif action == "type":
             self._fill_id(target, argument if argument else "")
+        else:
+            # No action
+            return True, text_response
 
         self._page.wait_for_load_state()
         time.sleep(1)
 
-        new_screenshot = self._page.screenshot()
-        with open("/home/afourney/Desktop/my_image.png", "wb") as png:
-            png.write(new_screenshot)
-        return True, self._make_mm_message(text_response, new_screenshot)
+        if self.debug_dir:
+            new_screenshot = self._page.screenshot()
+            with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
+                png.write(new_screenshot)
+
+        return True, self._make_mm_message(
+            f"Here is a screenshot of '{self._page.title()}' ({self._page.url}).", new_screenshot
+        )
 
     def _image_to_data_uri(self, image):
         """
@@ -240,141 +280,29 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         visible_rects = list()
 
-        ui_navbar = Image.open(os.path.join(os.path.dirname(__file__), "browser_bar_1024.png"), "r")
-        ui_scrollbar = Image.open(os.path.join(os.path.dirname(__file__), "browser_scroll_768.png"), "r")
-
         fnt = ImageFont.load_default(14)
         screenshot_bytes = io.BytesIO(self._page.screenshot())
-        screenshot = Image.open(screenshot_bytes).convert("L").convert("RGBA")
+        base = Image.open(screenshot_bytes).convert("L").convert("RGBA")
+        overlay = Image.new("RGBA", base.size)
 
-        if True:
-            base = Image.new("RGBA", (SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT))
-            base.paste(screenshot, (0, 53))
+        draw = ImageDraw.Draw(overlay)
+        for r in rectangles:
+            for rect in rectangles[r]["rects"]:
+                # Empty rectangles
+                if not rect:
+                    continue
+                if rect["width"] * rect["height"] == 0:
+                    continue
 
-            overlay = Image.new("RGBA", base.size)
-            draw = ImageDraw.Draw(overlay)
-            for r in rectangles:
-                for rect in rectangles[r]["rects"]:
-                    # Empty rectangles
-                    if not rect:
-                        continue
-                    if rect["width"] * rect["height"] == 0:
-                        continue
+                mid = ((rect["right"] + rect["left"]) / 2.0, (rect["top"] + rect["bottom"]) / 2.0)
 
-                    _rect = {}
-                    _rect.update(rect)
-                    _rect["y"] += 53
-                    _rect["top"] += 53
-                    _rect["bottom"] += 53
+                if 0 <= mid[0] and mid[0] < VIEWPORT_WIDTH and 0 <= mid[1] and mid[1] < VIEWPORT_HEIGHT:
+                    visible_rects.append(r)
 
-                    mid = ((_rect["right"] + _rect["left"]) / 2.0, (_rect["top"] + _rect["bottom"]) / 2.0)
+                self._draw_roi(draw, int(r), fnt, rect)
 
-                    if 0 <= mid[0] and mid[0] < SCREENSHOT_WIDTH and 0 <= mid[1] and mid[1] < SCREENSHOT_HEIGHT:
-                        visible_rects.append(r)
-
-                    self._draw_roi(draw, int(r), fnt, _rect)
-
-            comp = Image.alpha_composite(base, overlay)
-
-            comp.paste(ui_scrollbar, (997, 0))
-            comp.paste(ui_navbar, (0, 0))
-            draw = ImageDraw.Draw(comp)
-            draw.text(
-                (157, 26),
-                self._trim_drawn_text(draw, url, fnt, 600),
-                fill=(0, 0, 0),
-                font=fnt,
-                anchor="lm",
-                align="left",
-            )
-
-            overlay = Image.new("RGBA", base.size)
-            draw = ImageDraw.Draw(overlay)
-
-            # Label the UI elements
-            self._draw_roi(
-                draw,
-                0,
-                fnt,
-                {
-                    "x": 10,
-                    "y": 10,
-                    "width": 35,
-                    "height": 35,
-                    "top": 10,
-                    "right": 10 + 35,
-                    "bottom": 10 + 35,
-                    "left": 10,
-                },
-            )
-
-            self._draw_roi(
-                draw,
-                1,
-                fnt,
-                {
-                    "x": 151,
-                    "y": 10,
-                    "width": 608,
-                    "height": 34,
-                    "top": 10,
-                    "right": 151 + 608,
-                    "bottom": 10 + 34,
-                    "left": 151,
-                },
-            )
-
-            self._draw_roi(
-                draw,
-                2,
-                fnt,
-                {
-                    "x": 792,
-                    "y": 10,
-                    "width": 182,
-                    "height": 34,
-                    "top": 10,
-                    "right": 792 + 182,
-                    "bottom": 10 + 34,
-                    "left": 792,
-                },
-            )
-
-            self._draw_roi(
-                draw,
-                3,
-                fnt,
-                {
-                    "x": 997,
-                    "y": 54,
-                    "width": 26,
-                    "height": 34,
-                    "top": 54,
-                    "right": 997 + 26,
-                    "bottom": 54 + 34,
-                    "left": 997,
-                },
-            )
-
-            self._draw_roi(
-                draw,
-                4,
-                fnt,
-                {
-                    "x": 997,
-                    "y": 734,
-                    "width": 26,
-                    "height": 34,
-                    "top": 734,
-                    "right": 997 + 26,
-                    "bottom": 734 + 34,
-                    "left": 997,
-                },
-            )
-
-            comp = Image.alpha_composite(comp, overlay)
-            comp.save("/home/afourney/Desktop/my_image.png")
-            return comp, visible_rects
+        comp = Image.alpha_composite(base, overlay)
+        return comp, visible_rects
 
     def _trim_drawn_text(self, draw, text, font, max_width):
         buff = ""
@@ -411,15 +339,14 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         return tuple(color)
 
     def _on_new_page(self, page):
-        print("New page")
         self._page = page
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "add_labels.js"))
+        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
         self._page.wait_for_load_state()
 
     def _get_interactive_rects(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "add_labels.js"), "rt") as fh:
+            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
