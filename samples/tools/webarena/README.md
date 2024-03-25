@@ -1,6 +1,6 @@
 # WebArena Benchmark
 
-This directory is about the [WebArena](https://arxiv.org/pdf/2307.13854.pdf) benchmark in AutoGen.
+This directory helps run AutoGen agents on the [WebArena](https://arxiv.org/pdf/2307.13854.pdf) benchmark.
 
 ## Installing WebArena
 
