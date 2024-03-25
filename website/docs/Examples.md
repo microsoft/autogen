@@ -33,6 +33,7 @@ Links to notebook examples:
    - Solving Complex Tasks with Nested Chats - [View Notebook](/docs/notebooks/agentchat_nestedchat)
    - Solving Complex Tasks with A Sequence of Nested Chats - [View Notebook](/docs/notebooks/agentchat_nested_sequential_chats)
    - OptiGuide for Solving a Supply Chain Optimization Problem with Nested Chats with a Coding Agent and a Safeguard Agent - [View Notebook](/docs/notebooks/agentchat_nestedchat_optiguide)
+   - Conversational Chess with Nested Chats and Tool Use - [View Notebook](/docs/notebooks/agentchat_nested_chats_chess)
 
 1. **Applications**
 
