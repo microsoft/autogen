@@ -85,9 +85,9 @@ class MessageTokenLimiter:
     2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
         and other types of content, only the text content is truncated.
     3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
-        exceeds this limit, the remaining messages are discarded.
-    4. The truncated conversation history is reconstructed by appending messages to the beginning of a new list to
-        preserve the original message order.
+        exceeds this limit, the current message being processed as well as any remaining messages are discarded.
+    4. The truncated conversation history is reconstructed by prepending the messages to a new list to preserve the
+        original message order.
     """
 
     def __init__(
@@ -131,10 +131,11 @@ class MessageTokenLimiter:
             msg["content"] = self._truncate_str_to_tokens(msg["content"])
             msg_tokens = _count_tokens(msg["content"])
 
+            # If adding this message would exceed the token limit, discard it and all remaining messages
             if processed_messages_tokens + msg_tokens > self._max_tokens:
                 break
 
-            # append the message to the beginning of the list to preserve order
+            # prepend the message to the list to preserve order
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
