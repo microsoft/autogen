@@ -11,7 +11,7 @@ If using WebArena with AutoGen there is a clash on the versions of OpenAI and so
 - webarena's openai version is `openai==0.27.0`
 - autogen's openai version is: `openai>=1.3`
 
-After installing webarena and autogen, any file in webarena containing `openai.error` needs to be replaced with `openai`.
+Prior to installation, in the WebArena codebase, any file containing `openai.error` needs to be replaced with `openai`.
 
 ## Running with AutoGen agents
 
