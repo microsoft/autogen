@@ -216,6 +216,10 @@ module.exports = {
           {
             to: "/docs/topics/non-openai-models/local-lm-studio",
             from: ["/docs/topics/non-openai-models/lm-studio"],
+          },
+          {
+            to: "/docs/notebooks/agentchat_nested_chats_chess",
+            from: ["/docs/notebooks/agentchat_chess"],
           }
         ],
       },
