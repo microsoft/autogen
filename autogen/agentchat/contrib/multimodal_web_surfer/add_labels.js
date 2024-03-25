@@ -76,6 +76,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
   };
 
   let getApproximateAriaName = function(element) {
+      // Check for aria labels
       if (element.hasAttribute("aria-labelledby")) {
           let buffer = "";
 	  let ids = element.getAttribute("aria-labelledby").split(" ");
@@ -90,6 +91,26 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       else if (element.hasAttribute("aria-label")) {
 	  return element.getAttribute("aria-label");
       }
+      // Check for labels
+      else if (element.hasAttribute("id")) {
+          let label_id = element.getAttribute("id");
+          let label = "";
+          let labels = document.querySelectorAll("label[for='" + label_id + "']");
+          for (let j=0; j<labels.length; j++) {
+              label += labels[j].innerText + " ";
+          }
+          label = label.trim();
+          if (label != "") {
+              return label;
+          }
+      }
+      else if (element.parentElement && element.parentElement.tagName == "LABEL") {
+          return element.parentElement.innerText;
+      }
+      // Check for alt text or titles
+      else if (element.hasAttribute("alt")) {
+	  return element.getAttribute("alt")
+      }
       else if (element.hasAttribute("title")) {
 	  return element.getAttribute("title")
       }
@@ -101,7 +122,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
   let getApproximateAriaRole = function(element) {
       let tag = element.tagName.toLowerCase();
       if (tag == "input" && element.hasAttribute("type")) {
-          tag = tag + ", " + element.getAttribute("type");
+          tag = tag + ", type=" + element.getAttribute("type");
       }
 
       if (element.hasAttribute("role")) {
