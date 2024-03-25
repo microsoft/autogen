@@ -4,7 +4,7 @@ This directory is about the [WebArena](https://arxiv.org/pdf/2307.13854.pdf) ben
 
 ## Installing WebArena
 
-WebArena can be installed by following the instructions from the [WebArena github](git@github.com:web-arena-x/webarena.git)
+WebArena can be installed by following the instructions from [WebArena's GitHub repository](git@github.com:web-arena-x/webarena.git)
 
 If using WebArena with AutoGen there is a clash on the versions of OpenAI and some code changes are needed in WebArena to be compatible with AutoGen's OpenAI version.
 
