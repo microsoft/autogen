@@ -28,15 +28,17 @@
 
 ### Which labels should I create?
 
-In order for us to know which skill and persona we need to talk with, we are using Labels in Github Issues
+In order for us to know which skill and persona we need to talk with, we are using Labels in Github Issues.
 
-The default bunch of skills and personnas are as follows:
+The default bunch of skills and personnas are as follow:
 - PM.Readme
 - Do.It
 - DevLead.Plan
 - Developer.Implement
 
-Once you start adding your own skills, just remember to add the corresponding Label!
+Add them to your repository (They are not there by default).
+
+Once you start adding your own skills, just remember to add the corresponding label to your repository.
 
 ## How do I run this locally?
 
