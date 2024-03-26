@@ -9,6 +9,7 @@ from .DebugLog import Debug, Error
 from .Config import xsub_url, xpub_url, router_url
 from typing import Any, Dict
 
+
 class ActorConnector:
     def __init__(self, context, topic):
         self._context = context
@@ -29,10 +30,10 @@ class ActorConnector:
         req_socket = self._context.socket(zmq.REQ)
         req_socket.connect(router_url)
         try:
-            Debug("ActorConnector","Broker Check Request Sent")
+            Debug("ActorConnector", "Broker Check Request Sent")
             req_socket.send_string("Request")
             _ = req_socket.recv_string()
-            Debug("ActorConnector","Broker Check Response Received")
+            Debug("ActorConnector", "Broker Check Response Received")
         finally:
             req_socket.close()
 
@@ -46,8 +47,8 @@ class ActorConnector:
             evt: Dict[str, Any] = {}
             mon_evt = recv_monitor_message(monitor)
             evt.update(mon_evt)
-            if evt['event'] == zmq.EVENT_MONITOR_STOPPED or evt['event'] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
-                Debug("ActorConnector","Handshake received (Or Monitor stopped)")
+            if evt["event"] == zmq.EVENT_MONITOR_STOPPED or evt["event"] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
+                Debug("ActorConnector", "Handshake received (Or Monitor stopped)")
                 break
         monitor.close()
         self._send_recv_router_msg()

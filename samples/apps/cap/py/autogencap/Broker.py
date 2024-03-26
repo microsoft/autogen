@@ -4,6 +4,7 @@ import threading
 from autogencap.DebugLog import Debug, Info, Warn
 from autogencap.Config import xsub_url, xpub_url, router_url
 
+
 class Broker:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
@@ -37,9 +38,9 @@ class Broker:
             if self._router:
                 self._router.close()
             return False
-                
+
     def start(self) -> bool:
-        Debug("BROKER", f"Trying to start broker.")
+        Debug("BROKER", "Trying to start broker.")
         self._run = True
         self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
@@ -47,7 +48,8 @@ class Broker:
         return True
 
     def stop(self):
-        if not self._run: return
+        if not self._run:
+            return
         # Error("BROKER_ERR", "fix cleanup self._context.term()")
         Debug("BROKER", "stopped")
         self._run = False
@@ -64,9 +66,9 @@ class Broker:
         try:
             if not self._init_sockets():
                 Debug("BROKER", "Receive thread not started since sockets were not initialized")
-                self._run  = False
+                self._run = False
                 return
-            
+
             # Poll sockets for events
             self._poller: zmq.Poller = zmq.Poller()
             self._poller.register(self._xpub, zmq.POLLIN)
@@ -81,26 +83,27 @@ class Broker:
                     message = self._xpub.recv_multipart()
                     Debug("BROKER", f"subscription message: {message[0]}")
                     self._xsub.send_multipart(message)
-                
+
                 if self._xsub in events:
                     message = self._xsub.recv_multipart()
                     Debug("BROKER", f"publishing message: {message}")
                     self._xpub.send_multipart(message)
-                    
+
                 if self._router in events:
                     message = self._router.recv_multipart()
                     Debug("BROKER", f"router message: {message}")
                     # Mirror it back for now to confirm connectivity
-                    # More interesting reserved point to point 
+                    # More interesting reserved point to point
                     # routing coming in the the future
                     self._router.send_multipart(message)
-                    
+
         except Exception as e:
             Debug("BROKER", f"thread encountered an error: {e}")
         finally:
             self._run = False
             Debug("BROKER", "thread ended")
         return
+
 
 # Run a standalone broker that all other Actors can connect to.
 # This can also run inproc with the other actors.
@@ -132,6 +135,7 @@ def main():
         except KeyboardInterrupt:
             Info("BROKER", "KeyboardInterrupt.  Stopping the broker.")
             broker.stop()
+
 
 if __name__ == "__main__":
     main()

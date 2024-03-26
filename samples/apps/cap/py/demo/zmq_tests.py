@@ -6,6 +6,7 @@ import zmq
 from zmq.utils.monitor import recv_monitor_message
 from autogencap.Config import xsub_url, xpub_url, router_url, dealer_url
 
+
 def zmq_sub_test():
     context = zmq.Context()
     sub_socket = context.socket(zmq.SUB)
@@ -29,6 +30,7 @@ def zmq_sub_test():
             print(f"No message received in {elapsed_time:.2f} seconds")
     sub_socket.close()
 
+
 def event_monitor(pub_socket: zmq.Socket) -> None:
     monitor = pub_socket.get_monitor_socket()
     while monitor.poll():
@@ -36,11 +38,12 @@ def event_monitor(pub_socket: zmq.Socket) -> None:
         mon_evt = recv_monitor_message(monitor)
         evt.update(mon_evt)
         print(evt)
-        if evt['event'] == zmq.EVENT_MONITOR_STOPPED or evt['event'] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
+        if evt["event"] == zmq.EVENT_MONITOR_STOPPED or evt["event"] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
             break
     monitor.close()
 
-def zmq_pub_test():    
+
+def zmq_pub_test():
     context = zmq.Context()
     pub_socket = context.socket(zmq.PUB)
     pub_socket.setsockopt(zmq.XPUB_VERBOSE, 1)
@@ -51,6 +54,7 @@ def zmq_pub_test():
     for i in range(1, 11):
         pub_socket.send_string(str(i))
     pub_socket.close()
+
 
 def zmq_router_dealer_test():
     context = zmq.Context()
@@ -85,12 +89,13 @@ def zmq_router_dealer_test():
                 message = dealer_socket.recv_multipart()
                 print("BROKER", f"publishing message: {message[0]}")
                 router_socket.send_multipart(message)
-                
+
     except Exception as e:
         print("BROKER", f"thread encountered an error: {e}")
     finally:
         print("BROKER", "thread ended")
     return
+
 
 def zmq_req_test(context: zmq.Context = None):
     if context is None:
@@ -106,6 +111,7 @@ def zmq_req_test(context: zmq.Context = None):
     finally:
         req_socket.close()
 
+
 def zmq_rep_test():
     context = zmq.Context()
     rep_socket = context.socket(zmq.REP)
@@ -120,17 +126,18 @@ def zmq_rep_test():
     finally:
         rep_socket.close()
 
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        if sys.argv[1] == 'pub':
+        if sys.argv[1] == "pub":
             zmq_pub_test()
-        elif sys.argv[1] == 'sub':
+        elif sys.argv[1] == "sub":
             zmq_sub_test()
-        elif sys.argv[1] == 'router':
+        elif sys.argv[1] == "router":
             zmq_router_dealer_test()
-        elif sys.argv[1] == 'req':
+        elif sys.argv[1] == "req":
             zmq_req_test()
-        elif sys.argv[1] == 'rep':
+        elif sys.argv[1] == "rep":
             zmq_rep_test()
         else:
             print("Invalid argument. Please use 'pub', 'sub' 'router', 'req', 'rep'")

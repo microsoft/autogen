@@ -21,6 +21,7 @@ import re
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful
 
+
 class DirectoryActor(Actor):
     def __init__(self, topic: str, name: str):
         super().__init__(topic, name)
@@ -85,6 +86,7 @@ class DirectoryActor(Actor):
         sender_connection = ActorConnector(self._context, sender_topic)
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
+
 
 class DirectorySvc:
     def __init__(self, context: zmq.Context = zmq.Context()):
@@ -151,6 +153,7 @@ class DirectorySvc:
                 return actor_lookup_resp.actor
         return None
 
+
 # Run a standalone directory service
 def main():
     context: zmq.Context = zmq.Context()
@@ -191,6 +194,7 @@ def main():
     proxy.stop()
     context.term()
     Info("main", "Done.")
+
 
 if __name__ == "__main__":
     main()
