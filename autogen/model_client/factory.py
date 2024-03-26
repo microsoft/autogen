@@ -32,3 +32,6 @@ class ModelClientFactory:
 
         api_type = config.get("api_type", "openai")
         return self.types[api_type].create_from_config(config)
+
+
+DEFAULT_FACTORY = ModelClientFactory.default()

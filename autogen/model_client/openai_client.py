@@ -12,7 +12,7 @@ from autogen.token_count_utils import count_token
 from .types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key
 
-from openai.types import completion_create_params
+from openai.types.chat import completion_create_params
 
 from openai.types.chat import (
     ChatCompletionSystemMessageParam,
@@ -191,7 +191,7 @@ class OpenAITextModelClient(TextModelClient):
         else:
             content = choice.message.content or ""
 
-        result = CreateResponse(finish_reason=choice.finish_reason, content=content, usage=usage)
+        result = CreateResponse(finish_reason=choice.finish_reason, content=content, usage=usage, cached=False)
 
         if cache is not None:
             cache.set(cache_key, result)
@@ -241,7 +241,8 @@ class OpenAITextModelClient(TextModelClient):
             # First try get content
             if choice.delta.content is not None:
                 content_deltas.append(choice.delta.content)
-                yield choice.delta.content
+                if len(choice.delta.content) > 0:
+                    yield choice.delta.content
                 continue
 
             # Otherwise, get tool calls
@@ -265,6 +266,7 @@ class OpenAITextModelClient(TextModelClient):
                             full_tool_calls[idx]["function"]["arguments"] += tool_call_chunk.function.arguments
 
         model = maybe_model or create_args["model"]
+        model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
         prompt_tokens = count_token(messages, model=model)
         if stop_reason is None:
