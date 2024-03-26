@@ -35,67 +35,11 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
         kernel_name (str): The kernel name to use. Make sure it is installed.
             By default, it is "python3".
         output_dir (str): The directory to save output files, by default ".".
-        system_message_update (str): The system message update to add to the
-            agent that produces code. By default it is
-            `EmbeddedIPythonCodeExecutor.DEFAULT_SYSTEM_MESSAGE_UPDATE`.
     """
-
-    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
-        str
-    ] = """
-# IPython Coding Capability
-You have been given coding capability to solve tasks using Python code in a stateful IPython kernel.
-You are responsible for writing the code, and the user is responsible for executing the code.
-
-When you write Python code, put the code in a markdown code block with the language set to Python.
-For example:
-```python
-x = 3
-```
-You can use the variable `x` in subsequent code blocks.
-```python
-print(x)
-```
-
-Write code incrementally and leverage the statefulness of the kernel to avoid repeating code.
-Import libraries in a separate code block.
-Define a function or a class in a separate code block.
-Run code that produces output in a separate code block.
-Run code that involves expensive operations like download, upload, and call external APIs in a separate code block.
-
-When your code produces an output, the output will be returned to you.
-Because you have limited conversation memory, if your code creates an image,
-the output will be a path to the image instead of the image itself.
-"""
 
     timeout: int = Field(default=60, ge=1, description="The timeout for code execution.")
     kernel_name: str = Field(default="python3", description="The kernel name to use. Make sure it is installed.")
     output_dir: str = Field(default=".", description="The directory to save output files.")
-    system_message_update: str = Field(
-        default=DEFAULT_SYSTEM_MESSAGE_UPDATE,
-        description="The system message update to the agent that produces code to be executed by this executor.",
-    )
-
-    class UserCapability:
-        """(Experimental) An AgentCapability class that gives agent ability use a stateful
-        IPython code executor. This capability can be added to an agent using
-        the `add_to_agent` method which append a system message update to the
-        agent's system message."""
-
-        def __init__(self, system_message_update: str):
-            self.system_message_update = system_message_update
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            """Add this capability to an agent by appending a system message
-            update to the agent's system message.
-
-            **Currently we do not check for conflicts with existing content in
-            the agent's system message.**
-
-            Args:
-                agent (LLMAgent): The agent to add the capability to.
-            """
-            agent.update_system_message(agent.system_message + self.system_message_update)
 
     @field_validator("output_dir")
     @classmethod
@@ -120,12 +64,6 @@ the output will be a path to the image instead of the image itself.
         self._timeout = self.timeout
         self._kernel_name = self.kernel_name
         self._output_dir = Path(self.output_dir)
-
-    @property
-    def user_capability(self) -> "EmbeddedIPythonCodeExecutor.UserCapability":
-        """(Experimental) Export a user capability for this executor that can be added to
-        an agent using the `add_to_agent` method."""
-        return EmbeddedIPythonCodeExecutor.UserCapability(self.system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:

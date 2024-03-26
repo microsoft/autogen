@@ -205,6 +205,22 @@ module.exports = {
             to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_configuration"],
           },
+          {
+            to: "/docs/tutorial/chat-termination",
+            from: ["/docs/tutorial/termination"],
+          },
+          {
+            to: "/docs/tutorial/what-next",
+            from: ["/docs/tutorial/what-is-next"],
+          },
+          {
+            to: "/docs/topics/non-openai-models/local-lm-studio",
+            from: ["/docs/topics/non-openai-models/lm-studio"],
+          },
+          {
+            to: "/docs/notebooks/agentchat_nested_chats_chess",
+            from: ["/docs/notebooks/agentchat_chess"],
+          }
         ],
       },
     ]
