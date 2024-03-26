@@ -29,7 +29,8 @@ def zmq_sub_test():
             print(f"No message received in {elapsed_time:.2f} seconds")
     sub_socket.close()
 
-def event_monitor(monitor: zmq.Socket) -> None:
+def event_monitor(pub_socket: zmq.Socket) -> None:
+    monitor = pub_socket.get_monitor_socket()
     while monitor.poll():
         evt: Dict[str, Any] = {}
         mon_evt = recv_monitor_message(monitor)
@@ -45,9 +46,8 @@ def zmq_pub_test():
     pub_socket.setsockopt(zmq.XPUB_VERBOSE, 1)
     pub_socket.setsockopt(zmq.LINGER, 0)
     pub_socket.connect(xsub_url)
-    monitor = pub_socket.get_monitor_socket()
-    event_monitor(monitor)
-    time.sleep(0.1)
+    event_monitor(pub_socket)
+    zmq_req_test(context)
     for i in range(1, 11):
         pub_socket.send_string(str(i))
     pub_socket.close()
@@ -92,8 +92,9 @@ def zmq_router_dealer_test():
         print("BROKER", "thread ended")
     return
 
-def zmq_req_test():
-    context = zmq.Context()
+def zmq_req_test(context: zmq.Context = None):
+    if context is None:
+        context = zmq.Context()
     req_socket = context.socket(zmq.REQ)
     req_socket.connect(router_url)
     try:
