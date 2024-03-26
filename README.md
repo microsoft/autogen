@@ -31,7 +31,7 @@ https://github.com/microsoft/azure-openai-dev-skills-orchestrator/assets/1072810
   * User approves the code or gives feedback via issue comments.
   * Once the code is approved, the user closes the issue and the code is commited to a PR.
 
-# How to run the Github dev agents locally
+# How to run the Github dev agents project
 
 Check [the getting started guide](./docs/github-flow-getting-started.md)
 
