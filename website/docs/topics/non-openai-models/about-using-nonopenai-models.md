@@ -21,7 +21,8 @@ These proxy servers can be cloud-based or running locally within your environmen
 By using cloud-based proxy servers, you are able to use models without requiring the hardware
 and software to run them.
 
-These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/),
+These providers can host open source/weight models, like [Hugging Face](https://huggingface.co/)
+and [Mistral AI](https://mistral.ai/),
 or their own closed models.
 
 When cloud-based proxy servers provide an OpenAI-compatible API, using them in AutoGen
@@ -32,7 +33,8 @@ authentication which is usually handled through an API key.
 Examples of using cloud-based proxy servers providers that have an OpenAI-compatible API
 are provided below:
 
-- [together.ai example](/docs/topics/non-openai-models/cloud-togetherai)
+- [Together AI example](/docs/topics/non-openai-models/cloud-togetherai)
+- [Mistral AI example](/docs/topics/non-openai-models/cloud-mistralai)
 
 
 ### Locally run proxy servers
