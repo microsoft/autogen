@@ -122,7 +122,7 @@ List A: {best_functions}.
 The following list are the function signatures that you have after taking {actions_num} actions to manipulate List A:
 List B: {incumbent_functions}.
 
-{accumerated_experience}
+{accumulated_experience}
 
 Here are {best_conversations_num} conversation histories of solving {best_conversations_num} tasks using List A.
 History:
