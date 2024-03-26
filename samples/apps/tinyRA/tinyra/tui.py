@@ -442,7 +442,7 @@ async def a_insert_chat_message(role: str, content: str, root_id: int, id: int =
                     await conn.commit()
                     return id
     except aiosqlite.Error as e:
-        print(f"Error inserting or updating chat message: {e}")
+        raise ChatMessageError(f"Error inserting or updating chat message: {e}")
 
 
 def function_names_to_markdown_table(file_path: str) -> str:
