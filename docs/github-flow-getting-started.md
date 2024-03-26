@@ -48,8 +48,7 @@ https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codes
 
 ![Alt text](./images/new-codespace.png)
 
-and fill in the `appsettings.json` file, located in the `src\apps\gh-flow` folder.
-There is a `appsettings.local.template.json` which you can copy and fill in, containing comments on the different config values.
+Within this repo there is a folder "scr\sample-apps\gh-flow" Within this folder there are two files called appsettings.azure.template.json and appsettings.local.template.json. If you run this demo locally, use the local template and if you want to run it within Azure use the Azure template. Rename the selected file to appsettings.json and fill out the config values within the file.
 
 In the Explorer tab in VS Code, find the Solution explorer, right click on the `gh-flow` project and click Debug -> Start new instance
 
