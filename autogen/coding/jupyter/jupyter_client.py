@@ -1,22 +1,22 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Any, Dict, List, Optional, Type, cast
-import sys
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
 
+import datetime
 import json
 import uuid
-import datetime
-import requests
-from requests.adapters import HTTPAdapter, Retry
 
+import requests
 import websocket
+from requests.adapters import HTTPAdapter, Retry
 from websocket import WebSocket
 
 from .base import JupyterConnectionInfo

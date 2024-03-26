@@ -1,15 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-from autogen import AssistantAgent, UserProxyAgent
-from autogen import GroupChat, GroupChatManager
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-import pytest
-import sys
 import os
-import autogen
+import sys
 from typing import Literal
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
-from autogen import initiate_chats
+
+import autogen
+from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent, initiate_chats
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402

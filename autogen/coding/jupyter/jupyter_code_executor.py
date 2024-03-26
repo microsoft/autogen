@@ -1,12 +1,12 @@
 import base64
 import json
 import os
-from pathlib import Path
 import re
-from types import TracebackType
-import uuid
-from typing import Any, ClassVar, List, Optional, Type, Union
 import sys
+import uuid
+from pathlib import Path
+from types import TracebackType
+from typing import Any, ClassVar, List, Optional, Type, Union
 
 from autogen.coding.utils import silence_pip
 
@@ -14,7 +14,6 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-
 
 from ...agentchat.agent import LLMAgent
 from ..base import CodeBlock, CodeExecutor, CodeExtractor, IPythonCodeResult

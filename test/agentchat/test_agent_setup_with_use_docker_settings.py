@@ -1,12 +1,10 @@
-from autogen import UserProxyAgent
-import pytest
-from conftest import skip_openai
 import os
 
-from autogen.code_utils import (
-    is_docker_running,
-    in_docker_container,
-)
+import pytest
+from conftest import skip_openai
+
+from autogen import UserProxyAgent
+from autogen.code_utils import in_docker_container, is_docker_running
 
 try:
     import openai
