@@ -1,9 +1,11 @@
-import zmq
 import threading
-import traceback
 import time
-from .DebugLog import Debug, Info
+import traceback
+
+import zmq
+
 from .Config import xpub_url
+from .DebugLog import Debug, Info
 
 
 class Actor:

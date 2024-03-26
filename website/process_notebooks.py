@@ -1,22 +1,24 @@
 #!/usr/bin/env python
 
 from __future__ import annotations
-import signal
-import sys
-from pathlib import Path
-import subprocess
+
 import argparse
-import shutil
+import concurrent.futures
 import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
 import tempfile
 import threading
 import time
 import typing
-import concurrent.futures
-import os
-from typing import Dict, Optional, Tuple, Union
 from dataclasses import dataclass
 from multiprocessing import current_process
+from pathlib import Path
+from typing import Dict, Optional, Tuple, Union
+
 from termcolor import colored
 
 try:
@@ -27,11 +29,7 @@ except ImportError:
 
 try:
     import nbclient
-    from nbclient.client import (
-        CellExecutionError,
-        CellTimeoutError,
-        NotebookClient,
-    )
+    from nbclient.client import CellExecutionError, CellTimeoutError, NotebookClient
 except ImportError:
     if current_process().name == "MainProcess":
         print("nbclient not found.\n\nPlease install nbclient:\n\tpip install nbclient\n")

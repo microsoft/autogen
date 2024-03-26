@@ -1,9 +1,11 @@
-from autogen import GroupChatManager
+import time
+
 from autogencap.ActorConnector import ActorConnector
-from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
-import time
+from autogencap.LocalActorNetwork import LocalActorNetwork
+
+from autogen import GroupChatManager
 
 
 class CAPGroupChatManager:

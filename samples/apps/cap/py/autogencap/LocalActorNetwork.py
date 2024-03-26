@@ -1,12 +1,14 @@
+import time
+
 import zmq
-from .DebugLog import Debug, Warn
+
+from .Actor import Actor
 from .ActorConnector import ActorConnector
 from .Broker import Broker
-from .DirectorySvc import DirectorySvc
 from .Constants import Termination_Topic
-from .Actor import Actor
+from .DebugLog import Debug, Warn
+from .DirectorySvc import DirectorySvc
 from .proto.CAP_pb2 import ActorInfo
-import time
 
 # TODO: remove time import
 

@@ -1,12 +1,13 @@
-from autogencap.Constants import Directory_Svc_Topic
-from autogencap.Config import xpub_url, xsub_url
-from autogencap.DebugLog import Debug, Info, Error
-from autogencap.ActorConnector import ActorConnector
-from autogencap.Actor import Actor
-from autogencap.proto.CAP_pb2 import ActorRegistration, ActorInfo, ActorLookup, ActorLookupResponse, Ping, Pong
-import zmq
 import threading
 import time
+
+import zmq
+from autogencap.Actor import Actor
+from autogencap.ActorConnector import ActorConnector
+from autogencap.Config import xpub_url, xsub_url
+from autogencap.Constants import Directory_Svc_Topic
+from autogencap.DebugLog import Debug, Error, Info
+from autogencap.proto.CAP_pb2 import ActorInfo, ActorLookup, ActorLookupResponse, ActorRegistration, Ping, Pong
 
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful

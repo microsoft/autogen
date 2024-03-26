@@ -99,3 +99,8 @@ warn_unused_ignores = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = true
+
+[tool.isort]
+
+profile = "black"
+line_length = 120

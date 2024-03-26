@@ -12,25 +12,15 @@ import time
 from pathlib import Path
 
 import openai
-import autogen
+from agent import Agent, PromptAgent, TeacherForcingAgent, construct_agent
+from agent.prompts import *
+from browser_env import ScriptBrowserEnv
+from browser_env.auto_login import get_site_comb_from_filepath
+from browser_env.helper_functions import RenderHelper
+from evaluation_harness import evaluator_router
 from webarena_agents import ActionTakingCapability, EnvironmentAgent
 
-from agent import (
-    Agent,
-    PromptAgent,
-    TeacherForcingAgent,
-    construct_agent,
-)
-
-from agent.prompts import *
-from browser_env import (
-    ScriptBrowserEnv,
-)
-from browser_env.auto_login import get_site_comb_from_filepath
-from browser_env.helper_functions import (
-    RenderHelper,
-)
-from evaluation_harness import evaluator_router
+import autogen
 
 LOG_FOLDER = "log_files"
 Path(LOG_FOLDER).mkdir(parents=True, exist_ok=True)
