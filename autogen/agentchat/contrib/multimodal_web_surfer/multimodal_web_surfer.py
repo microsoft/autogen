@@ -1,40 +1,39 @@
 # ruff: noqa: E722
-import copy
 import re
 import time
-import logging
 import os
 import json
 import io
-import random
 import base64
 import pathlib
+from PIL import Image
 from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
-from PIL import Image, ImageDraw, ImageFont
-from .... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ....browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
-from ....code_utils import content_str
-from ....token_count_utils import count_token, get_max_token_limit
-from ....oai.openai_utils import filter_config
+from .... import Agent, ConversableAgent, OpenAIWrapper
+from .state_of_mark import add_state_of_mark
 
-logger = logging.getLogger(__name__)
+try:
+    from termcolor import colored
+except ImportError:
+
+    def colored(x, *args, **kwargs):
+        return x
+
 
 # Sentinels for constructor
 DEFAULT_CHANNEL = object()
 
 # Viewport dimensions
-VIEWPORT_HEIGHT = 1080
-VIEWPORT_WIDTH = 1920
+VIEWPORT_HEIGHT = 900
+VIEWPORT_WIDTH = 1440
 
 # Size of the image we send to the MLM
-# Current values represent a 2/3 scaling to fit within the GPT-4v short-edge constraints (768px)
-MLM_HEIGHT = 720
-MLM_WIDTH = 1280
+# Current values represent a 0.85 scaling to fit within the GPT-4v short-edge constraints (768px)
+MLM_HEIGHT = 765
+MLM_WIDTH = 1224
 
 # State-of-mark IDs for static browser controls
 MARK_ID_ADDRESS_BAR = 0
@@ -116,16 +115,16 @@ class MultimodalWebSurferAgent(ConversableAgent):
             debug_html = os.path.join(self.debug_dir, "screenshot.html")
             with open(debug_html, "wt") as fh:
                 fh.write(
-                    """
+                    f"""
 <html style="width:100%; margin: 0px; padding: 0px;">
 <body style="width: 100%; margin: 0px; padding: 0px;">
-    <img src="screenshot.png" id="main_image" style="width: 100%; margin: 0px; padding: 0px;">
+    <img src="screenshot.png" id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
     <script language="JavaScript">
 var counter = 0;
-setInterval(function() {
+setInterval(function() {{
    counter += 1;
    document.getElementById("main_image").src = "screenshot.png?bc=" + counter;
-}, 300);
+}}, 300);
     </script>
 </body>
 </html>
@@ -155,10 +154,10 @@ setInterval(function() {
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
-        screenshot, visible_rects = self._som_screenshot(rects, url=self._page.url)
+        som_screenshot, visible_rects = add_state_of_mark(self._page.screenshot(), rects)
 
         if self.debug_dir:
-            screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
+            som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
         # Include all the static elements
         text_labels = f"""
@@ -190,18 +189,28 @@ ACTION:   <One single action from the element's list of actions>
 ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
 """.strip()
 
-        scaled_screenshot = screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        # Scale the screenshot for the MLM, and close the original
+        scaled_screenshot = som_screenshot.resize((MLM_WIDTH, MLM_HEIGHT))
+        som_screenshot.close()
         if self.debug_dir:
             scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))
 
+        # Add the multimodal message and make the request
         history.append(self._make_mm_message(text_prompt, scaled_screenshot))
+        som_screenshot.close()  # Don't do this if messages start accepting PIL images
         response = self.client.create(messages=history)
         text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
 
         target = None
+        target_name = None
         m = re.search(r"\nTARGET:\s*(.*?)\n", text_response)
         if m:
             target = m.group(1).strip()
+
+            # Non-critical. Mainly for pretty logs
+            target_name = rects.get(target, {}).get("aria-name")
+            if target_name:
+                target_name = target_name.strip()
 
         action = None
         m = re.search(r"\nACTION:\s*(.*?)\n", text_response)
@@ -213,19 +222,25 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             argument = m.group(1).strip()
 
         if target == str(MARK_ID_ADDRESS_BAR) and argument:
+            self._log_to_console("goto", arg=argument)
             if argument.startswith("https://") or argument.startswith("http://"):
                 self._visit_page(argument)
             else:
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
         elif target == str(MARK_ID_SEARCH_BAR) and argument:
+            self._log_to_console("search", arg=argument)
             self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
         elif target == str(MARK_ID_PAGE_UP):
+            self._log_to_console("page_up")
             self._page_up()
         elif target == str(MARK_ID_PAGE_DOWN):
+            self._log_to_console("page_down")
             self._page_down()
         elif action == "click":
+            self._log_to_console("click", target=target_name if target_name else target)
             self._click_id(target)
         elif action == "type":
+            self._log_to_console("type", target=target_name if target_name else target, arg=argument)
             self._fill_id(target, argument if argument else "")
         else:
             # No action
@@ -274,76 +289,6 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             ],
         }
 
-    def _som_screenshot(self, rectangles, url=None):
-        if url is None:
-            url = self._page.url
-
-        visible_rects = list()
-
-        fnt = ImageFont.load_default(14)
-        screenshot_bytes = io.BytesIO(self._page.screenshot())
-        base = Image.open(screenshot_bytes).convert("L").convert("RGBA")
-        overlay = Image.new("RGBA", base.size)
-
-        draw = ImageDraw.Draw(overlay)
-        for r in rectangles:
-            for rect in rectangles[r]["rects"]:
-                # Empty rectangles
-                if not rect:
-                    continue
-                if rect["width"] * rect["height"] == 0:
-                    continue
-
-                mid = ((rect["right"] + rect["left"]) / 2.0, (rect["top"] + rect["bottom"]) / 2.0)
-
-                if 0 <= mid[0] and mid[0] < VIEWPORT_WIDTH and 0 <= mid[1] and mid[1] < VIEWPORT_HEIGHT:
-                    visible_rects.append(r)
-
-                self._draw_roi(draw, int(r), fnt, rect)
-
-        comp = Image.alpha_composite(base, overlay)
-        return comp, visible_rects
-
-    def _trim_drawn_text(self, draw, text, font, max_width):
-        buff = ""
-        for c in text:
-            tmp = buff + c
-            bbox = draw.textbbox((0, 0), tmp, font=font, anchor="lt", align="left")
-            width = bbox[2] - bbox[0]
-            if width > max_width:
-                return buff
-            buff = tmp
-        return buff
-
-    def _draw_roi(self, draw, idx, font, rect):
-        color = self._color(idx)
-        luminance = color[0] * 0.3 + color[1] * 0.59 + color[2] * 0.11
-        text_color = (0, 0, 0, 255) if luminance > 90 else (255, 255, 255, 255)
-
-        roi = [(rect["left"], rect["top"]), (rect["right"], rect["bottom"])]
-        anchor = (rect["right"], rect["top"])
-
-        draw.rectangle(roi, outline=color, fill=(color[0], color[1], color[2], 48), width=2)
-
-        bbox = draw.textbbox(anchor, str(idx), font=font, anchor="rb", align="center")
-        bbox = (bbox[0] - 3, bbox[1] - 3, bbox[2] + 3, bbox[3] + 3)
-        draw.rectangle(bbox, fill=color)
-
-        draw.text(anchor, str(idx), fill=text_color, font=font, anchor="rb", align="center")
-
-    def _color(self, identifier):
-        rnd = random.Random(int(identifier))
-        color = [rnd.randint(0, 255), rnd.randint(125, 255), rnd.randint(0, 50)]
-        rnd.shuffle(color)
-        color.append(255)
-        return tuple(color)
-
-    def _on_new_page(self, page):
-        self._page = page
-        self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
-        self._page.wait_for_load_state()
-
     def _get_interactive_rects(self):
         try:
             with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
@@ -351,6 +296,21 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         except:
             pass
         return self._page.evaluate("MultimodalWebSurfer.getInteractiveRects();")
+
+    def _on_new_page(self, page):
+        self._page = page
+        self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
+        time.sleep(0.2)
+        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.wait_for_load_state()
+
+        title = None
+        try:
+            title = self._page.title()
+        except:
+            pass
+
+        self._log_to_console("new_tab", arg=title if title else self._page.url)
 
     def _visit_page(self, url):
         self._page.goto(url)
@@ -380,3 +340,19 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             target.focus()
             target.fill(value)
             self._page.keyboard.press("Enter")
+
+    def _log_to_console(self, action, target="", arg=""):
+        if len(target) > 50:
+            target = target[0:47] + "..."
+        if len(arg) > 50:
+            arg = arg[0:47] + "..."
+        log_str = action + "("
+        if target:
+            log_str += '"' + re.sub(r"\s+", " ", target).strip() + '",'
+        if arg:
+            log_str += '"' + re.sub(r"\s+", " ", arg).strip() + '"'
+        log_str = log_str.rstrip(",") + ")"
+        print(
+            colored("\n>>>>>>>> BROWSER ACTION " + log_str, "cyan"),
+            flush=True,
+        )
