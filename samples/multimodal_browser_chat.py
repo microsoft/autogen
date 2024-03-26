@@ -1,6 +1,7 @@
 import os
 from autogen import Agent, ConversableAgent, OpenAIWrapper, config_list_from_json
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
+from autogen.code_utils import content_str
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 
 
@@ -61,7 +62,16 @@ class MultimodalAgent(ConversableAgent):
         if messages is None:
             messages = self._oai_messages[sender]
 
-        response = self.client.create(messages=self._oai_system_message + messages)
+        # Clone the messages to give context, but remove old screenshots
+        history = []
+        for i in range(0, len(messages) - 1):
+            message = {}
+            message.update(messages[i])
+            message["content"] = content_str(message["content"])
+            history.append(message)
+        history.append(messages[-1])
+
+        response = self.client.create(messages=self._oai_system_message + history)
         completion = self.client.extract_text_or_completion_object(response)[0]
         return True, completion
 

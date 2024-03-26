@@ -2,6 +2,8 @@ import random
 import io
 from PIL import Image, ImageDraw, ImageFont
 
+TOP_NO_LABEL_ZONE = 20  # Don't print any labels close the top of the page
+
 
 def add_state_of_mark(screenshot, ROIs):
     if isinstance(screenshot, Image.Image):
@@ -62,15 +64,21 @@ def _draw_roi(draw, idx, font, rect):
     text_color = (0, 0, 0, 255) if luminance > 90 else (255, 255, 255, 255)
 
     roi = [(rect["left"], rect["top"]), (rect["right"], rect["bottom"])]
-    anchor = (rect["right"], rect["top"])
+
+    label_location = (rect["right"], rect["top"])
+    label_anchor = "rb"
+
+    if label_location[1] <= TOP_NO_LABEL_ZONE:
+        label_location = (rect["right"], rect["bottom"])
+        label_anchor = "rt"
 
     draw.rectangle(roi, outline=color, fill=(color[0], color[1], color[2], 48), width=2)
 
-    bbox = draw.textbbox(anchor, str(idx), font=font, anchor="rb", align="center")
+    bbox = draw.textbbox(label_location, str(idx), font=font, anchor=label_anchor, align="center")
     bbox = (bbox[0] - 3, bbox[1] - 3, bbox[2] + 3, bbox[3] + 3)
     draw.rectangle(bbox, fill=color)
 
-    draw.text(anchor, str(idx), fill=text_color, font=font, anchor="rb", align="center")
+    draw.text(label_location, str(idx), fill=text_color, font=font, anchor=label_anchor, align="center")
 
 
 def _color(identifier):

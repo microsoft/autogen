@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
+from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
 try:
@@ -149,8 +150,13 @@ setInterval(function() {{
         if messages is None:
             messages = self._oai_messages[sender]
 
-        # Clone the messages to give context
-        history = [m for m in messages]
+        # Clone the messages to give context, removing old screenshots
+        history = []
+        for m in messages:
+            message = {}
+            message.update(m)
+            message["content"] = content_str(message["content"])
+            history.append(message)
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
@@ -221,30 +227,34 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         if m:
             argument = m.group(1).strip()
 
-        if target == str(MARK_ID_ADDRESS_BAR) and argument:
-            self._log_to_console("goto", arg=argument)
-            if argument.startswith("https://") or argument.startswith("http://"):
-                self._visit_page(argument)
-            else:
+        try:
+            if target == str(MARK_ID_ADDRESS_BAR) and argument:
+                self._log_to_console("goto", arg=argument)
+                if argument.startswith("https://") or argument.startswith("http://"):
+                    self._visit_page(argument)
+                else:
+                    self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
+            elif target == str(MARK_ID_SEARCH_BAR) and argument:
+                self._log_to_console("search", arg=argument)
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-        elif target == str(MARK_ID_SEARCH_BAR) and argument:
-            self._log_to_console("search", arg=argument)
-            self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
-        elif target == str(MARK_ID_PAGE_UP):
-            self._log_to_console("page_up")
-            self._page_up()
-        elif target == str(MARK_ID_PAGE_DOWN):
-            self._log_to_console("page_down")
-            self._page_down()
-        elif action == "click":
-            self._log_to_console("click", target=target_name if target_name else target)
-            self._click_id(target)
-        elif action == "type":
-            self._log_to_console("type", target=target_name if target_name else target, arg=argument)
-            self._fill_id(target, argument if argument else "")
-        else:
-            # No action
-            return True, text_response
+            elif target == str(MARK_ID_PAGE_UP):
+                self._log_to_console("page_up")
+                self._page_up()
+            elif target == str(MARK_ID_PAGE_DOWN):
+                self._log_to_console("page_down")
+                self._page_down()
+            elif action == "click":
+                self._log_to_console("click", target=target_name if target_name else target)
+                self._click_id(target)
+            elif action == "type":
+                self._log_to_console("type", target=target_name if target_name else target, arg=argument)
+                self._fill_id(target, argument if argument else "")
+            else:
+                # No action
+                return True, text_response
+        except ValueError as e:
+            print("HERE")
+            return True, str(e)
 
         self._page.wait_for_load_state()
         time.sleep(1)
@@ -323,23 +333,36 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _click_id(self, identifier):
         target = self._page.locator(f"[__elementId='{identifier}']")
-        if target:
-            box = target.bounding_box()
-            try:
-                with self._page.expect_event("popup", timeout=1000) as page_info:
-                    self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
-                self._on_new_page(page_info.value)
-            except TimeoutError:
-                pass
-        else:
-            return "No such element."
+
+        # See if it exists
+        try:
+            target.wait_for(timeout=100)
+        except TimeoutError:
+            raise ValueError("No such element.")
+
+        # Click it
+        box = target.bounding_box()
+        try:
+            # Git it a chance to open a new page
+            with self._page.expect_event("popup", timeout=1000) as page_info:
+                self._page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+            self._on_new_page(page_info.value)
+        except TimeoutError:
+            pass
 
     def _fill_id(self, identifier, value):
         target = self._page.locator(f"[__elementId='{identifier}']")
-        if target:
-            target.focus()
-            target.fill(value)
-            self._page.keyboard.press("Enter")
+
+        # See if it exists
+        try:
+            target.wait_for(timeout=100)
+        except TimeoutError:
+            raise ValueError("No such element.")
+
+        # Fill it
+        target.focus()
+        target.fill(value)
+        self._page.keyboard.press("Enter")
 
     def _log_to_console(self, action, target="", arg=""):
         if len(target) > 50:
