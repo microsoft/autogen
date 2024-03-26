@@ -89,11 +89,16 @@ class AppConfiguration:
         self._data_path = data_path
         # database must reside in the data path
         self._database_path = os.path.join(data_path, database)
+        # work dir must reside in the data path
+        self._work_dir = os.path.join(data_path, "work_dir")
 
     def initialize(self):
         """Initialize the app configuration."""
         # create the data path if it does not exist
+        print("Creating data path...", self._data_path)
         os.makedirs(self._data_path, exist_ok=True)
+        print("Creating work dir...", self._work_dir)
+        os.makedirs(self._work_dir, exist_ok=True)
 
         # initialize the database
         self._init_database()
@@ -249,6 +254,9 @@ class AppConfiguration:
 
     def get_data_path(self):
         return self._data_path
+
+    def get_workdir(self):
+        return self._work_dir
 
     def update_tool(self, tool: Tool):
         conn = sqlite3.connect(self._database_path)
@@ -566,10 +574,8 @@ class DirectoryTreeContainer(ScrollableContainer):
     A container for displaying the directory tree.
     """
 
-    dirpath = os.path.join(APP_CONFIG.get_data_path(), "work_dir")
-    if not os.path.exists(dirpath):
-        os.makedirs(dirpath)
-    dir_contents = reactive(str(os.listdir(dirpath)))
+    dirpath = APP_CONFIG.get_workdir()
+    dir_contents = reactive(str(os.listdir(APP_CONFIG.get_workdir())))
 
     def compose(self) -> ComposeResult:
         yield DirectoryTree(self.dirpath)
