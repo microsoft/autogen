@@ -103,7 +103,7 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
     return chat_order
 
 
-def __post_carryover_processing(chat_info: Dict[str, Any]):
+def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
     iostream = IOStream.get_default()
 
     if "message" not in chat_info:
@@ -128,11 +128,14 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
     iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
     iostream.print(
         colored(
-            "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
+            "Starting a new chat....",
             "blue",
         ),
         flush=True,
     )
+    if chat_info.get("verbose", False):
+        iostream.print(colored("Message:\n" + print_message, "blue"), flush=True)
+        iostream.print(colored("Carryover:\n" + print_carryover, "blue"), flush=True)
     iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
