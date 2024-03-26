@@ -40,8 +40,9 @@ Once you start adding your own skills, just remember to add the corresponding La
 
 ## How do I run this locally?
 
-Codespaces are preset for this repo.
-Start by creating a codespace
+Codespaces are preset for this repo. For codespaces there is a 'free' tier for individual accounts. See: https://github.com/pricing
+Start by creating a codespace:
+https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codespace-for-a-repository
 
 ![Alt text](./images/new-codespace.png)
 
