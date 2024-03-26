@@ -10,7 +10,7 @@ from typing import Any, List, Optional, Type, Union
 import docker
 from docker.errors import ImageNotFound
 
-from .utils import _get_file_name_from_content
+from .utils import _get_file_name_from_content, silence_pip
 from .base import CommandLineCodeResult
 
 from ..code_utils import TIMEOUT_MSG, _cmd
@@ -166,7 +166,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         last_exit_code = 0
         for code_block in code_blocks:
             lang = code_block.language
-            code = code_block.code
+            code = silence_pip(code_block.code, lang)
 
             try:
                 # Check if there is a filename comment
