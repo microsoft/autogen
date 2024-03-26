@@ -10,6 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+from _pytest import python
+
 from autogen import oai
 
 import docker
@@ -244,6 +246,8 @@ def get_powershell_command():
 
 
 def _cmd(lang: str) -> str:
+    if lang in ["Python", "py"]:
+        return "python"
     if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
     if lang in ["shell"]:

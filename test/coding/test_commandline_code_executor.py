@@ -64,23 +64,29 @@ def test_commandline_executor_execute_code(cls) -> None:
 
 
 def _test_execute_code(executor: CodeExecutor) -> None:
+
+    # Python executable variants
+    python_variants = ["python", "Python", "py"]
+
     # Test single code block.
-    code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
+    for py_variant in python_variants:
+        code_blocks = [CodeBlock(code="import sys; print('hello world!')", language=py_variant)]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
 
     # Test multiple code blocks.
-    code_blocks = [
-        CodeBlock(code="import sys; print('hello world!')", language="python"),
-        CodeBlock(code="a = 100 + 100; print(a)", language="python"),
-    ]
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert (
-        code_result.exit_code == 0
-        and "hello world!" in code_result.output
-        and "200" in code_result.output
-        and code_result.code_file is not None
-    )
+    for py_variant in python_variants:
+        code_blocks = [
+            CodeBlock(code="import sys; print('hello world!')", language=py_variant),
+            CodeBlock(code="a = 100 + 100; print(a)", language=py_variant),
+        ]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert (
+            code_result.exit_code == 0
+            and "hello world!" in code_result.output
+            and "200" in code_result.output
+            and code_result.code_file is not None
+        )
 
     # Test bash script.
     if sys.platform not in ["win32"]:
@@ -89,15 +95,16 @@ def _test_execute_code(executor: CodeExecutor) -> None:
         assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
 
     # Test running code.
-    file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
-    code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert (
-        code_result.exit_code == 0
-        and "hello world!" in code_result.output
-        and "200" in code_result.output
-        and code_result.code_file is not None
-    )
+    for py_variant in python_variants:
+        file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
+        code_blocks = [CodeBlock(code="\n".join(file_lines), language=py_variant)]
+        code_result = executor.execute_code_blocks(code_blocks)
+        assert (
+            code_result.exit_code == 0
+            and "hello world!" in code_result.output
+            and "200" in code_result.output
+            and code_result.code_file is not None
+        )
 
     # Check saved code file.
     with open(code_result.code_file) as f:

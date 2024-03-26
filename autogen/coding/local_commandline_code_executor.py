@@ -116,6 +116,9 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
             code = silence_pip(code, lang)
 
+            if lang in ["Python", "py"]:
+                lang = "python"
+
             if WIN32 and lang in ["sh", "shell"]:
                 lang = "ps1"
 
@@ -141,7 +144,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 f.write(code)
             file_names.append(written_file)
 
-            program = sys.executable if lang.startswith("python") else _cmd(lang)
+            program = sys.executable if _cmd(lang).startswith("python") else _cmd(lang)
             cmd = [program, str(written_file.absolute())]
 
             try:
