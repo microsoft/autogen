@@ -130,6 +130,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         # a dictionary of conversations, default value is list
         self._oai_messages = defaultdict(list)
+        self._registered_tools = {}
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
@@ -2551,6 +2552,9 @@ class ConversableAgent(LLMAgent):
                 func._name = name
             elif not hasattr(func, "_name"):
                 func._name = func.__name__
+
+            if func._name in self._registered_tools:
+                warnings.warn(f"Function '{func._name}' is being overridden.", UserWarning)
 
             self.register_function({func._name: self._wrap_function(func)})
 
