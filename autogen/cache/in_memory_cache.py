@@ -1,7 +1,5 @@
-import pickle
 from types import TracebackType
 from typing import Any, Dict, Optional, Type, Union
-import redis
 import sys
 from .abstract_cache_base import AbstractCache
 
