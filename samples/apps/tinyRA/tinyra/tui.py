@@ -90,6 +90,8 @@ class AppConfiguration:
         # database must reside in the data path
         self._database_path = os.path.join(data_path, database)
 
+    def initialize(self):
+        """Initialize the app configuration."""
         # create the data path if it does not exist
         os.makedirs(self._data_path, exist_ok=True)
 
@@ -302,6 +304,7 @@ class AppConfiguration:
 
 
 APP_CONFIG = AppConfiguration()
+APP_CONFIG.initialize()
 # do not save the LLM config to the database, keep it
 
 LLM_CONFIG = {
