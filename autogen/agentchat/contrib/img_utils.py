@@ -24,6 +24,12 @@ def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
         # Already a PIL Image object
         return image_file
 
+    # Remove quotes if existed
+    if image_file.startswith('"') and image_file.endswith('"'):
+        image_file = image_file[1:-1]
+    if image_file.startswith("'") and image_file.endswith("'"):
+        image_file = image_file[1:-1]
+
     if image_file.startswith("http://") or image_file.startswith("https://"):
         # A URL file
         response = requests.get(image_file)
