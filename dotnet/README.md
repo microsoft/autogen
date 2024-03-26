@@ -62,6 +62,18 @@ You can find more examples under the [sample project](https://github.com/microso
     - [x] Source generator for type-safe function definition generation
 
 #### Update log
+##### Update on 0.0.11 (2024-03-26)
+- Add link to Discord channel in nuget's readme.md
+- Document improvements
+##### Update on 0.0.10 (2024-03-12)
+- Rename `Workflow` to `Graph`
+- Rename `AddInitializeMessage` to `SendIntroduction`
+- Rename `SequentialGroupChat` to `RoundRobinGroupChat`
+##### Update on 0.0.9 (2024-03-02)
+- Refactor over @AutoGen.Message and introducing `TextMessage`, `ImageMessage`, `MultiModalMessage` and so on. PR [#1676](https://github.com/microsoft/autogen/pull/1676)
+- Add `AutoGen.SemanticKernel` to support seamless integration with Semantic Kernel
+- Move the agent contract abstraction to `AutoGen.Core` package. The `AutoGen.Core` package provides the abstraction for message type, agent and group chat and doesn't contain dependencies over `Azure.AI.OpenAI` or `Semantic Kernel`. This is useful when you want to leverage AutoGen's abstraction only and want to avoid introducing any other dependencies.
+- Move `GPTAgent`, `OpenAIChatAgent` and all openai-dependencies to `AutoGen.OpenAI`
 ##### Update on 0.0.8 (2024-02-28)
 - Fix [#1804](https://github.com/microsoft/autogen/pull/1804)
 - Streaming support for IAgent [#1656](https://github.com/microsoft/autogen/pull/1656)
