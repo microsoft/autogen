@@ -1043,10 +1043,10 @@ class TinyRA(App):
         event.stop()
         try:
             # open the file using the default app
-            logging.info(f"Opening file {event.path}")
+            logging.info(f"Opening file '{event.path}'")
             # check if the app is running in a codespace
             if os.environ.get("CODESPACES"):
-                os.system(f"code {event.path}")
+                os.system(f"code '{event.path}'")
             else:
                 # open the file using the default app
                 os.system(f"open '{event.path}'")
