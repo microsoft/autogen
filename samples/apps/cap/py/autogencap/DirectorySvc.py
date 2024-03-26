@@ -1,8 +1,9 @@
 from autogencap.Constants import Directory_Svc_Topic
-from autogencap.Config import xpub_url, xsub_url
+from autogencap.Config import xpub_url, xsub_url, router_url
 from autogencap.DebugLog import Debug, Info, Error
 from autogencap.ActorConnector import ActorConnector
 from autogencap.Actor import Actor
+from autogencap.Broker import Broker
 from autogencap.proto.CAP_pb2 import (
     ActorRegistration,
     ActorInfo,
@@ -19,7 +20,6 @@ import re
 
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful
-
 
 class DirectoryActor(Actor):
     def __init__(self, topic: str, name: str):
@@ -86,7 +86,6 @@ class DirectoryActor(Actor):
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
 
-
 class DirectorySvc:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
@@ -151,57 +150,15 @@ class DirectorySvc:
                 return actor_lookup_resp.actor
         return None
 
-
-# Standalone min proxy for a standalone directory service
-class MinProxy:
-    def __init__(self, context: zmq.Context):
-        self._context: zmq.Context = context
-        self._xpub: zmq.Socket = None
-        self._xsub: zmq.Socket = None
-
-    def start(self):
-        # Start the proxy thread
-        proxy_thread = threading.Thread(target=self.proxy_thread_fn)
-        proxy_thread.start()
-        time.sleep(0.01)
-
-    def stop(self):
-        self._xsub.setsockopt(zmq.LINGER, 0)
-        self._xpub.setsockopt(zmq.LINGER, 0)
-        self._xpub.close()
-        self._xsub.close()
-        time.sleep(0.01)
-
-    def proxy_thread_fn(self):
-        self._xpub: zmq.Socket = self._context.socket(zmq.XPUB)
-        self._xsub: zmq.Socket = self._context.socket(zmq.XSUB)
-        try:
-            self._xpub.bind(xpub_url)
-            self._xsub.bind(xsub_url)
-            zmq.proxy(self._xpub, self._xsub)
-        except zmq.ContextTerminated:
-            self._xpub.close()
-            self._xsub.close()
-        except Exception as e:
-            Error("proxy_thread_fn", f"proxy_thread_fn encountered an error: {e}")
-            self._xpub.setsockopt(zmq.LINGER, 0)
-            self._xsub.setsockopt(zmq.LINGER, 0)
-            self._xpub.close()
-            self._xsub.close()
-        finally:
-            Info("proxy_thread_fn", "proxy_thread_fn terminated.")
-
-
 # Run a standalone directory service
 def main():
     context: zmq.Context = zmq.Context()
     # Start simple broker (will exit if real broker is running)
-    proxy: MinProxy = MinProxy(context)
+    proxy: Broker = Broker(context)
     proxy.start()
     # Start the directory service
     directory_svc = DirectorySvc(context)
     directory_svc.start()
-
     # # How do you register an actor?
     # directory_svc.register_actor_by_name("my_actor")
     #
@@ -233,7 +190,6 @@ def main():
     proxy.stop()
     context.term()
     Info("main", "Done.")
-
 
 if __name__ == "__main__":
     main()
