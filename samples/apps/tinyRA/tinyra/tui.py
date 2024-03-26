@@ -332,20 +332,10 @@ class AppConfiguration:
 
 APP_CONFIG = AppConfiguration()
 APP_CONFIG.initialize()
-# do not save the LLM config to the database, keep it
-
+# do not save the LLM config to the database, keep it in memory
 LLM_CONFIG = {
     "config_list": config_list_from_json("OAI_CONFIG_LIST"),
 }
-
-# LLM_CONFIG = {
-#     "config_list": [
-#         {
-#             "model": "gpt-4",
-#             "api_key": os.environ.get("OPENAI_API_KEY"),
-#         }
-#     ]
-# }
 
 
 logging.basicConfig(
