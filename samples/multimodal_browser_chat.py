@@ -16,7 +16,7 @@ def main():
         "web_surfer",
         llm_config={"config_list": llm_config_list},
         is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
-        headless=False,
+        headless=True,
         chromium_channel="chromium",
         chromium_data_dir=None,
         start_page="https://www.bing.com/",
