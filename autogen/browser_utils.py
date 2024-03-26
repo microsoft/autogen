@@ -35,7 +35,6 @@ except ModuleNotFoundError:
     pass
 
 # The Selenium package is used to automate web browser interaction from Python
-IS_SELENIUM_CAPABLE = False
 try:
     from selenium import webdriver
     from selenium.common.exceptions import TimeoutException
@@ -51,13 +50,8 @@ try:
     from selenium.webdriver.chrome.options import Options as ChromeOptions
 
     IS_SELENIUM_CAPABLE = True
-except ImportError as e:
-    print(f"The module/package '{e.name}' is not available.")
-    print("Try running 'pip install selenium'.  You may need to run 'sudo easy_install selenium' on Linux or MacOS")
-    print(
-        "Official selenium installation documentation: https://www.selenium.dev/documentation/webdriver/getting_started/install_library/"
-    )
-    raise e
+except:
+    IS_SELENIUM_CAPABLE = False
 
 
 class SimpleTextBrowser:
