@@ -63,6 +63,8 @@ class Tool:
                 docstring = ast.get_docstring(function_def)
                 if not docstring:
                     raise InvalidToolError("Code must contain a doc string")
+                else:
+                    self.description = docstring
             else:
                 raise InvalidToolError("Code must contain a valid (sync/async) function definition")
 
@@ -411,6 +413,24 @@ def fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
     return row[0] if row else None
 
 
+async def a_fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
+    """
+    Fetch a single row from the database.
+
+    Args:
+        id: the id of the row to fetch
+        root_id: the root id of the row to fetch. If not specified, it's assumed to be 0.
+
+    Returns:
+        A single row from the database.
+    """
+    async with aiosqlite.connect(APP_CONFIG.get_database_path()) as conn:
+        c = await conn.cursor()
+        await c.execute("SELECT role, content FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id))
+        row = [{"role": role, "content": content, "id": id, "root_id": root_id} for role, content in await c.fetchall()]
+        return row[0] if row else None
+
+
 def insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
     """
     Insert a chat message into the database.
@@ -570,8 +590,8 @@ class ReactiveMessage(Markdown):
     def on_click(self) -> None:
         self.post_message(self.Selected(self.message.get("id")))
 
-    def update_message(self):
-        message = fetch_row(self.message.get("id"))
+    async def update_message(self):
+        message = await a_fetch_row(self.message.get("id"))
 
         if message is None:
             self.remove()
@@ -1064,7 +1084,7 @@ class TinyRA(App):
 
         # display the user input in the chat display
         id = await a_insert_chat_message("user", user_input, root_id=0)
-        user_message = fetch_row(id)
+        user_message = await a_fetch_row(id)
         reactive_message = message_display_handler(user_message)
         chat_display_widget.mount(reactive_message)
 
