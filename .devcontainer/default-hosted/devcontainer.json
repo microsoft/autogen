@@ -1,0 +1,22 @@
+{
+    "customizations":  {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "visualstudioexptteam.vscodeintellicode",
+                "GitHub.copilot"
+            ],
+            "settings": {
+                "terminal.integrated.profiles.linux": {
+                    "bash": {
+                        "path": "/bin/bash"
+                    }
+                },
+                "terminal.integrated.defaultProfile.linux": "bash"
+            }
+        }
+    },
+    "image": "gagb/autogen-default:latest",
+    "updateContentCommand": "pip install -e . pre-commit && pre-commit install"
+}
