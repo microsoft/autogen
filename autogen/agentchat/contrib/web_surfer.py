@@ -112,7 +112,7 @@ class WebSurferAgent(ConversableAgent):
 
     @property
     def render_text(self):
-        self.browser._set_page_content(self.browser.page_content)
+        self.browser.set_page_content(self.browser.page_content)
         return self.browser.page_content
 
     def close_the_browser(self):
