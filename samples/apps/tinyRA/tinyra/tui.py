@@ -839,15 +839,11 @@ class ChatScreen(Screen):
 
     def compose(self) -> ComposeResult:
         history = fetch_chat_history(self.root_msg_id)
-        yield Grid(
-            Container(Label(f"Chat History for {self.root_msg_id}", classes="heading"), id="chat-screen-header"),
-            ScrollableContainer(Pretty(history), id="chat-screen-contents"),
-            Container(
-                Button("Cancel", variant="primary", id="cancel"),
-                id="chat-screen-footer",
-            ),
-            id="chat-screen",
-        )
+        with Grid(id="chat-screen"):
+            yield Container(Label(f"Chat History for {self.root_msg_id}", classes="heading"), id="chat-screen-header")
+            yield ScrollableContainer(Pretty(history), id="chat-screen-contents")
+            with Container(id="chat-screen-footer"):
+                yield Button("Cancel", variant="primary", id="cancel")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel":
