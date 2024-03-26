@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict
 
+from pydantic import BaseModel
 import pytest
 
 from autogen.persistence.store import Serializable, SerializableRegistry
@@ -10,19 +11,35 @@ from autogen.version import __version__ as version
 class TestRegisterSerializable:
     @pytest.fixture(autouse=True)
     def setup(self):
-        class_names = ["A"]
-
-        fqnames = [
-            "test_persistence.TestPersistence.test_SerializableRegistry.register.<locals>.{class_name}"
-            for class_name in class_names
-        ]
-
         def clear_registry():
-            for fqname in fqnames:
-                if fqname in SerializableRegistry._registry:
-                    del SerializableRegistry._registry[fqname]
+            names = [name for name in SerializableRegistry._registry.keys() if name.startswith("test_persistence.")]
+            for name in names:
+                del SerializableRegistry._registry[name]
 
         clear_registry()
+
+        class A:
+            def __init__(self, i: int, s: str) -> None:
+                self.i = i
+                self.s = s
+
+            class Model(BaseModel):
+                i: int
+                s: str
+
+            def to_model(self) -> BaseModel:
+                return A.Model(i=self.i, s=self.s)
+
+            @classmethod
+            def get_model_class(cls) -> BaseModel:
+                return A.Model
+
+            @classmethod
+            def from_model(cls, model: BaseModel) -> "A":
+                data = model.model_dump()
+                return cls(**data)
+
+        self.A = A
 
         yield
 
@@ -33,83 +50,53 @@ class TestRegisterSerializable:
             ValueError, match="is not a subclass of 'Serializable'. Please implement the 'Serializable' protocol first."
         ):
 
-            @SerializableRegistry.register()
-            class A: ...  # pragma: no cover
+            @SerializableRegistry.register("test_persistence.A")
+            class A: ...
 
-    def test_protocol_implemented(self):
-        @SerializableRegistry.register()
-        class A:
-            def to_json(self) -> str: ...  # pragma: no cover
+    def test_just_register(self):
+        A = self.A
 
-            def from_dict(cls, data: Dict[str, Any]) -> "Serializable": ...  # pragma: no cover
-
-    def test_register(self):
-        @SerializableRegistry.register()
-        class A:
-            def to_json(self) -> str: ...  # pragma: no cover
-            def from_dict(cls, data: Dict[str, Any]) -> "Serializable": ...
+        SerializableRegistry.register("test_persistence.A")(A)
 
         assert A in SerializableRegistry._registry.values()
-        assert f"{A.__module__}.{A.__qualname__}" in SerializableRegistry._registry.keys()
+        assert "test_persistence.A" in SerializableRegistry._registry.keys()
 
     def test_registered_already(self):
-        @SerializableRegistry.register()
-        class A:
-            def to_json(self) -> str: ...  # pragma: no cover
-            def from_dict(cls, data: Dict[str, Any]) -> "Serializable": ...
+        A = self.A
+        SerializableRegistry.register("test_persistence.A")(A)
 
         with pytest.raises(ValueError, match="is already registered as a serializable."):
             SerializableRegistry.register()(A)
 
-        class B(A): ...  # pragma: no cover
+        class B(A): ...
 
-        with pytest.raises(ValueError, match="Type name "):
+        with pytest.raises(ValueError, match="Type name 'test_persistence.A' is already registered."):
             # old name with new class
-            SerializableRegistry.register(f"{A.__module__}.{A.__qualname__}")(B)
+            SerializableRegistry.register("test_persistence.A")(B)
 
     def test_simple_serialization(self):
-        @SerializableRegistry.register()
-        class A:
-            def __init__(self, x: int):
-                self.x = x
+        A = self.A
 
-            def to_json(self) -> str:
-                return json.dumps({"x": self.x})
+        org_a = A(i=7, s="Hello World from original")
+        org_model = org_a.to_model()
+        org_dump = org_model.model_dump()
+        assert org_dump == {"i": 7, "s": "Hello World from original"}
 
-            def from_dict(cls, data: Dict[str, Any]) -> "Serializable":
-                return cls(json.loads(data))
+        SerializableRegistry.register("test_persistence.A")(A)
 
-        actual = A(4).to_json()
-        expected = f'{{"type":"{A.__module__}.{A.__qualname__}","version":"{version}","data":{{"x":4}}}}'
+        a = A(i=4, s="Hello World")
+        model = a.to_model()
+
+        assert model.type == "test_persistence.A"
+        assert model.version == version
+        assert isinstance(model.data, BaseModel)
+        assert model.data.i == 4
+        assert model.data.s == "Hello World"
+
+        actual = model.model_dump()
+        expected = {"type": "test_persistence.A", "version": "0.2.20", "data": {"i": 4, "s": "Hello World"}}
         assert actual == expected
 
-    # def test_SerializableRegistry.register(self):
+        decoded_A = SerializableRegistry.from_model(model)
 
-    #     @SerializableRegistry.register()
-    #     class A():
-    #         def __init__(self, x: int):
-    #             self.x = x
-
-    #         def to_json(self) -> str:
-    #             return json.dumps(self.x)
-
-    #         # def to_dict(self) -> Dict[str, Any]:
-    #         #     return dict(x=self.x)
-
-    #     assert not hasattr(A, "something_random")
-    #     print(f"{A.__dict__=}")
-    #     assert hasattr(A, "_serialize"), f"{vars(A)=}"
-    #     assert A._serialize is not None
-    #     print(f"{A(x=3)._serialize()=}")
-
-    #     # A = SerializableRegistry.register(A)
-
-    #     # assert A in SERIALIZABLE_REGISTRY.values()
-
-    #     # assert hasattr(A, "serialize")
-    #     # actual = A(4).serialize()
-    #     # expected = f'{{"type":"test_persistence.A","version":"{version}","data":{{"x":4}}}}'
-
-    #     # actual = A(4).to_dict()
-    #     # expected = {"type": "test_persistence.A", "version": version, "data": {"x": 4}}
-    #     # assert actual == expected
+        print(f"{decoded_A=}")

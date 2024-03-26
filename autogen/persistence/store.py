@@ -1,5 +1,6 @@
-import json
-from typing import Callable, List, Dict, Any, Optional, Protocol, Type, TypeVar, runtime_checkable
+from typing import Callable, List, Dict, Any, Literal, Optional, Protocol, Type, TypeVar, runtime_checkable
+
+from pydantic import BaseModel, Field
 
 from ..version import __version__ as version
 
@@ -22,51 +23,78 @@ class SerializableRegistry:
                 )
 
             if serializable_cls in cls._registry.values():
-                raise ValueError(f"{serializable_cls} is already registered as a serializable.")
+                raise ValueError(f"Class '{serializable_cls}' is already registered as a serializable.")
             if type_name in cls._registry.keys():
-                raise ValueError(f"Type name {type_name} is already registered.")
+                raise ValueError(f"Type name '{type_name}' is already registered.")
 
-            original_to_json = serializable_cls.to_json
+            original_to_model = serializable_cls.to_model
+            original_model_class = serializable_cls.get_model_class()
 
-            def to_json(self: "Serializable") -> str:
-                def _to_dict() -> Dict[str, Any]:
-                    json_data = original_to_json(self)
-                    data = json.loads(json_data)
-                    return dict(type=type_name, version=version, data=data)
+            class Wrapper(BaseModel):
 
-                data = _to_dict()
+                type: Literal[type_name] = type_name
+                version: str
+                data: original_model_class
 
-                return json.dumps(data, separators=(",", ":"))
+            def to_model(self: "Serializable") -> BaseModel:
+                original_data = original_to_model(self)
 
-            serializable_cls.to_json = to_json
+                return Wrapper(version=version, data=original_data)
+
+            serializable_cls.to_model = to_model
 
             cls._registry[type_name] = serializable_cls
 
             return serializable_cls
 
+            @classmethod
+            def from_model(cls: Type[T], model: BaseModel) -> T:
+                if model.type != type_name:
+                    raise ValueError(f"Model type '{model.type}' does not match the expected type '{type_name}'.")
+
+                return serializable_cls.from_model(model.data)
+
         return _inner_register
+
+    @classmethod
+    def from_model(cls, model: BaseModel) -> "Serializable":
+        type_name = model.type
+        serializable_cls = cls._registry[type_name]
+
+        return serializable_cls.from_model(model)
 
 
 @runtime_checkable
 class Serializable(Protocol):
-    def to_json(self) -> str:
-        """Convert the object to a dictionary.
+
+    def to_model(self) -> BaseModel:
+        """Convert the object to a BaseModel object.
 
         Returns:
-            str: The JSON representation of the object.
+            BaseModel: The BaseModel object.
 
         """
         ...  # pragma: no cover
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Serializable":
-        """Create an instance of the class from a dictionary.
-
-        Args:
-            data (str): The JSON representation of the object.
+    def get_model_class(cls) -> Type[BaseModel]:
+        """Get the model class of the object.
 
         Returns:
-            Serializable: The instance of the class.
+            Type[BaseModel]: The model class.
 
         """
-        ...  # pragma: no cover
+        ...
+
+    @classmethod
+    def from_model(cls: Type[T], model: BaseModel) -> T:
+        """Create an instance of the class from a BaseModel object.
+
+        Args:
+            model (BaseModel): The BaseModel object.
+
+        Returns:
+            T: The instance of the class.
+
+        """
+        ...
