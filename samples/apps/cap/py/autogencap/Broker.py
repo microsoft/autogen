@@ -12,7 +12,7 @@ class Broker:
         self._xsub: zmq.Socket = None
         self._router: zmq.Socket = None
 
-    def start(self) -> bool:
+    def _init_sockets(self):
         try:
             # XPUB setup
             self._xpub = self._context.socket(zmq.XPUB)
@@ -26,7 +26,7 @@ class Broker:
             self._router = self._context.socket(zmq.ROUTER)
             self._router.setsockopt(zmq.LINGER, 0)
             self._router.bind(router_url)
-
+            return True
         except zmq.ZMQError as e:
             Debug("BROKER", f"Unable to start.  Check details: {e}")
             # If binding fails, close the sockets and return False
@@ -37,6 +37,9 @@ class Broker:
             if self._router:
                 self._router.close()
             return False
+                
+    def start(self) -> bool:
+        Debug("BROKER", f"Trying to start broker.")
         self._run = True
         self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
@@ -59,12 +62,18 @@ class Broker:
 
     def thread_fn(self):
         try:
+            if not self._init_sockets():
+                Debug("BROKER", "Receive thread not started since sockets were not initialized")
+                self._run  = False
+                return
+            
             # Poll sockets for events
             self._poller: zmq.Poller = zmq.Poller()
             self._poller.register(self._xpub, zmq.POLLIN)
             self._poller.register(self._xsub, zmq.POLLIN)
             self._poller.register(self._router, zmq.POLLIN)
 
+            Info("BROKER", "Started.  Waiting for events")
             # Receive msgs, forward and process
             while self._run:
                 events = dict(self._poller.poll(500))
