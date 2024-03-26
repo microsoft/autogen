@@ -4,7 +4,7 @@ Demo App
 
 import argparse
 import _paths
-from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
+import autogencap.Config as Config
 import autogencap.DebugLog as DebugLog
 from SimpleActorDemo import simple_actor_demo
 from AGDemo import ag_demo
@@ -27,7 +27,8 @@ def parse_args():
     # Set the log level
     # Print log level string based on names in debug_log.py
     print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
-    # IGNORED_LOG_CONTEXTS.extend(["BROKER"])
+    Config.LOG_LEVEL = args.log_level
+    # Config.IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
 
 ####################################################################################################
