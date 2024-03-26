@@ -94,7 +94,7 @@ class SimpleTextBrowser:
 
         # Handle special URIs
         if uri_or_path == "about:blank":
-            self._set_page_content("")
+            self.set_page_content("")
         elif uri_or_path.startswith("bing:"):
             self._bing_search(uri_or_path[len("bing:") :].strip())
         else:
@@ -116,7 +116,7 @@ class SimpleTextBrowser:
         """Return the full contents of the current page."""
         return self._page_content
 
-    def _set_page_content(self, content: str) -> None:
+    def set_page_content(self, content: str) -> None:
         """Sets the text content of the current page."""
         self._page_content = content
         self._split_pages()
@@ -212,7 +212,7 @@ class SimpleTextBrowser:
         )
         if len(news_snippets) > 0:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
-        self._set_page_content(content)
+        self.set_page_content(content)
 
     def _fetch_page(self, url: str) -> None:
         try:
@@ -267,7 +267,7 @@ class SimpleTextBrowser:
 
                     # Remove excessive blank lines
                     self.page_title = soup.title.string
-                    self._set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
+                    self.set_page_content(re.sub(r"\n{2,}", "\n\n", webpage_text).strip())
                 elif content_type == "text/plain":
                     # Get the content of the response
                     plain_text = ""
@@ -275,11 +275,11 @@ class SimpleTextBrowser:
                         plain_text += chunk
 
                     self.page_title = None
-                    self._set_page_content(plain_text)
+                    self.set_page_content(plain_text)
                 elif IS_PDF_CAPABLE and content_type == "application/pdf":
                     pdf_data = io.BytesIO(response.raw.read())
                     self.page_title = None
-                    self._set_page_content(pdfminer.high_level.extract_text(pdf_data))
+                    self.set_page_content(pdfminer.high_level.extract_text(pdf_data))
                 elif self.downloads_folder is not None:
                     # Try producing a safe filename
                     fname = None
@@ -303,16 +303,16 @@ class SimpleTextBrowser:
 
                     # Return a page describing what just happened
                     self.page_title = "Download complete."
-                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
+                    self.set_page_content(f"Downloaded '{url}' to '{download_path}'.")
                 else:
                     self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
-                    self._set_page_content(self.page_title)
+                    self.set_page_content(self.page_title)
             else:
                 self.page_title = "Error"
-                self._set_page_content("Failed to retrieve " + url)
+                self.set_page_content("Failed to retrieve " + url)
         except requests.exceptions.RequestException as e:
             self.page_title = "Error"
-            self._set_page_content(str(e))
+            self.set_page_content(str(e))
 
 
 def get_scheme(url: Union[str, ParseResult]) -> str:
@@ -768,7 +768,7 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
 
         # Handle special URIs
         if uri_or_path == "about:blank":
-            self._set_page_content("")
+            self.set_page_content("")
         elif uri_or_path.startswith("bing:"):
             self._bing_search(uri_or_path[len("bing:") :].strip())
         else:
@@ -890,9 +890,9 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
         if len(news_snippets) > 0:
             content += "\n\n## News Results:\n" + "\n\n".join(news_snippets)
 
-        self._set_page_content(content)
+        self.set_page_content(content)
 
-    def _set_page_content(self, content):
+    def set_page_content(self, content):
         """Sets the text content of the current page."""
         self._page_content = content
 
@@ -980,7 +980,7 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
                 # Remove excessive blank lines
                 if self.render_text:
                     self.page_title = soup.title.string
-                    self._set_page_content(webpage_text.strip())
+                    self.set_page_content(webpage_text.strip())
                 else:
                     self._page_content = webpage_text
 
@@ -990,7 +990,7 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
                 plain_text = soup.prettify()
                 if self.render_text:
                     self.page_title = None
-                    self._set_page_content(plain_text)
+                    self.set_page_content(plain_text)
                 else:
                     self._page_content = plain_text
 
@@ -999,7 +999,7 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
                 plain_text = extract_pdf_text(os.path.join(self.downloads_folder, os.path.basename(url)))
                 if self.render_text:
                     self.page_title = None
-                    self._set_page_content(plain_text)
+                    self.set_page_content(plain_text)
                 else:
                     self._page_content = plain_text
 
@@ -1025,16 +1025,16 @@ class SeleniumBrowserWrapper:  # A wrapper to bridge compatibility between Simpl
                 # Return a page describing what just happened
                 if self.render_text:
                     self.page_title = "Download complete."
-                    self._set_page_content(f"Downloaded '{url}' to '{download_path}'.")
+                    self.set_page_content(f"Downloaded '{url}' to '{download_path}'.")
                 else:
                     self._page_content = f"Downloaded '{url}' to '{download_path}'."
 
             elif self.render_text:
                 self.page_title = f"Error - Unsupported Content-Type '{content_type}'"
-                self._set_page_content(self.page_title)
+                self.set_page_content(self.page_title)
             else:
                 self._page_content = None
 
         except requests.exceptions.RequestException as e:
             self.page_title = "Error"
-            self._set_page_content(str(e))
+            self.set_page_content(str(e))
