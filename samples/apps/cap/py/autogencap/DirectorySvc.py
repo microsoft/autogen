@@ -76,7 +76,7 @@ class DirectoryActor(Actor):
 
         if found_actor_list:
             for actor in found_actor_list:
-                Info("DirectorySvc", f"Actor found: {actor}")
+                Info("DirectorySvc", f"Actor found: {actor.name}")
             actor_lookup_resp.found = True
             actor_lookup_resp.actor.info_coll.extend(found_actor_list)
         else:
@@ -93,6 +93,7 @@ class DirectorySvc:
         self._directory_actor: DirectoryActor = None
 
     def _no_other_directory(self) -> bool:
+        Debug("DirectorySvc", "Pinging existing DirectorySvc")
         ping = Ping()
         serialized_msg = ping.SerializeToString()
         _, _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
