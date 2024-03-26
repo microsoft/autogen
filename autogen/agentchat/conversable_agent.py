@@ -869,7 +869,7 @@ class ConversableAgent(LLMAgent):
         summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
         message: Optional[Union[Dict, str, Callable]] = None,
-        **context,
+        **kwargs,
     ) -> ChatResult:
         """Initiate a chat with the recipient agent.
 
@@ -945,10 +945,11 @@ class ConversableAgent(LLMAgent):
                 final_msg["context"] = {"prefix": "Today I feel"}
                 return final_msg
             ```
-            **context: any context information. It has the following reserved fields:
+            **kwargs: any additional information. It has the following reserved fields:
                 - "carryover": a string or a list of string to specify the carryover information to be passed to this chat.
                     If provided, we will combine this carryover (by attaching a "context: " string and the carryover content after the message content) with the "message" content when generating the initial chat
                     message in `generate_init_message`.
+                - "verbose": a boolean to specify whether to print the message and carryover in a chat. Default is False.
 
         Raises:
             RuntimeError: if any async reply functions are registered and not ignored in sync chat.
@@ -956,8 +957,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
-        _chat_info = context.copy()
-        _chat_info["recipient"] = recipient
+        _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
@@ -969,9 +969,9 @@ class ConversableAgent(LLMAgent):
             for _ in range(max_turns):
                 if _ == 0:
                     if isinstance(message, Callable):
-                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], kwargs)
                     else:
-                        msg2send = self.generate_init_message(message, **context)
+                        msg2send = self.generate_init_message(message, **kwargs)
                 else:
                     msg2send = self.generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
@@ -980,9 +980,9 @@ class ConversableAgent(LLMAgent):
         else:
             self._prepare_chat(recipient, clear_history)
             if isinstance(message, Callable):
-                msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                msg2send = message(_chat_info["sender"], _chat_info["recipient"], kwargs)
             else:
-                msg2send = self.generate_init_message(message, **context)
+                msg2send = self.generate_init_message(message, **kwargs)
             self.send(msg2send, recipient, silent=silent)
         summary = self._summarize_chat(
             summary_method,
@@ -1011,7 +1011,7 @@ class ConversableAgent(LLMAgent):
         summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
         message: Optional[Union[str, Callable]] = None,
-        **context,
+        **kwargs,
     ) -> ChatResult:
         """(async) Initiate a chat with the recipient agent.
 
@@ -1024,8 +1024,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             ChatResult: an ChatResult object.
         """
-        _chat_info = context.copy()
-        _chat_info["recipient"] = recipient
+        _chat_info = locals().copy()
         _chat_info["sender"] = self
         consolidate_chat_info(_chat_info, uniform_sender=self)
         for agent in [self, recipient]:
@@ -1036,9 +1035,9 @@ class ConversableAgent(LLMAgent):
             for _ in range(max_turns):
                 if _ == 0:
                     if isinstance(message, Callable):
-                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                        msg2send = message(_chat_info["sender"], _chat_info["recipient"], kwargs)
                     else:
-                        msg2send = await self.a_generate_init_message(message, **context)
+                        msg2send = await self.a_generate_init_message(message, **kwargs)
                 else:
                     msg2send = await self.a_generate_reply(messages=self.chat_messages[recipient], sender=recipient)
                 if msg2send is None:
@@ -1047,9 +1046,9 @@ class ConversableAgent(LLMAgent):
         else:
             self._prepare_chat(recipient, clear_history)
             if isinstance(message, Callable):
-                msg2send = message(_chat_info["sender"], _chat_info["recipient"], context)
+                msg2send = message(_chat_info["sender"], _chat_info["recipient"], kwargs)
             else:
-                msg2send = await self.a_generate_init_message(message, **context)
+                msg2send = await self.a_generate_init_message(message, **kwargs)
             await self.a_send(msg2send, recipient, silent=silent)
         summary = self._summarize_chat(
             summary_method,
@@ -2218,13 +2217,13 @@ class ConversableAgent(LLMAgent):
             "content": str(content),
         }
 
-    def generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
+    def generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
 
         Args:
             message (str or None): the message to be processed.
-            **context: any context information. It has the following reserved fields:
+            **kwargs: any additional information. It has the following reserved fields:
                 "carryover": a string or a list of string to specify the carryover information to be passed to this chat. It can be a string or a list of string.
                     If provided, we will combine this carryover with the "message" content when generating the initial chat
                     message.
@@ -2234,17 +2233,17 @@ class ConversableAgent(LLMAgent):
         if message is None:
             message = self.get_human_input(">")
         if isinstance(message, str):
-            return self._process_carryover(message, context)
+            return self._process_carryover(message, kwargs)
         elif isinstance(message, dict):
             message = message.copy()
             # TODO: Do we need to do the following?
             # if message.get("content") is None:
             #     message["content"] = self.get_human_input(">")
-            message["content"] = self._process_carryover(message.get("content", ""), context)
+            message["content"] = self._process_carryover(message.get("content", ""), kwargs)
             return message
 
-    def _process_carryover(self, message: str, context: dict) -> str:
-        carryover = context.get("carryover")
+    def _process_carryover(self, message: str, kwargs: dict) -> str:
+        carryover = kwargs.get("carryover")
         if carryover:
             # if carryover is string
             if isinstance(carryover, str):
@@ -2257,7 +2256,7 @@ class ConversableAgent(LLMAgent):
                 )
         return message
 
-    async def a_generate_init_message(self, message: Union[Dict, str, None], **context) -> Union[str, Dict]:
+    async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
 
@@ -2270,10 +2269,10 @@ class ConversableAgent(LLMAgent):
         if message is None:
             message = await self.a_get_human_input(">")
         if isinstance(message, str):
-            return self._process_carryover(message, context)
+            return self._process_carryover(message, kwargs)
         elif isinstance(message, dict):
             message = message.copy()
-            message["content"] = self._process_carryover(message["content"], context)
+            message["content"] = self._process_carryover(message["content"], kwargs)
             return message
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
