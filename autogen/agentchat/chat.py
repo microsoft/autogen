@@ -104,7 +104,7 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
     return chat_order
 
 
-def __post_carryover_processing(chat_info: Dict[str, Any]):
+def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
     if "message" not in chat_info:
         warnings.warn(
             "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
@@ -127,11 +127,14 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
     print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
     print(
         colored(
-            "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
+            "Starting a new chat....",
             "blue",
         ),
         flush=True,
     )
+    if chat_info.get("verbose", False):
+        print(colored("Message:\n" + print_message, "blue"), flush=True)
+        print(colored("Carryover:\n" + print_carryover, "blue"), flush=True)
     print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
