@@ -670,17 +670,13 @@ class ChatDisplay(ScrollableContainer):
             yield widget
 
 
-class ChatInput(Static):
+class ChatInput(Input):
     """
     A widget for user input.
     """
 
     def on_mount(self) -> None:
-        input = self.query_one(Input)
-        input.focus()
-
-    def compose(self) -> ComposeResult:
-        yield Input(id="chat-input-box")
+        self.focus()
 
 
 class QuitScreen(ModalScreen):
@@ -1091,7 +1087,7 @@ class TinyRA(App):
         # display the assistant response in the chat display
         assistant_message = {
             "role": "info",
-            "content": "Computing response...",
+            "content": "Computing response…",
             "id": id + 1,
         }
         reactive_message = message_display_handler(assistant_message)
@@ -1140,9 +1136,9 @@ class TinyRA(App):
         def summarize(text):
             if text:
                 if len(text) > 100:
-                    return text[:100] + "..."
+                    return text[:100] + "…"
                 return text
-            return "Working..."
+            return "Working…"
 
         async def post_update_to_main(recipient, messages, sender, **kwargs):
             last_assistant_message = None
@@ -1156,13 +1152,13 @@ class TinyRA(App):
                 if last_assistant_message.get("content"):
                     summary = summarize(last_assistant_message["content"])
                 elif last_assistant_message.get("tool_calls"):
-                    summary = summarize("Using tools...")
+                    summary = summarize("Using tools…")
                 else:
-                    summary = "Working..."
-                update_message = f"{summary}..."
+                    summary = "Working…"
+                update_message = f"{summary}…"
                 await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
             else:
-                await a_insert_chat_message("info", "Working...", root_id=0, id=msg_idx + 1)
+                await a_insert_chat_message("info", "Working…", root_id=0, id=msg_idx + 1)
             return False, None
 
         async def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
