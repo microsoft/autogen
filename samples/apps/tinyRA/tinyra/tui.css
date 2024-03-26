@@ -97,6 +97,49 @@
     /* border: $boost; */
 }
 
+NotificationScreen {
+    align: center middle;
+}
+
+#notification-screen-grid {
+    height: 40%;
+    width: 40%;
+    background: $surface;
+    border: thick $primary-background 80%;
+    padding: 1;
+
+    grid-size: 2 3;
+    grid-gutter: 1 2;
+}
+
+#notification {
+    column-span: 2;
+    row-span: 2;
+    text-style: bold;
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+
+    /* border: solid red; */
+}
+
+#notification-screen-footer {
+    column-span: 2;
+    row-span: 1;
+    align: center middle;
+    /* border: solid red; */
+
+    grid-size: 2 1;
+    grid-gutter: 1 2;
+}
+
+#notification-screen-footer Button{
+    /* column-span: 1; */
+    /* row-span: 1; */
+    width: 40%;
+    /* border: solid red; */
+}
+
 QuitScreen {
     align: center middle;
 

@@ -30,23 +30,46 @@ from autogen import config_list_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent
 
 
+class InvalidToolError(Exception):
+    pass
+
+
 class Tool:
-    def __init__(self, name: str, code: str, description: str = None, id: int = None):
+    def __init__(self, name: str, code: str = None, description: str = None, id: int = None):
         self.id = id
-        self.name = name
-        self.code = code
+        self.name = name or ""
+        self.code = code or ""
+        self.description = description or ""
 
-        if not description and len(code) > 0:
-            # Parse the function string into an AST
-            module = ast.parse(code)
+    def validate_tool(self):
+        # validate the name
+        min_tool_name_length = 6
+        if len(self.name) < min_tool_name_length:
+            raise InvalidToolError(f"Tool name must be at least {min_tool_name_length} characters long")
 
-            # Get the function definition from the AST
-            function_def = module.body[0]
+        # check if self.code contains valid python code
+        try:
+            module = ast.parse(self.code)
+            if not isinstance(module, ast.Module):
+                raise InvalidToolError("Code must be a valid python module")
+        except SyntaxError as e:
+            raise InvalidToolError(f"Code must not contain syntax errors. Current errors:\n{e}")
+        except Exception as e:
+            raise InvalidToolError(f"Code must be a valid python module. Current errors:\n{e}")
 
-            # Extract the docstring
-            self.description = ast.get_docstring(function_def)
-        else:
-            self.description = description or self.name
+        # validate the description
+        if len(self.code) > 0 and not self.description:
+            self.description = self._extract_description_from_code(self.code)
+            if not self.description:
+                raise InvalidToolError("Code must contain a doc string")
+
+        return True
+
+    @staticmethod
+    def _extract_description_from_code(code: str) -> str:
+        module = ast.parse(code)
+        function_def = module.body[0]
+        return ast.get_docstring(function_def)
 
 
 def string_to_function(code: str):
@@ -58,6 +81,10 @@ def string_to_function(code: str):
 
 
 class ChatMessageError(Exception):
+    pass
+
+
+class ToolUpdateError(Exception):
     pass
 
 
@@ -260,20 +287,24 @@ class AppConfiguration:
         return self._work_dir
 
     def update_tool(self, tool: Tool):
-        conn = sqlite3.connect(self._database_path)
-        c = conn.cursor()
-        c.execute("SELECT * FROM tools WHERE id = ?", (tool.id,))
-        if c.fetchone() is None:
-            c.execute(
-                "INSERT INTO tools (name, code, description) VALUES (?, ?, ?)", (tool.name, tool.code, tool.description)
-            )
-        else:
-            c.execute(
-                "UPDATE tools SET name = ?, code = ?, description = ? WHERE id = ?",
-                (tool.name, tool.code, tool.description, tool.id),
-            )
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self._database_path)
+            c = conn.cursor()
+            c.execute("SELECT * FROM tools WHERE id = ?", (tool.id,))
+            if c.fetchone() is None:
+                c.execute(
+                    "INSERT INTO tools (name, code, description) VALUES (?, ?, ?)",
+                    (tool.name, tool.code, tool.description),
+                )
+            else:
+                c.execute(
+                    "UPDATE tools SET name = ?, code = ?, description = ? WHERE id = ?",
+                    (tool.name, tool.code, tool.description, tool.id),
+                )
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            raise ToolUpdateError(f"Error updating tool: {e}")
 
     def get_tools(self) -> List[Tool]:
         conn = sqlite3.connect(self._database_path)
@@ -654,6 +685,27 @@ class QuitScreen(ModalScreen):
         self.app.pop_screen()
 
 
+class NotificationScreen(ModalScreen):
+    """Screen with a dialog to display notifications."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+
+    def __init__(self, *args, message: str = None, **kwargs):
+        self.message = message
+        super().__init__(*args, **kwargs)
+
+    def compose(self) -> ComposeResult:
+        with Grid(id="notification-screen-grid"):
+            yield Static(self.message, id="notification")
+
+            with Grid(id="notification-screen-footer"):
+                yield Button("Dismiss", variant="primary", id="dismiss-notification")
+
+    @on(Button.Pressed, "#dismiss-notification")
+    def dismiss(self) -> None:
+        self.app.pop_screen()
+
+
 class SettingsScreen(ModalScreen):
     """Screen with a dialog to display settings."""
 
@@ -736,81 +788,105 @@ Number of tools: {len(tools)}"""
                 id="history-settings",
             )
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id in ["close-user-settings", "close-tool-settings"]:
-            self.app.pop_screen()
-        elif event.button.id == "save-user-settings":
-            new_user_name = self.widget_user_name.value
-            new_user_bio = self.widget_user_bio.text
-            new_user_preferences = self.widget_user_preferences.text
+    @on(Button.Pressed, "#close-user-settings")
+    @on(Button.Pressed, "#close-tool-settings")
+    def close_user_settings(self) -> None:
+        self.app.pop_screen()
 
-            APP_CONFIG.update_configuration(
-                user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
-            )
+    @on(Button.Pressed, "#save-user-settings")
+    def save_user_settings(self) -> None:
+        new_user_name = self.widget_user_name.value
+        new_user_bio = self.widget_user_bio.text
+        new_user_preferences = self.widget_user_preferences.text
 
-            self.app.pop_screen()
+        APP_CONFIG.update_configuration(
+            user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
+        )
 
-        elif event.button.id == "new-tool-button":
-            tools = APP_CONFIG.get_tools()
-            num_tools = len(tools)
-            new_tool_name = f"tool-{num_tools + 1}"
+        self.close_user_settings()
 
-            APP_CONFIG.update_tool(Tool(name=new_tool_name, code=""))
+    @on(Button.Pressed, "#new-tool-button")
+    def create_new_tool(self) -> None:
+        tools = APP_CONFIG.get_tools()
+        num_tools = len(tools)
+        new_tool_name = f"tool-{num_tools + 1}"
 
-            list_view_widget = self.query_one("#tool-list", ListView)
-            new_list_item = ListItem(Label(new_tool_name), id=f"tool-{num_tools + 1}")
+        tool = Tool(new_tool_name, id=num_tools + 1)
 
-            list_view_widget.append(new_list_item)
-            num_items = len(list_view_widget)
-            list_view_widget.index = num_items - 1
-            list_view_widget.action_select_cursor()
-            # list_view_widget.post_message(list_view_widget.Selected(list_view_widget, new_list_item))
-            # list_view_widget.post_message(list_view_widget.Highlighted(list_view_widget, new_list_item))
+        try:
+            tool.validate_tool()
+        except InvalidToolError as e:
+            error_message = f"Please enter a valid tool.\nReason: {e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-        elif event.button.id == "delete-tool-button":
-            # get the id of the selected tool
-            tool_id = int(self.query_one("#tool-id-input", Input).value)
-            item = self.query_one(f"#tool-{tool_id}", ListItem)
-            # delete the tool from the database
-            APP_CONFIG.delete_tool(tool_id)
-            # remove the tool from the list view
-            item.remove()
-
-            list_view_widget = self.query_one("#tool-list", ListView)
-
-            if len(list_view_widget) > 0:
-                list_view_widget.action_cursor_up()
-                list_view_widget.action_select_cursor()
-            else:
-                self.query_one("#tool-code-textarea", TextArea).text = ""
-                self.query_one("#tool-name-input", Input).value = ""
-                self.query_one("#tool-id-input", Input).value = ""
-
-        elif event.button.id == "save-tool-settings":
-            # get the id of the selected tool
-            tool_id = int(self.query_one("#tool-id-input", Input).value)
-            tool_name = self.query_one("#tool-name-input", Input).value
-            tool_code = self.query_one("#tool-code-textarea", TextArea).text
-            # tool_description = tool_name
-            tool = Tool(tool_name, tool_code, id=tool_id)
-
-            # update the database
+        try:
             APP_CONFIG.update_tool(tool)
+        except ToolUpdateError as e:
+            error_message = f"Failed to update the tool.\nReason: {e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-            # update the list view
-            list_view_widget = self.query_one("#tool-list", ListView)
-            # access the label of the selected item
-            item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
-            item_label.update(tool_name)
+        list_view_widget = self.query_one("#tool-list", ListView)
+        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{num_tools + 1}")
 
-        elif event.button.id == "clear-history-button":
-            APP_CONFIG.clear_chat_history()
+        list_view_widget.append(new_list_item)
+        num_items = len(list_view_widget)
+        list_view_widget.index = num_items - 1
+        list_view_widget.action_select_cursor()
 
-            # remove all the messages from the chat display
-            # chat_display = self.app.query_one(ChatDisplay)
-            # chat_display.clear()
+    @on(Button.Pressed, "#delete-tool-button")
+    def delete_tool(self) -> None:
+        # get the id of the selected tool
+        tool_id = int(self.query_one("#tool-id-input", Input).value)
+        item = self.query_one(f"#tool-{tool_id}", ListItem)
+        # delete the tool from the database
+        APP_CONFIG.delete_tool(tool_id)
+        # remove the tool from the list view
+        item.remove()
 
-            self.app.pop_screen()
+        list_view_widget = self.query_one("#tool-list", ListView)
+
+        if len(list_view_widget) > 0:
+            list_view_widget.action_cursor_up()
+            list_view_widget.action_select_cursor()
+        else:
+            self.query_one("#tool-code-textarea", TextArea).text = ""
+            self.query_one("#tool-name-input", Input).value = ""
+            self.query_one("#tool-id-input", Input).value = ""
+
+    @on(Button.Pressed, "#save-tool-settings")
+    def save_tool_settings(self) -> None:
+        # get the id of the selected tool
+        tool_id = int(self.query_one("#tool-id-input", Input).value)
+        tool_name = self.query_one("#tool-name-input", Input).value
+        tool_code = self.query_one("#tool-code-textarea", TextArea).text
+
+        tool = Tool(tool_name, tool_code, id=tool_id)
+
+        try:
+            tool.validate_tool()
+        except InvalidToolError as e:
+            error_message = f"Please enter a valid tool.\nReason: {e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
+        try:
+            APP_CONFIG.update_tool(tool)
+        except ToolUpdateError as e:
+            error_message = f"Failed to update the tool.\nReason: {e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
+        item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
+        item_label.update(tool_name)
+        self.close_user_settings()
+
+    @on(Button.Pressed, "#clear-history-button")
+    def clear_history(self) -> None:
+        APP_CONFIG.clear_chat_history()
+
+        self.close_user_settings()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
@@ -851,6 +927,14 @@ class ChatScreen(Screen):
     @on(Button.Pressed, "#cancel")
     def cancel(self, event: Button.Pressed) -> None:
         self.app.pop_screen()
+
+
+class AppErrorMessage(Message):
+    """An error message for the app."""
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__()
 
 
 class TinyRA(App):
@@ -912,6 +996,13 @@ class TinyRA(App):
 
     def action_request_settings(self) -> None:
         self.push_screen(SettingsScreen())
+
+    @on(AppErrorMessage)
+    def notify_error_to_user(self, event: AppErrorMessage) -> None:
+        # self.push_screen(ModalScreen(Static(event.message)))
+        # self.push_screen(ModalScreen(Static(event.message)))
+        # self.push_screen(QuitScreen())
+        self.push_screen(NotificationScreen(message=event.message))
 
     @on(Button.Pressed, "#empty-work-dir-button")
     def empty_work_dir(self, event: Button.Pressed) -> None:
