@@ -1264,7 +1264,7 @@ def test_messages_with_carryover():
         agent1.generate_init_message(**context)
 
     # Test multimodal messages
-    mm_message = [
+    mm_content = [
         {"type": "text", "text": "hello"},
         {"type": "text", "text": "goodbye"},
         {
@@ -1272,6 +1272,7 @@ def test_messages_with_carryover():
             "image_url": {"url": "https://example.com/image.png"},
         },
     ]
+    mm_message = {"content": mm_content}
     context = dict(
         message=mm_message,
         carryover="Testing carryover.",
@@ -1297,9 +1298,10 @@ def test_messages_with_carryover():
     assert len(generated_message["content"]) == 2
 
     # Test without text in multimodal message
-    mm_message = [
+    mm_content = [
         {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
     ]
+    mm_message = {"content": mm_content}
     context = dict(message=mm_message)
     generated_message = agent1.generate_init_message(**context)
     assert isinstance(generated_message, dict)

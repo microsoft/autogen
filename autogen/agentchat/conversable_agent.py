@@ -2232,17 +2232,20 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
+
         if isinstance(message, str):
             return self._process_carryover(message, context)
+
         elif isinstance(message, dict):
             message = message.copy()
             # TODO: Do we need to do the following?
             # if message.get("content") is None:
             #     message["content"] = self.get_human_input(">")
-            message["content"] = self._process_carryover(message.get("content", ""), context)
+            if isinstance(message.get("content"), str):
+                message["content"] = self._process_carryover(message.get("content", ""), context)
+            elif isinstance(message.get("content"), list):
+                message["content"] = self._process_multimodal_carryover(message.get("content", []), context)
             return message
-        elif isinstance(message, list):
-            return {"content": self._process_multimodal_carryover(message, context)}
 
     def _process_carryover(self, message: str, context: dict) -> str:
         carryover = context.get("carryover")
@@ -2263,7 +2266,7 @@ class ConversableAgent(LLMAgent):
         reconstructed_messages = [{"type": "text", "text": ""}]
         for msg in message:
             if msg.get("type") == "text":
-                reconstructed_messages[0]["text"] += "\n" + msg["text"]
+                reconstructed_messages[0]["text"] += msg["text"] + "\n"
             else:
                 reconstructed_messages.append(msg)
 
