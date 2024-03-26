@@ -2,27 +2,53 @@
 # socket that can publish to that topic. It exposes this functionality
 # using send_msg method
 import zmq
+from zmq.utils.monitor import recv_monitor_message
 import time
 import uuid
 from .DebugLog import Debug, Error
-from .Config import xsub_url, xpub_url
-
+from .Config import xsub_url, xpub_url, router_url
+from typing import Any, Dict
 
 class ActorConnector:
     def __init__(self, context, topic):
-        self._pub_socket = context.socket(zmq.PUB)
-        self._pub_socket.setsockopt(zmq.LINGER, 0)
-        self._pub_socket.connect(xsub_url)
+        self._context = context
 
-        self._resp_socket = context.socket(zmq.SUB)
+        self._resp_socket = self._context.socket(zmq.SUB)
         self._resp_socket.setsockopt(zmq.LINGER, 0)
-        self._resp_socket.setsockopt(zmq.RCVTIMEO, 10000)
+        self._resp_socket.setsockopt(zmq.RCVTIMEO, 250)
         self._resp_socket.connect(xpub_url)
         self._resp_topic = str(uuid.uuid4())
         Debug("AgentConnector", f"subscribe to: {self._resp_topic}")
         self._resp_socket.setsockopt_string(zmq.SUBSCRIBE, f"{self._resp_topic}")
         self._topic = topic
-        time.sleep(0.01)  # Let the network do things.
+
+        self._pub_socket = self._context.socket(zmq.PUB)
+        self._pub_socket.setsockopt(zmq.LINGER, 0)
+        self._pub_socket.connect(xsub_url)
+        self._handshake()
+
+    def _send_recv_router_msg(self):
+        # Send a request to the router and wait for a response
+        req_socket = self._context.socket(zmq.REQ)
+        req_socket.connect(router_url)
+        try:
+            req_socket.send_string("Request")
+            _ = req_socket.recv_string()
+        finally:
+            req_socket.close()
+
+    def _handshake(self):
+        # Monitor handshake on the pub socket
+        monitor = self._pub_socket.get_monitor_socket()
+        while monitor.poll():
+            evt: Dict[str, Any] = {}
+            mon_evt = recv_monitor_message(monitor)
+            evt.update(mon_evt)
+            print(evt)
+            if evt['event'] == zmq.EVENT_MONITOR_STOPPED or evt['event'] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
+                break
+        monitor.close()
+        self._send_recv_router_msg()
 
     def send_txt_msg(self, msg):
         self._pub_socket.send_multipart(
