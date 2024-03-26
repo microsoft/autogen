@@ -9,6 +9,7 @@ import argparse
 import shutil
 import sqlite3
 import aiosqlite
+from collections import namedtuple
 
 from typing import List, Dict
 
@@ -536,7 +537,7 @@ def function_names_to_markdown_table(file_path: str) -> str:
     return table
 
 
-def message2markdown(message: Dict[str, str]) -> str:
+def message2markdown(message) -> str:
     """
     Convert a message to markdown that can be displayed in the chat display.
 
@@ -546,7 +547,7 @@ def message2markdown(message: Dict[str, str]) -> str:
     Returns:
         A markdown string.
     """
-    role = message["role"]
+    role = message.role
     if role == "user":
         display_name = APP_CONFIG.get_user_name()
     elif role == "assistant" or role == "info":
@@ -557,11 +558,14 @@ def message2markdown(message: Dict[str, str]) -> str:
     if role == "info":
         display_id = "\U0001F4AD" * 3
     else:
-        display_id = message["id"]
+        display_id = message.id
 
-    content = message["content"]
+    content = message.content
 
     return f"[{display_id}] {display_name}: {content}"
+
+
+MessageData = namedtuple("MessageData", ["role", "content", "id"])
 
 
 class ReactiveMessage(Markdown):
@@ -569,7 +573,8 @@ class ReactiveMessage(Markdown):
     A reactive markdown widget for displaying assistant messages.
     """
 
-    message = reactive({"role": None, "content": None, "id": None})
+    # message = reactive({"role": None, "content": None, "id": None})
+    message = reactive(MessageData(None, None, None))
 
     class Selected(Message):
         """Assistant message selected message."""
@@ -580,7 +585,8 @@ class ReactiveMessage(Markdown):
 
     def __init__(self, id=None, role=None, content=None, **kwargs):
         super().__init__(**kwargs)
-        self.message = {"role": role, "content": content, "id": id}
+        # self.message = {"role": role, "content": content, "id": id}
+        self.message = MessageData(role, content, id)
 
     def on_mount(self) -> None:
         self.set_interval(1, self.update_message)
@@ -588,16 +594,18 @@ class ReactiveMessage(Markdown):
         chat_display.scroll_end()
 
     def on_click(self) -> None:
-        self.post_message(self.Selected(self.message.get("id")))
+        self.post_message(self.Selected(self.message.id))
 
     async def update_message(self):
-        message = await a_fetch_row(self.message.get("id"))
+        message = await a_fetch_row(self.message.id)
 
         if message is None:
             self.remove()
             return
 
-        self.classes = f"{self.message['role'].lower()}-message message"
+        message = MessageData(message["role"], message["content"], message["id"])
+
+        self.classes = f"{message.role.lower()}-message message"
 
         self.message = message
 
