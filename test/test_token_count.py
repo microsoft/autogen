@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 from autogen.token_count_utils import (
     count_token,
     num_tokens_from_functions,

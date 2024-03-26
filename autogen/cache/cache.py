@@ -1,6 +1,17 @@
-from typing import Dict, Any
+from __future__ import annotations
+from types import TracebackType
+from typing import Dict, Any, Optional, Type, Union
 
-from autogen.cache.cache_factory import CacheFactory
+from .abstract_cache_base import AbstractCache
+
+from .cache_factory import CacheFactory
+
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class Cache:
@@ -19,12 +30,12 @@ class Cache:
     ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root"]
 
     @staticmethod
-    def redis(cache_seed=42, redis_url="redis://localhost:6379/0"):
+    def redis(cache_seed: Union[str, int] = 42, redis_url: str = "redis://localhost:6379/0") -> Cache:
         """
         Create a Redis cache instance.
 
         Args:
-            cache_seed (int, optional): A seed for the cache. Defaults to 42.
+            cache_seed (Union[str, int], optional): A seed for the cache. Defaults to 42.
             redis_url (str, optional): The URL for the Redis server. Defaults to "redis://localhost:6379/0".
 
         Returns:
@@ -33,12 +44,12 @@ class Cache:
         return Cache({"cache_seed": cache_seed, "redis_url": redis_url})
 
     @staticmethod
-    def disk(cache_seed=42, cache_path_root=".cache"):
+    def disk(cache_seed: Union[str, int] = 42, cache_path_root: str = ".cache") -> Cache:
         """
         Create a Disk cache instance.
 
         Args:
-            cache_seed (int, optional): A seed for the cache. Defaults to 42.
+            cache_seed (Union[str, int], optional): A seed for the cache. Defaults to 42.
             cache_path_root (str, optional): The root path for the disk cache. Defaults to ".cache".
 
         Returns:
@@ -70,7 +81,7 @@ class Cache:
             self.config.get("cache_path_root", None),
         )
 
-    def __enter__(self):
+    def __enter__(self) -> AbstractCache:
         """
         Enter the runtime context related to the cache object.
 
@@ -79,7 +90,12 @@ class Cache:
         """
         return self.cache.__enter__()
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         """
         Exit the runtime context related to the cache object.
 
@@ -93,7 +109,7 @@ class Cache:
         """
         return self.cache.__exit__(exc_type, exc_value, traceback)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the cache.
 
@@ -107,7 +123,7 @@ class Cache:
         """
         return self.cache.get(key, default)
 
-    def set(self, key, value):
+    def set(self, key: str, value: Any) -> None:
         """
         Set an item in the cache.
 
@@ -117,7 +133,7 @@ class Cache:
         """
         self.cache.set(key, value)
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the cache.
 

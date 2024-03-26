@@ -4,11 +4,11 @@ exclude: 'dotnet'
 ci:
   autofix_prs: true
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit suggestions'
-  autoupdate_schedule: 'quarterly'
+  autoupdate_schedule: 'monthly'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
     - id: check-added-large-files
     - id: check-ast
@@ -23,11 +23,11 @@ repos:
     - id: end-of-file-fixer
     - id: no-commit-to-branch
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 24.3.0
     hooks:
     - id: black
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.261
+    rev: v0.3.3
     hooks:
       - id: ruff
         args: ["--fix"]
@@ -35,17 +35,35 @@ repos:
     rev: v2.2.6
     hooks:
       - id: codespell
-        args: ["-L", "ans,linar,nam,"]
+        args: ["-L", "ans,linar,nam,tread,ot,"]
         exclude: |
             (?x)^(
               pyproject.toml |
               website/static/img/ag.svg |
               website/yarn.lock |
+              website/docs/tutorial/code-executors.ipynb |
               notebook/.*
             )$
+  # See https://jaredkhan.com/blog/mypy-pre-commit
+  - repo: local
+    hooks:
+    - id: mypy
+      name: mypy
+      entry: "./scripts/pre-commit-mypy-run.sh"
+      language: python
+      # use your preferred Python version
+      # language_version: python3.8
+      additional_dependencies: []
+      types: [python]
+      # use require_serial so that script
+      # is only called once per commit
+      require_serial: true
+      # Print the number of files as a sanity-check
+      verbose: true
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.7.1
+    rev: 1.8.4
     hooks:
       - id: nbqa-ruff
-        args: ["--fix"]
+        # Don't require notebooks to have all imports at the top
+        args: ["--fix", "--ignore=E402"]
       - id: nbqa-black

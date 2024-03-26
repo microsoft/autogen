@@ -93,6 +93,7 @@ class LLMConfig:
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
     max_tokens: Optional[int] = None
+    extra_body: Optional[dict] = None
 
     def dict(self):
         result = asdict(self)
@@ -112,6 +113,7 @@ class AgentConfig:
     is_termination_msg: Optional[Union[bool, str, Callable]] = None
     code_execution_config: Optional[Union[bool, str, Dict[str, Any]]] = None
     default_auto_reply: Optional[str] = ""
+    description: Optional[str] = None
 
     def dict(self):
         result = asdict(self)
@@ -130,7 +132,6 @@ class AgentFlowSpec:
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
     skills: Optional[Union[None, List[Skill]]] = None
-    description: Optional[str] = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -174,7 +175,6 @@ class GroupChatFlowSpec:
     id: Optional[str] = None
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
-    description: Optional[str] = None
     skills: Optional[Union[None, List[Skill]]] = None
 
     def __post_init__(self):
@@ -302,3 +302,16 @@ class DBWebRequestModel(object):
     agent: Optional[AgentFlowSpec] = None
     workflow: Optional[AgentWorkFlowConfig] = None
     model: Optional[Model] = None
+    message: Optional[Message] = None
+    connection_id: Optional[str] = None
+
+
+@dataclass
+class SocketMessage(object):
+    connection_id: str
+    data: Dict[str, Any]
+    type: str
+
+    def dict(self):
+        result = asdict(self)
+        return result

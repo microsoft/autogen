@@ -2,18 +2,32 @@ import os
 import sys
 from pathlib import Path
 import tempfile
-from typing import Dict, Union
+from typing import Dict, Type, Union
 import uuid
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.oai.openai_utils import config_list_from_json
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker  # noqa: E402
 
 try:
-    from autogen.coding.embedded_ipython_code_executor import EmbeddedIPythonCodeExecutor
-    from autogen.coding.jupyter_code_executor import LocalJupyterCodeExecutor
+    from autogen.coding.jupyter import (
+        DockerJupyterServer,
+        EmbeddedIPythonCodeExecutor,
+        JupyterCodeExecutor,
+        LocalJupyterServer,
+    )
+
+    class DockerJupyterExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = DockerJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
+
+    class LocalJupyterCodeExecutor(JupyterCodeExecutor):
+        def __init__(self, **kwargs):
+            jupyter_server = LocalJupyterServer()
+            super().__init__(jupyter_server=jupyter_server, **kwargs)
 
     # Skip on windows due to kernelgateway bug https://github.com/jupyter-server/kernel_gateway/issues/398
     if sys.platform == "win32":
@@ -21,21 +35,32 @@ try:
     else:
         classes_to_test = [EmbeddedIPythonCodeExecutor, LocalJupyterCodeExecutor]
 
+    if not skip_docker:
+        classes_to_test.append(DockerJupyterExecutor)
+
     skip = False
     skip_reason = ""
-except ImportError:
+except ImportError as e:
     skip = True
-    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed."
+    skip_reason = "Dependencies for EmbeddedIPythonCodeExecutor or LocalJupyterCodeExecutor not installed. " + e.msg
     classes_to_test = []
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_is_code_executor(cls) -> None:
+    assert isinstance(cls, CodeExecutor)
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
+def test_create_dict() -> None:
+    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
+    executor = CodeExecutorFactory.create(config)
+    assert isinstance(executor, EmbeddedIPythonCodeExecutor)
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_create(cls) -> None:
-    config: Dict[str, Union[str, CodeExecutor]] = {"executor": "ipython-embedded"}
-    executor = CodeExecutorFactory.create(config)
-    assert isinstance(executor, EmbeddedIPythonCodeExecutor)
-
     config = {"executor": cls()}
     executor = CodeExecutorFactory.create(config)
     assert executor is config["executor"]
@@ -157,6 +182,23 @@ def test_save_image(cls) -> None:
 
 @pytest.mark.skipif(skip, reason=skip_reason)
 @pytest.mark.parametrize("cls", classes_to_test)
+def test_timeout_preserves_kernel_state(cls: Type[CodeExecutor]) -> None:
+    executor = cls(timeout=1)
+    code_blocks = [CodeBlock(code="x = 123", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    code_blocks = [CodeBlock(code="import time; time.sleep(10)", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code != 0 and "Timeout" in code_result.output
+
+    code_blocks = [CodeBlock(code="print(x)", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "123" in code_result.output
+
+
+@pytest.mark.skipif(skip, reason=skip_reason)
+@pytest.mark.parametrize("cls", classes_to_test)
 def test_save_html(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(output_dir=temp_dir)
@@ -168,49 +210,6 @@ def test_save_html(cls) -> None:
         assert code_result.exit_code == 0
         assert os.path.exists(code_result.output_files[0])
         assert f"HTML data saved to {code_result.output_files[0]}" in code_result.output
-
-
-@pytest.mark.skipif(skip, reason=skip_reason)
-@pytest.mark.skipif(skip_openai, reason="openai not installed OR requested to skip")
-@pytest.mark.parametrize("cls", classes_to_test)
-def test_conversable_agent_capability(cls) -> None:
-    KEY_LOC = "notebook"
-    OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
-    config_list = config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={
-            "model": {
-                "gpt-3.5-turbo",
-                "gpt-35-turbo",
-            },
-        },
-    )
-    llm_config = {"config_list": config_list}
-    agent = ConversableAgent(
-        "coding_agent",
-        llm_config=llm_config,
-        code_execution_config=False,
-    )
-    executor = cls()
-    executor.user_capability.add_to_agent(agent)
-
-    # Test updated system prompt.
-    assert executor.DEFAULT_SYSTEM_MESSAGE_UPDATE in agent.system_message
-
-    # Test code generation.
-    reply = agent.generate_reply(
-        [{"role": "user", "content": "print 'hello world' to the console in a single python code block"}],
-        sender=ConversableAgent("user", llm_config=False, code_execution_config=False),
-    )
-
-    # Test code extraction.
-    code_blocks = executor.code_extractor.extract_code_blocks(reply)  # type: ignore[arg-type]
-    assert len(code_blocks) == 1 and code_blocks[0].language == "python"
-
-    # Test code execution.
-    code_result = executor.execute_code_blocks(code_blocks)
-    assert code_result.exit_code == 0 and "hello world" in code_result.output.lower()
 
 
 @pytest.mark.skipif(skip, reason=skip_reason)

@@ -50,7 +50,7 @@ module.exports = {
           type: "doc",
           docId: "reference/agentchat/conversable_agent",
           position: "left",
-          label: "SDK",
+          label: "API",
         },
         { to: "blog", label: "Blog", position: "left" },
         {
@@ -69,25 +69,15 @@ module.exports = {
           position: "left",
           label: "Examples",
         },
-        // Uncomment below to add Notebooks to the navbar
-        // {
-        //   to: "docs/notebooks",
-        //   position: "left",
-        //   label: "Notebooks",
-        // },
         {
-          label: "Resources",
-          type: "dropdown",
-          items: [
-            {
-              type: "doc",
-              docId: "Ecosystem",
-            },
-            {
-              type: "doc",
-              docId: "Gallery",
-            },
-          ],
+          to: "docs/notebooks",
+          position: "left",
+          label: "Notebooks",
+        },
+        {
+          type: "doc",
+          position: "left",
+          docId: "Gallery",
         },
         {
           label: "Other Languages",
@@ -138,6 +128,14 @@ module.exports = {
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} AutoGen Authors |  <a target="_blank" style="color:#10adff" href="https://go.microsoft.com/fwlink/?LinkId=521839">Privacy and Cookies</a>`,
+    },
+    announcementBar: {
+      id: 'whats_new',
+      content:
+        'What\'s new in AutoGen? Read <a href="/autogen/blog/2024/03/03/AutoGen-Update">this blog</a> for an overview of updates',
+      backgroundColor: '#fafbfc',
+      textColor: '#091E42',
+      isCloseable: true,
     },
   },
   presets: [
@@ -192,9 +190,37 @@ module.exports = {
       {
         redirects: [
           {
-            to: "/docs/llm_configuration/",
+            to: "/docs/topics/llm_configuration",
             from: ["/docs/llm_endpoint_configuration/"],
           },
+          {
+            to: "/docs/ecosystem/memgpt/",
+            from: ["/docs/Ecosystem"],
+          },
+          {
+            to: "/docs/Getting-Started",
+            from: ["/docs/"],
+          },
+          {
+            to: "/docs/topics/llm_configuration",
+            from: ["/docs/llm_configuration"],
+          },
+          {
+            to: "/docs/tutorial/chat-termination",
+            from: ["/docs/tutorial/termination"],
+          },
+          {
+            to: "/docs/tutorial/what-next",
+            from: ["/docs/tutorial/what-is-next"],
+          },
+          {
+            to: "/docs/topics/non-openai-models/local-lm-studio",
+            from: ["/docs/topics/non-openai-models/lm-studio"],
+          },
+          {
+            to: "/docs/notebooks/agentchat_nested_chats_chess",
+            from: ["/docs/notebooks/agentchat_chess"],
+          }
         ],
       },
     ]
