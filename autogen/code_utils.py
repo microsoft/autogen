@@ -10,8 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from _pytest import python
-
 from autogen import oai
 
 import docker

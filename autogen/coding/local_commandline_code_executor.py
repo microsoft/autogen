@@ -144,7 +144,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 f.write(code)
             file_names.append(written_file)
 
-            program = sys.executable if _cmd(lang).startswith("python") else _cmd(lang)
+            program = sys.executable if lang.startswith("python") else _cmd(lang)
             cmd = [program, str(written_file.absolute())]
 
             try:
