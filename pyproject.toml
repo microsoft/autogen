@@ -25,7 +25,8 @@ line-length = 120
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
     "E", "W",  # see: https://pypi.org/project/pycodestyle
-    "F",  # see: https://pypi.org/project/pyflakes
+    "F",       # see: https://pypi.org/project/pyflakes
+    "I",       # see: https://docs.astral.sh/ruff/rules/#isort-i
 #    "D",  # see: https://pypi.org/project/pydocstyle
 #    "N",  # see: https://pypi.org/project/pep8-naming
 #    "S",  # see: https://pypi.org/project/flake8-bandit

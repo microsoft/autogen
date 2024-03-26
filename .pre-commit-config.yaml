@@ -27,7 +27,7 @@ repos:
     hooks:
     - id: black
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.3.3
+    rev: v0.3.4
     hooks:
       - id: ruff
         args: ["--fix"]
@@ -61,7 +61,7 @@ repos:
       # Print the number of files as a sanity-check
       verbose: true
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.8.4
+    rev: 1.8.5
     hooks:
       - id: nbqa-ruff
         # Don't require notebooks to have all imports at the top

@@ -1,7 +1,7 @@
+import sys
 from abc import ABC, abstractmethod
 from types import TracebackType
 from typing import Any, Optional, Type
-import sys
 
 if sys.version_info >= (3, 11):
     from typing import Self

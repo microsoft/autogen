@@ -1,20 +1,18 @@
-from hashlib import md5
 import os
-from pathlib import Path
 import re
+import subprocess
 import sys
 import uuid
 import warnings
+from hashlib import md5
+from pathlib import Path
 from typing import ClassVar, List, Union
 
 from ..agentchat.agent import LLMAgent
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-
 from .utils import _get_file_name_from_content, silence_pip
-
-import subprocess
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 

@@ -1,9 +1,10 @@
 import sys
-from termcolor import colored
-from typing import Dict, Optional, List
-from autogen import ConversableAgent
-from autogen import token_count_utils
+from typing import Dict, List, Optional
+
 import tiktoken
+from termcolor import colored
+
+from autogen import ConversableAgent, token_count_utils
 
 
 class TransformChatHistory:

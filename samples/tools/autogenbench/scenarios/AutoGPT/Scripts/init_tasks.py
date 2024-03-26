@@ -3,12 +3,13 @@
 # (default: ../scenarios/human_eval_two_agents_gpt4.jsonl and ./scenarios/human_eval_two_agents_gpt35.jsonl)
 #
 
+import base64
+import glob
 import json
 import os
-import sys
-import glob
-import base64
 import re
+import sys
+
 from huggingface_hub import snapshot_download
 
 SCRIPT_PATH = os.path.realpath(__file__)

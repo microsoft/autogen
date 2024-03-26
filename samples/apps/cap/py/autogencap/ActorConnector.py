@@ -1,11 +1,13 @@
 # Agent_Sender takes a zmq context, Topic and creates a
 # socket that can publish to that topic. It exposes this functionality
 # using send_msg method
-import zmq
 import time
 import uuid
+
+import zmq
+
+from .Config import xpub_url, xsub_url
 from .DebugLog import Debug, Error
-from .Config import xsub_url, xpub_url
 
 
 class ActorConnector:

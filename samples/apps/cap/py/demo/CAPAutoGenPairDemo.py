@@ -1,8 +1,10 @@
 import time
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-from autogencap.DebugLog import Info
+
 from autogencap.ag_adapter.CAPPair import CAPPair
+from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
+
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 
 def cap_ag_pair_demo():

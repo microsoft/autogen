@@ -1,12 +1,14 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402

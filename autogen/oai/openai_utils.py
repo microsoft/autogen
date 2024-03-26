@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
-
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 

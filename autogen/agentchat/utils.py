@@ -1,4 +1,5 @@
-from typing import Any, List, Dict, Tuple, Callable
+from typing import Any, Callable, Dict, List, Tuple
+
 from .agent import Agent
 
 

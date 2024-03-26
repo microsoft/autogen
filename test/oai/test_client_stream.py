@@ -1,12 +1,14 @@
 #!/usr/bin/env python3 -m pytest
 
 import json
+import os
+import sys
 from typing import Any, Dict, List, Literal, Optional, Union
 from unittest.mock import MagicMock
+
 import pytest
+
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-import sys
-import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -20,12 +22,12 @@ else:
 
     # raises exception if openai>=1 is installed and something is wrong with imports
     # otherwise the test will be skipped
+    from openai.types.chat.chat_completion import ChatCompletionMessage  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
         ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
     )
-    from openai.types.chat.chat_completion import ChatCompletionMessage  # type: ignore [attr-defined]
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
