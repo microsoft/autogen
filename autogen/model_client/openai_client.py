@@ -7,7 +7,7 @@ from jsonschema import validate
 
 from autogen._pydantic import type2schema
 from autogen.cache.cache import Cache
-from autogen.model_client.base import TextModelClient
+from autogen.model_client.base import ChatModelClient
 from autogen.token_count_utils import count_token
 from .types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key
@@ -134,7 +134,7 @@ def _cost(response: Union[ChatCompletion, Tuple[str, int, int]]) -> float:
     return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
 
-class OpenAITextModelClient(TextModelClient):
+class OpenAIChatModelClient(ChatModelClient):
     def __init__(self, client: Union[AsyncOpenAI, AsyncAzureOpenAI], create_args: Dict[str, Any]) -> None:
         self._client = client
         self._create_args = create_args

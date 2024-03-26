@@ -2,17 +2,17 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 from openai import APIError, APITimeoutError
 
 from autogen.cache.cache import Cache
-from autogen.model_client.base import TextModelClient
+from autogen.model_client.base import ChatModelClient
 from autogen.model_client.factory import ModelClientFactory
 from .types import ChatMessage, CreateResponse, RequestUsage, ToolCall
 
 
-class ChainedTextModelClient(TextModelClient):
-    def __init__(self, clients: List[TextModelClient]) -> None:
+class ChainedChatModelClient(ChatModelClient):
+    def __init__(self, clients: List[ChatModelClient]) -> None:
         self._clients = clients
 
     @classmethod
-    def create_from_config(cls, config: Dict[str, Any]) -> TextModelClient:
+    def create_from_config(cls, config: Dict[str, Any]) -> ChatModelClient:
         config_list = config.pop("config_list", None)
         factory = config.pop("factory", None)
         if factory is None:
