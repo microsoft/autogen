@@ -56,6 +56,10 @@ def string_to_function(code: str):
     return function_name, local_namespace[function_name]
 
 
+class ChatMessageError(Exception):
+    pass
+
+
 class AppConfiguration:
     #     ASSISTANT_MESSAGE = """
     # Your capabilities:
@@ -87,8 +91,7 @@ class AppConfiguration:
         self._database_path = os.path.join(data_path, database)
 
         # create the data path if it does not exist
-        if not os.path.exists(self._data_path):
-            os.makedirs(self._data_path)
+        os.makedirs(self._data_path, exist_ok=True)
 
         # initialize the database
         self._init_database()
@@ -399,7 +402,7 @@ def insert_chat_message(role: str, content: str, root_id: int, id: int = None) -
                     conn.commit()
                     return id
     except sqlite3.Error as e:
-        print(f"Error inserting or updating chat message: {e}")
+        raise ChatMessageError(f"Error inserting or updating chat message: {e}")
 
 
 async def a_insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
