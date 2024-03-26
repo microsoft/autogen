@@ -1,23 +1,16 @@
 #!/usr/bin/env python3 -m pytest
 
-import shutil
-import time
 import pytest
-from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
+from autogen import config_list_from_json
 from autogen.cache.in_memory_cache import InMemoryCache
 from autogen.model_client.factory import DEFAULT_FACTORY
 from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 import sys
 import os
-from autogen.cache.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
-TOOL_ENABLED = False
-from openai import OpenAI
-import openai
-KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
@@ -37,7 +30,6 @@ async def test_create():
     assert response["cached"] is False
     assert response["finish_reason"] == "stop"
     assert isinstance(response["content"], str)
-
 
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
@@ -60,25 +52,28 @@ async def test_tool_calling_extraction():
                 "content": "What is the weather in San Francisco?",
             },
         ],
-        extra_create_args= {
-            "tools":[
-            {
-                "type": "function",
-                "function": {
-                    "name": "getCurrentWeather",
-                    "description": "Get the weather in location",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
-                            "unit": {"type": "string", "enum": ["c", "f"]},
+        extra_create_args={
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "getCurrentWeather",
+                        "description": "Get the weather in location",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "location": {
+                                    "type": "string",
+                                    "description": "The city and state e.g. San Francisco, CA",
+                                },
+                                "unit": {"type": "string", "enum": ["c", "f"]},
+                            },
+                            "required": ["location"],
                         },
-                        "required": ["location"],
                     },
-                },
-            }
-        ],
-        }
+                }
+            ],
+        },
     )
     assert response["cached"] is False
     assert response["finish_reason"] == "tool_calls"
@@ -117,6 +112,7 @@ async def test_cache():
         assert client.actual_usage() == actual_usage
         assert client.total_usage()["completion_tokens"] == total_usage["completion_tokens"] * 2
         assert client.actual_usage()["prompt_tokens"] == actual_usage["prompt_tokens"] * 2
+
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio

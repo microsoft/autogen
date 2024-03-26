@@ -24,7 +24,10 @@ async def test_create():
 
         # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
         async def create(
-            self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
+            self,
+            messages: List[ChatMessage],
+            cache: Optional[AbstractCache] = None,
+            extra_create_args: Dict[str, Any] = {},
         ) -> CreateResponse:
             return CreateResponse(
                 finish_reason="stop",
@@ -34,25 +37,20 @@ async def test_create():
             )
 
         def create_stream(
-            self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
-        ) -> AsyncGenerator[Union[Union[str, ToolCall, CreateResponse]], None]:
-            ...
+            self,
+            messages: List[ChatMessage],
+            cache: Optional[AbstractCache] = None,
+            extra_create_args: Dict[str, Any] = {},
+        ) -> AsyncGenerator[Union[Union[str, ToolCall, CreateResponse]], None]: ...
 
-        def actual_usage(self) -> RequestUsage:
-            ...
+        def actual_usage(self) -> RequestUsage: ...
 
-        def total_usage(self) -> RequestUsage:
-            ...
+        def total_usage(self) -> RequestUsage: ...
 
     factory = ModelClientFactory.default()
     factory.add("my_api", MyClient)
 
-    client = factory.create_from_config(
-        {
-            "api_type": "my_api",
-            "config_var": "value1"
-        }
-    )
+    client = factory.create_from_config({"api_type": "my_api", "config_var": "value1"})
 
     assert isinstance(client, MyClient)
 

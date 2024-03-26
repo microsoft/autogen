@@ -6,7 +6,7 @@ from typing_extensions import Self
 from jsonschema import validate
 
 from autogen._pydantic import type2schema
-from autogen.cache.cache import Cache
+from autogen.cache import AbstractCache
 from autogen.model_client.base import ChatModelClient
 from autogen.token_count_utils import count_token
 from .types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
@@ -68,6 +68,7 @@ oai_system_message_schema = type2schema(ChatCompletionSystemMessageParam)
 oai_user_message_schema = type2schema(ChatCompletionUserMessageParam)
 oai_assistant_message_schema = type2schema(ChatCompletionAssistantMessageParam)
 oai_tool_message_schema = type2schema(ChatCompletionToolMessageParam)
+
 
 # TODO: these should additionally disallow additional properties
 def to_oai_type(message: ChatMessage) -> ChatCompletionMessageParam:
@@ -148,7 +149,7 @@ class OpenAIChatModelClient(ChatModelClient):
         return cls(client, create_args)
 
     async def create(
-        self, messages: List[ChatMessage], cache: Optional[Cache] = None, extra_create_args: Dict[str, Any] = {}
+        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
     ) -> CreateResponse:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -203,7 +204,7 @@ class OpenAIChatModelClient(ChatModelClient):
         return cast(CreateResponse, result)
 
     async def create_stream(
-        self, messages: List[ChatMessage], cache: Optional[Cache] = None, extra_create_args: Dict[str, Any] = {}
+        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
     ) -> AsyncGenerator[Union[str, ToolCall, CreateResponse], None]:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -278,7 +279,7 @@ class OpenAIChatModelClient(ChatModelClient):
             completion_tokens = count_token(content, model=model)
         else:
             completion_tokens = 0
-            # TODO: fix assumption that dict values were added in order and actuall order by int index
+            # TODO: fix assumption that dict values were added in order and actually order by int index
             for tool_call in full_tool_calls.values():
                 value = json.dumps(tool_call)
                 completion_tokens += count_token(value, model=model)

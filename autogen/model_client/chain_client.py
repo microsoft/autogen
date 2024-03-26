@@ -1,7 +1,7 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 from openai import APIError, APITimeoutError
 
-from autogen.cache.cache import Cache
+from autogen.cache import AbstractCache
 from autogen.model_client.base import ChatModelClient
 from autogen.model_client.factory import ModelClientFactory
 from .types import ChatMessage, CreateResponse, RequestUsage, ToolCall
@@ -35,7 +35,7 @@ class ChainedChatModelClient(ChatModelClient):
         return cls(clients)
 
     async def create(
-        self, messages: List[ChatMessage], cache: Optional[Cache] = None, extra_create_args: Dict[str, Any] = {}
+        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
     ) -> CreateResponse:
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
@@ -60,7 +60,7 @@ class ChainedChatModelClient(ChatModelClient):
             raise ValueError("No clients found")
 
     def create_stream(
-        self, messages: List[ChatMessage], cache: Optional[Cache] = None, extra_create_args: Dict[str, Any] = {}
+        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
     ) -> AsyncGenerator[Union[Union[str, ToolCall, CreateResponse]], None]:
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
