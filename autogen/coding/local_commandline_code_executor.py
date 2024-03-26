@@ -6,7 +6,7 @@ import sys
 import warnings
 from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
 from typing_extensions import ParamSpec
-from autogen.coding.func_with_reqs import FunctionWithRequirements, build_python_functions_file, to_stub
+from autogen.coding.func_with_reqs import FunctionWithRequirements, _build_python_functions_file, to_stub
 
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
@@ -147,7 +147,7 @@ $functions"""
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
     def _setup_functions(self) -> None:
-        func_file_content = build_python_functions_file(self._functions)
+        func_file_content = _build_python_functions_file(self._functions)
         func_file = self._work_dir / self.FUNCTIONS_FILENAME
         func_file.write_text(func_file_content)
 
