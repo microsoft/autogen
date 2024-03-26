@@ -366,6 +366,26 @@ def fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
     return chat_history
 
 
+async def a_fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
+    """
+    Fetch the chat history from the database.
+
+    Args:
+        root_id: the root id of the messages to fetch. If None, all messages are fetched.
+
+    Returns:
+        A list of chat messages.
+    """
+    async with aiosqlite.connect(APP_CONFIG.get_database_path()) as conn:
+        c = await conn.cursor()
+        await c.execute("SELECT root_id, id, role, content FROM chat_history WHERE root_id = ?", (root_id,))
+        chat_history = [
+            {"root_id": root_id, "id": id, "role": role, "content": content}
+            for root_id, id, role, content in await c.fetchall()
+        ]
+        return chat_history
+
+
 def fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
     """
     Fetch a single row from the database.
@@ -732,59 +752,44 @@ class SettingsScreen(ModalScreen):
                 ),
                 id="user-settings-screen",
             )
+
             # Tab for tools settings
-            yield Grid(
-                # display the list of tools
-                Container(
-                    ListView(
+            with Grid(id="tools-tab-grid"):
+                # list of tools
+                with Container(id="tool-list-container"):
+                    yield ListView(
                         *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
                         id="tool-list",
-                    ),
-                    Button("+", variant="primary", id="new-tool-button"),
-                    id="tool-list-container",
-                ),
+                    )
+                    yield Button("+", variant="primary", id="new-tool-button")
+
                 # display the settings for the selected tool
-                Grid(
-                    Container(
-                        Container(
-                            Label("Tool ID", classes="form-label"),
-                            Input(id="tool-id-input", disabled=True),
-                        ),
-                        Container(Label("Tool Name (Display)", classes="form-label"), Input(id="tool-name-input")),
-                        id="tool-info-container",
-                    ),
-                    Container(
-                        Label("Code", classes="form-label"),
-                        TextArea.code_editor("", language="python", id="tool-code-textarea"),
-                        id="tool-code-container",
-                    ),
-                    Grid(
-                        Button("Save", variant="primary", id="save-tool-settings"),
-                        Button("Delete", variant="error", id="delete-tool-button"),
-                        id="tool-view-footer-grid",
-                    ),
-                    id="tool-view-grid",
-                ),
-                id="tools-tab-grid",
-            )
+                with Grid(id="tool-view-grid"):
+                    # information about the selected tool
+                    with Container(id="tool-info-container"):
+                        with Container():
+                            yield Label("Tool ID", classes="form-label")
+                            yield Input(id="tool-id-input", disabled=True)
+                        with Container():
+                            yield Label("Tool Name (Display)", classes="form-label")
+                            yield Input(id="tool-name-input")
+
+                    # code editor for the selected tool
+                    with Container(id="tool-code-container"):
+                        yield Label("Code", classes="form-label")
+                        yield TextArea.code_editor("", language="python", id="tool-code-textarea")
+
+                    # footer for the tool view
+                    with Grid(id="tool-view-footer-grid"):
+                        yield Button("Save", variant="primary", id="save-tool-settings")
+                        yield Button("Delete", variant="error", id="delete-tool-button")
+
             # Tab for history settings
-            # helps clear the chat history
-            # shows statistics about the chat history
-            yield Grid(
-                Container(
-                    Markdown(
-                        f"""
-Number of messages: {len(fetch_chat_history())}
-Number of tools: {len(tools)}"""
-                    ),
-                    id="history-contents",
-                ),
-                Container(
-                    Button("Clear History", variant="error", id="clear-history-button"),
-                    id="history-footer",
-                ),
-                id="history-settings",
-            )
+            with Grid(id="history-settings"):
+                with Container(id="history-contents"):
+                    yield Markdown(f"Number of messages: {len(fetch_chat_history())} Number of tools: {len(tools)}")
+                with Container(id="history-footer"):
+                    yield Button("Clear History", variant="error", id="clear-history-button")
 
     @on(Button.Pressed, "#close-user-settings")
     @on(Button.Pressed, "#close-tool-settings")
@@ -1080,7 +1085,7 @@ class TinyRA(App):
         # status_widget.update(f"Starting autogen in a worker process for {msg_idx}...")
 
         # fetch the relevant chat history
-        chat_history = fetch_chat_history()
+        chat_history = await a_fetch_chat_history()
         task = chat_history[msg_idx]["content"]
         chat_history = chat_history[0:msg_idx]
 
