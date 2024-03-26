@@ -54,14 +54,17 @@ class Tool:
                 raise InvalidToolError("Code must be a valid python module")
         except SyntaxError as e:
             raise InvalidToolError(f"Code must not contain syntax errors. Current errors:\n{e}")
-        except Exception as e:
-            raise InvalidToolError(f"Code must be a valid python module. Current errors:\n{e}")
 
         # validate the description
         if len(self.code) > 0 and not self.description:
-            self.description = self._extract_description_from_code(self.code)
-            if not self.description:
-                raise InvalidToolError("Code must contain a doc string")
+            module = ast.parse(self.code)
+            if module.body and isinstance(module.body[0], (ast.FunctionDef, ast.AsyncFunctionDef)):
+                function_def = module.body[0]
+                docstring = ast.get_docstring(function_def)
+                if not docstring:
+                    raise InvalidToolError("Code must contain a doc string")
+            else:
+                raise InvalidToolError("Code must contain a valid (sync/async) function definition")
 
         return True
 
@@ -304,7 +307,7 @@ class AppConfiguration:
             conn.commit()
             conn.close()
         except sqlite3.Error as e:
-            raise ToolUpdateError(f"Error updating tool: {e}")
+            raise ToolUpdateError(f"Error updating tool! {e}")
 
     def get_tools(self) -> List[Tool]:
         conn = sqlite3.connect(self._database_path)
@@ -816,14 +819,14 @@ Number of tools: {len(tools)}"""
         try:
             tool.validate_tool()
         except InvalidToolError as e:
-            error_message = f"Please enter a valid tool.\nReason: {e}"
+            error_message = f"{e}"
             self.post_message(AppErrorMessage(error_message))
             return
 
         try:
             APP_CONFIG.update_tool(tool)
         except ToolUpdateError as e:
-            error_message = f"Failed to update the tool.\nReason: {e}"
+            error_message = f"{e}"
             self.post_message(AppErrorMessage(error_message))
             return
 
@@ -867,14 +870,14 @@ Number of tools: {len(tools)}"""
         try:
             tool.validate_tool()
         except InvalidToolError as e:
-            error_message = f"Please enter a valid tool.\nReason: {e}"
+            error_message = f"{e}"
             self.post_message(AppErrorMessage(error_message))
             return
 
         try:
             APP_CONFIG.update_tool(tool)
         except ToolUpdateError as e:
-            error_message = f"Failed to update the tool.\nReason: {e}"
+            error_message = f"{e}"
             self.post_message(AppErrorMessage(error_message))
             return
 
