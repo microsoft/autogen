@@ -12,6 +12,7 @@ import aiosqlite
 
 from typing import List, Dict
 
+from textual import on
 from textual import work
 from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
@@ -644,11 +645,13 @@ class QuitScreen(ModalScreen):
             id="quit-screen-grid",
         )
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "quit":
-            self.app.exit()
-        else:
-            self.app.pop_screen()
+    @on(Button.Pressed, "#quit")
+    def quit(self) -> None:
+        self.app.exit()
+
+    @on(Button.Pressed, "#cancel")
+    def cancel(self) -> None:
+        self.app.pop_screen()
 
 
 class SettingsScreen(ModalScreen):
@@ -845,9 +848,9 @@ class ChatScreen(Screen):
             with Container(id="chat-screen-footer"):
                 yield Button("Cancel", variant="primary", id="cancel")
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "cancel":
-            self.app.pop_screen()
+    @on(Button.Pressed, "#cancel")
+    def cancel(self, event: Button.Pressed) -> None:
+        self.app.pop_screen()
 
 
 class TinyRA(App):
@@ -910,25 +913,26 @@ class TinyRA(App):
     def action_request_settings(self) -> None:
         self.push_screen(SettingsScreen())
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "empty-work-dir-button":
-            # loop through each file in the work dir and delete it
-            work_dir = os.path.join(APP_CONFIG.get_data_path(), "work_dir")
-            for file in os.listdir(work_dir):
-                file_path = os.path.join(work_dir, file)
-                if os.path.isfile(file_path):
-                    os.remove(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-        elif event.button.id == "delete-file-button":
-            dir_tree = self.query_one("#directory-tree > DirectoryTree", DirectoryTree)
-            highlighted_node = dir_tree.cursor_node
+    @on(Button.Pressed, "#empty-work-dir-button")
+    def empty_work_dir(self, event: Button.Pressed) -> None:
+        work_dir = APP_CONFIG.get_workdir()
+        for file in os.listdir(work_dir):
+            file_path = os.path.join(work_dir, file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
 
-            if highlighted_node is not None:
-                dir_tree.action_cursor_up()
-                file_path = str(highlighted_node.data.path)
+    @on(Button.Pressed, "#delete-file-button")
+    def delete_file(self, event: Button.Pressed) -> None:
+        dir_tree = self.query_one("#directory-tree > DirectoryTree", DirectoryTree)
+        highlighted_node = dir_tree.cursor_node
 
-                APP_CONFIG.delete_file_or_dir(file_path)
+        if highlighted_node is not None:
+            dir_tree.action_cursor_up()
+            file_path = str(highlighted_node.data.path)
+
+            APP_CONFIG.delete_file_or_dir(file_path)
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
