@@ -2550,7 +2550,8 @@ class ConversableAgent(LLMAgent):
                 func._name = name
             elif not hasattr(func, "_name"):
                 func._name = func.__name__
-            if func._name in self._function_map or (llm_config and tools in llm_config.keys() and func._name in llm_config["tools"]):
+
+            if (func._name in self._function_map) or (self.llm_config and "tools" in self.llm_config.keys() and func._name in [tool["function"]["name"] for tool in self.llm_config["tools"]]):
                 warnings.warn(f"Function '{func._name}' is being overridden.", UserWarning)
 
             self.register_function({func._name: self._wrap_function(func)})
