@@ -259,13 +259,26 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         self._page.wait_for_load_state()
         time.sleep(1)
 
+        # Descrive the viewport position in words
+        viewport = self._get_visual_viewport()
+        percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
+        percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
+        if percent_scrolled < 1:  # Allow some rounding error
+            position_text = "at the top of the page"
+        elif percent_scrolled + percent_visible >= 99:  # Allow some rounding error
+            position_text = "at the bottom of the page"
+        else:
+            position_text = str(percent_scrolled) + "% down from the top of the page"
+
         if self.debug_dir:
             new_screenshot = self._page.screenshot()
             with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
                 png.write(new_screenshot)
 
+        # Return the complete observation
         return True, self._make_mm_message(
-            f"Here is a screenshot of '{self._page.title()}' ({self._page.url}).", new_screenshot
+            f"Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
+            new_screenshot,
         )
 
     def _image_to_data_uri(self, image):
@@ -306,6 +319,14 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         except:
             pass
         return self._page.evaluate("MultimodalWebSurfer.getInteractiveRects();")
+
+    def _get_visual_viewport(self):
+        try:
+            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+                self._page.evaluate(fh.read())
+        except:
+            pass
+        return self._page.evaluate("MultimodalWebSurfer.getVisualViewport();")
 
     def _on_new_page(self, page):
         self._page = page
