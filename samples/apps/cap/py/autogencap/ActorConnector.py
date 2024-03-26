@@ -22,30 +22,32 @@ class ActorConnector:
         self._resp_socket.setsockopt_string(zmq.SUBSCRIBE, f"{self._resp_topic}")
         self._topic = topic
 
-        self._pub_socket = self._context.socket(zmq.PUB)
-        self._pub_socket.setsockopt(zmq.LINGER, 0)
-        self._pub_socket.connect(xsub_url)
-        self._handshake()
+        self._connect_pub_socket()
 
     def _send_recv_router_msg(self):
         # Send a request to the router and wait for a response
         req_socket = self._context.socket(zmq.REQ)
         req_socket.connect(router_url)
         try:
+            Debug("ActorConnector","Broker Check Request Sent")
             req_socket.send_string("Request")
             _ = req_socket.recv_string()
+            Debug("ActorConnector","Broker Check Response Received")
         finally:
             req_socket.close()
 
-    def _handshake(self):
-        # Monitor handshake on the pub socket
+    def _connect_pub_socket(self):
+        self._pub_socket = self._context.socket(zmq.PUB)
+        self._pub_socket.setsockopt(zmq.LINGER, 0)
         monitor = self._pub_socket.get_monitor_socket()
+        self._pub_socket.connect(xsub_url)
+        # Monitor handshake on the pub socket
         while monitor.poll():
             evt: Dict[str, Any] = {}
             mon_evt = recv_monitor_message(monitor)
             evt.update(mon_evt)
-            print(evt)
             if evt['event'] == zmq.EVENT_MONITOR_STOPPED or evt['event'] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
+                Debug("ActorConnector","Handshake received (Or Monitor stopped)")
                 break
         monitor.close()
         self._send_recv_router_msg()
@@ -61,14 +63,11 @@ class ActorConnector:
         )
 
     def binary_request(self, msg_type: str, msg, retry=5):
-        time.sleep(0.5)  # Let the network do things.
         self._pub_socket.send_multipart(
             [self._topic.encode("utf8"), msg_type.encode("utf8"), self._resp_topic.encode("utf8"), msg]
         )
-        time.sleep(0.5)  # Let the network do things.
         for i in range(retry + 1):
             try:
-                self._resp_socket.setsockopt(zmq.RCVTIMEO, 10000)
                 resp_topic, resp_msg_type, resp_sender_topic, resp = self._resp_socket.recv_multipart()
                 return resp_topic, resp_msg_type, resp_sender_topic, resp
             except zmq.Again:
