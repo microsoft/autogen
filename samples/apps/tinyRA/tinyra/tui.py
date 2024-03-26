@@ -986,25 +986,19 @@ class TinyRA(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        yield Grid(
-            Header(show_clock=True),
-            Grid(
-                DirectoryTreeContainer(id="directory-tree"),
-                Grid(
-                    Button("Delete", variant="error", id="delete-file-button"),
-                    Button("Empty Work Dir", variant="error", id="empty-work-dir-button"),
-                    id="directory-tree-footer",
-                ),
-                id="directory-tree-grid",
-            ),
-            Container(
-                ChatDisplay(id="chat-history"),
-                ChatInput(id="chat-input"),
-                id="chat-container",
-            ),
-            Footer(),
-            id="main-grid",
-        )
+        with Grid(id="main-grid"):
+            yield Header(show_clock=True)
+
+            with Grid(id="directory-tree-grid"):
+                yield DirectoryTreeContainer(id="directory-tree")
+                with Grid(id="directory-tree-footer"):
+                    yield Button("Delete", variant="error", id="delete-file-button")
+                    yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
+
+            with Container(id="chat-container"):
+                yield ChatDisplay(id="chat-history")
+                yield ChatInput(id="chat-input-box")
+            yield Footer()
 
     def action_request_quit(self) -> None:
         self.push_screen(QuitScreen())

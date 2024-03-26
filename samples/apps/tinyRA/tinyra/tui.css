@@ -57,7 +57,7 @@
     /* border-left: solid $primary-background; */
 }
 
-#chat-input{
+#chat-input-box{
     column-span: 10;
     row-span: 1;
     padding-left: 2;
