@@ -3,7 +3,7 @@
 name: ai-dev-team
 services:
   gh-flow:
-    project: ./src/apps/gh-flow
+    project: ./src/sample-apps/gh-flow
     language: csharp
     host: containerapp
     docker:
