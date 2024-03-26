@@ -473,21 +473,6 @@ def function_names_to_markdown_table(file_path: str) -> str:
     return table
 
 
-def get_available_functions() -> str:
-    """
-    Get the available functions from the agent_utils.py file
-    and return them as a markdown table.
-    """
-    UTILS_FILE = os.path.join(APP_CONFIG.get_data_path(), "agent_utils.py")
-    if not os.path.exists(UTILS_FILE):
-        # create the file if it does not exist
-        with open(UTILS_FILE, "w") as f:
-            f.write("")
-
-    markdown_table = function_names_to_markdown_table(UTILS_FILE)
-    return markdown_table
-
-
 def json_to_markdown_code_block(json_data: dict, pretty_print: bool = True) -> str:
     """
     Converts a JSON object to a markdown code block.
