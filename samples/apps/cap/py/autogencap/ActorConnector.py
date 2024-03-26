@@ -50,6 +50,7 @@ class ActorConnector:
             if evt["event"] == zmq.EVENT_MONITOR_STOPPED or evt["event"] == zmq.EVENT_HANDSHAKE_SUCCEEDED:
                 Debug("ActorConnector", "Handshake received (Or Monitor stopped)")
                 break
+        self._pub_socket.disable_monitor()
         monitor.close()
         self._send_recv_router_msg()
 
