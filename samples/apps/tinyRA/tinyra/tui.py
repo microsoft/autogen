@@ -473,26 +473,6 @@ def function_names_to_markdown_table(file_path: str) -> str:
     return table
 
 
-def json_to_markdown_code_block(json_data: dict, pretty_print: bool = True) -> str:
-    """
-    Converts a JSON object to a markdown code block.
-
-    Args:
-        json_data (dict): The JSON object to convert.
-        pretty_print (bool, optional): Whether to pretty print the JSON. Defaults to True.
-
-    Returns:
-        str: The markdown code block representing the JSON object.
-    """
-    if pretty_print:
-        json_string = json.dumps(json_data, indent=2)
-    else:
-        json_string = json.dumps(json_data)
-
-    markdown_code_block = f"```json\n{json_string}\n```"
-    return markdown_code_block
-
-
 def message2markdown(message: Dict[str, str]) -> str:
     """
     Convert a message to markdown that can be displayed in the chat display.
