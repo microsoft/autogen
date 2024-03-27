@@ -86,20 +86,22 @@ print(add_two_numbers(1, 2))"""
         assert result.exit_code == 0
 
 
-@pytest.mark.parametrize("cls", classes_to_test)
-@pytest.mark.skipif(skip, reason="pandas not installed")
-def test_fails_for_missing_reqs(cls) -> None:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        executor = cls(work_dir=temp_dir, functions=[function_missing_reqs])
-        code = f"""from {cls.FUNCTIONS_MODULE} import function_missing_reqs
-function_missing_reqs()"""
+# TODO - only run this test for containerized executors, as the environment is not guaranteed to have pandas installed
+# It is common for the local environment to have pandas installed, so this test will not work as expected
+# @pytest.mark.parametrize("cls", classes_to_test)
+# @pytest.mark.skipif(skip, reason="pandas not installed")
+# def test_fails_for_missing_reqs(cls) -> None:
+#     with tempfile.TemporaryDirectory() as temp_dir:
+#         executor = cls(work_dir=temp_dir, functions=[function_missing_reqs])
+#         code = f"""from {cls.FUNCTIONS_MODULE} import function_missing_reqs
+# function_missing_reqs()"""
 
-        with pytest.raises(ValueError):
-            executor.execute_code_blocks(
-                code_blocks=[
-                    CodeBlock(language="python", code=code),
-                ]
-            )
+#         with pytest.raises(ValueError):
+#             executor.execute_code_blocks(
+#                 code_blocks=[
+#                     CodeBlock(language="python", code=code),
+#                 ]
+#             )
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
