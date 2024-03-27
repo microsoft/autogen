@@ -4,6 +4,8 @@ import json
 import tiktoken
 import re
 
+from autogen.model_client.types import ToolCall
+
 
 logger = logging.getLogger(__name__)
 
