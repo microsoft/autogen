@@ -7,8 +7,7 @@ import time
 
 import pytest
 
-from autogen import (OpenAIWrapper, config_list_from_json,
-                     config_list_openai_aoai)
+from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from autogen.cache.cache import Cache
 from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 
@@ -115,13 +114,13 @@ def test_chat_completion():
 @pytest.mark.skipif(skip_mm, reason="Multimodal not installed")
 def test_multimodal_chat_completion():
     config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict= {"model": ["gpt-4-vision"]}
+        env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"model": ["gpt-4-vision"]}
     )
     if config_list:
         client = OpenAIWrapper(config_list=config_list)
-        response = client.create(messages=[{"role": "user", "content": "What is in the image <img ../notebook/viz_gc.png>?"}])
+        response = client.create(
+            messages=[{"role": "user", "content": "What is in the image <img ../notebook/viz_gc.png>?"}]
+        )
         print(response)
         print(client.extract_text_or_completion_object(response))
 
