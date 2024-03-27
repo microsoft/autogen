@@ -17,10 +17,10 @@ from textual import on
 from textual import work
 from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
-from textual.containers import ScrollableContainer, Grid, Container
+from textual.containers import ScrollableContainer, Grid, Container, Horizontal
 from textual.widget import Widget
 from textual.widgets import Pretty
-from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label
+from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label, Switch
 from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
 from textual.reactive import reactive
@@ -541,7 +541,7 @@ def message2markdown(message) -> str:
     role = message.role
     if role == "user":
         display_name = APP_CONFIG.get_user_name()
-    elif role == "assistant" or role == "info":
+    elif role == "assistant":
         display_name = "TinyRA"
     else:
         display_name = "."
@@ -722,6 +722,45 @@ class NotificationScreen(ModalScreen):
     @on(Button.Pressed, "#dismiss-notification")
     def dismiss(self) -> None:
         self.app.pop_screen()
+
+
+class Title(Static):
+    pass
+
+
+class OptionGroup(Container):
+    pass
+
+
+class DarkSwitch(Horizontal):
+    def compose(self) -> ComposeResult:
+        yield Switch(value=self.app.dark)
+        yield Static("Dark mode toggle", classes="label")
+
+    def on_mount(self) -> None:
+        self.watch(self.app, "dark", self.on_dark_change, init=False)
+
+    def on_dark_change(self) -> None:
+        self.query_one(Switch).value = self.app.dark
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        self.app.dark = event.value
+
+
+class CustomMessage(Static):
+    pass
+
+
+class Sidebar(Container):
+    BINDINGS = [("escape", "app.pop_screen")]
+
+    def compose(self) -> ComposeResult:
+        yield Title("Work Directory")
+        with Grid(id="directory-tree-grid"):
+            yield DirectoryTreeContainer(id="directory-tree")
+            with Grid(id="directory-tree-footer"):
+                yield Button("Delete", variant="error", id="delete-file-button")
+                yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
 
 
 class SettingsScreen(ModalScreen):
@@ -959,6 +998,7 @@ class TinyRA(App):
     """
 
     BINDINGS = [
+        ("ctrl+b", "toggle_sidebar", "Sidebar"),
         ("ctrl+c", "request_quit", "Quit"),
         ("ctrl+s", "request_settings", "Settings"),
     ]
@@ -973,11 +1013,7 @@ class TinyRA(App):
         with Grid(id="main-grid"):
             yield Header(show_clock=True)
 
-            with Grid(id="directory-tree-grid"):
-                yield DirectoryTreeContainer(id="directory-tree")
-                with Grid(id="directory-tree-footer"):
-                    yield Button("Delete", variant="error", id="delete-file-button")
-                    yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
+            yield Sidebar(classes="-hidden")
 
             with Container(id="chat-container"):
                 yield ChatDisplay(id="chat-history")
@@ -993,6 +1029,16 @@ class TinyRA(App):
 
     def action_request_settings(self) -> None:
         self.push_screen(SettingsScreen())
+
+    def action_toggle_sidebar(self) -> None:
+        sidebar = self.query_one(Sidebar)
+        self.set_focus(None)
+        if sidebar.has_class("-hidden"):
+            sidebar.remove_class("-hidden")
+        else:
+            if sidebar.query("*:focus"):
+                self.screen.set_focus(None)
+            sidebar.add_class("-hidden")
 
     @on(AppErrorMessage)
     def notify_error_to_user(self, event: AppErrorMessage) -> None:

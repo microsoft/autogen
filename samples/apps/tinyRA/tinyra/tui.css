@@ -1,4 +1,22 @@
+* {
+    transition: background 500ms in_out_cubic, color 500ms in_out_cubic;
+}
+
+Screen {
+    layers: base overlay notifications top;
+    overflow: hidden;
+}
+
+Header {
+    layer: top;
+}
+
+Footer {
+    layer: top;
+}
+
 #main-grid {
+    layer: base;
     layout: grid;
     grid-size: 10 10;
     grid-gutter: 1;
@@ -20,7 +38,7 @@
 
 #chat-container{
     row-span: 10;
-    column-span: 7;
+    column-span: 10;
     margin: 2;
     margin-top: 1;
     margin-bottom: 1;
@@ -55,6 +73,8 @@
     row-span: 9;
     column-span: 10;
     /* border-left: solid $primary-background; */
+    /* border-left: solid $primary-background;
+    border-right: solid $primary-background; */
 }
 
 #chat-input-box{
@@ -73,32 +93,33 @@
 
 .message{
     padding: 1;
-    margin: 2;
-    margin-top: 0;
-    /* background: $boost; */
 }
 
 .info-message {
     color: orange;
-    text-opacity: 60%;
-
+    text-opacity: 80%;
+    margin-left: 10;
 }
 
 .error-message {
     color: $error;
     text-opacity: 60%;
+    margin-left: 10;
 }
 
 .user-message {
     background: $boost;
+    margin-right: 10;
 }
 
 .assistant-message {
-    /* border: $boost; */
+    border: $primary;
+    margin-left: 10;
 }
 
 NotificationScreen {
     align: center middle;
+    layer: notifications;
 }
 
 #notification-screen-grid {
@@ -142,6 +163,7 @@ NotificationScreen {
 
 QuitScreen {
     align: center middle;
+    layer: notifications;
 
 }
 
@@ -354,4 +376,33 @@ SettingsScreen {
 #tool-list ListItem {
     padding: 1;
     margin: 1;
+}
+
+Sidebar {
+    /* width: 40; */
+    /* column-span: 10; */
+    column-span: 4;
+    row-span: 10;
+    background: $panel;
+    transition: offset 500ms in_out_cubic;
+    padding: 2;
+    layer: overlay;
+}
+
+Sidebar:focus-within {
+    offset: 0 0 !important;
+}
+
+Sidebar.-hidden {
+    offset-x: -100%;
+}
+
+Sidebar Static {
+    background: $boost;
+    color: $secondary;
+    padding: 2 4;
+    border-right: vkey $background;
+    dock: top;
+    text-align: center;
+    text-style: bold;
 }
