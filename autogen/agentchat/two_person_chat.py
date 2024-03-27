@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional, Protocol, TypeVar, Union
 import warnings
 
 from autogen.agentchat.chat import ChatResult
@@ -6,8 +6,22 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.agentchat.utils import consolidate_chat_info, gather_usage_summary
 from autogen.cache.abstract_cache_base import AbstractCache
 
+S = TypeVar("S")
+T = TypeVar("T")
 
-class TwoPersonChat:
+class Conversation(Protocol[S, T]):
+    def step() -> S:
+        ...
+
+    @property
+    def done(self) -> bool:
+        ...
+
+    @property
+    def result(self) -> T:
+        ...
+
+class TwoPersonChat(Conversation[Union[str, dict], ChatResult]):
     """(Experimental) This is a work in progress new interface for two person chats."""
 
     def __init__(
@@ -34,12 +48,15 @@ class TwoPersonChat:
         self._silent = silent
         self._cache = cache
         self._max_turns = max_turns
+        self._current_turn = 0
         self._summary_method = summary_method
         self._summary_args = summary_args
         self._message = message
         self._kwargs = kwargs
         self._current_sender = sender
         self._current_recipient = recipient
+        self._setup_done = False
+        self._finalize_done = False
 
         consolidate_chat_info(
             {
@@ -49,14 +66,11 @@ class TwoPersonChat:
             uniform_sender=self,
         )
 
-    def _take_turn(self) -> Union[str, dict, None]:
-        reply = self._current_sender.generate_reply(sender=self._current_recipient)
-        if reply is not None:
-            self._current_sender.send(reply, self._current_recipient, request_reply=False, silent=self._silent)
-        self._current_sender, self._current_recipient = self._current_recipient, self._current_sender
-        return reply
+    def _setup(self) -> None:
+        for agent in [self._sender, self._recipient]:
+            agent._raise_exception_on_async_reply_functions()
+            agent.client_cache = self._cache
 
-    def run_to_completion(self) -> ChatResult:
         for agent in [self._sender, self._recipient]:
             agent._raise_exception_on_async_reply_functions()
             agent.client_cache = self._cache
@@ -74,17 +88,9 @@ class TwoPersonChat:
         self._current_sender = self._recipient
         self._current_recipient = self._sender
 
-        if isinstance(self._max_turns, int):
-            for _ in range(self._max_turns):
-                reply = self._take_turn()
-                if reply is None:
-                    break
-        else:
-            while True:
-                reply = self._take_turn()
-                if reply is None:
-                    break
+        self._setup_done = True
 
+    def _finalize(self) -> None:
         summary = self._sender._summarize_chat(
             self._summary_method,
             self._summary_args,
@@ -92,10 +98,40 @@ class TwoPersonChat:
             cache=self._cache,
         )
 
-        chat_result = ChatResult(
+        self._chat_result = ChatResult(
             chat_history=self._sender.chat_messages[self._recipient],
             summary=summary,
             cost=gather_usage_summary([self._sender, self._recipient]),
             human_input=self._sender._human_input,
         )
-        return chat_result
+
+
+    def step(self) -> Union[str, dict]:
+        if not self._setup_done:
+            self._setup()
+
+        def do_step() -> Union[str, dict, None]:
+            reply = self._current_sender.generate_reply(sender=self._current_recipient)
+            if reply is not None:
+                self._current_sender.send(reply, self._current_recipient, request_reply=False, silent=self._silent)
+            self._current_sender, self._current_recipient = self._current_recipient, self._current_sender
+            return reply
+
+        if self._max_turns is not None:
+            if self._current_turn < self._max_turns:
+                reply = do_step()
+                self._current_turn += 1
+            else:
+                raise ValueError("Max turns reached")
+        else:
+            reply = do_step()
+
+        if reply is None:
+            self._finalize()
+
+        return reply
+
+def run(conversation: Conversation[S, T]) -> T:
+    while not conversation.done:
+        conversation.step()
+    return conversation.result
