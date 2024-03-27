@@ -10,12 +10,18 @@ from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
 from autogen.cache.cache import Cache
-from autogen.img_utils import format_message_contents_with_images, is_vision_model
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
+
+try:
+    from autogen.img_utils import format_message_contents_with_images, is_vision_model
+except ImportError:
+    ERROR: Optional[ImportError] = ImportError("Please install pillow if you want to use vision model.")
+    format_message_contents_with_images = object
+    is_vision_model = object
 
 TOOL_ENABLED = False
 try:
