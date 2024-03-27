@@ -504,31 +504,6 @@ async def a_insert_chat_message(role: str, content: str, root_id: int, id: int =
         raise ChatMessageError(f"Error inserting or updating chat message: {e}")
 
 
-def function_names_to_markdown_table(file_path: str) -> str:
-    """
-    Given a python file, extract the function names and docstrings
-    and return them as a markdown table.
-
-    Args:
-        file_path: the path to the python file
-
-    Returns:
-        A markdown table with function names and docstrings.
-    """
-    with open(file_path, "r") as f:
-        content = f.read()
-    tree = ast.parse(content)
-
-    table = "## Available Functions\n\n"
-    for i, item in enumerate(tree.body):
-        if isinstance(item, ast.FunctionDef):
-            name = item.name
-            docstring = ast.get_docstring(item) or "No docstring available"
-            docstring = docstring.split("\n")[0]
-            table += f"- `{name}`: \n{docstring}\n"
-    return table
-
-
 def message2markdown(message) -> str:
     """
     Convert a message to markdown that can be displayed in the chat display.
