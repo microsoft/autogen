@@ -96,7 +96,8 @@ Footer {
 }
 
 .info-message {
-    color: orange;
+    color: $secondary;
+    border: $secondary;
     text-opacity: 80%;
     margin-left: 10;
 }

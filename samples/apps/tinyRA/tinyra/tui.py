@@ -26,6 +26,7 @@ from textual.widgets import TextArea
 from textual.reactive import reactive
 from textual.message import Message
 from textual.events import Key
+from textual.app import ScreenStackError
 
 from autogen import config_list_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent
@@ -752,8 +753,6 @@ class CustomMessage(Static):
 
 
 class Sidebar(Container):
-    BINDINGS = [("escape", "app.pop_screen")]
-
     def compose(self) -> ComposeResult:
         yield Title("Work Directory")
         with Grid(id="directory-tree-grid"):
@@ -967,7 +966,7 @@ class ChatScreen(Screen):
                 yield Button("Cancel", variant="primary", id="cancel")
 
     @on(Button.Pressed, "#cancel")
-    def cancel(self, event: Button.Pressed) -> None:
+    def cancel(self) -> None:
         self.app.pop_screen()
 
 
