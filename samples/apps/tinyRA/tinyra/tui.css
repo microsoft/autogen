@@ -1,0 +1,419 @@
+* {
+    transition: background 500ms in_out_cubic, color 500ms in_out_cubic;
+}
+
+Screen {
+    layers: base overlay notifications top;
+    overflow: hidden;
+}
+
+Header {
+    layer: top;
+}
+
+Footer {
+    layer: top;
+}
+
+#main-grid {
+    layer: base;
+    layout: grid;
+    grid-size: 10 10;
+    grid-gutter: 1;
+    padding: 1;
+}
+
+#directory-tree-grid {
+    row-span: 10;
+    column-span: 3;
+
+    margin: 2;
+    margin-top: 1;
+    margin-bottom: 1;
+
+    grid-size: 2 10;
+
+    align: center middle;
+}
+
+#chat-container{
+    row-span: 10;
+    column-span: 10;
+    margin: 2;
+    margin-top: 1;
+    margin-bottom: 1;
+
+    layout: grid;
+    grid-size: 10 10;
+
+    /* border-left: thick $boost 80%; */
+}
+
+#directory-tree{
+    row-span: 9;
+    column-span: 2;
+    padding: 1;
+}
+
+#directory-tree-footer{
+    column-span: 2;
+    row-span: 1;
+
+    grid-size: 2 1;
+    align: center middle;
+}
+
+#directory-tree-footer Button {
+    column-span: 1;
+}
+
+#history-footer{
+    column-span: 10;
+    row-span: 1;
+
+    grid-size: 10 1;
+    align: center middle;
+
+}
+
+
+#chat-history {
+    padding: 2;
+    row-span: 9;
+    column-span: 10;
+    /* border-left: solid $primary-background; */
+    /* border-left: solid $primary-background;
+    border-right: solid $primary-background; */
+}
+
+#chat-input-box{
+    column-span: 10;
+    row-span: 1;
+    padding-left: 2;
+    padding-right: 2;
+}
+
+#skills{
+    row-span: 10;
+    column-span: 2;
+    height: 100%;
+    padding: 1;
+}
+
+.message{
+    padding: 1;
+}
+
+.info-message {
+    color: $secondary;
+    border: $secondary;
+    text-opacity: 80%;
+    margin-left: 10;
+}
+
+.error-message {
+    color: $error;
+    text-opacity: 60%;
+    margin-left: 10;
+}
+
+.user-message {
+    background: $boost;
+    margin-right: 10;
+}
+
+.assistant-message {
+    border: $primary;
+    margin-left: 10;
+}
+
+NotificationScreen {
+    align: center middle;
+    layer: notifications;
+}
+
+#notification-screen-grid {
+    height: 40%;
+    width: 40%;
+    background: $surface;
+    border: thick $primary-background 80%;
+    padding: 1;
+
+    grid-size: 2 3;
+    grid-gutter: 1 2;
+}
+
+#notification {
+    column-span: 2;
+    row-span: 2;
+    text-style: bold;
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+
+    /* border: solid red; */
+}
+
+#notification-screen-footer {
+    column-span: 2;
+    row-span: 1;
+    align: center middle;
+    /* border: solid red; */
+
+    grid-size: 2 1;
+    grid-gutter: 1 2;
+}
+
+#notification-screen-footer Button{
+    /* column-span: 1; */
+    /* row-span: 1; */
+    width: 40%;
+    /* border: solid red; */
+}
+
+QuitScreen {
+    align: center middle;
+    layer: notifications;
+
+}
+
+#quit-screen-grid {
+    height: 40%;
+    width: 40%;
+    background: $surface;
+    border: thick $primary-background 80%;
+    padding: 1;
+
+    grid-size: 2 3;
+    grid-gutter: 1 2;
+}
+
+#question {
+    column-span: 2;
+    row-span: 2;
+    text-style: bold;
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+
+    /* border: solid red; */
+}
+
+#quit-screen-footer {
+    column-span: 2;
+    row-span: 1;
+    align: center middle;
+    /* border: solid red; */
+
+    grid-size: 2 1;
+    grid-gutter: 1 2;
+}
+
+#quit-screen-footer Button{
+    /* column-span: 1; */
+    /* row-span: 1; */
+    width: 40%;
+    /* border: solid red; */
+}
+
+ChatScreen {
+    align: center middle;
+}
+
+#chat-screen {
+    grid-size: 2 10;
+    grid-rows: 10% 80% 10%;
+    height: 80%;
+    width: 80%;
+    background: $surface;
+    border: thick $primary-background 80%;
+    padding: 1;
+}
+
+#chat-screen-header {
+    column-span: 2;
+    height: 3;
+    content-align: center middle;
+    align: center middle;
+    /* border: solid red; */
+}
+
+#chat-screen-contents {
+    column-span: 2;
+    height: 100%;
+    /* content-align: center middle; */
+    margin: 1;
+    border: solid $background;
+}
+
+#chat-screen-footer {
+    column-span: 2;
+    height: 5;
+    align: center middle;
+    /* border: solid red; */
+}
+
+#chat-screen-footer Button {
+    width: 40%;
+}
+
+SettingsScreen {
+    layout: grid;
+    align: center middle;
+}
+
+#settings-screen {
+    grid-size: 2 10;
+    height: 90%;
+    width: 90%;
+    background: $surface;
+    border: thick $primary-background 90%;
+    padding: 1;
+}
+
+#user-settings-screen {
+    /* border: solid red; */
+}
+
+#settings-screen-contents {
+
+    layout: grid;
+
+    grid-size: 1 3;
+    grid-gutter: 1 2;
+    grid-rows: 5 15 15;
+    /* border: solid red; */
+}
+
+#user-bio, #user-preferences{
+    background: $boost;
+}
+
+.settings-screen-footer {
+    grid-size: 2 1;
+    align: center middle;
+    height: 5;
+}
+
+.settings-screen-footer Button {
+    width: 40%;
+}
+
+.heading {
+    text-style: bold;
+}
+
+.form-label{
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#tools-tab-grid{
+    grid-size: 5 5;
+    grid-gutter: 1 2;
+
+    /* border: solid red; */
+}
+
+#tool-list-container {
+    column-span: 1;
+    row-span: 5;
+
+    layout: grid;
+    grid-size: 1 10;
+
+    /* border: solid red; */
+}
+
+#tool-list {
+    column-span: 2;
+    width: 100%;
+    row-span: 9;
+
+    /* border: solid red; */
+}
+
+#new-tool-button {
+    row-span: 1;
+    column-span: 1;
+    width: 100%;
+
+    /* border: solid red; */
+}
+
+
+#tool-view-grid {
+    column-span: 4;
+    row-span: 5;
+
+    grid-size: 10 10;
+    grid-gutter: 1;
+
+    padding: 1;
+    border-left: solid $primary-background;
+
+}
+
+#tool-info-container {
+    column-span: 3;
+    row-span: 9;
+    height: 15;
+    content-align: center middle;
+    /* border: solid red; */
+}
+
+#tool-view-footer-grid {
+    column-span: 10;
+    row-span: 1;
+
+    grid-size: 2 1;
+
+    align: center middle;
+    /* border: solid red; */
+}
+
+#tool-view-footer-grid Button {
+    width: 40%;
+}
+
+#tool-code-container {
+    column-span: 7;
+    row-span: 9;
+    /* border: solid red; */
+}
+
+
+#tool-list ListItem {
+    padding: 1;
+    margin: 1;
+}
+
+Sidebar {
+    /* width: 40; */
+    /* column-span: 10; */
+    column-span: 4;
+    row-span: 10;
+    background: $panel;
+    border: thick $primary-background 90%;
+    transition: offset 500ms in_out_cubic;
+    padding: 2;
+    layer: overlay;
+}
+
+Sidebar:focus-within {
+    offset: 0 0 !important;
+}
+
+Sidebar.-hidden {
+    offset-x: -100%;
+}
+
+Sidebar Static {
+    background: $boost;
+    color: $secondary;
+    padding: 2 4;
+    border-right: vkey $background;
+    dock: top;
+    text-align: center;
+    text-style: bold;
+}
