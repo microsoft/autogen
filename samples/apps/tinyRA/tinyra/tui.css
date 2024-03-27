@@ -67,6 +67,15 @@ Footer {
     column-span: 1;
 }
 
+#history-footer{
+    column-span: 10;
+    row-span: 1;
+
+    grid-size: 10 1;
+    align: center middle;
+
+}
+
 
 #chat-history {
     padding: 2;

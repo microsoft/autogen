@@ -798,7 +798,9 @@ class SettingsScreen(ModalScreen):
             # Tab for history settings
             with Grid(id="history-settings"):
                 with Container(id="history-contents"):
-                    yield Markdown(f"Number of messages: {len(fetch_chat_history())} Number of tools: {len(tools)}")
+                    yield Markdown(
+                        f"## Number of messages: {len(fetch_chat_history())}\n\n## Number of tools: {len(tools)}"
+                    )
                 with Container(id="history-footer"):
                     yield Button("Clear History", variant="error", id="clear-history-button")
 
