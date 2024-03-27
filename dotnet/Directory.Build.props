@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="./eng/Version.props" />
+  <Import Project="./eng/MetaInfo.props" />
+  <Import Project="./eng/Sign.props" />
+  <PropertyGroup>
+    <TestTargetFramework>net8.0</TestTargetFramework>
+    <LangVersion>preview</LangVersion>
+	  <Nullable>enable</Nullable>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng/opensource.snk</AssemblyOriginatorKeyFile>
+    <CSNoWarn>CS1998;CS1591</CSNoWarn>
+    <NoWarn>$(NoWarn);$(CSNoWarn);NU5104</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+    <EnableNetAnalyzers>true</EnableNetAnalyzers>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)../</RepoRoot>
+  </PropertyGroup>
+</Project>

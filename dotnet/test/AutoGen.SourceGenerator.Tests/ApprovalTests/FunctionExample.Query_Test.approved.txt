@@ -1,0 +1,24 @@
+{
+  "name": "Query",
+  "description": "query function",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "query, required"
+      },
+      "k": {
+        "type": "integer",
+        "description": "top k, optional, default value is 3"
+      },
+      "thresold": {
+        "type": "number",
+        "description": "thresold, optional, default value is 0.5"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  }
+}
