@@ -1,13 +1,17 @@
+import copy
 import functools
 from typing import Any, Callable, Dict, List, Optional, Union
+import warnings
 
-from audio_generators import AudioGenerator, GeneratorConfig
-from audio_transcribers import AudioTranscriber, TranscriberConfig
 from termcolor import colored
 
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.cache import Cache
+from autogen.agentchat import utils
+
+from .audio_generators import AudioGenerator, GeneratorConfig
+from .audio_transcribers import AudioTranscriber, TranscriberConfig
 
 STT_SYSTEM_MESSAGE = """You have the ability to transcribe audio messages.
 Here's how to send audio for transcription: <audio file_path='PATH_TO_YOUR_AUDIO_FILE.mp3' task='transcribe'>
@@ -53,7 +57,7 @@ NOTES:
 """
 
 STT_SUCCESS_MESSAGE = """
-You have received an audio message.
+You have received an audio message. {tag}
 <AUDIO>
     {transcription}
 </AUDIO>
@@ -126,14 +130,15 @@ class SpeechToText(AgentCapability):
 
         agent.update_system_message(agent.system_message + "\n" + STT_SYSTEM_MESSAGE)
 
-    def _transcribe_audio(self, message: Union[Dict, str]) -> Union[Dict, str]:
+    def _transcribe_audio(self, message: Union[List[Dict], str]) -> Union[List[Dict], str]:
         assert self._audio_transcriber
 
-        tags = _mock_parse_content("audio", message)
+        tags = utils.parse_tags_from_content("audio", message)
         if not tags:
             return message
 
         for tag in tags:
+            # print(colored(f"Found audio tag: {tag}", "green"))
             transcriber_cfg = tag.get("attr", {})
             if not transcriber_cfg:
                 _empty_tag_warn(tag)
@@ -146,16 +151,19 @@ class SpeechToText(AgentCapability):
             # If valid transcriber config, it should be able to build it
             validated_cfg = self._audio_transcriber.build_config(transcriber_cfg)
             if validated_cfg is None:
-                print(colored(f"Invalid transcriber config: {transcriber_cfg}", "red"))
+                warnings.warn(f"Invalid transcriber config: {transcriber_cfg}")
                 continue
 
             transcription = self._transcription_get(validated_cfg)
             if transcription:
                 self._transcription_set(validated_cfg, transcription)
-                message = _replace_tag_in_message(message, tag, STT_SUCCESS_MESSAGE.format(transcription=transcription))
+                message = _replace_tag_in_message(
+                    message, tag, STT_SUCCESS_MESSAGE.format(transcription=transcription, tag=tag["match"].group())
+                )
             else:
-                print(colored(f"Failed to transcribe audio: {transcriber_cfg}", "red"))
+                warnings.warn(f"Failed to transcribe audio: {transcriber_cfg}")
                 message = _replace_tag_in_message(message, tag, STT_FAILURE_MESSAGE)
+        # print(colored(f"Processed audio messages: {message}", "green"))
 
         return message
 
@@ -233,15 +241,15 @@ class TextToSpeech(AgentCapability):
         partial_generate = functools.partial(_process_audio, hook_func=self._generate_audio)
         agent.register_hook(hookable_method="process_last_received_message", hook=partial_generate)
 
-    def _generate_audio(self, message: Union[Dict, str]) -> Union[Dict, str]:
+    def _generate_audio(self, message: Union[List[Dict], str]) -> Union[List[Dict], str]:
         assert self._audio_generator
 
-        tags = _mock_parse_content("audio", message)
+        tags = utils.parse_tags_from_content("audio", message)
         if not tags:
             return message
 
         for tag in tags:
-            generator_cfg = tag.get("content", {})
+            generator_cfg = tag.get("attr", {})
             if not generator_cfg:
                 _empty_tag_warn(tag)
                 continue
@@ -253,7 +261,7 @@ class TextToSpeech(AgentCapability):
             # If valid generator config, it should be able to build it
             validated_cfg = self._audio_generator.build_config(generator_cfg)
             if validated_cfg is None:
-                print(colored(f"Invalid generator config: {generator_cfg}", "red"))
+                warnings.warn(f"Invalid generator config: {generator_cfg}")
                 continue
 
             audio = self._audio_get(validated_cfg)
@@ -262,7 +270,7 @@ class TextToSpeech(AgentCapability):
                     message, tag, TTS_SUCCESS_MESSAGE.format(output_file_path=validated_cfg.output_file_path)
                 )
             else:
-                print(colored(f"Failed to generate audio: {generator_cfg}", "red"))
+                warnings.warn(f"Failed to generate audio: {generator_cfg}")
                 message = _replace_tag_in_message(message, tag, TTS_FAILURE_MESSAGE)
 
         return message
@@ -293,13 +301,21 @@ class TextToSpeech(AgentCapability):
             self._cache.set(key, audio)
 
 
-def _replace_tag_in_message(message: Union[Dict, str], tag: Dict[str, Any], content: str) -> Union[Dict, str]:
-    start = tag["start"]
-    end = tag["end"]
-    if isinstance(message, dict):
-        return message["text"][:start] + content + message["text"][end + 1 :]
+def _replace_tag_in_message(
+    message: Union[List[Dict], str], tag: Dict[str, Any], replacement_text: str
+) -> Union[List[Dict], str]:
+    message = copy.deepcopy(message)
+    if isinstance(message, List):
+        return _multimodal_replace_tag_in_message(message, tag, replacement_text)
     else:
-        return message[:start] + content + message[end + 1 :]
+        return message.replace(tag["match"].group(), replacement_text)
+
+
+def _multimodal_replace_tag_in_message(message: List[Dict], tag: Dict[str, Any], replacement_text: str) -> List[Dict]:
+    for m in message:
+        if m.get("type") == "text":
+            m["text"] = m["text"].replace(tag["match"].group(), replacement_text)
+    return message
 
 
 def _process_audio(message: Union[List[Dict], str], hook_func: Callable):
@@ -313,8 +329,4 @@ def _process_audio(message: Union[List[Dict], str], hook_func: Callable):
 
 
 def _empty_tag_warn(tag: Dict):
-    print(colored(f"Found an empty {tag['tag']} tag in message without any content.", "yellow"))
-
-
-def _mock_parse_content(tags: str, message: Union[Dict, str]) -> List[Dict[str, Any]]:
-    return [{}]
+    print(warnings.warn(f"Found an empty {tag['tag']} tag in message without any content."))

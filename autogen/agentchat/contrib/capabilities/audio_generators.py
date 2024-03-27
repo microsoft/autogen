@@ -87,7 +87,7 @@ class TTSConfig(GeneratorConfig):
 class TTS:
     """Generates audio data using OpenAI's text-to-speech API."""
 
-    def __init__(self, llm_config: Dict, default_tts_config: TTSConfig = TTSConfig()):
+    def __init__(self, llm_config: Dict, default_tts_config: GeneratorConfig = TTSConfig()):
         self._default_tts_config = default_tts_config
         config_list = llm_config["config_list"]
 
@@ -102,7 +102,7 @@ class TTS:
             print(colored(f"Error: {e}", "red"))
             return None
 
-    def generate_audio(self, generator_config: TTSConfig) -> Optional[bytes]:
+    def generate_audio(self, generator_config: GeneratorConfig) -> Optional[bytes]:
         try:
             # Makes sure we either have the text or the text file to synthesize
             if generator_config.text:
@@ -125,7 +125,7 @@ class TTS:
             print(colored(f"Could not generate audio: {e}", "red"))
             return None
 
-    def cache_key(self, generator_config: TTSConfig) -> str:
+    def cache_key(self, generator_config: GeneratorConfig) -> str:
         return (
             f"{generator_config.model}_{generator_config.voice}"
             f"_{generator_config.speed}_{generator_config.text or generator_config.text_file}"

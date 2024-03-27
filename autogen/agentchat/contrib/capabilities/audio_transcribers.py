@@ -108,7 +108,7 @@ class Whisper:
 
         self._oai_client = OpenAI(api_key=config_list[0]["api_key"])
 
-    def build_config(self, config: Dict) -> Optional[WhisperConfig]:
+    def build_config(self, config: Dict) -> Optional[TranscriberConfig]:
         try:
             built_config = self._default_whisper_config.model_copy(update=config)
             # Ensures validators are called
@@ -117,7 +117,7 @@ class Whisper:
             print(colored(f"Error: {e}", "red"))
             return None
 
-    def transcribe_audio(self, transcriber_config: WhisperConfig) -> Optional[str]:
+    def transcribe_audio(self, transcriber_config: TranscriberConfig) -> Optional[str]:
         try:
             assert transcriber_config.file_path, "File path is required"
 
@@ -136,7 +136,7 @@ class Whisper:
             print(colored(f"Could not transcribe audio: {e}", "red"))
             return None
 
-    def cache_key(self, transcriber_config: WhisperConfig) -> str:
+    def cache_key(self, transcriber_config: TranscriberConfig) -> str:
         return (
             f"{transcriber_config.model}_{transcriber_config.language}"
             f"_{transcriber_config.response_format}"
