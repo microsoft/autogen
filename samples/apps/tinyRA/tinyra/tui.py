@@ -545,12 +545,9 @@ def message2markdown(message) -> str:
     elif role == "assistant":
         display_name = "TinyRA"
     else:
-        display_name = "."
+        display_name = "\U0001F4AD" * 3
 
-    if role == "info":
-        display_id = "\U0001F4AD" * 3
-    else:
-        display_id = message.id
+    display_id = message.id
 
     content = message.content
 
