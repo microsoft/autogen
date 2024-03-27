@@ -54,6 +54,7 @@ class AbstractCache(Protocol):
         specified in the as clause of the statement, if any.
         """
         ...
+
     def __exit__(
         self,
         exc_type: Optional[Type[BaseException]],
