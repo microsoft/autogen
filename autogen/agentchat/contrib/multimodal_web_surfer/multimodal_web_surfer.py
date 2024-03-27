@@ -270,8 +270,8 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         else:
             position_text = str(percent_scrolled) + "% down from the top of the page"
 
+        new_screenshot = self._page.screenshot()
         if self.debug_dir:
-            new_screenshot = self._page.screenshot()
             with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
                 png.write(new_screenshot)
 

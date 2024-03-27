@@ -12,7 +12,7 @@ from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
-from .utils import _get_file_name_from_content
+from .utils import _get_file_name_from_content, silence_pip
 
 import subprocess
 
@@ -114,6 +114,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             lang = lang.lower()
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
+            code = silence_pip(code, lang)
 
             if WIN32 and lang in ["sh", "shell"]:
                 lang = "ps1"
@@ -170,12 +171,12 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
 # From stack overflow: https://stackoverflow.com/a/52087847/2214524
 class _DeprecatedClassMeta(type):
-    def __new__(cls, name, bases, classdict, *args, **kwargs):
+    def __new__(cls, name, bases, classdict, *args, **kwargs):  # type: ignore[no-untyped-def]
         alias = classdict.get("_DeprecatedClassMeta__alias")
 
         if alias is not None:
 
-            def new(cls, *args, **kwargs):
+            def new(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
                 alias = getattr(cls, "_DeprecatedClassMeta__alias")
 
                 if alias is not None:
@@ -209,14 +210,14 @@ class _DeprecatedClassMeta(type):
             if b not in fixed_bases:
                 fixed_bases.append(b)
 
-        fixed_bases = tuple(fixed_bases)
+        fixed_bases = tuple(fixed_bases)  # type: ignore[assignment]
 
-        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)
+        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)  # type: ignore[call-overload]
 
-    def __instancecheck__(cls, instance):
-        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})
+    def __instancecheck__(cls, instance):  # type: ignore[no-untyped-def]
+        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})  # type: ignore[no-untyped-call]
 
-    def __subclasscheck__(cls, subclass):
+    def __subclasscheck__(cls, subclass):  # type: ignore[no-untyped-def]
         if subclass is cls:
             return True
         else:
