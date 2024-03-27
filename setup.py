@@ -65,8 +65,9 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
+        "websockets": ["websockets>=12.0,<13"],
         "jupyter-executor": jupyter_executor,
-        "types": ["mypy==1.9.0"] + jupyter_executor,
+        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     },
     classifiers=[
         "Programming Language :: Python :: 3",

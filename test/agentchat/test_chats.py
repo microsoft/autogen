@@ -232,6 +232,7 @@ def test_chats():
                 "message": financial_tasks[0],
                 "silent": False,
                 "summary_method": my_summary_method,
+                "verbose": True,
                 "max_turns": 1,
             },
             {
@@ -240,6 +241,7 @@ def test_chats():
                 "silent": False,
                 "max_turns": 1,
                 "summary_method": "reflection_with_llm",
+                "verbose": True,
             },
             {
                 "recipient": financial_assistant_1,
