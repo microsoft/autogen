@@ -34,7 +34,7 @@ web_surfer = MultimodalWebSurferAgent(
     chromium_channel="chromium",
     chromium_data_dir=None,
     start_page=os.getenv("HOMEPAGE_URL"),
-    debug_dir=None,
+    debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
 user_proxy = MultimodalAgent(
