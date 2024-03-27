@@ -1,5 +1,5 @@
 {
-  "name": "website",
+  "name": "@microsoft/autogen-website",
   "version": "0.0.0",
   "private": true,
   "resolutions": {
