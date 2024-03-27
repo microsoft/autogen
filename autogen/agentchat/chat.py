@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from .utils import consolidate_chat_info
 import datetime
 import warnings
+from ..io.base import IOStream
 from ..formatting_utils import colored
 
 
@@ -102,7 +103,9 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
     return chat_order
 
 
-def __post_carryover_processing(chat_info: Dict[str, Any]):
+def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
+    iostream = IOStream.get_default()
+
     if "message" not in chat_info:
         warnings.warn(
             "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
@@ -122,15 +125,18 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
         print_message = "Dict: " + str(message)
     elif message is None:
         print_message = "None"
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-    print(
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    iostream.print(
         colored(
-            "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
+            "Starting a new chat....",
             "blue",
         ),
         flush=True,
     )
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    if chat_info.get("verbose", False):
+        iostream.print(colored("Message:\n" + print_message, "blue"), flush=True)
+        iostream.print(colored("Carryover:\n" + print_carryover, "blue"), flush=True)
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
