@@ -1101,7 +1101,7 @@ class ConversableAgent(LLMAgent):
         if "cache" not in summary_args:
             summary_args["cache"] = cache
         if summary_method == "reflection_with_llm":
-            summary_method = self._relfection_with_llm_as_summary
+            summary_method = self._reflection_with_llm_as_summary
         elif summary_method == "last_msg":
             summary_method = self._last_msg_as_summary
 
@@ -1124,7 +1124,7 @@ class ConversableAgent(LLMAgent):
         return summary
 
     @staticmethod
-    def _relfection_with_llm_as_summary(sender, recipient, summary_args):
+    def _reflection_with_llm_as_summary(sender, recipient, summary_args):
         prompt = summary_args.get("summary_prompt")
         prompt = ConversableAgent.DEFAULT_SUMMARY_PROMPT if prompt is None else prompt
         if not isinstance(prompt, str):
