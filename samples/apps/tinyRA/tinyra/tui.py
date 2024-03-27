@@ -1035,9 +1035,6 @@ class TinyRA(App):
 
     @on(AppErrorMessage)
     def notify_error_to_user(self, event: AppErrorMessage) -> None:
-        # self.push_screen(ModalScreen(Static(event.message)))
-        # self.push_screen(ModalScreen(Static(event.message)))
-        # self.push_screen(QuitScreen())
         self.push_screen(NotificationScreen(message=event.message))
 
     @on(Button.Pressed, "#empty-work-dir-button")
