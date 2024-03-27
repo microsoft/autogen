@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple, Union
 import requests
 from PIL import Image
 
-from autogen.agentchat import utils
+from autogen.multimodal_utils import parse_tags_from_content
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
@@ -193,7 +193,7 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
     image_count = 0
 
     # Find all image tags
-    for parsed_tag in utils.parse_tags_from_content("img", prompt):
+    for parsed_tag in parse_tags_from_content("img", prompt):
         image_location = parsed_tag["attr"]["src"]
         try:
             if img_format == "pil":
@@ -312,7 +312,7 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
     return new_messages
 
 
-def is_multimodal_model(model_name: str) -> bool:
+def is_vision_model(model_name: str) -> bool:
     """
     Determines if a given model name indicates a multimodal model.
 

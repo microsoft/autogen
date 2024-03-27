@@ -18,7 +18,7 @@ try:
         get_image_data,
         get_pil_image,
         gpt4v_formatter,
-        is_multimodal_model,
+        is_vision_model,
         llava_formatter,
         message_formatter_pil_to_b64,
     )
@@ -291,7 +291,7 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         self.assertEqual(result, expected_output)
 
 
-# Test cases for is_multimodal_model
+# Test cases for is_vision_model
 @pytest.mark.parametrize(
     "model_name,expected",
     [
@@ -305,8 +305,8 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         (None, False),  # Invalid type
     ],
 )
-def test_is_multimodal_model(model_name, expected):
-    assert is_multimodal_model(model_name) == expected
+def test_is_vision_model(model_name, expected):
+    assert is_vision_model(model_name) == expected
 
 
 @pytest.mark.skipif(skip, reason="dependency is not installed")
