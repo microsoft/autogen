@@ -2,7 +2,6 @@ from typing import Dict, Literal, Optional, Protocol
 
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from termcolor import colored
 
 MODEL_CONFIG = ConfigDict(extra="allow", populate_by_name=True, validate_assignment=True)
 
@@ -42,14 +41,14 @@ class GeneratorConfig(BaseModel):
 class AudioGenerator(Protocol):
     """Defines the interface for audio generators."""
 
-    def build_config(self, config: Dict) -> Optional[GeneratorConfig]:
+    def build_config(self, config: Dict) -> GeneratorConfig:
         """Builds and validates a GeneratorConfig instance from the provided configuration dictionary.
 
         Returns the validated GeneratorConfig or None if the configuration is invalid.
         """
         ...
 
-    def generate_audio(self, generator_config: GeneratorConfig) -> Optional[bytes]:
+    def generate_audio(self, generator_config: GeneratorConfig) -> bytes:
         """Generates audio data based on the provided GeneratorConfig instance.
 
         Returns the generated audio data as bytes, or None if the generation fails.
@@ -93,37 +92,29 @@ class TTS:
 
         self._oai_client = OpenAI(api_key=config_list[0]["api_key"])
 
-    def build_config(self, config: Dict) -> Optional[TTSConfig]:
-        try:
-            built_config = self._default_tts_config.model_copy(update=config)
-            # Ensures validators are called
-            return TTSConfig(**built_config.model_dump())
-        except ValueError as e:
-            print(colored(f"Error: {e}", "red"))
-            return None
+    def build_config(self, config: Dict) -> TTSConfig:
+        built_config = self._default_tts_config.model_copy(update=config)
+        # Ensures validators are called
+        return TTSConfig(**built_config.model_dump())
 
-    def generate_audio(self, generator_config: GeneratorConfig) -> Optional[bytes]:
-        try:
-            # Makes sure we either have the text or the text file to synthesize
-            if generator_config.text:
-                text = generator_config.text
-            elif generator_config.text_file:
-                text = _read_file(generator_config.text_file)
-            else:
-                raise ValueError("Text or text file is required")
+    def generate_audio(self, generator_config: GeneratorConfig) -> bytes:
+        # Makes sure we either have the text or the text file to synthesize
+        if generator_config.text:
+            text = generator_config.text
+        elif generator_config.text_file:
+            text = _read_file(generator_config.text_file)
+        else:
+            raise ValueError("Text or text file is required")
 
-            response = self._oai_client.audio.speech.create(
-                input=text,
-                model=generator_config.model,
-                voice=generator_config.voice,
-                response_format=generator_config.response_format,
-                speed=generator_config.speed,
-            )
+        response = self._oai_client.audio.speech.create(
+            input=text,
+            model=generator_config.model,
+            voice=generator_config.voice,
+            response_format=generator_config.response_format,
+            speed=generator_config.speed,
+        )
 
-            return response.content
-        except Exception as e:
-            print(colored(f"Could not generate audio: {e}", "red"))
-            return None
+        return response.content
 
     def cache_key(self, generator_config: GeneratorConfig) -> str:
         return (

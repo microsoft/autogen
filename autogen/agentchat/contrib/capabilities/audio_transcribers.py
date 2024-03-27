@@ -32,14 +32,14 @@ class TranscriberConfig(BaseModel):
 class AudioTranscriber(Protocol):
     """Interface definition for audio transcribers."""
 
-    def build_config(self, config: Dict) -> Optional[TranscriberConfig]:
+    def build_config(self, config: Dict) -> TranscriberConfig:
         """Builds and validates a TranscriberConfig instance from the provided configuration dictionary.
 
         Returns the validated TranscriberConfig or None if the configuration is invalid.
         """
         ...
 
-    def transcribe_audio(self, transcriber_config: TranscriberConfig) -> Optional[str]:
+    def transcribe_audio(self, transcriber_config: TranscriberConfig) -> str:
         """Transcribes the audio file specified in the given TranscriberConfig instance.
 
         Returns the transcribed text or None if the transcription fails.
@@ -108,33 +108,25 @@ class Whisper:
 
         self._oai_client = OpenAI(api_key=config_list[0]["api_key"])
 
-    def build_config(self, config: Dict) -> Optional[TranscriberConfig]:
-        try:
-            built_config = self._default_whisper_config.model_copy(update=config)
-            # Ensures validators are called
-            return WhisperConfig(**built_config.model_dump())
-        except ValueError as e:
-            print(colored(f"Error: {e}", "red"))
-            return None
+    def build_config(self, config: Dict) -> TranscriberConfig:
+        built_config = self._default_whisper_config.model_copy(update=config)
+        # Ensures validators are called
+        return WhisperConfig(**built_config.model_dump())
 
-    def transcribe_audio(self, transcriber_config: TranscriberConfig) -> Optional[str]:
-        try:
-            assert transcriber_config.file_path, "File path is required"
+    def transcribe_audio(self, transcriber_config: TranscriberConfig) -> str:
+        assert transcriber_config.file_path, "File path is required"
 
-            audio = open(transcriber_config.file_path, "rb")
-            transcription = self._oai_client.audio.transcriptions.create(
-                model=transcriber_config.model,
-                file=audio,
-                response_format=transcriber_config.response_format,
-                prompt=transcriber_config.prompt,
-                temperature=transcriber_config.temperature,
-                language=transcriber_config.language,
-                timestamp_granularities=transcriber_config.timestamp_granularities,
-            )
-            return transcription.text
-        except Exception as e:
-            print(colored(f"Could not transcribe audio: {e}", "red"))
-            return None
+        audio = open(transcriber_config.file_path, "rb")
+        transcription = self._oai_client.audio.transcriptions.create(
+            model=transcriber_config.model,
+            file=audio,
+            response_format=transcriber_config.response_format,
+            prompt=transcriber_config.prompt,
+            temperature=transcriber_config.temperature,
+            language=transcriber_config.language,
+            timestamp_granularities=transcriber_config.timestamp_granularities,
+        )
+        return transcription.text
 
     def cache_key(self, transcriber_config: TranscriberConfig) -> str:
         return (
