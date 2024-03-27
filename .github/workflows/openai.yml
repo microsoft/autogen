@@ -54,7 +54,7 @@ jobs:
         if: matrix.python-version == '3.9'
         run: |
           pip install docker
-          pip install -e .[test,redis]
+          pip install -e .[redis]
       - name: Coverage
         if: matrix.python-version == '3.9'
         env:

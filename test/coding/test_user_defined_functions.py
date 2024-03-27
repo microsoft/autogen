@@ -2,7 +2,13 @@ import tempfile
 import pytest
 from autogen.coding.base import CodeBlock
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
-import pandas
+try:
+    import pandas
+except ImportError:
+    skip = True
+else:
+    skip = False
+
 from autogen.coding.func_with_reqs import with_requirements
 
 classes_to_test = [LocalCommandLineCodeExecutor]
@@ -14,7 +20,7 @@ def add_two_numbers(a: int, b: int) -> int:
 
 
 @with_requirements(python_packages=["pandas"], global_imports=["pandas"])
-def load_data() -> pandas.DataFrame:
+def load_data() -> "pandas.DataFrame":
     """Load some sample data.
 
     Returns:
@@ -29,20 +35,21 @@ def load_data() -> pandas.DataFrame:
 
 
 @with_requirements(global_imports=["NOT_A_REAL_PACKAGE"])
-def function_incorrect_import() -> pandas.DataFrame:
+def function_incorrect_import() -> "pandas.DataFrame":
     return pandas.DataFrame()
 
 
 @with_requirements(python_packages=["NOT_A_REAL_PACKAGE"])
-def function_incorrect_dep() -> pandas.DataFrame:
+def function_incorrect_dep() -> "pandas.DataFrame":
     return pandas.DataFrame()
 
 
-def function_missing_reqs() -> pandas.DataFrame:
+def function_missing_reqs() -> "pandas.DataFrame":
     return pandas.DataFrame()
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_can_load_function_with_reqs(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[load_data])
@@ -62,6 +69,7 @@ print(load_data().iloc[0]['name'])"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_can_load_function(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
@@ -78,6 +86,7 @@ print(add_two_numbers(1, 2))"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_fails_for_missing_reqs(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[function_missing_reqs])
@@ -93,6 +102,7 @@ function_missing_reqs()"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_fails_for_function_incorrect_import(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[function_incorrect_import])
@@ -108,6 +118,7 @@ function_incorrect_import()"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_fails_for_function_incorrect_dep(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[function_incorrect_dep])
@@ -123,6 +134,7 @@ function_incorrect_dep()"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_formatted_prompt(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
