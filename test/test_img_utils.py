@@ -305,6 +305,7 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         (None, False),  # Invalid type
     ],
 )
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 def test_is_vision_model(model_name, expected):
     assert is_vision_model(model_name) == expected
 
