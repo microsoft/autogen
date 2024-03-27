@@ -9,6 +9,7 @@ from autogen.cache.abstract_cache_base import AbstractCache
 
 class TwoPersonChat:
     """(Experimental) This is a work in progress new interface for two person chats."""
+
     def __init__(
         self,
         sender: ConversableAgent,
