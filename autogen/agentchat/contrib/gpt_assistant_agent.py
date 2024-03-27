@@ -165,9 +165,7 @@ class GPTAssistantAgent(ConversableAgent):
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
-        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
-        self.register_reply(Agent, GPTAssistantAgent.check_termination_and_human_reply)
-        self.register_reply(Agent, GPTAssistantAgent.a_check_termination_and_human_reply)
+        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant, position=2)
 
     def _invoke_assistant(
         self,
