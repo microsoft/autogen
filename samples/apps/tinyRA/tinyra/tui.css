@@ -385,6 +385,7 @@ Sidebar {
     column-span: 4;
     row-span: 10;
     background: $panel;
+    border: thick $primary-background 90%;
     transition: offset 500ms in_out_cubic;
     padding: 2;
     layer: overlay;
