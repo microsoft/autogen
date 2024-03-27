@@ -53,8 +53,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            work_dir.mkdir(exist_ok=True)
+        work_dir.mkdir(exist_ok=True)
 
         self._timeout = timeout
         self._work_dir: Path = work_dir

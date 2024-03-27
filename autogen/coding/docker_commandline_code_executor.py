@@ -83,8 +83,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            work_dir.mkdir(exist_ok=True)
+        work_dir.mkdir(exist_ok=True)
 
         client = docker.from_env()
 
