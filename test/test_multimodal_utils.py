@@ -2,7 +2,7 @@ from typing import Dict, List, Union
 
 import pytest
 
-from autogen import agentchat
+from autogen import multimodal_utils
 
 TAG_PARSING_TESTS = [
     {
@@ -56,7 +56,7 @@ def test_tag_parsing(test_case: Dict[str, Union[str, List[Dict[str, Union[str, D
 
     result = []
     for tag in tags:
-        parsed_tags = agentchat.utils.parse_tags_from_content(tag, message)
+        parsed_tags = multimodal_utils.parse_tags_from_content(tag, message)
         for item in parsed_tags:
             _delete_unused_keys(item)
 
@@ -66,7 +66,7 @@ def test_tag_parsing(test_case: Dict[str, Union[str, List[Dict[str, Union[str, D
     result = []
     for tag in tags:
         content = [{"type": "text", "text": message}]
-        parsed_tags = agentchat.utils.parse_tags_from_content(tag, content)
+        parsed_tags = multimodal_utils.parse_tags_from_content(tag, content)
         for item in parsed_tags:
             _delete_unused_keys(item)
 
