@@ -956,10 +956,9 @@ class SubprocessError(Exception):
 
 
 async def run_in_subprocess(func, *args):
-    # Create a ProcessPoolExecutor
+    # Create a ThreadPoolExecutor
     try:
-        # raise Exception("Error")
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
             # Run the function in the executor
             result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
             return result
