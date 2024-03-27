@@ -1,0 +1,5 @@
+gaia.png filter=lfs diff=lfs merge=lfs -text
+dalle_gpt4v.png filter=lfs diff=lfs merge=lfs -text
+teach.png filter=lfs diff=lfs merge=lfs -text
+contributors.png filter=lfs diff=lfs merge=lfs -text
+love.png filter=lfs diff=lfs merge=lfs -text
