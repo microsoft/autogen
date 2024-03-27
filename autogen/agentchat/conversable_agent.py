@@ -2586,7 +2586,6 @@ class ConversableAgent(LLMAgent):
             elif not hasattr(func, "_name"):
                 func._name = func.__name__
 
-
             self.register_function({func._name: self._wrap_function(func)})
 
             return func
