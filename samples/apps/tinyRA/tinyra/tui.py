@@ -1028,12 +1028,9 @@ class TinyRA(App):
 
     def action_toggle_sidebar(self) -> None:
         sidebar = self.query_one(Sidebar)
-        self.set_focus(None)
         if sidebar.has_class("-hidden"):
             sidebar.remove_class("-hidden")
         else:
-            if sidebar.query("*:focus"):
-                self.screen.set_focus(None)
             sidebar.add_class("-hidden")
 
     @on(AppErrorMessage)
