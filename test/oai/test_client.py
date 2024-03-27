@@ -121,8 +121,7 @@ def test_multimodal_chat_completion():
         response = client.create(
             messages=[{"role": "user", "content": "What is in the image <img ../notebook/viz_gc.png>?"}]
         )
-        print(response)
-        print(client.extract_text_or_completion_object(response))
+        assert len(client.extract_text_or_completion_object(response)) > 0
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")

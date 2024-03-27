@@ -11,9 +11,17 @@ def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]])
     can be a single string or a set of attribute-value pairs.
 
     Examples:
-        <img http://example.com/image.png> -> [{"tag": "img", "attr": {"src": "http://example.com/image.png"}, "match": re.Match}]
-        <audio text="Hello I'm a robot" prompt="whisper"> ->
-                [{"tag": "audio", "attr": {"text": "Hello I'm a robot", "prompt": "whisper"}, "match": re.Match}]
+        parse_tags_from_content("img", "What is the difference between <img x.jpg> and <img http://y.com/y.png>?") ->
+            [
+                {"tag": "img", "attr": {"src": "x.jpg"}, "match": re.Match},
+                {"tag": "img", "attr": {"src": "http://y.com/y.png"}, "match": re.Match}
+            ]
+
+        parse_tags_from_content("img", "Check out this cool photo <img http://example.com/image.png>") ->
+            [{"tag": "img", "attr": {"src": "http://example.com/image.png"}, "match": re.Match}]
+
+        parse_tags_from_content("audio", 'The user says <audio text="Hello I'm a robot" prompt="whisper">') ->
+            [{"tag": "audio", "attr": {"text": "Hello I'm a robot", "prompt": "whisper"}, "match": re.Match}]
 
     Args:
         tag (str): The HTML style tag to be parsed.
@@ -23,7 +31,8 @@ def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]])
     Returns:
         List[Dict[str, str]]: A list of dictionaries, where each dictionary represents a parsed tag. Each dictionary
             contains three key-value pairs: 'type' which is the tag, 'attr' which is a dictionary of the parsed attributes,
-            and 'match' which is a regular expression match object.
+            and 'match' which is a regular expression match object. For instance,
+            [{"tag": "img", "attr": {"src": "http://example.com/image.png"}, "match": re.Match}]
 
     Raises:
         ValueError: If the content is not a string or a list.

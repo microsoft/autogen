@@ -56,9 +56,9 @@ def test_process_last_received_message_text(mock_lmm_client, vision_capability):
     assert processed_content == content
 
 
-@patch("autogen.agentchat.contrib.img_utils.get_image_data", return_value="base64_image_data")
+@patch("autogen.img_utils.get_image_data", return_value="base64_image_data")
 @patch(
-    "autogen.agentchat.contrib.img_utils.convert_base64_to_data_uri",
+    "autogen.img_utils.convert_base64_to_data_uri",
     return_value="data:image/png;base64,base64_image_data",
 )
 @patch(

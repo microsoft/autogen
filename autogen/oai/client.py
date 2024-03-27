@@ -169,7 +169,7 @@ class OpenAIClient:
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
 
         _is_vision = is_vision_model(params.get("model", None))
-        _is_vision |= params.get("vision-model", False)
+        _is_vision |= params.get("vision_model", False)
         if _is_vision and "messages" in params:
             params["messages"] = format_message_contents_with_images(params["messages"])
 
