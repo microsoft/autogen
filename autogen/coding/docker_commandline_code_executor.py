@@ -6,12 +6,11 @@ from pathlib import Path
 from time import sleep
 from types import TracebackType
 import uuid
-from typing import List, Optional, Type, Union
+from typing import Any, List, Optional, Type, Union
 import docker
-from docker.models.containers import Container
 from docker.errors import ImageNotFound
 
-from .utils import _get_file_name_from_content
+from .utils import _get_file_name_from_content, silence_pip
 from .base import CommandLineCodeResult
 
 from ..code_utils import TIMEOUT_MSG, _cmd
@@ -25,8 +24,8 @@ else:
     from typing_extensions import Self
 
 
-def _wait_for_ready(container: Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
+def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
+    elapsed_time = 0.0
     while container.status != "running" and elapsed_time < timeout:
         sleep(stop_time)
         elapsed_time += stop_time
@@ -114,7 +113,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         _wait_for_ready(self._container)
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 container = client.containers.get(container_name)
                 container.stop()
@@ -167,7 +166,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         last_exit_code = 0
         for code_block in code_blocks:
             lang = code_block.language
-            code = code_block.code
+            code = silence_pip(code_block.code, lang)
 
             try:
                 # Check if there is a filename comment
