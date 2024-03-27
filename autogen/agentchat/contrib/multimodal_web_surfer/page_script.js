@@ -170,7 +170,6 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
   let getVisualViewport = function() {
       let vv = window.visualViewport;
-      let docrec = document.documentElement.getBoundingClientRect();
       return {
           "height": vv.height,
 	  "width": vv.width,
@@ -182,9 +181,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 	  "clientWidth": document.documentElement.clientWidth,
 	  "clientHeight": document.documentElement.clientHeight,
 	  "scrollWidth": document.documentElement.scrollWidth,
-	  "scrollHeight": document.documentElement.scrollHeight,
-	  "documentWidth": docrec.width,
-	  "documentHeight": docrec.height
+	  "scrollHeight": document.documentElement.scrollHeight
       };
   };
 
