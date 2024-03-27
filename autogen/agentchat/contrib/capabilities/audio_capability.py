@@ -4,6 +4,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
 
+import autogen
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.cache import Cache
@@ -36,8 +37,7 @@ EXAMPLE WITH EXTRA ATTRIBUTES:
 STT_SYSTEM_MESSAGE = """You have the ability to transcribe audio messages.
 
 REQUIRED AUDIO ATTRIBUTES:
-    - file_path (string): The absolute or relative path to your audio file in a supported format (e.g., mp3, opus).
-    - task (string): Set to `transcribe` to indicate you want the audio transcribed.
+    {required_attributes}
 
 OPTIONAL AUDIO ATTRIBUTES:
     {optional_attributes}
@@ -53,12 +53,10 @@ NOTES:
 - I'll let you know if you encounter any issues with the audio file or processing.
 """
 
-TTS_SYSTEM_MESSAGE = """You have the the ability to generate/synthesize audio messages.
+TTS_SYSTEM_MESSAGE = """You have the the ability to generate/synthesize audio messages (Text to Speech).
 
 REQUIRED AUDIO ATTRIBUTES:
-    - Either the text_file or text: The text to generate audio from. If not provided, the audio will be generated from the file path.
-    - task (string): Set to `generate` to indicate you want the audio generated.
-
+    {required_attributes}
 OPTIONAL AUDIO ATTRIBUTES:
     {optional_attributes}
 
@@ -74,12 +72,16 @@ EXAMPLE WITH EXTRA ATTRIBUTES:
     <audio text='Hello World!' task='generate' voice='echo'>
     This example has an extra attribute: voice='echo'.
 
-Anybody can specify any attribute they like. However, to generate audio, they need to specify the text_file or
+You can specify any attribute they like. However, to generate audio, they need to specify the text_file or
 text and task set to `generate` as attributes.
 
 NOTES:
-- I'll let you know if you encounter any issues with the audio file or processing.
-- If you were able to generate/synthesize audio, ALWAYS let everyone know where the file was saved.
+- If tasked to generate/synthesize audio, or you think you need to generate an audio, ALWAYS respond with the appropriate generate audio tag with the correct attributes.
+
+Example:
+    'Sure, this is an audio message with the text Hello World! <audio text='Hello World!' task='generate'>'
+
+    `Yes I can use a different voice <audio text='Hello World!' task='generate' voice='echo'>`
 """
 
 STT_RESPONSE_TEMPLATES = {
@@ -96,13 +98,13 @@ STT_RESPONSE_TEMPLATES = {
 }
 
 TTS_RESPONSE_TEMPLATES = {
-    "success": """NOTE: You were requested to synthesize/generate an audio message '{tag}'.
+    "success": """NOTE: An audio message was generated with '{tag}'.
         <AUDIO_INTERACTION_SUCCESS>
-            The audio generated was saved in {output_file_path}. Let everyone know that.
+            The audio generated and saved in {output_file_path}.
         </AUDIO_INTERACTION_SUCCESS>""",
     "error": """NOTE: You have received a request to synthesize an audio message `{tag}`.
         <AUDIO_INTERACTION_ERROR>
-            Unfortunately, you encountered an error during the audio interaction process. {error}.
+            Unfortunately, I have encountered an error during the audio interaction process. {error}.
         </AUDIO_INTERACTION_ERROR>
         """,
 }
@@ -166,7 +168,14 @@ class SpeechToText(AgentCapability):
 
         agent.update_system_message(agent.system_message + "\n" + AUDIO_INTERACTION)
         agent.update_system_message(agent.system_message + "\n" + TAG_EXPLANATION)
-        agent.update_system_message(agent.system_message + "\n" + STT_SYSTEM_MESSAGE)
+        agent.update_system_message(
+            agent.system_message
+            + "\n"
+            + STT_SYSTEM_MESSAGE.format(
+                required_attributes=self._audio_transcriber.config.required_attributes_message(),
+                optional_attributes=self._audio_transcriber.config.optional_attributes_message(),
+            )
+        )
 
     def _transcribe_audio(self, message: Union[List[Dict], str]) -> Union[List[Dict], str]:
         assert self._audio_transcriber
@@ -192,7 +201,7 @@ class SpeechToText(AgentCapability):
             except Exception as e:
                 warnings.warn(f"Invalid transcriber config: {transcriber_cfg}")
                 message = _replace_tag_in_message(
-                    message, tag, STT_RESPONSE_TEMPLATES["error"].format(tag=tag, error=str(e))
+                    message, tag, STT_RESPONSE_TEMPLATES["error"].format(tag=tag["attr"], error=str(e))
                 )
                 continue
 
@@ -201,7 +210,7 @@ class SpeechToText(AgentCapability):
             except Exception as e:
                 warnings.warn(f"Failed to transcribe audio: {transcriber_cfg}")
                 message = _replace_tag_in_message(
-                    message, tag, STT_RESPONSE_TEMPLATES["error"].format(tag=tag, error=str(e))
+                    message, tag, STT_RESPONSE_TEMPLATES["error"].format(tag=tag["attr"], error=str(e))
                 )
                 continue
 
@@ -209,7 +218,7 @@ class SpeechToText(AgentCapability):
             message = _replace_tag_in_message(
                 message,
                 tag,
-                STT_RESPONSE_TEMPLATES["success"].format(tag=tag, transcription=transcription),
+                STT_RESPONSE_TEMPLATES["success"].format(tag=tag["attr"], transcription=transcription),
             )
 
         return message
@@ -285,14 +294,38 @@ class TextToSpeech(AgentCapability):
         Args:
             agent (ConversableAgent): The agent to add the capability to.
         """
-        partial_generate = functools.partial(_process_audio, hook_func=self._generate_audio)
-        agent.register_hook(hookable_method="process_last_received_message", hook=partial_generate)
+        agent.register_hook(hookable_method="process_message_before_send", hook=self._generate_audio_hook)
 
         agent.update_system_message(agent.system_message + "\n" + AUDIO_INTERACTION)
         agent.update_system_message(agent.system_message + "\n" + TAG_EXPLANATION)
-        agent.update_system_message(agent.system_message + "\n" + TTS_SYSTEM_MESSAGE)
+        agent.update_system_message(
+            agent.system_message
+            + "\n"
+            + TTS_SYSTEM_MESSAGE.format(
+                required_attributes=self._audio_generator.config.required_attributes_message(),
+                optional_attributes=self._audio_generator.config.optional_attributes_message(),
+            )
+        )
 
-    def _generate_audio(self, message: Union[List[Dict], str]) -> Union[List[Dict], str]:
+    def _generate_audio_hook(
+        self, sender: autogen.Agent, message: Union[Dict, str], recipient: autogen.Agent, silent: bool
+    ) -> Union[Dict, str]:
+        if isinstance(message, str):
+            content = self._generate_audio(sender, message, recipient, silent)
+            if isinstance(content, str):
+                return content
+            else:
+                return {"content": content}
+        elif isinstance(message, dict) and "content" in message:
+            content = self._generate_audio(sender, message["content"], recipient, silent)
+            message["content"] = content
+            return message
+        else:
+            return message
+
+    def _generate_audio(
+        self, sender: autogen.Agent, message: Union[List[Dict], str], recipient: autogen.Agent, silent: bool
+    ) -> Union[List[Dict], str]:
         assert self._audio_generator
 
         tags = utils.parse_tags_from_content("audio", message)
@@ -315,7 +348,7 @@ class TextToSpeech(AgentCapability):
             except Exception as e:
                 warnings.warn(f"Invalid generator config: {generator_cfg}")
                 message = _replace_tag_in_message(
-                    message, tag, TTS_RESPONSE_TEMPLATES["error"].format(tag=tag, error=str(e))
+                    message, tag, TTS_RESPONSE_TEMPLATES["error"].format(tag=tag["attr"], error=str(e))
                 )
                 continue
 
@@ -324,14 +357,16 @@ class TextToSpeech(AgentCapability):
             except Exception as e:
                 warnings.warn(f"Failed to generate audio: {generator_cfg}")
                 message = _replace_tag_in_message(
-                    message, tag, TTS_RESPONSE_TEMPLATES["error"].format(tag=tag, error=str(e))
+                    message, tag, TTS_RESPONSE_TEMPLATES["error"].format(tag=tag["attr"], error=str(e))
                 )
                 continue
 
             message = _replace_tag_in_message(
                 message,
                 tag,
-                TTS_RESPONSE_TEMPLATES["success"].format(tag=tag, output_file_path=validated_cfg.output_file_path),
+                TTS_RESPONSE_TEMPLATES["success"].format(
+                    tag=tag["attr"], output_file_path=validated_cfg.output_file_path
+                ),
             )
 
         return message

@@ -26,6 +26,25 @@ class GeneratorConfig(BaseModel):
 
     model_config = MODEL_CONFIG
 
+    @classmethod
+    def required_attributes_message(self) -> str:
+        return """
+        - Either the text_file or text: The text to generate audio from. If not provided, the audio will be generated from the file path.
+        """
+
+    @classmethod
+    def optional_attributes_message(cls) -> str:
+        return """
+        output_file_path (str): The file path and name to save the generated audio to.
+            Must include the appropriate file extension.
+        """
+
+    @classmethod
+    def validate_text(cls, value: str):
+        if value is not None:
+            cls.text = value
+        return value
+
     @model_validator(mode="before")
     def set_file_path(cls, values):
         values["text_file"] = values.get("text_file") or values.get("src")
@@ -62,6 +81,9 @@ class AudioGenerator(Protocol):
         """
         ...
 
+    @property
+    def config(self) -> GeneratorConfig: ...
+
 
 # Implementations of audio generators
 
@@ -75,6 +97,31 @@ class TTSConfig(GeneratorConfig):
     )
     response_format: Literal["mp3", "opus", "aac", "flac"] = Field(default="mp3", description="Audio format.")
     speed: float = Field(default=1.0, description="Audio speed. Must be between 0.25 and 4.")
+
+    @classmethod
+    def required_attributes_message(cls) -> str:
+        return super().required_attributes_message()
+
+    @classmethod
+    def optional_attributes_message(cls) -> str:
+        return """
+        - model (Literal["tts-1", "tts-1-hd"]): OpenAI's TTS model to use. Only "tts-1" and "tts-1-hd" are supported.
+        - voice (Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]): TTS voice to use.
+            alloy (str): A male voice model with a warm and friendly tone. Suitable for virtual assistants, audiobook
+                narration, and educational content.
+            echo (str): A female voice model with a clear and expressive tone. Often used for storytelling, voice-over
+                work, and podcasts.
+            fable (str): A female voice model with a gentle and soothing tone. Well-suited for applications that require
+                a calming and reassuring voice, such as meditation apps or bedtime stories.
+            onyx (str): A male voice model with a deep and authoritative tone. Useful for applications that require a
+                commanding or professional voice, such as corporate presentations or voiceovers for documentaries.
+            nova (str): A female voice model with a bright and energetic tone. Good for applications that require a
+                lively and engaging voice, such as advertising or promotional videos.
+            shimmer (str): A female voice model with a clear and natural tone. Versatile choice for various
+                applications, including e-learning content, virtual assistants, and audiobook narration.
+        - response_format (str): Audio format. Only "mp3", "opus", "aac", and "flac" are supported.
+        - speed (float): Audio speed. Must be between 0.25 and 4.
+        """
 
     @field_validator("speed")
     def validate_speed(cls, value):
@@ -121,6 +168,10 @@ class TTS:
             f"{generator_config.model}_{generator_config.voice}"
             f"_{generator_config.speed}_{generator_config.text or generator_config.text_file}"
         )
+
+    @property
+    def config(self) -> GeneratorConfig:
+        return self._default_tts_config
 
 
 def _read_file(file_path: str) -> str:

@@ -3,7 +3,6 @@ from typing import Dict, List, Literal, Optional, Protocol
 
 from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from termcolor import colored
 
 
 MODEL_CONFIG = ConfigDict(extra="allow", populate_by_name=True, validate_assignment=True)
@@ -15,6 +14,16 @@ class TranscriberConfig(BaseModel):
     file_path: Optional[str] = Field(default=None, description="The path of the audio you want to transcribe.")
 
     model_config = MODEL_CONFIG
+
+    @classmethod
+    def required_attributes_message(cls) -> str:
+        return """
+        - file_path (string): The absolute or relative path to your audio file in a supported format (e.g., mp3, opus).
+        """
+
+    @classmethod
+    def optional_attributes_message(cls) -> str:
+        return ""
 
     @model_validator(mode="before")
     def set_file_path(cls, values):
@@ -53,6 +62,9 @@ class AudioTranscriber(Protocol):
         """
         ...
 
+    @property
+    def config(self) -> TranscriberConfig: ...
+
 
 # Implementations of transcribers
 
@@ -82,6 +94,33 @@ class WhisperConfig(TranscriberConfig):
     timestamp_granularities: Optional[List[str]] = Field(
         default=None, description="The timestamp granularities to populate for this transcription."
     )
+
+    @classmethod
+    def required_attributes_message(cls) -> str:
+        return super().required_attributes_message()
+
+    @classmethod
+    def optional_attributes_message(cls) -> str:
+        return (
+            super().optional_attributes_message()
+            + """
+        - model (Literal["whisper-1"]): ID of the model to use. Only Whisper-1 is currently available.
+        - language (string): The language of the input audio. Must ISO-639-1 format.
+        - prompt (string): An optional text to guide the model's style or continue a previous audio segment.
+            The prompt should match the audio language.
+        - response_format (Literal["json", "text", "srt", "verbose_json", "vtt"]): The format of the transcript output.
+        - temperature (float): The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output
+          more random, while lower values like 0.2 will make it more focused and deterministic.
+          Values must be between 0 and 1.
+        - timestamp_granularities (List[Literal["word", "segment"]]): The timestamp granularities to populate for this transcription. The response_format must be `verbose_json`.
+        """
+        )
+
+    @field_validator("response_format")
+    def validate_response_format(cls, value):
+        if value not in ["json", "text", "srt", "verbose_json", "vtt"]:
+            raise ValueError("Response format must be 'json', 'text', 'srt', 'verbose_json' or 'vtt'.")
+        return value
 
     @field_validator("temperature")
     def validate_temperature(cls, value):
@@ -136,3 +175,7 @@ class Whisper:
             f"_{transcriber_config.timestamp_granularities}"
             f"_{transcriber_config.file_path}"
         )
+
+    @property
+    def config(self) -> TranscriberConfig:
+        return self._default_whisper_config
