@@ -154,8 +154,9 @@ class SpeechToText(AgentCapability):
 
         The following operations will be performed on the agent:
             1. Register a hook on the `process_last_received_message` to transcribe audio messages.
-            2. Update the agent's system message with the TTS_SYSTEM_MESSAGE, which indicates to the agent that it can
-                transcribe audio.
+            2. Update the agent's system message:
+                - It explains how the taggins system works.
+                - It indicates that the agent has the capability to transcribe audio messages.
 
         Args:
             agent(ConversableAgent): The agent to add the capability to.
@@ -278,9 +279,9 @@ class TextToSpeech(AgentCapability):
 
         The following operations will be performed on the agent:
             1. Register a hook on the `process_last_received_message` to generate audio messages.
-            2. Update the agent's system message with the TTS_SYSTEM_MESSAGE, which indicates to the agent that it can
-                generate audio.
-
+            2. Update the agent's system message:
+                - It explains how the tagging system works.
+                - It indicates that the agent has the capability to convert text to speech.
         Args:
             agent (ConversableAgent): The agent to add the capability to.
         """
