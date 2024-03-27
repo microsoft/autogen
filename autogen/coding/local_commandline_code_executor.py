@@ -1,14 +1,11 @@
 from hashlib import md5
-import os
 from pathlib import Path
 import re
 import sys
-import uuid
 import warnings
 from typing import ClassVar, List, Union
 
-from ..agentchat.agent import LLMAgent
-from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
+from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
@@ -57,7 +54,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             work_dir = Path(work_dir)
 
         if not work_dir.exists():
-            raise ValueError(f"Working directory {work_dir} does not exist.")
+            work_dir.mkdir(exist_ok=True)
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
