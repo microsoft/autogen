@@ -45,20 +45,20 @@ def create_nexus_prompt_for_tool(tool: dict) -> str:
             float: a random word
     """
     '''
-    function = tool["function"]
-    name = function["name"]
-    description = function["description"]
-    parameters = function["parameters"]
+    function_data = tool["function"]
+    name = function_data["name"]
+    description = function_data["description"]
+    parameters = function_data["parameters"]
     properties = parameters["properties"]
 
-    def type_to_str(type: str) -> str:
-        if type == "integer":
+    def type_to_str(data_type: str) -> str:
+        if data_type == "integer":
             return "int"
-        if type == "string":
+        if data_type == "string":
             return "str"
-        if type == "number":
+        if data_type == "number":
             return "float"
-        return type
+        return data_type
 
     args = ", ".join([f"{k}: {type_to_str(v['type'])}" for k, v in properties.items()])
     arg_types = "\n".join(
@@ -100,10 +100,11 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
-        if "<bot_end>" in input_string:
-            call_part, thought_part = input_string.split("<bot_end> \nThought: ")
-        else:
-            call_part, thought_part = input_string, ""
+        result  = re.split(r"(<bot_end> \n)?Thought: ", input_string)
+
+        print(f"\n\n\n\n****************** {result}************** \n\n\n\n")
+
+        call_part, thought_part = re.split(r"(?:<bot_end> \n)?Thought: ", input_string)
 
         function_name_match = re.search(r"Call: (\w+)", call_part)
         function_name = function_name_match.group(1) if function_name_match else None
@@ -128,9 +129,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
         tools = self.llm_config["tools"]
         functions = "\n\n".join([create_nexus_prompt_for_tool(tool) for tool in tools if tool["type"] == "function"])
-
         prompt = f"""{functions}\n\nUser Query: {query}<human_end>"""
-
         all_messages = [{"content": prompt, "role": "user"}]
 
         response = llm_client.create(
