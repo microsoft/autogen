@@ -28,18 +28,27 @@ selection.
 
 ## Chat template
 AutoGen utilises a set of chat messages for the conversation between AutoGen/user
-and LLMs. Each chat message has a role attribute that is typically "user",
-"assistant", or "system".
+and LLMs. Each chat message has a role attribute that is typically `user`,
+`assistant`, or `system`.
 
 A chat template is applied during inference and some chat templates implement rules about
 what roles can be used in specific sequences of messages.
 
-For example, when using Mistral AI's API the last chat message cannot have a role of
-'system'. In a Group Chat scenario the message used to select the next speaker will
-have a role of 'system' by default and the API will throw an exception for this step. To
-overcome this the GroupChat's constructor has a parameter called 'role_for_select_speaker_messages'
-that can be used to change the role name to 'user'. See this demonstrated in the
-[Mistral AI example](/docs/topics/non-openai-models/cloud-mistralai).
+For example, when using Mistral AI's API the last chat message must have a role of `user`.
+In a Group Chat scenario the message used to select the next speaker will have a role of
+`system` by default and the API will throw an exception for this step. To overcome this the
+GroupChat's constructor has a parameter called `role_for_select_speaker_messages` that can
+be used to change the role name to `user`.
+
+```python
+groupchat = autogen.GroupChat(
+    agents=[user_proxy, coder, pm],
+    messages=[],
+    max_round=12,
+    # Role for select speaker message will be set to 'user' instead of 'system'
+    role_for_select_speaker_messages='user',
+)
+```
 
 If the chat template associated with a model you want to use doesn't support the role
 sequence and names used in AutoGen you can modify the chat template. See an example of
