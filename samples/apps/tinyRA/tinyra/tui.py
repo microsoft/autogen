@@ -951,12 +951,21 @@ class AppErrorMessage(Message):
         super().__init__()
 
 
+class SubprocessError(Exception):
+    pass
+
+
 async def run_in_subprocess(func, *args):
     # Create a ProcessPoolExecutor
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        # Run the function in the executor
-        result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
-        return result
+    try:
+        # raise Exception("Error")
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            # Run the function in the executor
+            result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
+            return result
+    except Exception as e:
+        error_message = f"Error running function in subprocess: {e}"
+        raise SubprocessError(error_message)
 
 
 def generate_response_process(msg_idx: int):
@@ -1211,7 +1220,7 @@ class TinyRA(App):
         id = await a_insert_chat_message("user", user_input, root_id=0)
         user_message = await a_fetch_row(id)
         reactive_message = message_display_handler(user_message)
-        chat_display_widget.mount(reactive_message)
+        await chat_display_widget.mount(reactive_message)
 
         # display the assistant response in the chat display
         assistant_message = {
@@ -1220,16 +1229,14 @@ class TinyRA(App):
             "id": id + 1,
         }
         reactive_message = message_display_handler(assistant_message)
-        chat_display_widget.mount(reactive_message)
+        await chat_display_widget.mount(reactive_message)
 
-        self.generate_response(msg_idx=id)
-
-    @work()
-    async def generate_response(self, msg_idx: int) -> None:
-        """
-        Generate a response to the user message at the given index.
-        """
-        await run_in_subprocess(generate_response_process, msg_idx)
+        try:
+            await run_in_subprocess(generate_response_process, id)
+        except SubprocessError as e:
+            error_message = f"{e}"
+            a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
+            self.post_message(AppErrorMessage(error_message))
 
 
 def run_app() -> None:
