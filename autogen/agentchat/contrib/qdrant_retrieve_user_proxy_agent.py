@@ -281,16 +281,18 @@ def query_qdrant(
         collection_name,
         query_texts,
         limit=n_results,
-        query_filter=models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="document",
-                    match=models.MatchText(text=search_string),
-                )
-            ]
-        )
-        if search_string
-        else None,
+        query_filter=(
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="document",
+                        match=models.MatchText(text=search_string),
+                    )
+                ]
+            )
+            if search_string
+            else None
+        ),
     )
 
     data = {

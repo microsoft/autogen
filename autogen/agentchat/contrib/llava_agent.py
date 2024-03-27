@@ -7,9 +7,10 @@ import requests
 
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
-from autogen.agentchat.conversable_agent import colored
 from autogen.code_utils import content_str
 from autogen.img_utils import get_image_data, llava_formatter
+
+from ...formatting_utils import colored
 
 logger = logging.getLogger(__name__)
 
