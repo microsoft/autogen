@@ -304,11 +304,14 @@ class AppConfiguration:
         return tools
 
     def delete_tool(self, tool_id: int):
-        conn = sqlite3.connect(self._database_path)
-        c = conn.cursor()
-        c.execute("DELETE FROM tools WHERE id = ?", (tool_id,))
-        conn.commit()
-        conn.close()
+        try:
+            conn = sqlite3.connect(self._database_path)
+            c = conn.cursor()
+            c.execute("DELETE FROM tools WHERE id = ?", (tool_id,))
+            conn.commit()
+            conn.close()
+        except sqlite3.Error as e:
+            raise ToolUpdateError(f"Error deleting tool! {e}")
 
     def clear_chat_history(self):
         conn = sqlite3.connect(self._database_path)
@@ -854,10 +857,25 @@ class SettingsScreen(ModalScreen):
     @on(Button.Pressed, "#delete-tool-button")
     def delete_tool(self) -> None:
         # get the id of the selected tool
-        tool_id = int(self.query_one("#tool-id-input", Input).value)
+        tool_id_str = self.query_one("#tool-id-input", Input).value
+        # check if its a valid int
+        try:
+            tool_id = int(tool_id_str)
+        except ValueError:
+            error_message = "Tool ID must be an integer"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
+        # tool_id = int(self.query_one("#tool-id-input", Input).value)
         item = self.query_one(f"#tool-{tool_id}", ListItem)
         # delete the tool from the database
-        APP_CONFIG.delete_tool(tool_id)
+        try:
+            APP_CONFIG.delete_tool(tool_id)
+        except ToolUpdateError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
         # remove the tool from the list view
         item.remove()
 
@@ -1119,7 +1137,7 @@ class TinyRA(App):
     """
 
     BINDINGS = [
-        ("ctrl+b", "toggle_sidebar", "Sidebar"),
+        ("ctrl+b", "toggle_sidebar", "Work Directory"),
         ("ctrl+c", "request_quit", "Quit"),
         ("ctrl+s", "request_settings", "Settings"),
     ]
@@ -1229,6 +1247,7 @@ class TinyRA(App):
             "content": "Computing response…",
             "id": id + 1,
         }
+        await a_insert_chat_message("info", "Computing response…", root_id=0, id=id + 1)
         reactive_message = message_display_handler(assistant_message)
         await chat_display_widget.mount(reactive_message)
 
