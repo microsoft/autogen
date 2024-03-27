@@ -10,6 +10,7 @@ import shutil
 import sqlite3
 import aiosqlite
 from collections import namedtuple
+import concurrent.futures
 
 from typing import List, Dict
 
@@ -950,6 +951,145 @@ class AppErrorMessage(Message):
         super().__init__()
 
 
+async def run_in_subprocess(func, *args):
+    # Create a ProcessPoolExecutor
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        # Run the function in the executor
+        result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
+        return result
+
+
+def generate_response_process(msg_idx: int):
+    # fetch the relevant chat history
+    chat_history = fetch_chat_history()
+    task = chat_history[msg_idx]["content"]
+    chat_history = chat_history[0:msg_idx]
+
+    def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
+        # check the contents of the last N messages
+        # if all empty, terminate
+        consecutive_are_empty = None
+        last_n = 2
+
+        for message in reversed(messages):
+            if last_n == 0:
+                break
+            if message["role"] == "user":
+                last_n -= 1
+                if len(message["content"]) == 0:
+                    consecutive_are_empty = True
+                else:
+                    consecutive_are_empty = False
+                    break
+
+        if consecutive_are_empty:
+            return True, "TERMINATE"
+
+        return False, None
+
+    def summarize(text):
+        if text:
+            if len(text) > 100:
+                return text[:100] + "…"
+            return text
+        return "Working…"
+
+    def post_update_to_main(recipient, messages, sender, **kwargs):
+        last_assistant_message = None
+        for msg in reversed(messages):
+            if msg["role"] == "assistant":
+                last_assistant_message = msg
+                break
+
+        # update_message = "Computing response..."
+        if last_assistant_message:
+            if last_assistant_message.get("content"):
+                summary = summarize(last_assistant_message["content"])
+            elif last_assistant_message.get("tool_calls"):
+                summary = summarize("Using tools…")
+            else:
+                summary = "Working…"
+            update_message = f"{summary}…"
+            insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
+        else:
+            insert_chat_message("info", "Working…", root_id=0, id=msg_idx + 1)
+        return False, None
+
+    def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
+        last_message = messages[-1]
+        insert_chat_message("user", last_message["content"], root_id=msg_idx + 1)
+        return False, None
+
+    def post_last_assistant_msg_to_chat_history(recipient, messages, sender, **kwargs):
+        last_message = messages[-1]
+        logging.info(json.dumps(last_message, indent=2))
+        content = last_message["content"] or json.dumps(last_message["tool_calls"], indent=2)
+        insert_chat_message("assistant", content, root_id=msg_idx + 1)
+        return False, None
+
+    assistant = AssistantAgent(
+        "assistant",
+        llm_config=LLM_CONFIG,
+        system_message=APP_CONFIG.get_assistant_system_message(),
+    )
+    user = UserProxyAgent(
+        "user",
+        code_execution_config={"work_dir": os.path.join(APP_CONFIG.get_data_path(), "work_dir")},
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
+    )
+
+    # populate the history before registering new reply functions
+    for msg in chat_history:
+        if msg["role"] == "user":
+            user.send(msg["content"], assistant, request_reply=False, silent=True)
+        else:
+            assistant.send(msg["content"], user, request_reply=False, silent=True)
+
+    assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
+    assistant.register_reply([Agent, None], post_update_to_main)
+    assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
+
+    user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=False)
+    user.register_reply([Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=False)
+    user.register_reply([Agent, None], post_last_assistant_msg_to_chat_history)
+
+    # register tools for assistant and user
+    tools = APP_CONFIG.get_tools()
+    for tool in tools.values():
+        description = tool.description
+        code = tool.code
+        # convert a code string to function and return a callable
+
+        function_name, tool_instance = string_to_function(code)
+        assistant.register_for_llm(name=function_name, description=description)(tool_instance)
+        user.register_for_execution()(tool_instance)
+
+    logging.info("Current history:")
+    logging.info(assistant.chat_messages[user])
+
+    user.initiate_chat(assistant, message=task, clear_history=False)
+
+    user.send(
+        f"""Based on the results in above conversation, create a response for the user.
+While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
+All they want to see is the appropriate result for their task (repeated below) in a manner that would be most useful.
+The task was: {task}
+
+There is no need to use the word TERMINATE in this response.
+        """,
+        assistant,
+        request_reply=False,
+        silent=True,
+    )
+    response = assistant.generate_reply(assistant.chat_messages[user], user)
+    assistant.send(response, user, request_reply=False, silent=True)
+
+    response = assistant.chat_messages[user][-1]["content"]
+
+    insert_chat_message("assistant", response, root_id=0, id=msg_idx + 1)
+
+
 class TinyRA(App):
     """
     A Textual app to display chat history.
@@ -1085,146 +1225,11 @@ class TinyRA(App):
         self.generate_response(msg_idx=id)
 
     @work()
-    async def generate_response(self, msg_idx: int, limit_history=None) -> None:
+    async def generate_response(self, msg_idx: int) -> None:
         """
-        Solve the autogen quick start.
-
-        Returns:
-            The solution to the autogen quick start.
+        Generate a response to the user message at the given index.
         """
-        # status_widget = self.query_one("#status", Static)
-        # status_widget.update(f"Starting autogen in a worker process for {msg_idx}...")
-
-        # fetch the relevant chat history
-        chat_history = await a_fetch_chat_history()
-        task = chat_history[msg_idx]["content"]
-        chat_history = chat_history[0:msg_idx]
-
-        async def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
-            # check the contents of the last N messages
-            # if all empty, terminate
-            consecutive_are_empty = None
-            last_n = 2
-
-            for message in reversed(messages):
-                if last_n == 0:
-                    break
-                if message["role"] == "user":
-                    last_n -= 1
-                    if len(message["content"]) == 0:
-                        consecutive_are_empty = True
-                    else:
-                        consecutive_are_empty = False
-                        break
-
-            if consecutive_are_empty:
-                return True, "TERMINATE"
-
-            return False, None
-
-        def summarize(text):
-            if text:
-                if len(text) > 100:
-                    return text[:100] + "…"
-                return text
-            return "Working…"
-
-        async def post_update_to_main(recipient, messages, sender, **kwargs):
-            last_assistant_message = None
-            for msg in reversed(messages):
-                if msg["role"] == "assistant":
-                    last_assistant_message = msg
-                    break
-
-            # update_message = "Computing response..."
-            if last_assistant_message:
-                if last_assistant_message.get("content"):
-                    summary = summarize(last_assistant_message["content"])
-                elif last_assistant_message.get("tool_calls"):
-                    summary = summarize("Using tools…")
-                else:
-                    summary = "Working…"
-                update_message = f"{summary}…"
-                await a_insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
-            else:
-                await a_insert_chat_message("info", "Working…", root_id=0, id=msg_idx + 1)
-            return False, None
-
-        async def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
-            last_message = messages[-1]
-            await a_insert_chat_message("user", last_message["content"], root_id=msg_idx + 1)
-            return False, None
-
-        async def post_last_assistant_msg_to_chat_history(recipient, messages, sender, **kwargs):
-            last_message = messages[-1]
-            logging.info(json.dumps(last_message, indent=2))
-            content = last_message["content"] or json.dumps(last_message["tool_calls"], indent=2)
-            await a_insert_chat_message("assistant", content, root_id=msg_idx + 1)
-            return False, None
-
-        assistant = AssistantAgent(
-            "assistant",
-            llm_config=LLM_CONFIG,
-            system_message=APP_CONFIG.get_assistant_system_message(),
-        )
-        user = UserProxyAgent(
-            "user",
-            code_execution_config={"work_dir": os.path.join(APP_CONFIG.get_data_path(), "work_dir")},
-            human_input_mode="NEVER",
-            is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
-        )
-
-        # populate the history before registering new reply functions
-        for msg in chat_history:
-            if msg["role"] == "user":
-                await user.a_send(msg["content"], assistant, request_reply=False, silent=True)
-            else:
-                await assistant.a_send(msg["content"], user, request_reply=False, silent=True)
-
-        assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
-        assistant.register_reply([Agent, None], post_update_to_main)
-        assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
-
-        user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=False)
-        user.register_reply(
-            [Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=False
-        )
-        user.register_reply([Agent, None], post_last_assistant_msg_to_chat_history)
-
-        # register tools for assistant and user
-        tools = APP_CONFIG.get_tools()
-        for tool in tools.values():
-            description = tool.description
-            code = tool.code
-            # convert a code string to function and return a callable
-
-            function_name, tool_instance = string_to_function(code)
-            assistant.register_for_llm(name=function_name, description=description)(tool_instance)
-            user.register_for_execution()(tool_instance)
-
-        logging.info("Current history:")
-        logging.info(assistant.chat_messages[user])
-
-        await user.a_initiate_chat(assistant, message=task, clear_history=False)
-
-        await user.a_send(
-            f"""Based on the results in above conversation, create a response for the user.
-While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
-All they want to see is the appropriate result for their task (repeated below) in a manner that would be most useful.
-The task was: {task}
-
-There is no need to use the word TERMINATE in this response.
-            """,
-            assistant,
-            request_reply=False,
-            silent=True,
-        )
-        response = await assistant.a_generate_reply(assistant.chat_messages[user], user)
-        await assistant.a_send(response, user, request_reply=False, silent=True)
-
-        response = assistant.chat_messages[user][-1]["content"]
-
-        await a_insert_chat_message("assistant", response, root_id=0, id=msg_idx + 1)
+        await run_in_subprocess(generate_response_process, msg_idx)
 
 
 def run_app() -> None:
