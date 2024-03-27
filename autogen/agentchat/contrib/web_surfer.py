@@ -5,10 +5,18 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
-from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...browser_utils import SimpleTextBrowser
-from ...code_utils import content_str
 from datetime import datetime
+from ..agent import Agent
+from .. import ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat
+from ...oai.client import OpenAIWrapper
+from ...browser_utils import (
+    SimpleTextBrowser,
+    SeleniumBrowserWrapper,
+    IS_SELENIUM_CAPABLE,
+    display_binary_image,
+    generate_png_filename,
+)
+from ...code_utils import content_str
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
 
@@ -55,8 +63,21 @@ class WebSurferAgent(ConversableAgent):
 
         self._create_summarizer_client(summarizer_llm_config, llm_config)
 
+        # Determine if the user has requested the Selenium browser or not
+        browser_type = browser_config.pop("type", "text")
+
         # Create the browser
-        self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+        if browser_type != "text" and IS_SELENIUM_CAPABLE:
+            self.browser = SeleniumBrowserWrapper(**(browser_config if browser_config else {}))
+            self.is_graphical_browser = True
+        else:
+            # Cleanup any arguments specific to the desktop browser
+            if "web_driver" in browser_config:
+                browser_config.pop("web_driver")
+            if "render_text" in browser_config:
+                browser_config.pop("render_text")
+            self.browser = SimpleTextBrowser(**(browser_config if browser_config else {}))
+            self.is_graphical_browser = False
 
         inner_llm_config = copy.deepcopy(llm_config)
 
@@ -83,6 +104,18 @@ class WebSurferAgent(ConversableAgent):
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
+
+    @property
+    def text_content(self):
+        return self.browser.page_content
+
+    @property
+    def render_text(self):
+        self.browser.set_page_content(self.browser.page_content)
+        return self.browser.page_content
+
+    def close_the_browser(self):
+        self.browser.driver.quit()
 
     def _create_summarizer_client(self, summarizer_llm_config: Dict[str, Any], llm_config: Dict[str, Any]) -> None:
         # If the summarizer_llm_config is None, we copy it from the llm_config
@@ -181,6 +214,41 @@ class WebSurferAgent(ConversableAgent):
             self.browser.page_down()
             header, content = _browser_state()
             return header.strip() + "\n=======================\n" + content
+
+        if self.is_graphical_browser:
+
+            @self._user_proxy.register_for_execution()
+            @self._assistant.register_for_llm(
+                name="get_screenshot",
+                description="Captures and displays a screenshot of the current web page as seen by the browser.",
+            )
+            def _get_screenshot(
+                url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
+            ) -> str:
+                if url is not None and url != self.browser.address:
+                    self.browser.visit_page(url)
+                else:
+                    url = self.browser.address
+
+                self.screenshot = self.browser.driver.get_screenshot_as_png()
+                display_binary_image(self.screenshot)
+
+            @self._user_proxy.register_for_execution()
+            @self._assistant.register_for_llm(
+                name="save_screenshot",
+                description="Saves a screenshot of the current web page as seen by the browser.",
+            )
+            def _save_screenshot(
+                url: Annotated[Optional[str], "[Optional] The url of the page. (Defaults to the current page)"] = None,
+            ) -> str:
+                if url is not None and url != self.browser.address:
+                    self.browser.visit_page(url)
+                else:
+                    url = self.browser.address
+
+                png_filename = generate_png_filename(url)
+                self.screenshot = self.browser.driver.save_screenshot(png_filename)
+                # display_binary_image(self.screenshot)
 
         if self.summarization_client is not None:
 

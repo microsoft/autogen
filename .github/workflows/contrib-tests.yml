@@ -201,6 +201,15 @@ jobs:
       - name: Install packages and dependencies for WebSurfer
         run: |
           pip install -e .[websurfer]
+      - name: Setup edge
+        uses: browser-actions/setup-edge@latest
+        if: ${{ matrix.browsers == 'edge' }}
+      - name: Setup firefox
+        uses: browser-actions/setup-firefox@latest
+        if: ${{ matrix.browsers == 'firefox' }}
+      - name: Setup chrome
+        uses: browser-actions/setup-chrome@latest
+        if: ${{ matrix.browsers == 'chrome' }}
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
@@ -210,7 +219,7 @@ jobs:
       - name: Coverage
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
+          coverage run -a -m pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai test/agentchat/contrib/test_web_surfer_selenium.py --skip-openai test/agentchat/contrib/test_web_archiver_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
