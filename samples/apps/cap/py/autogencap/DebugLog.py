@@ -1,6 +1,6 @@
 import threading
 import datetime
-from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
+import autogencap.Config as Config
 from termcolor import colored
 
 # Define log levels as constants
@@ -18,19 +18,21 @@ console_lock = threading.Lock()
 
 def Log(level, context, msg):
     # Check if the current level meets the threshold
-    if level >= LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
+    if level >= Config.LOG_LEVEL:  # Use the LOG_LEVEL from the Config module
         # Check if the context is in the list of ignored contexts
-        if context in IGNORED_LOG_CONTEXTS:
+        if context in Config.IGNORED_LOG_CONTEXTS:
             return
         with console_lock:
             timestamp = colored(datetime.datetime.now().strftime("%m/%d/%y %H:%M:%S"), "dark_grey")
             # Translate level number to name and color
             level_name = colored(LEVEL_NAMES[level], LEVEL_COLOR[level])
-            # Center justify the context and color it blue
+            # Left justify the context and color it blue
             context = colored(context.ljust(14), "blue")
+            # Left justify the threadid and color it blue
+            thread_id = colored(str(threading.get_ident()).ljust(5), "blue")
             # color the msg based on the level
             msg = colored(msg, LEVEL_COLOR[level])
-            print(f"{threading.get_ident()} {timestamp} {level_name}: [{context}] {msg}")
+            print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
 
 
 def Debug(context, message):
