@@ -5,6 +5,10 @@ from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
 class QuantifierAgent(AssistantAgent):
+    """
+    An agent for quantifing the performance of a system using the provided criteria.
+    """
+
     DEFAULT_SYSTEM_MESSAGE = """"You are a helpful assistant. You quantify the output of different tasks based on the given criteria.
     The criterion is given in a dictionary format where each key is a dintinct criteria.
     The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}

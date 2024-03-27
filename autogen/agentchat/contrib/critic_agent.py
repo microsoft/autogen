@@ -5,6 +5,10 @@ from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
 class CriticAgent(AssistantAgent):
+    """
+    An agent for creating list of criteria for evaluating the utility of a given task.
+    """
+
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant. You suggest criteria for evaluating different tasks. They should be dinstinguishable, quantifieable and not redundant.
     Convert the evaluation criteria into a dictionary where the keys are the criteria.
     The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}

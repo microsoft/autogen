@@ -1,26 +1,36 @@
+import json
+
+
 class TestCase:
-    def __init__(self, output_dictionary, correctness):
-        self.output_dictionary = output_dictionary
+    """
+    A class that represents a test case for agent evaluation.
+    """
+
+    def __init__(self, test_details: dict, correctness: str):
+        """
+        args:
+        - test_details (dict): The details of the test case (minus the ground truth).
+        - correctness (str): The correctness of the agent's output.
+        """
+        self.test_details = test_details
         self.correctness = correctness
 
     def __str__(self):
-        return str([self.output_dictionary, self.correctness])
+        return str([self.test_details, self.correctness])
 
-    def create_from_file(file_name):
+    @staticmethod
+    def parse_json_str(test_case: str):
         """
-        Read the mathproblem logs - bypassing any information about the ground truths.
+        Create a TestCase object from a json string.
+        args:
+        - test_case (str): Json string that represents the test case
 
-        Args:
-        - file_name (str): The single log file that wants to get evaluated.
-
-        Returns:
-        - str: The log file without any information about the ground truth answer of the problem.
+        returns:
+        - TestCase: A TestCase object that represents the json test case information.
         """
-        f = open(file_name, "r").readlines()
-        output_dictionary = ""
-        for line in f:
-            if "is_correct" not in line and "correct_ans" not in line and "check_result" not in line:
-                output_dictionary += line
-            elif "is_correct" in line:
-                correctness = line.replace(",", "").split(":")[-1].rstrip().strip()
-        return TestCase(output_dictionary, correctness)
+        test_details = json.loads(test_case)
+        # need to remove the ground truth from the test details
+        correctness = test_details.pop("is_correct")
+        test_details.pop("correct_ans")
+        test_details.pop("check_result")
+        return TestCase(test_details, correctness)
