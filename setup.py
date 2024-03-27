@@ -45,6 +45,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
+    package_data={"autogen.agentchat.contrib.multimodal_web_surfer": ["*.*"]},
     install_requires=install_requires,
     extras_require={
         "test": [
