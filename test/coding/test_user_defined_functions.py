@@ -2,6 +2,7 @@ import tempfile
 import pytest
 from autogen.coding.base import CodeBlock
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
+
 try:
     import pandas
 except ImportError:
