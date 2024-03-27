@@ -67,9 +67,9 @@ files = [
     "autogen/exception_utils.py",
     "autogen/coding",
     "autogen/oai/openai_utils.py",
-    "autogen/model_client"
     "autogen/io",
     "test/io",
+    "autogen/model_client",
 ]
 
 exclude = [
