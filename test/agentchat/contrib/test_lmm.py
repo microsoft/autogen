@@ -109,7 +109,7 @@ def test_group_chat_with_lmm():
         llm_config=llm_config,
         system_message="Your image description is poetic and engaging.",
     )
-    agent2 = MultimodalConversableAgent(
+    agent2 = ConversableAgent(
         name="image-explainer-2",
         max_consecutive_auto_reply=max_consecutive_auto_reply,
         llm_config=llm_config,

@@ -19,7 +19,9 @@ from autogen.token_count_utils import count_token
 try:
     from autogen.img_utils import format_message_contents_with_images, is_vision_model
 except ImportError:
-    ERROR: Optional[ImportError] = ImportError("Please install pillow if you want to use vision model.")
+    ERROR: Optional[ImportError] = ImportError(
+        "Please install with pyautogen[lmm] option if you want to use vision model."
+    )
     format_message_contents_with_images = object
     is_vision_model = object
 
