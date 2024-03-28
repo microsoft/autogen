@@ -24,12 +24,10 @@ class TransformChatHistory:
     This capability class enables various strategies to transform chat history, such as:
     - Truncate messages: Truncate each message to first maximum number of tokens.
     - Limit number of messages: Truncate the chat history to a maximum number of (recent) messages.
-    - Limit number of tokens: Truncate the chat history to number of recent N messages that fit in
-    maximum number of tokens.
+    - Limit number of tokens: Truncate the chat history to number of recent N messages that fit in maximum number of tokens.
     Note that the system message, because of its special significance, is always kept as is.
 
-    The three strategies can be combined. For example, when each of these parameters are specified
-    they are used in the following order:
+    The three strategies can be combined. For example, when each of these parameters are specified they are used in the following order:
     1. First truncate messages to a maximum number of tokens
     2. Second, it limits the number of message to keep
     3. Third, it limits the total number of tokens in the chat history
