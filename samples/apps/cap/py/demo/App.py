@@ -4,17 +4,16 @@ Demo App
 
 import argparse
 
-import _paths
 import autogencap.Config as Config
 import autogencap.DebugLog as DebugLog
 from AGDemo import ag_demo
 from AGGroupChatDemo import ag_groupchat_demo
-from autogencap.Config import IGNORED_LOG_CONTEXTS, LOG_LEVEL
 from CAPAutGenGroupDemo import cap_ag_group_demo
 from CAPAutoGenPairDemo import cap_ag_pair_demo
 from ComplexActorDemo import complex_actor_demo
-from RemoteAGDemo import remote_ag_demo
 from list_agents import list_agents
+from RemoteAGDemo import remote_ag_demo
+from SimpleActorDemo import simple_actor_demo
 
 ####################################################################################################
 

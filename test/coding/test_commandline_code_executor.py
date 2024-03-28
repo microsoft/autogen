@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import tempfile
 import uuid
 from pathlib import Path
@@ -15,7 +15,6 @@ from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import MOCK_OPEN_AI_API_KEY, skip_docker  # noqa: E402
 
 if skip_docker or not is_docker_running():
     classes_to_test = [LocalCommandLineCodeExecutor]
