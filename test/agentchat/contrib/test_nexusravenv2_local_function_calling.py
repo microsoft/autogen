@@ -1,19 +1,13 @@
 from __future__ import annotations
 
-from typing import Literal, Union, Iterable, Optional, List, Dict, Type
-from unittest.mock import patch
+from typing import Literal, Tuple, Optional, Union, Any, List, Dict
 
-import httpx
-from openai import NotGiven, NOT_GIVEN, Stream
-from openai._models import FinalRequestOptions
-from openai._types import Headers, Query, Body, ResponseT
-from openai.types import Completion
-from pydantic import BaseModel, Field
-from typing_extensions import Annotated
 import pytest
+from typing_extensions import Annotated
+
 import autogen
 import autogen.agentchat.contrib.nexusravenv2_local_function_calling as Nexus
-from autogen import UserProxyAgent
+from autogen import UserProxyAgent, Agent, ConversableAgent
 
 # Requires LiteLLM which supports function calling (though not exactly as OpenAI)
 # Running on port 8801 (set in LiteLLM command)
@@ -30,7 +24,22 @@ llm_config = {
     "cache_seed": None,
 }  ## CRITICAL - ENSURE THERE'S NO CACHING FOR TESTING
 
-from openai._base_client import _StreamT
+
+def create_fake_send(user_proxy):
+    def fake_send(msg2send, recipient, silent=False):
+        print(f"Recipient: {recipient}")
+        print(f"Messages: {msg2send}")
+        print(f"Sender: {silent}")
+        recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
+    return fake_send
+
+def reply_func(
+                    recipient: ConversableAgent,
+                    messages: Optional[List[Dict]] = None,
+                    sender: Optional[Agent] = None,
+                    config: Optional[Any] = None,
+                ) -> Tuple[bool, Union[str, Dict, None]]:
+    return True, "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
 
 
 @pytest.fixture
@@ -57,10 +66,12 @@ def chatbot(mocker):
 
         llm_config=llm_config,
     )
+    agent.register_reply(
+        trigger=lambda _ : True,
+        reply_func=reply_func,
+    )
     # mock the value returned by agent.client._clients[0]._oai_client.chat.completions._client._request
-    mocker.patch.object(agent, "send", fake_send)
-    print(
-        f"\n {repr(agent.client._clients[0]._oai_client.chat.completions._client)} \n *************** {dir(agent.client._clients[0]._oai_client.chat.completions._client)} *************** \n\n")
+
     return agent
 
 
@@ -74,7 +85,7 @@ def user_proxy(mocker):
         max_consecutive_auto_reply=4,
         code_execution_config={"work_dir": "/tmp/coding", "use_docker": False}
     )
-
+    mocker.patch.object(agent, "send", create_fake_send(agent))
     return agent
 
 
@@ -90,13 +101,6 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
         return 1.1
     else:
         raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
-
-
-def fake_send(msg2send, recipient, silent=False):
-    print(f"Recipient: {recipient}")
-    print(f"Messages: {msg2send}")
-    print(f"Sender: {silent}")
-    return True, "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
 
 
 # print(chatbot.llm_config["tools"])
@@ -116,10 +120,11 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
     assert user_proxy.function_map["currency_calculator"]._origin == currency_calculator
 
 
-    res = chatbot.initiate_chat(
-        user_proxy,
-        message="Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
+
+    res = user_proxy.initiate_chat(
+        chatbot,
+        message="How much is 123.45 EUR in USD?",
         summary_method="last_msg",
-        clear_history=True,
+        # clear_history=True,
     )
     print(res)
