@@ -180,8 +180,6 @@ setInterval(function() {{
                     actions = '["type"]'
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
-                
-        print(text_labels)
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -208,7 +206,6 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         som_screenshot.close()  # Don't do this if messages start accepting PIL images
         response = self.client.create(messages=history)
         text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
-        print(colored("\n<<<<<<<< BROWSER RESPONSE " + text_response, "cyan"), flush=True)
 
         target = None
         target_name = None
