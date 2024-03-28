@@ -2264,7 +2264,7 @@ class ConversableAgent(LLMAgent):
             return self._process_carryover(message, kwargs)
 
         elif isinstance(message, dict):
-            message = message.copy()
+            message = copy.deepcopy(message)
             # TODO: Do we need to do the following?
             # if message.get("content") is None:
             #     message["content"] = self.get_human_input(">")
