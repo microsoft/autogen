@@ -230,10 +230,16 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         try:
             if target == str(MARK_ID_ADDRESS_BAR) and argument:
                 self._log_to_console("goto", arg=argument)
-                if argument.startswith("https://") or argument.startswith("http://"):
+                # Check if the argument starts with a known protocol
+                if argument.startswith(("https://", "http://", "file://")):
                     self._visit_page(argument)
-                else:
+                # If the argument contains a space, treat it as a search query
+                elif " " in argument:
                     self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
+                # Otherwise, prefix with https://
+                else:
+                    argument = "https://" + argument
+                    self._visit_page(argument)
             elif target == str(MARK_ID_SEARCH_BAR) and argument:
                 self._log_to_console("search", arg=argument)
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
