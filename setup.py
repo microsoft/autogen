@@ -64,7 +64,20 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+        "websurfer": [
+            "beautifulsoup4",
+            "markdownify",
+            "pathvalidate",
+            # mdconvert
+            "puremagic",  # File identification
+            "binaryornot",  # More file identification
+            "pdfminer.six",  # Pdf
+            "mammoth",  # Docx
+            "python-pptx",  # Ppts
+            "pandas",  # Xlsx
+            "openpyxl",
+            "youtube_transcript_api==0.6.0",  # Transcription
+        ],
         "redis": ["redis"],
         "websockets": ["websockets>=12.0,<13"],
         "jupyter-executor": jupyter_executor,
