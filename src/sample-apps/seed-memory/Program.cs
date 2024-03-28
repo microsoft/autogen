@@ -1,12 +1,17 @@
-﻿using Microsoft.Extensions.Logging;
-using Microsoft.KernelMemory;
+﻿using System.Reflection;
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.Qdrant;
+using Microsoft.SemanticKernel.Memory;
+using UglyToad.PdfPig;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
 class Program
 {
     static string WafFileName = "azure-well-architected.pdf";
     static async Task Main(string[] args)
     {
-        var kernelSettings = KernelSettings.LoadSettings();
+       var kernelSettings = KernelSettings.LoadSettings();
 
         using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -15,34 +20,38 @@ class Program
                 .AddConsole()
                 .AddDebug();
         });
+       
+        var memoryBuilder = new MemoryBuilder();
+        var memory = memoryBuilder.WithLoggerFactory(loggerFactory)
+                    .WithQdrantMemoryStore(kernelSettings.QdrantEndpoint, 1536)
+                    .WithAzureOpenAITextEmbeddingGeneration(kernelSettings.EmbeddingDeploymentOrModelId,kernelSettings.Endpoint, kernelSettings.ApiKey)
+                    .Build();
 
-        var memory = new KernelMemoryBuilder()
-                .WithQdrantMemoryDb(kernelSettings.QdrantEndpoint)
-                .WithAzureOpenAITextGeneration(new AzureOpenAIConfig
-                {
-                    APIType = AzureOpenAIConfig.APITypes.ChatCompletion,
-                    Endpoint =kernelSettings.Endpoint,
-                    Deployment = kernelSettings.DeploymentOrModelId,
-                    Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-                    APIKey = kernelSettings.ApiKey
-                })
-                .WithAzureOpenAITextEmbeddingGeneration(new AzureOpenAIConfig
-                {
-                    APIType = AzureOpenAIConfig.APITypes.EmbeddingGeneration,
-                    Endpoint = kernelSettings.Endpoint,
-                    Deployment =kernelSettings.EmbeddingDeploymentOrModelId,
-                    Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-                APIKey = kernelSettings.ApiKey
-                })
-                .Build<MemoryServerless>();
         await ImportDocumentAsync(memory, WafFileName);
     }
 
-    public static async Task ImportDocumentAsync(IKernelMemory memory, string filename)
+    public static async Task ImportDocumentAsync(ISemanticTextMemory memory, string filename)
         {
-            await memory.ImportDocumentAsync(new Document("wafdoc")
-                                            .AddFiles([
-                                                filename
-                                            ]), index: "waf");
+            var currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var filePath = Path.Combine(currentDirectory, filename);
+            using var pdfDocument = PdfDocument.Open(File.OpenRead(filePath));
+            var pages = pdfDocument.GetPages();
+            foreach (var page in pages)
+            {
+                try
+                {
+                    var text = ContentOrderTextExtractor.GetText(page);
+                    var descr = text.Take(100);
+                    await memory.SaveInformationAsync(
+                        collection: "waf",
+                        text: text,
+                        id: $"{Guid.NewGuid()}",
+                        description: $"Document: {descr}");
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
         }
 }

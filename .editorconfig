@@ -1,0 +1,23 @@
+# Remove the line below if you want to inherit .editorconfig settings from higher directories
+root = true
+
+# C# files
+[*.cs]
+
+#### Core EditorConfig Options ####
+
+# Indentation and spacing
+indent_size = 4
+indent_style = space
+tab_width = 4
+
+#### .NET Coding Conventions ####
+
+# this. and Me. preferences
+dotnet_style_qualification_for_method = true
+
+#### Diagnostic configuration ####
+
+dotnet_diagnostic.SKEXP0001.severity = none
+dotnet_diagnostic.SKEXP0020.severity = none
+dotnet_diagnostic.SKEXP0010.severity = none

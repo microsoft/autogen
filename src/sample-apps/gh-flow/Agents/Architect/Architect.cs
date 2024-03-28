@@ -1,5 +1,6 @@
 using Microsoft.AI.Agents.Abstractions;
-using Microsoft.KernelMemory;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 using Orleans.Streams;
 
@@ -8,17 +9,16 @@ namespace Microsoft.AI.DevTeam;
 
 // The architect has Org+Repo scope and is holding the knowledge of the high level architecture of the project
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class Architect : AzureAiAgent<ArchitectState>
+public class Architect : AiAgent<ArchitectState>
 {
     protected override string Namespace => Consts.MainNamespace;
-    public Architect([PersistentState("state", "messages")] IPersistentState<AgentState<ArchitectState>> state, IKernelMemory memory) 
-    : base(state, memory)
+    public Architect([PersistentState("state", "messages")] IPersistentState<AgentState<ArchitectState>> state, ISemanticTextMemory memory, Kernel kernel) 
+    : base(state, memory, kernel)
     {
     }
 
     public override Task HandleEvent(Event item, StreamSequenceToken? token)
     {
-       // throw new NotImplementedException();
        return Task.CompletedTask;
     }
 }

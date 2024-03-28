@@ -9,12 +9,14 @@ using Octokit.Webhooks.AspNetCore;
 using Azure.Identity;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Http.Resilience;
-using Microsoft.KernelMemory;
+using Microsoft.SemanticKernel.Memory;
+using Microsoft.SemanticKernel.Connectors.Qdrant;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
 builder.Services.AddTransient(CreateKernel);
-builder.Services.AddSingleton<IKernelMemory>(CreateMemory);
+builder.Services.AddTransient(CreateMemory);
 builder.Services.AddHttpClient();
 
 builder.Services.AddSingleton(s =>
@@ -22,7 +24,7 @@ builder.Services.AddSingleton(s =>
     var ghOptions = s.GetService<IOptions<GithubOptions>>();
     var logger = s.GetService<ILogger<GithubAuthService>>();
     var ghService = new GithubAuthService(ghOptions, logger);
-    var client = ghService.GetGitHubClient().Result;
+    var client = ghService.GetGitHubClient();
     return client;
 });
 
@@ -96,29 +98,24 @@ app.Map("/dashboard", x => x.UseOrleansDashboard());
 
 app.Run();
 
-static IKernelMemory CreateMemory(IServiceProvider provider)
+static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 {
-    var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
     var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
-    return new KernelMemoryBuilder()
-            .WithQdrantMemoryDb(qdrantConfig.Endpoint)
-            .WithAzureOpenAITextGeneration(new AzureOpenAIConfig
-            {
-                APIType = AzureOpenAIConfig.APITypes.ChatCompletion,
-                Endpoint = openAiConfig.Endpoint,
-                Deployment = openAiConfig.DeploymentOrModelId,
-                Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-                APIKey = openAiConfig.ApiKey
-            })
-            .WithAzureOpenAITextEmbeddingGeneration(new AzureOpenAIConfig
-            {
-                APIType = AzureOpenAIConfig.APITypes.EmbeddingGeneration,
-                Endpoint = openAiConfig.Endpoint,
-                Deployment =openAiConfig.EmbeddingDeploymentOrModelId,
-                Auth = AzureOpenAIConfig.AuthTypes.APIKey,
-               APIKey = openAiConfig.ApiKey
-            })
-            .Build<MemoryServerless>();
+    var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
+
+    var loggerFactory = LoggerFactory.Create(builder =>
+    {
+        builder
+            .SetMinimumLevel(LogLevel.Debug)
+            .AddConsole()
+            .AddDebug();
+    });
+
+    var memoryBuilder = new MemoryBuilder();
+    return memoryBuilder.WithLoggerFactory(loggerFactory)
+                 .WithQdrantMemoryStore(qdrantConfig.Endpoint, qdrantConfig.VectorSize)
+                 .WithAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingDeploymentOrModelId, openAiConfig.Endpoint, openAiConfig.ApiKey)
+                 .Build();
 }
 
 static Kernel CreateKernel(IServiceProvider provider)

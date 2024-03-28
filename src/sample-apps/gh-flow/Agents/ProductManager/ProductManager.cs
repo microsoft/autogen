@@ -1,24 +1,21 @@
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.DevTeam.Events;
-using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class ProductManager : AzureAiAgent<ProductManagerState>, IManageProducts
+public class ProductManager : AiAgent<ProductManagerState>, IManageProducts
 {
     protected override string Namespace => Consts.MainNamespace;
-    private readonly Kernel _kernel;
     private readonly ILogger<ProductManager> _logger;
 
-    public ProductManager([PersistentState("state", "messages")] IPersistentState<AgentState<ProductManagerState>> state, Kernel kernel, IKernelMemory memory, ILogger<ProductManager> logger) 
-    : base(state, memory)
+    public ProductManager([PersistentState("state", "messages")] IPersistentState<AgentState<ProductManagerState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<ProductManager> logger) 
+    : base(state, memory, kernel)
     {
-        _kernel = kernel;
-        //_memory = memory;
         _logger = logger;
     }
 
@@ -63,7 +60,9 @@ public class ProductManager : AzureAiAgent<ProductManagerState>, IManageProducts
         try
         {
             var context = new KernelArguments { ["input"] = AppendChatHistory(ask)};
-            return await CallFunction(PMSkills.Readme, context, _kernel);
+            var instruction = "Consider the following architectural guidelines:!waf!";
+            var enhancedContext = await AddKnowledge(instruction, "waf",context);
+            return await CallFunction(PMSkills.Readme, enhancedContext);
         }
         catch (Exception ex)
         {

@@ -1,23 +1,20 @@
 using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.DevTeam.Events;
-using Microsoft.KernelMemory;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
-public class DeveloperLead : AzureAiAgent<DeveloperLeadState>, ILeadDevelopers
+public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
 {
     protected override string Namespace => Consts.MainNamespace;
-    private readonly Kernel _kernel;
     private readonly ILogger<DeveloperLead> _logger;
 
-    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<AgentState<DeveloperLeadState>> state, Kernel kernel, IKernelMemory memory, ILogger<DeveloperLead> logger)
-     : base(state, memory)
+    public DeveloperLead([PersistentState("state", "messages")] IPersistentState<AgentState<DeveloperLeadState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<DeveloperLead> logger)
+     : base(state, memory, kernel)
     {
-        _kernel = kernel;
         _logger = logger;
     }
 
@@ -64,8 +61,10 @@ public class DeveloperLead : AzureAiAgent<DeveloperLeadState>, ILeadDevelopers
         {
             // TODO: Ask the architect for the existing high level architecture
             // as well as the file structure
-            var context = new KernelArguments { ["input"] = AppendChatHistory(ask)};
-            return await CallFunction(DevLeadSkills.Plan, context, _kernel);
+            var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
+            var instruction = "Consider the following architectural guidelines:!waf!";
+            var enhancedContext = await AddKnowledge(instruction, "waf", context);
+            return await CallFunction(DevLeadSkills.Plan, enhancedContext);
         }
         catch (Exception ex)
         {
@@ -77,7 +76,7 @@ public class DeveloperLead : AzureAiAgent<DeveloperLeadState>, ILeadDevelopers
 
 public interface ILeadDevelopers
 {
-     public Task<string> CreatePlan(string ask);
+    public Task<string> CreatePlan(string ask);
 }
 
 [GenerateSerializer]

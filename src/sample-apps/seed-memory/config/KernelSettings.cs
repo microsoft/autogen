@@ -72,7 +72,7 @@ internal class KernelSettings
         }
 
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(System.IO.Directory.GetCurrentDirectory())
+            .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile(configFile, optional: true, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();

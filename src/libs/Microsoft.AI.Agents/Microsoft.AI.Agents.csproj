@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.0.0" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
     <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.0.0" />
   </ItemGroup>

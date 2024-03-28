@@ -1,5 +1,7 @@
+using System.Text;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 
 namespace Microsoft.AI.Agents.Abstractions;
@@ -7,11 +9,15 @@ namespace Microsoft.AI.Agents.Abstractions;
 public abstract class AiAgent<T> : Agent
 {
     public AiAgent(
-        [PersistentState("state", "messages")] IPersistentState<AgentState<T>> state)
+        [PersistentState("state", "messages")] IPersistentState<AgentState<T>> state, ISemanticTextMemory memory, Kernel kernel)
     {
         _state = state;
+        _memory = memory;
+        _kernel = kernel;
     }
     protected IPersistentState<AgentState<T>> _state;
+    private readonly ISemanticTextMemory _memory;
+    private readonly Kernel _kernel;
 
     protected void AddToHistory(string message, ChatUserType userType)
     {
@@ -30,19 +36,33 @@ public abstract class AiAgent<T> : Agent
         return string.Join("\n", _state.State.History.Select(message => $"{message.UserType}: {message.Message}"));
     }
 
-    protected virtual async Task<string> CallFunction(string template, KernelArguments arguments, Kernel kernel, OpenAIPromptExecutionSettings? settings = null)
+    protected virtual async Task<string> CallFunction(string template, KernelArguments arguments, OpenAIPromptExecutionSettings? settings = null)
     {
         var propmptSettings = (settings == null) ? new OpenAIPromptExecutionSettings { MaxTokens = 18000, Temperature = 0.8, TopP = 1 }
                                                 : settings;
-        var function = kernel.CreateFunctionFromPrompt(template, propmptSettings);
-        var result = (await kernel.InvokeAsync(function, arguments)).ToString();
+        var function = _kernel.CreateFunctionFromPrompt(template, propmptSettings);
+        var result = (await _kernel.InvokeAsync(function, arguments)).ToString();
         AddToHistory(result, ChatUserType.Agent);
         return result;
     }
 
-    protected async Task<T> ShareContext()
+    /// <summary>
+    /// Adds knowledge to the 
+    /// </summary>
+    /// <param name="instruction">The instruction string that uses the value of !index! as a placeholder to inject the data. Example:"Consider the following architectural guidelines: {waf}" </param>
+    /// <param name="index">Knowledge index</param>
+    /// <param name="arguments">The sk arguments, "input" is the argument </param>
+    /// <returns></returns>
+    protected async Task<KernelArguments> AddKnowledge(string instruction, string index, KernelArguments arguments)
     {
-        return _state.State.Data;
+        var documents = _memory.SearchAsync(index, arguments["input"].ToString(), 5);
+        var kbStringBuilder = new StringBuilder();
+        await foreach (var doc in documents)
+        {
+            kbStringBuilder.AppendLine($"{doc.Metadata.Text}");
+        }
+        arguments[index] = instruction.Replace($"!{index}!", $"{kbStringBuilder}");
+        return arguments;
     }
 }
 

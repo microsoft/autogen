@@ -21,7 +21,6 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.6.2-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.6.2-alpha" />
-    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.Qdrant" Version="0.35.240318.1" />
 
     <PackageReference Include="Microsoft.Orleans.Server" Version="8.0.0" />
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
@@ -45,7 +44,7 @@
     <PackageReference Include="Azure.Identity" Version="1.11.0-beta.1" />
    
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
-    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.35.240318.1" />
+    
     
   </ItemGroup>
   
