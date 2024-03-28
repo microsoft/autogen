@@ -232,17 +232,38 @@ class GroupChat:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
         if agents is None:
             agents = self.agents
+
+        '''
         return f"""You are in a role play game. The following roles are available:
 {self._participant_roles(agents)}.
 
 Read the following conversation.
 Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+        '''
+
+        # Mark Sze - Suggestion 2
+        # Requires a passed in optional string parameter (allow f-strings)
+        #
+        # Clearer directions for LLM!
+        # Note: This is a hard coded example, needs optional string parameter passed in
+        # using that if provided or the default (above) otherwise.
+        return f"You are in a role play game. The following roles are available:\n{self._participant_roles(agents)}.\n\nRoles must be selected in this order: 1. Debate_Moderator_Agent, 2. Affirmative_Constructive_Debater, 3. Negative_Constructive_Debater, 4. Affirmative_Rebuttal_Debater, 5. Negative_Rebuttal_Debater, 6. Debate_Judge, 7. Debate_Concluder. What is the next role in the sequence to speak, answer concisely please?"
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         if agents is None:
             agents = self.agents
+        """
         return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+        """
+
+        # Mark Sze - Suggestion 2
+        # Requires a passed in optional string parameter (allow f-strings)
+        #
+        # Clearer directions for LLM!
+        # Note: This is a hard coded example, needs optional string parameter passed in
+        # using that if provided or the default (above) otherwise.
+        return "Read the above conversation and select the next role, the list of roles in order is 1. Affirmative_Constructive_Debater, 2. Negative_Constructive_Debater, 3. Affirmative_Rebuttal_Debater, 4. Negative_Rebuttal_Debater, 5. Debate_Judge, 6. Debate_Moderator_Agent. What is the next role in the sequence to speak, answer concisely please?"
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
@@ -429,10 +450,30 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
+        """
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = selector.generate_oai_reply(messages)
+        """
+
+        # Mark Sze - Suggestion 3
+        # Recommend this being optional (On / Off) and possibly set replacement message
+        #
+        # Replace the content for speakers to be just their names, essentially.
+        # Works if you don't need to know what they said to select the next speaker
+        # (only who spoke and when)
+        shorter_messages = messages.copy()
+        for message in shorter_messages:
+            if "name" in message and not message["name"] == "userproxy":
+                message["content"] = f"I am {message['name']} and I have spoken."
+
+        final, name = selector.generate_oai_reply(shorter_messages)
+
+        # Mark Sze - Suggestion 4
+        """
         return self._finalize_speaker(last_speaker, final, name, agents)
+        """
+        return self._finalize_speaker(last_speaker, final, name, selector, agents)
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
@@ -442,17 +483,61 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = await selector.a_generate_oai_reply(messages)
-        return self._finalize_speaker(last_speaker, final, name, agents)
 
+        # Mark Sze - Suggestion 4
+        """
+        return self._finalize_speaker(last_speaker, final, name, agents)
+        """
+        return self._finalize_speaker(last_speaker, final, name, selector, agents)
+
+    # Mark Sze - Suggestion 4
+    # Recommend this being optional (On / Off) and possibly set requery message
+    #
+    # Cater for an LLM query of a speaker response when it contains more than
+    # one agent name
+    """
     def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: Optional[List[Agent]]) -> Agent:
+    """
+
+    def _finalize_speaker(
+        self, last_speaker: Agent, final: bool, name: str, selector: ConversableAgent, agents: Optional[List[Agent]]
+    ) -> Agent:
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
 
         # If exactly one agent is mentioned, use it. Otherwise, leave the OAI response unmodified
         mentions = self._mentioned_agents(name, agents)
+        """
         if len(mentions) == 1:
             name = next(iter(mentions))
+        """
+        if len(mentions) == 1:
+            name = next(iter(mentions))
+        # Mark Sze - Suggestion 4
+        # Query the LLM to narrow down to one name if multiple agent names detected
+        elif len(mentions) > 1:
+            select_name_query = [
+                {
+                    "content": f"Respond with just the name of the next speaker's name identified by this text: {name}",
+                    "role": "system",
+                }
+            ]
+
+            # Requery with just the latest reply and try and get it to narrow it down to a single agent name.
+            final_single, name_single = selector.generate_oai_reply(select_name_query)
+
+            # Try again to see if we've got just one name matching
+            mentions = self._mentioned_agents(name_single, agents)
+            if len(mentions) == 1:
+                name = next(iter(mentions))
+                logger.warning(
+                    f"[Note: Successfully queried initial speaker selection response to narrow to one agent: {name}]"
+                )
+            else:
+                logger.warning(
+                    f"GroupChat select_speaker failed to resolve the next speaker's name. Multiple names in original reply and re-queried but unable to successfully identify a single agent. Original agent selection reply: {name}\nRequeried agent selection reply: {name_single}"
+                )
         else:
             logger.warning(
                 f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
@@ -496,9 +581,26 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         mentions = dict()
         for agent in agents:
+            """
             regex = (
-                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
+                r"(?<=\\W)" + re.escape(agent.name) + r"(?=\\W)"
             )  # Finds agent mentions, taking word boundaries into account
+            """
+
+            # Mark Sze - Suggestion 1
+            # Recommend this can be toggled (On/Off)
+            #
+            # Cater for spaces in agent names and "\_" returned by LLMs.
+            regex = (
+                r"(?<=\W)("
+                + re.escape(agent.name)
+                + r"|"
+                + re.escape(agent.name.replace("_", " "))
+                + r"|"
+                + re.escape(agent.name.replace("_", r"\_"))
+                + r")(?=\W)"
+            )
+
             count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count

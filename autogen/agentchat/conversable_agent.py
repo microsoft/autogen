@@ -136,7 +136,15 @@ class ConversableAgent(LLMAgent):
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
-            else (lambda x: content_str(x.get("content")) == "TERMINATE")
+            # Mark Sze - Suggestion 5
+            # Recommend this being optional (On / Off) and possibly set terminate keyword
+            #
+            # It's hard to get an LLM to return just a single word, they often elaborate
+            # This change looks for the keyword (match-case) within the text rather than
+            # just the text
+            #
+            # else (lambda x: content_str(x.get("content")) == "TERMINATE")
+            else (lambda x: "TERMINATE" in content_str(x.get("content")))
         )
 
         self._validate_llm_config(llm_config)
