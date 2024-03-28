@@ -5,7 +5,7 @@ from openai import OpenAI
 from PIL.Image import Image
 
 from autogen import Agent, ConversableAgent, code_utils
-from autogen.cache import Cache
+from autogen.cache import AbstractCache
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
@@ -142,7 +142,7 @@ class ImageGeneration(AgentCapability):
     def __init__(
         self,
         image_generator: ImageGenerator,
-        cache: Optional[Cache] = None,
+        cache: Optional[AbstractCache] = None,
         text_analyzer_llm_config: Optional[Dict] = None,
         text_analyzer_instructions: str = PROMPT_INSTRUCTIONS,
         verbosity: int = 0,
@@ -151,7 +151,7 @@ class ImageGeneration(AgentCapability):
         """
         Args:
             image_generator (ImageGenerator): The image generator you would like to use to generate images.
-            cache (None or Cache): The cache client to use to store and retrieve generated images. If None,
+            cache (None or AbstractCache): The cache client to use to store and retrieve generated images. If None,
                 no caching will be used.
             text_analyzer_llm_config (Dict or None): The LLM config for the text analyzer. If None, the LLM config will
                 be retrieved from the agent you're adding the ability to.
