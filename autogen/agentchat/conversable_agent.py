@@ -2286,7 +2286,6 @@ class ConversableAgent(LLMAgent):
                 raise InvalidCarryOverType(
                     "Carryover should be a string or a list of strings. Not adding carryover to the message."
                 )
-
         return message
 
     def _process_multimodal_carryover(self, message: List[Dict], kwargs: dict) -> List[Dict]:
