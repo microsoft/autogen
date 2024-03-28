@@ -202,6 +202,9 @@ $functions"""
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
             code = silence_pip(code, lang)
 
+            if lang in ["Python", "py"]:
+                lang = "python"
+
             if WIN32 and lang in ["sh", "shell"]:
                 lang = "ps1"
 
