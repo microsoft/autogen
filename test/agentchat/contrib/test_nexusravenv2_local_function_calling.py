@@ -70,7 +70,7 @@ def chatbot(mocker):
         trigger=lambda _ : True,
         reply_func=reply_func,
     )
-    # mock the value returned by agent.client._clients[0]._oai_client.chat.completions._client._request
+
 
     return agent
 
@@ -107,24 +107,20 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
 def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
                                              chatbot: Nexus.NexusFunctionCallingAssistant):
     @user_proxy.register_for_execution()
-    @chatbot.register_for_llm(description="Currency exchange calculator.")
-    def currency_calculator(
-            base_amount: Annotated[float, "Amount of currency in base_currency"],
-            base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
-            quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
+    @chatbot.register_for_llm(description="A Random Word Generator")
+    def random_word_generator(
+            seed: Annotated[int, "Randomizing Seed for the word generation"] = 42,
+            prefix: Annotated[str, "Prefix to Append to the Word that was generated."] = "USD",
     ) -> str:
-        quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
-        return f"{format(quote_amount, '.2f')} {quote_currency}"
+        return f"{prefix}_not_random_actually_but_this_is_a_test"
 
     # Test that the function map is the function
-    assert user_proxy.function_map["currency_calculator"]._origin == currency_calculator
-
-
+    assert user_proxy.function_map["random_word_generator"]._origin == random_word_generator
 
     res = user_proxy.initiate_chat(
         chatbot,
-        message="How much is 123.45 EUR in USD?",
+        message="Generate Me a Random Word Please",
         summary_method="last_msg",
         # clear_history=True,
     )
-    print(res)
+
