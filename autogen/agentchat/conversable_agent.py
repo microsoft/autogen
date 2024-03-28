@@ -2307,14 +2307,17 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = await self.a_get_human_input(">")
+
         if isinstance(message, str):
             return self._process_carryover(message, kwargs)
+
         elif isinstance(message, dict):
-            message = message.copy()
-            message["content"] = self._process_carryover(message["content"], kwargs)
+            message = copy.deepcopy(message)
+            if isinstance(message.get("content"), str):
+                message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+            elif isinstance(message.get("content"), list):
+                message["content"] = self._process_multimodal_carryover(message.get("content", []), kwargs)
             return message
-        elif isinstance(message, list):
-            return {"content": self._process_multimodal_carryover(message, kwargs)}
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.
