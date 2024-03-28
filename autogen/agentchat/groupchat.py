@@ -28,6 +28,14 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
+    - select_speaker_message_template: customize the select speaker message (used in "auto" speaker selection), which appears first in the message context and generally includes the agent descriptions and list of agents. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "You are in a role play game. The following roles are available:
+                {roles}.
+
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."
+    - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
@@ -61,8 +69,6 @@ class GroupChat:
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
     - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
-    - custom_select_speaker_msg: customize the select speaker message. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets.
-    - custom_select_speaker_prompt: customize the select speaker prompt. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets.
     """
 
     agents: List[Agent]
@@ -76,8 +82,16 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
-    custom_select_speaker_msg: Optional[str] = None
-    custom_select_speaker_prompt: Optional[str] = None
+    select_speaker_message_template: Optional[
+        str
+    ] = """You are in a role play game. The following roles are available:
+                {roles}.
+
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."""
+    select_speaker_prompt_template: Optional[str] = (
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+    )
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -240,17 +254,8 @@ class GroupChat:
         roles = self._participant_roles(agents)
         agentlist = f"{[agent.name for agent in agents]}"
 
-        if self.custom_select_speaker_msg is None:
-            # Standard select speaker message
-            return f"""You are in a role play game. The following roles are available:
-                {roles}.
-
-                Read the following conversation.
-                Then select the next role from {agentlist} to play. Only return the role."""
-        else:
-            # Customised select speaker message, allows incorporation of local function variables
-            return_msg = self.custom_select_speaker_msg.format(**locals())
-            return return_msg
+        return_msg = self.select_speaker_message_template.format(**locals())
+        return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
@@ -259,12 +264,8 @@ class GroupChat:
 
         agentlist = f"{[agent.name for agent in agents]}"
 
-        if self.custom_select_speaker_msg is None:
-            return f"Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
-        else:
-            # Customised select speaker prompt, allows incorporation of local function variables
-            return_prompt = self.custom_select_speaker_prompt.format(**locals())
-            return return_prompt
+        return_prompt = self.select_speaker_prompt_template.format(**locals())
+        return return_prompt
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
