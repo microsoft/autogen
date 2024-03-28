@@ -1,8 +1,11 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
+import logging
 from typing import Any, Iterator, Optional, Protocol, runtime_checkable
 
 __all__ = ("OutputStream", "InputStream", "IOStream")
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -39,6 +42,31 @@ class InputStream(Protocol):
 class IOStream(InputStream, OutputStream, Protocol):
     """A protocol for input/output streams."""
 
+    # ContextVar must be used in multithreaded or async environments
+    _default_io_stream: ContextVar[Optional["IOStream"]] = ContextVar("default_iostream", default=None)
+    _default_io_stream.set(None)
+    _global_default: Optional["IOStream"] = None
+
+    @staticmethod
+    def set_global_default(stream: "IOStream") -> None:
+        """Set the default input/output stream.
+
+        Args:
+            stream (IOStream): The input/output stream to set as the default.
+        """
+        IOStream._global_default = stream
+
+    @staticmethod
+    def get_global_default() -> "IOStream":
+        """Get the default input/output stream.
+
+        Returns:
+            IOStream: The default input/output stream.
+        """
+        if IOStream._global_default is None:
+            raise RuntimeError("No global default IOStream has been set")
+        return IOStream._global_default
+
     @staticmethod
     def get_default() -> "IOStream":
         """Get the default input/output stream.
@@ -48,12 +76,9 @@ class IOStream(InputStream, OutputStream, Protocol):
         """
         iostream = IOStream._default_io_stream.get()
         if iostream is None:
-            raise RuntimeError("No default IOStream has been set")
+            logger.warning("No default IOStream has been set, defaulting to IOConsole.")
+            return IOStream.get_global_default()
         return iostream
-
-    # ContextVar must be used in multithreaded or async environments
-    _default_io_stream: ContextVar[Optional["IOStream"]] = ContextVar("default_iostream")
-    _default_io_stream.set(None)
 
     @staticmethod
     @contextmanager
