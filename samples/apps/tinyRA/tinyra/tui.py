@@ -975,23 +975,23 @@ class SubprocessError(Exception):
     pass
 
 
-async def run_in_subprocess(func, *args):
-    # Create a ThreadPoolExecutor
-    try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            # Run the function in the executor
-            result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
-            return result
-    except Exception as e:
-        error_message = f"Error running function in subprocess: {e}"
-        raise SubprocessError(error_message) from e
+# async def run_in_subprocess(func, *args):
+#     # Create a ThreadPoolExecutor
+#     try:
+#         with concurrent.futures.ThreadPoolExecutor() as executor:
+#             # Run the function in the executor
+#             result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
+#             return result
+#     except Exception as e:
+#         error_message = f"Error running function in subprocess: {e}"
+#         raise SubprocessError(error_message) from e
 
 
 def generate_response_process(msg_idx: int):
     # fetch the relevant chat history
     chat_history = fetch_chat_history()
     task = chat_history[msg_idx]["content"]
-    chat_history = chat_history[0:msg_idx]
+    # chat_history = chat_history[0:msg_idx]
 
     def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
         # check the contents of the last N messages
@@ -1016,44 +1016,17 @@ def generate_response_process(msg_idx: int):
         return False, None
 
     def summarize(text):
-        if text:
-            if len(text) > 100:
-                return text[:100] + "…"
-            return text
-        return "Working…"
+        return text[:100]
 
-    def post_update_to_main(recipient, messages, sender, **kwargs):
-        last_assistant_message = None
-        for msg in reversed(messages):
-            if msg["role"] == "assistant":
-                last_assistant_message = msg
-                break
+    def post_snippet_and_record_history(sender, message, recipient, silent):
+        if silent is True:
+            return message
 
-        # update_message = "Computing response..."
-        if last_assistant_message:
-            if last_assistant_message.get("content"):
-                summary = summarize(last_assistant_message["content"])
-            elif last_assistant_message.get("tool_calls"):
-                summary = summarize("Using tools…")
-            else:
-                summary = "Working…"
-            update_message = f"{summary}…"
-            insert_chat_message("info", update_message, root_id=0, id=msg_idx + 1)
-        else:
-            insert_chat_message("info", "Working…", root_id=0, id=msg_idx + 1)
-        return False, None
-
-    def post_last_user_msg_to_chat_history(recipient, messages, sender, **kwargs):
-        last_message = messages[-1]
-        insert_chat_message("user", last_message["content"], root_id=msg_idx + 1)
-        return False, None
-
-    def post_last_assistant_msg_to_chat_history(recipient, messages, sender, **kwargs):
-        last_message = messages[-1]
-        logging.info(json.dumps(last_message, indent=2))
-        content = last_message["content"] or json.dumps(last_message["tool_calls"], indent=2)
-        insert_chat_message("assistant", content, root_id=msg_idx + 1)
-        return False, None
+        insert_chat_message(sender.name, message, root_id=msg_idx + 1)
+        summary = summarize(message)
+        snippet = f"{summary}…"
+        insert_chat_message("info", snippet, root_id=0, id=msg_idx + 1)
+        return message
 
     assistant = AssistantAgent(
         "assistant",
@@ -1075,12 +1048,8 @@ def generate_response_process(msg_idx: int):
             assistant.send(msg["content"], user, request_reply=False, silent=True)
 
     assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
-    assistant.register_reply([Agent, None], post_update_to_main)
-    assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
-
-    user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
-    user.register_reply([Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True)
-    user.register_reply([Agent, None], post_last_assistant_msg_to_chat_history)
+    assistant.register_hook("process_message_before_send", post_snippet_and_record_history)
+    user.register_hook("process_message_before_send", post_snippet_and_record_history)
 
     # register tools for assistant and user
     tools = APP_CONFIG.get_tools()
@@ -1096,7 +1065,11 @@ def generate_response_process(msg_idx: int):
     logging.info("Current history:")
     logging.info(assistant.chat_messages[user])
 
-    user.initiate_chat(assistant, message=task, clear_history=False, silent=True)
+    # hack to get around autogen's current api...
+    initial_reply = assistant.generate_reply(None, user)
+    assistant.initiate_chat(user, message=initial_reply, clear_history=False, silent=False)
+
+    # user.send(task, assistant, request_reply=True, silent=False)
 
     user.send(
         f"""Based on the results in above conversation, create a response for the user.
@@ -1108,10 +1081,10 @@ There is no need to use the word TERMINATE in this response.
         """,
         assistant,
         request_reply=False,
-        silent=True,
+        silent=False,
     )
     response = assistant.generate_reply(assistant.chat_messages[user], user)
-    assistant.send(response, user, request_reply=False, silent=True)
+    assistant.send(response, user, request_reply=False, silent=False)
 
     response = assistant.chat_messages[user][-1]["content"]
 
@@ -1252,12 +1225,17 @@ class TinyRA(App):
         await chat_display_widget.mount(reactive_message)
 
         try:
-            await run_in_subprocess(generate_response_process, id)
+            # await run_in_subprocess(generate_response_process, id)
+            self.generate_response(id)
         except SubprocessError as e:
             error_message = f"{e}"
             a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
             self.post_message(AppErrorMessage(error_message))
-            raise e
+            # raise e
+
+    @work(thread=True)
+    def generate_response(self, msg_idx: int) -> None:
+        generate_response_process(msg_idx)
 
 
 def run_app() -> None:
