@@ -485,7 +485,14 @@ echo RUN.SH COMPLETE !#!#
 
     # Create and run the container
     container = client.containers.run(
-        image, command=["sh", "run.sh"], working_dir="/workspace", environment=env, detach=True, volumes=volumes
+        image,
+        command=["sh", "run.sh"],
+        working_dir="/workspace",
+        environment=env,
+        detach=True,
+        remove=True,
+        auto_remove=True,
+        volumes=volumes,
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
@@ -529,7 +536,10 @@ echo RUN.SH COMPLETE !#!#
             break
 
     # Clean up the container
-    container.remove()
+    try:
+        container.remove()
+    except docker.errors.APIError:
+        pass
 
     if stopping:  # By this line we've exited the loop, and the container has actually stopped.
         log_file.write("\nDocker timed out.\n")
