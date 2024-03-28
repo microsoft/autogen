@@ -13,6 +13,12 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
     exec(fp.read(), version)
 __version__ = version["__version__"]
 
+test_deps = [
+    'pytest',
+    'pytest-asyncio',
+    'pytest-mock',
+]
+
 install_requires = [
     "openai>=1.3",
     "diskcache",
@@ -52,10 +58,11 @@ setuptools.setup(
             "ipykernel",
             "nbconvert",
             "nbformat",
+            "pandas",
             "pre-commit",
             "pytest-asyncio",
             "pytest>=6.1.1,<8",
-            "pandas",
+            "pytest-mock", 
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
@@ -76,4 +83,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8,<3.13",
+    tests_require=test_deps,
 )
