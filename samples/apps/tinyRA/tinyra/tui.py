@@ -984,7 +984,7 @@ async def run_in_subprocess(func, *args):
             return result
     except Exception as e:
         error_message = f"Error running function in subprocess: {e}"
-        raise SubprocessError(error_message)
+        raise SubprocessError(error_message) from e
 
 
 def generate_response_process(msg_idx: int):
@@ -1078,8 +1078,8 @@ def generate_response_process(msg_idx: int):
     assistant.register_reply([Agent, None], post_update_to_main)
     assistant.register_reply([Agent, None], post_last_user_msg_to_chat_history)
 
-    user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=False)
-    user.register_reply([Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=False)
+    user.register_reply([Agent, None], UserProxyAgent.a_generate_tool_calls_reply, ignore_async_in_sync_chat=True)
+    user.register_reply([Agent, None], UserProxyAgent.a_generate_function_call_reply, ignore_async_in_sync_chat=True)
     user.register_reply([Agent, None], post_last_assistant_msg_to_chat_history)
 
     # register tools for assistant and user
@@ -1096,7 +1096,7 @@ def generate_response_process(msg_idx: int):
     logging.info("Current history:")
     logging.info(assistant.chat_messages[user])
 
-    user.initiate_chat(assistant, message=task, clear_history=False)
+    user.initiate_chat(assistant, message=task, clear_history=False, silent=True)
 
     user.send(
         f"""Based on the results in above conversation, create a response for the user.
@@ -1257,6 +1257,7 @@ class TinyRA(App):
             error_message = f"{e}"
             a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
             self.post_message(AppErrorMessage(error_message))
+            raise e
 
 
 def run_app() -> None:
