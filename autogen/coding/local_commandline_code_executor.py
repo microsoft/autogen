@@ -1,14 +1,14 @@
 from hashlib import md5
-import os
 from pathlib import Path
 import re
+from string import Template
 import sys
-import uuid
 import warnings
-from typing import ClassVar, List, Union
+from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
+from typing_extensions import ParamSpec
+from autogen.coding.func_with_reqs import FunctionWithRequirements, _build_python_functions_file, to_stub
 
-from ..agentchat.agent import LLMAgent
-from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
+from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 
@@ -16,16 +16,30 @@ from .utils import _get_file_name_from_content, silence_pip
 
 import subprocess
 
+import logging
+
 __all__ = ("LocalCommandLineCodeExecutor",)
+
+A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
+    FUNCTIONS_MODULE: ClassVar[str] = "functions"
+    FUNCTIONS_FILENAME: ClassVar[str] = "functions.py"
+    FUNCTION_PROMPT_TEMPLATE: ClassVar[
+        str
+    ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
+
+For example, if there was a function called `foo` you could import it by writing `from $module_name import foo`
+
+$functions"""
 
     def __init__(
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
+        functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]] = [],
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -48,6 +62,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
+            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         """
 
         if timeout < 1:
@@ -56,11 +71,42 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            raise ValueError(f"Working directory {work_dir} does not exist.")
+        work_dir.mkdir(exist_ok=True)
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+
+        self._functions = functions
+        # Setup could take some time so we intentionally wait for the first code block to do it.
+        if len(functions) > 0:
+            self._setup_functions_complete = False
+        else:
+            self._setup_functions_complete = True
+
+    def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
+        """(Experimental) Format the functions for a prompt.
+
+        The template includes two variables:
+        - `$module_name`: The module name.
+        - `$functions`: The functions formatted as stubs with two newlines between each function.
+
+        Args:
+            prompt_template (str): The prompt template. Default is the class default.
+
+        Returns:
+            str: The formatted prompt.
+        """
+
+        template = Template(prompt_template)
+        return template.substitute(
+            module_name=self.FUNCTIONS_MODULE,
+            functions="\n\n".join([to_stub(func) for func in self._functions]),
+        )
+
+    @property
+    def functions(self) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]:
+        """(Experimental) The functions that are available to the code executor."""
+        return self._functions
 
     @property
     def timeout(self) -> int:
@@ -99,6 +145,39 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 if re.search(pattern, code):
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
+    def _setup_functions(self) -> None:
+        func_file_content = _build_python_functions_file(self._functions)
+        func_file = self._work_dir / self.FUNCTIONS_FILENAME
+        func_file.write_text(func_file_content)
+
+        # Collect requirements
+        lists_of_packages = [x.python_packages for x in self._functions if isinstance(x, FunctionWithRequirements)]
+        flattened_packages = [item for sublist in lists_of_packages for item in sublist]
+        required_packages = list(set(flattened_packages))
+        if len(required_packages) > 0:
+            logging.info("Ensuring packages are installed in executor.")
+
+            cmd = [sys.executable, "-m", "pip", "install"]
+            cmd.extend(required_packages)
+
+            try:
+                result = subprocess.run(
+                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                )
+            except subprocess.TimeoutExpired as e:
+                raise ValueError("Pip install timed out") from e
+
+            if result.returncode != 0:
+                raise ValueError(f"Pip install failed. {result.stdout}, {result.stderr}")
+
+        # Attempt to load the function file to check for syntax errors, imports etc.
+        exec_result = self._execute_code_dont_check_setup([CodeBlock(code=func_file_content, language="python")])
+
+        if exec_result.exit_code != 0:
+            raise ValueError(f"Functions failed to load: {exec_result.output}")
+
+        self._setup_functions_complete = True
+
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
@@ -107,6 +186,13 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
+
+        if not self._setup_functions_complete:
+            self._setup_functions()
+
+        return self._execute_code_dont_check_setup(code_blocks)
+
+    def _execute_code_dont_check_setup(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         logs_all = ""
         file_names = []
         for code_block in code_blocks:

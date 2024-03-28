@@ -17,10 +17,8 @@ def simple_actor_demo():
     network.connect()
     # Get a channel to the actor
     greeter_link = network.lookup_actor("Greeter")
-    time.sleep(1)
     # Send a message to the actor
     greeter_link.send_txt_msg("Hello World!")
-    time.sleep(1)
     # Cleanup
     greeter_link.close()
     network.disconnect()
