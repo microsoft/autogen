@@ -1263,6 +1263,29 @@ def test_messages_with_carryover():
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
+def test_adding_duplicate_function_warning():
+    agent = autogen.ConversableAgent(
+        "jason",
+        llm_config=False
+    )
+
+    def sample_function():
+        pass
+
+    agent.register_function(
+        function_map={
+            "sample_function": sample_function,
+        }
+    )
+
+    with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
+        agent.register_function(
+            function_map={
+                "sample_function": sample_function,
+            }
+        )
+
+
 
 if __name__ == "__main__":
     # test_trigger()
@@ -1275,3 +1298,4 @@ if __name__ == "__main__":
     # test_process_before_send()
     test_message_func()
     test_summary()
+    test_adding_duplicate_function_warning()
