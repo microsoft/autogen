@@ -1,0 +1,22 @@
+[tool.ruff.lint]
+
+
+select = ["I"]
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "docs",
+     # This file needs to be either upgraded or removed and therefore should be
+    # ignore from type checking for now
+    "math_utils\\.py$",
+]
+
+ignore-init-module-imports = true

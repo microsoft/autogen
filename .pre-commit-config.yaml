@@ -26,6 +26,7 @@ repos:
     rev: 24.3.0
     hooks:
     - id: black
+    # sort the imports only on changed files
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.3.3
     hooks:
