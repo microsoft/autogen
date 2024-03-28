@@ -1269,18 +1269,15 @@ def test_adding_duplicate_function_warning():
         llm_config=False
     )
 
-    # Define a sample function
     def sample_function():
         pass
 
-    # Register the function for the first time
     agent.register_function(
         function_map={
             "sample_function": sample_function,
         }
     )
 
-    # Try to register the same function again and check for a warning
     with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
         agent.register_function(
             function_map={
