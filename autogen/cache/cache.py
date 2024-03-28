@@ -14,7 +14,7 @@ else:
     from typing_extensions import Self
 
 
-class Cache:
+class Cache(AbstractCache):
     """
     A wrapper class for managing cache configuration and instances.
 
