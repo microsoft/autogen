@@ -1,14 +1,14 @@
-import pytest
-import autogen
-import autogen.runtime_logging
 import json
+import sqlite3
 import sys
 import uuid
-import sqlite3
 
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+import pytest
 from conftest import skip_openai
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+import autogen
+import autogen.runtime_logging
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.

@@ -1,8 +1,10 @@
-import time
-import zmq
 import threading
+import time
+
+import zmq
+
+from autogencap.Config import router_url, xpub_url, xsub_url
 from autogencap.DebugLog import Debug, Info, Warn
-from autogencap.Config import xsub_url, xpub_url, router_url
 
 
 class Broker:

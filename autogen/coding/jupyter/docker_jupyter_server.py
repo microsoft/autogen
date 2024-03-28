@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from pathlib import Path
-import sys
-from types import TracebackType
-import uuid
-from typing import Dict, Optional, Type, Union
-import docker
-import secrets
-import io
 import atexit
+import io
 import logging
+import secrets
+import sys
+import uuid
+from pathlib import Path
+from types import TracebackType
+from typing import Dict, Optional, Type, Union
+
+import docker
 
 from ..docker_commandline_code_executor import _wait_for_ready
 
@@ -19,8 +20,8 @@ else:
     from typing_extensions import Self
 
 
-from .jupyter_client import JupyterClient
 from .base import JupyterConnectable, JupyterConnectionInfo
+from .jupyter_client import JupyterClient
 
 
 class DockerJupyterServer(JupyterConnectable):

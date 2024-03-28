@@ -1,15 +1,15 @@
 import asyncio
-from functools import partial
-import logging
-from collections import defaultdict, abc
-from typing import Dict, List, Any, Set, Tuple
-from dataclasses import dataclass
-from .utils import consolidate_chat_info
 import datetime
+import logging
 import warnings
-from ..io.base import IOStream
-from ..formatting_utils import colored
+from collections import abc, defaultdict
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Dict, List, Set, Tuple
 
+from ..formatting_utils import colored
+from ..io.base import IOStream
+from .utils import consolidate_chat_info
 
 logger = logging.getLogger(__name__)
 Prerequisite = Tuple[int, int]
