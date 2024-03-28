@@ -10,7 +10,7 @@ from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 from typing import Protocol
 
-from autogen.cache.cache import Cache
+from autogen.cache import Cache
 from autogen.io.base import IOStream
 from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
 from autogen.token_count_utils import count_token
@@ -517,7 +517,7 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+            - cache (AbstractCache | None): A Cache object to use for response cache. Default to None.
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
