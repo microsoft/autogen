@@ -61,6 +61,8 @@ class GroupChat:
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
     - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
+    - custom_select_speaker_msg: customize the select speaker message. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets.
+    - custom_select_speaker_prompt: customize the select speaker prompt. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets.
     """
 
     agents: List[Agent]
@@ -74,6 +76,8 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
+    custom_select_speaker_msg: Optional[str] = None
+    custom_select_speaker_prompt: Optional[str] = None
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -232,17 +236,35 @@ class GroupChat:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"""You are in a role play game. The following roles are available:
-{self._participant_roles(agents)}.
 
-Read the following conversation.
-Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+        roles = self._participant_roles(agents)
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        if self.custom_select_speaker_msg is None:
+            # Standard select speaker message
+            return f"""You are in a role play game. The following roles are available:
+                {roles}.
+
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."""
+        else:
+            # Customised select speaker message, allows incorporation of local function variables
+            return_msg = self.custom_select_speaker_msg.format(**locals())
+            return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        if self.custom_select_speaker_msg is None:
+            return f"Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+        else:
+            # Customised select speaker prompt, allows incorporation of local function variables
+            return_prompt = self.custom_select_speaker_prompt.format(**locals())
+            return return_prompt
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
