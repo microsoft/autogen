@@ -33,6 +33,8 @@ class CAPGroupChatManager:
     def _wait_for_user_exit(self) -> None:
         try:
             while self.is_running():
+                # Hang out for a while and print out
+                # status every now and then
                 time.sleep(0.5)
         except KeyboardInterrupt:
             print("Interrupted by user, shutting down.")

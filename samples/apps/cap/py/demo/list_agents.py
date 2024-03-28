@@ -24,6 +24,5 @@ def list_agents():
     # Print out all actors found
     for actor_info in actor_infos:
         print(f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}")
-    time.sleep(1)
     # Cleanup
     network.disconnect()

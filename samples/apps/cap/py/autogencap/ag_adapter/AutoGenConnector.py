@@ -32,7 +32,7 @@ class AutoGenConnector:
         """
         msg = GenReplyReq()
         serialized_msg = msg.SerializeToString()
-        _, _, _, resp = self._can_channel.binary_request(type(msg).__name__, serialized_msg)
+        _, _, resp = self._can_channel.binary_request(type(msg).__name__, serialized_msg)
         gen_reply_resp = GenReplyResp()
         gen_reply_resp.ParseFromString(resp)
         return gen_reply_resp.data
