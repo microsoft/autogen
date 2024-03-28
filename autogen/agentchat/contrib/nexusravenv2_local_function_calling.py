@@ -150,7 +150,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def _generate_oai_reply_from_client(
-        self, llm_client: OpenAIWrapper, messages: list[dict], cache: autogen.Cache
+        self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
     ) -> Union[str, Dict, None]:
         # We make a big assumption here that the last message is the user query.
         query = content_str(messages[-1]["content"])
