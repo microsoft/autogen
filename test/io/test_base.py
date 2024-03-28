@@ -34,7 +34,6 @@ class TestIOStream:
         def on_new_thread(exceptions: List[Exception] = exceptions) -> None:
             try:
                 assert isinstance(IOStream.get_default(), IOConsole)
-                raise RuntimeError("This should not be raised.")
             except Exception as e:
                 exceptions.append(e)
 
