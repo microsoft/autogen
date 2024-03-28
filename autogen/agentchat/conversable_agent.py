@@ -29,10 +29,10 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 
@@ -505,6 +505,9 @@ class ConversableAgent(LLMAgent):
         The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
         """
         if isinstance(message, str):
+            return {"content": message}
+        elif isinstance(message, list):
+            # For multimodal message
             return {"content": message}
         elif isinstance(message, dict):
             return message
@@ -2261,6 +2264,8 @@ class ConversableAgent(LLMAgent):
             message = self.get_human_input(">")
         if isinstance(message, str):
             return self._process_carryover(message, kwargs)
+        elif isinstance(message, list):
+            return message  # TODO: this multimodal issue is handled in PR #2124
         elif isinstance(message, dict):
             message = message.copy()
             # TODO: Do we need to do the following?
