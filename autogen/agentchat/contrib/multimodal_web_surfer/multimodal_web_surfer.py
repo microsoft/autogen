@@ -180,7 +180,7 @@ setInterval(function() {{
                     actions = '["type"]'
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
-
+                
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
@@ -230,8 +230,11 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         try:
             if target == str(MARK_ID_ADDRESS_BAR) and argument:
                 self._log_to_console("goto", arg=argument)
-                if argument.startswith("https://") or argument.startswith("http://"):
-                    self._visit_page(argument)
+                """
+                When prompting the agent "go to www.linkedin.com" the agent uses the correct target - but here the agent uses the bing search because the "https://" is missing.
+                """
+                if not argument.startswith(("https://", "http://")):
+                    argument = "https://" + argument
                 else:
                     self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
             elif target == str(MARK_ID_SEARCH_BAR) and argument:
