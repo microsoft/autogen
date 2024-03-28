@@ -30,9 +30,9 @@ llm_config = {
     "cache_seed": None,
 }  ## CRITICAL - ENSURE THERE'S NO CACHING FOR TESTING
 
-
-
 from openai._base_client import _StreamT
+
+
 @pytest.fixture
 def chatbot(mocker):
     agent = Nexus.NexusFunctionCallingAssistant(
@@ -59,7 +59,8 @@ def chatbot(mocker):
     )
     # mock the value returned by agent.client._clients[0]._oai_client.chat.completions._client._request
     mocker.patch.object(agent, "send", fake_send)
-    print(f"\n {repr(agent.client._clients[0]._oai_client.chat.completions._client)} \n *************** {dir(agent.client._clients[0]._oai_client.chat.completions._client)} *************** \n\n")
+    print(
+        f"\n {repr(agent.client._clients[0]._oai_client.chat.completions._client)} \n *************** {dir(agent.client._clients[0]._oai_client.chat.completions._client)} *************** \n\n")
     return agent
 
 
@@ -73,10 +74,12 @@ def user_proxy(mocker):
         max_consecutive_auto_reply=4,
         code_execution_config={"work_dir": "/tmp/coding", "use_docker": False}
     )
-    generate_reply = mocker.patch.object(agent, "generate_reply", fake_send)
+
     return agent
 
+
 CurrencySymbol = Literal["USD", "EUR"]
+
 
 def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
     if base_currency == quote_currency:
@@ -112,16 +115,11 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
     # Test that the function map is the function
     assert user_proxy.function_map["currency_calculator"]._origin == currency_calculator
 
-    # chatbot.register_reply(
-    #     trigger=[Nexus.NexusFunctionCallingAssistant],
-    #     reply_func=fake_nexus_response,
-    # )
-
 
     res = chatbot.initiate_chat(
-        chatbot,
-        message="How much is 123.45 EUR in USD?",
-        #summary_method="reflection_with_llm",
+        user_proxy,
+        message="Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
+        summary_method="last_msg",
         clear_history=True,
     )
     print(res)
