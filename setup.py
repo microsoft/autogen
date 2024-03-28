@@ -13,6 +13,12 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
     exec(fp.read(), version)
 __version__ = version["__version__"]
 
+test_deps = [
+    'pytest',
+    'pytest-asyncio',
+    'pytest-mock',
+]
+
 install_requires = [
     "openai>=1.3",
     "diskcache",
@@ -75,4 +81,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.8,<3.13",
+    tests_require=test_deps,
 )
