@@ -1,11 +1,9 @@
 import json
 import re
+import warnings
 from typing import Dict, Union, Tuple, Optional
-import tempfile
-import datetime as dt
 
 from typing_extensions import override
-import warnings
 
 import autogen
 from autogen import OpenAIWrapper, Agent
@@ -76,11 +74,11 @@ def create_nexus_prompt_for_tool(tool: dict) -> str:
 
 class NexusFunctionCallingAssistant(autogen.ConversableAgent):
     def __init__(
-        self,
-        llm_config,
-        name="nexusraven2functioncaller",
-        system_message="""Function calling assistant""",
-        description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
+            self,
+            llm_config,
+            name="nexusraven2functioncaller",
+            system_message="""Function calling assistant""",
+            description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
                                    translates the standard nexusravenv2 responses
                                    from:
                                       Call: function_name(arg1=value1, arg2=value2) <bot_end> Thought: some thought
@@ -100,7 +98,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
-        result  = re.split(r"(<bot_end> \n)?Thought: ", input_string)
+        result = re.split(r"(<bot_end> \n)?Thought: ", input_string)
 
         print(f"\n\n\n\n****************** {result}************** \n\n\n\n")
 
@@ -139,7 +137,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
             "role": "assistant",
             "tool_calls": [
                 {
-                    "id": 43, #TODO fix this as response id , was generate_oai_reply
+                    "id": 43,  # TODO fix this as response id , was generate_oai_reply
                     "function": {"arguments": json.dumps(args_map), "name": function_name},
                     "type": "function",
                 }
@@ -150,7 +148,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def _generate_oai_reply_from_client(
-        self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
+            self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
     ) -> Union[str, Dict, None]:
         # We make a big assumption here that the last message is the user query.
         query = content_str(messages[-1]["content"])

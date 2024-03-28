@@ -31,14 +31,16 @@ def create_fake_send(user_proxy):
         print(f"Messages: {msg2send}")
         print(f"Sender: {silent}")
         recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
+
     return fake_send
 
+
 def reply_func(
-                    recipient: ConversableAgent,
-                    messages: Optional[List[Dict]] = None,
-                    sender: Optional[Agent] = None,
-                    config: Optional[Any] = None,
-                ) -> Tuple[bool, Union[str, Dict, None]]:
+        recipient: ConversableAgent,
+        messages: Optional[List[Dict]] = None,
+        sender: Optional[Agent] = None,
+        config: Optional[Any] = None,
+) -> Tuple[bool, Union[str, Dict, None]]:
     return True, "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
 
 
@@ -67,10 +69,9 @@ def chatbot(mocker):
         llm_config=llm_config,
     )
     agent.register_reply(
-        trigger=lambda _ : True,
+        trigger=lambda _: True,
         reply_func=reply_func,
     )
-
 
     return agent
 
@@ -123,4 +124,3 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
         summary_method="last_msg",
         # clear_history=True,
     )
-
