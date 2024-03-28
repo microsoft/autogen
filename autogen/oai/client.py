@@ -19,11 +19,11 @@ from autogen.token_count_utils import count_token
 try:
     from autogen.img_utils import format_message_contents_with_images, is_vision_model
 except ImportError:
-    ERROR: Optional[ImportError] = ImportError(
-        "Please install with pyautogen[lmm] option if you want to use vision model."
-    )
-    format_message_contents_with_images = object
-    is_vision_model = object
+    format_message_contents_with_images = None
+
+    def is_vision_model(_):
+        return False
+
 
 TOOL_ENABLED = False
 try:
@@ -173,6 +173,8 @@ class OpenAIClient:
         _is_vision = is_vision_model(params.get("model", None))
         _is_vision |= params.get("vision_model", False)
         if _is_vision and "messages" in params:
+            if format_message_contents_with_images is None:
+                raise ImportError("Please install PIL to use the vision model.")
             params["messages"] = format_message_contents_with_images(params["messages"])
 
         if params.get("stream", False) and "messages" in params:
