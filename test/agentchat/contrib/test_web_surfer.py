@@ -7,7 +7,6 @@ import sys
 import pytest
 
 from autogen import UserProxyAgent, config_list_from_json
-from autogen.cache import Cache
 from autogen.oai.openai_utils import filter_config
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))

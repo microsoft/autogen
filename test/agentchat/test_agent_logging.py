@@ -157,7 +157,8 @@ def test_two_agents_logging(db_connection):
         assert row["session_id"] and row["session_id"] == session_id
         assert row["class"] in ["AzureOpenAI", "OpenAI"]
         init_args = json.loads(row["init_args"])
-        assert "api_version" in init_args
+        if row["class"] == "AzureOpenAI":
+            assert "api_version" in init_args
         assert row["timestamp"], "timestamp is empty"
 
     # Verify oai wrapper table

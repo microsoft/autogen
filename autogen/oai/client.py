@@ -9,7 +9,12 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
-from autogen.cache.cache import Cache
+from autogen.cache import Cache
+from autogen.io.base import IOStream
+from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
+from autogen.token_count_utils import count_token
+
+from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
 from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
@@ -155,6 +160,8 @@ class OpenAIClient:
         Returns:
             The completion.
         """
+        iostream = IOStream.get_default()
+
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
         if params.get("stream", False) and "messages" in params:
@@ -163,7 +170,7 @@ class OpenAIClient:
             completion_tokens = 0
 
             # Set the terminal text color to green
-            print("\033[32m", end="")
+            iostream.print("\033[32m", end="")
 
             # Prepare for potential function call
             full_function_call: Optional[Dict[str, Any]] = None
@@ -215,15 +222,15 @@ class OpenAIClient:
 
                         # If content is present, print it to the terminal and update response variables
                         if content is not None:
-                            print(content, end="", flush=True)
+                            iostream.print(content, end="", flush=True)
                             response_contents[choice.index] += content
                             completion_tokens += 1
                         else:
-                            # print()
+                            # iostream.print()
                             pass
 
             # Reset the terminal text color
-            print("\033[0m\n")
+            iostream.print("\033[0m\n")
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
@@ -513,7 +520,7 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+            - cache (AbstractCache | None): A Cache object to use for response cache. Default to None.
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
@@ -824,25 +831,26 @@ class OpenAIWrapper:
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
+        iostream = IOStream.get_default()
 
         def print_usage(usage_summary: Optional[Dict[str, Any]], usage_type: str = "total") -> None:
             word_from_type = "including" if usage_type == "total" else "excluding"
             if usage_summary is None:
-                print("No actual cost incurred (all completions are using cache).", flush=True)
+                iostream.print("No actual cost incurred (all completions are using cache).", flush=True)
                 return
 
-            print(f"Usage summary {word_from_type} cached usage: ", flush=True)
-            print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
+            iostream.print(f"Usage summary {word_from_type} cached usage: ", flush=True)
+            iostream.print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
             for model, counts in usage_summary.items():
                 if model == "total_cost":
                     continue  #
-                print(
+                iostream.print(
                     f"* Model '{model}': cost: {round(counts['cost'], 5)}, prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
                     flush=True,
                 )
 
         if self.total_usage_summary is None:
-            print('No usage summary. Please call "create" first.', flush=True)
+            iostream.print('No usage summary. Please call "create" first.', flush=True)
             return
 
         if isinstance(mode, list):
@@ -855,14 +863,14 @@ class OpenAIWrapper:
             elif "total" in mode:
                 mode = "total"
 
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
-            print()
+            iostream.print()
             if self.total_usage_summary != self.actual_usage_summary:
                 print_usage(self.total_usage_summary, "total")
             else:
-                print(
+                iostream.print(
                     "All completions are non-cached: the total cost with cached completions is the same as actual cost.",
                     flush=True,
                 )
@@ -872,7 +880,7 @@ class OpenAIWrapper:
             print_usage(self.actual_usage_summary, "actual")
         else:
             raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
 
     def clear_usage_summary(self) -> None:
         """Clear the usage summary."""
