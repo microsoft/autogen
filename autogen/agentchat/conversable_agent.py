@@ -2259,14 +2259,19 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
+
         if isinstance(message, str):
             return self._process_carryover(message, kwargs)
+
         elif isinstance(message, dict):
-            message = message.copy()
+            message = copy.deepcopy(message)
             # TODO: Do we need to do the following?
             # if message.get("content") is None:
             #     message["content"] = self.get_human_input(">")
-            message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+            if isinstance(message.get("content"), str):
+                message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+            elif isinstance(message.get("content"), list):
+                message["content"] = self._process_multimodal_carryover(message.get("content", []), kwargs)
             return message
 
     def _process_carryover(self, message: str, kwargs: dict) -> str:
@@ -2283,6 +2288,13 @@ class ConversableAgent(LLMAgent):
                 )
         return message
 
+    def _process_multimodal_carryover(self, message: List[Dict], kwargs: dict) -> List[Dict]:
+        """Prepends the context to a multimodal message."""
+        if not kwargs.get("carryover"):
+            return message
+
+        return [{"type": "text", "text": self._process_carryover("", kwargs)}] + message
+
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.
         If message is None, input() will be called to get the initial message.
@@ -2295,11 +2307,16 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = await self.a_get_human_input(">")
+
         if isinstance(message, str):
             return self._process_carryover(message, kwargs)
+
         elif isinstance(message, dict):
-            message = message.copy()
-            message["content"] = self._process_carryover(message["content"], kwargs)
+            message = copy.deepcopy(message)
+            if isinstance(message.get("content"), str):
+                message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+            elif isinstance(message.get("content"), list):
+                message["content"] = self._process_multimodal_carryover(message.get("content", []), kwargs)
             return message
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
