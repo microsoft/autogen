@@ -1,26 +1,64 @@
+import asyncio
+from contextlib import asynccontextmanager
 import json
 import os
+import queue
+import threading
 import traceback
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import HTTPException
 from openai import OpenAIError
-from ..version import VERSION
+from ..version import VERSION, APP_NAME
 
 from ..datamodel import (
-    ChatWebRequestModel,
     DBWebRequestModel,
     DeleteMessageWebRequestModel,
     Message,
     Session,
 )
-from ..utils import md5_hash, init_webserver_folders, DBManager, dbutils, test_model
+from ..utils import md5_hash, init_app_folders, DBManager, dbutils, test_model
+from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 
-from ..chatmanager import AutoGenChatManager
+
+managers = {"chat": None}  # manage calls to autogen
+# Create thread-safe queue for messages between api thread and autogen threads
+message_queue = queue.Queue()
+active_connections = []
+active_connections_lock = asyncio.Lock()
+websocket_manager = WebSocketConnectionManager(
+    active_connections=active_connections, active_connections_lock=active_connections_lock
+)
 
 
-app = FastAPI()
+def message_handler():
+    while True:
+        message = message_queue.get()
+        print("Active Connections: ", [client_id for _, client_id in websocket_manager.active_connections])
+        print("Current message connection id: ", message["connection_id"])
+        for connection, socket_client_id in websocket_manager.active_connections:
+            if message["connection_id"] == socket_client_id:
+                asyncio.run(websocket_manager.send_message(message, connection))
+        message_queue.task_done()
+
+
+message_handler_thread = threading.Thread(target=message_handler, daemon=True)
+message_handler_thread.start()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("***** App started *****")
+    managers["chat"] = AutoGenChatManager(message_queue=message_queue)
+
+    yield
+    # Close all active connections
+    await websocket_manager.disconnect_all()
+    print("***** App stopped *****")
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 # allow cross origin requests for testing on localhost:800* ports only
@@ -38,9 +76,9 @@ app.add_middleware(
 )
 
 
-root_file_path = os.environ.get("AUTOGENSTUDIO_APPDIR") or os.path.dirname(os.path.abspath(__file__))
+app_file_path = os.path.dirname(os.path.abspath(__file__))
 # init folders skills, workdir, static, files etc
-folders = init_webserver_folders(root_file_path)
+folders = init_app_folders(app_file_path)
 ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 api = FastAPI(root_path="/api")
@@ -51,13 +89,13 @@ app.mount("/", StaticFiles(directory=ui_folder_path, html=True), name="ui")
 api.mount("/files", StaticFiles(directory=folders["files_static_root"], html=True), name="files")
 
 
-db_path = os.path.join(root_file_path, "database.sqlite")
+db_path = os.path.join(folders["app_root"], "database.sqlite")
 dbmanager = DBManager(path=db_path)  # manage database operations
-chatmanager = AutoGenChatManager()  # manage calls to autogen
+# manage websocket connections
 
 
 @api.post("/messages")
-async def add_message(req: ChatWebRequestModel):
+async def add_message(req: DBWebRequestModel):
     message = Message(**req.message.dict())
     user_history = dbutils.get_messages(user_id=message.user_id, session_id=req.message.session_id, dbmanager=dbmanager)
 
@@ -67,19 +105,21 @@ async def add_message(req: ChatWebRequestModel):
     os.makedirs(user_dir, exist_ok=True)
 
     try:
-        response_message: Message = chatmanager.chat(
+        response_message: Message = managers["chat"].chat(
             message=message,
             history=user_history,
-            work_dir=user_dir,
-            flow_config=req.flow_config,
+            user_dir=user_dir,
+            flow_config=req.workflow,
+            connection_id=req.connection_id,
         )
 
-        # save assistant response to db
-        dbutils.create_message(message=response_message, dbmanager=dbmanager)
+        # save agent's response to db
+        messages = dbutils.create_message(message=response_message, dbmanager=dbmanager)
         response = {
             "status": True,
-            "message": response_message.content,
-            "metadata": json.loads(response_message.metadata),
+            "message": "Message processed successfully",
+            "data": messages,
+            # "metadata": json.loads(response_message.metadata),
         }
         return response
     except Exception as ex_error:
@@ -157,6 +197,7 @@ async def create_user_session(req: DBWebRequestModel):
     try:
         session = Session(user_id=req.session.user_id, flow_config=req.session.flow_config)
         user_sessions = dbutils.create_session(user_id=req.user_id, session=session, dbmanager=dbmanager)
+
         return {
             "status": True,
             "message": "Session created successfully",
@@ -167,6 +208,26 @@ async def create_user_session(req: DBWebRequestModel):
         return {
             "status": False,
             "message": "Error occurred while creating session: " + str(ex_error),
+        }
+
+
+@api.post("/sessions/rename")
+async def rename_user_session(name: str, req: DBWebRequestModel):
+    """Rename a session for a user"""
+    print("Rename: " + name)
+    print("renaming session for user: " + req.user_id + " to: " + name)
+    try:
+        session = dbutils.rename_session(name=name, session=req.session, dbmanager=dbmanager)
+        return {
+            "status": True,
+            "message": "Session renamed successfully",
+            "data": session,
+        }
+    except Exception as ex_error:
+        print(traceback.format_exc())
+        return {
+            "status": False,
+            "message": "Error occurred while renaming session: " + str(ex_error),
         }
 
 
@@ -496,3 +557,28 @@ async def get_version():
         "message": "Version retrieved successfully",
         "data": {"version": VERSION},
     }
+
+
+async def process_socket_message(data: dict, websocket: WebSocket, client_id: str):
+    print(f"Client says: {data['type']}")
+    if data["type"] == "user_message":
+        user_request_body = DBWebRequestModel(**data["data"])
+        response = await add_message(user_request_body)
+        response_socket_message = {
+            "type": "agent_response",
+            "data": response,
+            "connection_id": client_id,
+        }
+        await websocket_manager.send_message(response_socket_message, websocket)
+
+
+@api.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: str):
+    await websocket_manager.connect(websocket, client_id)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            await process_socket_message(data, websocket, client_id)
+    except WebSocketDisconnect:
+        print(f"Client #{client_id} is disconnected")
+        await websocket_manager.disconnect(websocket)

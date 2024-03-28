@@ -23,6 +23,12 @@ body:
         4. See error
       placeholder: How can we replicate the issue?
   - type: textarea
+    id: modelused
+    attributes:
+      label: Model Used
+      description: A description of the model that was used when the error was encountered
+      placeholder: gpt-4, mistral-7B etc
+  - type: textarea
     id: expected_behavior
     attributes:
       label: Expected Behavior

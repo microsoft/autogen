@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
 import os
 import sys

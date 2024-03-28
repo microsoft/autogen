@@ -1,5 +1,6 @@
 import {
   ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   DocumentDuplicateIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -23,6 +24,7 @@ import {
 import {
   BounceLoader,
   Card,
+  CardHoverBar,
   FlowConfigViewer,
   LaunchButton,
   LoadingOverlay,
@@ -162,6 +164,53 @@ const WorkflowView = ({}: any) => {
 
   const workflowRows = (workflows || []).map(
     (workflow: IFlowConfig, i: number) => {
+      const cardItems = [
+        {
+          title: "Download",
+          icon: ArrowDownTrayIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            // download workflow as workflow.name.json
+            const element = document.createElement("a");
+            const sanitizedWorkflow = sanitizeConfig(workflow);
+            const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
+              type: "application/json",
+            });
+            element.href = URL.createObjectURL(file);
+            element.download = `workflow_${workflow.name}.json`;
+            document.body.appendChild(element); // Required for this to work in FireFox
+            element.click();
+          },
+          hoverText: "Download",
+        },
+        {
+          title: "Make a Copy",
+          icon: DocumentDuplicateIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            let newWorkflow = { ...workflow };
+            newWorkflow.name = `${workflow.name} Copy`;
+            newWorkflow.user_id = user?.email;
+            newWorkflow.timestamp = new Date().toISOString();
+            if (newWorkflow.id) {
+              delete newWorkflow.id;
+            }
+
+            setNewWorkflow(newWorkflow);
+            setShowNewWorkflowModal(true);
+          },
+          hoverText: "Make a Copy",
+        },
+        {
+          title: "Delete",
+          icon: TrashIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            deleteWorkFlow(workflow);
+          },
+          hoverText: "Delete",
+        },
+      ];
       return (
         <div
           key={"workflowrow" + i}
@@ -185,66 +234,7 @@ const WorkflowView = ({}: any) => {
               </div>
               <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
 
-              <div
-                onMouseEnter={(e) => {
-                  e.stopPropagation();
-                }}
-                className=" mt-2 text-right opacity-0 group-hover:opacity-100 "
-              >
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // download workflow as workflow.name.json
-                    const element = document.createElement("a");
-                    const sanitizedWorkflow = sanitizeConfig(workflow);
-                    const file = new Blob([JSON.stringify(sanitizedWorkflow)], {
-                      type: "application/json",
-                    });
-                    element.href = URL.createObjectURL(file);
-                    element.download = `${workflow.name}.json`;
-                    document.body.appendChild(element); // Required for this to work in FireFox
-                    element.click();
-
-                    // window.op
-                  }}
-                >
-                  <Tooltip title="Download">
-                    <ArrowDownTrayIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    let newWorkflow = { ...workflow };
-                    newWorkflow.name = `${workflow.name} Copy`;
-                    newWorkflow.user_id = user?.email;
-                    newWorkflow.timestamp = new Date().toISOString();
-                    delete newWorkflow.id;
-                    setNewWorkflow(newWorkflow);
-                    setShowNewWorkflowModal(true);
-                  }}
-                >
-                  <Tooltip title="Make a Copy">
-                    <DocumentDuplicateIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-                <div
-                  role="button"
-                  className="text-accent text-xs inline-block hover:bg-primary p-2 rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteWorkFlow(workflow);
-                  }}
-                >
-                  <Tooltip title="Delete">
-                    <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-                  </Tooltip>
-                </div>
-              </div>
+              <CardHoverBar items={cardItems} />
             </Card>
           </div>
         </div>
@@ -301,6 +291,31 @@ const WorkflowView = ({}: any) => {
     );
   };
 
+  const uploadWorkflow = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const workflow = JSON.parse(contents);
+            // TBD validate that it is a valid workflow
+            setNewWorkflow(workflow);
+            setShowNewWorkflowModal(true);
+          } catch (err) {
+            message.error("Invalid workflow file");
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const workflowTypes: MenuProps["items"] = [
     {
       key: "twoagents",
@@ -321,13 +336,31 @@ const WorkflowView = ({}: any) => {
         </div>
       ),
     },
+    {
+      type: "divider",
+    },
+    {
+      key: "uploadworkflow",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Workflow
+        </div>
+      ),
+    },
   ];
 
-  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
-    const newConfig = sampleWorkflowConfig(key);
+  const showWorkflow = (config: IFlowConfig) => {
+    setSelectedWorkflow(config);
+    setShowWorkflowModal(true);
+  };
 
-    setNewWorkflow(newConfig);
-    setShowNewWorkflowModal(true);
+  const workflowTypesOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadworkflow") {
+      uploadWorkflow();
+      return;
+    }
+    showWorkflow(sampleWorkflowConfig(key));
   };
 
   return (
@@ -361,25 +394,18 @@ const WorkflowView = ({}: any) => {
               Workflows ({workflowRows.length}){" "}
             </div>
             <div className=" ">
-              <Dropdown
+              <Dropdown.Button
+                type="primary"
                 menu={{ items: workflowTypes, onClick: workflowTypesOnClick }}
                 placement="bottomRight"
                 trigger={["click"]}
+                onClick={() => {
+                  showWorkflow(sampleWorkflowConfig());
+                }}
               >
-                <div
-                  className="inline-flex    rounded   hover:border-accent duration-300 hover:text-accent"
-                  role="button"
-                  onClick={(e) => {
-                    // add agent to flowSpec?.groupchat_config.agents
-                  }}
-                >
-                  <LaunchButton className=" text-sm p-2 px-3">
-                    {" "}
-                    <PlusIcon className="w-5 h-5 inline-block mr-1" />
-                    New Workflow
-                  </LaunchButton>
-                </div>
-              </Dropdown>
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Workflow
+              </Dropdown.Button>
             </div>
           </div>
           <div className="text-xs mb-2 pb-1  ">

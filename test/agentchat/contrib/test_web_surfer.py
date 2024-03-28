@@ -1,10 +1,11 @@
+#!/usr/bin/env python3 -m pytest
+
 import os
 import sys
 import re
 import pytest
 from autogen import UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
-from autogen.cache import Cache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
