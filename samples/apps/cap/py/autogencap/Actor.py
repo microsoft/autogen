@@ -59,7 +59,7 @@ class Actor:
             traceback.print_exc()
         finally:
             self.run = False
-            # Incase there was an exception at startup signal
+            # In case there was an exception at startup signal
             # the main thread.
             self._start_event.set()
             Debug(self.actor_name, "recv thread ended")
