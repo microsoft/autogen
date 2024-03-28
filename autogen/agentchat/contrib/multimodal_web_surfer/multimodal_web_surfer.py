@@ -172,14 +172,25 @@ setInterval(function() {{
   {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},
   {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" }},
   {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll down control" }},"""
-
+        
         for r in visible_rects:
             if r in rects:
                 actions = '["click"]'
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
                     actions = '["type"]'
-                text_labels += f"""
-   {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+                if rects[r]["role"] in ["combobox", "menu", "listbox"]:
+                    actions = '["select"]'
+                    options = ''
+                    if rects[r]['aria-name'] is not None:
+                        options = rects[r]['aria-name'].split('\n')
+                        options = ', '.join(f'"{option}"' for option in options)
+                    text_labels += f"""
+                {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "options": [{options}], "name": "dropdown menu" }},"""
+                else:
+                    text_labels += f"""
+                {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "name": "{rects[r]['aria-name']}" }},"""
+                    
+        print(text_labels, flush=True)
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -192,7 +203,7 @@ You are to respond to the user's most recent request by selecting a browser acti
 
 TARGET:   <id of interactive element>
 ACTION:   <One single action from the element's list of actions>
-ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing>
+ARGUMENT: <The action' argument, if any. For example, the text to type if the action is typing, or the option to select if the action is selecting> 
 """.strip()
 
         # Scale the screenshot for the MLM, and close the original
@@ -206,6 +217,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         som_screenshot.close()  # Don't do this if messages start accepting PIL images
         response = self.client.create(messages=history)
         text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
+        print(colored("\n<<<<<<<< BROWSER RESPONSE\n" + text_response, "cyan"), flush=True)
 
         target = None
         target_name = None
@@ -255,6 +267,11 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             elif action == "type":
                 self._log_to_console("type", target=target_name if target_name else target, arg=argument)
                 self._fill_id(target, argument if argument else "")
+            elif action == "select":
+                """
+                IMPLEMENT DROPDOWN SELECTION HERE
+                """
+                pass
             else:
                 # No action
                 return True, text_response

@@ -19,7 +19,9 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       "input, type=url": "textbox",
       "search": "search",
       "select": "combobox",
-      "textarea": "textbox"
+      "textarea": "textbox",
+      "select": "listbox",
+      "select": "menu",
   };
 
   let getInteractiveElements = function() {
