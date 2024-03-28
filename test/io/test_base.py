@@ -1,4 +1,5 @@
-from typing import Any
+from threading import Thread
+from typing import Any, List
 
 from autogen.io import IOConsole, IOStream, IOWebsockets
 
@@ -26,3 +27,23 @@ class TestIOStream:
             assert isinstance(IOStream.get_default(), MyIOStream)
 
         assert isinstance(IOStream.get_default(), IOConsole)
+
+    def test_get_default_on_new_thread(self) -> None:
+        exceptions: List[Exception] = []
+
+        def on_new_thread(exceptions: List[Exception] = exceptions) -> None:
+            try:
+                assert isinstance(IOStream.get_default(), IOConsole)
+            except Exception as e:
+                exceptions.append(e)
+
+        # create a new thread and run the function
+        thread = Thread(target=on_new_thread)
+
+        thread.start()
+
+        # get exception from the thread
+        thread.join()
+
+        if exceptions:
+            raise exceptions[0]
