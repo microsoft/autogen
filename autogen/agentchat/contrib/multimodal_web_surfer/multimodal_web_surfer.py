@@ -181,6 +181,8 @@ setInterval(function() {{
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
                 
+        print(text_labels)
+
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
@@ -206,6 +208,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         som_screenshot.close()  # Don't do this if messages start accepting PIL images
         response = self.client.create(messages=history)
         text_response = "\n" + self.client.extract_text_or_completion_object(response)[0].strip() + "\n"
+        print(colored("\n<<<<<<<< BROWSER RESPONSE " + text_response, "cyan"), flush=True)
 
         target = None
         target_name = None
@@ -230,13 +233,16 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         try:
             if target == str(MARK_ID_ADDRESS_BAR) and argument:
                 self._log_to_console("goto", arg=argument)
-                """
-                When prompting the agent "go to www.linkedin.com" the agent uses the correct target - but here the agent uses the bing search because the "https://" is missing.
-                """
-                if not argument.startswith(("https://", "http://")):
-                    argument = "https://" + argument
-                else:
+                # Check if the argument starts with a known protocol
+                if argument.startswith(("https://", "http://", "file://")):
+                    self._visit_page(argument)
+                # If the argument contains a space, treat it as a search query
+                elif " " in argument:
                     self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
+                # Otherwise, prefix with https://
+                else:
+                    argument = "https://" + argument
+                    self._visit_page(argument)
             elif target == str(MARK_ID_SEARCH_BAR) and argument:
                 self._log_to_console("search", arg=argument)
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
