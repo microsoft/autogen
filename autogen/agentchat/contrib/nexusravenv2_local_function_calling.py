@@ -189,10 +189,4 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         }
 
 
-def test_parse_function_details():
-    input_string = "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
-    assert NexusFunctionCallingAssistant.parse_function_details(input_string) == (
-        "random_word_generator",
-        {"seed": 42, "prefix": "chase"},
-        'functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word "${randomWord}," I will now solve this logic problem.`));',
-    )
+
