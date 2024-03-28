@@ -20,7 +20,8 @@ network_address = "192.168.0.115"
 # LOCAL LOCAL
 llm_config = {
     "config_list": [
-        {"model": "litellmnotneeded", "api_key": "NotRequired", "base_url": f"http://{network_address}:8801"}],
+        {"model": "litellmnotneeded", "api_key": "NotRequired", "base_url": f"http://{network_address}:8801"}
+    ],
     "cache_seed": None,
 }  ## CRITICAL - ENSURE THERE'S NO CACHING FOR TESTING
 
@@ -36,12 +37,15 @@ def create_fake_send(user_proxy):
 
 
 def reply_func(
-        recipient: ConversableAgent,
-        messages: Optional[List[Dict]] = None,
-        sender: Optional[Agent] = None,
-        config: Optional[Any] = None,
+    recipient: ConversableAgent,
+    messages: Optional[List[Dict]] = None,
+    sender: Optional[Agent] = None,
+    config: Optional[Any] = None,
 ) -> Tuple[bool, Union[str, Dict, None]]:
-    return True, "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
+    return (
+        True,
+        "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
+    )
 
 
 @pytest.fixture
@@ -65,7 +69,6 @@ def chatbot(mocker):
             "parameter_3_name": "DEF",
             "parameter_4_name": 123.00,
         }. """,  # MS - this was needed to ensure the function name was returned
-
         llm_config=llm_config,
     )
     agent.register_reply(
@@ -84,7 +87,7 @@ def user_proxy(mocker):
         is_termination_msg=lambda x: x.get("content", "") and "BAZINGA!" in x.get("content", ""),
         human_input_mode="NEVER",
         max_consecutive_auto_reply=4,
-        code_execution_config={"work_dir": "/tmp/coding", "use_docker": False}
+        code_execution_config={"work_dir": "/tmp/coding", "use_docker": False},
     )
     mocker.patch.object(agent, "send", create_fake_send(agent))
     return agent
@@ -105,13 +108,12 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
 
 
 # print(chatbot.llm_config["tools"])
-def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
-                                             chatbot: Nexus.NexusFunctionCallingAssistant):
+def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot: Nexus.NexusFunctionCallingAssistant):
     @user_proxy.register_for_execution()
     @chatbot.register_for_llm(description="A Random Word Generator")
     def random_word_generator(
-            seed: Annotated[int, "Randomizing Seed for the word generation"] = 42,
-            prefix: Annotated[str, "Prefix to Append to the Word that was generated."] = "USD",
+        seed: Annotated[int, "Randomizing Seed for the word generation"] = 42,
+        prefix: Annotated[str, "Prefix to Append to the Word that was generated."] = "USD",
     ) -> str:
         return f"{prefix}_not_random_actually_but_this_is_a_test"
 

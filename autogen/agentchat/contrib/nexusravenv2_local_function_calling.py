@@ -74,11 +74,11 @@ def create_nexus_prompt_for_tool(tool: dict) -> str:
 
 class NexusFunctionCallingAssistant(autogen.ConversableAgent):
     def __init__(
-            self,
-            llm_config,
-            name="nexusraven2functioncaller",
-            system_message="""Function calling assistant""",
-            description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
+        self,
+        llm_config,
+        name="nexusraven2functioncaller",
+        system_message="""Function calling assistant""",
+        description="""a function call advisor. given a context advises on what functions to call and what arguments to supply.
                                    translates the standard nexusravenv2 responses
                                    from:
                                       Call: function_name(arg1=value1, arg2=value2) <bot_end> Thought: some thought
@@ -120,11 +120,11 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def receive(
-            self,
-            message: Union,
-            sender: Agent,
-            request_reply: Optional = None,
-            silent: Optional = False,
+        self,
+        message: Union,
+        sender: Agent,
+        request_reply: Optional = None,
+        silent: Optional = False,
     ):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
@@ -148,7 +148,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def _generate_oai_reply_from_client(
-            self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
+        self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
     ) -> Union[str, Dict, None]:
         # We make a big assumption here that the last message is the user query.
         query = content_str(messages[-1]["content"])
@@ -187,6 +187,3 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
                 }
             ],
         }
-
-
-
