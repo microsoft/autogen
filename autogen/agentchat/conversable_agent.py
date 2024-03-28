@@ -29,10 +29,10 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 
@@ -1079,7 +1079,7 @@ class ConversableAgent(LLMAgent):
 
         Args:
             summary_method (str or callable): the summary_method to get the summary.
-                The callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g,
+                The callable summary_method should take the recipient and sender agent in a chat as input and return a summary (either str or list). E.g,
                 ```python
                 def my_summary_method(
                     sender: ConversableAgent,
@@ -1093,7 +1093,8 @@ class ConversableAgent(LLMAgent):
             prompt (str): the prompt used to get a summary when summary_method is "reflection_with_llm".
 
         Returns:
-            str: a chat summary from the agent.
+            Union[str, List]: a chat summary from the agent, following OpenAI's message format.
+                Str for LLMs, and List for LMMs.
         """
         summary = ""
         if summary_method is None:
@@ -1114,10 +1115,17 @@ class ConversableAgent(LLMAgent):
         return summary
 
     @staticmethod
-    def _last_msg_as_summary(sender, recipient, summary_args) -> str:
+    def _last_msg_as_summary(sender, recipient, summary_args) -> Union[str, List]:
         """Get a chat summary from the last message of the recipient."""
         try:
-            summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
+            content = recipient.last_message(sender)["content"]
+            if isinstance(content, str):
+                summary = content.replace("TERMINATE", "")
+            elif isinstance(content, list):
+                summary = content
+                for component in summary:
+                    if "text" in component and isinstance(component, dict):
+                        component["text"] = component["text"].replace("TERMINATE", "")
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
             summary = ""
