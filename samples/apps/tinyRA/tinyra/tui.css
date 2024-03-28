@@ -216,8 +216,19 @@ QuitScreen {
     /* border: solid red; */
 }
 
-ChatScreen {
+ChatScreen, LearningScreen {
     align: center middle;
+}
+
+#learning-screen {
+    height: 80%;
+    width: 80%;
+    background: $surface;
+    border: thick $primary-background 80%;
+    padding: 1;
+
+    grid-size: 1 10;
+    grid-rows: 10% 80% 10%;
 }
 
 #chat-screen {
@@ -253,8 +264,16 @@ ChatScreen {
     /* border: solid red; */
 }
 
+#learning-screen-footer{
+    align: center middle;
+}
+
+#learning-screen-footer Button {
+    margin: 1;
+}
+
 #chat-screen-footer Button {
-    width: 40%;
+    width: 20;
 }
 
 SettingsScreen {

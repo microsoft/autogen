@@ -18,7 +18,7 @@ from textual import on
 from textual import work
 from textual.app import App, ComposeResult
 from textual.screen import Screen, ModalScreen
-from textual.containers import ScrollableContainer, Grid, Container, Horizontal
+from textual.containers import ScrollableContainer, Grid, Container, Horizontal, Vertical
 from textual.widget import Widget
 from textual.widgets import Pretty
 from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label, Switch
@@ -26,11 +26,11 @@ from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
 from textual.reactive import reactive
 from textual.message import Message
-from textual.events import Key
+from textual.events import Key, Mount
 from textual.app import ScreenStackError
 
 from autogen import config_list_from_json
-from autogen import Agent, AssistantAgent, UserProxyAgent
+from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent
 
 
 class InvalidToolError(Exception):
@@ -964,12 +964,133 @@ class ChatScreen(Screen):
                         msg_class = "user-message"
                     yield Markdown(f"{msg['role']}: {msg['content']}", classes=msg_class + " message")
             # yield ScrollableContainer(Pretty(history), id="chat-screen-contents")
-            with Container(id="chat-screen-footer"):
+            with Horizontal(id="chat-screen-footer"):
+                yield Button("Learn", variant="error", id="learn")
                 yield Button("Cancel", variant="primary", id="cancel")
 
     @on(Button.Pressed, "#cancel")
     def cancel(self) -> None:
         self.app.pop_screen()
+
+    @on(Button.Pressed, "#learn")
+    def learn(self) -> None:
+        learning_screen = LearningScreen()
+        learning_screen.root_msg_id = self.root_msg_id
+        self.app.push_screen(learning_screen)
+
+
+class LearningScreen(Screen):
+
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+
+    root_msg_id = None
+
+    def compose(self) -> ComposeResult:
+        with Grid(id="learning-screen"):
+            yield Horizontal(Label("Learning", classes="heading"), id="learning-screen-header")
+            yield ScrollableContainer(
+                TextArea.code_editor(
+                    f"""
+                    # Learning a function for {self.root_msg_id}
+                    """,
+                    language="python",
+                ),
+                id="learning-screen-contents",
+            )
+            with Horizontal(id="learning-screen-footer"):
+                yield Button("Start", variant="error", id="start-learning")
+                yield Button("Save", variant="success", id="save")
+                yield Button("Close", variant="primary", id="close")
+
+    @on(Button.Pressed, "#close")
+    def close(self) -> None:
+        self.app.pop_screen()
+
+    @on(Button.Pressed, "#save")
+    def save(self) -> None:
+        widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
+        code = widget.text
+        name = code.split("\n")[0][1:]
+
+        tool = Tool(name, code)
+        try:
+            tool.validate_tool()
+            APP_CONFIG.update_tool(tool)
+        except InvalidToolError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
+        # self.app.post_message(AppErrorMessage(f"Candidate tool is {name}"))
+
+    @work(thread=True)
+    @on(Button.Pressed, "#start-learning")
+    async def start_learning(self) -> None:
+        widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
+        widget.text = "# Learning..."
+
+        history = await a_fetch_chat_history(self.root_msg_id)
+        name, code = learn_tool_from_history(history)
+
+        widget.text = "#" + name + "\n" + code
+
+
+def learn_tool_from_history(history: List[Dict[str, str]]) -> str:
+
+    # return "hola"
+
+    markdown = ""
+    for msg in history:
+        markdown += f"{msg['role']}: {msg['content']}\n"
+
+    agent = ConversableAgent(
+        "learning_assistant",
+        llm_config=LLM_CONFIG,
+        system_message="""You are a helpful assistant that for the given chat
+history can return a standalone, documented python function.
+
+The chat history contains a task the agents were trying to accomplish.
+Analyze the following chat history to assess if the task was completed,
+and if it was return the python function that would accomplish the task.
+        """,
+    )
+    messages = [
+        {
+            "role": "user",
+            "content": f"""The chat history is
+
+            {markdown}
+
+            Only generate a single python function in code blocks and nothing else.
+            Make sure all imports are inside the function.
+            Both ast.FunctionDef, ast.AsyncFunctionDef are acceptable.
+
+            Function signature should be annotated properly.
+            Function should return a string as the final result.
+            """,
+        }
+    ]
+    reply = agent.generate_reply(messages)
+    from autogen.code_utils import extract_code
+
+    # extract a code block from the reply
+    code_blocks = extract_code(reply)
+    lang, code = code_blocks[0]
+
+    messages.append({"role": "assistant", "content": code})
+
+    messages.append(
+        {
+            "role": "user",
+            "content": """suggest a max two word english phrase that is a friendly
+          display name for the function. Only reply with the name in a code block.
+          no need to use an quotes or code blocks. Just two words.""",
+        }
+    )
+
+    name = agent.generate_reply(messages)
+
+    return name, code
 
 
 class AppErrorMessage(Message):
@@ -1031,9 +1152,21 @@ def generate_response_process(msg_idx: int):
         if silent is True:
             return message
 
-        insert_chat_message(sender.name, message, root_id=msg_idx + 1)
-        summary = summarize(message)
-        snippet = f"{summary}…"
+        if isinstance(message, str):
+            summary = message
+            insert_chat_message(sender.name, message, root_id=msg_idx + 1)
+        elif isinstance(message, Dict):
+            if message.get("content"):
+                summary = message["content"]
+                insert_chat_message(sender.name, message["content"], root_id=msg_idx + 1)
+            elif message.get("tool_calls"):
+                tool_calls = message["tool_calls"]
+                summary = "Calling tools…"
+                insert_chat_message(sender.name, json.dumps(tool_calls), root_id=msg_idx + 1)
+            else:
+                raise ValueError("Message must have a content or tool_calls key")
+
+        snippet = summarize(summary)
         insert_chat_message("info", snippet, root_id=0, id=msg_idx + 1)
         return message
 
