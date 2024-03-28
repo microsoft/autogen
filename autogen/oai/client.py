@@ -1,22 +1,29 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
-import logging
 import inspect
+import logging
+import sys
 import uuid
-from flaml.automl.logger import logger_formatter
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
+from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
-from typing import Protocol
 
 from autogen.cache import Cache
 from autogen.io.base import IOStream
-from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
+from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
-from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
-from autogen.logger.logger_utils import get_current_ts
+try:
+    from autogen.img_utils import format_message_contents_with_images, is_vision_model
+except ImportError:
+    ERROR: Optional[ImportError] = ImportError(
+        "Please install with pyautogen[lmm] option if you want to use vision model."
+    )
+    format_message_contents_with_images = object
+    is_vision_model = object
 
 TOOL_ENABLED = False
 try:
@@ -27,14 +34,15 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
+    from openai import APIError, APITimeoutError, AzureOpenAI, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
+        ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
-        ChoiceDeltaFunctionCall,
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
@@ -161,6 +169,12 @@ class OpenAIClient:
 
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
+
+        _is_vision = is_vision_model(params.get("model", None))
+        _is_vision |= params.get("vision_model", False)
+        if _is_vision and "messages" in params:
+            params["messages"] = format_message_contents_with_images(params["messages"])
+
         if params.get("stream", False) and "messages" in params:
             response_contents = [""] * params.get("n", 1)
             finish_reasons = [""] * params.get("n", 1)

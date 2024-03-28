@@ -1,3 +1,15 @@
+"""Image reading and parsing utilities
+
+Explanations on image types:
+
+- PIL (Python Imaging Library): aka, Pillow, is a Python library. We use the PIL.Image object to store data.
+- URL (Uniform Resource Locator): A URL is a reference to a web resource or local files.
+    E.g., "http://example.com/image.png" or "C:/path/to/image.png".
+- b64 (Base64 Encoding): encode image data into a string, such as "iVBORwxczfda..."
+- URI (Uniform Resource Identifier): a string of characters that unambiguously identifies a particular resource.
+    It has prefix than the b64 format. E.g., uri = "data:image/jpeg/" + b64_string
+"""
+
 import base64
 import copy
 import os
@@ -8,7 +20,7 @@ from typing import Dict, List, Tuple, Union
 import requests
 from PIL import Image
 
-from autogen.agentchat import utils
+from autogen.multimodal_utils import parse_tags_from_content
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
@@ -181,7 +193,7 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dic
     image_count = 0
 
     # Find all image tags
-    for parsed_tag in utils.parse_tags_from_content("img", prompt):
+    for parsed_tag in parse_tags_from_content("img", prompt):
         image_location = parsed_tag["attr"]["src"]
         try:
             if img_format == "pil":
@@ -298,3 +310,51 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         new_messages.append(message)
 
     return new_messages
+
+
+def is_vision_model(model_name: str) -> bool:
+    """
+    Determines if a given model name indicates a multimodal model.
+
+    Multimodal models are identified by specific patterns in their names:
+    models that include "gpt-<variant>-vision" or "llava" are considered
+    multimodal.
+
+    Args:
+        model_name (str): The name of the model to be checked.
+
+    Returns:
+        bool: True if the model is multimodal, False otherwise.
+    """
+    if not isinstance(model_name, str):
+        return False
+    if re.findall(r"gpt-\w+-vision", model_name):
+        return True
+    if re.findall("llava", model_name):
+        return True
+    return False
+
+
+def format_message_contents_with_images(messages: List[Dict]) -> List[Dict]:
+    """
+    Processes a list of message dictionaries, applying formatting to the
+    content of each message if applicable.
+
+    Each message's content is formatted using gpt4v_formatter when the content is a string;
+    so, images in the messages will be converted into a specific format (e.g., URI).
+    If the message is already an array (as the OpenAI message multimodal content), it will
+    be left unchanged so that OpenAI client can handle directly.
+
+
+    Args:
+        messages (List[Dict]): A list of message dictionaries to be processed.
+
+    Returns:
+        List[Dict]: A new list of processed message dictionaries.
+    """
+    rst = []
+    for message in messages:
+        rst.append(copy.deepcopy(message))
+        if "content" in message and isinstance(message["content"], str):
+            rst[-1]["content"] = gpt4v_formatter(prompt=message["content"], img_format="uri")
+    return rst

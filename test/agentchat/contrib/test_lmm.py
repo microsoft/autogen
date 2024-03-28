@@ -4,15 +4,14 @@ import unittest
 from unittest.mock import MagicMock
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen
 from autogen.agentchat.conversable_agent import ConversableAgent
 
-from conftest import MOCK_OPEN_AI_API_KEY
-
 try:
-    from autogen.agentchat.contrib.img_utils import get_pil_image
     from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
+    from autogen.img_utils import get_pil_image
 except ImportError:
     skip = True
 else:
@@ -110,7 +109,7 @@ def test_group_chat_with_lmm():
         llm_config=llm_config,
         system_message="Your image description is poetic and engaging.",
     )
-    agent2 = MultimodalConversableAgent(
+    agent2 = ConversableAgent(
         name="image-explainer-2",
         max_consecutive_auto_reply=max_consecutive_auto_reply,
         llm_config=llm_config,

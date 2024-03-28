@@ -1,9 +1,11 @@
 import itertools
 import os
+import sys
 import tempfile
 from typing import Any, Dict, Tuple
+
 import pytest
-import sys
+
 from autogen import code_utils
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.agentchat.user_proxy_agent import UserProxyAgent
@@ -14,7 +16,7 @@ try:
     from PIL import Image
 
     from autogen.agentchat.contrib.capabilities import generate_images
-    from autogen.agentchat.contrib.img_utils import get_pil_image
+    from autogen.img_utils import get_pil_image
 except ImportError:
     skip_requirement = True
 else:
