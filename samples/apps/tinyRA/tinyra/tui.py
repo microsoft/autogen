@@ -953,8 +953,17 @@ class ChatScreen(Screen):
     def compose(self) -> ComposeResult:
         history = fetch_chat_history(self.root_msg_id)
         with Grid(id="chat-screen"):
-            yield Container(Label(f"Chat History for {self.root_msg_id}", classes="heading"), id="chat-screen-header")
-            yield ScrollableContainer(Pretty(history), id="chat-screen-contents")
+            yield Container(
+                Label(f"Chat History for 🧵-{self.root_msg_id}", classes="heading"), id="chat-screen-header"
+            )
+            with ScrollableContainer(id="chat-screen-contents"):
+                for msg in history:
+                    if msg["role"] == "assistant":
+                        msg_class = "assistant-message"
+                    if msg["role"] == "user":
+                        msg_class = "user-message"
+                    yield Markdown(f"{msg['role']}: {msg['content']}", classes=msg_class + " message")
+            # yield ScrollableContainer(Pretty(history), id="chat-screen-contents")
             with Container(id="chat-screen-footer"):
                 yield Button("Cancel", variant="primary", id="cancel")
 
