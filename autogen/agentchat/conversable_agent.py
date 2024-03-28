@@ -2289,21 +2289,12 @@ class ConversableAgent(LLMAgent):
 
         return message
 
-    def _process_multimodal_carryover(self, message: List, context: dict) -> List[Dict]:
-        reconstructed_messages = [{"type": "text", "text": ""}]
-        for msg in message:
-            if msg.get("type") == "text":
-                reconstructed_messages[0]["text"] += msg["text"] + "\n"
-            else:
-                reconstructed_messages.append(msg)
+    def _process_multimodal_carryover(self, message: List[Dict], kwargs: dict) -> List[Dict]:
+        """Prepends the context to a multimodal message."""
+        if not kwargs.get("carryover"):
+            return message
 
-        reconstructed_messages[0]["text"] = self._process_carryover(reconstructed_messages[0]["text"], context)
-
-        # Delete the text message if it is empty
-        if reconstructed_messages[0]["text"] == "":
-            del reconstructed_messages[0]
-
-        return reconstructed_messages
+        return [{"type": "text", "text": self._process_carryover("", kwargs)}] + message
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.

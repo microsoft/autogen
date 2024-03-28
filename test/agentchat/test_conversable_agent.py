@@ -1279,12 +1279,12 @@ def test_messages_with_carryover():
     )
     generated_message = agent1.generate_init_message(**context)
     assert isinstance(generated_message, dict)
-    assert len(generated_message["content"]) == 2
+    assert len(generated_message["content"]) == 4
 
     context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
     generated_message = agent1.generate_init_message(**context)
     assert isinstance(generated_message, dict)
-    assert len(generated_message["content"]) == 2
+    assert len(generated_message["content"]) == 4
 
     context = dict(message=mm_message, carryover=3)
     with pytest.raises(InvalidCarryOverType):
@@ -1295,7 +1295,7 @@ def test_messages_with_carryover():
     context = dict(message=mm_message)
     generated_message = agent1.generate_init_message(**context)
     assert isinstance(generated_message, dict)
-    assert len(generated_message["content"]) == 2
+    assert len(generated_message["content"]) == 3
 
     # Test without text in multimodal message
     mm_content = [
@@ -1306,6 +1306,10 @@ def test_messages_with_carryover():
     generated_message = agent1.generate_init_message(**context)
     assert isinstance(generated_message, dict)
     assert len(generated_message["content"]) == 1
+
+    generated_message = agent1.generate_init_message(**context, carryover="Testing carryover.")
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 2
 
 
 if __name__ == "__main__":
