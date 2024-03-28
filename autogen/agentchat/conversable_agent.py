@@ -716,7 +716,7 @@ class ConversableAgent(LLMAgent):
             if "function_call" in message and message["function_call"]:
                 function_call = dict(message["function_call"])
                 func_print = (
-                    f"***** Suggested function call: {function_call.get('name', '(No function name found)')} *****"
+                    f"***** Suggested function Call: {function_call.get('name', '(No function name found)')} *****"
                 )
                 iostream.print(colored(func_print, "green"), flush=True)
                 iostream.print(
@@ -728,7 +728,7 @@ class ConversableAgent(LLMAgent):
                 iostream.print(colored("*" * len(func_print), "green"), flush=True)
             if "tool_calls" in message and message["tool_calls"]:
                 for tool_call in message["tool_calls"]:
-                    id = tool_call.get("id", "No tool call id found")
+                    id = tool_call.get("id", "(No id found)")
                     function_call = dict(tool_call.get("function", {}))
                     func_print = f"***** Suggested tool call ({id}): {function_call.get('name', '(No function name found)')} *****"
                     iostream.print(colored(func_print, "green"), flush=True)
@@ -1311,12 +1311,6 @@ class ConversableAgent(LLMAgent):
                 )
             for tool_call in extracted_response.get("tool_calls") or []:
                 tool_call["function"]["name"] = self._normalize_name(tool_call["function"]["name"])
-                # Remove id and type if they are not present.
-                # This is to make the tool call object compatible with Mistral API.
-                if tool_call.get("id") is None:
-                    tool_call.pop("id")
-                if tool_call.get("type") is None:
-                    tool_call.pop("type")
         return extracted_response
 
     async def a_generate_oai_reply(
@@ -1546,6 +1540,7 @@ class ConversableAgent(LLMAgent):
         message = messages[-1]
         tool_returns = []
         for tool_call in message.get("tool_calls", []):
+            id = tool_call["id"]
             function_call = tool_call.get("function", {})
             func = self._function_map.get(function_call.get("name", None), None)
             if inspect.iscoroutinefunction(func):
@@ -1563,24 +1558,13 @@ class ConversableAgent(LLMAgent):
                     loop.close()
             else:
                 _, func_return = self.execute_function(function_call)
-            content = func_return.get("content", "")
-            if content is None:
-                content = ""
-            tool_call_id = tool_call.get("id", None)
-            if tool_call_id is not None:
-                tool_call_response = {
-                    "tool_call_id": tool_call_id,
+            tool_returns.append(
+                {
+                    "tool_call_id": id,
                     "role": "tool",
-                    "content": content,
+                    "content": func_return.get("content", ""),
                 }
-            else:
-                # Do not include tool_call_id if it is not present.
-                # This is to make the tool call object compatible with Mistral API.
-                tool_call_response = {
-                    "role": "tool",
-                    "content": content,
-                }
-            tool_returns.append(tool_call_response)
+            )
         if tool_returns:
             return True, {
                 "role": "tool",
