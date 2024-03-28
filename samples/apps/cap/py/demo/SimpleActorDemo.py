@@ -3,6 +3,7 @@ import time
 from AppAgents import GreeterAgent
 from autogencap.DebugLog import Error
 from autogencap.LocalActorNetwork import LocalActorNetwork
+from autogencap.DebugLog import Error
 
 
 def simple_actor_demo():
