@@ -124,7 +124,7 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
         chatbot,
         message="Generate Me a Random Word Please",
         summary_method="last_msg",
-        # clear_history=True,
+        clear_history=True,
     )
 
 
