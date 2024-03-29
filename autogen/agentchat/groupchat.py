@@ -180,6 +180,13 @@ class GroupChat:
             agents=self.agents,
         )
 
+        # Check select_speaker_message_template and select_speaker_prompt_template have values
+        if self.select_speaker_message_template is None or len(self.select_speaker_message_template) == 0:
+            raise ValueError("select_speaker_message_template cannot be empty or None.")
+
+        if self.select_speaker_prompt_template is None or len(self.select_speaker_prompt_template) == 0:
+            raise ValueError("select_speaker_prompt_template cannot be empty or None.")
+
     @property
     def agent_names(self) -> List[str]:
         """Return the names of the agents in the group chat."""

@@ -1176,6 +1176,121 @@ def test_custom_speaker_selection_overrides_transition_graph():
     assert "teamA_executor" in speakers
 
 
+def test_select_speaker_message_and_prompt_templates():
+    """
+    In this test, two agents are part of a group chat which has customized select speaker message and select speaker prompt templates. Both valid and empty string values will be used.
+    The expected behaviour is that the customized speaker selection message and prompts will override the default values or throw exceptions if empty.
+    """
+
+    agent1 = autogen.ConversableAgent(
+        "Alice",
+        description="A wonderful employee named Alice.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+    agent2 = autogen.ConversableAgent(
+        "Bob",
+        description="An amazing employee named Bob.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+
+    # Customised message, this is always the first message in the context
+    custom_msg = """You are the CEO of a niche organisation creating small software tools for the healthcare sector with a small team of specialists. Call them in sequence.
+    The job roles and responsibilities are:
+    {roles}
+
+    You must select only from {agentlist}."""
+
+    # Customised prompt, this is always the last message in the context
+    custom_prompt = """Read the above conversation.
+    Then select the next job role from {agentlist} to take action.
+    RETURN ONLY THE NAME OF THE NEXT ROLE."""
+
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template=custom_msg,
+        select_speaker_prompt_template=custom_prompt,
+    )
+
+    # Test with valid strings, checking for the correct string and roles / agentlist to be included
+
+    assert (
+        groupchat.select_speaker_msg()
+        == """You are the CEO of a niche organisation creating small software tools for the healthcare sector with a small team of specialists. Call them in sequence.
+The job roles and responsibilities are:
+Alice: A wonderful employee named Alice.
+Bob: An amazing employee named Bob.
+
+You must select only from ['Alice', 'Bob']."""
+    )
+
+    assert (
+        groupchat.select_speaker_prompt()
+        == """Read the above conversation.
+Then select the next job role from ['Alice', 'Bob'] to take action.
+RETURN ONLY THE NAME OF THE NEXT ROLE."""
+    )
+
+    # Test with empty strings
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="",
+            select_speaker_prompt_template="Not empty.",
+        )
+        assert False, "select_speaker_message_template should throw an exception if empty."
+    except ValueError:
+        pass
+
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="Not empty.",
+            select_speaker_prompt_template=None,
+        )
+        assert False, "select_speaker_prompt_template should throw an exception if empty."
+    except ValueError:
+        pass
+
+    # Test with None
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template=None,
+            select_speaker_prompt_template="Not empty.",
+        )
+        assert False, "select_speaker_message_template should throw an exception if empty."
+    except ValueError:
+        pass
+
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="Not empty.",
+            select_speaker_prompt_template="",
+        )
+        assert False, "select_speaker_prompt_template should throw an exception if empty."
+    except ValueError:
+        pass
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1190,5 +1305,6 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    test_custom_speaker_selection_overrides_transition_graph()
+    # test_custom_speaker_selection_overrides_transition_graph()
+    test_select_speaker_message_and_prompt_templates()
     # pass
