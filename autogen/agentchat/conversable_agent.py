@@ -2287,7 +2287,6 @@ class ConversableAgent(LLMAgent):
         if not kwargs.get("carryover"):
             return content
 
-        content = copy.deepcopy(content)
         # if carryover is string
         if isinstance(kwargs["carryover"], str):
             content += "\nContext: \n" + kwargs["carryover"]
@@ -2305,7 +2304,6 @@ class ConversableAgent(LLMAgent):
         if not kwargs.get("carryover"):
             return content
 
-        content = copy.deepcopy(content)
         return [{"type": "text", "text": self._process_carryover("", kwargs)}] + content
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
