@@ -170,7 +170,7 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
                 to this chat.
                 If provided, we will combine this carryover with the "message" content when
                 generating the initial chat message in `generate_init_message`.
-
+        
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
