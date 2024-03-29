@@ -167,10 +167,8 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
                initial message.
             - `**context` - additional context information to be passed to the chat.
             - `"carryover"` - It can be used to specify the carryover information to be passed
-                to this chat.
-                If provided, we will combine this carryover with the "message" content when
-                generating the initial chat message in `generate_init_message`.
-        
+               to this chat. If provided, we will combine this carryover with the "message" content when
+               generating the initial chat message in `generate_init_message`.
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
