@@ -261,7 +261,7 @@ class GroupChat:
         roles = self._participant_roles(agents)
         agentlist = f"{[agent.name for agent in agents]}"
 
-        return_msg = self.select_speaker_message_template.format(**locals())
+        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agentlist)
         return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
@@ -271,7 +271,7 @@ class GroupChat:
 
         agentlist = f"{[agent.name for agent in agents]}"
 
-        return_prompt = self.select_speaker_prompt_template.format(**locals())
+        return_prompt = self.select_speaker_prompt_template.format(agentlist=agentlist)
         return return_prompt
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
