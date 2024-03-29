@@ -100,7 +100,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
-        result  = re.split(r"(<bot_end> \n)?Thought: ", input_string)
+        result = re.split(r"(<bot_end> \n)?Thought: ", input_string)
 
         print(f"\n\n\n\n****************** {result}************** \n\n\n\n")
 
