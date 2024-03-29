@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+import os
 import tempfile
 import uuid
 import pytest
@@ -10,7 +11,8 @@ from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 
-from conftest import MOCK_OPEN_AI_API_KEY, skip_docker
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import MOCK_OPEN_AI_API_KEY, skip_docker  # noqa: E402
 
 if skip_docker or not is_docker_running():
     classes_to_test = [LocalCommandLineCodeExecutor]
@@ -52,7 +54,7 @@ def test_commandline_executor_init(cls) -> None:
     assert executor.timeout == 10 and str(executor.work_dir) == "."
 
     # Try invalid working directory.
-    with pytest.raises(ValueError, match="Working directory .* does not exist."):
+    with pytest.raises(FileNotFoundError):
         executor = cls(timeout=111, work_dir="/invalid/directory")
 
 

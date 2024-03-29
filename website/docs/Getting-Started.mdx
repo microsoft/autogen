@@ -38,30 +38,37 @@ pip install pyautogen
 ```
 
 <Tabs>
+    <TabItem value="nocode" label="No code execution" default>
+
+```python
+from autogen import AssistantAgent, UserProxyAgent
+
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
+assistant = AssistantAgent("assistant", llm_config=llm_config)
+user_proxy = UserProxyAgent("user_proxy", code_execution_config=False)
+
+# Start the chat
+user_proxy.initiate_chat(
+    assistant,
+    message="Tell me a joke about NVDA and TESLA stock prices.",
+)
+```
+
+    </TabItem>
     <TabItem value="local" label="Local execution" default>
 :::warning
 When asked, be sure to check the generated code before continuing to ensure it is safe to run.
 :::
 
 ```python
+import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from autogen.coding import LocalCommandLineCodeExecutor
 
-import os
-from pathlib import Path
-
-llm_config = {
-    "config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}],
-}
-
-work_dir = Path("coding")
-work_dir.mkdir(exist_ok=True)
-
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
 assistant = AssistantAgent("assistant", llm_config=llm_config)
 
-code_executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
 user_proxy = UserProxyAgent(
-    "user_proxy", code_execution_config={"executor": code_executor}
+    "user_proxy", code_execution_config={"executor": autogen.coding.LocalCommandLineCodeExecutor(work_dir="coding")}
 )
 
 # Start the chat
@@ -75,20 +82,12 @@ user_proxy.initiate_chat(
     <TabItem value="docker" label="Docker execution" default>
 
 ```python
+import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from autogen.coding import DockerCommandLineCodeExecutor
 
-import os
-from pathlib import Path
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
 
-llm_config = {
-    "config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}],
-}
-
-work_dir = Path("coding")
-work_dir.mkdir(exist_ok=True)
-
-with DockerCommandLineCodeExecutor(work_dir=work_dir) as code_executor:
+with autogen.coding.DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
     assistant = AssistantAgent("assistant", llm_config=llm_config)
     user_proxy = UserProxyAgent(
         "user_proxy", code_execution_config={"executor": code_executor}
@@ -103,7 +102,7 @@ with DockerCommandLineCodeExecutor(work_dir=work_dir) as code_executor:
 
 Open `coding/plot.png` to see the generated plot.
 
-  </TabItem>
+    </TabItem>
 </Tabs>
 
 :::tip
