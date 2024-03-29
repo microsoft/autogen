@@ -122,11 +122,11 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @override
     def receive(
-            self,
-            message: Union,
-            sender: Agent,
-            request_reply: Optional = None,
-            silent: Optional = False,
+        self,
+        message: Union,
+        sender: Agent,
+        request_reply: Optional = None,
+        silent: Optional = False,
     ):
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
@@ -139,7 +139,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
             "role": "assistant",
             "tool_calls": [
                 {
-                    "id": 43, #TODO fix this as response id , was generate_oai_reply
+                    "id": 43,  # TODO fix this as response id , was generate_oai_reply
                     "function": {"arguments": json.dumps(args_map), "name": function_name},
                     "type": "function",
                 }
