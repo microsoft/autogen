@@ -1263,10 +1263,19 @@ def test_messages_with_carryover():
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
+
 def test_adding_duplicate_function_warning():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+
     agent = autogen.ConversableAgent(
-        "jason",
-        llm_config=False
+        "jtoy",
+        llm_config={
+            "config_list": config_list,
+            "model": "gpt-3.5-turbo-0613",
+        },
     )
 
     def sample_function():
@@ -1277,6 +1286,21 @@ def test_adding_duplicate_function_warning():
             "sample_function": sample_function,
         }
     )
+    agent.update_function_signature(
+        {
+            "name": "foo",
+        },
+        is_remove=False,
+    )
+    agent.update_tool_signature(
+        {
+            "type": "function",
+            "function": {
+                "name": "yo",
+            },
+        },
+        is_remove=False,
+    )
 
     with pytest.warns(UserWarning, match="Function 'sample_function' is being overridden."):
         agent.register_function(
@@ -1284,7 +1308,23 @@ def test_adding_duplicate_function_warning():
                 "sample_function": sample_function,
             }
         )
-
+    with pytest.warns(UserWarning, match="Function 'foo' is being overridden."):
+        agent.update_function_signature(
+            {
+                "name": "foo",
+            },
+            is_remove=False,
+        )
+    with pytest.warns(UserWarning, match="Function 'yo' is being overridden."):
+        agent.update_tool_signature(
+            {
+                "type": "function",
+                "function": {
+                    "name": "yo",
+                },
+            },
+            is_remove=False,
+        )
 
 
 if __name__ == "__main__":
