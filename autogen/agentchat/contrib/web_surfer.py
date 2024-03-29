@@ -73,7 +73,9 @@ class WebSurferAgent(ConversableAgent):
             _bconfig.update(browser_config)
 
             if "bing_api_key" in _bconfig:
-                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key=_bconfig["bing_api_key"])
+                _bconfig["search_engine"] = BingMarkdownSearch(
+                    bing_api_key=_bconfig["bing_api_key"], interleave_results=False
+                )
                 del _bconfig["bing_api_key"]
             else:
                 _bconfig["search_engine"] = BingMarkdownSearch()
