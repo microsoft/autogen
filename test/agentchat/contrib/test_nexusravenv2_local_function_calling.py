@@ -120,7 +120,7 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
     # Test that the function map is the function
     assert user_proxy.function_map["random_word_generator"]._origin == random_word_generator
 
-    res = user_proxy.initiate_chat(
+    user_proxy.initiate_chat(
         chatbot,
         message="Generate Me a Random Word Please",
         summary_method="last_msg",
