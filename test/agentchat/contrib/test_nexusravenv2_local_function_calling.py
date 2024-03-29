@@ -32,7 +32,7 @@ def create_fake_send(user_proxy):
         print(f"Messages: {msg2send}")
         print(f"Sender: {silent}")
         recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
-        
+
     return fake_send
 
 
@@ -46,7 +46,7 @@ def reply_func(
         True,
         "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
     )
-    
+
 
 @pytest.fixture
 def chatbot(mocker):
@@ -54,7 +54,7 @@ def chatbot(mocker):
         name="chatbot",
         system_message="""For currency exchange tasks,
         only use the functions you have been provided with.
-        Output 'BAZINGA!' when an answer has been provided. 
+        Output 'BAZINGA!' when an answer has been provided.
         Do not include the function name or result in the JSON.
         Example of the return JSON is:
         {
@@ -62,7 +62,7 @@ def chatbot(mocker):
             "parameter_2_name": "ABC",
             "parameter_3_name": "DEF",
         }.
-        Another example of the return JSON is: 
+        Another example of the return JSON is:
         {
             "parameter_1_name": "GHI",
             "parameter_2_name": "ABC",
