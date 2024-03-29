@@ -164,6 +164,9 @@ class GroupChat:
             agents=self.agents,
         )
 
+        if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
+            raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
+
     @property
     def agent_names(self) -> List[str]:
         """Return the names of the agents in the group chat."""

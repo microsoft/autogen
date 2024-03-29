@@ -1176,6 +1176,75 @@ def test_custom_speaker_selection_overrides_transition_graph():
     assert "teamA_executor" in speakers
 
 
+def test_role_for_select_speaker_messages():
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[{"role": "user", "content": "Let's have a chat!"}],
+        max_round=3,
+    )
+
+    # Run the select agents function to get the select speaker messages
+    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+
+    # Test default is "system"
+    assert len(messages) == 2
+    assert messages[-1]["role"] == "system"
+
+    # Test as "user"
+    groupchat.role_for_select_speaker_messages = "user"
+    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+
+    assert len(messages) == 2
+    assert messages[-1]["role"] == "user"
+
+    # Test as something unusual
+    groupchat.role_for_select_speaker_messages = "SockS"
+    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+
+    assert len(messages) == 2
+    assert messages[-1]["role"] == "SockS"
+
+    # Test empty string and None isn't accepted
+
+    # Test with empty strings
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[{"role": "user", "content": "Let's have a chat!"}],
+            max_round=3,
+            role_for_select_speaker_messages="",
+        )
+        assert False, "role_for_select_speaker_messages should throw an exception if empty."
+    except ValueError:
+        pass
+
+    try:
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[{"role": "user", "content": "Let's have a chat!"}],
+            max_round=3,
+            role_for_select_speaker_messages=None,
+        )
+        assert False, "role_for_select_speaker_messages should throw an exception if None."
+    except ValueError:
+        pass
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1190,5 +1259,6 @@ if __name__ == "__main__":
     # test_invalid_allow_repeat_speaker()
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
-    test_custom_speaker_selection_overrides_transition_graph()
+    # test_custom_speaker_selection_overrides_transition_graph()
+    test_role_for_select_speaker_messages()
     # pass
