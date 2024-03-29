@@ -1,0 +1,4 @@
+/autogen[websurfer]
+youtube_transcript_api
+mammoth
+puremagic
