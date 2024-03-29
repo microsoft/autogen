@@ -2266,16 +2266,17 @@ class ConversableAgent(LLMAgent):
         if not kwargs.get("carryover"):
             return message
 
-        # Makes sure the original message is not mutated
-        message = copy.deepcopy(message)
-
         if isinstance(message, str):
             return self._process_carryover(message, kwargs)
 
         elif isinstance(message, dict):
             if isinstance(message.get("content"), str):
+                # Makes sure the original message is not mutated
+                message = message.copy()
                 message["content"] = self._process_carryover(message["content"], kwargs)
             elif isinstance(message.get("content"), list):
+                # Makes sure the original message is not mutated
+                message = message.copy()
                 message["content"] = self._process_multimodal_carryover(message["content"], kwargs)
         else:
             raise InvalidCarryOverType("Carryover should be a string or a list of strings.")
