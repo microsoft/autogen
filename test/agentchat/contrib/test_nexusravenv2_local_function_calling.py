@@ -52,17 +52,17 @@ def reply_func(
 def chatbot(mocker):
     agent = Nexus.NexusFunctionCallingAssistant(
         name="chatbot",
-        system_message="""For currency exchange tasks, 
-        only use the functions you have been provided with. 
-        Output 'BAZINGA!' when an answer has been provided. 
+        system_message="""For currency exchange tasks,
+        only use the functions you have been provided with.
+        Output 'BAZINGA!' when an answer has been provided.
         Do not include the function name or result in the JSON.
-        Example of the return JSON is: 
+        Example of the return JSON is:
         {
             "parameter_1_name": 100.00,
             "parameter_2_name": "ABC",
             "parameter_3_name": "DEF",
-        }. 
-        Another example of the return JSON is: 
+        }.
+        Another example of the return JSON is:
         {
             "parameter_1_name": "GHI",
             "parameter_2_name": "ABC",
