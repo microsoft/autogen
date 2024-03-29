@@ -11,6 +11,7 @@ import datetime
 import pathlib
 import pathvalidate
 import html
+import traceback
 from urllib.parse import urljoin, urlparse, unquote, parse_qs
 from urllib.request import url2pathname
 from typing import Any, Dict, List, Optional, Union, Tuple
@@ -237,6 +238,7 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         self, url: str, session: requests.Session = None, requests_get_kwargs: Dict[str, Any] = None
     ) -> None:
         download_path = ""
+        response = None
         try:
             if url.startswith("file://"):
                 download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
@@ -320,20 +322,24 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self.page_title = "Error 404"
             self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
         except requests.exceptions.RequestException:
-            self.page_title = f"Error {response.status_code}"
-
-            # If the error was rendered in HTML we might as well render it
-            content_type = response.headers.get("content-type", "")
-            if content_type is not None and "text/html" in content_type.lower():
-                res = self._markdown_converter.convert(response)
-                self.page_title = f"Error {response.status_code}"
-                self._set_page_content(f"## Error {response.status_code}\n\n{res.text_content}")
+            if response is None:
+                self.page_title = "Request Exception"
+                self._set_page_content("## Unhandled Request Exception:\n\n" + traceback.format_exc())
             else:
-                text = ""
-                for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                    text += chunk
                 self.page_title = f"Error {response.status_code}"
-                self._set_page_content(f"## Error {response.status_code}\n\n{text}")
+
+                # If the error was rendered in HTML we might as well render it
+                content_type = response.headers.get("content-type", "")
+                if content_type is not None and "text/html" in content_type.lower():
+                    res = self._markdown_converter.convert(response)
+                    self.page_title = f"Error {response.status_code}"
+                    self._set_page_content(f"## Error {response.status_code}\n\n{res.text_content}")
+                else:
+                    text = ""
+                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
+                        text += chunk
+                    self.page_title = f"Error {response.status_code}"
+                    self._set_page_content(f"## Error {response.status_code}\n\n{text}")
 
     def _fetch_local_dir(self, local_path: str) -> str:
         pardir = os.path.normpath(os.path.join(local_path, os.pardir))
