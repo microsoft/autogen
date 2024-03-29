@@ -15,7 +15,7 @@ and coding.
 
 Specific tasks, such as speaker selection in a Group Chat scenario, that require
 very accurate outputs can be a challenge with most open source/weight models. The
-use of chain-on-thought and/or few-shot prompting can help guide the LLM to provide
+use of chain-of-thought and/or few-shot prompting can help guide the LLM to provide
 the output in the format you want.
 
 ## Validating your program
