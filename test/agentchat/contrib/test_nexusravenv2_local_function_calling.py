@@ -32,7 +32,9 @@ def create_fake_send(user_proxy):
         print(f"Messages: {msg2send}")
         print(f"Sender: {silent}")
         recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
+        
     return fake_send
+
 
 def reply_func(
     recipient: ConversableAgent,
@@ -41,8 +43,8 @@ def reply_func(
     config: Optional[Any] = None,
 ) -> Tuple[bool, Union[str, Dict, None]]:
     return (
-        True, 
-        "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
+        True,
+        "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
     )
     
 
@@ -50,16 +52,16 @@ def reply_func(
 def chatbot(mocker):
     agent = Nexus.NexusFunctionCallingAssistant(
         name="chatbot",
-        system_message="""For currency exchange tasks, 
-        only use the functions you have been provided with. 
+        system_message="""For currency exchange tasks,
+        only use the functions you have been provided with.
         Output 'BAZINGA!' when an answer has been provided. 
         Do not include the function name or result in the JSON.
-        Example of the return JSON is: 
+        Example of the return JSON is:
         {
             "parameter_1_name": 100.00,
             "parameter_2_name": "ABC",
             "parameter_3_name": "DEF",
-        }. 
+        }.
         Another example of the return JSON is: 
         {
             "parameter_1_name": "GHI",
@@ -67,14 +69,12 @@ def chatbot(mocker):
             "parameter_3_name": "DEF",
             "parameter_4_name": 123.00,
         }. """,  # MS - this was needed to ensure the function name was returned
-
         llm_config=llm_config,
     )
     agent.register_reply(
         trigger=lambda _: True,
         reply_func=reply_func,
     )
-
 
     return agent
 
@@ -108,8 +108,7 @@ def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol)
 
 
 # print(chatbot.llm_config["tools"])
-def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
-                                             chatbot: Nexus.NexusFunctionCallingAssistant):
+def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot: Nexus.NexusFunctionCallingAssistant):
     @user_proxy.register_for_execution()
     @chatbot.register_for_llm(description="A Random Word Generator")
     def random_word_generator(
