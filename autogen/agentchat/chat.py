@@ -144,7 +144,7 @@ def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     """Initiate a list of chats.
     Args:
-        chat_queue (List[Dict]): a list of dictionaries containing the information about the chats.
+        chat_queue (List[Dict]): A list of dictionaries containing the information about the chats.
 
         Each dictionary should contain the input arguments for
         [`ConversableAgent.initiate_chat`](/docs/reference/agentchat/conversable_agent#initiate_chat).
