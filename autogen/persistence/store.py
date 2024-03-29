@@ -5,15 +5,15 @@ from pydantic import BaseModel, Field
 from ..version import __version__ as version
 
 T = TypeVar("T")
-S = TypeVar("S", bound=Type["Serializable"])
+S = TypeVar("S", bound="Type[Serializable]")
 
 
 class SerializableRegistry:
-    _registry: Dict[str, "Serializable"] = {}
+    _registry: Dict[str, "Type[Serializable]"] = {}
 
     @classmethod
     def register(cls, type_name: Optional[str] = None) -> Callable[[S], S]:
-        def _inner_register(serializable_cls: S, type_name=type_name) -> S:
+        def _inner_register(serializable_cls: S, type_name: Optional[str] = type_name) -> S:
             if type_name is None:
                 type_name = f"{serializable_cls.__module__}.{serializable_cls.__qualname__}"
 
@@ -29,35 +29,43 @@ class SerializableRegistry:
 
             original_to_model = serializable_cls.to_model
             original_model_class = serializable_cls.get_model_class()
+            original_from_model = serializable_cls.from_model
 
             class Wrapper(BaseModel):
 
-                type: Literal[type_name] = type_name
+                type: Literal[type_name] = type_name  # type: ignore[valid-type]
                 version: str
-                data: original_model_class
+                data: original_model_class  # type: ignore[valid-type]
 
-            def to_model(self: "Serializable") -> BaseModel:
+            def to_model(self: Serializable) -> Wrapper:
                 original_data = original_to_model(self)
 
                 return Wrapper(version=version, data=original_data)
 
-            serializable_cls.to_model = to_model
+            def get_model_class() -> Type[Wrapper]:
+                return Wrapper
+
+            def from_model(model: Wrapper) -> Serializable:
+                if model.type != type_name:
+                    raise ValueError(f"Model type '{model.type}' does not match the expected type '{type_name}'.")
+
+                return original_from_model(model=model.data)
+
+            serializable_cls.to_model = to_model  # type: ignore[method-assign]
+            serializable_cls.get_model_class = get_model_class  # type: ignore[method-assign]
+            serializable_cls.from_model = from_model  # type: ignore[method-assign,assignment]
 
             cls._registry[type_name] = serializable_cls
 
             return serializable_cls
 
-            @classmethod
-            def from_model(cls: Type[T], model: BaseModel) -> T:
-                if model.type != type_name:
-                    raise ValueError(f"Model type '{model.type}' does not match the expected type '{type_name}'.")
-
-                return serializable_cls.from_model(model.data)
-
         return _inner_register
 
     @classmethod
     def from_model(cls, model: BaseModel) -> "Serializable":
+        if not hasattr(model, "type"):
+            raise ValueError("Model does not have a 'type' attribute.")
+
         type_name = model.type
         serializable_cls = cls._registry[type_name]
 
