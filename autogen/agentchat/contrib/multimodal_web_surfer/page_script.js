@@ -66,6 +66,17 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
      return false;
   };
 
+  let getFocusedElementId = function() {
+     let elm = document.activeElement;
+     while (elm) {
+         if (elm.hasAttribute && elm.hasAttribute("__elementId")) {
+	     return elm.getAttribute("__elementId");
+	 }
+         elm = elm.parentNode;
+     }
+     return null;
+  };
+
   let trimmedInnerText = function(element) {
       if (!element) {
           return "";
@@ -172,7 +183,6 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
   let getVisualViewport = function() {
       let vv = window.visualViewport;
-      let docrec = document.documentElement.getBoundingClientRect();
       return {
           "height": vv.height,
 	  "width": vv.width,
@@ -184,14 +194,13 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 	  "clientWidth": document.documentElement.clientWidth,
 	  "clientHeight": document.documentElement.clientHeight,
 	  "scrollWidth": document.documentElement.scrollWidth,
-	  "scrollHeight": document.documentElement.scrollHeight,
-	  "documentWidth": docrec.width,
-	  "documentHeight": docrec.height
+	  "scrollHeight": document.documentElement.scrollHeight
       };
   };
 
   return {
       getInteractiveRects: getInteractiveRects,
-      getVisualViewport: getVisualViewport
+      getVisualViewport: getVisualViewport,
+      getFocusedElementId: getFocusedElementId
   };
 })();

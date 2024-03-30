@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 import tempfile
+import uuid
 import pytest
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.code_utils import is_docker_running
@@ -8,14 +9,16 @@ from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
-from autogen.oai.openai_utils import config_list_from_json
 
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai, skip_docker
+from conftest import MOCK_OPEN_AI_API_KEY, skip_docker
 
 if skip_docker or not is_docker_running():
     classes_to_test = [LocalCommandLineCodeExecutor]
 else:
     classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
+
+UNIX_SHELLS = ["bash", "sh", "shell"]
+WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
@@ -218,3 +221,31 @@ print("hello world")
         assert "test.py" in result.code_file
         assert (temp_dir / "test.py").resolve() == Path(result.code_file).resolve()
         assert (temp_dir / "test.py").exists()
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+@pytest.mark.parametrize("lang", WINDOWS_SHELLS + UNIX_SHELLS)
+def test_silent_pip_install(cls, lang: str) -> None:
+    # Ensure that the shell is supported.
+    lang = "ps1" if lang in ["powershell", "pwsh"] else lang
+
+    if sys.platform in ["win32"] and lang in UNIX_SHELLS:
+        pytest.skip("Linux shells are not supported on Windows.")
+    elif sys.platform not in ["win32"] and lang in WINDOWS_SHELLS:
+        pytest.skip("Windows shells are not supported on Unix.")
+
+    error_exit_code = 0 if sys.platform in ["win32"] else 1
+
+    executor = cls(timeout=600)
+
+    code = "pip install matplotlib numpy"
+    code_blocks = [CodeBlock(code=code, language=lang)]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and code_result.output.strip() == ""
+
+    none_existing_package = uuid.uuid4().hex
+
+    code = f"pip install matplotlib_{none_existing_package}"
+    code_blocks = [CodeBlock(code=code, language=lang)]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output
