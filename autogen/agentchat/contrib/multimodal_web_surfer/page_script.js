@@ -64,6 +64,17 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
      return false;
   };
 
+  let getFocusedElementId = function() {
+     let elm = document.activeElement;
+     while (elm) {
+         if (elm.hasAttribute && elm.hasAttribute("__elementId")) {
+	     return elm.getAttribute("__elementId");
+	 }
+         elm = elm.parentNode;
+     }
+     return null;
+  };
+
   let trimmedInnerText = function(element) {
       if (!element) {
           return "";
@@ -187,6 +198,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
 
   return {
       getInteractiveRects: getInteractiveRects,
-      getVisualViewport: getVisualViewport
+      getVisualViewport: getVisualViewport,
+      getFocusedElementId: getFocusedElementId
   };
 })();
