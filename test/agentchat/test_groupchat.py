@@ -1222,27 +1222,23 @@ def test_role_for_select_speaker_messages():
     # Test empty string and None isn't accepted
 
     # Test with empty strings
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[{"role": "user", "content": "Let's have a chat!"}],
             max_round=3,
             role_for_select_speaker_messages="",
         )
-        assert False, "role_for_select_speaker_messages should throw an exception if empty."
-    except ValueError:
-        pass
+    assert "role_for_select_speaker_messages cannot be empty or None." in str(e.value)
 
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[{"role": "user", "content": "Let's have a chat!"}],
             max_round=3,
             role_for_select_speaker_messages=None,
         )
-        assert False, "role_for_select_speaker_messages should throw an exception if None."
-    except ValueError:
-        pass
+    assert "role_for_select_speaker_messages cannot be empty or None." in str(e.value)
 
 
 if __name__ == "__main__":
