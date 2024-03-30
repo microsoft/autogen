@@ -4,7 +4,7 @@ Demo App
 
 import argparse
 import _paths
-from autogencap.Config import LOG_LEVEL, IGNORED_LOG_CONTEXTS
+import autogencap.Config as Config
 import autogencap.DebugLog as DebugLog
 from SimpleActorDemo import simple_actor_demo
 from AGDemo import ag_demo
@@ -13,6 +13,7 @@ from CAPAutGenGroupDemo import cap_ag_group_demo
 from CAPAutoGenPairDemo import cap_ag_pair_demo
 from ComplexActorDemo import complex_actor_demo
 from RemoteAGDemo import remote_ag_demo
+from list_agents import list_agents
 
 ####################################################################################################
 
@@ -26,7 +27,8 @@ def parse_args():
     # Set the log level
     # Print log level string based on names in debug_log.py
     print(f"Log level: {DebugLog.LEVEL_NAMES[args.log_level]}")
-    # IGNORED_LOG_CONTEXTS.extend(["BROKER"])
+    Config.LOG_LEVEL = args.log_level
+    # Config.IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
 
 ####################################################################################################
@@ -42,7 +44,8 @@ def main():
         print("3. AutoGen Pair")
         print("4. AutoGen GroupChat")
         print("5. AutoGen Agents in different processes")
-        choice = input("Enter your choice (1-5): ")
+        print("6. List Actors in CAP")
+        choice = input("Enter your choice (1-6): ")
 
         if choice == "1":
             simple_actor_demo()
@@ -58,6 +61,8 @@ def main():
             cap_ag_group_demo()
         elif choice == "5":
             remote_ag_demo()
+        elif choice == "6":
+            list_agents()
         else:
             print("Quitting...")
             break

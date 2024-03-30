@@ -5,7 +5,8 @@ from .Broker import Broker
 from .DirectorySvc import DirectorySvc
 from .Constants import Termination_Topic
 from .Actor import Actor
-from .proto.CAP_pb2 import ActorInfo
+from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
+from typing import List
 import time
 
 # TODO: remove time import
@@ -69,3 +70,14 @@ class LocalActorNetwork:
     def lookup_termination(self) -> ActorConnector:
         termination_topic: str = Termination_Topic
         return self.actor_connector_by_topic(termination_topic)
+
+    def lookup_actor_info(self, name_regex) -> List[ActorInfo]:
+        actor_info: ActorInfoCollection = self._directory_svc.lookup_actor_info_by_name(name_regex)
+        if actor_info is None:
+            Warn("Local_Actor_Network", f"{name_regex}, not found in the network.")
+            return None
+        Debug("Local_Actor_Network", f"[{name_regex}] found in the network.")
+        actor_list = []
+        for actor in actor_info.info_coll:
+            actor_list.append(actor)
+        return actor_list
