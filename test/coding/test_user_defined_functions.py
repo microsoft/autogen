@@ -10,7 +10,7 @@ except ImportError:
 else:
     skip = False
 
-from autogen.coding.func_with_reqs import with_requirements
+from autogen.coding.func_with_reqs import FunctionWithRequirements, with_requirements
 
 classes_to_test = [LocalCommandLineCodeExecutor]
 
@@ -137,7 +137,6 @@ function_incorrect_dep()"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
-@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_formatted_prompt(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
@@ -149,3 +148,86 @@ def test_formatted_prompt(cls) -> None:
 '''
             in result
         )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_formatted_prompt_str_func(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+        executor = cls(work_dir=temp_dir, functions=[func])
+
+        result = executor.format_functions_for_prompt()
+        assert (
+            '''def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+'''
+            in result
+        )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_can_load_str_function_with_reqs(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+        executor = cls(work_dir=temp_dir, functions=[func])
+        code = f"""from {cls.FUNCTIONS_MODULE} import add_two_numbers
+print(add_two_numbers(1, 2))"""
+
+        result = executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python", code=code),
+            ]
+        )
+        assert result.output == "3\n"
+        assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_cant_load_broken_str_function_with_reqs(cls) -> None:
+
+    with pytest.raises(ValueError):
+        _ = FunctionWithRequirements.from_str(
+            '''
+invaliddef add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_cant_run_broken_str_function_with_reqs(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+        code = f"""from {cls.FUNCTIONS_MODULE} import add_two_numbers
+print(add_two_numbers(object(), False))"""
+
+        executor = cls(work_dir=temp_dir, functions=[func])
+
+        result = executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python", code=code),
+            ]
+        )
+        assert "TypeError: unsupported operand type(s) for +:" in result.output
+        assert result.exit_code == 1

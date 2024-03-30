@@ -6,7 +6,12 @@ import sys
 import warnings
 from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
 from typing_extensions import ParamSpec
-from autogen.coding.func_with_reqs import FunctionWithRequirements, _build_python_functions_file, to_stub
+from autogen.coding.func_with_reqs import (
+    FunctionWithRequirements,
+    FunctionWithRequirementsStr,
+    _build_python_functions_file,
+    to_stub,
+)
 
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
@@ -39,7 +44,7 @@ $functions"""
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
-        functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]] = [],
+        functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -104,7 +109,9 @@ $functions"""
         )
 
     @property
-    def functions(self) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]:
+    def functions(
+        self,
+    ) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]:
         """(Experimental) The functions that are available to the code executor."""
         return self._functions
 
