@@ -1263,6 +1263,54 @@ def test_messages_with_carryover():
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
+    # Test multimodal messages
+    mm_content = [
+        {"type": "text", "text": "hello"},
+        {"type": "text", "text": "goodbye"},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.png"},
+        },
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(
+        message=mm_message,
+        carryover="Testing carryover.",
+    )
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test without carryover
+    print(mm_message)
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 3
+
+    # Test without text in multimodal message
+    mm_content = [
+        {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 1
+
+    generated_message = agent1.generate_init_message(**context, carryover="Testing carryover.")
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 2
+
 
 if __name__ == "__main__":
     # test_trigger()
