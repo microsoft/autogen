@@ -751,6 +751,34 @@ class Sidebar(Container):
                 yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
 
 
+class HistoryTab(Grid):
+
+    len_history = reactive(0, recompose=True)
+    num_tools = reactive(0, recompose=True)
+
+    def update_history(self) -> None:
+        self.len_history = len(fetch_chat_history())
+
+    def update_tools(self) -> None:
+        self.num_tools = len(APP_CONFIG.get_tools())
+
+    def on_mount(self) -> None:
+        self.set_interval(1, self.update_history)
+        self.set_interval(1, self.update_tools)
+
+    def compose(self) -> ComposeResult:
+        with Container(id="history-contents"):
+            yield Markdown(f"## Number of messages: {self.len_history}\n\n## Number of tools: {self.num_tools}")
+        with Container(id="history-footer", classes="settings-screen-footer"):
+            yield Button("Clear History", variant="error", id="clear-history-button")
+
+    @on(Button.Pressed, "#clear-history-button")
+    def clear_history(self) -> None:
+        APP_CONFIG.clear_chat_history()
+
+        self.screen.close_user_settings()
+
+
 class SettingsScreen(ModalScreen):
     """Screen with a dialog to display settings."""
 
@@ -776,7 +804,6 @@ class SettingsScreen(ModalScreen):
 
                 with Horizontal(classes="settings-screen-footer"):
                     yield Button("Save", variant="primary", id="save-user-settings")
-                    yield Button("Close", variant="error", id="close-user-settings")
 
             # Tab for tools settings
             with Grid(id="tools-tab-grid"):
@@ -790,9 +817,7 @@ class SettingsScreen(ModalScreen):
 
                 # display the settings for the selected tool
                 with Grid(id="tool-view-grid"):
-                    # with Grid(id="tool-view-header-grid"):
-                    # information about the selected tool
-                    # with Horizontal(id="tool-info-container"):
+
                     with Vertical():
                         yield Label("Tool ID", classes="form-label")
                         yield Input(id="tool-id-input", disabled=True)
@@ -812,13 +837,7 @@ class SettingsScreen(ModalScreen):
                         yield Button("Delete", variant="error", id="delete-tool-button")
 
             # Tab for history settings
-            with Grid(id="history-settings"):
-                with Container(id="history-contents"):
-                    yield Markdown(
-                        f"## Number of messages: {len(fetch_chat_history())}\n\n## Number of tools: {len(tools)}"
-                    )
-                with Container(id="history-footer"):
-                    yield Button("Clear History", variant="error", id="clear-history-button")
+            yield HistoryTab(id="history-settings")
 
     @on(Button.Pressed, "#close-user-settings")
     @on(Button.Pressed, "#close-tool-settings")
@@ -840,10 +859,12 @@ class SettingsScreen(ModalScreen):
     @on(Button.Pressed, "#new-tool-button")
     def create_new_tool(self) -> None:
         tools = APP_CONFIG.get_tools()
-        num_tools = len(tools)
-        new_tool_name = f"tool-{num_tools + 1}"
 
-        tool = Tool(new_tool_name, id=num_tools + 1)
+        new_id = max(tools.keys()) + 1 if tools else 1
+
+        new_tool_name = f"tool-{new_id}"
+
+        tool = Tool(new_tool_name, id=new_id)
 
         try:
             tool.validate_tool()
@@ -860,7 +881,7 @@ class SettingsScreen(ModalScreen):
             return
 
         list_view_widget = self.query_one("#tool-list", ListView)
-        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{num_tools + 1}")
+        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{new_id}")
 
         list_view_widget.append(new_list_item)
         num_items = len(list_view_widget)
@@ -927,12 +948,6 @@ class SettingsScreen(ModalScreen):
 
         item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
         item_label.update(tool_name)
-        self.close_user_settings()
-
-    @on(Button.Pressed, "#clear-history-button")
-    def clear_history(self) -> None:
-        APP_CONFIG.clear_chat_history()
-
         self.close_user_settings()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
@@ -1123,18 +1138,6 @@ class AppErrorMessage(Message):
 
 class SubprocessError(Exception):
     pass
-
-
-# async def run_in_subprocess(func, *args):
-#     # Create a ThreadPoolExecutor
-#     try:
-#         with concurrent.futures.ThreadPoolExecutor() as executor:
-#             # Run the function in the executor
-#             result = await asyncio.get_event_loop().run_in_executor(executor, func, *args)
-#             return result
-#     except Exception as e:
-#         error_message = f"Error running function in subprocess: {e}"
-#         raise SubprocessError(error_message) from e
 
 
 def generate_response_process(msg_idx: int):
