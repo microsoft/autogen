@@ -200,8 +200,8 @@ ChatScreen, LearningScreen {
     border: thick $primary-background 80%;
     padding: 1;
 
-    grid-size: 1 10;
-    grid-rows: 10% 80% 10%;
+    grid-size: 1 3;
+    grid-rows: 2 1fr 5;
 }
 
 #chat-screen {
