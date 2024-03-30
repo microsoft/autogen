@@ -33,6 +33,7 @@
     "@svgr/webpack": "^5.5.0",
     "antd": "^5.11.5",
     "clsx": "^1.1.1",
+    "docusaurus-plugin-clarity": "^2.1.0",
     "file-loader": "^6.2.0",
     "hast-util-is-element": "1.1.0",
     "joi": "17.6.0",
