@@ -485,7 +485,14 @@ echo RUN.SH COMPLETE !#!#
 
     # Create and run the container
     container = client.containers.run(
-        image, command=["sh", "run.sh"], working_dir="/workspace", environment=env, detach=True, volumes=volumes
+        image,
+        command=["sh", "run.sh"],
+        working_dir="/workspace",
+        environment=env,
+        detach=True,
+        remove=True,
+        auto_remove=True,
+        volumes=volumes,
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.
@@ -494,29 +501,54 @@ echo RUN.SH COMPLETE !#!#
     logs = container.logs(stream=True)
     log_file = open(os.path.join(work_dir, "console_log.txt"), "wt", encoding="utf-8")
     stopping = False
+    exiting = False
 
-    for chunk in logs:  # When streaming it should return a generator
-        # Stream the data to the log file and the console
-        chunk = chunk.decode("utf-8")
-        log_file.write(chunk)
-        log_file.flush()
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stdout.write(chunk)
-        sys.stdout.flush()
+    while True:
+        try:
+            chunk = next(logs)  # Manually step the iterator so it is captures with the try-catch
 
-        # Check if we need to terminate
-        if not stopping and time.time() - start_time >= docker_timeout:
+            # Stream the data to the log file and the console
+            chunk = chunk.decode("utf-8")
+            log_file.write(chunk)
+            log_file.flush()
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stdout.write(chunk)
+            sys.stdout.flush()
+
+            # Check if we need to terminate
+            if not stopping and time.time() - start_time >= docker_timeout:
+                container.stop()
+
+                # Don't exit the loop right away, as there are things we may still want to read from the logs
+                # but remember how we got here.
+                stopping = True
+        except KeyboardInterrupt:
+            log_file.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+            log_file.flush()
+            sys.stdout.write("\nKeyboard interrupt (Ctrl-C). Attempting to exit gracefully.\n")
+            sys.stdout.flush()
+
+            # Start the exit process, and give it a minute, but keep iterating
             container.stop()
+            exiting = True
+            docker_timeout = time.time() - start_time + 60
+        except StopIteration:
+            break
 
-            # Don't exit the loop right away, as there are things we may still want to read from the logs
-            # but remember how we got here.
-            stopping = True
+    # Clean up the container
+    try:
+        container.remove()
+    except docker.errors.APIError:
+        pass
 
     if stopping:  # By this line we've exited the loop, and the container has actually stopped.
         log_file.write("\nDocker timed out.\n")
         log_file.flush()
         sys.stdout.write("\nDocker timed out.\n")
         sys.stdout.flush()
+
+    if exiting:  # User hit ctrl-C
+        sys.exit(1)
 
 
 def build_default_docker_image(docker_client, image_tag):
