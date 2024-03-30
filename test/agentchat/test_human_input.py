@@ -8,17 +8,10 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
-
-try:
-    from openai import OpenAI
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+from conftest import skip_openai as skip  # noqa: E402
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip, reason="requested to skip")
 def test_get_human_input():
     config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
 
@@ -33,8 +26,6 @@ def test_get_human_input():
 
     # Use MagicMock to create a mock get_human_input function
     user_proxy.get_human_input = MagicMock(return_value="This is a test")
-
-    user_proxy.register_reply([autogen.Agent, None], autogen.ConversableAgent.a_check_termination_and_human_reply)
 
     res = user_proxy.initiate_chat(assistant, clear_history=True, message="Hello.")
     print("Result summary:", res.summary)

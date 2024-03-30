@@ -6,12 +6,12 @@ from pathlib import Path
 from time import sleep
 from types import TracebackType
 import uuid
-from typing import List, Optional, Type, Union
+from typing import Any, List, Optional, Type, Union
 import docker
-from docker.models.containers import Container
 from docker.errors import ImageNotFound
 
-from .local_commandline_code_executor import CommandLineCodeResult
+from .utils import _get_file_name_from_content, silence_pip
+from .base import CommandLineCodeResult
 
 from ..code_utils import TIMEOUT_MSG, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor
@@ -24,8 +24,8 @@ else:
     from typing_extensions import Self
 
 
-def _wait_for_ready(container: Container, timeout: int = 60, stop_time: int = 0.1) -> None:
-    elapsed_time = 0
+def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
+    elapsed_time = 0.0
     while container.status != "running" and elapsed_time < timeout:
         sleep(stop_time)
         elapsed_time += stop_time
@@ -83,8 +83,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            raise ValueError(f"Working directory {work_dir} does not exist.")
+        work_dir.mkdir(exist_ok=True)
 
         client = docker.from_env()
 
@@ -113,7 +112,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         _wait_for_ready(self._container)
 
-        def cleanup():
+        def cleanup() -> None:
             try:
                 container = client.containers.get(container_name)
                 container.stop()
@@ -166,27 +165,17 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         last_exit_code = 0
         for code_block in code_blocks:
             lang = code_block.language
-            code = code_block.code
+            code = silence_pip(code_block.code, lang)
 
-            code_hash = md5(code.encode()).hexdigest()
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, Path("/workspace"))
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
 
-            # Check if there is a filename comment
-            # Get first line
-            first_line = code.split("\n")[0]
-            if first_line.startswith("# filename:"):
-                filename = first_line.split(":")[1].strip()
-
-                # Handle relative paths in the filename
-                path = Path(filename)
-                if not path.is_absolute():
-                    path = Path("/workspace") / path
-                path = path.resolve()
-                try:
-                    path.relative_to(Path("/workspace"))
-                except ValueError:
-                    return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
-            else:
-                # create a file with a automatically generated name
+            if filename is None:
+                # create a file with an automatically generated name
+                code_hash = md5(code.encode()).hexdigest()
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             code_path = self._work_dir / filename

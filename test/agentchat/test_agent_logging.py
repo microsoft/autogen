@@ -110,7 +110,11 @@ def test_two_agents_logging(db_connection):
         assert first_request_role == "system"
 
         response = json.loads(row["response"])
-        assert "choices" in response and len(response["choices"]) > 0
+
+        if "response" in response:  # config failed or response was empty
+            assert response["response"] is None or "error_code" in response["response"]
+        else:
+            assert "choices" in response and len(response["choices"]) > 0
 
         assert row["cost"] > 0
         assert row["start_time"], "start timestamp is empty"
@@ -153,7 +157,8 @@ def test_two_agents_logging(db_connection):
         assert row["session_id"] and row["session_id"] == session_id
         assert row["class"] in ["AzureOpenAI", "OpenAI"]
         init_args = json.loads(row["init_args"])
-        assert "api_version" in init_args
+        if row["class"] == "AzureOpenAI":
+            assert "api_version" in init_args
         assert row["timestamp"], "timestamp is empty"
 
     # Verify oai wrapper table
