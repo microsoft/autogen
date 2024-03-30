@@ -1255,20 +1255,7 @@ There is no need to use the word TERMINATE in this response.
 
 class TinyRA(App):
     """
-    A Textual app to display chat history.
-
-    The app is composed of the following widgets:
-    - Header
-    - DirectoryTreeContainer
-    - ChatDisplay
-    - ChatInput
-    - Footer
-
-    The app also has the following key bindings:
-    - ctrl+t: toggle dark mode
-    - ctrl+z: quit the app
-    - ctrl+r: retry last user message
-    - ctrl+g: memorize the autogen message
+    Main application for TinyRA.
     """
 
     BINDINGS = [
@@ -1284,15 +1271,16 @@ class TinyRA(App):
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
-        with Grid(id="main-grid"):
-            yield Header(show_clock=True)
 
-            yield Sidebar(classes="-hidden")
+        yield Header(show_clock=True)
 
-            with Container(id="chat-container"):
-                yield ChatDisplay(id="chat-history")
-                yield ChatInput(id="chat-input-box")
-            yield Footer()
+        yield Sidebar(classes="-hidden", id="sidebar")
+
+        with Grid(id="chat-grid"):
+            yield ChatDisplay(id="chat-history")
+            yield ChatInput(id="chat-input-box")
+
+        yield Footer()
 
     def action_request_quit(self) -> None:
         self.push_screen(QuitScreen())
