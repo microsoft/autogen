@@ -751,6 +751,13 @@ class Sidebar(Container):
                 yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
 
 
+class CloseScreen(Message):
+
+    def __init__(self, screen_id: str) -> None:
+        self.screen_id = screen_id
+        super().__init__()
+
+
 class HistoryTab(Grid):
 
     len_history = reactive(0, recompose=True)
@@ -776,7 +783,7 @@ class HistoryTab(Grid):
     def clear_history(self) -> None:
         APP_CONFIG.clear_chat_history()
 
-        self.screen.close_user_settings()
+        self.screen.close_settings()
 
 
 class UserSettingsTab(Grid):
@@ -805,61 +812,41 @@ class UserSettingsTab(Grid):
             user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
         )
 
-        self.screen.close_user_settings()
+        self.screen.close_settings()
 
 
-class SettingsScreen(ModalScreen):
-    """Screen with a dialog to display settings."""
-
-    BINDINGS = [("escape", "app.pop_screen", "Dismiss")]
+class ToolSettingsTab(Grid):
 
     def compose(self) -> ComposeResult:
-
         tools = APP_CONFIG.get_tools()
+        # list of tools
+        with Container(id="tool-list-container"):
+            yield ListView(
+                *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
+                id="tool-list",
+            )
+            yield Button("+", variant="primary", id="new-tool-button")
 
-        with TabbedContent("User", "Tools", "History", id="settings-screen"):
+        # display the settings for the selected tool
+        with Grid(id="tool-view-grid"):
 
-            # Tab for user settings
-            yield UserSettingsTab(id="user-settings")
+            with Vertical():
+                yield Label("Tool ID", classes="form-label")
+                yield Input(id="tool-id-input", disabled=True)
 
-            # Tab for tools settings
-            with Grid(id="tools-tab-grid"):
-                # list of tools
-                with Container(id="tool-list-container"):
-                    yield ListView(
-                        *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
-                        id="tool-list",
-                    )
-                    yield Button("+", variant="primary", id="new-tool-button")
+            with Vertical():
+                yield Label("Tool Name (Display)", classes="form-label")
+                yield Input(id="tool-name-input")
 
-                # display the settings for the selected tool
-                with Grid(id="tool-view-grid"):
+            # code editor for the selected tool
+            with Horizontal(id="tool-code-container"):
+                # yield Label("Code", classes="form-label")
+                yield TextArea.code_editor("", language="python", id="tool-code-textarea")
 
-                    with Vertical():
-                        yield Label("Tool ID", classes="form-label")
-                        yield Input(id="tool-id-input", disabled=True)
-
-                    with Vertical():
-                        yield Label("Tool Name (Display)", classes="form-label")
-                        yield Input(id="tool-name-input")
-
-                    # code editor for the selected tool
-                    with Horizontal(id="tool-code-container"):
-                        # yield Label("Code", classes="form-label")
-                        yield TextArea.code_editor("", language="python", id="tool-code-textarea")
-
-                    # footer for the tool view
-                    with Horizontal(id="tool-view-footer-grid"):
-                        yield Button("Save", variant="primary", id="save-tool-settings")
-                        yield Button("Delete", variant="error", id="delete-tool-button")
-
-            # Tab for history settings
-            yield HistoryTab(id="history-settings")
-
-    @on(Button.Pressed, "#close-user-settings")
-    @on(Button.Pressed, "#close-tool-settings")
-    def close_user_settings(self) -> None:
-        self.app.pop_screen()
+            # footer for the tool view
+            with Horizontal(id="tool-view-footer-grid"):
+                yield Button("Save", variant="primary", id="save-tool-settings")
+                yield Button("Delete", variant="error", id="delete-tool-button")
 
     @on(Button.Pressed, "#new-tool-button")
     def create_new_tool(self) -> None:
@@ -953,7 +940,7 @@ class SettingsScreen(ModalScreen):
 
         item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
         item_label.update(tool_name)
-        self.close_user_settings()
+        self.screen.close_settings()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
@@ -978,6 +965,27 @@ class SettingsScreen(ModalScreen):
 
         elif list_view_widget.highlighted_child is not None:
             list_view_widget.action_select_cursor()
+
+
+class SettingsScreen(ModalScreen):
+    """Screen with a dialog to display settings."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Dismiss")]
+
+    def compose(self) -> ComposeResult:
+
+        with TabbedContent("User", "Tools", "History", id="settings-screen"):
+            # Tab for user settings
+            yield UserSettingsTab(id="user-settings")
+
+            # Tab for tools settings
+            yield ToolSettingsTab(id="tools-tab-grid")
+
+            # Tab for history settings
+            yield HistoryTab(id="history-settings")
+
+    def close_settings(self) -> None:
+        self.app.pop_screen()
 
 
 class ChatScreen(Screen):
