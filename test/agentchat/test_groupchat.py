@@ -1219,25 +1219,14 @@ def test_select_speaker_message_and_prompt_templates():
 
     # Test with valid strings, checking for the correct string and roles / agentlist to be included
 
-    assert (
-        groupchat.select_speaker_msg()
-        == """You are the CEO of a niche organisation creating small software tools for the healthcare sector with a small team of specialists. Call them in sequence.
-The job roles and responsibilities are:
-Alice: A wonderful employee named Alice.
-Bob: An amazing employee named Bob.
+    assert groupchat.select_speaker_msg() == custom_msg.replace(
+        "{roles}", "Alice: A wonderful employee named Alice.\nBob: An amazing employee named Bob."
+    ).replace("{agentlist}", "['Alice', 'Bob']")
 
-You must select only from ['Alice', 'Bob']."""
-    )
-
-    assert (
-        groupchat.select_speaker_prompt()
-        == """Read the above conversation.
-Then select the next job role from ['Alice', 'Bob'] to take action.
-RETURN ONLY THE NAME OF THE NEXT ROLE."""
-    )
+    assert groupchat.select_speaker_prompt() == custom_prompt.replace("{agentlist}", "['Alice', 'Bob']")
 
     # Test with empty strings
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1246,11 +1235,9 @@ RETURN ONLY THE NAME OF THE NEXT ROLE."""
             select_speaker_message_template="",
             select_speaker_prompt_template="Not empty.",
         )
-        assert False, "select_speaker_message_template should throw an exception if empty."
-    except ValueError:
-        pass
+    assert "select_speaker_message_template cannot be empty or None." in str(e.value)
 
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1259,12 +1246,10 @@ RETURN ONLY THE NAME OF THE NEXT ROLE."""
             select_speaker_message_template="Not empty.",
             select_speaker_prompt_template=None,
         )
-        assert False, "select_speaker_prompt_template should throw an exception if empty."
-    except ValueError:
-        pass
+    assert "select_speaker_prompt_template cannot be empty or None." in str(e.value)
 
     # Test with None
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1273,11 +1258,9 @@ RETURN ONLY THE NAME OF THE NEXT ROLE."""
             select_speaker_message_template=None,
             select_speaker_prompt_template="Not empty.",
         )
-        assert False, "select_speaker_message_template should throw an exception if empty."
-    except ValueError:
-        pass
+    assert "select_speaker_message_template cannot be empty or None." in str(e.value)
 
-    try:
+    with pytest.raises(ValueError) as e:
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1286,9 +1269,7 @@ RETURN ONLY THE NAME OF THE NEXT ROLE."""
             select_speaker_message_template="Not empty.",
             select_speaker_prompt_template="",
         )
-        assert False, "select_speaker_prompt_template should throw an exception if empty."
-    except ValueError:
-        pass
+    assert "select_speaker_prompt_template cannot be empty or None." in str(e.value)
 
 
 if __name__ == "__main__":
