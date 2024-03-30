@@ -45,6 +45,49 @@ def test_chat_messages_for_summary():
     assert len(messages) == 2
 
 
+def test_silent_manager():
+
+    financial_assistant = AssistantAgent(
+        name="Financial_assistant",
+        llm_config={"config_list": config_list},
+    )
+
+    writer = AssistantAgent(
+        name="Writer",
+        llm_config={"config_list": config_list},
+        system_message="""
+        You are a professional writer, known for
+        your insightful and engaging articles.
+        You transform complex concepts into compelling narratives.
+        Reply "TERMINATE" in the end when everything is done.
+        """,
+    )
+
+    critic = AssistantAgent(
+        name="Critic",
+        system_message="""Critic. Double check plan, claims, code from other agents and provide feedback. Check whether the plan includes adding verifiable info such as source URL.
+        Reply "TERMINATE" in the end when everything is done.
+        """,
+        llm_config={"config_list": config_list},
+    )
+
+    groupchat = GroupChat(agents=[financial_assistant, critic], messages=[], max_round=3)
+
+    manager = GroupChatManager(
+        groupchat=groupchat,
+        name="Research_manager",
+        llm_config={"config_list": config_list},
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "groupchat",
+            "use_docker": False,
+        },
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        silent=False,
+    )
+    writer.initiate_chat(manager, message="What is the goal?")
+
+
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_chats_group():
     financial_tasks = [
@@ -616,3 +659,4 @@ if __name__ == "__main__":
     # test_chats_w_func()
     # test_chat_messages_for_summary()
     # test_udf_message_in_chats()
+    test_silent_manager()

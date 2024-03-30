@@ -74,6 +74,7 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
+    silent: bool = False
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -516,6 +517,7 @@ class GroupChatManager(ConversableAgent):
         max_consecutive_auto_reply: Optional[int] = sys.maxsize,
         human_input_mode: Optional[str] = "NEVER",
         system_message: Optional[Union[str, List]] = "Group chat manager.",
+        silent: Optional[bool] = False,
         **kwargs,
     ):
         if (
@@ -596,7 +598,7 @@ class GroupChatManager(ConversableAgent):
             # Broadcast the intro
             intro = groupchat.introductions_msg()
             for agent in groupchat.agents:
-                self.send(intro, agent, request_reply=False, silent=True)
+                self.send(intro, agent, request_reply=False, silent=self.silent)
             # NOTE: We do not also append to groupchat.messages,
             # since groupchat handles its own introductions
 
@@ -609,7 +611,7 @@ class GroupChatManager(ConversableAgent):
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
-                    self.send(message, agent, request_reply=False, silent=True)
+                    self.send(message, agent, request_reply=False)
             if self._is_termination_msg(message) or i == groupchat.max_round - 1:
                 # The conversation is over or it's the last round
                 break
@@ -671,7 +673,7 @@ class GroupChatManager(ConversableAgent):
             # Broadcast the intro
             intro = groupchat.introductions_msg()
             for agent in groupchat.agents:
-                await self.a_send(intro, agent, request_reply=False, silent=True)
+                await self.a_send(intro, agent, request_reply=False, silent=self.silent)
             # NOTE: We do not also append to groupchat.messages,
             # since groupchat handles its own introductions
 
@@ -689,7 +691,7 @@ class GroupChatManager(ConversableAgent):
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
-                    await self.a_send(message, agent, request_reply=False, silent=True)
+                    await self.a_send(message, agent, request_reply=False, silent=self.silent)
             if i == groupchat.max_round - 1:
                 # the last round
                 break
@@ -710,7 +712,7 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply
-            await speaker.a_send(reply, self, request_reply=False)
+            await speaker.a_send(reply, self, request_reply=False, silent=self.silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
