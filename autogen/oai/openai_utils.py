@@ -541,11 +541,11 @@ def get_config(
     """
     config = {"api_key": api_key}
     if base_url:
-        config["base_url"] = base_url
+        config["base_url"] = os.getenv(base_url, default=base_url)
     if api_type:
-        config["api_type"] = api_type
+        config["api_type"] = os.getenv(api_type, default=api_type)
     if api_version:
-        config["api_version"] = api_version
+        config["api_version"] = os.getenv(api_version, default=api_version)
     return config
 
 
