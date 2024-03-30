@@ -31,6 +31,8 @@ from textual.app import ScreenStackError
 
 from autogen import config_list_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent
+from autogen.coding import LocalCommandLineCodeExecutor
+from autogen.coding.func_with_reqs import FunctionWithRequirements
 
 
 class InvalidToolError(Exception):
@@ -295,11 +297,22 @@ class AppConfiguration:
         except sqlite3.Error as e:
             raise ToolUpdateError(f"Error updating tool! {e}")
 
-    def get_tools(self) -> List[Tool]:
+    def get_tools(self, tool_id=None) -> Dict[int, Tool]:
         conn = sqlite3.connect(self._database_path)
         c = conn.cursor()
-        c.execute("SELECT id, name, code, description FROM tools")
-        tools = {id: Tool(name, code, description, id=id) for id, name, code, description in c.fetchall()}
+
+        tools = {}
+        if tool_id is not None:
+            c.execute("SELECT id, name, code, description FROM tools WHERE id=?", (tool_id,))
+            tool = c.fetchone()
+            if tool is not None:
+                id, name, code, description = tool
+                tools[id] = Tool(name, code, description, id=id)
+        else:
+            c.execute("SELECT id, name, code, description FROM tools")
+            for id, name, code, description in c.fetchall():
+                tools[id] = Tool(name, code, description, id=id)
+
         conn.close()
         return tools
 
@@ -924,10 +937,13 @@ class SettingsScreen(ModalScreen):
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
-        tools = APP_CONFIG.get_tools()
-        self.query_one("#tool-code-textarea", TextArea).text = tools[tool_id].code
-        self.query_one("#tool-name-input", Input).value = tools[tool_id].name
-        self.query_one("#tool-id-input", Input).value = str(tool_id)
+        tool = APP_CONFIG.get_tools(tool_id)[tool_id]
+        if tool:
+            self.query_one("#tool-code-textarea", TextArea).text = tool.code
+            self.query_one("#tool-name-input", Input).value = tool.name
+            self.query_one("#tool-id-input", Input).value = str(tool_id)
+        else:
+            self.app.post_message(AppErrorMessage("Tool not found"))
 
     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
         list_view_widget = self.query_one("#tool-list", ListView)
@@ -1118,10 +1134,8 @@ class SubprocessError(Exception):
 
 
 def generate_response_process(msg_idx: int):
-    # fetch the relevant chat history
     chat_history = fetch_chat_history()
     task = chat_history[msg_idx]["content"]
-    # chat_history = chat_history[0:msg_idx]
 
     def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
         # check the contents of the last N messages
@@ -1170,14 +1184,25 @@ def generate_response_process(msg_idx: int):
         insert_chat_message("info", snippet, root_id=0, id=msg_idx + 1)
         return message
 
+    tools = APP_CONFIG.get_tools()
+
+    functions = []
+    for tool in tools.values():
+        func = FunctionWithRequirements.from_str(tool.code)
+        functions.append(func)
+    executor = LocalCommandLineCodeExecutor(work_dir=APP_CONFIG.get_workdir(), functions=functions)
+
+    system_message = APP_CONFIG.get_assistant_system_message()
+    system_message += executor.format_functions_for_prompt()
+
     assistant = AssistantAgent(
         "assistant",
         llm_config=LLM_CONFIG,
-        system_message=APP_CONFIG.get_assistant_system_message(),
+        system_message=system_message,
     )
     user = UserProxyAgent(
         "user",
-        code_execution_config={"work_dir": os.path.join(APP_CONFIG.get_data_path(), "work_dir")},
+        code_execution_config={"executor": executor},
         human_input_mode="NEVER",
         is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
     )
@@ -1192,17 +1217,6 @@ def generate_response_process(msg_idx: int):
     assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
     assistant.register_hook("process_message_before_send", post_snippet_and_record_history)
     user.register_hook("process_message_before_send", post_snippet_and_record_history)
-
-    # register tools for assistant and user
-    tools = APP_CONFIG.get_tools()
-    for tool in tools.values():
-        description = tool.description
-        code = tool.code
-        # convert a code string to function and return a callable
-
-        function_name, tool_instance = string_to_function(code)
-        assistant.register_for_llm(name=function_name, description=description)(tool_instance)
-        user.register_for_execution()(tool_instance)
 
     logging.info("Current history:")
     logging.info(assistant.chat_messages[user])
