@@ -73,3 +73,14 @@ For technical details, please check our technical report and research publicatio
       primaryClass={cs.AI}
 }
 ```
+
+* [StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows]https://arxiv.org/abs/2403.11322. Yiran Wu, Tianwei Yue, Shaokun Zhang, Chi Wang, Qingyun Wu. ArXiv preprint arXiv:2403.11322 (2024).
+
+@misc{wu2024stateflow,
+        title={StateFlow: Enhancing LLM Task-Solving through State-Driven Workflows},
+        author={Yiran Wu and Tianwei Yue and Shaokun Zhang and Chi Wang and Qingyun Wu},
+        year={2024},
+        eprint={2403.11322},
+        archivePrefix={arXiv},
+        primaryClass={cs.CL}
+}
