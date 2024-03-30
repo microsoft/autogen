@@ -158,6 +158,11 @@ class OpenAIClient:
     def create(self, params: Dict[str, Any]) -> ChatCompletion:
         """Create a completion for a given config using openai's client.
 
+        When creating the completion, we will also check if the model is a vision model.
+        If it is, we will load the image data into the messages.
+        This is done by checking if the model name has substring "llava" or "gpt-.*-vision" or
+        if the llm_config is explicitly set to has `"vision_model": True`.
+
         Args:
             client: The openai client.
             params: The params for the completion.
@@ -170,6 +175,11 @@ class OpenAIClient:
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
 
+        # we will load the image data into the messages if the client is a vision model
+        # we know the client is a vision model if
+        #   (1) the model has substring "llava" or "gpt-.*-vision"
+        # Or,
+        #   (2) the llm_config is explicitly set to has `"vision_model": True`
         _is_vision = is_vision_model(params.get("model", None))
         _is_vision |= params.get("vision_model", False)
         if _is_vision and "messages" in params:
