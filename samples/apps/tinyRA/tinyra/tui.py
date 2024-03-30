@@ -792,22 +792,24 @@ class SettingsScreen(ModalScreen):
 
                 # display the settings for the selected tool
                 with Grid(id="tool-view-grid"):
+                    # with Grid(id="tool-view-header-grid"):
                     # information about the selected tool
-                    with Container(id="tool-info-container"):
-                        with Container():
-                            yield Label("Tool ID", classes="form-label")
-                            yield Input(id="tool-id-input", disabled=True)
-                        with Container():
-                            yield Label("Tool Name (Display)", classes="form-label")
-                            yield Input(id="tool-name-input")
+                    # with Horizontal(id="tool-info-container"):
+                    with Vertical():
+                        yield Label("Tool ID", classes="form-label")
+                        yield Input(id="tool-id-input", disabled=True)
+
+                    with Vertical():
+                        yield Label("Tool Name (Display)", classes="form-label")
+                        yield Input(id="tool-name-input")
 
                     # code editor for the selected tool
-                    with Container(id="tool-code-container"):
-                        yield Label("Code", classes="form-label")
+                    with Horizontal(id="tool-code-container"):
+                        # yield Label("Code", classes="form-label")
                         yield TextArea.code_editor("", language="python", id="tool-code-textarea")
 
                     # footer for the tool view
-                    with Grid(id="tool-view-footer-grid"):
+                    with Horizontal(id="tool-view-footer-grid"):
                         yield Button("Save", variant="primary", id="save-tool-settings")
                         yield Button("Delete", variant="error", id="delete-tool-button")
 
@@ -1064,6 +1066,10 @@ def learn_tool_from_history(history: List[Dict[str, str]]) -> str:
         llm_config=LLM_CONFIG,
         system_message="""You are a helpful assistant that for the given chat
 history can return a standalone, documented python function.
+
+Try to extract a most general version of the function based on the chat history.
+That can be reused in the future for similar tasks. Eg do not use hardcoded arguments.
+Instead make them function parameters.
 
 The chat history contains a task the agents were trying to accomplish.
 Analyze the following chat history to assess if the task was completed,

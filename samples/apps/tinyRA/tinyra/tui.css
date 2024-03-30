@@ -328,20 +328,14 @@ SettingsScreen {
 }
 
 #tools-tab-grid{
-    grid-size: 5 5;
-    grid-gutter: 1 2;
-
-    /* border: solid red; */
+    grid-size: 2 1;
+    grid-columns: 1fr 3fr;
 }
 
 #tool-list-container {
-    column-span: 1;
     row-span: 5;
-
     layout: grid;
     grid-size: 1 10;
-
-    /* border: solid red; */
 }
 
 #tool-list {
@@ -362,43 +356,25 @@ SettingsScreen {
 
 
 #tool-view-grid {
-    column-span: 4;
-    row-span: 5;
-
-    grid-size: 10 10;
-    grid-gutter: 1;
-
-    padding: 1;
+    grid-size: 2 3;
+    grid-rows: 6 1fr 6;
+    grid-gutter: 1 2;
     border-left: solid $primary-background;
-
-}
-
-#tool-info-container {
-    column-span: 3;
-    row-span: 9;
-    height: 15;
-    content-align: center middle;
-    /* border: solid red; */
 }
 
 #tool-view-footer-grid {
-    column-span: 10;
-    row-span: 1;
-
-    grid-size: 2 1;
-
-    align: center middle;
-    /* border: solid red; */
+    column-span: 2;
+    align-horizontal: center;
 }
 
 #tool-view-footer-grid Button {
-    width: 40%;
+    width: 20;
+    margin: 1;
 }
 
 #tool-code-container {
-    column-span: 7;
-    row-span: 9;
-    /* border: solid red; */
+    column-span: 2;
+    /* row-span: 2; */
 }
 
 
