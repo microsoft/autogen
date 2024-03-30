@@ -216,7 +216,7 @@ setInterval(function() {{
                     text_labels += f"""
                 {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "name": "{rects[r]['aria-name']}" }},"""
                     
-        print(text_labels, flush=True)
+        #print(text_labels, flush=True)
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -294,10 +294,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 self._log_to_console("type", target=target_name if target_name else target, arg=argument)
                 self._fill_id(target, argument if argument else "")
             elif action == "select":
-                """
-                IMPLEMENT DROPDOWN SELECTION HERE
-                """
-                pass
+                self._page.select_option(f"[__elementId='{target}']", value=argument)
             else:
                 # No action
                 return True, text_response
