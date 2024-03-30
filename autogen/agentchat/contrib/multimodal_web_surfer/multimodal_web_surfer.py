@@ -294,7 +294,8 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 self._log_to_console("type", target=target_name if target_name else target, arg=argument)
                 self._fill_id(target, argument if argument else "")
             elif action == "select":
-                self._page.select_option(f"[__elementId='{target}']", value=argument)
+                self._log_to_console("select", target=target_name if target_name else target, arg=argument)
+                self._select_dropdown(target, argument)
             else:
                 # No action
                 return True, text_response
@@ -437,6 +438,15 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         target.focus()
         target.fill(value)
         self._page.keyboard.press("Enter")
+
+    def _select_dropdown(self, identifier, value):
+        """
+        Select an option from a dropdown menu.
+        """
+        try:
+            self._page.select_option(f"[__elementId='{identifier}']", value=value)
+        except Exception as e:
+            raise ValueError(f"Failed to select option: {e}")
 
     def _log_to_console(self, action, target="", arg=""):
         if len(target) > 50:
