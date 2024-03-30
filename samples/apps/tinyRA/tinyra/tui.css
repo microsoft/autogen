@@ -205,36 +205,35 @@ ChatScreen, LearningScreen {
 }
 
 #chat-screen {
-    grid-size: 2 10;
-    grid-rows: 10% 80% 10%;
-    height: 80%;
-    width: 80%;
+    height: 90%;
+    width: 90%;
+
     background: $surface;
     border: thick $primary-background 80%;
-    padding: 1;
+
+    layout: grid;
+    grid-size: 1 3;
+    grid-rows: 3 1fr 5;
+    grid-gutter: 1;
 }
 
 #chat-screen-header {
-    column-span: 2;
-    height: 3;
     content-align: center middle;
     align: center middle;
-    /* border: solid red; */
 }
 
 #chat-screen-contents {
-    column-span: 2;
-    height: 100%;
-    /* content-align: center middle; */
-    margin: 1;
-    border: solid $background;
+    border: solid $background 40%;
 }
 
 #chat-screen-footer {
     column-span: 2;
     height: 5;
     align: center middle;
-    /* border: solid red; */
+}
+
+#chat-screen-footer Button {
+    margin: 1;
 }
 
 #learning-screen-footer{
