@@ -988,7 +988,7 @@ class SettingsScreen(ModalScreen):
         self.app.pop_screen()
 
 
-class ChatScreen(Screen):
+class ChatScreen(ModalScreen):
     """A screen that displays a chat history"""
 
     root_msg_id = 0
@@ -1000,22 +1000,22 @@ class ChatScreen(Screen):
 
             with Container(id="chat-screen-header"):
                 yield Label(f"Chat History for 🧵-{self.root_msg_id}", classes="heading")
+                yield Label(f"(Number of messages: {len(history)})")
 
-            with ScrollableContainer(id="chat-screen-contents"):
-                for msg in history:
-                    if msg["role"] == "assistant":
-                        msg_class = "assistant-message"
-                    if msg["role"] == "user":
-                        msg_class = "user-message"
-                    yield Markdown(f"{msg['role']}: {msg['content']}", classes=msg_class + " message")
+            with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
+                with Container(id="chat-screen-summary"):
+                    yield Markdown("The is the profile of this chat...")
+
+                with ScrollableContainer(id="chat-screen-contents"):
+                    for msg in history:
+                        if msg["role"] == "assistant":
+                            msg_class = "assistant-message"
+                        if msg["role"] == "user":
+                            msg_class = "user-message"
+                        yield Markdown(f"{msg['role']}: {msg['content']}", classes=msg_class + " message")
 
             with Horizontal(id="chat-screen-footer"):
-                yield Button("Learn", variant="error", id="learn")
-                yield Button("Cancel", variant="primary", id="cancel")
-
-    @on(Button.Pressed, "#cancel")
-    def cancel(self) -> None:
-        self.app.pop_screen()
+                yield Button("Learn New Tool", variant="error", id="learn")
 
     @on(Button.Pressed, "#learn")
     def learn(self) -> None:
@@ -1024,7 +1024,7 @@ class ChatScreen(Screen):
         self.app.push_screen(learning_screen)
 
 
-class LearningScreen(Screen):
+class LearningScreen(ModalScreen):
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
@@ -1032,7 +1032,7 @@ class LearningScreen(Screen):
 
     def compose(self) -> ComposeResult:
         with Grid(id="learning-screen"):
-            yield Horizontal(Label("Learning", classes="heading"), id="learning-screen-header")
+            yield Horizontal(Label("Interactive Tool Learning", classes="heading"), id="learning-screen-header")
             yield ScrollableContainer(
                 TextArea.code_editor(
                     f"""
@@ -1043,13 +1043,11 @@ class LearningScreen(Screen):
                 id="learning-screen-contents",
             )
             with Horizontal(id="learning-screen-footer"):
-                yield Button("Start", variant="error", id="start-learning")
-                yield Button("Save", variant="success", id="save")
-                yield Button("Close", variant="primary", id="close")
+                # yield Button("Start", variant="error", id="start-learning")
+                yield Button("Save", variant="primary", id="save")
 
-    @on(Button.Pressed, "#close")
-    def close(self) -> None:
-        self.app.pop_screen()
+    def on_mount(self) -> None:
+        self.start_learning()
 
     @on(Button.Pressed, "#save")
     def save(self) -> None:
@@ -1061,15 +1059,20 @@ class LearningScreen(Screen):
         try:
             tool.validate_tool()
             APP_CONFIG.update_tool(tool)
+            self.app.pop_screen()
+            self.app.push_screen(NotificationScreen(message="Tool saved successfully"))
+
         except InvalidToolError as e:
             error_message = f"{e}"
             self.post_message(AppErrorMessage(error_message))
             return
 
-        # self.app.post_message(AppErrorMessage(f"Candidate tool is {name}"))
+        except ToolUpdateError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
     @work(thread=True)
-    @on(Button.Pressed, "#start-learning")
     async def start_learning(self) -> None:
         widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
         widget.text = "# Learning..."
