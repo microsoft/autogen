@@ -14,6 +14,7 @@ with open("task_prompt.json.txt", "rt") as fh:
     TASK = json.loads(fh.read())
 
 config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
+llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
 # Figure out the starting URL
 start_url = {
@@ -28,8 +29,9 @@ start_url = {
 
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
-    llm_config={"config_list": config_list},
+    llm_config=llm_config,
     is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+    human_input_mode="NEVER",
     headless=True,
     chromium_channel="chromium",
     chromium_data_dir=None,
@@ -39,8 +41,10 @@ web_surfer = MultimodalWebSurferAgent(
 
 user_proxy = MultimodalAgent(
     "user_proxy",
-    system_message="You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a we boweser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you. Once the original question or task is addressed, reply with the word TERMINATE.",
-    llm_config={"config_list": config_list},
+    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a we boweser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
+
+Once the original question or task is addressed, reply with the word TERMINATE.""",
+    llm_config=llm_config,
     human_input_mode="NEVER",
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0,
     max_consecutive_auto_reply=10,
