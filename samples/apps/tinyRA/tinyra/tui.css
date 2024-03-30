@@ -29,11 +29,11 @@ Footer {
 }
 
 #chat-grid{
-    margin: 1;
+    margin: 2;
 
     layout: grid;
     grid-size: 1 2;
-    grid-gutter: 1 1;
+    grid-gutter: 2 1;
 
     grid-rows: 1fr 4;
 }
