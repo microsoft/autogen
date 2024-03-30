@@ -764,21 +764,19 @@ class SettingsScreen(ModalScreen):
         tools = APP_CONFIG.get_tools()
 
         with TabbedContent("User", "Tools", "History", id="settings-screen"):
+
             # Tab for user settings
-            yield Container(
-                ScrollableContainer(
-                    Container(Label("User", classes="form-label"), self.widget_user_name),
-                    Container(Label("Bio", classes="form-label"), self.widget_user_bio),
-                    Container(Label("Preferences", classes="form-label"), self.widget_user_preferences),
-                    id="settings-screen-contents",
-                ),
-                Grid(
-                    Button("Save", variant="primary", id="save-user-settings"),
-                    Button("Close", variant="error", id="close-user-settings"),
-                    classes="settings-screen-footer",
-                ),
-                id="user-settings-screen",
-            )
+            with Container(id="user-settings"):
+
+                with Grid(id="user-settings-contents"):
+                    yield Container(Label("Name", classes="form-label"), self.widget_user_name)
+                    with TabbedContent("Bio", "Preferences"):
+                        yield self.widget_user_bio
+                        yield self.widget_user_preferences
+
+                with Horizontal(classes="settings-screen-footer"):
+                    yield Button("Save", variant="primary", id="save-user-settings")
+                    yield Button("Close", variant="error", id="close-user-settings")
 
             # Tab for tools settings
             with Grid(id="tools-tab-grid"):

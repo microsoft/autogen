@@ -263,8 +263,20 @@ SettingsScreen {
     padding: 1;
 }
 
-#user-settings-screen {
-    /* border: solid red; */
+#user-settings {
+    layout: grid;
+
+    grid-size: 1 2;
+    grid-gutter: 2;
+    grid-rows: 1fr 5;
+}
+
+#user-settings-contents{
+    layout: grid;
+
+    grid-size: 1 2;
+    grid-gutter: 2;
+    grid-rows: 5 1fr;
 }
 
 #settings-screen-contents {
@@ -282,13 +294,13 @@ SettingsScreen {
 }
 
 .settings-screen-footer {
-    grid-size: 2 1;
+    /* grid-size: 2 1; */
     align: center middle;
-    height: 5;
 }
 
 .settings-screen-footer Button {
-    width: 40%;
+    width: auto;
+    margin: 1;
 }
 
 .heading {
