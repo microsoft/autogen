@@ -779,31 +779,48 @@ class HistoryTab(Grid):
         self.screen.close_user_settings()
 
 
-class SettingsScreen(ModalScreen):
-    """Screen with a dialog to display settings."""
-
-    BINDINGS = [("escape", "app.pop_screen", "Dismiss")]
+class UserSettingsTab(Grid):
 
     def compose(self) -> ComposeResult:
         self.widget_user_name = Input(APP_CONFIG.get_user_name())
         self.widget_user_bio = TextArea(APP_CONFIG.get_user_bio(), id="user-bio")
         self.widget_user_preferences = TextArea(APP_CONFIG.get_user_preferences(), id="user-preferences")
 
+        with Grid(id="user-settings-contents"):
+            yield Container(Label("Name", classes="form-label"), self.widget_user_name)
+            with TabbedContent("Bio", "Preferences"):
+                yield self.widget_user_bio
+                yield self.widget_user_preferences
+
+        with Horizontal(classes="settings-screen-footer"):
+            yield Button("Save", variant="primary", id="save-user-settings")
+
+    @on(Button.Pressed, "#save-user-settings")
+    def save_user_settings(self) -> None:
+        new_user_name = self.widget_user_name.value
+        new_user_bio = self.widget_user_bio.text
+        new_user_preferences = self.widget_user_preferences.text
+
+        APP_CONFIG.update_configuration(
+            user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
+        )
+
+        self.screen.close_user_settings()
+
+
+class SettingsScreen(ModalScreen):
+    """Screen with a dialog to display settings."""
+
+    BINDINGS = [("escape", "app.pop_screen", "Dismiss")]
+
+    def compose(self) -> ComposeResult:
+
         tools = APP_CONFIG.get_tools()
 
         with TabbedContent("User", "Tools", "History", id="settings-screen"):
 
             # Tab for user settings
-            with Container(id="user-settings"):
-
-                with Grid(id="user-settings-contents"):
-                    yield Container(Label("Name", classes="form-label"), self.widget_user_name)
-                    with TabbedContent("Bio", "Preferences"):
-                        yield self.widget_user_bio
-                        yield self.widget_user_preferences
-
-                with Horizontal(classes="settings-screen-footer"):
-                    yield Button("Save", variant="primary", id="save-user-settings")
+            yield UserSettingsTab(id="user-settings")
 
             # Tab for tools settings
             with Grid(id="tools-tab-grid"):
@@ -843,18 +860,6 @@ class SettingsScreen(ModalScreen):
     @on(Button.Pressed, "#close-tool-settings")
     def close_user_settings(self) -> None:
         self.app.pop_screen()
-
-    @on(Button.Pressed, "#save-user-settings")
-    def save_user_settings(self) -> None:
-        new_user_name = self.widget_user_name.value
-        new_user_bio = self.widget_user_bio.text
-        new_user_preferences = self.widget_user_preferences.text
-
-        APP_CONFIG.update_configuration(
-            user_name=new_user_name, user_bio=new_user_bio, user_preferences=new_user_preferences
-        )
-
-        self.close_user_settings()
 
     @on(Button.Pressed, "#new-tool-button")
     def create_new_tool(self) -> None:
