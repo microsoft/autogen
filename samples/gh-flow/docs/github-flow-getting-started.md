@@ -48,7 +48,7 @@ https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codes
 
 ![Alt text](./images/new-codespace.png)
 
-Within this repo there is a folder "scr\sample-apps\gh-flow" Within this folder there are two files called appsettings.azure.template.json and appsettings.local.template.json. If you run this demo locally, use the local template and if you want to run it within Azure use the Azure template. Rename the selected file to appsettings.json and fill out the config values within the file.
+In this sample's folder there are two files called appsettings.azure.template.json and appsettings.local.template.json. If you run this demo locally, use the local template and if you want to run it within Azure use the Azure template. Rename the selected file to appsettings.json and fill out the config values within the file.
 
 In the Explorer tab in VS Code, find the Solution explorer, right click on the `gh-flow` project and click Debug -> Start new instance
 
@@ -76,7 +76,7 @@ Also, since this project is relying on Orleans for the Agents implementation, th
 
 ## How do I deploy the azure bits?
 
-This repo is setup to use  [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to work with the Azure bits. `azd` is installed in the codespace.
+This sample is setup to use  [azd](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/overview) to work with the Azure bits. `azd` is installed in the codespace.
 
 Let's start by logging in to Azure using
 ```bash
@@ -100,4 +100,4 @@ As the last step, we also need to [load the WAF into the vector DB](#load-the-wa
 ### Load the WAF into Qdrant. 
 
 If you are running the app locally, we have [Qdrant](https://qdrant.tech/) setup in the Codespace and if you are running in Azure, Qdrant is deployed to ACA.
-The loader is a project in the `src\apps` folder, called `seed-memory`. We need to fill in the `appsettings.json` file in the `config` folder with the OpenAI details and the Qdrant endpoint, then just run the loader with `dotnet run` and you are ready to go.
+The loader is a project in the `samples` folder, called `seed-memory`. We need to fill in the `appsettings.json` file in the `config` folder with the OpenAI details and the Qdrant endpoint, then just run the loader with `dotnet run` and you are ready to go.

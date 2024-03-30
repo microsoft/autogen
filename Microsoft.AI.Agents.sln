@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{7EC6823E-99FB-403F-9941-0CB08C6BFFD4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AI.Agents", "src\Microsoft.AI.Agents\Microsoft.AI.Agents.csproj", "{160AE89B-16BE-4FB8-8FEC-255E11D6E860}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{17FFA72B-390A-4BF6-A277-2099897D2132}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "gh-flow", "gh-flow", "{0C7D5C39-2067-4EF1-9C10-72A847FF9CB3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DADD59B8-4B8B-4F2B-BFEB-0F93B8A6AA55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AI.DevTeam", "samples\gh-flow\src\Microsoft.AI.DevTeam\Microsoft.AI.DevTeam.csproj", "{F02CC33B-B479-480B-B886-25ED0E18494A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "seed-memory", "samples\seed-memory\seed-memory.csproj", "{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkflowsApp", "samples\WorkflowsApp\WorkflowsApp.csproj", "{3EE3F061-CC63-41B0-84BA-C95A256E18A9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{160AE89B-16BE-4FB8-8FEC-255E11D6E860}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{160AE89B-16BE-4FB8-8FEC-255E11D6E860}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{160AE89B-16BE-4FB8-8FEC-255E11D6E860}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{160AE89B-16BE-4FB8-8FEC-255E11D6E860}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F02CC33B-B479-480B-B886-25ED0E18494A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F02CC33B-B479-480B-B886-25ED0E18494A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F02CC33B-B479-480B-B886-25ED0E18494A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F02CC33B-B479-480B-B886-25ED0E18494A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{160AE89B-16BE-4FB8-8FEC-255E11D6E860} = {7EC6823E-99FB-403F-9941-0CB08C6BFFD4}
+		{0C7D5C39-2067-4EF1-9C10-72A847FF9CB3} = {17FFA72B-390A-4BF6-A277-2099897D2132}
+		{DADD59B8-4B8B-4F2B-BFEB-0F93B8A6AA55} = {0C7D5C39-2067-4EF1-9C10-72A847FF9CB3}
+		{F02CC33B-B479-480B-B886-25ED0E18494A} = {DADD59B8-4B8B-4F2B-BFEB-0F93B8A6AA55}
+		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE} = {17FFA72B-390A-4BF6-A277-2099897D2132}
+		{3EE3F061-CC63-41B0-84BA-C95A256E18A9} = {17FFA72B-390A-4BF6-A277-2099897D2132}
+	EndGlobalSection
+EndGlobal

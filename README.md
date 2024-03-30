@@ -1,45 +1,18 @@
+> ⚠️ This project is still an experimentation phase and is not intended to be used in production yet.
 
-# Ai Agents
+# AI Agents Framework
 
-Build a Dev Team using event driven agents. 
-This project is an experiment and is not intended to be used in production.
+An opinionated .NET framework, that is built on top of Semantic Kernel and Orleans, which helps creating and hosting event-driven AI Agents.
 
-# Background - initial idea
+At the moment the library resides in `src/` only, but we plan to publish them as a Nuget Package in the future.
 
-From a natural language specification, set out to integrate a team of AI agents into your team’s dev process, either for discrete tasks on an existing repo (unit tests, pipeline expansions, PRs for specific intents), developing a new feature, or even building an application from scratch.  Starting from an existing repo and a broad statement of intent, work with multiple AI agents, each of which has a different emphasis - from architecture, to task breakdown, to plans for individual tasks, to code output, code review, efficiency, documentation, build, writing tests, setting up pipelines, deployment, integration tests, and then validation.
-The system will present a view that facilitates chain-of-thought coordination across multiple trees of reasoning with the dev team agents.
+## Examples
 
-# Emerging framework - Ai Agents
+We have created a few examples to help you get started with the framework and to explore its capabilities.
 
-While building the dev team agents, we stumbled upon few patterns and abstractions that we think are usefull for building a variety of agentic systems.
-At the moment they reside in `src/libs/Microsoft.AI.DevTeam`, but we plan to move them to a separate repo and nuget package.
+- [GitHub Dev Team Sample](samples/gh-flow/README.md): Build an AI Developer Team using event-driven agents, that help you automate the requirements engineering, planning, and coding process on GitHub.
 
-# Github dev agents demo
-
-https://github.com/microsoft/azure-openai-dev-skills-orchestrator/assets/10728102/cafb1546-69ab-4c27-aaf5-1968313d637f
-
-## How it works
-
-* User begins with creating an issue and then stateing what they want to accomplish, natural language, as simple or as detailed as needed.
-* Product manager agent will respond with a Readme, which can be iterated upon.
-  * User approves the readme or gives feedback via issue comments.
-  * Once the readme is approved, the user closes the issue and the Readme is commited to a PR.
-* Developer lead agent responds with a decomposed plan for development, which also can be iterated upon.
-  * User approves the plan or gives feedback via issue comments.
-  * Once the readme is approved, the user closes the issue and the plan is used to break down the task to different developer agents.
-* Developer agents respond with code, which can be iterated upon.
-  * User approves the code or gives feedback via issue comments.
-  * Once the code is approved, the user closes the issue and the code is commited to a PR.
-
-# How to run the Github dev agents project
-
-Check [the getting started guide](./docs/github-flow-getting-started.md)
-
-# Other scenarios using the AiAgents
-
-## TODO
-
-# Contributing
+## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -53,7 +26,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-# Legal Notices
+## Legal Notices
 
 Microsoft and any contributors grant you a license to the Microsoft documentation and other content
 in this repository under the [Creative Commons Attribution 4.0 International Public License](https://creativecommons.org/licenses/by/4.0/legalcode),
