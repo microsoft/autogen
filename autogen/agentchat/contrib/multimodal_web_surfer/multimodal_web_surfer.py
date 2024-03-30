@@ -160,19 +160,46 @@ setInterval(function() {{
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = self._get_interactive_rects()
+        viewport = self._get_visual_viewport()
         som_screenshot, visible_rects = add_state_of_mark(self._page.screenshot(), rects)
 
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
+        # Focus hint
+        focused = self._get_focused_rect_id()
+        focused_hint = ""
+        if focused:
+            name = rects.get(focused, {}).get("aria-name", "")
+            if name:
+                name = f"(and name '{name}') "
+            focused_hint = (
+                "\nThe "
+                + rects.get(focused, {}).get("role", "control")
+                + " with ID "
+                + focused
+                + " "
+                + name
+                + "currently has the input focus.\n"
+            )
+
         # Include all the static elements
         text_labels = f"""
   {{ "id": {MARK_ID_BACK}, "aria-role": "button", "html_tag": "button", "actions": ["click"], "name": "browser back button" }},
   {{ "id": {MARK_ID_ADDRESS_BAR}, "aria-role": "textbox",   "html_tag": "input, type=text", "actions": ["type"],  "name": "browser address input" }},
-  {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},
-  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" }},
+  {{ "id": {MARK_ID_SEARCH_BAR}, "aria-role": "searchbox", "html_tag": "input, type=text", "actions": ["type"],  "name": "browser web search input" }},"""
+
+        # We can scroll up
+        if viewport["pageTop"] > 5:
+            text_labels += f"""
+  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" }},"""
+
+        # Can scroll down
+        if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
+            text_labels += f"""
   {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll down control" }},"""
 
+        # Everything visible
         for r in visible_rects:
             if r in rects:
                 actions = '["click"]'
@@ -187,7 +214,7 @@ Consider the following screenshot of a web browser, which is open to the page '{
 [
 {text_labels}
 ]
-
+{focused_hint}
 You are to respond to the user's most recent request by selecting a browser action to perform. Please output the appropriate action in the following format:
 
 TARGET:   <id of interactive element>
@@ -259,13 +286,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 # No action
                 return True, text_response
         except ValueError as e:
-            print("HERE")
             return True, str(e)
 
         self._page.wait_for_load_state()
         time.sleep(1)
 
-        # Descrive the viewport position in words
+        # Descrive the viewport of the new page in words
         viewport = self._get_visual_viewport()
         percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
         percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
@@ -333,6 +359,14 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         except:
             pass
         return self._page.evaluate("MultimodalWebSurfer.getVisualViewport();")
+
+    def _get_focused_rect_id(self):
+        try:
+            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+                self._page.evaluate(fh.read())
+        except:
+            pass
+        return self._page.evaluate("MultimodalWebSurfer.getFocusedElementId();")
 
     def _on_new_page(self, page):
         self._page = page
