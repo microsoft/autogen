@@ -32,8 +32,10 @@ def test_text_compression():
     """Test the TextMessageCompressor transform."""
     try:
         from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+
+        text_compressor = TextMessageCompressor()
     except ImportError:
-        pytest.skip("Dependencies are not installed.")
+        pytest.skip("LLM Lingua is not installed.")
 
     text = "Run this test with a long string. "
     messages = [
@@ -51,7 +53,6 @@ def test_text_compression():
         },
     ]
 
-    text_compressor = TextMessageCompressor()
     transformed_messages = text_compressor.apply_transform([{"content": text}])
 
     assert len(transformed_messages[0]["content"]) < len(text)
