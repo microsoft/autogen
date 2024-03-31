@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Literal, Tuple, Optional, Union, Any, List, Dict
 
 import pytest
@@ -7,7 +8,7 @@ from typing_extensions import Annotated
 
 import autogen
 import autogen.agentchat.contrib.nexusravenv2_local_function_calling as Nexus
-from autogen import UserProxyAgent, Agent, ConversableAgent
+from autogen import UserProxyAgent, Agent
 
 # Requires LiteLLM which supports function calling (though not exactly as OpenAI)
 # Running on port 8801 (set in LiteLLM command)
@@ -99,18 +100,14 @@ def user_proxy(mocker):
     return agent
 
 
-CurrencySymbol = Literal["USD", "EUR"]
-
-
-def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
-    if base_currency == quote_currency:
-        return 1.0
-    elif base_currency == "USD" and quote_currency == "EUR":
-        return 1 / 1.1
-    elif base_currency == "EUR" and quote_currency == "USD":
-        return 1.1
-    else:
-        raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
+def check_tool_call(tc):
+    tool_name = tc.get("function", dict())
+    arguments = json.loads(tool_name.get("arguments", "{}"))
+    return (
+        tool_name.get("name", "not found") == "random_word_generator"
+        and arguments.get("seed", "not found") == 42
+        and arguments.get("prefix", "not found") == "chase"
+    )
 
 
 # print(chatbot.llm_config["tools"])
@@ -128,8 +125,15 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
 
     result = user_proxy.initiate_chat(
         chatbot,
-        message="Generate Me a Random Word Please",
+        message="Generate a Random Word Please",
         summary_method="last_msg",
         clear_history=True,
+        cache=None,
     )
-    print(result)
+    tools_calls = [
+        tool_calls.get("function", dict())
+        for response in result.chat_history
+        for tool_calls in response.get("tool_calls", dict())
+        if check_tool_call(tool_calls)
+    ]  # for tools_call in tools_calls if tools_call.get("function", dict()).get("name", None) == "random_word_generator"]
+    assert len(tools_calls) > 0

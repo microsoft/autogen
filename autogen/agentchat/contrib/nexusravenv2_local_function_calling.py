@@ -98,7 +98,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
-        result = re.split(r"(<bot_end> \n)?Thought: ", input_string)
+        re.split(r"(<bot_end> \n)?Thought: ", input_string)
 
         call_part, thought_part = re.split(r"(?:<bot_end>\s*)?Thought: ", input_string)
 
@@ -143,6 +143,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         }
         if formatted_reply is not None:
             self.send(formatted_reply, sender, silent=silent)
+
     # @override
     # def receive(
     #         self,
