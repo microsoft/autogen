@@ -1095,6 +1095,16 @@ class Profiler:
                 tags=["user"],
             ),
             State(
+                name="ASKING_FOR_INFO",
+                description="The assistant is asking a question",
+                tags=["assistant"],
+            ),
+            State(
+                name="SUMMARIZING",
+                description="The assistant is synthesizing/summarizing information gathered so far",
+                tags=["assistant"],
+            ),
+            State(
                 name="TERMINATE", description="The agent's message contains the word 'TERMINATE'", tags=["assistant"]
             ),
             State(name="EMPTY", description="The message is empty", tags=["user"]),
