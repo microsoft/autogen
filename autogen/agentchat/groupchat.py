@@ -478,6 +478,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def _mentioned_agents(self, message_content: Union[str, List], agents: Optional[List[Agent]]) -> Dict:
         """Counts the number of times each agent is mentioned in the provided message content.
+        Agent names will match under any of the following conditions (all case-sensitive):
+        - Exact name match
+        - If the agent name has underscores it will match with spaces instead (e.g. 'Story_writer' == 'Story writer')
+        - If the agent name has underscores it will match with '\\_' instead of '_' (e.g. 'Story_writer' == 'Story\\_writer')
 
         Args:
             message_content (Union[str, List]): The content of the message, either as a single string or a list of strings.
