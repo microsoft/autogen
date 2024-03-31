@@ -10,12 +10,7 @@ import autogen
 import autogen.agentchat.contrib.nexusravenv2_local_function_calling as Nexus
 from autogen import UserProxyAgent, Agent
 
-# Requires LiteLLM which supports function calling (though not exactly as OpenAI)
-# Running on port 8801 (set in LiteLLM command)
-# Run LiteLLM with ollama-chat:
-# E.g. $ litellm --model ollama_chat/dolphincoder --port 8801 --debug
 
-# Update to match address for LiteLLM, use "0.0.0.0" if in same environment
 network_address = "192.168.0.115"
 
 # LOCAL LOCAL
@@ -72,10 +67,6 @@ def chatbot(mocker):
         }. """,  # MS - this was needed to ensure the function name was returned
         llm_config=llm_config,
     )
-    # agent.register_reply(
-    #     trigger=lambda _ : True,
-    #     reply_func=reply_func,
-    # )
 
     find_generate_oai_functions = [
         f["reply_func"] for f in agent._reply_func_list if f["reply_func"].__name__ == "generate_oai_reply"
@@ -103,14 +94,27 @@ def user_proxy(mocker):
 def check_tool_call(tc):
     tool_name = tc.get("function", dict())
     arguments = json.loads(tool_name.get("arguments", "{}"))
+    not_found = "not found"
     return (
-        tool_name.get("name", "not found") == "random_word_generator"
-        and arguments.get("seed", "not found") == 42
-        and arguments.get("prefix", "not found") == "chase"
+        tool_name.get("name", not_found) == "random_word_generator"
+        and arguments.get("seed", not_found) == 42
+        and arguments.get("prefix", not_found) == "chase"
     )
 
 
-# print(chatbot.llm_config["tools"])
+def check_tool_response(response):
+    content = response.get("content", "")
+    role = response.get("role", "")
+    check_responses = [
+        tool_response
+        for tool_response in response.get("tool_responses", [])
+        if tool_response.get("role") == "tool"
+        and tool_response.get("content", "").endswith("_not_random_actually_but_this_is_a_test")
+    ]
+    # 'tool_responses': [{'tool_call_id': 43, 'role': 'tool', 'content': 'chase_not_random_actually_but_this_is_a_test'}], 'role': 'tool'}
+    return content.endswith("_not_random_actually_but_this_is_a_test") and len(check_responses) and role == "tool"
+
+
 def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot: Nexus.NexusFunctionCallingAssistant):
     @user_proxy.register_for_execution()
     @chatbot.register_for_llm(description="A Random Word Generator")
@@ -135,5 +139,13 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
         for response in result.chat_history
         for tool_calls in response.get("tool_calls", dict())
         if check_tool_call(tool_calls)
-    ]  # for tools_call in tools_calls if tools_call.get("function", dict()).get("name", None) == "random_word_generator"]
+    ]
     assert len(tools_calls) > 0
+
+    tool_responses = [
+        response
+        for agent, responses in chatbot.chat_messages.items()
+        for response in responses
+        if check_tool_response(response)
+    ]
+    assert len(tool_responses) > 0
