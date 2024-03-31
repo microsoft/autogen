@@ -1,11 +1,9 @@
 import json
 import re
+import warnings
 from typing import Dict, Union, Tuple, Optional
-import tempfile
-import datetime as dt
 
 from typing_extensions import override
-import warnings
 
 import autogen
 from autogen import OpenAIWrapper, Agent
@@ -100,7 +98,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
-        result  = re.split(r"(<bot_end> \n)?Thought: ", input_string)
+        result = re.split(r"(<bot_end> \n)?Thought: ", input_string)
 
         call_part, thought_part = re.split(r"(?:<bot_end>\s*)?Thought: ", input_string)
 
@@ -118,6 +116,33 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
         return function_name, args_map, thought_part.strip()
 
+    @override
+    def receive(
+        self,
+        message: Union,
+        sender: Agent,
+        request_reply: Optional = None,
+        silent: Optional = False,
+    ):
+        self._process_received_message(message, sender, silent)
+        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
+            return
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        function_name, args_map, thought_part = NexusFunctionCallingAssistant.parse_function_details(reply)
+        formatted_reply = {
+            "content": thought_part,
+            "function_call": None,
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "id": 43,  # TODO fix this as response id , was generate_oai_reply
+                    "function": {"arguments": json.dumps(args_map), "name": function_name},
+                    "type": "function",
+                }
+            ],
+        }
+        if formatted_reply is not None:
+            self.send(formatted_reply, sender, silent=silent)
     # @override
     # def receive(
     #         self,
@@ -186,12 +211,3 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
                 }
             ],
         }
-
-
-def test_parse_function_details():
-    input_string = "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
-    assert NexusFunctionCallingAssistant.parse_function_details(input_string) == (
-        "random_word_generator",
-        {"seed": 42, "prefix": "chase"},
-        'functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word "${randomWord}," I will now solve this logic problem.`));',
-    )

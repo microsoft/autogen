@@ -5,21 +5,21 @@ name: Build
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
     paths:
       - "autogen/**"
       - "test/**"
       - ".github/workflows/build.yml"
       - "setup.py"
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
   merge_group:
-    types: [checks_requested]
+    types: [ checks_requested ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-permissions: {}
+permissions: { }
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -28,8 +28,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        python-version: [ "3.8", "3.9", "3.10", "3.11", "3.12" ]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
