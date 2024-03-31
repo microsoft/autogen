@@ -496,9 +496,17 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         mentions = dict()
         for agent in agents:
+            # Finds agent mentions, taking word boundaries into account,
+            # accommodates escaping underscores and underscores as spaces
             regex = (
-                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
-            )  # Finds agent mentions, taking word boundaries into account
+                r"(?<=\W)("
+                + re.escape(agent.name)
+                + r"|"
+                + re.escape(agent.name.replace("_", " "))
+                + r"|"
+                + re.escape(agent.name.replace("_", r"\_"))
+                + r")(?=\W)"
+            )
             count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
