@@ -11,8 +11,9 @@ import sqlite3
 import aiosqlite
 from collections import namedtuple
 import concurrent.futures
+from dataclasses import dataclass
 
-from typing import List, Dict
+from typing import List, Dict, Set, Callable
 
 from textual import on
 from textual import work
@@ -21,7 +22,7 @@ from textual.screen import Screen, ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container, Horizontal, Vertical
 from textual.widget import Widget
 from textual.widgets import Pretty
-from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label, Switch
+from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label, Switch, Collapsible
 from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
 from textual.reactive import reactive
@@ -29,6 +30,7 @@ from textual.message import Message
 from textual.events import Key, Mount
 from textual.app import ScreenStackError
 
+import autogen
 from autogen import config_list_from_json
 from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent
 from autogen.coding import LocalCommandLineCodeExecutor
@@ -988,6 +990,196 @@ class SettingsScreen(ModalScreen):
         self.app.pop_screen()
 
 
+@dataclass
+class Message:
+
+    role: str
+    content: str
+
+    def __str__(self):
+        return f"{self.role}: {self.content}"
+
+
+@dataclass
+class State:
+
+    name: str
+    description: str
+    tags: List[str]
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def __eq__(self, other):
+        if isinstance(other, State):
+            return self.name == other.name and self.description == other.description and self.tags == other.tags
+        return False
+
+    def __hash__(self):
+        return hash((self.name, self.description, tuple(self.tags)))
+
+
+@dataclass
+class StateSpace:
+
+    states: Set[State]
+
+    def __str__(self):
+        return " ".join([str(state) for state in self.states])
+
+    def filter_states(self, condition: Callable[State, bool]) -> "StateSpace":
+        filtered_states = {state for state in self.states if condition(state)}
+        return StateSpace(filtered_states)
+
+
+@dataclass
+class MessageProfile:
+
+    cost: float
+    duration: float
+    states: Set[State]  # unorddered collection of states
+
+    def __str__(self):
+        repr = f"Cost: {self.cost}\tDuration: {self.duration}\t"
+        for state in self.states:
+            repr += str(state) + " "
+        return repr
+
+
+class Profiler:
+
+    DEFAULT_STATE_SPACE = StateSpace(
+        states={
+            State(
+                name="USER_REQUEST",
+                description="The message shows the *user* requesting a task that needs to be completed",
+                tags=["user"],
+            ),
+            State(name="SUGGESTING-CODE", description="The assistant is suggesting code", tags=["assistant"]),
+            State(
+                name="REASONING",
+                description="The assistant is using its language abilities to reason.",
+                tags=["assistant"],
+            ),
+            State(
+                name="CODE-EXECUTION",
+                description="The user shared results of code execution, e.g., results, logs, error trace",
+                tags=["user"],
+            ),
+            State(
+                name="TERMINATE", description="The agent's message contains the word 'TERMINATE'", tags=["assistant"]
+            ),
+            State(name="EMPTY", description="The message is empty", tags=["user"]),
+        }
+    )
+
+    def __init__(self, state_space: StateSpace = None):
+        self.state_space = state_space or self.DEFAULT_STATE_SPACE
+
+    def profile_message(self, message: Message) -> MessageProfile:
+
+        def role_in_tags(state: State) -> bool:
+            # if state has no tags, the state applies to all roles
+            if state.tags is None:
+                return True
+            return message.role in state.tags
+
+        state_space = self.state_space.filter_states(condition=role_in_tags)
+        state_space_str = str(state_space)
+        prompt = f"""Which of the following codes apply to the message:
+List of codes:
+{state_space_str}
+
+Message
+    role: "{message.role}"
+    content: "{message.content}"
+
+Only respond with codes that apply. Codes should be separated by commas.
+    """
+
+        client = autogen.OpenAIWrapper(**LLM_CONFIG)
+        response = client.create(cache_seed=42, messages=[{"role": "user", "content": prompt}])
+        response = client.extract_text_or_completion_object(response)[0]
+
+        extracted_states_names = response.split(",")
+        extracted_states = []
+        for state_name in extracted_states_names:
+            extracted_states.append(State(name=state_name, description="", tags=[]))
+
+        message_profile = MessageProfile(cost=0.0, duration=0.0, states=extracted_states)
+
+        return message_profile
+
+
+@dataclass
+class ChatProfile:
+
+    num_messages: int
+    message_profiles: List[MessageProfile]  # ordered collection of message profiles
+
+    def __str__(self):
+        repr = f"Num messages: {self.num_messages}" + "\n"
+        for message_profile in self.message_profiles:
+            repr += str(message_profile) + "\n"
+        return repr
+
+
+class ProfileNode(Static):
+
+    message_profile: MessageProfile
+
+    def compose(self) -> ComposeResult:
+        states = self.message_profile.states
+
+        state_display_str = " ".join([str(state) for state in states])
+
+        with Collapsible(collapsed=True, title=state_display_str):
+            yield Static(str(self.message_profile))
+
+
+class ProfileDiagram(ScrollableContainer):
+
+    chat_profile: ChatProfile
+
+    def compose(self) -> ComposeResult:
+        for message_profile in self.chat_profile.message_profiles:
+            node = ProfileNode()
+            node.message_profile = message_profile
+            yield node
+
+
+class ProfilerContainer(Container):
+
+    root_id = None
+    chat_history = reactive([], recompose=True)
+
+    def on_mount(self) -> None:
+        self.set_interval(1, self.update_chat_history)
+
+    def update_chat_history(self) -> None:
+        self.chat_history = fetch_chat_history(self.root_id)
+
+    def profile_chat(self) -> ChatProfile:
+
+        profiler = Profiler()
+
+        message_profile_list = []
+        for message in self.chat_history:
+            _message = Message(role=message["role"], content=message["content"])
+            msg_profile = profiler.profile_message(_message)
+            message_profile_list.append(msg_profile)
+
+        chat_profile = ChatProfile(num_messages=len(self.chat_history), message_profiles=message_profile_list)
+
+        return chat_profile
+
+    def compose(self):
+        chat_profile = self.profile_chat()
+        profile_diagram = ProfileDiagram()
+        profile_diagram.chat_profile = chat_profile
+        yield profile_diagram
+
+
 class ChatScreen(ModalScreen):
     """A screen that displays a chat history"""
 
@@ -1003,8 +1195,10 @@ class ChatScreen(ModalScreen):
                 yield Label(f"(Number of messages: {len(history)})")
 
             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
-                with Container(id="chat-screen-summary"):
-                    yield Markdown("The is the profile of this chat...")
+                profiler = ProfilerContainer(id="chat-profiler")
+                profiler.root_id = self.root_msg_id
+
+                yield profiler
 
                 with ScrollableContainer(id="chat-screen-contents"):
                     for msg in history:
@@ -1261,10 +1455,10 @@ There is no need to use the word TERMINATE in this response.
         """,
         assistant,
         request_reply=False,
-        silent=False,
+        silent=True,
     )
     response = assistant.generate_reply(assistant.chat_messages[user], user)
-    assistant.send(response, user, request_reply=False, silent=False)
+    assistant.send(response, user, request_reply=False, silent=True)
 
     response = assistant.chat_messages[user][-1]["content"]
 
