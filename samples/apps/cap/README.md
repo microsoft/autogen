@@ -49,6 +49,7 @@ Actors can register themselves with CAP, find other agents, construct arbitrary 
 2) Many CAP Actors interacting with each other
 3) A pair of interacting AutoGen Agents wrapped in CAP Actors
 4) CAP wrapped AutoGen Agents in a group chat
-
+5) Two AutoGen Agents running in different processes and communicating through CAP
+6) List all registered agents in CAP
 ### Coming soon. Stay tuned! ###
-1) Two AutoGen Agents running in different processes and communicating through CAP
+1) AutoGen integration to list all registered agents
