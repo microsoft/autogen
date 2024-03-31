@@ -21,15 +21,44 @@ llm_config = {
     "cache_seed": None,
 }  ## CRITICAL - ENSURE THERE'S NO CACHING FOR TESTING
 
-
-def create_fake_send(user_proxy):
+def fake_receive(
+        self,
+        message: Union,
+        sender: Agent,
+        request_reply: Optional = None,
+        silent: Optional = False,
+    ):
+        self._process_received_message(message, sender, silent)
+        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
+            return
+        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
+        function_name, args_map, thought_part = Nexus.NexusFunctionCallingAssistant.parse_function_details(reply)
+        formatted_reply = {
+            "content": thought_part,
+            "function_call": None,
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "id": 43,  # TODO fix this as response id , was generate_oai_reply
+                    "function": {"arguments": json.dumps(args_map), "name": function_name},
+                    "type": "function",
+                }
+            ],
+        }
+        if formatted_reply is not None:
+            self.send(formatted_reply, sender, silent=silent)
+def create_fake_send(user_proxy, mocker):
     def fake_send(msg2send, recipient, silent=False):
         print(f"Recipient: {recipient}")
         print(f"Messages: {msg2send}")
         print(f"Sender: {silent}")
-        recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
+        mocker.patch.object(recipient, "receive", fake_receive)
+        recipient.receive(recipient, message=msg2send, sender=user_proxy, request_reply=True)
 
     return fake_send
+
+
+
 
 
 def reply_func(
@@ -87,7 +116,7 @@ def user_proxy(mocker):
         max_consecutive_auto_reply=4,
         code_execution_config={"work_dir": "/tmp/coding", "use_docker": False},
     )
-    mocker.patch.object(agent, "send", create_fake_send(agent))
+    mocker.patch.object(agent, "send", create_fake_send(agent, mocker))
     return agent
 
 

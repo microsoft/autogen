@@ -116,33 +116,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
         return function_name, args_map, thought_part.strip()
 
-    @override
-    def receive(
-        self,
-        message: Union,
-        sender: Agent,
-        request_reply: Optional = None,
-        silent: Optional = False,
-    ):
-        self._process_received_message(message, sender, silent)
-        if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
-            return
-        reply = self.generate_reply(messages=self.chat_messages[sender], sender=sender)
-        function_name, args_map, thought_part = NexusFunctionCallingAssistant.parse_function_details(reply)
-        formatted_reply = {
-            "content": thought_part,
-            "function_call": None,
-            "role": "assistant",
-            "tool_calls": [
-                {
-                    "id": 43,  # TODO fix this as response id , was generate_oai_reply
-                    "function": {"arguments": json.dumps(args_map), "name": function_name},
-                    "type": "function",
-                }
-            ],
-        }
-        if formatted_reply is not None:
-            self.send(formatted_reply, sender, silent=silent)
+
 
     @override
     def _generate_oai_reply_from_client(
