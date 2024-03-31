@@ -1035,6 +1035,7 @@ class StateSpace:
 @dataclass
 class MessageProfile:
 
+    message: AgentMessage
     cost: float
     duration: float
     states: Set[State]  # unorddered collection of states
@@ -1063,7 +1064,16 @@ class Profiler:
                 description="The message shows the *user* requesting a task that needs to be completed",
                 tags=["user"],
             ),
-            State(name="SUGGESTING-CODE", description="The assistant is suggesting code", tags=["assistant"]),
+            State(
+                name="SUGGESTING-CODE",
+                description="The assistant's message contains code blocks eg python or shell code blocks.",
+                tags=["assistant"],
+            ),
+            State(
+                name="ANALYSING-RESULTS",
+                description="The assistant's message is reflecting on results obtained so far",
+                tags=["assistant"],
+            ),
             State(
                 name="REASONING",
                 description="The assistant is using its language abilities to reason.",
@@ -1114,7 +1124,7 @@ Only respond with codes that apply. Codes should be separated by commas.
         for state_name in extracted_states_names:
             extracted_states.append(State(name=state_name, description="", tags=[]))
 
-        message_profile = MessageProfile(cost=0.0, duration=0.0, states=extracted_states)
+        message_profile = MessageProfile(cost=0.0, duration=0.0, states=extracted_states, message=message)
 
         return message_profile
 
@@ -1136,6 +1146,13 @@ class ProfileNode(Static):
 
     message_profile: MessageProfile
 
+    DEFAULT_CSS = """
+    ProfileNode Markdown {
+        border: solid $primary;
+        padding: 1;
+    }
+"""
+
     def compose(self) -> ComposeResult:
         states = self.message_profile.states
 
@@ -1143,6 +1160,7 @@ class ProfileNode(Static):
 
         with Collapsible(collapsed=True, title=state_display_str):
             yield Static(str(self.message_profile))
+            yield Markdown(str(self.message_profile.message))
 
 
 class ProfileDiagram(ScrollableContainer):
