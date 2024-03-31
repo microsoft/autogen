@@ -1165,6 +1165,7 @@ class ProfilerContainer(Container):
 
     root_id = None
     chat_history = reactive(None)
+    profile_diagram = None
 
     def on_mount(self) -> None:
         # self.update_chat_history()
@@ -1198,9 +1199,7 @@ class ProfilerContainer(Container):
         return chat_profile
 
     def compose(self):
-        chat_profile = None
         self.profile_diagram = ProfileDiagram()
-        self.profile_diagram.chat_profile = chat_profile
         yield self.profile_diagram
 
 
