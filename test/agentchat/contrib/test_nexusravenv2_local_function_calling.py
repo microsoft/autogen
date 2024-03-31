@@ -35,11 +35,17 @@ def create_fake_send(user_proxy):
 
     return fake_send
 
-def reply_func(     self, messages: Optional[List[Dict]] = None,
-                    sender: Optional[Agent] = None,
-                    config: Optional[Any] = None,
-                ) -> Tuple[bool, Union[str, Dict, None]]:
-    return True, "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));"
+
+def reply_func(
+    self,
+    messages: Optional[List[Dict]] = None,
+    sender: Optional[Agent] = None,
+    config: Optional[Any] = None,
+) -> Tuple[bool, Union[str, Dict, None]]:
+    return (
+        True,
+        "Call: random_word_generator(seed=42, prefix='chase')<bot_end> \nThought: functioncaller.random_word_generator().then(randomWord => mistral.speak(`Using the randomly generated word \"${randomWord},\" I will now solve this logic problem.`));",
+    )
 
 
 @pytest.fixture
@@ -70,7 +76,9 @@ def chatbot(mocker):
     #     reply_func=reply_func,
     # )
 
-    find_generate_oai_functions = [f["reply_func"] for f in agent._reply_func_list if f["reply_func"].__name__ == "generate_oai_reply"]
+    find_generate_oai_functions = [
+        f["reply_func"] for f in agent._reply_func_list if f["reply_func"].__name__ == "generate_oai_reply"
+    ]
     for old_function in find_generate_oai_functions:
         agent.replace_reply_func(old_function, reply_func)
 
@@ -124,3 +132,4 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
         summary_method="last_msg",
         clear_history=True,
     )
+    print(result)
