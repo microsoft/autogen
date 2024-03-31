@@ -14,9 +14,9 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 test_deps = [
-    'pytest',
-    'pytest-asyncio',
-    'pytest-mock',
+    "pytest",
+    "pytest-asyncio",
+    "pytest-mock",
 ]
 
 install_requires = [
@@ -62,7 +62,7 @@ setuptools.setup(
             "pre-commit",
             "pytest-asyncio",
             "pytest>=6.1.1,<8",
-            "pytest-mock", 
+            "pytest-mock",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],

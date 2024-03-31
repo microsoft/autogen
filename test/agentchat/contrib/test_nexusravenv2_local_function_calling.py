@@ -74,7 +74,6 @@ def chatbot(mocker):
     for old_function in find_generate_oai_functions:
         agent.replace_reply_func(old_function, reply_func)
 
-
     return agent
 
 
@@ -125,4 +124,3 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent, chatbot
         summary_method="last_msg",
         clear_history=True,
     )
-
