@@ -1,5 +1,5 @@
 import sys
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, Union
+from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
@@ -8,9 +8,6 @@ from autogen import token_count_utils
 
 
 IMPORT_ERROR: Optional[Exception] = None
-if TYPE_CHECKING:
-    from llmlingua import PromptCompressor
-
 try:
     import llmlingua
 except ImportError:
