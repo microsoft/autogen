@@ -116,8 +116,6 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
 
         return function_name, args_map, thought_part.strip()
 
-
-
     @override
     def _generate_oai_reply_from_client(
         self, llm_client: OpenAIWrapper, messages: list, cache: autogen.Cache
