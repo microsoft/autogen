@@ -7,4 +7,4 @@ def report_error_msg(msg: ErrorMsg, src: str):
         err = ErrorMsg()
         err.ParseFromString(msg)
         if err.code != ErrorCode.EC_OK:
-            Error(src, f"Error response: code[{err.code}] msg[{err.error_message}]")
+            Error(src, f"Error response: code[{err.code}] msg[{err.message}]")
