@@ -33,9 +33,7 @@ def create_fake_send(user_proxy):
         recipient.receive(message=msg2send, sender=user_proxy, request_reply=True)
     return fake_send
 
-def reply_func(
-                    recipient: ConversableAgent,
-                    messages: Optional[List[Dict]] = None,
+def reply_func(     self, messages: Optional[List[Dict]] = None,
                     sender: Optional[Agent] = None,
                     config: Optional[Any] = None,
                 ) -> Tuple[bool, Union[str, Dict, None]]:
@@ -66,10 +64,14 @@ def chatbot(mocker):
 
         llm_config=llm_config,
     )
-    agent.register_reply(
-        trigger=lambda _ : True,
-        reply_func=reply_func,
-    )
+    # agent.register_reply(
+    #     trigger=lambda _ : True,
+    #     reply_func=reply_func,
+    # )
+
+    find_generate_oai_functions = [f["reply_func"] for f in agent._reply_func_list if f["reply_func"].__name__ == "generate_oai_reply"]
+    for old_function in find_generate_oai_functions:
+        agent.replace_reply_func(old_function, reply_func)
 
 
     return agent
@@ -117,10 +119,12 @@ def test_should_respond_with_a_function_call(user_proxy: UserProxyAgent,
     # Test that the function map is the function
     assert user_proxy.function_map["random_word_generator"]._origin == random_word_generator
 
-    res = user_proxy.initiate_chat(
+    result = user_proxy.initiate_chat(
         chatbot,
         message="Generate Me a Random Word Please",
         summary_method="last_msg",
         # clear_history=True,
     )
+
+    print(result)
 
