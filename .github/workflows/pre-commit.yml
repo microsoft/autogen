@@ -31,4 +31,4 @@ jobs:
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - uses: pre-commit/action@v3.0.1
         with:
-          extra_args: ruff --ignore I
+          extra_args: "ruff --ignore I"
