@@ -1066,7 +1066,12 @@ class Profiler:
             ),
             State(
                 name="SUGGESTING-CODE",
-                description="The assistant's message contains code blocks eg python or shell code blocks.",
+                description="The message shows the assistant writing python or shell code to solve a problem",
+                tags=["assistant"],
+            ),
+            State(
+                name="PLANNING",
+                description="The message shows that the agent is create a step by step plan to accomplish some task.",
                 tags=["assistant"],
             ),
             State(
@@ -1075,19 +1080,29 @@ class Profiler:
                 tags=["assistant"],
             ),
             State(
-                name="REASONING",
-                description="The assistant is using its language abilities to reason.",
-                tags=["assistant"],
-            ),
-            State(
                 name="CODE-EXECUTION",
                 description="The user shared results of code execution, e.g., results, logs, error trace",
+                tags=["user"],
+            ),
+            State(
+                name="CODE-EXECUTION-ERROR",
+                description="The user shared results of code execution and they show an error in execution",
+                tags=["user"],
+            ),
+            State(
+                name="CODE-EXECUTION-SUCCESS",
+                description="The user shared results of code execution and they show a successful execution",
                 tags=["user"],
             ),
             State(
                 name="TERMINATE", description="The agent's message contains the word 'TERMINATE'", tags=["assistant"]
             ),
             State(name="EMPTY", description="The message is empty", tags=["user"]),
+            State(
+                name="UNDEFINED",
+                description="Use this code when the message does not fit any of the other codes",
+                tags=["user", "assistant"],
+            ),
         }
     )
 
@@ -1103,7 +1118,11 @@ class Profiler:
             return message.role in state.tags
 
         state_space = self.state_space.filter_states(condition=role_in_tags)
-        state_space_str = str(state_space)
+        state_space_str = ""
+
+        for state in state_space.states:
+            state_space_str += f"{state.name}: {state.description}" + "\n"
+
         prompt = f"""Which of the following codes apply to the message:
 List of codes:
 {state_space_str}
