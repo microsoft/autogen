@@ -8,6 +8,7 @@ import json
 import markdownify
 
 # File-format detection
+from autogen.audio_utils import AudioTranscriber, GoogleTranscriber
 import puremagic
 import mimetypes
 from binaryornot.check import is_binary
@@ -571,6 +572,9 @@ class MediaConverter(DocumentConverter):
 
 
 class WavConverter(MediaConverter):
+    def __init__(self, audio_transcriber: AudioTranscriber = GoogleTranscriber()):
+        self._transcriber = audio_transcriber
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
@@ -600,7 +604,7 @@ class WavConverter(MediaConverter):
         # Transcribe
         if IS_AUDIO_TRANSCRIPTION_CAPABLE:
             try:
-                transcript = self._transcribe_audio(local_path)
+                transcript = self._transcriber.transcribe(local_path)
                 md_content += "\n\n### Audio Transcript:\n" + (
                     "[No speech detected]" if transcript == "" else transcript
                 )
@@ -612,14 +616,11 @@ class WavConverter(MediaConverter):
             text_content=md_content.strip(),
         )
 
-    def _transcribe_audio(self, local_path) -> str:
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(local_path) as source:
-            audio = recognizer.record(source)
-            return recognizer.recognize_google(audio).strip()
-
 
 class Mp3Converter(WavConverter):
+    def __init__(self, audio_transcriber: AudioTranscriber = GoogleTranscriber()):
+        self._transcriber = audio_transcriber
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a MP3
         extension = kwargs.get("file_extension", "")
@@ -659,7 +660,7 @@ class Mp3Converter(WavConverter):
                 _args["file_extension"] = ".wav"
 
                 try:
-                    transcript = super()._transcribe_audio(temp_path).strip()
+                    transcript = self._transcriber.transcribe(temp_path).strip()
                     md_content += "\n\n### Audio Transcript:\n" + (
                         "[No speech detected]" if transcript == "" else transcript
                     )
