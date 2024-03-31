@@ -61,6 +61,7 @@ class GroupChat:
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
     - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
+    - role_for_select_speaker_messages: sets the role name for speaker selection when in 'auto' mode, typically 'user' or 'system'. (default: 'system')
     """
 
     agents: List[Agent]
@@ -74,6 +75,7 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
+    role_for_select_speaker_messages: Optional[str] = "system"
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -161,6 +163,9 @@ class GroupChat:
             allowed_speaker_transitions_dict=self.allowed_speaker_transitions_dict,
             agents=self.agents,
         )
+
+        if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
+            raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
 
     @property
     def agent_names(self) -> List[str]:
@@ -411,7 +416,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif speaker_selection_method.lower() == "random":
             selected_agent = self.random_select_speaker(graph_eligible_agents)
-        else:
+        else:  # auto
             selected_agent = None
             select_speaker_messages = self.messages.copy()
             # If last message is a tool call or function call, blank the call so the api doesn't throw
@@ -420,7 +425,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             if select_speaker_messages[-1].get("tool_calls", False):
                 select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
             select_speaker_messages = select_speaker_messages + [
-                {"role": "system", "content": self.select_speaker_prompt(graph_eligible_agents)}
+                {
+                    "role": self.role_for_select_speaker_messages,
+                    "content": self.select_speaker_prompt(graph_eligible_agents),
+                }
             ]
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
