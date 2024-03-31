@@ -48,11 +48,11 @@ class ActorSender:
 
     def send_txt_msg(self, msg):
         Debug("ActorSender", f"[{self._topic}] send_txt_msg: {msg}")
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), "text".encode("utf8"), msg.encode("utf8")])
+        self._pub_socket.send_multipart([self._topic.encode("utf8"), "text".encode("utf8"), "no_resp".encode("utf8"), msg.encode("utf8")])
 
     def send_bin_msg(self, msg_type: str, msg):
         Debug("ActorSender", f"[{self._topic}] send_bin_msg: {msg_type}")
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), msg_type.encode("utf8"), msg])
+        self._pub_socket.send_multipart([self._topic.encode("utf8"), msg_type.encode("utf8"), "no_resp".encode("utf8"), msg])
 
     def send_bin_request_msg(self, msg_type: str, msg, resp_topic: str):
         Debug("ActorSender", f"[{self._topic}] send_bin_request_msg: {msg_type}")
@@ -115,8 +115,9 @@ class ActorConnector:
         self._sender.send_bin_request_msg(msg_type, msg, self._resp_topic)
         for i in range(retry + 1):
             try:
-                resp_topic, resp_msg_type, resp = self._resp_socket.recv_multipart()
-                return resp_topic, resp_msg_type, resp
+                self._topic.encode("utf8"), msg_type.encode("utf8"), "no_resp".encode("utf8"), msg
+                topic, resp_msg_type, _, resp = self._resp_socket.recv_multipart()
+                return topic, resp_msg_type, resp
             except zmq.Again:
                 Error("ActorConnector", f"{self._topic}: No response received. retry_count={i}, max_retry={retry}")
                 # Wait a bit before trying to get data again

@@ -2,7 +2,7 @@ import zmq
 import threading
 import traceback
 import time
-from .DebugLog import Debug, Info
+from .DebugLog import Debug, Info, Error
 from .Config import xpub_url
 
 
@@ -43,8 +43,10 @@ class Actor:
                     sender_topic = sender_topic.decode("utf-8")  # Convert bytes to string
                 except zmq.Again:
                     continue  # No message received, continue to next iteration
-                except Exception:
-                    continue
+                except Exception as e:
+                    Error(self.actor_name, f"recv thread encountered an error: {e}")
+                    traceback.print_exc()
+                    continue 
                 if msg_type == "text":
                     msg = msg.decode("utf-8")  # Convert bytes to string
                     if not self._process_txt_msg(msg, msg_type, topic, sender_topic):
