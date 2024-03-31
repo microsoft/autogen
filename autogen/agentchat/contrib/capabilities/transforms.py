@@ -239,8 +239,9 @@ class TextMessageCompressor:
         """Initializes the TextMessageCompressor with specified compression settings.
 
         Args:
-            prompt_compressor (PromptCompressor): An instance of LLMLingua's PromptCompressor configured for prompt compression.
-                If not provided, it defaults to 'microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank' model and uses llmlingua2.
+            prompt_compressor (PromptCompressor): An instance of LLMLingua's PromptCompressor configured for prompt
+                compression. If not provided, it defaults to 'microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank'
+                model and uses llmlingua2 on the cpu.
             compress_args (dict): Additional arguments to pass to the compressor's compression method. This allows for
                 customization of the compression process.
             structured_compression (bool): Flag to determine the type of compression applied. When True, uses structured
@@ -257,7 +258,9 @@ class TextMessageCompressor:
 
         if prompt_compressor is None:
             prompt_compressor = PromptCompressor(
-                model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank", use_llmlingua2=True
+                model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
+                use_llmlingua2=True,
+                device_map="cpu",
             )
 
         assert prompt_compressor is not None
