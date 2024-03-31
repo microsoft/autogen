@@ -13,7 +13,7 @@ if not PYDANTIC_V1:
     from pydantic._internal._typing_extra import eval_type_lenient as evaluate_forwardref
     from pydantic.json_schema import JsonSchemaValue
 
-    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
+    def type2schema(t: Optional[Type[Any]]) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
@@ -51,11 +51,11 @@ if not PYDANTIC_V1:
 # Remove this once we drop support for pydantic 1.x
 else:  # pragma: no cover
     from pydantic import schema_of
-    from pydantic.typing import evaluate_forwardref as evaluate_forwardref
+    from pydantic.typing import evaluate_forwardref as evaluate_forwardref  # type: ignore[no-redef]
 
-    JsonSchemaValue = Dict[str, Any]
+    JsonSchemaValue = Dict[str, Any]  # type: ignore[misc]
 
-    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
+    def type2schema(t: Optional[Type[Any]]) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
