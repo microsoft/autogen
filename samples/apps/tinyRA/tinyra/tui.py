@@ -991,7 +991,7 @@ class SettingsScreen(ModalScreen):
 
 
 @dataclass
-class Message:
+class AgentMessage:
 
     role: str
     content: str
@@ -1046,6 +1046,14 @@ class MessageProfile:
         return repr
 
 
+class AppErrorMessage(Message):
+    """An error message for the app."""
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__()
+
+
 class Profiler:
 
     DEFAULT_STATE_SPACE = StateSpace(
@@ -1076,7 +1084,7 @@ class Profiler:
     def __init__(self, state_space: StateSpace = None):
         self.state_space = state_space or self.DEFAULT_STATE_SPACE
 
-    def profile_message(self, message: Message) -> MessageProfile:
+    def profile_message(self, message: AgentMessage) -> MessageProfile:
 
         def role_in_tags(state: State) -> bool:
             # if state has no tags, the state applies to all roles
@@ -1139,9 +1147,14 @@ class ProfileNode(Static):
 
 class ProfileDiagram(ScrollableContainer):
 
-    chat_profile: ChatProfile
+    chat_profile: ChatProfile = reactive(None, recompose=True)
 
     def compose(self) -> ComposeResult:
+
+        if self.chat_profile is None:
+            yield Static("No chat profile available")
+            return
+
         for message_profile in self.chat_profile.message_profiles:
             node = ProfileNode()
             node.message_profile = message_profile
@@ -1151,21 +1164,32 @@ class ProfileDiagram(ScrollableContainer):
 class ProfilerContainer(Container):
 
     root_id = None
-    chat_history = reactive([], recompose=True)
+    chat_history = reactive(None)
 
     def on_mount(self) -> None:
+        # self.update_chat_history()
+        # self.start_profiling()
         self.set_interval(1, self.update_chat_history)
 
     def update_chat_history(self) -> None:
         self.chat_history = fetch_chat_history(self.root_id)
 
-    def profile_chat(self) -> ChatProfile:
+    def watch_chat_history(self, new_chat_history) -> None:
+        if new_chat_history is None:
+            return
 
+        self.start_profiling()
+
+    @work(thread=True, exclusive=True)
+    async def start_profiling(self):
+        chat_profile = await self.profile_chat()
+        self.profile_diagram.chat_profile = chat_profile
+
+    async def profile_chat(self) -> ChatProfile:
         profiler = Profiler()
-
         message_profile_list = []
         for message in self.chat_history:
-            _message = Message(role=message["role"], content=message["content"])
+            _message = AgentMessage(role=message["role"], content=message["content"])
             msg_profile = profiler.profile_message(_message)
             message_profile_list.append(msg_profile)
 
@@ -1174,10 +1198,10 @@ class ProfilerContainer(Container):
         return chat_profile
 
     def compose(self):
-        chat_profile = self.profile_chat()
-        profile_diagram = ProfileDiagram()
-        profile_diagram.chat_profile = chat_profile
-        yield profile_diagram
+        chat_profile = None
+        self.profile_diagram = ProfileDiagram()
+        self.profile_diagram.chat_profile = chat_profile
+        yield self.profile_diagram
 
 
 class ChatScreen(ModalScreen):
@@ -1197,6 +1221,7 @@ class ChatScreen(ModalScreen):
             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
                 profiler = ProfilerContainer(id="chat-profiler")
                 profiler.root_id = self.root_msg_id
+                profiler.chat_history = history
 
                 yield profiler
 
@@ -1337,14 +1362,6 @@ and if it was return the python function that would accomplish the task.
     name = agent.generate_reply(messages)
 
     return name, code
-
-
-class AppErrorMessage(Message):
-    """An error message for the app."""
-
-    def __init__(self, message: str) -> None:
-        self.message = message
-        super().__init__()
 
 
 class SubprocessError(Exception):
