@@ -1,20 +1,25 @@
 import sys
-from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Protocol, Tuple, TypeVar, Union
 
 import tiktoken
 from termcolor import colored
 
 from autogen import token_count_utils
 
-from llmlingua import PromptCompressor
 
 IMPORT_ERROR: Optional[Exception] = None
-try:
+if TYPE_CHECKING:
     from llmlingua import PromptCompressor
+
+try:
+    import llmlingua
 except ImportError:
     IMPORT_ERROR = ImportError(
         "LLMLingua is not installed. Please install it with `pip install pyautogen[long-context]`"
     )
+    PromptCompressor = object
+else:
+    from llmlingua import PromptCompressor
 
 
 class MessageTransform(Protocol):
@@ -259,6 +264,7 @@ class TextMessageCompressor:
             )
 
         assert prompt_compressor is not None
+        assert isinstance(prompt_compressor, llmlingua.PromptCompressor)
 
         self._prompt_compressor = prompt_compressor
         self._compress_args = compress_args
