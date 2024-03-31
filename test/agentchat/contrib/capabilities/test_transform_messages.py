@@ -30,7 +30,10 @@ def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
 
 def test_text_compression():
     """Test the TextMessageCompressor transform."""
-    from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+    try:
+        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+    except ImportError:
+        pytest.skip("Dependencies are not installed.")
 
     text = "Run this test with a long string. "
     messages = [
