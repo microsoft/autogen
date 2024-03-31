@@ -28,10 +28,44 @@ def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
     return token_count
 
 
+def test_text_compression():
+    """Test the TextMessageCompressor transform."""
+    from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+
+    text = "Run this test with a long string. "
+    messages = [
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+    ]
+
+    text_compressor = TextMessageCompressor()
+    transformed_messages = text_compressor.apply_transform([{"content": text}])
+
+    assert len(transformed_messages[0]["content"]) < len(text)
+
+    # Test compressing last message
+    transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
+    assert len(transformed_messages[-1]["content"][0]["text"]) < len(messages[-1]["content"][0]["text"])
+
+    # Test compressing all messages
+    text_compressor = TextMessageCompressor(messages_to_compress="all")
+    transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
+    for message in transformed_messages:
+        assert len(message["content"][0]["text"]) < len(messages[0]["content"][0]["text"])
+
+
 def test_limit_token_transform():
-    """
-    Test the TokenLimitTransform capability.
-    """
+    """Test the TokenLimitTransform capability."""
 
     messages = [
         {"role": "user", "content": "short string"},
@@ -77,9 +111,8 @@ def test_limit_token_transform():
 
 
 def test_max_message_history_length_transform():
-    """
-    Test the MessageHistoryLimiter capability to limit the number of messages.
-    """
+    """Test the MessageHistoryLimiter capability to limit the number of messages."""
+
     messages = [
         {"role": "user", "content": "hello"},
         {"role": "assistant", "content": [{"type": "text", "text": "there"}]},
@@ -102,13 +135,7 @@ def test_transform_messages_capability():
     This test is a replica of test_transform_chat_history_with_agents in test_context_handling.py
     """
     with tempfile.TemporaryDirectory() as temp_dir:
-        config_list = autogen.config_list_from_json(
-            OAI_CONFIG_LIST,
-            KEY_LOC,
-            filter_dict={
-                "model": "gpt-3.5-turbo",
-            },
-        )
+        config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo"]})
 
         assistant = autogen.AssistantAgent(
             "assistant", llm_config={"config_list": config_list}, max_consecutive_auto_reply=1
@@ -149,6 +176,7 @@ def test_transform_messages_capability():
 
 
 if __name__ == "__main__":
+    test_text_compression()
     test_limit_token_transform()
     test_max_message_history_length_transform()
     test_transform_messages_capability()

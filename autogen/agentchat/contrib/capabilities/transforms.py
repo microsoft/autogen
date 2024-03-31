@@ -1,10 +1,20 @@
 import sys
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
 
 from autogen import token_count_utils
+
+from llmlingua import PromptCompressor
+
+IMPORT_ERROR: Optional[Exception] = None
+try:
+    from llmlingua import PromptCompressor
+except ImportError:
+    IMPORT_ERROR = ImportError(
+        "LLMLingua is not installed. Please install it with `pip install pyautogen[long-context]`"
+    )
 
 
 class MessageTransform(Protocol):
@@ -198,6 +208,147 @@ class MessageTokenLimiter:
                 return allowed_tokens
 
         return max_tokens if max_tokens is not None else sys.maxsize
+
+
+class TextMessageCompressor:
+    """Compresses text messages using LLMLingua for improved efficiency in processing and response generation.
+
+    This class leverages LLMLingua, a prompt compression library, to reduce the token count of messages without
+    significant loss of meaning. This is particularly useful for when the input size can affect processing speed and
+    costs. The compressor supports both plain text and multimodal text messages.
+
+    Example:
+        ```python
+        compressor = TextMessageCompressor()
+        compressed_messages = compressor.apply_transform(messages)
+        ```
+
+    NOTE: The effectiveness of compression and the resultant token savings can vary based on the content of the messages
+    and the specific configurations used for the PromptCompressor.
+    """
+
+    def __init__(
+        self,
+        prompt_compressor: Optional[PromptCompressor] = None,
+        compress_args: dict = dict(),
+        structured_compression: bool = False,
+        messages_to_compress: Literal["last", "all"] = "last",
+    ):
+        """Initializes the TextMessageCompressor with specified compression settings.
+
+        Args:
+            prompt_compressor (PromptCompressor): An instance of LLMLingua's PromptCompressor configured for prompt compression.
+                If not provided, it defaults to 'microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank' model and uses llmlingua2.
+            compress_args (dict): Additional arguments to pass to the compressor's compression method. This allows for
+                customization of the compression process.
+            structured_compression (bool): Flag to determine the type of compression applied. When True, uses structured
+                compression. Otherwise, uses standard compression.
+            messages_to_compress (Literal["last", "all"]): Determines which messages in the conversation history to compress. "last" compresses
+                only the most recent message, while "all" compresses all messages.
+
+        Raises:
+            ImportError: If LLMLingua is not installed, an ImportError is raised.
+        """
+
+        if IMPORT_ERROR:
+            raise IMPORT_ERROR
+
+        if prompt_compressor is None:
+            prompt_compressor = PromptCompressor(
+                model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank", use_llmlingua2=True
+            )
+
+        assert prompt_compressor is not None
+
+        self._prompt_compressor = prompt_compressor
+        self._compress_args = compress_args
+        self._compression_method = (
+            self._prompt_compressor.structured_compress_prompt
+            if structured_compression
+            else self._prompt_compressor.compress_prompt
+        )
+        self._messages_to_compress = messages_to_compress
+
+    def apply_transform(self, messages: List[Dict]) -> List[Dict]:
+        """Applies compression to messages in a conversation history based on the specified configuration.
+
+        Args:
+            messages (List[Dict]): A list of message dictionaries to be compressed.
+
+        Returns:
+            List[Dict]: A list of dictionaries with the message content compressed according to the configured
+                method and scope.
+
+        The function processes each message according to the `messages_to_compress` setting ("last" or "all"), applying
+        the specified compression configuration and returning a new list of messages with reduced token counts where
+        possible.
+        """
+        savings = 0
+
+        if self._messages_to_compress == "last":
+            savings, processed_messages = self._compress_last(messages)
+        else:
+            savings, processed_messages = self._compress_all(messages)
+
+        self._print_stats(savings)
+        return processed_messages
+
+    def _compress_last(self, messages: List[Dict]) -> Tuple[int, List[Dict]]:
+        """Compresses the last message in the conversation history."""
+        if not messages or "content" not in messages[-1]:
+            return 0, messages
+
+        processed_messages = messages.copy()
+        savings, processed_messages[-1]["content"] = self._compress(messages[-1]["content"])
+        return savings, processed_messages
+
+    def _compress_all(self, messages: List[Dict]) -> Tuple[int, List[Dict]]:
+        """Compresses all messages in the conversation history."""
+        # Make sure there is at least one message
+        if not messages:
+            return 0, messages
+
+        total_savings = 0
+        processed_messages = messages.copy()
+        for message in processed_messages:
+            if "content" not in message:
+                continue
+
+            savings, message["content"] = self._compress(message["content"])
+            total_savings += savings
+
+        return total_savings, processed_messages
+
+    def _compress(self, content: Union[str, List[Dict]]) -> Tuple[int, Union[str, List[Dict]]]:
+        """Compresses the given text or multimodal content using the specified compression method."""
+        if isinstance(content, str):
+            return self._compress_text(content)
+        elif isinstance(content, list):
+            return self._compress_multimodal(content)
+        else:
+            print(colored("Content type not recognized. Skipping text compression.", "yellow"))
+            return 0, content
+
+    def _compress_multimodal(self, content: List[Dict]) -> Tuple[int, List[Dict]]:
+        tokens_saved = 0
+        for msg in content:
+            if "text" in msg:
+                savings, msg["text"] = self._compress_text(msg["text"])
+                tokens_saved += savings
+        return tokens_saved, content
+
+    def _compress_text(self, text: str) -> Tuple[int, str]:
+        """Compresses the given text using the specified compression method."""
+        compressed_text = self._compression_method([text], **self._compress_args)
+        return (
+            compressed_text["origin_tokens"] - compressed_text["compressed_tokens"],
+            compressed_text["compressed_prompt"],
+        )
+
+    def _print_stats(self, tokens_saved: int):
+        """Prints a message indicating the number of tokens saved through compression."""
+        if tokens_saved > 0:
+            print(colored(f"{tokens_saved} tokens saved with compression.", "green"))
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
