@@ -1184,6 +1184,8 @@ class ProfilerContainer(Container):
     @work(thread=True, exclusive=True)
     async def start_profiling(self):
         chat_profile = await self.profile_chat()
+        if self.profile_diagram is None:
+            self.profile_diagram = ProfileDiagram()
         self.profile_diagram.chat_profile = chat_profile
 
     async def profile_chat(self) -> ChatProfile:
@@ -1199,7 +1201,8 @@ class ProfilerContainer(Container):
         return chat_profile
 
     def compose(self):
-        self.profile_diagram = ProfileDiagram()
+        if self.profile_diagram is None:
+            self.profile_diagram = ProfileDiagram()
         yield self.profile_diagram
 
 
