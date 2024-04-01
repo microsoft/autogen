@@ -82,14 +82,12 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
-    select_speaker_message_template: Optional[
-        str
-    ] = """You are in a role play game. The following roles are available:
+    select_speaker_message_template: str = """You are in a role play game. The following roles are available:
                 {roles}.
 
                 Read the following conversation.
                 Then select the next role from {agentlist} to play. Only return the role."""
-    select_speaker_prompt_template: Optional[str] = (
+    select_speaker_prompt_template: str = (
         "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     )
 

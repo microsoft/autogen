@@ -1226,7 +1226,7 @@ def test_select_speaker_message_and_prompt_templates():
     assert groupchat.select_speaker_prompt() == custom_prompt.replace("{agentlist}", "['Alice', 'Bob']")
 
     # Test with empty strings
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1235,9 +1235,8 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_message_template="",
             select_speaker_prompt_template="Not empty.",
         )
-    assert "select_speaker_message_template cannot be empty or None." in str(e.value)
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1246,10 +1245,9 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_message_template="Not empty.",
             select_speaker_prompt_template=None,
         )
-    assert "select_speaker_prompt_template cannot be empty or None." in str(e.value)
 
     # Test with None
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1258,9 +1256,8 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_message_template=None,
             select_speaker_prompt_template="Not empty.",
         )
-    assert "select_speaker_message_template cannot be empty or None." in str(e.value)
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
         groupchat = autogen.GroupChat(
             agents=[agent1, agent2],
             messages=[],
@@ -1269,7 +1266,6 @@ def test_select_speaker_message_and_prompt_templates():
             select_speaker_message_template="Not empty.",
             select_speaker_prompt_template="",
         )
-    assert "select_speaker_prompt_template cannot be empty or None." in str(e.value)
 
 
 if __name__ == "__main__":
