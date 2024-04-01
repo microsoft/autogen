@@ -68,6 +68,8 @@ files = [
     "autogen/exception_utils.py",
     "autogen/coding",
     "autogen/oai/openai_utils.py",
+    "autogen/_pydantic.py",
+    "autogen/function_utils.py",
     "autogen/io",
     "test/io",
 ]

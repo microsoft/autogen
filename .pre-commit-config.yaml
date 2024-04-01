@@ -26,11 +26,12 @@ repos:
     rev: 24.3.0
     hooks:
     - id: black
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.3.3
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.4
     hooks:
       - id: ruff
-        args: ["--fix"]
+        types_or: [ python, pyi, jupyter ]
+        args: ["--fix", "--ignore=E402"]
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -61,9 +62,6 @@ repos:
       # Print the number of files as a sanity-check
       verbose: true
   - repo: https://github.com/nbQA-dev/nbQA
-    rev: 1.8.4
+    rev: 1.8.5
     hooks:
-      - id: nbqa-ruff
-        # Don't require notebooks to have all imports at the top
-        args: ["--fix", "--ignore=E402"]
       - id: nbqa-black
