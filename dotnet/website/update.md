@@ -1,6 +1,7 @@
 ##### Update on 0.0.11 (2024-03-26)
 - Add link to Discord channel in nuget's readme.md
 - Document improvements
+- [API Breaking Change] Rename `PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook' to `PrintMessageMiddlewareExtension.RegisterPrintMessage`.
 ##### Update on 0.0.10 (2024-03-12)
 - Rename `Workflow` to `Graph`
 - Rename `AddInitializeMessage` to `SendIntroduction`
