@@ -84,19 +84,13 @@ public static class MiddlewareExtension
         string? middlewareName = null)
         where TAgent : IAgent
     {
-        if (agent.Name == null)
+        var middleware = new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
         {
-            throw new Exception("Agent name is null.");
-        }
+            return await func(context.Messages, context.Options, agent, cancellationToken);
+        });
 
-
-        var middlewareAgent = new MiddlewareAgent<TAgent>(agent);
-        middlewareAgent.Use(func, middlewareName);
-
-        return middlewareAgent;
+        return agent.RegisterMiddleware(middleware);
     }
-
-
 
     /// <summary>
     /// Register a middleware to an existing agent and return a new agent with the middleware.
@@ -106,15 +100,9 @@ public static class MiddlewareExtension
         IMiddleware middleware)
         where TAgent : IAgent
     {
-        if (agent.Name == null)
-        {
-            throw new Exception("Agent name is null.");
-        }
-
         var middlewareAgent = new MiddlewareAgent<TAgent>(agent);
-        middlewareAgent.Use(middleware);
 
-        return middlewareAgent;
+        return middlewareAgent.RegisterMiddleware(middleware);
     }
 
     /// <summary>
@@ -126,10 +114,12 @@ public static class MiddlewareExtension
         string? middlewareName = null)
         where TAgent : IAgent
     {
-        var copyAgent = new MiddlewareAgent<TAgent>(agent);
-        copyAgent.Use(func, middlewareName);
+        var delegateMiddleware = new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
+        {
+            return await func(context.Messages, context.Options, agent, cancellationToken);
+        });
 
-        return copyAgent;
+        return agent.RegisterMiddleware(delegateMiddleware);
     }
 
     /// <summary>

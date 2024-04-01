@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AutoGen.Core;
 using AutoGen.LMStudio;
 using Azure.AI.OpenAI;
 

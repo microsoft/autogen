@@ -4,4 +4,4 @@
 using AutoGen.BasicSample;
 
 Console.ReadLine();
-await TwoAgent_Fill_Application.RunAsync();
+await Sequential_GroupChat_Example.RunAsync();

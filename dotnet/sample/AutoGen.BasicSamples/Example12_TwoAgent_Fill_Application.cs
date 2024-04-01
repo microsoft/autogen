@@ -3,6 +3,7 @@
 
 using System.Text;
 using AutoGen.OpenAI;
+using AutoGen.Core;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;

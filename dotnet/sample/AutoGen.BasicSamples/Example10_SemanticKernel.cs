@@ -2,8 +2,9 @@
 // Example10_SemanticKernel.cs
 
 using System.ComponentModel;
-using AutoGen.SemanticKernel.Extension;
+using AutoGen.Core;
 using AutoGen.SemanticKernel;
+using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;

@@ -6,6 +6,7 @@ using System.Text.Json;
 using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.DotnetInteractive;
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using FluentAssertions;
 

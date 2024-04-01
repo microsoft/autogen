@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example11_Sequential_GroupChat_Example.cs
 
+#region using_statement
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.SemanticKernel;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
+#endregion using_statement
 
 namespace AutoGen.BasicSample;
 

@@ -2,6 +2,7 @@
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
 using AutoGen;
+using AutoGen.Core;
 using AutoGen.BasicSample;
 using AutoGen.DotnetInteractive;
 using AutoGen.OpenAI;

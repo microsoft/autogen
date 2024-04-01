@@ -48,10 +48,9 @@ public static class StreamingMiddlewareExtension
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {
-        var middlewareAgent = new MiddlewareStreamingAgent<TAgent>(agent);
-        middlewareAgent.UseStreaming(func, middlewareName);
+        var middleware = new DelegateStreamingMiddleware(middlewareName, new DelegateStreamingMiddleware.MiddlewareDelegate(func));
 
-        return middlewareAgent;
+        return agent.RegisterStreamingMiddleware(middleware);
     }
 
     /// <summary>
@@ -63,10 +62,9 @@ public static class StreamingMiddlewareExtension
         string? middlewareName = null)
         where TAgent : IStreamingAgent
     {
-        var copyAgent = new MiddlewareStreamingAgent<TAgent>(agent);
-        copyAgent.UseStreaming(func, middlewareName);
+        var middleware = new DelegateStreamingMiddleware(middlewareName, new DelegateStreamingMiddleware.MiddlewareDelegate(func));
 
-        return copyAgent;
+        return agent.RegisterStreamingMiddleware(middleware);
     }
 
     /// <summary>
@@ -78,10 +76,12 @@ public static class StreamingMiddlewareExtension
         string? middlewareName = null)
         where TStreamingAgent : IStreamingAgent
     {
-        var copyAgent = new MiddlewareStreamingAgent<TStreamingAgent>(streamingAgent);
-        copyAgent.Use(func, middlewareName);
+        var middleware = new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
+        {
+            return await func(context.Messages, context.Options, agent, cancellationToken);
+        });
 
-        return copyAgent;
+        return streamingAgent.RegisterMiddleware(middleware);
     }
 
     /// <summary>

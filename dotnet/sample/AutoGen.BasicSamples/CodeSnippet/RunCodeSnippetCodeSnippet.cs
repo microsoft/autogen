@@ -2,6 +2,7 @@
 // RunCodeSnippetCodeSnippet.cs
 
 #region code_snippet_0_1
+using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 #endregion code_snippet_0_1
 

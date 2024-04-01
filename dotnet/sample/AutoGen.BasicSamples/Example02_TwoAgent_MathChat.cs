@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example02_TwoAgent_MathChat.cs
 
+using AutoGen.Core;
 using AutoGen;
 using AutoGen.BasicSample;
 using FluentAssertions;

@@ -2,6 +2,7 @@
 // OpenAICodeSnippet.cs
 
 #region using_statement
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 #endregion using_statement
@@ -71,7 +72,6 @@ public partial class OpenAICodeSnippet
         // register openai chat message connector to support more message types
         var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
         var agentWithConnector = openAIChatAgent
-            .RegisterStreamingMiddleware(openAIChatMessageConnector)
             .RegisterMiddleware(openAIChatMessageConnector);
 
         // now the agentWithConnector supports more message types
@@ -113,7 +113,6 @@ public partial class OpenAICodeSnippet
 
         var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
         var agentWithMiddleware = openAIChatAgent
-            .RegisterStreamingMiddleware(openAIChatMessageConnector)
             .RegisterMiddleware(openAIChatMessageConnector);
         #endregion openai_chat_agent_get_weather_function_call
 

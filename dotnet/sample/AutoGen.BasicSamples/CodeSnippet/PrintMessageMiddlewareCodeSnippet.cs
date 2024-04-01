@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // PrintMessageMiddlewareCodeSnippet.cs
 
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using Azure;
 using Azure.AI.OpenAI;

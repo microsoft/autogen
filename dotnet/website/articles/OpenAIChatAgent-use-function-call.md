@@ -11,6 +11,12 @@ Firstly, you need to install the following packages:
 > [!Note]
 > The `AutoGen.SourceGenerator` package carries a source generator that adds support for type-safe function definition generation. For more information, please check out [Create type-safe function](./Create-type-safe-function-call.md).
 
+> [!NOTE]
+> If you are using VSCode as your editor, you may need to restart the editor to see the generated code.
+
+Firstly, import the required namespaces:
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=using_statement)]
+
 Then, create a `GetWeather` function and pass it to @AutoGen.OpenAI.OpenAIChatAgent:
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=weather_function)]
 

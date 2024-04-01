@@ -2,6 +2,7 @@
 // Example03_Agent_FunctionCall.cs
 
 using AutoGen;
+using AutoGen.Core;
 using AutoGen.BasicSample;
 using FluentAssertions;
 

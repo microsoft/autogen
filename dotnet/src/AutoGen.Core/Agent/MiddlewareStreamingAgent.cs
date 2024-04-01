@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MiddlewareStreamingAgent.cs
 
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-public class MiddlewareStreamingAgent : IStreamingAgent
+public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
 {
     private readonly IStreamingAgent _agent;
     private readonly List<IStreamingMiddleware> _streamingMiddlewares = new();
@@ -19,9 +18,9 @@ public class MiddlewareStreamingAgent : IStreamingAgent
         string? name = null,
         IEnumerable<IStreamingMiddleware>? streamingMiddlewares = null,
         IEnumerable<IMiddleware>? middlewares = null)
+        : base(agent, name)
     {
         _agent = agent;
-        Name = name ?? agent.Name;
         if (streamingMiddlewares != null)
         {
             _streamingMiddlewares.AddRange(streamingMiddlewares);
@@ -33,33 +32,15 @@ public class MiddlewareStreamingAgent : IStreamingAgent
         }
     }
 
-    public string Name { get; }
-
     /// <summary>
     /// Get the inner agent.
     /// </summary>
-    public IStreamingAgent Agent => _agent;
+    public IStreamingAgent StreamingAgent => _agent;
 
     /// <summary>
     /// Get the streaming middlewares.
     /// </summary>
     public IEnumerable<IStreamingMiddleware> StreamingMiddlewares => _streamingMiddlewares;
-
-    /// <summary>
-    /// Get the middlewares.
-    /// </summary>
-    public IEnumerable<IMiddleware> Middlewares => _middlewares;
-
-    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
-    {
-        var agent = _agent;
-        foreach (var middleware in _middlewares)
-        {
-            agent = new DelegateStreamingAgent(middleware, agent);
-        }
-
-        return await agent.GenerateReplyAsync(messages, options, cancellationToken);
-    }
 
     public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
@@ -75,24 +56,6 @@ public class MiddlewareStreamingAgent : IStreamingAgent
     public void UseStreaming(IStreamingMiddleware middleware)
     {
         _streamingMiddlewares.Add(middleware);
-    }
-
-    public void UseStreaming(Func<MiddlewareContext, IStreamingAgent, CancellationToken, Task<IAsyncEnumerable<IStreamingMessage>>> func, string? middlewareName = null)
-    {
-        _streamingMiddlewares.Add(new DelegateStreamingMiddleware(middlewareName, new DelegateStreamingMiddleware.MiddlewareDelegate(func)));
-    }
-
-    public void Use(IMiddleware middleware)
-    {
-        _middlewares.Add(middleware);
-    }
-
-    public void Use(Func<IEnumerable<IMessage>, GenerateReplyOptions?, IAgent, CancellationToken, Task<IMessage>> func, string? middlewareName = null)
-    {
-        _middlewares.Add(new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
-        {
-            return await func(context.Messages, context.Options, agent, cancellationToken);
-        }));
     }
 
     private class DelegateStreamingAgent : IStreamingAgent
@@ -139,7 +102,7 @@ public class MiddlewareStreamingAgent : IStreamingAgent
     }
 }
 
-public sealed class MiddlewareStreamingAgent<T> : MiddlewareStreamingAgent
+public sealed class MiddlewareStreamingAgent<T> : MiddlewareStreamingAgent, IMiddlewareStreamAgent<T>
     where T : IStreamingAgent
 {
     public MiddlewareStreamingAgent(T innerAgent, string? name = null)

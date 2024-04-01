@@ -2,6 +2,7 @@
 // Example08_LMStudio.cs
 
 #region lmstudio_using_statements
+using AutoGen.Core;
 using AutoGen.LMStudio;
 #endregion lmstudio_using_statements
 

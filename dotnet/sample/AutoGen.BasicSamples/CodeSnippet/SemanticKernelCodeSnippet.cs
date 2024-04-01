@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // SemanticKernelCodeSnippet.cs
 
+using AutoGen.Core;
 using AutoGen.SemanticKernel;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
@@ -75,7 +76,6 @@ public class SemanticKernelCodeSnippet
 
         // Register the connector middleware to the kernel agent
         var semanticKernelAgentWithConnector = semanticKernelAgent
-            .RegisterStreamingMiddleware(connector) // middleware for streaming api
             .RegisterMiddleware(connector); // middleware for non-streaming api
 
         // now semanticKernelAgentWithConnector supports more message types

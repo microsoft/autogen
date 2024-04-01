@@ -2,6 +2,7 @@
 // CreateAnAgent.cs
 
 using AutoGen;
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using FluentAssertions;
 

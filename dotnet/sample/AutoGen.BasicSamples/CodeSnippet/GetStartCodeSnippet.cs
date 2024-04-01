@@ -3,6 +3,7 @@
 
 #region snippet_GetStartCodeSnippet
 using AutoGen;
+using AutoGen.Core;
 using AutoGen.OpenAI;
 #endregion snippet_GetStartCodeSnippet
 
