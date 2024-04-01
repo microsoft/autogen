@@ -95,6 +95,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
             code_execution_config=False,
             description=description,
         )
+        self.register_reply(trigger=[autogen.Agent, None], reply_func=NexusFunctionCallingAssistant.generate_oai_reply, config={"not_empty":"not empty"}, reset_config={}, remove_other_reply_funcs=False)
 
     @staticmethod
     def parse_function_details(input_string: str) -> Union[Tuple[str, Dict[str, str], str], None]:
@@ -128,13 +129,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         prompt = f"""{functions}\n\nUser Query: {query}<human_end>"""
         all_messages = [{"content": prompt, "role": "user"}]
 
-        response = llm_client.create(
-            context=None,
-            messages=all_messages,
-            cache=cache,
-        )
-
-        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
+        extracted_response, response_id =  self.get_reply_from_nexus(all_messages, cache, llm_client)
 
         if extracted_response is None:
             warnings.warn("Extracted_response from {response} is None.", UserWarning)
@@ -150,9 +145,18 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
             "role": "assistant",
             "tool_calls": [
                 {
-                    "id": response.id,
+                    "id": response_id,
                     "function": {"arguments": json.dumps(args_map), "name": function_name},
                     "type": "function",
                 }
             ],
         }
+
+    def get_reply_from_nexus(self, all_messages, cache, llm_client):
+        response = llm_client.create(
+            context=None,
+            messages=all_messages,
+            cache=cache,
+        )
+        extracted_response = llm_client.extract_text_or_completion_object(response)[0]
+        return extracted_response, response.id
