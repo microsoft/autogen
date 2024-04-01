@@ -28,6 +28,13 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
+    - select_speaker_message_template: customize the select speaker message (used in "auto" speaker selection), which appears first in the message context and generally includes the agent descriptions and list of agents. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "You are in a role play game. The following roles are available:
+                {roles}.
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."
+    - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
@@ -75,6 +82,13 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
+    select_speaker_message_template: str = """You are in a role play game. The following roles are available:
+                {roles}.
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."""
+    select_speaker_prompt_template: str = (
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+    )
     role_for_select_speaker_messages: Optional[str] = "system"
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
@@ -164,6 +178,13 @@ class GroupChat:
             agents=self.agents,
         )
 
+        # Check select_speaker_message_template and select_speaker_prompt_template have values
+        if self.select_speaker_message_template is None or len(self.select_speaker_message_template) == 0:
+            raise ValueError("select_speaker_message_template cannot be empty or None.")
+
+        if self.select_speaker_prompt_template is None or len(self.select_speaker_prompt_template) == 0:
+            raise ValueError("select_speaker_prompt_template cannot be empty or None.")
+
         if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
             raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
 
@@ -237,17 +258,22 @@ class GroupChat:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"""You are in a role play game. The following roles are available:
-{self._participant_roles(agents)}.
 
-Read the following conversation.
-Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+        roles = self._participant_roles(agents)
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agentlist)
+        return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        return_prompt = self.select_speaker_prompt_template.format(agentlist=agentlist)
+        return return_prompt
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
