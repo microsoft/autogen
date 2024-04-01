@@ -1284,7 +1284,7 @@ class ChatScreen(ModalScreen):
         with Grid(id="chat-screen"):
 
             with Container(id="chat-screen-header"):
-                yield Label(f"Monitory 🧵 Thread: {self.root_msg_id}", classes="heading")
+                yield Label(f"Monitoring 🧵 Thread: {self.root_msg_id}", classes="heading")
 
             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
                 profiler = ProfilerContainer(id="chat-profiler")
