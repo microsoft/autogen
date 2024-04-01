@@ -1,16 +1,13 @@
 import copy
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
-from autogen.agentchat.contrib.img_utils import (
-    gpt4v_formatter,
-    message_formatter_pil_to_b64,
-)
+from autogen.agentchat.contrib.img_utils import gpt4v_formatter, message_formatter_pil_to_b64
 from autogen.code_utils import content_str
 
 from ..._pydantic import model_dump
-
 
 DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
 DEFAULT_MODEL = "gpt-4-vision-preview"
@@ -85,6 +82,14 @@ class MultimodalConversableAgent(ConversableAgent):
             return {"content": message}
         if isinstance(message, dict):
             assert "content" in message, "The message dict must have a `content` field"
+            # GPT-4 does not support function calls yet.
+            message = message.copy()
+            _is_tc = message.pop("tool_calls", None)
+            _is_tr = message.pop("tool_responses", None)
+            if _is_tc or _is_tr:
+                warnings.warn("Tool calls and responses are not supported in GPT-4-vision yet.")
+                message["role"] = "user"
+
             if isinstance(message["content"], str):
                 message = copy.deepcopy(message)
                 message["content"] = gpt4v_formatter(message["content"], img_format="pil")
