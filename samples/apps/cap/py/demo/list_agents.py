@@ -25,6 +25,9 @@ def list_agents():
     # Print out all actors found
     Info("list_agents", f"{len(actor_infos)} actors found:")
     for actor_info in actor_infos:
-        Info("list_agents", f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}")
+        Info(
+            "list_agents",
+            f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}",
+        )
     # Cleanup
     network.disconnect()
