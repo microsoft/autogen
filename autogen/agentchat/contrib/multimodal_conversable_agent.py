@@ -82,7 +82,7 @@ class MultimodalConversableAgent(ConversableAgent):
             return {"content": message}
         if isinstance(message, dict):
             assert "content" in message, "The message dict must have a `content` field"
-            # GPT-4 does not support function calls yet.
+            # GPT-4 Vision does not support function calls yet.
             message = message.copy()
             _is_tc = message.pop("tool_calls", None)
             _is_tr = message.pop("tool_responses", None)
