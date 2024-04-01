@@ -87,7 +87,7 @@ class MultimodalConversableAgent(ConversableAgent):
             _is_tc = message.pop("tool_calls", None)
             _is_tr = message.pop("tool_responses", None)
             if _is_tc or _is_tr:
-                warnings.warn("Tool calls and responses are not supported in GPT-4-vision yet.")
+                warnings.warn("tool_calls and tool_responses are skipped in MultiModalConversableAgent.")
                 message["role"] = "user"
 
             if isinstance(message["content"], str):
