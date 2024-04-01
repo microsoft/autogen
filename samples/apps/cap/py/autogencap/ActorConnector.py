@@ -112,20 +112,29 @@ class ActorConnector:
         self._sender.send_bin_msg(msg_type, msg)
 
     def binary_request(self, msg_type: str, msg, retry=5):
-        self._sender.send_bin_request_msg(msg_type, msg, self._resp_topic)
-        for i in range(retry + 1):
-            try:
-                self._topic.encode("utf8"), msg_type.encode("utf8"), "no_resp".encode("utf8"), msg
-                topic, resp_msg_type, _, resp = self._resp_socket.recv_multipart()
-                return topic, resp_msg_type, resp
-            except zmq.Again:
-                Error("ActorConnector", f"{self._topic}: No response received. retry_count={i}, max_retry={retry}")
-                # Wait a bit before trying to get data again
-                time.sleep(0.01)
-                continue
+        original_timeout:int = 0
+        if retry == -1:
+            original_timeout = self._resp_socket.getsockopt(zmq.RCVTIMEO)
+            self._resp_socket.setsockopt(zmq.RCVTIMEO, 1000)
+
+        try:
+            self._sender.send_bin_request_msg(msg_type, msg, self._resp_topic)
+            while retry == -1 or retry > 0:
+                try:
+                    topic, resp_msg_type, _, resp = self._resp_socket.recv_multipart()
+                    return topic, resp_msg_type, resp
+                except zmq.Again:
+                    Debug("ActorConnector", f"{self._topic}: No response received. retry_count={retry}, max_retry={retry}")
+                    time.sleep(0.01)
+                    if retry != -1:
+                        retry -= 1
+        finally:
+            if retry == -1:
+                self._resp_socket.setsockopt(zmq.RCVTIMEO, original_timeout)
+
         Error("ActorConnector", f"{self._topic}: No response received. Giving up.")
         return None, None, None
-
+    
     def close(self):
         self._sender.close()
         self._resp_socket.close()
