@@ -121,7 +121,7 @@ You have access to the following functions. Use them if required:
 
                 return reply;
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var userProxyAgent = new UserProxyAgent(
             name: "user",

@@ -43,7 +43,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
             config: gptConfig);
 
         var userProxy = new UserProxyAgent(name: "user", defaultReply: GroupChatExtension.TERMINATE, humanInputMode: HumanInputMode.NEVER)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // Create admin agent
         var admin = new AssistantAgent(
@@ -96,7 +96,7 @@ public partial class Example04_Dynamic_GroupChat_Coding_Task
                 Temperature = 0,
                 ConfigList = [gptConfig],
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // create coder agent
         // The coder agent is a composite agent that contains dotnet coder, code reviewer and nuget agent.
@@ -127,7 +127,7 @@ Here's some externel information
 ",
             config: gptConfig,
             temperature: 0.4f)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // code reviewer agent will review if code block from coder's reply satisfy the following conditions:
         // - There's only one code block
@@ -162,7 +162,7 @@ Here's some externel information
             """,
             config: gptConfig,
             temperature: 0f)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // create runner agent
         // The runner agent will run the code block from coder's reply.
@@ -177,7 +177,7 @@ Here's some externel information
                 var mostRecentCoderMessage = msgs.LastOrDefault(x => x.From == "coder") ?? throw new Exception("No coder message found");
                 return await agent.GenerateReplyAsync(new[] { mostRecentCoderMessage }, option, ct);
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var adminToCoderTransition = Transition.Create(admin, coderAgent, async (from, to, messages) =>
         {

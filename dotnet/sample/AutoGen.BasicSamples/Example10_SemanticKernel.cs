@@ -67,7 +67,7 @@ public class Example10_SemanticKernel
         var skAgentWithMiddleware = skAgent
             .RegisterStreamingMiddleware(connector)
             .RegisterMiddleware(connector)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // Now the skAgentWithMiddleware supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage
         // It also register a print format message hook to print the message in a human readable format to the console

@@ -21,7 +21,7 @@ internal class PrintMessageMiddlewareCodeSnippet
 
         #region PrintMessageMiddleware
         var agentWithPrintMessageMiddleware = agent
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         await agentWithPrintMessageMiddleware.SendAsync("write a long poem");
         #endregion PrintMessageMiddleware
@@ -38,7 +38,7 @@ internal class PrintMessageMiddlewareCodeSnippet
         var streamingAgent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
             .RegisterStreamingMiddleware(openaiMessageConnector)
             .RegisterMiddleware(openaiMessageConnector)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         await streamingAgent.SendAsync("write a long poem");
         #endregion print_message_streaming

@@ -15,13 +15,13 @@ public static class Example06_UserProxyAgent
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.",
             config: gpt35)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // set human input mode to ALWAYS so that user always provide input
         var userProxyAgent = new UserProxyAgent(
             name: "user",
             humanInputMode: HumanInputMode.ALWAYS)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // start the conversation
         await userProxyAgent.InitiateChatAsync(

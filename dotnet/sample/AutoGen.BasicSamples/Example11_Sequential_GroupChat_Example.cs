@@ -43,7 +43,7 @@ public partial class Sequential_GroupChat_Example
             """)
             .RegisterStreamingMiddleware(kernelMessageConnector) // support TextMessageUpdate
             .RegisterMiddleware(kernelMessageConnector) // support TextMessage
-            .RegisterPrintFormatMessageHook(); // pretty print the message
+            .RegisterPrintMessage(); // pretty print the message
 
         return kernelAgent;
         #endregion CreateBingSearchAgent
@@ -68,7 +68,7 @@ public partial class Sequential_GroupChat_Example
         return openAIClientAgent
             .RegisterStreamingMiddleware(messageConnector) // support TextMessageUpdate
             .RegisterMiddleware(messageConnector) // support TextMessage
-            .RegisterPrintFormatMessageHook(); // pretty print the message
+            .RegisterPrintMessage(); // pretty print the message
         #endregion CreateSummarizerAgent
     }
 
@@ -78,7 +78,7 @@ public partial class Sequential_GroupChat_Example
         var userProxyAgent = new UserProxyAgent(
             name: "user",
             humanInputMode: HumanInputMode.ALWAYS)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var bingSearchAgent = await CreateBingSearchAgentAsync();
         var summarizerAgent = await CreateSummarizerAgentAsync();

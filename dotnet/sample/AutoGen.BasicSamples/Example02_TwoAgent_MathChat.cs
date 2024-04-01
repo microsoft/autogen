@@ -34,7 +34,7 @@ public static class Example02_TwoAgent_MathChat
 
                 return reply;
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // create student agent
         // student agent will answer the math questions
@@ -46,7 +46,7 @@ public static class Example02_TwoAgent_MathChat
                 Temperature = 0,
                 ConfigList = [gpt35],
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // start the conversation
         var conversation = await student.InitiateChatAsync(
