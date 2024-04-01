@@ -142,7 +142,7 @@ class ActorConnector:
 
         Error("ActorConnector", f"{self._topic}: No response received. Giving up.")
         return None, None, None
-    
+
     def close(self):
         self._sender.close()
         self._resp_socket.close()
