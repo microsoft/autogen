@@ -1216,6 +1216,10 @@ class ProfileDiagram(ScrollableContainer):
             yield LoadingIndicator()
             return
 
+        if self.chat_profile.num_messages == 0:
+            yield LoadingIndicator()
+            return
+
         for message_profile in self.chat_profile.message_profiles:
             node = ProfileNode()
             node.message_profile = message_profile
