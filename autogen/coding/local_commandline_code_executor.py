@@ -113,6 +113,11 @@ $functions"""
         )
 
     @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
+
+    @property
     def functions(
         self,
     ) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]:
