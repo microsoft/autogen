@@ -1213,6 +1213,7 @@ class ProfileDiagram(ScrollableContainer):
     def compose(self) -> ComposeResult:
 
         if self.chat_profile is None:
+            yield Label("Profiling...")
             yield LoadingIndicator()
             return
 
@@ -1283,7 +1284,7 @@ class ChatScreen(ModalScreen):
         with Grid(id="chat-screen"):
 
             with Container(id="chat-screen-header"):
-                yield Label(f"Chat History for 🧵-{self.root_msg_id}", classes="heading")
+                yield Label(f"Monitory 🧵 Thread: {self.root_msg_id}", classes="heading")
 
             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
                 profiler = ProfilerContainer(id="chat-profiler")
@@ -1298,7 +1299,7 @@ class ChatScreen(ModalScreen):
                             msg_class = "assistant-message"
                         if msg["role"] == "user":
                             msg_class = "user-message"
-                        yield Markdown(f"{msg['role']}: {msg['content']}", classes=msg_class + " message")
+                        yield Markdown(f"{msg['role']}:\n{msg['content']}", classes=msg_class + " message")
 
             with Horizontal(id="chat-screen-footer"):
                 yield Button("Learn New Tool", variant="error", id="learn")
