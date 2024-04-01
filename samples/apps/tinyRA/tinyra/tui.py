@@ -10,10 +10,10 @@ import shutil
 import sqlite3
 import aiosqlite
 from collections import namedtuple
-import concurrent.futures
+import functools
 from dataclasses import dataclass
 
-from typing import List, Dict, Set, Callable
+from typing import List, Dict, Set, Callable, Optional
 
 from textual import on
 from textual import work
@@ -1095,7 +1095,7 @@ class Profiler:
                 tags=["user"],
             ),
             State(
-                name="ASKING_FOR_INFO",
+                name="ASKING-FOR-INFO",
                 description="The assistant is asking a question",
                 tags=["assistant"],
             ),
@@ -1184,6 +1184,11 @@ class ProfileNode(Static):
 
     def compose(self) -> ComposeResult:
         states = self.message_profile.states
+
+        def state_name_comparator(x: State, y: State):
+            return x.name < y.name
+
+        states.sort(key=functools.cmp_to_key(state_name_comparator))
 
         state_display_str = " ".join([str(state) for state in states])
 
