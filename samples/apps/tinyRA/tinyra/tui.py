@@ -1216,10 +1216,11 @@ class ProfileDiagram(ScrollableContainer):
             yield LoadingIndicator()
             return
 
-        if self.chat_profile.num_messages == 0:
-            yield LoadingIndicator()
-            return
-
+        # if self.chat_profile.num_messages == 0:
+        #     yield LoadingIndicator()
+        #     return
+        num_messages = self.chat_profile.num_messages
+        yield Label(f"Number of messages: {num_messages}", classes="heading")
         for message_profile in self.chat_profile.message_profiles:
             node = ProfileNode()
             node.message_profile = message_profile
@@ -1283,7 +1284,6 @@ class ChatScreen(ModalScreen):
 
             with Container(id="chat-screen-header"):
                 yield Label(f"Chat History for 🧵-{self.root_msg_id}", classes="heading")
-                yield Label(f"(Number of messages: {len(history)})")
 
             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
                 profiler = ProfilerContainer(id="chat-profiler")
