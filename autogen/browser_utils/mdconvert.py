@@ -64,6 +64,15 @@ except ModuleNotFoundError:
 
 
 class _CustomMarkdownify(markdownify.MarkdownConverter):
+    """
+    A custom version of markdownify's MarkdownConverter. Changes include:
+
+    - Altering the default heading style to use '#', '##', etc.
+    - Removing javascript hyperlinks.
+    - Truncating images with large data:uri sources.
+    - Ensuring URIs are properly escaped, and do not conflict with Markdown syntax
+    """
+
     def __init__(self, **options):
         options["heading_style"] = options.get("heading_style", markdownify.ATX)
         super().__init__(**options)
@@ -134,6 +143,8 @@ class DocumentConverterResult:
 
 
 class DocumentConverter:
+    """Abstract superclass of all DocumentConverters."""
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         raise NotImplementedError()
 
@@ -427,6 +438,10 @@ class BingSerpConverter(DocumentConverter):
 
 
 class PdfConverter(DocumentConverter):
+    """
+    Converts PDFs to Markdown. Most style information is ignored, so the results are essentially plain-text.
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a PDF
         extension = kwargs.get("file_extension", "")
@@ -440,6 +455,10 @@ class PdfConverter(DocumentConverter):
 
 
 class DocxConverter(HtmlConverter):
+    """
+    Converts DOCX files to Markdown. Style information (e.g.m headings) and tables are preserved where possible.
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a DOCX
         extension = kwargs.get("file_extension", "")
@@ -456,6 +475,10 @@ class DocxConverter(HtmlConverter):
 
 
 class XlsxConverter(HtmlConverter):
+    """
+    Converts XLSX files to Markdown, with each sheet presented as a separate Markdown table.
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
@@ -476,6 +499,10 @@ class XlsxConverter(HtmlConverter):
 
 
 class PptxConverter(HtmlConverter):
+    """
+    Converts PPTX files to Markdown. Supports heading, tables and images with alt text.
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a PPTX
         extension = kwargs.get("file_extension", "")
@@ -558,6 +585,10 @@ class PptxConverter(HtmlConverter):
 
 
 class MediaConverter(DocumentConverter):
+    """
+    Abstract class for multi-modal media (e.g., images and audio)
+    """
+
     def _get_metadata(self, local_path):
         exiftool = shutil.which("exiftool")
         if not exiftool:
@@ -571,6 +602,10 @@ class MediaConverter(DocumentConverter):
 
 
 class WavConverter(MediaConverter):
+    """
+    Converts WAV files to markdown via extraction of metadata (if `exiftool` is installed), and speech transcription (if `speech_recognition` is installed).
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
@@ -620,6 +655,10 @@ class WavConverter(MediaConverter):
 
 
 class Mp3Converter(WavConverter):
+    """
+    Converts MP3 files to markdown via extraction of metadata (if `exiftool` is installed), and speech transcription (if `speech_recognition` AND `pydub` are installed).
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a MP3
         extension = kwargs.get("file_extension", "")
@@ -677,6 +716,10 @@ class Mp3Converter(WavConverter):
 
 
 class ImageConverter(MediaConverter):
+    """
+    Converts images to markdown via extraction of metadata (if `exiftool` is installed), OCR (if `easyocr` is installed), and description via a multimodal LLM (if an mlm_client is configured).
+    """
+
     def convert(self, local_path, **kwargs) -> Union[None, DocumentConverterResult]:
         # Bail if not a XLSX
         extension = kwargs.get("file_extension", "")
