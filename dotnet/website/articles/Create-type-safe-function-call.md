@@ -21,7 +21,7 @@ Then, create a `public partial` class to host the methods you want to use in Aut
 > [!NOTE]
 > A `public partial` class is required for the source generator to generate code.
 > The method has to be a `public` instance method and its return type must be `Task<string>`.
-> Mark the method with @AutoGen.FunctionAttribute attribute.
+> Mark the method with @AutoGen.Core.FunctionAttribute attribute.
 
 Firstly, import the required namespaces:
 
