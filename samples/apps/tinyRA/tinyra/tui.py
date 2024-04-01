@@ -1,7 +1,5 @@
 import os
-import asyncio
 import ast
-import configparser
 import platform
 import json
 import logging
@@ -18,17 +16,24 @@ from typing import List, Dict, Set, Callable, Optional
 from textual import on
 from textual import work
 from textual.app import App, ComposeResult
-from textual.screen import Screen, ModalScreen
+from textual.screen import ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container, Horizontal, Vertical
-from textual.widget import Widget
-from textual.widgets import Pretty
-from textual.widgets import Footer, Header, Markdown, Static, Input, DirectoryTree, Label, Switch, Collapsible
+from textual.widgets import (
+    Footer,
+    Header,
+    Markdown,
+    Static,
+    Input,
+    DirectoryTree,
+    Label,
+    Switch,
+    Collapsible,
+    LoadingIndicator,
+)
 from textual.widgets import Button, TabbedContent, ListView, ListItem
 from textual.widgets import TextArea
 from textual.reactive import reactive
 from textual.message import Message
-from textual.events import Key, Mount
-from textual.app import ScreenStackError
 
 import autogen
 from autogen import config_list_from_json
@@ -997,7 +1002,7 @@ class AgentMessage:
     content: str
 
     def __str__(self):
-        return f"{self.role}: {self.content}"
+        return f"{self.role}:\n{self.content}"
 
 
 @dataclass
@@ -1060,13 +1065,13 @@ class Profiler:
     DEFAULT_STATE_SPACE = StateSpace(
         states={
             State(
-                name="USER_REQUEST",
+                name="USER-REQUEST",
                 description="The message shows the *user* requesting a task that needs to be completed",
                 tags=["user"],
             ),
             State(
-                name="SUGGESTING-CODE",
-                description="The message shows the assistant writing python or shell code to solve a problem",
+                name="CODING",
+                description="The message shows the assistant writing python or shell code to solve a problem. IE the message contains code blocks. This code does not apply to markdown code blocks",
                 tags=["assistant"],
             ),
             State(
@@ -1093,6 +1098,11 @@ class Profiler:
                 name="CODE-EXECUTION-SUCCESS",
                 description="The user shared results of code execution and they show a successful execution",
                 tags=["user"],
+            ),
+            State(
+                name="CODING-TOOL-USE",
+                description="The message contains a code block and the code uses method from the `functions` module eg indicated by presence of `from functions import....`",
+                tags=["assistant"],
             ),
             State(
                 name="ASKING-FOR-INFO",
@@ -1143,9 +1153,8 @@ Message
 
 Only respond with codes that apply. Codes should be separated by commas.
     """
-
         client = autogen.OpenAIWrapper(**LLM_CONFIG)
-        response = client.create(cache_seed=42, messages=[{"role": "user", "content": prompt}])
+        response = client.create(messages=[{"role": "user", "content": prompt}])
         response = client.extract_text_or_completion_object(response)[0]
 
         extracted_states_names = response.split(",")
@@ -1204,7 +1213,7 @@ class ProfileDiagram(ScrollableContainer):
     def compose(self) -> ComposeResult:
 
         if self.chat_profile is None:
-            yield Static("No chat profile available")
+            yield LoadingIndicator()
             return
 
         for message_profile in self.chat_profile.message_profiles:
