@@ -129,7 +129,7 @@ class NexusFunctionCallingAssistant(autogen.ConversableAgent):
         prompt = f"""{functions}\n\nUser Query: {query}<human_end>"""
         all_messages = [{"content": prompt, "role": "user"}]
 
-        extracted_response, response_id =  self.get_reply_from_nexus(all_messages, cache, llm_client)
+        extracted_response, response_id = self.get_reply_from_nexus(all_messages, cache, llm_client)
 
         if extracted_response is None:
             warnings.warn("Extracted_response from {response} is None.", UserWarning)
