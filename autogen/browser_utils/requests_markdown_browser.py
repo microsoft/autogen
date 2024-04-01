@@ -24,6 +24,7 @@ from .markdown_search import AbstractMarkdownSearch, BingMarkdownSearch
 class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
     """
     (In preview) An extremely simple Python requests-powered Markdown web browser.
+    This browser cannot run JavaScript, compute CSS, etc. It simply fetches the HTML document, and converts it to Markdown.
     See AbstractMarkdownBrowser for more details.
     """
 
@@ -37,6 +38,18 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         requests_session: Optional[Union[requests.Session, None]] = None,
         requests_get_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
+        """
+        Instantiate a new RequestsMarkdownBrowser.
+
+        Arguments:
+            start_page: The page on which the browser starts (default: "about:blank")
+            viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
+            downloads_folder: Path to where downloads are saved. If None, downloads are disabled. (default: None)
+            search_engine: An instance of MarkdownSearch, which handles web searches performed by this browser (default: a new `BingMarkdownSearch()` with default parameters)
+            markdown_converted: An instance of a MarkdownConverter used to convert HTML pages and downloads to Markdown (default: a new `MarkdownConerter()` with default parameters)
+            request_session: The session from which to issue requests (default: a new `requests.Session()` instance with default parameters)
+            request_get_kwargs: Extra parameters passed to evert `.get()` call made to requests.
+        """
         self.start_page: str = start_page if start_page else "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.downloads_folder = downloads_folder
@@ -76,6 +89,12 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         return self.history[-1][0]
 
     def set_address(self, uri_or_path: str) -> None:
+        """Sets the address of the current page.
+        This will result in the page being fetched via the underlying requests session.
+
+        Arguments:
+            uri_or_path: The fully-qualified URI to fetch, or the path to fetch from the current location. If the URI protocol is `search:`, the remainder of the URI is interpreted as a search query, and a web search is performed. If the URI protocol is `file://`, the remainder of the URI is interpreted as a local absolute file path.
+        """
         # TODO: Handle anchors
         self.history.append((uri_or_path, time.time()))
 
@@ -128,9 +147,11 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
             self.viewport_current_page = len(self.viewport_pages) - 1
 
     def page_down(self) -> None:
+        """Move the viewport down one page, if possible."""
         self.viewport_current_page = min(self.viewport_current_page + 1, len(self.viewport_pages) - 1)
 
     def page_up(self) -> None:
+        """Move the viewport up one page, if possible."""
         self.viewport_current_page = max(self.viewport_current_page - 1, 0)
 
     def find_on_page(self, query: str) -> Union[str, None]:
@@ -211,13 +232,13 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
         return self.viewport
 
     def open_local_file(self, local_path: str) -> str:
-        """Convert a local file path to a file:/// URI, update the address, visit the page,
-        and return the contents of the viewport."""
+        """Convert a local file path to a file:/// URI, update the address, visit the page, and return the contents of the viewport."""
         full_path = os.path.abspath(os.path.expanduser(local_path))
         self.set_address(pathlib.Path(full_path).as_uri())
         return self.viewport
 
     def _split_pages(self) -> None:
+        """Split the page contents into pages that are approximately the viewport size. Small deviations are permitted to ensure words are not broken."""
         # Handle empty pages
         if len(self._page_content) == 0:
             self.viewport_pages = [(0, 0)]
@@ -237,6 +258,13 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
     def _fetch_page(
         self, url: str, session: requests.Session = None, requests_get_kwargs: Dict[str, Any] = None
     ) -> None:
+        """Fetch a page using the requests library. Then convert it to Markdown, and set `page_content` (which splits the content into pages as necessary.
+
+        Arguments:
+            url: The fully-qualified URL to fetch.
+            session: Used to override the session used for this request. If None, use `self._requests_session` as usual.
+            requests_get_kwargs: Extra arguments passes to `requests.Session.get`.
+        """
         download_path = ""
         response = None
         try:
@@ -342,6 +370,15 @@ class RequestsMarkdownBrowser(AbstractMarkdownBrowser):
                     self._set_page_content(f"## Error {response.status_code}\n\n{text}")
 
     def _fetch_local_dir(self, local_path: str) -> str:
+        """Render a local directory listing in HTML to assist with local file browsing via the "file://" protocol.
+        Through rendered in HTML, later parts of the pipeline will convert the listing to Markdown.
+
+        Arguments:
+            local_path: A path to the local directory whose contents are to be listed.
+
+        Returns:
+            A directory listing, rendered in HTML.
+        """
         pardir = os.path.normpath(os.path.join(local_path, os.pardir))
         pardir_uri = pathlib.Path(pardir).as_uri()
         listing = f"""
