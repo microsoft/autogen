@@ -62,13 +62,8 @@ module.exports = {
             },
             {
               type: "doc",
-              label: "Advanced Topics",
+              label: "User Guide",
               docId: "topics",
-            },
-            {
-              type: "doc",
-              label: "Non-OpenAI Models",
-              docId: "topics/non-openai-models/about-using-nonopenai-models",
             },
             {
               type: "doc",
@@ -77,17 +72,17 @@ module.exports = {
             },
             {
               type: "doc",
-              docId: "ecosystem",
-              label: "Ecosystem",
-            },
-            {
-              type: "doc",
               docId: "FAQ",
               label: "FAQs",
             },
             {
               type: "doc",
-              label: "How to Contribute",
+              docId: "ecosystem",
+              label: "Ecosystem",
+            },
+            {
+              type: "doc",
+              label: "Contribute",
               docId: "Contribute",
             },
             {
@@ -129,11 +124,12 @@ module.exports = {
               href: "https://microsoft.github.io/autogen-for-net/",
             }
           ],
+
         },
         {
           to: "blog",
           label: "Blog",
-          position: "right",
+          position: "left",
         },
         {
           href: "https://github.com/microsoft/autogen",
