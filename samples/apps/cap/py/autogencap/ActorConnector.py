@@ -48,11 +48,15 @@ class ActorSender:
 
     def send_txt_msg(self, msg):
         Debug("ActorSender", f"[{self._topic}] send_txt_msg: {msg}")
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), "text".encode("utf8"), "no_resp".encode("utf8"), msg.encode("utf8")])
+        self._pub_socket.send_multipart(
+            [self._topic.encode("utf8"), "text".encode("utf8"), "no_resp".encode("utf8"), msg.encode("utf8")]
+        )
 
     def send_bin_msg(self, msg_type: str, msg):
         Debug("ActorSender", f"[{self._topic}] send_bin_msg: {msg_type}")
-        self._pub_socket.send_multipart([self._topic.encode("utf8"), msg_type.encode("utf8"), "no_resp".encode("utf8"), msg])
+        self._pub_socket.send_multipart(
+            [self._topic.encode("utf8"), msg_type.encode("utf8"), "no_resp".encode("utf8"), msg]
+        )
 
     def send_bin_request_msg(self, msg_type: str, msg, resp_topic: str):
         Debug("ActorSender", f"[{self._topic}] send_bin_request_msg: {msg_type}")
@@ -112,7 +116,7 @@ class ActorConnector:
         self._sender.send_bin_msg(msg_type, msg)
 
     def binary_request(self, msg_type: str, msg, retry=5):
-        original_timeout:int = 0
+        original_timeout: int = 0
         if retry == -1:
             original_timeout = self._resp_socket.getsockopt(zmq.RCVTIMEO)
             self._resp_socket.setsockopt(zmq.RCVTIMEO, 1000)
@@ -124,7 +128,9 @@ class ActorConnector:
                     topic, resp_msg_type, _, resp = self._resp_socket.recv_multipart()
                     return topic, resp_msg_type, resp
                 except zmq.Again:
-                    Debug("ActorConnector", f"{self._topic}: No response received. retry_count={retry}, max_retry={retry}")
+                    Debug(
+                        "ActorConnector", f"{self._topic}: No response received. retry_count={retry}, max_retry={retry}"
+                    )
                     time.sleep(0.01)
                     if retry != -1:
                         retry -= 1
@@ -134,7 +140,7 @@ class ActorConnector:
 
         Error("ActorConnector", f"{self._topic}: No response received. Giving up.")
         return None, None, None
-    
+
     def close(self):
         self._sender.close()
         self._resp_socket.close()

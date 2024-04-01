@@ -46,7 +46,7 @@ class Actor:
                 except Exception as e:
                     Error(self.actor_name, f"recv thread encountered an error: {e}")
                     traceback.print_exc()
-                    continue 
+                    continue
                 if msg_type == "text":
                     msg = msg.decode("utf-8")  # Convert bytes to string
                     if not self._process_txt_msg(msg, msg_type, topic, sender_topic):

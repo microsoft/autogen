@@ -63,7 +63,7 @@ class DirectoryActor(Actor):
             err.code = ErrorCode.EC_ALREADY_EXISTS
         else:
             self._registered_actors[name] = actor_reg.actor_info
-            
+
         sender_connection = ActorSender(self._context, sender_topic)
         serialized_msg = err.SerializeToString()
         sender_connection.send_bin_msg(ErrorMsg.__name__, serialized_msg)
