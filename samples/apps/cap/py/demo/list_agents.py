@@ -29,7 +29,7 @@ def list_agents():
     for actor_info in actor_infos:
         Info(
             "list_agents",
-            f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}"
+            f"Name: {actor_info.name}, Namespace: {actor_info.namespace}, Description: {actor_info.description}",
         )
     # Cleanup
     network.disconnect()
