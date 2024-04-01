@@ -137,6 +137,10 @@ module.exports = {
       textColor: '#091E42',
       isCloseable: true,
     },
+    /* Clarity Config */
+    clarity: {
+      ID: "lnxpe6skj1", // The Tracking ID provided by Clarity
+    }
   },
   presets: [
     [
@@ -223,6 +227,11 @@ module.exports = {
           }
         ],
       },
-    ]
+    ],
+    [
+      'docusaurus-plugin-clarity',
+      {
+      }
+    ],
   ],
 };

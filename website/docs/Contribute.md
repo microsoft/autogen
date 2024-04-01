@@ -208,6 +208,11 @@ Then you can see the coverage report by
 `coverage report -m` or `coverage html`.
 
 ### Documentation
+
+#### How to get a notebook rendered on the website
+
+See [here](https://github.com/microsoft/autogen/blob/main/notebook/contributing.md#how-to-get-a-notebook-displayed-on-the-website) for instructions on how to get a notebook in the `notebook` directory rendered on the website.
+
 #### Build documentation locally
 1\. To build and test documentation locally, first install [Node.js](https://nodejs.org/en/download/). For example,
 ```bash

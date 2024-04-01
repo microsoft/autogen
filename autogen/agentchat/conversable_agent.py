@@ -15,7 +15,7 @@ from openai import BadRequestError
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from .._pydantic import model_dump
-from ..cache.cache import Cache
+from ..cache.cache import AbstractCache
 from ..code_utils import (
     UNKNOWN,
     check_can_use_docker_or_throw,
@@ -865,7 +865,7 @@ class ConversableAgent(LLMAgent):
         recipient: "ConversableAgent",
         clear_history: bool = True,
         silent: Optional[bool] = False,
-        cache: Optional[Cache] = None,
+        cache: Optional[AbstractCache] = None,
         max_turns: Optional[int] = None,
         summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
@@ -882,7 +882,7 @@ class ConversableAgent(LLMAgent):
             recipient: the recipient agent.
             clear_history (bool): whether to clear the chat history with the agent. Default is True.
             silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
-            cache (Cache or None): the cache client to be used for this conversation. Default is None.
+            cache (AbstractCache or None): the cache client to be used for this conversation. Default is None.
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
                 [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
                 If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
@@ -1007,7 +1007,7 @@ class ConversableAgent(LLMAgent):
         recipient: "ConversableAgent",
         clear_history: bool = True,
         silent: Optional[bool] = False,
-        cache: Optional[Cache] = None,
+        cache: Optional[AbstractCache] = None,
         max_turns: Optional[int] = None,
         summary_method: Optional[Union[str, Callable]] = DEFAULT_SUMMARY_METHOD,
         summary_args: Optional[dict] = {},
@@ -1073,7 +1073,7 @@ class ConversableAgent(LLMAgent):
         summary_method,
         summary_args,
         recipient: Optional[Agent] = None,
-        cache: Optional[Cache] = None,
+        cache: Optional[AbstractCache] = None,
     ) -> str:
         """Get a chat summary from an agent participating in a chat.
 
@@ -1101,7 +1101,7 @@ class ConversableAgent(LLMAgent):
         if "cache" not in summary_args:
             summary_args["cache"] = cache
         if summary_method == "reflection_with_llm":
-            summary_method = self._relfection_with_llm_as_summary
+            summary_method = self._reflection_with_llm_as_summary
         elif summary_method == "last_msg":
             summary_method = self._last_msg_as_summary
 
@@ -1124,7 +1124,7 @@ class ConversableAgent(LLMAgent):
         return summary
 
     @staticmethod
-    def _relfection_with_llm_as_summary(sender, recipient, summary_args):
+    def _reflection_with_llm_as_summary(sender, recipient, summary_args):
         prompt = summary_args.get("summary_prompt")
         prompt = ConversableAgent.DEFAULT_SUMMARY_PROMPT if prompt is None else prompt
         if not isinstance(prompt, str):
@@ -1141,7 +1141,7 @@ class ConversableAgent(LLMAgent):
         return summary
 
     def _reflection_with_llm(
-        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[Cache] = None
+        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[AbstractCache] = None
     ) -> str:
         """Get a chat summary using reflection with an llm client based on the conversation history.
 
@@ -1149,7 +1149,7 @@ class ConversableAgent(LLMAgent):
             prompt (str): The prompt (in this method it is used as system prompt) used to get the summary.
             messages (list): The messages generated as part of a chat conversation.
             llm_agent: the agent with an llm client.
-            cache (Cache or None): the cache client to be used for this conversation.
+            cache (AbstractCache or None): the cache client to be used for this conversation.
         """
         system_msg = [
             {
@@ -2259,29 +2259,53 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
-        if isinstance(message, str):
-            return self._process_carryover(message, kwargs)
-        elif isinstance(message, dict):
-            message = message.copy()
-            # TODO: Do we need to do the following?
-            # if message.get("content") is None:
-            #     message["content"] = self.get_human_input(">")
-            message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+
+        return self._handle_carryover(message, kwargs)
+
+    def _handle_carryover(self, message: Union[str, Dict], kwargs: dict) -> Union[str, Dict]:
+        if not kwargs.get("carryover"):
             return message
 
-    def _process_carryover(self, message: str, kwargs: dict) -> str:
-        carryover = kwargs.get("carryover")
-        if carryover:
-            # if carryover is string
-            if isinstance(carryover, str):
-                message += "\nContext: \n" + carryover
-            elif isinstance(carryover, list):
-                message += "\nContext: \n" + ("\n").join([t for t in carryover])
-            else:
-                raise InvalidCarryOverType(
-                    "Carryover should be a string or a list of strings. Not adding carryover to the message."
-                )
+        if isinstance(message, str):
+            return self._process_carryover(message, kwargs)
+
+        elif isinstance(message, dict):
+            if isinstance(message.get("content"), str):
+                # Makes sure the original message is not mutated
+                message = message.copy()
+                message["content"] = self._process_carryover(message["content"], kwargs)
+            elif isinstance(message.get("content"), list):
+                # Makes sure the original message is not mutated
+                message = message.copy()
+                message["content"] = self._process_multimodal_carryover(message["content"], kwargs)
+        else:
+            raise InvalidCarryOverType("Carryover should be a string or a list of strings.")
+
         return message
+
+    def _process_carryover(self, content: str, kwargs: dict) -> str:
+        # Makes sure there's a carryover
+        if not kwargs.get("carryover"):
+            return content
+
+        # if carryover is string
+        if isinstance(kwargs["carryover"], str):
+            content += "\nContext: \n" + kwargs["carryover"]
+        elif isinstance(kwargs["carryover"], list):
+            content += "\nContext: \n" + ("\n").join([t for t in kwargs["carryover"]])
+        else:
+            raise InvalidCarryOverType(
+                "Carryover should be a string or a list of strings. Not adding carryover to the message."
+            )
+        return content
+
+    def _process_multimodal_carryover(self, content: List[Dict], kwargs: dict) -> List[Dict]:
+        """Prepends the context to a multimodal message."""
+        # Makes sure there's a carryover
+        if not kwargs.get("carryover"):
+            return content
+
+        return [{"type": "text", "text": self._process_carryover("", kwargs)}] + content
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.
@@ -2295,12 +2319,8 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = await self.a_get_human_input(">")
-        if isinstance(message, str):
-            return self._process_carryover(message, kwargs)
-        elif isinstance(message, dict):
-            message = message.copy()
-            message["content"] = self._process_carryover(message["content"], kwargs)
-            return message
+
+        return self._handle_carryover(message, kwargs)
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.

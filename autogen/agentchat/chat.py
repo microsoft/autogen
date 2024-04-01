@@ -150,7 +150,7 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
             - "recipient": the recipient agent.
             - "clear_history" (bool): whether to clear the chat history with the agent. Default is True.
             - "silent" (bool or None): (Experimental) whether to print the messages in this conversation. Default is False.
-            - "cache" (Cache or None): the cache client to use for this conversation. Default is None.
+            - "cache" (AbstractCache or None): the cache client to use for this conversation. Default is None.
             - "max_turns" (int or None): maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
             - "summary_method" (str or callable): a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
             - "summary_args" (dict): a dictionary of arguments to be passed to the summary_method. Default is {}.
