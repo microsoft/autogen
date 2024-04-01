@@ -219,10 +219,9 @@ def add_two_numbers(a: int, b: int) -> int:
 '''
         )
 
+        executor = cls(work_dir=temp_dir, functions=[func])
         code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(object(), False))"""
-
-        executor = cls(work_dir=temp_dir, functions=[func])
 
         result = executor.execute_code_blocks(
             code_blocks=[
