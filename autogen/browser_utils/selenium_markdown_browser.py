@@ -29,7 +29,6 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
         Arguments:
             **kwargs: SeleniumMarkdownBrowser passes all arguments to the RequestsMarkdownBrowser superclass. See RequestsMarkdownBrowser documentation for more details.
         """
-
         super().__init__(**kwargs)
         self._webdriver = None
 
