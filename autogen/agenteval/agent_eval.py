@@ -10,17 +10,22 @@ import sys
 from typing import Callable, Dict, Optional, Union
 
 
-def generate_criteria(llm_config: Optional[Union[Dict, bool]] = None, task: Task = None):
+def generate_criteria(
+    llm_config: Optional[Union[Dict, bool]] = None, task: Task = None, additional_instructions: str = "", max_round=2
+):
     """
     Creates a list of criteria for evaluating the utility of a given task.
     args:
     - llm_config (dict or bool): llm inference configuration.
-    - task (TestCase): The task to evaluate.
+    - task (Task): The task to evaluate.
+    - additional_instructions (str): Additional instructions for the criteria agent.
+    - max_round (int): The maximum number of rounds to run the conversation.
     returns:
     - list: A list of Criterion objects for evaluating the utility of the given task.
     """
     critic = CriticAgent(
         llm_config=llm_config,
+        additional_instructions=additional_instructions,
     )
 
     critic_user = autogen.UserProxyAgent(
@@ -30,8 +35,15 @@ def generate_criteria(llm_config: Optional[Union[Dict, bool]] = None, task: Task
         code_execution_config={"use_docker": False},
     )
 
-    critic_user.initiate_chat(critic, message=task.sys_msg)
+    agents = [critic_user, critic]
+    groupchat = autogen.GroupChat(
+        agents=agents, messages=[], max_round=max_round, speaker_selection_method="round_robin"
+    )
+    critic_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    critic_user.initiate_chat(critic_manager, message=task.sys_msg)
     criteria = critic_user.last_message()
+    print(criteria["content"])
     criteria = Criterion.parse_json_str(criteria["content"])
     return criteria
 

@@ -6,7 +6,7 @@ class Criterion:
     A class that represents a criterion for agent evaluation.
     """
 
-    def __init__(self, name: str, description: str, accepted_values: [str]):
+    def __init__(self, name: str, description: str, accepted_values: [str], sub_criteria=None):
         """
         args:
         - name (str): The name of the criterion.
@@ -16,6 +16,7 @@ class Criterion:
         self.name = name
         self.description = description
         self.accepted_values = accepted_values
+        self.sub_criteria = sub_criteria
 
     def to_json(self):
         """
@@ -35,7 +36,12 @@ class Criterion:
         criteria_list = []
         parsed_json = json.loads(criteria)
         for criterion_name, criterion_data in parsed_json.items():
-            criterion = Criterion(criterion_name, criterion_data["description"], criterion_data["accepted_values"])
+            sub_criteria = None
+            if criterion_data.get("sub_criteria") is not None:
+                sub_criteria = Criterion.parse_json_str(json.dumps(criterion_data.get("sub_criteria")))
+            criterion = Criterion(
+                criterion_name, criterion_data["description"], criterion_data["accepted_values"], sub_criteria
+            )
             criteria_list.append(criterion)
         return criteria_list
 

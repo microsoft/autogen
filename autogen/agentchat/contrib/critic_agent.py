@@ -1,10 +1,10 @@
 from typing import Callable, Dict, Literal, Optional, Union
 
-from autogen.agentchat.assistant_agent import AssistantAgent
+from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
-class CriticAgent(AssistantAgent):
+class CriticAgent(ConversableAgent):
     """
     An agent for creating list of criteria for evaluating the utility of a given task.
     """
@@ -25,6 +25,7 @@ class CriticAgent(AssistantAgent):
         max_consecutive_auto_reply: Optional[int] = None,
         human_input_mode: Optional[str] = "NEVER",
         description: Optional[str] = DEFAULT_DESCRIPTION,
+        additional_instructions: Optional[str] = "",
         **kwargs,
     ):
         """
@@ -42,5 +43,9 @@ class CriticAgent(AssistantAgent):
                 [ConversableAgent](conversable_agent#__init__).
         """
         super().__init__(
-            name=name, system_message=system_message, human_input_mode="NEVER", llm_config=llm_config, **kwargs
+            name=name,
+            system_message=system_message + "\n" + additional_instructions,
+            human_input_mode="NEVER",
+            llm_config=llm_config,
+            **kwargs,
         )

@@ -1,10 +1,10 @@
 from typing import Callable, Dict, Literal, Optional, Union
 
-from autogen.agentchat.assistant_agent import AssistantAgent
+from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
-class QuantifierAgent(AssistantAgent):
+class QuantifierAgent(ConversableAgent):
     """
     An agent for quantifing the performance of a system using the provided criteria.
     """

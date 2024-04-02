@@ -30,7 +30,7 @@ class TestCase:
         """
         test_details = json.loads(test_case)
         # need to remove the ground truth from the test details
-        correctness = test_details.pop("is_correct")
-        test_details.pop("correct_ans")
-        test_details.pop("check_result")
+        correctness = test_details.pop("is_correct", None)
+        test_details.pop("correct_ans", None)
+        test_details.pop("check_result", None)
         return TestCase(test_details, correctness)
