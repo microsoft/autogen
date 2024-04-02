@@ -100,7 +100,6 @@ class DirectoryActor(Actor):
         serialized_msg = actor_lookup_resp.SerializeToString()
         sender_connection.send_bin_msg(ActorLookupResponse.__name__, serialized_msg)
 
-
 class DirectorySvc:
     def __init__(self, context: zmq.Context = zmq.Context()):
         self._context: zmq.Context = context
