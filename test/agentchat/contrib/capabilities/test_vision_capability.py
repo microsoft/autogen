@@ -25,7 +25,7 @@ def lmm_config():
 
 
 def png_filename() -> str:
-    filename = "tmp/test_image.png"
+    filename = os.path.abspath("tmp/test_image.png")
     if not os.path.exists(filename):
         # Setup: Create a PNG file
         image = Image.new("RGB", (100, 100), color="blue")
