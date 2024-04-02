@@ -297,6 +297,33 @@ def test_cache():
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
+@pytest.mark.skipif(skip_openai, reason="Requested to skip openai tests.")
+def test_throttled_api_calls():
+    # config_list = config_list_from_json(
+    #     env_or_file=OAI_CONFIG_LIST,
+    #     file_location=KEY_LOC,
+    #     filter_dict={"model": ["gpt-3.5-turbo"]},
+    # )
+    config_list = [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}]
+
+    # Api calling limited at 0.2 request per second, or 1 request per 5 seconds
+    rate = 1 / 5.0
+
+    # Adding a timeout to catch false positives
+    config_list[0]["timeout"] = 1 / rate
+    config_list[0]["api_rate_limit"] = rate
+
+    client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+
+    n_loops = 2
+    current_time = time.perf_counter()
+    for _ in range(n_loops):
+        client.create(messages=[{"role": "user", "content": "hello"}])
+
+    min_expected_time = (n_loops - 1) / rate
+    assert time.perf_counter() - current_time > min_expected_time
+
+
 if __name__ == "__main__":
     # test_aoai_chat_completion()
     # test_oai_tool_calling_extraction()
@@ -306,3 +333,4 @@ if __name__ == "__main__":
     # test_usage_summary()
     test_legacy_cache()
     test_cache()
+    test_throttled_api_calls()
