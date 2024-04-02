@@ -11,11 +11,11 @@
 > - (streaming) @AutoGen.Core.ToolCallMessageUpdate
 
 ## Use @AutoGen.Core.PrintMessageMiddleware in an agent
-You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook* to register the @AutoGen.Core.PrintMessageMiddleware to an agent.
+You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* to register the @AutoGen.Core.PrintMessageMiddleware to an agent.
 
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/PrintMessageMiddlewareCodeSnippet.cs?name=PrintMessageMiddleware)]
 
-@AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook* will format the message and print it to console
+@AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* will format the message and print it to console
 ![image](../images/articles/PrintMessageMiddleware/printMessage.png)
 
 ## Streaming message support

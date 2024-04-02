@@ -1,12 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example11_Sequential_GroupChat_Example.cs
 
+#region using_statement
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.SemanticKernel;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
+#endregion using_statement
 
 namespace AutoGen.BasicSample;
 
@@ -40,7 +43,7 @@ public partial class Sequential_GroupChat_Example
             """)
             .RegisterStreamingMiddleware(kernelMessageConnector) // support TextMessageUpdate
             .RegisterMiddleware(kernelMessageConnector) // support TextMessage
-            .RegisterPrintFormatMessageHook(); // pretty print the message
+            .RegisterPrintMessage(); // pretty print the message
 
         return kernelAgent;
         #endregion CreateBingSearchAgent
@@ -65,7 +68,7 @@ public partial class Sequential_GroupChat_Example
         return openAIClientAgent
             .RegisterStreamingMiddleware(messageConnector) // support TextMessageUpdate
             .RegisterMiddleware(messageConnector) // support TextMessage
-            .RegisterPrintFormatMessageHook(); // pretty print the message
+            .RegisterPrintMessage(); // pretty print the message
         #endregion CreateSummarizerAgent
     }
 
@@ -75,7 +78,7 @@ public partial class Sequential_GroupChat_Example
         var userProxyAgent = new UserProxyAgent(
             name: "user",
             humanInputMode: HumanInputMode.ALWAYS)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var bingSearchAgent = await CreateBingSearchAgentAsync();
         var summarizerAgent = await CreateSummarizerAgentAsync();

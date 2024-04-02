@@ -6,6 +6,7 @@ using System.Text.Json;
 using AutoGen;
 using AutoGen.BasicSample;
 using AutoGen.DotnetInteractive;
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using FluentAssertions;
 
@@ -70,7 +71,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             If your code is incorrect, runner will tell you the error message. Fix the error and send the code again.",
             config: gpt3Config,
             temperature: 0.4f)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         return coder;
     }
@@ -106,7 +107,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
                     return new[] { coderMsg };
                 }
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         return runner;
     }
@@ -221,7 +222,7 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
 
                 throw new Exception("Failed to review code block");
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         return reviewer;
     }

@@ -29,13 +29,13 @@ var assistantAgent = new AssistantAgent(
         Temperature = 0,
         ConfigList = [gpt35Config],
     })
-    .RegisterPrintFormatMessageHook(); // register a hook to print message nicely to console
+    .RegisterPrintMessage(); // register a hook to print message nicely to console
 
 // set human input mode to ALWAYS so that user always provide input
 var userProxyAgent = new UserProxyAgent(
     name: "user",
     humanInputMode: ConversableAgent.HumanInputMode.ALWAYS)
-    .RegisterPrintFormatMessageHook();
+    .RegisterPrintMessage();
 
 // start the conversation
 await userProxyAgent.InitiateChatAsync(

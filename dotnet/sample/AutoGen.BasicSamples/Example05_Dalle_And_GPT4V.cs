@@ -2,6 +2,7 @@
 // Example05_Dalle_And_GPT4V.cs
 
 using AutoGen;
+using AutoGen.Core;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using autogen = AutoGen.LLMConfigAPI;
@@ -116,7 +117,7 @@ The image is generated from prompt {prompt}
                     return reply;
                 }
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var gpt4VAgent = new AssistantAgent(
             name: "gpt4v",
@@ -134,7 +135,7 @@ The image should satisfy the following conditions:
                 Temperature = 0,
                 ConfigList = gpt4vConfig,
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         IEnumerable<IMessage> conversation = new List<IMessage>()
         {

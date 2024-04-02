@@ -8,7 +8,7 @@ In `AutoGen`, you can start a conversation between two agents using @AutoGen.Cor
 The following example shows how to start a conversation between the teacher agent and student agent, where the student agent starts the conversation by asking teacher to create math questions.
 
 > [!TIP]
-> You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook* to pretty print the message replied by the agent.
+> You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* to pretty print the message replied by the agent.
 
 > [!NOTE]
 > The conversation is terminated when teacher agent sends a message containing the keyword: @AutoGen.Core.GroupChatExtension.TERMINATE.

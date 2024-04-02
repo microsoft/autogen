@@ -3,6 +3,7 @@
 
 using System.Text;
 using AutoGen.OpenAI;
+using AutoGen.Core;
 using Azure.AI.OpenAI;
 
 namespace AutoGen.BasicSample;
@@ -124,7 +125,7 @@ public partial class TwoAgent_Fill_Application
             systemMessage: """You create polite prompt to ask user provide missing information""")
             .RegisterStreamingMiddleware(openaiMessageConnector)
             .RegisterMiddleware(openaiMessageConnector)
-            .RegisterPrintFormatMessageHook()
+            .RegisterPrintMessage()
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 var lastReply = msgs.Last() ?? throw new Exception("No reply found.");
@@ -169,7 +170,7 @@ public partial class TwoAgent_Fill_Application
             """)
             .RegisterStreamingMiddleware(openaiMessageConnector)
             .RegisterMiddleware(openaiMessageConnector)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         return chatAgent;
     }

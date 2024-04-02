@@ -4,6 +4,9 @@
 using System.Text.Json;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
+#region weather_report_using_statement
+using AutoGen.Core;
+#endregion weather_report_using_statement
 
 #region weather_report
 public partial class TypeSafeFunctionCall

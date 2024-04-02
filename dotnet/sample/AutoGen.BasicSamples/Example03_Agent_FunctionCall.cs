@@ -2,6 +2,7 @@
 // Example03_Agent_FunctionCall.cs
 
 using AutoGen;
+using AutoGen.Core;
 using AutoGen.BasicSample;
 using FluentAssertions;
 
@@ -71,7 +72,7 @@ public partial class Example03_Agent_FunctionCall
                 { nameof(UpperCase), instance.UpperCaseWrapper },
                 { nameof(CalculateTax), instance.CalculateTaxWrapper },
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         // talk to the assistant agent
         var upperCase = await agent.SendAsync("convert to upper case: hello world");

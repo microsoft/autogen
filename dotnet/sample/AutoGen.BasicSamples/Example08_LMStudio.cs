@@ -2,6 +2,7 @@
 // Example08_LMStudio.cs
 
 #region lmstudio_using_statements
+using AutoGen.Core;
 using AutoGen.LMStudio;
 #endregion lmstudio_using_statements
 
@@ -14,7 +15,7 @@ public class Example08_LMStudio
         #region lmstudio_example_1
         var config = new LMStudioConfig("localhost", 1234);
         var lmAgent = new LMStudioAgent("asssistant", config: config)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         await lmAgent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
 

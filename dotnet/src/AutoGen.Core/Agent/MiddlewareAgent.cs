@@ -12,7 +12,7 @@ namespace AutoGen.Core;
 /// <summary>
 /// An agent that allows you to add middleware and modify the behavior of an existing agent.
 /// </summary>
-public class MiddlewareAgent : IAgent
+public class MiddlewareAgent : IMiddlewareAgent
 {
     private readonly IAgent _agent;
     private readonly List<IMiddleware> middlewares = new();
@@ -77,11 +77,6 @@ public class MiddlewareAgent : IAgent
         }));
     }
 
-    public void Use(Func<MiddlewareContext, IAgent, CancellationToken, Task<IMessage>> func, string? middlewareName = null)
-    {
-        this.middlewares.Add(new DelegateMiddleware(middlewareName, func));
-    }
-
     public void Use(IMiddleware middleware)
     {
         this.middlewares.Add(middleware);
@@ -119,7 +114,7 @@ public class MiddlewareAgent : IAgent
     }
 }
 
-public sealed class MiddlewareAgent<T> : MiddlewareAgent
+public sealed class MiddlewareAgent<T> : MiddlewareAgent, IMiddlewareAgent<T>
     where T : IAgent
 {
     public MiddlewareAgent(T innerAgent, string? name = null)

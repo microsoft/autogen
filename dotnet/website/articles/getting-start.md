@@ -3,7 +3,14 @@
 [![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
 [![NuGet version](https://badge.fury.io/nu/AutoGen.Core.svg)](https://badge.fury.io/nu/AutoGen.Core)
 
-Firstly, following the [installation guide](Installation.md) to install AutoGen packages.
+Firstly, add `AutoGen` package to your project.
+
+```bash
+dotnet add package AutoGen
+```
+
+> [!NOTE]
+> For more information about installing packages, please check out the [installation guide](Installation.md).
 
 Then you can start with the following code snippet to create a conversable agent and chat with it.
 

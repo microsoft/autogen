@@ -21,7 +21,7 @@ var agent = new LMStudioAgent(
     name: "agent",
     systemMessage: "You are an agent that help user to do some tasks.",
     lmStudioConfig: lmStudioConfig)
-    .RegisterPrintFormatMessageHook(); // register a hook to print message nicely to console
+    .RegisterPrintMessage(); // register a hook to print message nicely to console
 
 await agent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
 ```

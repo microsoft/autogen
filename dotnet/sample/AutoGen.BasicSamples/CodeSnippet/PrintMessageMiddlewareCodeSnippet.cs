@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // PrintMessageMiddlewareCodeSnippet.cs
 
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using Azure;
 using Azure.AI.OpenAI;
@@ -20,7 +21,7 @@ internal class PrintMessageMiddlewareCodeSnippet
 
         #region PrintMessageMiddleware
         var agentWithPrintMessageMiddleware = agent
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         await agentWithPrintMessageMiddleware.SendAsync("write a long poem");
         #endregion PrintMessageMiddleware
@@ -37,7 +38,7 @@ internal class PrintMessageMiddlewareCodeSnippet
         var streamingAgent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
             .RegisterStreamingMiddleware(openaiMessageConnector)
             .RegisterMiddleware(openaiMessageConnector)
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         await streamingAgent.SendAsync("write a long poem");
         #endregion print_message_streaming

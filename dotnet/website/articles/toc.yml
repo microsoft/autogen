@@ -12,8 +12,8 @@
           href: Create-a-user-proxy-agent.md
         - name: Chat with an agent using user proxy agent
           href: Two-agent-chat.md
-        - name: Create your own agent
-          href: Create-your-own-agent.md
+        # - name: Create your own agent
+        #   href: Create-your-own-agent.md
     - name: built-in messages
       href: Built-in-messages.md
     - name: function call
@@ -32,8 +32,8 @@
           items:
             - name: print message
               href: Print-message-middleware.md
-            - name: function call
-              href: Function-call-middleware.md
+            # - name: function call
+            #   href: Function-call-middleware.md
     - name: group chat
       items:
         - name: group chat overview

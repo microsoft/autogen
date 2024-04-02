@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AutoGen.Core;
 using AutoGen.LMStudio;
 using Azure.AI.OpenAI;
 
@@ -120,7 +121,7 @@ You have access to the following functions. Use them if required:
 
                 return reply;
             })
-            .RegisterPrintFormatMessageHook();
+            .RegisterPrintMessage();
 
         var userProxyAgent = new UserProxyAgent(
             name: "user",
