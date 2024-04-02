@@ -29,9 +29,12 @@ from textual.widgets import (
     Switch,
     Collapsible,
     LoadingIndicator,
+    Button,
+    TabbedContent,
+    ListView,
+    ListItem,
+    TextArea,
 )
-from textual.widgets import Button, TabbedContent, ListView, ListItem
-from textual.widgets import TextArea
 from textual.reactive import reactive
 from textual.message import Message
 
