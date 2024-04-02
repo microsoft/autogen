@@ -17,10 +17,17 @@ except ModuleNotFoundError:
 class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
     """
     (In preview) A Playwright and Chromium powered Markdown web browser.
-    See AbstractMarkdownBrowser for more details.
+    PlaywrightMarkdownBrowser extends RequestsMarkdownBrowser, and replaces only the functionality of `visit_page(url)`.
     """
 
     def __init__(self, launch_args: Dict[str, Any] = {}, **kwargs):
+        """
+        Instantiate a new PlaywrightMarkdownBrowser.
+
+        Arguments:
+            **launch_args: Arguments passed to `playwright.chromium.launch`. See Playwright documentation for more details.
+            **kwargs: PlaywrightMarkdownBrowser passes these arguments to the RequestsMarkdownBrowser superclass. See RequestsMarkdownBrowser documentation for more details.
+        """
         super().__init__(**kwargs)
         self._playwright = None
         self._browser = None
@@ -41,9 +48,15 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
         self.set_address(self.start_page)
 
     def __del__(self):
+        """
+        Close the Playwright session and browser when garbage-collected. Garbage collection may not always occur, or may happen at a later time. Call `close()` explicitly if you wish to free up resources used by Playwright or Chromium.
+        """
         self.close()
 
     def close(self):
+        """
+        Close the Playwright session and browser used by Playwright. The session cannot be reopened without instantiating a new PlaywrightMarkdownBrowser instance.
+        """
         if self._browser is not None:
             self._browser.close()
             self._browser = None
@@ -52,6 +65,9 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
             self._playwright = None
 
     def _fetch_page(self, url) -> None:
+        """
+        Fetch a page. If the page is a regular HTTP page, use Playwright to gather the HTML. If the page is a download, or a local file, rely on superclass behavior.
+        """
         if url.startswith("file://"):
             super()._fetch_page(url)
         else:
@@ -78,12 +94,18 @@ class PlaywrightMarkdownBrowser(RequestsMarkdownBrowser):
                     raise e
 
     def _process_page(self, url, page):
+        """
+        Playwright fetched a regular HTTP page. Gather the document HTML, and convert it to Markdown.
+        """
         html = page.evaluate("document.documentElement.outerHTML;")
         res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=url)
         self.page_title = page.title()
         self._set_page_content(res.text_content)
 
     def _process_download(self, url, path):
+        """
+        Playwright downloaded a file. Convert it to Markdown.
+        """
         res = self._markdown_converter.convert_local(path, url=url)
         self.page_title = res.title
         self._set_page_content(res.text_content)

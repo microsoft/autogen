@@ -4,7 +4,7 @@ from typing import Optional, Union, Dict
 from urllib.parse import urljoin, urlparse, quote_plus, unquote, parse_qs
 from .requests_markdown_browser import RequestsMarkdownBrowser
 
-# Check if Playwright dependencies are installed
+# Check if Selenium dependencies are installed
 IS_SELENIUM_ENABLED = False
 try:
     from selenium import webdriver
@@ -19,10 +19,16 @@ except ModuleNotFoundError:
 class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
     """
     (In preview) A Selenium and Chromium powered Markdown web browser.
-    See AbstractMarkdownBrowser for more details.
+    SeleniumMarkdownBrowser extends RequestsMarkdownBrowser, and replaces only the functionality of `visit_page(url)`.
     """
 
     def __init__(self, **kwargs):
+        """
+        Instantiate a new SeleniumMarkdownBrowser.
+
+        Arguments:
+            **kwargs: SeleniumMarkdownBrowser passes all arguments to the RequestsMarkdownBrowser superclass. See RequestsMarkdownBrowser documentation for more details.
+        """
         super().__init__(**kwargs)
         self._webdriver = None
 
@@ -41,13 +47,23 @@ class SeleniumMarkdownBrowser(RequestsMarkdownBrowser):
         self._webdriver.get(self.start_page)
 
     def __del__(self):
+        """
+        Close the Selenium session when garbage-collected. Garbage collection may not always occur, or may happen at a later time. Call `close()` explicitly if you wish to free up resources used by Selenium or Chromium.
+        """
         self.close()
 
     def close(self):
+        """
+        Close the Selenium session used by this instance. The session cannot be reopened without instantiating a new SeleniumMarkdownBrowser instance.
+        """
         if self._webdriver is not None:
-            pass
+            self._webdriver.quit()
+            self._webdriver = None
 
     def _fetch_page(self, url) -> None:
+        """
+        Fetch a page. If the page is a regular HTTP page, use Selenium to gather the HTML. If the page is a download, or a local file, rely on superclass behavior.
+        """
         if url.startswith("file://"):
             super()._fetch_page(url)
         else:

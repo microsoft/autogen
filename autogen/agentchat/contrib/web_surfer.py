@@ -73,7 +73,9 @@ class WebSurferAgent(ConversableAgent):
             _bconfig.update(browser_config)
 
             if "bing_api_key" in _bconfig:
-                _bconfig["search_engine"] = BingMarkdownSearch(bing_api_key=_bconfig["bing_api_key"])
+                _bconfig["search_engine"] = BingMarkdownSearch(
+                    bing_api_key=_bconfig["bing_api_key"], interleave_results=False
+                )
                 del _bconfig["bing_api_key"]
             else:
                 _bconfig["search_engine"] = BingMarkdownSearch()
@@ -361,11 +363,9 @@ class WebSurferAgent(ConversableAgent):
 
         self._user_proxy.send(messages[-1]["content"], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
-        # print("Agent Reply: " + str(agent_reply))
         proxy_reply = self._user_proxy.generate_reply(
             messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
         )
-        # print("Proxy Reply: " + str(proxy_reply))
 
         if proxy_reply == "":  # Was the default reply
             return True, None if agent_reply is None else agent_reply["content"]
