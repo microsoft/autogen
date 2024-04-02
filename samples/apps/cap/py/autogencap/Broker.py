@@ -12,6 +12,7 @@ class Broker:
         self._xpub: zmq.Socket = None
         self._xsub: zmq.Socket = None
         self._router: zmq.Socket = None
+        self._start_event = threading.Event()
 
     def _init_sockets(self):
         try:
@@ -44,8 +45,9 @@ class Broker:
         self._run = True
         self._broker_thread: threading.Thread = threading.Thread(target=self.thread_fn)
         self._broker_thread.start()
-        time.sleep(0.01)
-        return True
+        self._start_event.wait()
+        # this will be false if the thread is not running
+        return self._run
 
     def stop(self):
         if not self._run:
@@ -67,6 +69,7 @@ class Broker:
             if not self._init_sockets():
                 Debug("BROKER", "Receive thread not started since sockets were not initialized")
                 self._run = False
+                self._start_event.set()
                 return
 
             # Poll sockets for events
@@ -76,6 +79,8 @@ class Broker:
             self._poller.register(self._router, zmq.POLLIN)
 
             Info("BROKER", "Started.  Waiting for events")
+            # signal to the main thread that Broker has started
+            self._start_event.set()
             # Receive msgs, forward and process
             while self._run:
                 events = dict(self._poller.poll(500))
@@ -131,6 +136,8 @@ def main():
             Info("BROKER", "Running.")
             last_time = current_time
         try:
+            # Hang out for a while and print out
+            # status every now and then
             time.sleep(0.5)
         except KeyboardInterrupt:
             Info("BROKER", "KeyboardInterrupt.  Stopping the broker.")
