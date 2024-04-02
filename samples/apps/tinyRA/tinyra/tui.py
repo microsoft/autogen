@@ -11,7 +11,7 @@ from collections import namedtuple
 import functools
 from dataclasses import dataclass
 
-from typing import List, Dict, Set, Callable, Optional
+from typing import Any, List, Dict, Optional, Type, cast, Set, Callable
 
 from textual import on
 from textual import work
@@ -36,8 +36,8 @@ from textual.reactive import reactive
 from textual.message import Message
 
 import autogen
-from autogen import config_list_from_json
-from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent
+from autogen import config_list_from_json  # type: ignore[import-untyped]
+from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent  # type: ignore[import-untyped], ConversableAgent
 from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.coding.func_with_reqs import FunctionWithRequirements
 
@@ -47,7 +47,9 @@ class InvalidToolError(Exception):
 
 
 class Tool:
-    def __init__(self, name: str, code: str = None, description: str = None, id: int = None):
+    def __init__(
+        self, name: str, code: Optional[str] = None, description: Optional[str] = None, id: Optional[int] = None
+    ):
         self.id = id
         self.name = name or ""
         self.code = code or ""
@@ -86,13 +88,21 @@ class Tool:
     def _extract_description_from_code(code: str) -> str:
         module = ast.parse(code)
         function_def = module.body[0]
-        return ast.get_docstring(function_def)
+        if not isinstance(function_def, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            raise InvalidToolError("Code must contain a valid (sync/async) function definition")
+
+        docstring = ast.get_docstring(function_def)
+
+        if not docstring:
+            raise InvalidToolError("Code must contain a doc string")
+
+        return docstring
 
 
 def string_to_function(code: str):
     function_name = code.split("def ")[1].split("(")[0]
     global_namespace = globals()
-    local_namespace = {}
+    local_namespace: Dict[str, Any] = {}
     exec(code, global_namespace, local_namespace)
     return function_name, local_namespace[function_name]
 
@@ -159,7 +169,9 @@ class AppConfiguration:
         conn.close()
         return preferences
 
-    def update_configuration(self, user_name: str = None, user_bio: str = None, user_preferences: str = None):
+    def update_configuration(
+        self, user_name: Optional[str] = None, user_bio: Optional[str] = None, user_preferences: Optional[str] = None
+    ):
         """Update the user's name and bio in the database"""
         conn = sqlite3.connect(self._database_path)
         c = conn.cursor()
@@ -411,7 +423,7 @@ async def a_fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
         return chat_history
 
 
-def fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
+def fetch_row(id: int, root_id: int = 0) -> Optional[Dict[str, str]]:
     """
     Fetch a single row from the database.
 
@@ -430,7 +442,7 @@ def fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
     return row[0] if row else None
 
 
-async def a_fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
+async def a_fetch_row(id: int, root_id: int = 0) -> Optional[Dict[str, str]]:
     """
     Fetch a single row from the database.
 
@@ -448,7 +460,7 @@ async def a_fetch_row(id: int, root_id: int = 0) -> Dict[str, str]:
         return row[0] if row else None
 
 
-def insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
+def insert_chat_message(role: str, content: str, root_id: int, id: Optional[int] = None) -> int:
     """
     Insert a chat message into the database.
 
@@ -468,27 +480,27 @@ def insert_chat_message(role: str, content: str, root_id: int, id: int = None) -
                 c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
                 max_id = c.fetchone()[0]
                 id = max_id + 1 if max_id is not None else 0
-                data = (root_id, id, role, content)
-                c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
+                data_a = (root_id, id, role, content)
+                c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
                 conn.commit()
                 return id
             else:
                 c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
                 if c.fetchone() is None:
-                    data = (root_id, id, role, content)
-                    c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
+                    data_b = (root_id, id, role, content)
+                    c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_b)
                     conn.commit()
                     return id
                 else:
-                    data = (role, content, root_id, id)
-                    c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data)
+                    data_c = (role, content, root_id, id)
+                    c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c)
                     conn.commit()
                     return id
     except sqlite3.Error as e:
         raise ChatMessageError(f"Error inserting or updating chat message: {e}")
 
 
-async def a_insert_chat_message(role: str, content: str, root_id: int, id: int = None) -> int:
+async def a_insert_chat_message(role: str, content: str, root_id: int, id: Optional[int] = None) -> int:
     """
     Insert a chat message into the database.
 
@@ -506,22 +518,27 @@ async def a_insert_chat_message(role: str, content: str, root_id: int, id: int =
             c = await conn.cursor()
             if id is None:
                 await c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
-                max_id = (await c.fetchone())[0]
+                item = await c.fetchone()
+                max_id = None
+                if item is not None:
+                    max_id = item[0]
                 id = max_id + 1 if max_id is not None else 0
-                data = (root_id, id, role, content)
-                await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
+                data_a = (root_id, id, role, content)
+                await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
                 await conn.commit()
                 return id
             else:
                 await c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
                 if await c.fetchone() is None:
-                    data = (root_id, id, role, content)
-                    await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data)
+                    data_b = (root_id, id, role, content)
+                    await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_b)
                     await conn.commit()
                     return id
                 else:
-                    data = (role, content, root_id, id)
-                    await c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data)
+                    data_c = (role, content, root_id, id)
+                    await c.execute(
+                        "UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c
+                    )
                     await conn.commit()
                     return id
     except aiosqlite.Error as e:
@@ -598,7 +615,7 @@ class ReactiveMessage(Markdown):
         self.message = message
 
     async def watch_message(self) -> str:
-        await self.update(message2markdown(self.message))
+        return await self.update(message2markdown(self.message))
 
 
 def message_display_handler(message: Dict[str, str]):
@@ -705,8 +722,8 @@ class NotificationScreen(ModalScreen):
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
-    def __init__(self, *args, message: str = None, **kwargs):
-        self.message = message
+    def __init__(self, *args, message: Optional[str] = None, **kwargs):
+        self.message = message or ""
         super().__init__(*args, **kwargs)
 
     def compose(self) -> ComposeResult:
@@ -717,7 +734,7 @@ class NotificationScreen(ModalScreen):
                 yield Button("Dismiss", variant="primary", id="dismiss-notification")
 
     @on(Button.Pressed, "#dismiss-notification")
-    def dismiss(self) -> None:
+    def dismiss(self, result: Any) -> None:  # type: ignore[override]
         self.app.pop_screen()
 
 
@@ -1617,9 +1634,9 @@ class TinyRA(App):
 
         if highlighted_node is not None:
             dir_tree.action_cursor_up()
-            file_path = str(highlighted_node.data.path)
-
-            APP_CONFIG.delete_file_or_dir(file_path)
+            if highlighted_node.data is not None:
+                file_path = str(highlighted_node.data.path)
+                APP_CONFIG.delete_file_or_dir(file_path)
 
     def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
         """Called when the user click a file in the directory tree."""
@@ -1648,7 +1665,7 @@ class TinyRA(App):
     def on_reactive_message_selected(self, event: ReactiveMessage.Selected) -> None:
         """Called when a reactive assistant message is selected."""
         new_chat_screen = ChatScreen()
-        new_chat_screen.root_msg_id = event.msg_id
+        new_chat_screen.root_msg_id = int(event.msg_id)
         self.push_screen(new_chat_screen)
 
     @work()
@@ -1658,6 +1675,9 @@ class TinyRA(App):
         # display the user input in the chat display
         id = await a_insert_chat_message("user", user_input, root_id=0)
         user_message = await a_fetch_row(id)
+        if user_message is None:
+            # TODO - what to do if the message is not found?
+            return
         reactive_message = message_display_handler(user_message)
         await chat_display_widget.mount(reactive_message)
 
@@ -1665,7 +1685,7 @@ class TinyRA(App):
         assistant_message = {
             "role": "info",
             "content": "Computing response…",
-            "id": id + 1,
+            "id": str(id + 1),
         }
         await a_insert_chat_message("info", "Computing response…", root_id=0, id=id + 1)
         reactive_message = message_display_handler(assistant_message)
@@ -1676,7 +1696,7 @@ class TinyRA(App):
             self.generate_response(id)
         except SubprocessError as e:
             error_message = f"{e}"
-            a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
+            await a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
             self.post_message(AppErrorMessage(error_message))
             # raise e
 
