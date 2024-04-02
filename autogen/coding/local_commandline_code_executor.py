@@ -30,8 +30,6 @@ A = ParamSpec("A")
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
-    FUNCTIONS_MODULE: ClassVar[str] = "functions"
-    FUNCTIONS_FILENAME: ClassVar[str] = "functions.py"
     FUNCTION_PROMPT_TEMPLATE: ClassVar[
         str
     ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
@@ -45,6 +43,7 @@ $functions"""
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
+        functions_module: str = "functions",
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -76,6 +75,11 @@ $functions"""
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
+        if not functions_module.isidentifier():
+            raise ValueError("Module name must be a valid Python identifier")
+
+        self._functions_module = functions_module
+
         work_dir.mkdir(exist_ok=True)
 
         self._timeout = timeout
@@ -104,9 +108,14 @@ $functions"""
 
         template = Template(prompt_template)
         return template.substitute(
-            module_name=self.FUNCTIONS_MODULE,
+            module_name=self._functions_module,
             functions="\n\n".join([to_stub(func) for func in self._functions]),
         )
+
+    @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
 
     @property
     def functions(
@@ -154,7 +163,7 @@ $functions"""
 
     def _setup_functions(self) -> None:
         func_file_content = _build_python_functions_file(self._functions)
-        func_file = self._work_dir / self.FUNCTIONS_FILENAME
+        func_file = self._work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
 
         # Collect requirements

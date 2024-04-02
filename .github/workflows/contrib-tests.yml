@@ -43,9 +43,11 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           pip install qdrant_client[fastembed]
-      - name: Install unstructured when python-version is 3.9 and not windows
-        if: matrix.python-version == '3.9' && matrix.os != 'windows-2019'
+      - name: Install unstructured when python-version is 3.9 and on linux
+        if: matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'
         run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]
       - name: Install packages and dependencies for RetrieveChat
         run: |
