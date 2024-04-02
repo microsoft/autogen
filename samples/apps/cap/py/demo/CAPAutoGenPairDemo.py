@@ -23,6 +23,8 @@ def cap_ag_pair_demo():
     # Wait for the pair to finish
     try:
         while pair.running():
+            # Hang out for a while and print out
+            # status every now and then
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("Interrupted by user, shutting down.")
