@@ -2,7 +2,7 @@
 [![Build](https://github.com/microsoft/autogen/actions/workflows/python-package.yml/badge.svg)](https://github.com/microsoft/autogen/actions/workflows/python-package.yml)
 ![Python Version](https://img.shields.io/badge/3.8%20%7C%203.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)
 [![Downloads](https://static.pepy.tech/badge/pyautogen/week)](https://pepy.tech/project/pyautogen)
-[![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://discord.gg/pAbnFJrkgZ)
+[![Discord](https://img.shields.io/discord/1153072414184452236?logo=discord&style=flat)](https://aka.ms/autogen-dc)
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen)
 
 
@@ -62,7 +62,7 @@ AutoGen is powered by collaborative [research studies](https://microsoft.github.
 ## Roadmaps
 
 To see what we are working on and what we plan to work on, please check our
-[Roadmap Issues](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap).
+[Roadmap Issues](https://aka.ms/autogen-roadmap).
 
 ## Quickstart
 The easiest way to start playing is
@@ -172,7 +172,7 @@ In addition, you can find:
 
 - [Research](https://microsoft.github.io/autogen/docs/Research), [blogposts](https://microsoft.github.io/autogen/blog) around AutoGen, and [Transparency FAQs](https://github.com/microsoft/autogen/blob/main/TRANSPARENCY_FAQS.md)
 
-- [Discord](https://discord.gg/pAbnFJrkgZ)
+- [Discord](https://aka.ms/autogen-dc)
 
 - [Contributing guide](https://microsoft.github.io/autogen/docs/Contribute)
 
