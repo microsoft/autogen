@@ -1,9 +1,7 @@
 import ast
 from typing import Optional
 
-
-class InvalidToolError(Exception):
-    pass
+from .exceptions import InvalidToolError
 
 
 class Tool:

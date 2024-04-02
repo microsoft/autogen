@@ -42,14 +42,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.coding.func_with_reqs import FunctionWithRequirements
 
 from .tools import Tool, InvalidToolError
-
-
-class ChatMessageError(Exception):
-    pass
-
-
-class ToolUpdateError(Exception):
-    pass
+from .exceptions import ChatMessageError, ToolUpdateError, SubprocessError
 
 
 class AppConfiguration:
@@ -1384,10 +1377,6 @@ and if it was return the python function that would accomplish the task.
     name = agent.generate_reply(messages)
 
     return name, code
-
-
-class SubprocessError(Exception):
-    pass
 
 
 def generate_response_process(msg_idx: int):
