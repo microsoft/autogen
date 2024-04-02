@@ -6,7 +6,7 @@ This project welcomes and encourages all forms of contributions, including but n
 - Code review of pull requests.
 - Documentation, examples and test cases.
 - Readability improvement, e.g., improvement on docstr and comments.
-- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://discord.gg/pAbnFJrkgZ), and [twitter](https://twitter.com/pyautogen).
+- Community participation in [issues](https://github.com/microsoft/autogen/issues), [discussions](https://github.com/microsoft/autogen/discussions), [discord](https://aka.ms/autogen-dc), and [twitter](https://twitter.com/pyautogen).
 - Tutorials, blog posts, talks that promote the project.
 - Sharing application scenarios and/or related research.
 
@@ -27,7 +27,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 ## Roadmaps
 
 To see what we are working on and what we plan to work on, please check our
-[Roadmap Issues](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap).
+[Roadmap Issues](https://aka.ms/autogen-roadmap).
 
 ## How to make a good bug report
 
@@ -208,6 +208,11 @@ Then you can see the coverage report by
 `coverage report -m` or `coverage html`.
 
 ### Documentation
+
+#### How to get a notebook rendered on the website
+
+See [here](https://github.com/microsoft/autogen/blob/main/notebook/contributing.md#how-to-get-a-notebook-displayed-on-the-website) for instructions on how to get a notebook in the `notebook` directory rendered on the website.
+
 #### Build documentation locally
 1\. To build and test documentation locally, first install [Node.js](https://nodejs.org/en/download/). For example,
 ```bash
