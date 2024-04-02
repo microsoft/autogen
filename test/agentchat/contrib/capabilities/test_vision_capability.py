@@ -8,7 +8,8 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 try:
     from PIL import Image
 
-    from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapability
+    from autogen.agentchat.contrib.capabilities.vision_capability import \
+        VisionCapability
 except ImportError:
     skip_test = True
 else:
