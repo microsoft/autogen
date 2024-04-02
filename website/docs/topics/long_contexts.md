@@ -180,7 +180,7 @@ except Exception as e:
 
 ### Example 4: Creating Custom Transformations to Handle Sensitive Content
 
-You can use the MessageTransform protocol to create custom message transformations that redact sensitive data from the chat history. This is particularly useful when you want to ensure that sensitive information, such as API keys, passwords, or personal data, is not exposed in the chat history or logs.
+You can use the `MessageTransform` protocol to create custom message transformations that redact sensitive data from the chat history. This is particularly useful when you want to ensure that sensitive information, such as API keys, passwords, or personal data, is not exposed in the chat history or logs.
 
 Now, we will create a custom message transform to detect any OpenAI API key and redact it.
 

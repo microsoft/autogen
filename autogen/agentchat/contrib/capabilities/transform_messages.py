@@ -4,12 +4,10 @@ from typing import Dict, List
 from termcolor import colored
 
 from autogen import ConversableAgent
-
-from .agent_capability import AgentCapability
 from .transforms import MessageTransform
 
 
-class TransformMessages(AgentCapability):
+class TransformMessages:
     """Agent capability for transforming messages before reply generation.
 
     This capability allows you to apply a series of message transformations to
