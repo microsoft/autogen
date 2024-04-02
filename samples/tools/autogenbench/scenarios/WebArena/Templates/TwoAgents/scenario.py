@@ -27,6 +27,16 @@ start_url = {
     "__HOMEPAGE__": os.getenv("HOMEPAGE_URL"),
 }
 
+# Figure out the user name
+user_name = {
+    "__REDDIT__": os.getenv("REDDIT_USER_NAME"),
+}
+
+# Figure out the password
+password = {
+    "__REDDIT__": os.getenv("REDDIT_PASSWORD"),
+}
+
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
@@ -41,20 +51,31 @@ web_surfer = MultimodalWebSurferAgent(
 
 user_proxy = MultimodalAgent(
     "user_proxy",
-    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a we boweser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
+    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
 
-Once the original question or task is addressed, reply with the word TERMINATE.""",
+Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
     llm_config=llm_config,
     human_input_mode="NEVER",
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0,
     max_consecutive_auto_reply=10,
 )
 
-user_proxy.send(f"Navigate to {start_url[TASK['start_url']]}", web_surfer, request_reply=True)
+
 user_proxy.initiate_chat(
     web_surfer,
-    message=TASK["intent"],
+    message=f"Navigate to {start_url[TASK['start_url']]}. Click \"Log in\", type the username '{user_name[TASK['start_url']]}', and password is '{password[TASK['start_url']]}'. Finally click the login button.",
+    clear_history=True,
 )
+
+user_proxy.reset()
+web_surfer.reset()
+
+user_proxy.send(f"Navigate to {start_url[TASK['start_url']]}", web_surfer, request_reply=True)
+
+user_proxy.reset()
+web_surfer.reset()
+
+web_surfer.initiate_chat(user_proxy, message=TASK["intent"], clear_history=True)
 
 ##############################
 testbed_utils.finalize(agents=[web_surfer, user_proxy])
