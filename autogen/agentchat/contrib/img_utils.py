@@ -3,12 +3,30 @@ import copy
 import os
 import re
 from io import BytesIO
-from typing import Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import requests
 from PIL import Image
 
 from autogen.agentchat import utils
+from autogen.agentchat.contrib.multimodal_utils import MultimodalObject, parse_tags_from_content
+
+
+class AGImage(MultimodalObject):
+    def __init__(self, image_file: str):
+        pass
+
+    def __str__(self):
+        pass
+
+    def __repr__(self) -> str:
+        pass
+
+    def __eq__(self, other: object) -> bool:
+        pass
+
+    def openai_format(self) -> dict:
+        pass
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
@@ -163,25 +181,39 @@ def convert_base64_to_data_uri(base64_image):
     return data_uri
 
 
-def gpt4v_formatter(prompt: str, img_format: str = "uri") -> List[Union[str, dict]]:
+def gpt4v_formatter(prompt: str, img_format: str = "uri", mm_tag_style: Optional[str] = None) -> List[dict]:
     """
     Formats the input prompt by replacing image tags and returns a list of text and images.
 
     Args:
         - prompt (str): The input string that may contain image tags like <img ...>.
         - img_format (str): what image format should be used. One of "uri", "url", "pil".
-
+        - mm_tag_style (Optional[str], optional): what style tag of use used. It can be either `html` or `tokenizer`.
+                Defaults to None, which means no tagging.
     Returns:
         - List[Union[str, dict]]: A list of alternating text and image dictionary items.
     """
     assert img_format in ["uri", "url", "pil"]
+    assert isinstance(prompt, str)
+
+    if mm_tag_style is None:
+        # we do not modify the prompt if we don't want to tag it.
+        return [{"type": "text", "text": prompt}]
 
     output = []
     last_index = 0
     image_count = 0
 
     # Find all image tags
-    for parsed_tag in utils.parse_tags_from_content("img", prompt):
+    if mm_tag_style == "html":
+        parsed = parse_tags_from_content("img", prompt)
+    elif mm_tag_style == "tokenizer":
+        # TODO
+        parsed = parse_tags_from_content("img", prompt)
+
+    raise NotImplementedError(f"Unknown tag style {mm_tag_style}")
+
+    for parsed_tag in parsed:
         image_location = parsed_tag["attr"]["src"]
         try:
             if img_format == "pil":
@@ -298,3 +330,55 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         new_messages.append(message)
 
     return new_messages
+
+
+def is_vision_model(model_name: str) -> bool:
+    """
+    Determines if a given model name indicates a multimodal model.
+
+    Multimodal models are identified by specific patterns in their names:
+    models that include "gpt-<variant>-vision" or "llava" are considered
+    multimodal.
+
+    Args:
+        model_name (str): The name of the model to be checked.
+
+    Returns:
+        bool: True if the model is multimodal, False otherwise.
+    """
+    if not isinstance(model_name, str):
+        return False
+    if re.findall(r"gpt-\w+-vision", model_name):
+        return True
+    if re.findall("llava", model_name):
+        return True
+    return False
+
+
+def format_message_contents_with_images(messages: List[Dict], mm_tag_style: Optional[str] = None) -> List[Dict]:
+    """
+    Processes a list of message dictionaries, applying formatting to the
+    content of each message if applicable.
+
+    Each message's content is formatted using gpt4v_formatter when the content is a string;
+    so, images in the messages will be converted into a specific format (e.g., URI).
+    If the message is already an array (as the OpenAI message multimodal content), it will
+    be left unchanged so that OpenAI client can handle directly.
+
+    Args:
+        messages (List[Dict]): A list of message dictionaries to be processed.
+
+    Returns:
+        List[Dict]: A new list of processed message dictionaries.
+    """
+    rst = []
+    for message in messages:
+        rst.append(copy.deepcopy(message))
+        if "content" in message and isinstance(message["content"], str):
+            rst[-1]["content"] = gpt4v_formatter(prompt=message["content"], img_format="uri", mm_tag_style=mm_tag_style)
+        elif "content" in message and isinstance(message["content"], list):
+            # cast the images in the content as the openai format
+            for idx, item in enumerate(message["content"]):
+                if isinstance(item, AGImage):
+                    rst[-1]["content"][idx] = item.openai_format()
+    return rst

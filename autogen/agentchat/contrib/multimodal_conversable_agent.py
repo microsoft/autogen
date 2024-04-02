@@ -1,16 +1,13 @@
 import copy
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 from autogen import OpenAIWrapper
 from autogen.agentchat import Agent, ConversableAgent
-from autogen.agentchat.contrib.img_utils import (
-    gpt4v_formatter,
-    message_formatter_pil_to_b64,
-)
+from autogen.agentchat.contrib.img_utils import gpt4v_formatter, message_formatter_pil_to_b64
 from autogen.code_utils import content_str
 
 from ..._pydantic import model_dump
-
 
 DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
 DEFAULT_MODEL = "gpt-4-vision-preview"
@@ -37,6 +34,12 @@ class MultimodalConversableAgent(ConversableAgent):
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../conversable_agent#__init__).
         """
+        warnings.warn(
+            "MultimodalConversableAgent is deprecated and will be removed in a future release. "
+            "Please use ConversableAgent instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__(
             name,
             system_message,
