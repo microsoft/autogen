@@ -19,9 +19,8 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
       "input, type=url": "textbox",
       "search": "search",
       "select": "combobox",
-      "textarea": "textbox",
-      "select": "listbox",
-      "select": "menu",
+      "option": "option",
+      "textarea": "textbox"
   };
 
   let getInteractiveElements = function() {
@@ -101,11 +100,13 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
           }
 	  return buffer.trim();
       }
-      else if (element.hasAttribute("aria-label")) {
+
+      if (element.hasAttribute("aria-label")) {
 	  return element.getAttribute("aria-label");
       }
+
       // Check for labels
-      else if (element.hasAttribute("id")) {
+      if (element.hasAttribute("id")) {
           let label_id = element.getAttribute("id");
           let label = "";
           let labels = document.querySelectorAll("label[for='" + label_id + "']");
@@ -117,19 +118,21 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
               return label;
           }
       }
-      else if (element.parentElement && element.parentElement.tagName == "LABEL") {
+
+      if (element.parentElement && element.parentElement.tagName == "LABEL") {
           return element.parentElement.innerText;
       }
+
       // Check for alt text or titles
-      else if (element.hasAttribute("alt")) {
+      if (element.hasAttribute("alt")) {
 	  return element.getAttribute("alt")
       }
-      else if (element.hasAttribute("title")) {
+
+      if (element.hasAttribute("title")) {
 	  return element.getAttribute("title")
       }
-      else {
-	  return trimmedInnerText(element);
-      }
+
+      return trimmedInnerText(element);
   };
 
   let getApproximateAriaRole = function(element) {
@@ -158,11 +161,13 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
          let rects = elements[i].getClientRects();
 	 let ariaRole = getApproximateAriaRole(elements[i]);
 	 let ariaName = getApproximateAriaName(elements[i]);
+	 let vScrollable = elements[i].scrollHeight - elements[i].clientHeight >= 1;
 
 	 let record = {
              "tag_name": ariaRole[1],
 	     "role": ariaRole[0],
 	     "aria-name": ariaName,
+	     "v-scrollable": vScrollable,
 	     "rects": []
 	 };
 

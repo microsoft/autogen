@@ -192,31 +192,26 @@ setInterval(function() {{
         # We can scroll up
         if viewport["pageTop"] > 5:
             text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll up control" }},"""
+  {{ "id": {MARK_ID_PAGE_UP}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_up"], "name": "browser scroll up control" }},"""
 
         # Can scroll down
         if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
             text_labels += f"""
-  {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click"], "name": "browser scroll down control" }},"""
-        
+  {{ "id": {MARK_ID_PAGE_DOWN}, "aria-role": "scrollbar", "html_tag": "button", "actions": ["click", "scroll_down"], "name": "browser scroll down control" }},"""
+
+        # Everything visible
         for r in visible_rects:
             if r in rects:
-                actions = '["click"]'
+                actions = ["'click'"]
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
-                    actions = '["type"]'
-                if rects[r]["role"] in ["combobox", "menu", "listbox"]:
-                    actions = '["select"]'
-                    options = ''
-                    if rects[r]['aria-name'] is not None:
-                        options = rects[r]['aria-name'].split('\n')
-                        options = ', '.join(f'"{option}"' for option in options)
-                    text_labels += f"""
-                {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "options": [{options}], "name": "dropdown menu" }},"""
-                else:
-                    text_labels += f"""
-                {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "name": "{rects[r]['aria-name']}" }},"""
-                    
-        #print(text_labels, flush=True)
+                    actions = ["'type'"]
+                if rects[r]["v-scrollable"]:
+                    actions.append("'scroll_up'")
+                    actions.append("'scroll_down'")
+                actions = "[" + ",".join(actions) + "]"
+
+                text_labels += f"""
+   {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -293,9 +288,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             elif action == "type":
                 self._log_to_console("type", target=target_name if target_name else target, arg=argument)
                 self._fill_id(target, argument if argument else "")
-            elif action == "select":
-                self._log_to_console("select", target=target_name if target_name else target, arg=argument)
-                self._select_dropdown(target, argument)
+            elif action == "scroll_up":
+                self._log_to_console("scroll_up", target=target_name if target_name else target)
+                self._scroll_id(target, "up")
+            elif action == "scroll_down":
+                self._log_to_console("scroll_down", target=target_name if target_name else target)
+                self._scroll_id(target, "down")
             else:
                 # No action
                 return True, text_response
@@ -439,14 +437,22 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         target.fill(value)
         self._page.keyboard.press("Enter")
 
-    def _select_dropdown(self, identifier, value):
-        """
-        Select an option from a dropdown menu.
-        """
-        try:
-            self._page.select_option(f"[__elementId='{identifier}']", value=value)
-        except Exception as e:
-            raise ValueError(f"Failed to select option: {e}")
+    def _scroll_id(self, identifier, direction):
+        self._page.evaluate(
+            f"""
+        (function() {{
+            let elm = document.querySelector("[__elementId='{identifier}']");
+            if (elm) {{
+                if ("{direction}" == "up") {{
+                    elm.scrollTop = Math.max(0, elm.scrollTop - elm.clientHeight);
+                }}
+                else {{
+                    elm.scrollTop = Math.min(elm.scrollHeight - elm.clientHeight, elm.scrollTop + elm.clientHeight);
+                }}
+            }}
+        }})();
+    """
+        )
 
     def _log_to_console(self, action, target="", arg=""):
         if len(target) > 50:
