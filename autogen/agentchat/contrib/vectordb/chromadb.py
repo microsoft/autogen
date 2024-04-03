@@ -169,6 +169,12 @@ class ChromaVectorDB:
         """
         if not docs:
             return
+        if docs[0].get("content") is None:
+            raise ValueError("The document content is required.")
+        if docs[0].get("id") is None:
+            raise ValueError("The document id is required.")
+        documents = [doc.get("content") for doc in docs]
+        ids = [doc.get("id") for doc in docs]
         collection = self.get_collection(collection_name)
         if docs[0].get("embedding") is None:
             logger.info(
@@ -176,10 +182,11 @@ class ChromaVectorDB:
             )
             embeddings = None
         else:
-            embeddings = [doc.embedding for doc in docs]
-        documents = [doc.content for doc in docs]
-        ids = [doc.id for doc in docs]
-        metadata = [doc.get("metadata") for doc in docs]
+            embeddings = [doc.get("embedding") for doc in docs]
+        if docs[0].get("metadata") is None:
+            metadata = None
+        else:
+            metadata = [doc.get("metadata") for doc in docs]
         self._batch_insert(collection, embeddings, ids, metadata, documents, upsert)
 
     def update_docs(self, docs: List[Dict], collection_name: str = None) -> None:

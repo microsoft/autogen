@@ -57,10 +57,14 @@ def filter_results_by_distance(
 
         # Filter other keys based on filtered distances:
         results = {
-            key: [
-                [value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]]
-                for qidx, results_list in enumerate(results_lists)
-            ]
+            key: (
+                [
+                    [value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]]
+                    for qidx, results_list in enumerate(results_lists)
+                ]
+                if isinstance(results_lists, list)
+                else results_lists
+            )
             for key, results_lists in results.items()
         }
 
