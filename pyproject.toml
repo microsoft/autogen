@@ -72,6 +72,8 @@ files = [
     "autogen/function_utils.py",
     "autogen/io",
     "test/io",
+    "autogen/experimental",
+    "test/experimental",
 ]
 
 exclude = [
