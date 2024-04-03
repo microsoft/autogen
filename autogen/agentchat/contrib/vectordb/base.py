@@ -145,7 +145,9 @@ class VectorDB(Protocol):
         """
         ...
 
-    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None, include=None, **kwargs) -> dict[str, List[dict]]:
+    def get_docs_by_ids(
+        self, ids: List[Any], collection_name: str = None, include=None, **kwargs
+    ) -> dict[str, List[dict]]:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 

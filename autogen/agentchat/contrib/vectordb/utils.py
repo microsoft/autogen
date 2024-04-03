@@ -31,10 +31,13 @@ def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
     logger.handlers[0].setFormatter(formatter)
     return logger
 
+
 logger = get_logger(__name__)
 
 
-def filter_results_by_distance(results:dict[str, List[List[dict]]], distance_threshold: float = -1) -> dict[str, List[List[dict]]]:
+def filter_results_by_distance(
+    results: dict[str, List[List[dict]]], distance_threshold: float = -1
+) -> dict[str, List[List[dict]]]:
     """Filters results based on a distance threshold.
 
     Args:
@@ -54,7 +57,10 @@ def filter_results_by_distance(results:dict[str, List[List[dict]]], distance_thr
 
         # Filter other keys based on filtered distances:
         results = {
-            key: [[value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]] for qidx, results_list in enumerate(results_lists)]
+            key: [
+                [value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]]
+                for qidx, results_list in enumerate(results_lists)
+            ]
             for key, results_lists in results.items()
         }
 
