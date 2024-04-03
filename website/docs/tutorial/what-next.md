@@ -40,6 +40,6 @@ our [Discord Server](https://aka.ms/autogen-dc).
 ## Get Involved
 
 - Check out [Roadmap Issues](https://aka.ms/autogen-roadmap) to see what we are working on.
-- Contribute your work to our [gallery](../Gallery)
-- Follow our [contribution guide](../Contribute) to make a pull request to AutoGen
+- Contribute your work to our [gallery](/docs/Gallery)
+- Follow our [contribution guide](/docs/contributor-guide/contributing) to make a pull request to AutoGen
 - You can also share your work with the community on the Discord server.
