@@ -1,11 +1,13 @@
 from enum import Enum
 from typing import Optional
+
+from autogen import ConversableAgent
+
 from ..DebugLog import Debug, Error, Info, Warn, shorten
 from ..LocalActorNetwork import LocalActorNetwork
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-from .AGActor import AGActor
 from .AG2CAP import AG2CAP
-from autogen import ConversableAgent
+from .AGActor import AGActor
 
 
 class CAP2AG(AGActor):

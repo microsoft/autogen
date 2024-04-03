@@ -1,4 +1,4 @@
-from autogen import UserProxyAgent, ConversableAgent, config_list_from_json
+from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 
 
 def main():
