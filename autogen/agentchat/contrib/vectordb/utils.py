@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 import logging
 from termcolor import colored
 
@@ -36,8 +36,8 @@ logger = get_logger(__name__)
 
 
 def filter_results_by_distance(
-    results: dict[str, List[List[dict]]], distance_threshold: float = -1
-) -> dict[str, List[List[dict]]]:
+    results: Dict[str, List[List[Dict]]], distance_threshold: float = -1
+) -> Dict[str, List[List[Dict]]]:
     """Filters results based on a distance threshold.
 
     Args:
@@ -45,7 +45,7 @@ def filter_results_by_distance(
         distance_threshold: The maximum distance allowed for results.
 
     Returns:
-        dict[str, List[List[dict]]] | A filtered dictionary containing only results within the threshold.
+        Dict[str, List[List[Dict]]] | A filtered dictionary containing only results within the threshold.
     """
 
     if distance_threshold > 0:

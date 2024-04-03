@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Protocol, runtime_checkable
+from typing import Any, Callable, List, Protocol, runtime_checkable, Dict
 
 
 @runtime_checkable
@@ -7,12 +7,12 @@ class VectorDB(Protocol):
     Abstract class for vector database. A vector database is responsible for storing and retrieving documents.
     """
 
-    def __init__(self, db_config: dict = None) -> None:
+    def __init__(self, db_config: Dict = None) -> None:
         """
         Initialize the vector database.
 
         Args:
-            db_config: dict | configuration for initializing the vector database. Default is None.
+            db_config: Dict | configuration for initializing the vector database. Default is None.
 
         Returns:
             None
@@ -62,32 +62,32 @@ class VectorDB(Protocol):
         """
         ...
 
-    def insert_docs(self, docs: List[dict], collection_name: str = None, upsert: bool = False, **kwargs) -> Any:
+    def insert_docs(self, docs: List[Dict], collection_name: str = None, upsert: bool = False, **kwargs) -> Any:
         """
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: List[dict] | A list of documents. Each document is a dictionary.
+            docs: List[Dict] | A list of documents. Each document is a dictionary.
                 It should include the following fields:
                     - required: "id", "content"
                     - optional: "embedding", "metadata", "distance", etc.
             collection_name: str | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
         """
         ...
 
-    def update_docs(self, docs: List[dict], collection_name: str = None, **kwargs) -> None:
+    def update_docs(self, docs: List[Dict], collection_name: str = None, **kwargs) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: List[dict] | A list of documents.
+            docs: List[Dict] | A list of documents.
             collection_name: str | The name of the collection. Default is None.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
@@ -101,7 +101,7 @@ class VectorDB(Protocol):
         Args:
             ids: List[Any] | A list of document ids.
             collection_name: str | The name of the collection. Default is None.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
@@ -115,7 +115,7 @@ class VectorDB(Protocol):
         n_results: int = 10,
         distance_threshold: float = -1,
         **kwargs,
-    ) -> dict[str, List[List[dict]]]:
+    ) -> Dict[str, List[List[Dict]]]:
         """
         Retrieve documents from the collection of the vector database based on the queries.
 
@@ -125,10 +125,10 @@ class VectorDB(Protocol):
             n_results: int | The number of relevant documents to return. Default is 10.
             distance_threshold: float | The threshold for the distance score, only distance smaller than it will be
                 returned. Don't filter with it if < 0. Default is -1.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            dict[str, List[List[dict]]] | The query results. Each query result is a dictionary.
+            Dict[str, List[List[Dict]]] | The query results. Each query result is a dictionary.
             It should include the following fields:
                 - required: "ids", "contents"
                 - optional: "embeddings", "metadatas", "distances", etc.
@@ -147,7 +147,7 @@ class VectorDB(Protocol):
 
     def get_docs_by_ids(
         self, ids: List[Any], collection_name: str = None, include=None, **kwargs
-    ) -> dict[str, List[dict]]:
+    ) -> Dict[str, List[Dict]]:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 
@@ -156,10 +156,10 @@ class VectorDB(Protocol):
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
                 If None, will include ["metadatas", "documents"]
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            dict[str, List[dict]] | The results.
+            Dict[str, List[Dict]] | The results.
         """
         ...
 
@@ -172,13 +172,13 @@ class VectorDBFactory:
     PREDEFINED_VECTOR_DB = ["chroma"]
 
     @staticmethod
-    def create_vector_db(db_type: str, db_config: dict = None) -> VectorDB:
+    def create_vector_db(db_type: str, db_config: Dict = None) -> VectorDB:
         """
         Create a vector database.
 
         Args:
             db_type: str | The type of the vector database.
-            db_config: dict | The configuration of the vector database. Default is None.
+            db_config: Dict | The configuration of the vector database. Default is None.
 
         Returns:
             VectorDB | The vector database.

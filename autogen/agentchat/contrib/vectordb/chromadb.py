@@ -1,5 +1,5 @@
 import os
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Dict
 
 from .utils import get_logger, filter_results_by_distance
 
@@ -21,24 +21,24 @@ class ChromaVectorDB:
     A vector database that uses ChromaDB as the backend.
     """
 
-    def __init__(self, db_config: dict = None) -> None:
+    def __init__(self, db_config: Dict = None) -> None:
         """
         Initialize the vector database.
 
         Args:
-            db_config: dict | configuration for initializing the vector database. Default is None.
+            db_config: Dict | configuration for initializing the vector database. Default is None.
                 It can contain the following keys:
                 client: chromadb.Client | The client object of the vector database. Default is None.
                     If not None, it will use the client object to connect to the vector database.
                 path: str | The path to the vector database. Default is None.
                 embedding_function: Callable | The embedding function used to generate the vector representation
                     of the documents. Default is None.
-                metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
+                metadata: Dict | The metadata of the vector database. Default is None. If None, it will use this
                     setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}. For more details of
                     the metadata, please refer to [distances](https://github.com/nmslib/hnswlib#supported-distances),
                     [hnsw](https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184),
                     and [ALGO_PARAMS](https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md).
-                kwargs: dict | Additional keyword arguments.
+                kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
@@ -151,18 +151,18 @@ class ChromaVectorDB:
             else:
                 collection.add(**collection_kwargs)
 
-    def insert_docs(self, docs: List[dict], collection_name: str = None, upsert: bool = False) -> None:
+    def insert_docs(self, docs: List[Dict], collection_name: str = None, upsert: bool = False) -> None:
         """
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: List[dict] | A list of documents. Each document is a dictionary.
+            docs: List[Dict] | A list of documents. Each document is a dictionary.
                 It should include the following fields:
                     - required: "id", "content"
                     - optional: "embedding", "metadata", "distance", etc.
             collection_name: str | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
@@ -182,12 +182,12 @@ class ChromaVectorDB:
         metadata = [doc.get("metadata") for doc in docs]
         self._batch_insert(collection, embeddings, ids, metadata, documents, upsert)
 
-    def update_docs(self, docs: List[dict], collection_name: str = None) -> None:
+    def update_docs(self, docs: List[Dict], collection_name: str = None) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: List[dict] | A list of documents.
+            docs: List[Dict] | A list of documents.
             collection_name: str | The name of the collection. Default is None.
 
         Returns:
@@ -202,7 +202,7 @@ class ChromaVectorDB:
         Args:
             ids: List[Any] | A list of document ids.
             collection_name: str | The name of the collection. Default is None.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
             None
@@ -217,7 +217,7 @@ class ChromaVectorDB:
         n_results: int = 10,
         distance_threshold: float = -1,
         **kwargs,
-    ) -> dict[str, List[List[dict]]]:
+    ) -> Dict[str, List[List[Dict]]]:
         """
         Retrieve documents from the collection of the vector database based on the queries.
 
@@ -227,10 +227,10 @@ class ChromaVectorDB:
             n_results: int | The number of relevant documents to return. Default is 10.
             distance_threshold: float | The threshold for the distance score, only distance smaller than it will be
                 returned. Don't filter with it if < 0. Default is -1.
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            dict[str, List[List[dict]]] | The query results. Each query result is a dictionary.
+            Dict[str, List[List[Dict]]] | The query results. Each query result is a dictionary.
             It should include the following fields:
                 - required: "ids", "contents"
                 - optional: "embeddings", "metadatas", "distances", etc.
@@ -260,7 +260,7 @@ class ChromaVectorDB:
 
     def get_docs_by_ids(
         self, ids: List[Any], collection_name: str = None, include=None, **kwargs
-    ) -> dict[str, List[dict]]:
+    ) -> Dict[str, List[Dict]]:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 
@@ -269,10 +269,10 @@ class ChromaVectorDB:
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
                 If None, will include ["metadatas", "documents"]
-            kwargs: dict | Additional keyword arguments.
+            kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            dict[str, List[dict]] | The results.
+            Dict[str, List[Dict]] | The results.
         """
         collection = self.get_collection(collection_name)
         include = include if include else ["metadatas", "documents"]
