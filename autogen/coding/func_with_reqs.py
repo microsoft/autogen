@@ -1,12 +1,14 @@
 from __future__ import annotations
-import inspect
+
 import functools
-from typing import Any, Callable, List, TypeVar, Generic, Union
-from typing_extensions import ParamSpec
-from textwrap import indent, dedent
+import importlib
+import inspect
 from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
-import importlib
+from textwrap import dedent, indent
+from typing import Any, Callable, Generic, List, TypeVar, Union
+
+from typing_extensions import ParamSpec
 
 T = TypeVar("T")
 P = ParamSpec("P")
