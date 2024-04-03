@@ -5,12 +5,12 @@ from openai import AsyncOpenAI, AsyncAzureOpenAI
 from typing_extensions import Self
 from jsonschema import validate
 
-from autogen._pydantic import type2schema
-from autogen.cache import AbstractCache
-from autogen.model_client.base import ChatModelClient
-from autogen.token_count_utils import count_token
-from .types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
-from autogen.oai.openai_utils import OAI_PRICE1K, get_key
+from ..._pydantic import type2schema
+from ...cache import AbstractCache
+from .base import ChatModelClient
+from ...token_count_utils import count_token
+from ..types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
+from ...oai.openai_utils import OAI_PRICE1K, get_key
 
 from openai.types.chat import completion_create_params
 
@@ -128,7 +128,7 @@ def _cost(response: Union[ChatCompletion, Tuple[str, int, int]]) -> float:
         # logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
         return 0
 
-    tmp_price1K = OAI_PRICE1K[model]
+    tmp_price1K = cast(Union[float, Tuple[float, float]], OAI_PRICE1K[model])
     # First value is input token rate, second value is output token rate
     if isinstance(tmp_price1K, tuple):
         return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000

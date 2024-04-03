@@ -2,9 +2,9 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 from openai import APIError, APITimeoutError
 
 from autogen.cache import AbstractCache
-from autogen.model_client.base import ChatModelClient
-from autogen.model_client.factory import ModelClientFactory
-from .types import ChatMessage, CreateResponse, RequestUsage, ToolCall
+from .base import ChatModelClient
+from .factory import ModelClientFactory
+from ..types import ChatMessage, CreateResponse, RequestUsage, ToolCall
 
 
 class ChainedChatModelClient(ChatModelClient):

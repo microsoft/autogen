@@ -4,7 +4,7 @@ import os
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
 
@@ -13,7 +13,7 @@ from openai.types.beta.assistant import Assistant
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
-OAI_PRICE1K: Dict[str, Union[float, Tuple[float, float]]] = {
+OAI_PRICE1K = {
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
     "text-curie-001": 0.002,
@@ -541,11 +541,11 @@ def get_config(
     """
     config = {"api_key": api_key}
     if base_url:
-        config["base_url"] = base_url
+        config["base_url"] = os.getenv(base_url, default=base_url)
     if api_type:
-        config["api_type"] = api_type
+        config["api_type"] = os.getenv(api_type, default=api_type)
     if api_version:
-        config["api_version"] = api_version
+        config["api_version"] = os.getenv(api_version, default=api_version)
     return config
 
 

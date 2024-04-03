@@ -14,7 +14,7 @@ from autogen import oai
 
 import docker
 
-from .model_client.types import UserMessageContentPartImage, UserMessageContentPartText
+from .types import UserMessageImageContentPart, UserMessageTextContentPart
 
 SENTINEL = object()
 DEFAULT_MODEL = "gpt-4"
@@ -39,7 +39,7 @@ PATH_SEPARATOR = WIN32 and "\\" or "/"
 logger = logging.getLogger(__name__)
 
 
-def content_str(content: Union[str, List[Union[UserMessageContentPartText, UserMessageContentPartImage]], None]) -> str:
+def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
     """Converts the `content` field of an OpenAI merssage into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, MutableMapping, Type
 
-from autogen.model_client.base import ChatModelClient
-from autogen.model_client.openai_client import OpenAIChatModelClient
+from .base import ChatModelClient
+from .openai_client import OpenAIChatModelClient
 
 
 class ModelClientFactory:
@@ -22,7 +22,7 @@ class ModelClientFactory:
         self.types[api_type] = type
 
     def create_from_config(self, config: Dict[str, Any]) -> ChatModelClient:
-        from autogen.model_client.chain_client import ChainedChatModelClient
+        from .chain_client import ChainedChatModelClient
 
         # Chained model client is a special case to support the existing use format
         if "config_list" in config:

@@ -4,7 +4,7 @@ from typing import Any, List, Literal, Mapping, Optional, Protocol, TypedDict, U
 from pydantic import BaseModel, Field
 
 from ..agentchat.agent import LLMAgent
-from ..model_client.types import UserMessageContentPartImage, UserMessageContentPartText
+from ..types import UserMessageImageContentPart, UserMessageTextContentPart
 
 __all__ = ("CodeBlock", "CodeResult", "CodeExtractor", "CodeExecutor", "CodeExecutionConfig")
 
@@ -29,7 +29,7 @@ class CodeExtractor(Protocol):
     """(Experimental) A code extractor class that extracts code blocks from a message."""
 
     def extract_code_blocks(
-        self, message: Union[str, List[Union[UserMessageContentPartText, UserMessageContentPartImage]], None]
+        self, message: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]
     ) -> List[CodeBlock]:
         """(Experimental) Extract code blocks from a message.
 
