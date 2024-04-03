@@ -33,6 +33,7 @@ class LocalActorNetwork:
         if self._directory_svc is None:
             self._directory_svc = DirectorySvc(self._context)
             self._directory_svc.start()
+        time.sleep(0.25)  # Process queued thread events in Broker and Directory
 
     def register(self, actor: Actor):
         self._init_runtime()
