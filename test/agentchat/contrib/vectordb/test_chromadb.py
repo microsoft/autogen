@@ -9,7 +9,7 @@ try:
     import chromadb
     import sentence_transformers
 
-    from autogen.agentchat.contrib.vectordb import ChromaVectorDB
+    from autogen.agentchat.contrib.vectordb.chromadb import ChromaVectorDB
 except ImportError:
     skip = True
 else:
