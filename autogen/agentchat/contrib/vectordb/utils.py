@@ -1,9 +1,4 @@
-import importlib
 import logging
-import time
-from functools import wraps
-from typing import Any
-
 from termcolor import colored
 
 
@@ -35,58 +30,4 @@ def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
     logger.handlers[0].setFormatter(formatter)
     return logger
 
-
-lazy_imported = {}
 logger = get_logger(__name__)
-
-
-def lazy_import(module_name: str, attr_name: str = None) -> Any:
-    """lazy import module and attribute.
-
-    Args:
-        module_name: The name of the module to import.
-        attr_name: The name of the attribute to import.
-
-    Returns:
-        The imported module or attribute.
-
-    Example usage:
-    ```python
-    from autogen.agentchat.contrib.vectordb.utils import lazy_import
-    os = lazy_import("os")
-    p = lazy_import("os", "path")
-    print(os)
-    print(p)
-    print(os.path is p)  # True
-    ```
-    """
-    if module_name not in lazy_imported:
-        try:
-            lazy_imported[module_name] = importlib.import_module(module_name)
-        except ImportError:
-            logger.error(f"Failed to import {module_name}.")
-            return None
-    if attr_name:
-        attr = getattr(lazy_imported[module_name], attr_name, None)
-        if attr is None:
-            logger.error(f"Failed to import {attr_name} from {module_name}")
-            return None
-        else:
-            return attr
-    else:
-        return lazy_imported[module_name]
-
-
-def timer(func) -> Any:
-    """
-    Timer decorator.
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        logger.debug(f"{func.__name__} took {time.time() - start:.2f} seconds.")
-        return result
-
-    return wrapper

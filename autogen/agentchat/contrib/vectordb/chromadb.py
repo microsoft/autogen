@@ -1,7 +1,7 @@
 import os
 from typing import Any, Callable, List
 
-from .utils import get_logger, timer
+from .utils import get_logger
 
 try:
     import chromadb
@@ -151,7 +151,6 @@ class ChromaVectorDB:
             else:
                 collection.add(**collection_kwargs)
 
-    @timer
     def insert_docs(self, docs: List[dict], collection_name: str = None, upsert: bool = False) -> None:
         """
         Insert documents into the collection of the vector database.
