@@ -1,3 +1,4 @@
+from typing import List
 import logging
 from termcolor import colored
 
@@ -31,3 +32,30 @@ def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
     return logger
 
 logger = get_logger(__name__)
+
+
+def filter_results_by_distance(results:dict[str, List[List[dict]]], distance_threshold: float = -1) -> dict[str, List[List[dict]]]:
+    """Filters results based on a distance threshold.
+
+    Args:
+        results: A dictionary containing results to be filtered.
+        distance_threshold: The maximum distance allowed for results.
+
+    Returns:
+        dict[str, List[List[dict]]] | A filtered dictionary containing only results within the threshold.
+    """
+
+    if distance_threshold > 0:
+        # Filter distances first:
+        return_ridx = [
+            [ridx for ridx, distance in enumerate(distances) if distance < distance_threshold]
+            for distances in results["distances"]
+        ]
+
+        # Filter other keys based on filtered distances:
+        results = {
+            key: [[value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]] for qidx, results_list in enumerate(results_lists)]
+            for key, results_lists in results.items()
+        }
+
+    return results

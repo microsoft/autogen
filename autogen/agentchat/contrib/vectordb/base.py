@@ -115,7 +115,7 @@ class VectorDB(Protocol):
         n_results: int = 10,
         distance_threshold: float = -1,
         **kwargs,
-    ) -> List[List[dict]]:
+    ) -> dict[str, List[List[dict]]]:
         """
         Retrieve documents from the collection of the vector database based on the queries.
 
@@ -128,33 +128,24 @@ class VectorDB(Protocol):
             kwargs: dict | Additional keyword arguments.
 
         Returns:
-            List[List[dict]] | The query results. Each query result is a list of dictionaries.
+            dict[str, List[List[dict]]] | The query results. Each query result is a dictionary.
             It should include the following fields:
                 - required: "ids", "contents"
                 - optional: "embeddings", "metadatas", "distances", etc.
 
             queries example: ["query1", "query2"]
-            query results example: [
-                {
-                    "ids": ["id1", "id2", ...],
-                    "contents": ["content1", "content2", ...],
-                    "embeddings": ["embedding1", "embedding2", ...],
-                    "metadatas": ["metadata1", "metadata2", ...],
-                    "distances": ["distance1", "distance2", ...]
-                },
-                {
-                    "ids": ["id1", "id2", ...],
-                    "contents": ["content1", "content2", ...],
-                    "embeddings": ["embedding1", "embedding2", ...],
-                    "metadatas": ["metadata1", "metadata2", ...],
-                    "distances": ["distance1", "distance2", ...]
-                }
-            ]
+            query results example: {
+                "ids": [["id1", "id2", ...], ["id3", "id4", ...]],
+                "contents": [["content1", "content2", ...], ["content3", "content4", ...]],
+                "embeddings": [["embedding1", "embedding2", ...], ["embedding3", "embedding4", ...]],
+                "metadatas": [["metadata1", "metadata2", ...], ["metadata3", "metadata4", ...]],
+                "distances": [["distance1", "distance2", ...], ["distance3", "distance4", ...]],
+            }
 
         """
         ...
 
-    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None, include=None, **kwargs) -> List[dict]:
+    def get_docs_by_ids(self, ids: List[Any], collection_name: str = None, include=None, **kwargs) -> dict[str, List[dict]]:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 
@@ -162,11 +153,11 @@ class VectorDB(Protocol):
             ids: List[Any] | A list of document ids.
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
-                If None, will include ["ids", "contents"]
+                If None, will include ["metadatas", "documents"]
             kwargs: dict | Additional keyword arguments.
 
         Returns:
-            List[dict] | The query results.
+            dict[str, List[dict]] | The results.
         """
         ...
 
