@@ -16,7 +16,8 @@ class InMemoryCache(AbstractCache):
         self._cache: Dict[str, Any] = {}
 
     def _prefixed_key(self, key: str) -> str:
-        return f"{self._seed}_{key}"
+        separator = "_" if self._seed else ""
+        return f"{self._seed}{separator}{key}"
 
     def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         result = self._cache.get(self._prefixed_key(key))
