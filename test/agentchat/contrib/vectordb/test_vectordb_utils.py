@@ -4,18 +4,9 @@ import pytest
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
-
 from autogen.agentchat.contrib.vectordb.utils import filter_results_by_distance
 
-skip = skip_openai
 
-
-@pytest.mark.skipif(
-    skip,
-    reason="do not run for openai",
-)
 def test_retrieve_config():
     results = {
         "ids": [["id1", "id2"], ["id3", "id4"]],
