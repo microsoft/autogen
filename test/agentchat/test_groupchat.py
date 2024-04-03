@@ -1332,6 +1332,100 @@ def test_select_speaker_message_and_prompt_templates():
         )
 
 
+def test_speaker_selection_agent_name_match():
+    """
+    In this test a group chat, with auto speaker selection, the speaker name match
+    function is tested against the extended name match regex.
+    """
+
+    user_proxy = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin.",
+        code_execution_config=False,
+        human_input_mode="NEVER",
+    )
+    storywriter = autogen.AssistantAgent(
+        name="Story_writer",
+        system_message="An ideas person.",
+        llm_config=None,
+    )
+    pm = autogen.AssistantAgent(
+        name="Product_manager",
+        system_message="Great in evaluating story ideas.",
+        llm_config=None,
+    )
+
+    all_agents = [user_proxy, storywriter, pm]
+    groupchat = autogen.GroupChat(agents=all_agents, messages=[], max_round=8, speaker_selection_method="auto")
+
+    # Test exact match (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story_writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with extra text (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents,
+        message_content="' Story_writer.\n\nHere are three story ideas for Grade 3 kids:\n\n1. **The Adventure of the Magic Garden:** A you...",
+    )
+    assert result == {"Story_writer": 1}
+
+    # Test match with escaped underscore (new outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story\\_writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with space (new outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with different casing (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story_Writer")
+    assert result == {}
+
+    # Test match with invalid name (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="NoName_Person")
+    assert result == {}
+
+    # Test match with no name (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="")
+    assert result == {}
+
+    # Test match with multiple agents and exact matches (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story_writer will follow the Product_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story\\_writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story\\_writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and spaces (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story writer will follow the Product manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores and spaces mixed (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and incorrect casing (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story Writer will follow the product\\_manager."
+    )
+    assert result == {}
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1348,5 +1442,6 @@ if __name__ == "__main__":
     # test_clear_agents_history()
     # test_custom_speaker_selection_overrides_transition_graph()
     # test_role_for_select_speaker_messages()
-    test_select_speaker_message_and_prompt_templates()
+    # test_select_speaker_message_and_prompt_templates()
+    test_speaker_selection_agent_name_match()
     # pass
