@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
-
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
 
@@ -65,7 +64,7 @@ def get_key(config: Dict[str, Any]) -> str:
     # if isinstance(config, list):
     #     return tuple(get_key(x) for x in config)
     # return config
-    return json.dumps(config, sort_keys=True)
+    return json.dumps(config, sort_keys=True, default=lambda x: x.__dict__)
 
 
 def is_valid_api_key(api_key: str) -> bool:

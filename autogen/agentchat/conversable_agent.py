@@ -29,10 +29,11 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..io.base import IOStream
+from ..multimodal_utils import MultimodalObject, convert_to_ag_format_list
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 
@@ -76,6 +77,7 @@ class ConversableAgent(LLMAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
+        mm_tag_style: Optional[str] = None,
     ):
         """
         Args:
@@ -121,6 +123,10 @@ class ConversableAgent(LLMAgent):
             default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            mm_tag_style (str): the style of multimodal tag to use. Possible values are "html" or "tokenizer".
+                Defaults to None, which means do not extract multimodal objects from the message strings.
+                if "html", the substring such as "<img src='data:image/png;base64,...'>" will be extracted as multimodal objects.
+                if "tokenizer", the substring such as "<|_image:data:image/png...|>" will be extracted as multimodal objects.
         """
         # we change code_execution_config below and we have to make sure we don't change the input
         # in case of UserProxyAgent, without this we could even change the default value {}
@@ -133,6 +139,7 @@ class ConversableAgent(LLMAgent):
         self._oai_messages = defaultdict(list)
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
+        self._mm_tag_style = mm_tag_style
         self._is_termination_msg = (
             is_termination_msg
             if is_termination_msg is not None
@@ -533,6 +540,26 @@ class ConversableAgent(LLMAgent):
             raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
         return name
 
+    def _process_mm(self, message: Union[Dict, List, str]) -> Dict:
+        """Convert a message to a dictionary.
+
+        The message can be a string or a dictionary. The string will be put in the "content" field of the new dictionary.
+        """
+        if isinstance(message, str):
+            if self._mm_tag_style:
+                message: List = convert_to_ag_format_list(message, mm_tag_style=self._mm_tag_style)
+            return {"content": message}
+        elif isinstance(message, list):
+            # For multimodal message
+            message: List = convert_to_ag_format_list(message, mm_tag_style=None)
+            return {"content": message}
+        elif isinstance(message, dict):
+            if "content" in message and isinstance(message["content"], list):
+                message["content"] = convert_to_ag_format_list(message, mm_tag_style=None)
+            return message
+        else:
+            return dict(message)
+
     def _append_oai_message(self, message: Union[Dict, str], role, conversation_id: Agent) -> bool:
         """Append a message to the ChatCompletion conversation.
 
@@ -549,6 +576,7 @@ class ConversableAgent(LLMAgent):
         Returns:
             bool: whether the message is appended to the ChatCompletion conversation.
         """
+        message = self._process_mm(message)
         message = self._message_to_dict(message)
         # create oai message to be appended to the oai conversation that can be passed to oai directly.
         oai_message = {
@@ -685,6 +713,7 @@ class ConversableAgent(LLMAgent):
         iostream = IOStream.get_default()
         # print the message received
         iostream.print(colored(sender.name, "yellow"), "(to", f"{self.name}):\n", flush=True)
+        message = self._process_mm(message)
         message = self._message_to_dict(message)
 
         if message.get("tool_responses"):  # Handle tool multi-call responses
@@ -1114,10 +1143,17 @@ class ConversableAgent(LLMAgent):
         return summary
 
     @staticmethod
-    def _last_msg_as_summary(sender, recipient, summary_args) -> str:
+    def _last_msg_as_summary(sender, recipient, summary_args) -> Union[List, str]:
         """Get a chat summary from the last message of the recipient."""
         try:
-            summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
+            content = recipient.last_message(sender)["content"]
+            if isinstance(content, str):
+                summary = content.replace("TERMINATE", "")
+            elif isinstance(content, list):
+                summary = content
+                for component in summary:
+                    if isinstance(component, str):
+                        component = component.replace("TERMINATE", "")
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
             summary = ""
@@ -2305,7 +2341,7 @@ class ConversableAgent(LLMAgent):
         if not kwargs.get("carryover"):
             return content
 
-        return [{"type": "text", "text": self._process_carryover("", kwargs)}] + content
+        return [self._process_carryover("", kwargs)] + content
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.

@@ -1,8 +1,11 @@
 import re
-from typing import Any, Callable, Dict, List, Protocol, Tuple, Union
+import warnings
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
+
+IMPORTANT_KEYS = ["vision_model", "tool_calling", "json_object", "max_num_image"]
 
 
-class MultimodalObject(Protocol):
+class MultimodalObject:
     def __init__(self, data: Union[str, Dict]):
         """
         The data can either be input file, input URL, or OpenAI format.
@@ -10,130 +13,136 @@ class MultimodalObject(Protocol):
         Args:
             data (Union[str, Dict]): _description_
         """
-        pass
+        return
 
     def __str__(self):
-        pass
+        return self.__str__
 
     def __repr__(self) -> str:
-        pass
+        return self.__repr__
 
-    def __eq__(self, other: object) -> bool:
-        pass
+    @property
+    def __dict__(self) -> Dict:
+        return self.__dict__
 
     def openai_format(self) -> Dict:
-        pass
+        return {}
 
 
-def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Dict[str, str]]]:
-    """Parses HTML style tags from message contents.
+def convert_to_ag_format_list(content: Union[str, List], mm_tag_style: Optional[str] = None) -> List[dict]:
+    """
+    Converts input data to a standardized list format of AG objects. The input can be a JSON-formatted string,
+    a dictionary representing a single item, or a list of dictionaries. This function standardizes these various
+    formats into a consistent list of dictionaries formatted according to the AG specification, which might include
+    converting string representations of data into structured AG format or wrapping single dictionaries into a list.
 
-    The parsing is done by looking for patterns in the text that match the format of HTML tags. The tag to be parsed is
-    specified as an argument to the function. The function looks for this tag in the text and extracts its content. The
-    content of a tag is everything that is inside the tag, between the opening and closing angle brackets. The content
-    can be a single string or a set of attribute-value pairs.
 
-    Examples:
-        parse_tags_from_content("img", "What is the difference between <img x.jpg> and <img http://y.com/y.png>?") ->
-            [
-                {"tag": "img", "attr": {"src": "x.jpg"}, "match": re.Match},
-                {"tag": "img", "attr": {"src": "http://y.com/y.png"}, "match": re.Match}
-            ]
-
-        parse_tags_from_content("img", "Check out this cool photo <img http://example.com/image.png>") ->
-            [{"tag": "img", "attr": {"src": "http://example.com/image.png"}, "match": re.Match}]
-
-        parse_tags_from_content("audio", 'The user says <audio text="Hello I'm a robot" prompt="whisper">') ->
-            [{"tag": "audio", "attr": {"text": "Hello I'm a robot", "prompt": "whisper"}, "match": re.Match}]
+    The content can be either:
+    1. a string, which may need mm_tag_format
+    2. a list of string and MultimodalObject, which should be return as is
+    3. a list of dictionaries in OpenAI message content format, which may need to be converted to a list of string and MultimodalObject.
 
     Args:
-        tag (str): The HTML style tag to be parsed.
-        content (Union[str, List[Dict[str, Any]]]): The message content to parse. Can be a string or a list of content
-            items.
+        content (Union[str, Dict, List[dict]]): The input data to convert.
+        a dictionary (representing a single AG object), or a list of dictionaries (representing multiple AG objects).
+        mm_tag_format (str): one of "html", "token", or None. If provided, the function will parse multimodal objects
+            from the text using the specified format.
+            Default to None, which means we do not parse the string to extract multimodal objects.
 
     Returns:
-        List[Dict[str, str]]: A list of dictionaries, where each dictionary represents a parsed tag. Each dictionary
-            contains three key-value pairs: 'type' which is the tag, 'attr' which is a dictionary of the parsed attributes,
-            and 'match' which is a regular expression match object. For instance,
-            [{"tag": "img", "attr": {"src": "http://example.com/image.png"}, "match": re.Match}]
-
-    Raises:
-        ValueError: If the content is not a string or a list.
+        List[dict]: A list of dictionaries, each formatted according to the AG specification. This format is designed
+        for consistent processing and representation of data across the application.
     """
-    results = []
+    # TODO: also handle audio, video, and other contents
+
+    converted = []
+
     if isinstance(content, str):
-        results.extend(_parse_tags_from_text(tag, content))
-    # Handles case for multimodal messages.
-    elif isinstance(content, list):
-        for item in content:
-            if item.get("type") == "text":
-                results.extend(_parse_tags_from_text(tag, item["text"]))
-    else:
-        raise ValueError(f"content must be str or list, but got {type(content)}")
-
-    return results
-
-
-def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
-    pattern = re.compile(f"<{tag} (.*?)>")
-
-    results = []
-    for match in re.finditer(pattern, text):
-        tag_attr = match.group(1).strip()
-        attr = _parse_attributes_from_tags(tag_attr)
-
-        results.append({"tag": tag, "attr": attr, "match": match})
-    return results
-
-
-def _parse_attributes_from_tags(tag_content: str):
-    pattern = r"([^ ]+)"
-    attrs = re.findall(pattern, tag_content)
-    reconstructed_attrs = _reconstruct_attributes(attrs)
-
-    def _append_src_value(content, value):
-        if "src" in content:
-            content["src"] += f" {value}"
+        if mm_tag_style == "html":
+            # TODO: add parsing html and tokenzier later.
+            pass
+        elif mm_tag_style == "tokenizer":
+            pass
         else:
-            content["src"] = value
+            raise ValueError(f"Invalid mm_tag_style: {mm_tag_style}")
 
-    content = {}
-    for attr in reconstructed_attrs:
-        if "=" not in attr:
-            _append_src_value(content, attr)
-            continue
+        return converted  # TODO: converted content
 
-        key, value = attr.split("=", 1)
-        if value.startswith("'") or value.startswith('"'):
-            content[key] = value[1:-1]  # remove quotes
-        else:
-            _append_src_value(content, attr)
+    assert isinstance(content, list), "content must be a list"
 
-    return content
+    if all(isinstance(x, str) or isinstance(x, MultimodalObject) for x in content):
+        # The input is already in AG format
+        return content
+
+    if all(isinstance(x, dict) for x in content):
+        # The input is openAI format
+        for component in content:
+            assert "type" in component, "type is required in message content"
+
+            if component["type"] == "text":
+                converted.append(component["text"])
+            elif component["type"] == "image_url":
+                # TODO: recursive import, how to define AGImage here?
+                converted.append(MultimodalObject(component))
+
+    return converted
 
 
-def _reconstruct_attributes(attrs: List[str]) -> List[str]:
-    """Reconstructs attributes from a list of strings where some attributes may be split across multiple elements."""
+def ag_params_to_openai(params: Dict) -> Dict:
+    # Get the important parameters
+    messages = params.get("messages", []).copy()
+    model_name = params.get("model", None)
 
-    def is_attr(attr: str) -> bool:
-        if "=" in attr:
-            _, value = attr.split("=", 1)
-            if value.startswith("'") or value.startswith('"'):
-                return True
-        return False
+    # Pop AG parameters, which are not needed for OpenAI
+    is_vision_model = params.pop("vision_model", False)
+    tool_calling = params.pop("tool_call", True)
+    json_object = params.pop("json_object", True)
+    max_num_image = params.pop("max_num_image", 1e9)
 
-    reconstructed = []
-    found_attr = False
-    for attr in attrs:
-        if is_attr(attr):
-            reconstructed.append(attr)
-            found_attr = True
-        else:
-            if found_attr:
-                reconstructed[-1] += f" {attr}"
-                found_attr = True
-            elif reconstructed:
-                reconstructed[-1] += f" {attr}"
-            else:
-                reconstructed.append(attr)
-    return reconstructed
+    n_img_count = 0
+    for i in range(len(messages) - 1, -1, -1):
+        message = messages[i]
+
+        # iterate in reverse order to remove "extra" multimodal objects so that
+        assert "role" in message, "role is required in message"
+        assert "content" in message, "content is required in message"
+
+        content = message["content"]
+        if isinstance(content, str):
+            continue  # str in standard LLM format. Skip formatting
+        if isinstance(content, list):
+            content = content.copy()
+            for j, component in enumerate(content):
+                if isinstance(component, str):
+                    content[j] = {"type": "text", "text": component}
+                elif isinstance(component, MultimodalObject):
+                    if is_vision_model:
+                        n_img_count += 1
+                        if n_img_count > max_num_image:
+                            content[j] = ""
+                        else:
+                            content[j] = component.openai_format()
+                    else:
+                        content[j] = ""  # mark to remove
+                        warnings.warn(f"images are skipped in {model_name}!")
+                elif isinstance(component, dict):
+                    # it is already OpenAI format
+                    continue
+                else:
+                    raise ValueError(f"Invalid component type in message content: {type(component)}")
+
+            messages[i]["content"] = [x for x in content if x]
+
+        if not tool_calling:
+            # remove tool call-related keys in the message if present
+            func_keys = ["tool_calls", "tool_responses", "function_call", "tool_call_id"]
+            if any(message.pop(p, False) for p in func_keys):
+                warnings.warn(f"tool_calls and tool_responses are skipped in {model_name}.")
+                message["role"] = "user"
+
+    if not json_object:
+        if params.get("response_format", None) == {"type": "json_object"}:
+            warnings.warn(f"response_format of JSON object is skipped in {model_name}.")
+            params.pop("response_format")
+
+    return params

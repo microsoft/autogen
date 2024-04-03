@@ -8,10 +8,7 @@ from autogen.agentchat.contrib.img_utils import (
     get_image_data,
     get_pil_image,
     gpt4v_formatter,
-    message_formatter_pil_to_b64,
 )
-from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
-from autogen.agentchat.conversable_agent import colored
 from autogen.code_utils import content_str
 from autogen.oai.client import OpenAIWrapper
 
@@ -46,6 +43,7 @@ class VisionCapability(AgentCapability):
         lmm_config: Dict,
         description_prompt: Optional[str] = DEFAULT_DESCRIPTION_PROMPT,
         custom_caption_func: Callable = None,
+        mm_tag_style: Optional[str] = None,
     ) -> None:
         """
         Initializes a new instance, setting up the configuration for interacting with
@@ -70,6 +68,8 @@ class VisionCapability(AgentCapability):
                 and then return a description (as string).
                 If not provided, captioning will rely on the LMM client configured via `lmm_config`.
                 If provided, we will not run the default self._get_image_caption method.
+            mm_tag_style (Optional[str], optional): what style tag of use used. It can be either `html` or `tokenizer`.
+                Defaults to None, which means no tagging.
 
         Raises:
             AssertionError: If neither a valid `lmm_config` nor a `custom_caption_func` is provided,
@@ -78,6 +78,7 @@ class VisionCapability(AgentCapability):
         """
         self._lmm_config = lmm_config
         self._description_prompt = description_prompt
+        self._mm_tag_style = mm_tag_style
         self._parent_agent = None
 
         if lmm_config:
@@ -154,11 +155,10 @@ class VisionCapability(AgentCapability):
             A beautiful sunset over the mountains\n"
             (Caption added after the image)
         """
-        copy.deepcopy(content)
         # normalize the content into the gpt-4v format for multimodal
         # we want to keep the URL format to keep it concise.
         if isinstance(content, str):
-            content = gpt4v_formatter(content, img_format="url")
+            content = gpt4v_formatter(copy.deepcopy(content), img_format="url", mm_tag_style=self._mm_tag_style)
 
         aug_content: str = ""
         for item in content:

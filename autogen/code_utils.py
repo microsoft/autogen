@@ -10,9 +10,11 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from autogen import oai
-
 import docker
+
+from autogen import oai
+from autogen.agentchat.contrib.img_utils import AGImage
+from autogen.multimodal_utils import MultimodalObject
 
 from .types import UserMessageImageContentPart, UserMessageTextContentPart
 
@@ -68,8 +70,14 @@ def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserM
 
     rst = ""
     for item in content:
+        # if the item is a multimodal type or string, we cast it to string.
+        if isinstance(item, MultimodalObject) or isinstance(item, str):
+            rst += str(item)
+            continue
+
         if not isinstance(item, dict):
             raise TypeError("Wrong content format: every element should be dict if the content is a list.")
+
         assert "type" in item, "Wrong content format. Missing 'type' key in content's dict."
         if item["type"] == "text":
             rst += item["text"]

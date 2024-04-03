@@ -9,24 +9,58 @@ import requests
 from PIL import Image
 
 from autogen.agentchat import utils
-from autogen.agentchat.contrib.multimodal_utils import MultimodalObject, parse_tags_from_content
+
+from ...multimodal_utils import MultimodalObject
+from ..utils import parse_tags_from_content
 
 
 class AGImage(MultimodalObject):
     def __init__(self, image_file: str):
-        pass
+        self.data = get_pil_image(image_file)  # PIL image
 
     def __str__(self):
-        pass
+        return self.data.__str__()
 
     def __repr__(self) -> str:
-        pass
+        return self.data.__repr__()
 
-    def __eq__(self, other: object) -> bool:
-        pass
+    @property
+    def __dict__(self) -> Dict:
+        # return the numpy array for the image
+        return {"data": pil_to_data_uri(self.data)}
 
     def openai_format(self) -> dict:
-        pass
+        return {"type": "image_url", "image_url": {"url": pil_to_data_uri(self.data)}}
+
+
+def image_convert(image_data, format):
+    """
+    This function convert the image from and to different formats.
+
+    The supported format of image data:
+        - Filename (str): which can be either a local filename or an URL.
+        - PIL Image (PIL.Image object)
+        - URI format  (str), such as "data:image/png:base64,...."
+        - Base64 format (str), such as "vZflfx..."
+
+    The input image data can be in any supported format, and the output format is defined by the `format` parameter.
+
+    _extended_summary_
+
+    Args:
+        image_data (_type_): _description_
+        image_format (_type_): _description_
+    """
+    pil_img = get_pil_image(image_data)
+
+    if format == "pil":
+        return pil_img
+    elif format == "uri":
+        return pil_to_data_uri(pil_img)
+    elif format in ["b64" or "base64"]:
+        return get_image_data(pil_img, use_b64=True)
+    else:
+        raise ValueError(f"Unknown image format {format}")
 
 
 def get_pil_image(image_file: Union[str, Image.Image]) -> Image.Image:
@@ -205,14 +239,7 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri", mm_tag_style: Optional
     image_count = 0
 
     # Find all image tags
-    if mm_tag_style == "html":
-        parsed = parse_tags_from_content("img", prompt)
-    elif mm_tag_style == "tokenizer":
-        # TODO
-        parsed = parse_tags_from_content("img", prompt)
-
-    raise NotImplementedError(f"Unknown tag style {mm_tag_style}")
-
+    parsed = parse_tags_from_content("img", prompt)
     for parsed_tag in parsed:
         image_location = parsed_tag["attr"]["src"]
         try:
