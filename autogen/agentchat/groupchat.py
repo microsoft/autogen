@@ -499,8 +499,6 @@ class GroupChat:
             # ask the LLM to choose one from the response
             select_name_message = [
                 {
-                    #'content': f'Your role is to select the current speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}, respond with just the name of the current speaker in the following context.\nContext:\n{name}',
-                    #'content': f'Your role is to select the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. If the context refers to the next speaker name, choose that name, otherwise choose the current speaker. Respond with just the name of the speaker in the following context.\nContext:\n{name}',
                     "content": f"""Your role is to identify the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. To determine the speaker use these prioritised rules:
                     1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
                     2. If it refers to the "next" speaker name, choose that name
@@ -511,9 +509,7 @@ class GroupChat:
                 }
             ]
 
-            # Requery the LLM
-            # final_single, name_single = selector.generate_oai_reply(select_name_message)
-
+            # Send to LLM for a response
             response = selector.client.create(
                 context=None,
                 messages=select_name_message,
