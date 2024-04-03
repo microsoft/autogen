@@ -57,7 +57,7 @@ Once the user has taken the final necessary action to complete the task, and you
     llm_config=llm_config,
     human_input_mode="NEVER",
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0,
-    max_consecutive_auto_reply=10,
+    max_consecutive_auto_reply=20,
 )
 
 
@@ -75,7 +75,15 @@ user_proxy.send(f"Navigate to {start_url[TASK['start_url']]}", web_surfer, reque
 user_proxy.reset()
 web_surfer.reset()
 
-web_surfer.initiate_chat(user_proxy, message=TASK["intent"], clear_history=True)
+web_surfer.initiate_chat(
+    user_proxy,
+    message=f"""
+We are visiting the website {start_url[TASK['start_url']]}, which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/. On this website, please complete the following task:
+
+{TASK['intent']}
+""".strip(),
+    clear_history=True,
+)
 
 ##############################
 testbed_utils.finalize(agents=[web_surfer, user_proxy])
