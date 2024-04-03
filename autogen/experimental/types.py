@@ -1,70 +1,85 @@
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal, Required, TypedDict, NotRequired
+from dataclasses import dataclass, field
 
 
-class Function(TypedDict, total=False):
-    # JSON
-    arguments: Required[str]
-    name: Required[str]
+@dataclass
+class ToolCall:
+    id: str
+    # JSON args
+    arguments: str
+    # Function to call
+    name: str
 
 
-class ToolCall(TypedDict, total=False):
-    id: Required[str]
-    function: Required[Function]
-    type: Required[Literal["function"]]
+@dataclass
+class RequestUsage:
+    prompt_tokens: int
+    completion_tokens: int
+    cost: Optional[float]
 
 
-class RequestUsage(TypedDict, total=False):
-    prompt_tokens: Required[int]
-    completion_tokens: Required[int]
-    cost: float
+@dataclass
+class UserMessageContentPartText:
+    text: str
 
 
-class UserMessageContentPartText(TypedDict, total=False):
-    text: Required[str]
-    type: Required[Literal["text"]]
+@dataclass
+class ImageURL:
+    url: str
+    detail: Literal["auto", "low", "high"] = "auto"
 
 
-class ImageURL(TypedDict, total=False):
-    url: Required[str]
-    detail: Literal["auto", "low", "high"]
-
-
-class UserMessageContentPartImage(TypedDict, total=False):
-    image_url: Required[ImageURL]
-    type: Required[Literal["image_url"]]
+@dataclass
+class UserMessageContentPartImage:
+    image_url: ImageURL
+    type: Literal["image_url"]
 
 
 UserMessageContentPart = Union[UserMessageContentPartText, UserMessageContentPartImage]
 
 
-class SystemMessage(TypedDict, total=False):
-    content: Required[Optional[str]]
-    role: Required[Literal["system"]]
+@dataclass
+class SystemMessage:
+    content: str
 
 
-class UserMessage(TypedDict, total=False):
-    content: Required[Union[str, List[UserMessageContentPart]]]
-    role: Required[Literal["user"]]
+@dataclass
+class UserMessage:
+    content: Union[str, List[UserMessageContentPart]]
+    is_termination: bool = False
 
 
-class AssistantMessage(TypedDict, total=False):
-    content: Required[Optional[str]]
-    role: Required[Literal["assistant"]]
-    tool_calls: List[ToolCall]
+@dataclass
+class AssistantMessage:
+    content: Optional[str] = None
+    tool_calls: Optional[List[ToolCall]] = None
 
 
-class ToolMessage(TypedDict, total=False):
-    content: Required[Optional[str]]
-    role: Required[Literal["tool"]]
-    tool_call_id: Required[str]
+@dataclass
+class ToolResponse:
+    content: str
+    tool_call_id: str
+
+
+@dataclass
+class ToolMessage:
+    responses: List[ToolResponse]
 
 
 ChatMessage = Union[SystemMessage, UserMessage, AssistantMessage, ToolMessage]
 
 
-class CreateResponse(TypedDict, total=False):
+@dataclass
+class CreateResponse:
     finish_reason: Literal["stop", "length", "tool_calls", "content_filter"]
-    content: Required[Union[str, List[ToolCall]]]
+    content: Union[str, List[ToolCall]]
     usage: RequestUsage
     cached: bool
+
+
+@dataclass
+class ToolDefinition:
+    name: str
+    parameters: Dict[str, Any]
+    description: str = ""

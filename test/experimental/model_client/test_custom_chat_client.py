@@ -3,8 +3,8 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import pytest
 from autogen.cache.abstract_cache_base import AbstractCache
-from autogen.experimental.model_client.base import ChatModelClient
-from autogen.experimental.model_client.factory import ModelClientFactory
+from autogen.experimental.model_client import ChatModelClient
+from autogen.experimental.model_clients.factory import ModelClientFactory
 from autogen.experimental.types import ChatMessage, CreateResponse, RequestUsage, ToolCall
 import sys
 import os
@@ -32,7 +32,7 @@ async def test_create() -> None:
                 finish_reason="stop",
                 content="4",
                 cached=False,
-                usage=RequestUsage(prompt_tokens=1, completion_tokens=1),
+                usage=RequestUsage(cost=0, prompt_tokens=1, completion_tokens=1),
             )
 
         def create_stream(
@@ -57,6 +57,6 @@ async def test_create() -> None:
     assert isinstance(client, MyClient)
 
     response = await client.create(messages=[])
-    assert response["cached"] is False
-    assert response["finish_reason"] == "stop"
-    assert response["content"] == "4"
+    assert response.cached is False
+    assert response.finish_reason == "stop"
+    assert response.content == "4"

@@ -1,15 +1,42 @@
+from dataclasses import asdict
 import inspect
 import json
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
+from typing_extensions import TypedDict, NotRequired, Required
 from openai import AsyncOpenAI, AsyncAzureOpenAI
 from typing_extensions import Self
 from jsonschema import validate
 
+from typing_extensions import Unpack
+
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
-from .base import ChatModelClient
+from ..model_client import ChatModelClient
 from ...token_count_utils import count_token
-from ..types import ChatMessage, CreateResponse, Function, RequestUsage, ToolCall
+from ..types import (
+    ChatMessage,
+    CreateResponse,
+    RequestUsage,
+    ToolCall,
+    SystemMessage,
+    UserMessage,
+    AssistantMessage,
+    ToolMessage,
+)
 from ...oai.openai_utils import OAI_PRICE1K, get_key
 
 from openai.types.chat import completion_create_params
@@ -20,8 +47,9 @@ from openai.types.chat import (
     ChatCompletionAssistantMessageParam,
     ChatCompletionToolMessageParam,
     ChatCompletionMessageParam,
+    ChatCompletionMessageToolCallParam,
 )
-from openai.types.chat import ChatCompletion
+from openai.types.chat import ChatCompletion, ChatCompletionRole
 
 openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs)
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
@@ -34,10 +62,10 @@ disallowed_create_args = set(["stream", "messages", "function_call", "functions"
 required_create_args = set(["model"])
 
 
-def _openai_client_from_config(config: Dict[str, Any]) -> Union[AsyncOpenAI, AsyncAzureOpenAI]:
-    if config["api_type"] is not None and config["api_type"].startswith("azure"):
+def _openai_client_from_config(config: Mapping[str, Any]) -> Union[AsyncOpenAI, AsyncAzureOpenAI]:
+    if config.get("api_type", None) is not None and config["api_type"].startswith("azure"):
         # Take a copy
-        copied_config = config.copy()
+        copied_config = dict(config).copy()
 
         # Do some fixups
         copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
@@ -54,7 +82,7 @@ def _openai_client_from_config(config: Dict[str, Any]) -> Union[AsyncOpenAI, Asy
         return AsyncOpenAI(**openai_config)
 
 
-def _create_args_from_config(config: Dict[str, Any]) -> Dict[str, Any]:
+def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     create_args = {k: v for k, v in config.items() if k in create_kwargs}
     create_args_keys = set(create_args.keys())
     if not required_create_args.issubset(create_args_keys):
@@ -70,42 +98,89 @@ oai_assistant_message_schema = type2schema(ChatCompletionAssistantMessageParam)
 oai_tool_message_schema = type2schema(ChatCompletionToolMessageParam)
 
 
+def type_to_role(message: ChatMessage) -> ChatCompletionRole:
+    if isinstance(message, SystemMessage):
+        return "system"
+    elif isinstance(message, UserMessage):
+        return "user"
+    elif isinstance(message, AssistantMessage):
+        return "assistant"
+    elif isinstance(message, ToolMessage):
+        return "tool"
+
+
+def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
+    assert isinstance(message.content, str), "Only text content is supported for now"
+    return ChatCompletionUserMessageParam(
+        content=message.content,
+        role="user",
+    )
+
+
+def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
+    return ChatCompletionSystemMessageParam(
+        content=message.content,
+        role="system",
+    )
+
+
+def tool_call_to_oai(message: ToolCall) -> ChatCompletionMessageToolCallParam:
+    return ChatCompletionMessageToolCallParam(
+        id=message.id,
+        function={
+            "arguments": message.arguments,
+            "name": message.name,
+        },
+        type="function",
+    )
+
+
+def tool_message_to_oai(message: ToolMessage) -> Sequence[ChatCompletionToolMessageParam]:
+    return [
+        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.tool_call_id)
+        for x in message.responses
+    ]
+
+
+def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssistantMessageParam:
+    msg = ChatCompletionAssistantMessageParam(
+        content=message.content,
+        role="assistant",
+    )
+    if message.tool_calls is not None:
+        msg["tool_calls"] = [tool_call_to_oai(x) for x in message.tool_calls]
+
+    return msg
+
+
 # TODO: these should additionally disallow additional properties
-def to_oai_type(message: ChatMessage) -> ChatCompletionMessageParam:
-    if "role" in message:
-        role = message["role"]
-        if role == "system":
-            validate(message, oai_system_message_schema)
-            return cast(ChatCompletionSystemMessageParam, message)
-        elif role == "user":
-            validate(message, oai_user_message_schema)
-            return cast(ChatCompletionUserMessageParam, message)
-        elif role == "assistant":
-            validate(message, oai_assistant_message_schema)
-            return cast(ChatCompletionAssistantMessageParam, message)
-        elif role == "tool":
-            validate(message, oai_tool_message_schema)
-            return cast(ChatCompletionToolMessageParam, message)
-        else:
-            raise ValueError(f"Invalid role: {role}")
+def to_oai_type(message: ChatMessage) -> Sequence[ChatCompletionMessageParam]:
+    if isinstance(message, SystemMessage):
+        return [system_message_to_oai(message)]
+    elif isinstance(message, UserMessage):
+        return [user_message_to_oai(message)]
+    elif isinstance(message, AssistantMessage):
+        return [assistant_message_to_oai(message)]
+    elif isinstance(message, ToolMessage):
+        return tool_message_to_oai(message)
     else:
-        raise ValueError(f"Invalid message: {message}")
+        raise ValueError(f"Invalid message type: {type(message)}")
 
 
 def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
-    if usage1["cost"] is not None or usage2["cost"] is not None:
+    if usage1.cost is not None or usage2.cost is not None:
         cost = 0.0
-        if usage1["cost"] is not None:
-            cost += usage1["cost"]
+        if usage1.cost is not None:
+            cost += usage1.cost
 
-        if usage2["cost"] is not None:
-            cost += usage2["cost"]
+        if usage2.cost is not None:
+            cost += usage2.cost
     else:
         cost = None
 
     return RequestUsage(
-        prompt_tokens=usage1["prompt_tokens"] + usage2["prompt_tokens"],
-        completion_tokens=usage1["completion_tokens"] + usage2["completion_tokens"],
+        prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
+        completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
         cost=cost,
     )
 
@@ -135,18 +210,58 @@ def _cost(response: Union[ChatCompletion, Tuple[str, int, int]]) -> float:
     return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
 
 
+class ResponseFormat(TypedDict):
+    type: Literal["text", "json_object"]
+
+
+class CreateArguments(TypedDict, total=False):
+    model: Required[str]
+    frequency_penalty: Optional[float]
+    logit_bias: Optional[Dict[str, int]]
+    max_tokens: Optional[int]
+    n: Optional[int]
+    presence_penalty: Optional[float]
+    response_format: ResponseFormat
+    seed: Optional[int]
+    stop: Union[Optional[str], List[str]]
+    temperature: Optional[float]
+    top_p: Optional[float]
+    user: str
+
+
+AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
+
+
+# See OpenAI docs for explanation of these parameters
+class OpenAIClientConfiguration(CreateArguments, total=False):
+    # Defaults to openai
+    api_type: NotRequired[Literal["openai", "azure"]]
+
+    # Init
+    api_key: str
+    organization: str
+    base_url: str
+    timeout: Union[float, None]
+    max_retries: int
+
+    # Azure specific
+    azure_endpoint: str
+    azure_deployment: str
+    api_version: str
+    azure_ad_token: str
+    azure_ad_token_provider: AsyncAzureADTokenProvider
+
+
 class OpenAIChatModelClient(ChatModelClient):
-    def __init__(self, client: Union[AsyncOpenAI, AsyncAzureOpenAI], create_args: Dict[str, Any]) -> None:
-        self._client = client
-        self._create_args = create_args
+    def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
+        self._client = _openai_client_from_config(kwargs)
+        self._create_args = _create_args_from_config(kwargs)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
 
     @classmethod
-    def create_from_config(cls, config: Dict[str, str]) -> Self:
-        client = _openai_client_from_config(config)
-        create_args = _create_args_from_config(config)
-        return cls(client, create_args)
+    def create_from_config(cls, config: Dict[str, Any]) -> ChatModelClient:
+        return OpenAIChatModelClient(**config)
 
     async def create(
         self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
@@ -165,11 +280,12 @@ class OpenAIChatModelClient(ChatModelClient):
             cached_value = cache.get(cache_key)
             if cached_value is not None:
                 response = cast(CreateResponse, cached_value)
-                response["cached"] = True
-                _add_usage(self._total_usage, response["usage"])
+                response.cached = True
+                _add_usage(self._total_usage, response.usage)
                 return response
 
-        oai_messages = [to_oai_type(m) for m in messages]
+        oai_messages_nested = [to_oai_type(m) for m in messages]
+        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
 
@@ -220,11 +336,12 @@ class OpenAIChatModelClient(ChatModelClient):
             cached_value = cache.get(cache_key)
             if cached_value is not None:
                 response = cast(CreateResponse, cached_value)
-                response["cached"] = True
-                _add_usage(self._total_usage, response["usage"])
+                response.cached = True
+                _add_usage(self._total_usage, response.usage)
                 yield response
 
-        oai_messages = [to_oai_type(m) for m in messages]
+        oai_messages_nested = [to_oai_type(m) for m in messages]
+        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         stream = await self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
 
@@ -252,19 +369,16 @@ class OpenAIChatModelClient(ChatModelClient):
                     idx = tool_call_chunk.index
                     if idx not in full_tool_calls:
                         # We ignore the type hint here because we want to fill in type when the delta provides it
-                        full_tool_calls[idx] = ToolCall(id="", function=Function(name="", arguments=""), type="")  # type: ignore[typeddict-item]
+                        full_tool_calls[idx] = ToolCall(id="", arguments="", name="")
 
                     if tool_call_chunk.id is not None:
-                        full_tool_calls[idx]["id"] += tool_call_chunk.id
-
-                    if tool_call_chunk.type is not None:
-                        full_tool_calls[idx]["type"] += tool_call_chunk.type
+                        full_tool_calls[idx].id += tool_call_chunk.id
 
                     if tool_call_chunk.function is not None:
                         if tool_call_chunk.function.name is not None:
-                            full_tool_calls[idx]["function"]["name"] += tool_call_chunk.function.name
+                            full_tool_calls[idx].name += tool_call_chunk.function.name
                         if tool_call_chunk.function.arguments is not None:
-                            full_tool_calls[idx]["function"]["arguments"] += tool_call_chunk.function.arguments
+                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
 
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
@@ -299,8 +413,7 @@ class OpenAIChatModelClient(ChatModelClient):
         _add_usage(self._actual_usage, usage)
         _add_usage(self._total_usage, usage)
 
-        # TODO - why is this cast needed?
-        yield cast(CreateResponse, result)
+        yield result
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage

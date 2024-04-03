@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-
 from typing import Optional
 from typing_extensions import Union, List, Any, Dict, Protocol, AsyncGenerator
-from ...cache import AbstractCache
-from ..types import ChatMessage, CreateResponse, RequestUsage
+from ..cache import AbstractCache
+from .types import ChatMessage, CreateResponse, RequestUsage
 
 
 class ChatModelClient(Protocol):

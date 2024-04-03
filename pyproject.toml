@@ -74,6 +74,7 @@ files = [
     "test/io",
     "autogen/experimental",
     "test/experimental",
+    "samples/experimental"
 ]
 
 exclude = [
