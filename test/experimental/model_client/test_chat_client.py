@@ -3,8 +3,7 @@
 import pytest
 from autogen import config_list_from_json
 from autogen.cache.in_memory_cache import InMemoryCache
-from autogen.model_client.factory import DEFAULT_FACTORY
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
+from autogen.experimental.model_client.factory import DEFAULT_FACTORY
 import sys
 import os
 
@@ -16,7 +15,7 @@ OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
-async def test_create():
+async def test_create() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
@@ -34,7 +33,7 @@ async def test_create():
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
-async def test_tool_calling_extraction():
+async def test_tool_calling_extraction() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
@@ -85,7 +84,7 @@ async def test_tool_calling_extraction():
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
-async def test_cache():
+async def test_cache() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
@@ -116,7 +115,7 @@ async def test_cache():
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
-async def test_create_stream():
+async def test_create_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
         filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},

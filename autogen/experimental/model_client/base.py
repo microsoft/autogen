@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 from typing_extensions import Union, List, Any, Dict, Protocol, AsyncGenerator
 from ...cache import AbstractCache
-from ..types import ChatMessage, CreateResponse, RequestUsage, ToolCall
+from ..types import ChatMessage, CreateResponse, RequestUsage
 
 
 class ChatModelClient(Protocol):
@@ -18,7 +18,7 @@ class ChatModelClient(Protocol):
 
     def create_stream(
         self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
-    ) -> AsyncGenerator[Union[Union[str, ToolCall, CreateResponse]], None]: ...
+    ) -> AsyncGenerator[Union[Union[str, CreateResponse]], None]: ...
 
     def actual_usage(self) -> RequestUsage: ...
 

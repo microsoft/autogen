@@ -61,7 +61,7 @@ class ChainedChatModelClient(ChatModelClient):
 
     def create_stream(
         self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
-    ) -> AsyncGenerator[Union[Union[str, ToolCall, CreateResponse]], None]:
+    ) -> AsyncGenerator[Union[Union[str, CreateResponse]], None]:
         last = len(self._clients) - 1
         for i, client in enumerate(self._clients):
             try:

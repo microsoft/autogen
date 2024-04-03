@@ -205,7 +205,7 @@ class OpenAIChatModelClient(ChatModelClient):
 
     async def create_stream(
         self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
-    ) -> AsyncGenerator[Union[str, ToolCall, CreateResponse], None]:
+    ) -> AsyncGenerator[Union[str, CreateResponse], None]:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
