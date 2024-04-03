@@ -26,7 +26,9 @@ class ChatResult:
     summary: str = None
     """A summary obtained from the chat."""
     cost: tuple = None  # (dict, dict) - (total_cost, actual_cost_with_cache)
-    """The cost of the chat. a tuple of (total_cost, total_actual_cost), where total_cost is a dictionary of cost information, and total_actual_cost is a dictionary of information on the actual incurred cost with cache."""
+    """The cost of the chat. a tuple of (total_cost, total_actual_cost), where total_cost is a
+       dictionary of cost information, and total_actual_cost is a dictionary of information on
+       the actual incurred cost with cache."""
     human_input: List[str] = None
     """A list of human input solicited during the chat."""
 
@@ -141,25 +143,32 @@ def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
 
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     """Initiate a list of chats.
-
     Args:
-        chat_queue (List[Dict]): a list of dictionaries containing the information about the chats.
+        chat_queue (List[Dict]): A list of dictionaries containing the information about the chats.
 
-        Each dictionary should contain the input arguments for [`ConversableAgent.initiate_chat`](/docs/reference/agentchat/conversable_agent#initiate_chat). For example:
-            - "sender": the sender agent.
-            - "recipient": the recipient agent.
-            - "clear_history" (bool): whether to clear the chat history with the agent. Default is True.
-            - "silent" (bool or None): (Experimental) whether to print the messages in this conversation. Default is False.
-            - "cache" (AbstractCache or None): the cache client to use for this conversation. Default is None.
-            - "max_turns" (int or None): maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
-            - "summary_method" (str or callable): a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-            - "summary_args" (dict): a dictionary of arguments to be passed to the summary_method. Default is {}.
-            - "message" (str, callable or None): if None, input() will be called to get the initial message.
-            - **context: additional context information to be passed to the chat.
-                - "carryover": It can be used to specify the carryover information to be passed to this chat.
-                    If provided, we will combine this carryover with the "message" content when generating the initial chat
-                    message in `generate_init_message`.
-
+        Each dictionary should contain the input arguments for
+        [`ConversableAgent.initiate_chat`](/docs/reference/agentchat/conversable_agent#initiate_chat).
+        For example:
+            - `"sender"` - the sender agent.
+            - `"recipient"` - the recipient agent.
+            - `"clear_history"  (bool) - whether to clear the chat history with the agent.
+               Default is True.
+            - `"silent"` (bool or None) - (Experimental) whether to print the messages in this
+               conversation. Default is False.
+            - `"cache"` (Cache or None) - the cache client to use for this conversation.
+               Default is None.
+            - `"max_turns"` (int or None) - maximum number of turns for the chat. If None, the chat
+               will continue until a termination condition is met. Default is None.
+            - `"summary_method"` (str or callable) - a string or callable specifying the method to get
+               a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+            - `"summary_args"` (dict) - a dictionary of arguments to be passed to the summary_method.
+               Default is {}.
+            - `"message"` (str, callable or None) - if None, input() will be called to get the
+               initial message.
+            - `**context` - additional context information to be passed to the chat.
+            - `"carryover"` - It can be used to specify the carryover information to be passed
+               to this chat. If provided, we will combine this carryover with the "message" content when
+               generating the initial chat message in `generate_init_message`.
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
@@ -228,11 +237,11 @@ async def a_initiate_chats(chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatRe
     """(async) Initiate a list of chats.
 
     args:
-        Please refer to `initiate_chats`.
+        - Please refer to `initiate_chats`.
 
 
     returns:
-        (Dict): a dict of ChatId: ChatResult corresponding to the finished chats in the chat_queue.
+        - (Dict): a dict of ChatId: ChatResult corresponding to the finished chats in the chat_queue.
     """
     consolidate_chat_info(chat_queue)
     _validate_recipients(chat_queue)
