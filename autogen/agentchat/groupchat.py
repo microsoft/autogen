@@ -51,6 +51,10 @@ class GroupChat:
                 last_speaker: Agent, groupchat: GroupChat
             ) -> Union[Agent, str, None]:
             ```
+    - requery_on_multiple_speaker_names: whether to requery the LLM if multiple speaker names are returned during speaker selection.
+        Applies only to "auto" speaker selection method.
+        Default is False, in which case if the LLM returns multiple speaker names it will not requery the LLM.
+        If set to True and the LLM returns multiple speaker names, a message will be sent to the LLM with that response asking the LLM to return just one name based on it.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
@@ -77,6 +81,7 @@ class GroupChat:
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
+    requery_on_multiple_speaker_names: bool = False
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
@@ -466,7 +471,7 @@ class GroupChat:
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = selector.generate_oai_reply(messages)
-        return self._finalize_speaker(last_speaker, final, name, agents)
+        return self._finalize_speaker(last_speaker, final, name, selector, agents)
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker."""
@@ -476,9 +481,11 @@ class GroupChat:
         # auto speaker selection
         selector.update_system_message(self.select_speaker_msg(agents))
         final, name = await selector.a_generate_oai_reply(messages)
-        return self._finalize_speaker(last_speaker, final, name, agents)
+        return self._finalize_speaker(last_speaker, final, name, selector, agents)
 
-    def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: Optional[List[Agent]]) -> Agent:
+    def _finalize_speaker(
+        self, last_speaker: Agent, final: bool, name: str, selector: ConversableAgent, agents: Optional[List[Agent]]
+    ) -> Agent:
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
@@ -487,6 +494,43 @@ class GroupChat:
         mentions = self._mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
+        elif self.requery_on_multiple_speaker_names and len(mentions) > 1:
+            # We have more than one name mentioned in the response, requery and
+            # ask the LLM to choose one from the response
+            select_name_message = [
+                {
+                    #'content': f'Your role is to select the current speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}, respond with just the name of the current speaker in the following context.\nContext:\n{name}',
+                    #'content': f'Your role is to select the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. If the context refers to the next speaker name, choose that name, otherwise choose the current speaker. Respond with just the name of the speaker in the following context.\nContext:\n{name}',
+                    "content": f"""Your role is to identify the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. To determine the speaker use these prioritised rules:
+                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+                    2. If it refers to the "next" speaker name, choose that name
+                    3. Otherwise, choose the first provided speaker's name in the context
+
+                    Respond with just the name of the speaker and do not provide a reason.\nContext:\n{name}""",
+                    "role": "system",
+                }
+            ]
+
+            # Requery the LLM
+            # final_single, name_single = selector.generate_oai_reply(select_name_message)
+
+            response = selector.client.create(
+                context=None,
+                messages=select_name_message,
+                cache=None,
+            )
+            name_single = selector.client.extract_text_or_completion_object(response)[0]
+
+            # Evaluate the response for agent names
+            mentions = self._mentioned_agents(name_single, agents)
+            if len(mentions) == 1:
+                # Successfully identified just the one agent name on the requery
+                name = next(iter(mentions))
+            else:
+                # Requery failed to identify just one agent name
+                logger.warning(
+                    f"GroupChat select_speaker failed to resolve the next speaker's name (even with requery). Requery speaker selection returned:\n{name_single}"
+                )
         else:
             logger.warning(
                 f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
@@ -531,8 +575,14 @@ class GroupChat:
         mentions = dict()
         for agent in agents:
             regex = (
-                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
-            )  # Finds agent mentions, taking word boundaries into account
+                r"(?<=\W)("
+                + re.escape(agent.name)
+                + r"|"
+                + re.escape(agent.name.replace("_", " "))
+                + r"|"
+                + re.escape(agent.name.replace("_", r"\_"))
+                + r")(?=\W)"
+            )
             count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
