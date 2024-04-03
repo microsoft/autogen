@@ -205,6 +205,13 @@ setInterval(function() {{
                 actions = ["'click'"]
                 if rects[r]["role"] in ["textbox", "searchbox", "search"]:
                     actions = ["'type'"]
+                if rects[r]["role"] in ["combobox", "menu", "listbox"]:
+                    actions = '["select"]'
+                    options = ''
+                    if rects[r]['aria-name'] is not None:
+                        options = rects[r]['aria-name'].split('\n')
+                        options = ', '.join(f'"{option}"' for option in options)
+                        text_labels += f"""{{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": {actions}, "options": [{options}], "name": "dropdown menu" }},"""
                 if rects[r]["v-scrollable"]:
                     actions.append("'scroll_up'")
                     actions.append("'scroll_down'")
@@ -212,6 +219,8 @@ setInterval(function() {{
 
                 text_labels += f"""
    {{ "id": {r}, "aria-role": "{rects[r]['role']}", "html_tag": "{rects[r]['tag_name']}", "actions": "{actions}", "name": "{rects[r]['aria-name']}" }},"""
+                
+        print(text_labels)
 
         text_prompt = f"""
 Consider the following screenshot of a web browser, which is open to the page '{self._page.url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
@@ -294,6 +303,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             elif action == "scroll_down":
                 self._log_to_console("scroll_down", target=target_name if target_name else target)
                 self._scroll_id(target, "down")
+            elif action == "select":
+                self._log_to_console("select", target=target_name if target_name else target, arg=argument)
+                self._select_dropdown(target, argument)
             else:
                 # No action
                 return True, text_response
@@ -453,6 +465,15 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         }})();
     """
         )
+
+    def _select_dropdown(self, identifier, value):
+        """
+        Select an option from a dropdown menu.
+        """
+        try:
+            self._page.select_option(f"[__elementId='{identifier}']", value=value)
+        except Exception as e:
+            raise ValueError(f"Failed to select option: {e}")
 
     def _log_to_console(self, action, target="", arg=""):
         if len(target) > 50:
