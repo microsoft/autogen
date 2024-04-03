@@ -67,13 +67,12 @@ def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserM
     if not isinstance(content, list):
         raise TypeError(f"content must be None, str, or list, but got {type(content)}")
 
+    # if the item is a multimodal type or string, we cast it to string.
+    if all(isinstance(item, MultimodalObject) or isinstance(item, str) for item in content):
+        return " ".join([str(s) for s in content])
+
     rst = ""
     for item in content:
-        # if the item is a multimodal type or string, we cast it to string.
-        if isinstance(item, MultimodalObject) or isinstance(item, str):
-            rst += str(item)
-            continue
-
         if not isinstance(item, dict):
             raise TypeError("Wrong content format: every element should be dict if the content is a list.")
 

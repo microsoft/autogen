@@ -1,29 +1,30 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
-import sys
-import pytest
 from io import StringIO
+from unittest.mock import patch
+
+import pytest
+from conftest import skip_docker
 
 import autogen
 from autogen.code_utils import (
     UNKNOWN,
+    check_can_use_docker_or_throw,
     content_str,
+    decide_use_docker,
     execute_code,
     extract_code,
-    improve_code,
     get_powershell_command,
+    improve_code,
     improve_function,
+    in_docker_container,
     infer_lang,
     is_docker_running,
-    in_docker_container,
-    decide_use_docker,
-    check_can_use_docker_or_throw,
 )
-from conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -542,6 +543,10 @@ class TestContentStr(unittest.TestCase):
     def test_mixed_content(self):
         content = [{"type": "text", "text": "hello"}, {"type": "image_url", "url": "http://example.com/image.png"}]
         self.assertEqual(content_str(content), "hello<image>")
+
+    def test_list_of_str(self):
+        content = ["how are", "you"]
+        self.assertEqual(content_str(content), "how are you")
 
     def test_invalid_content(self):
         content = [{"type": "text", "text": "hello"}, {"type": "wrong_type", "url": "http://example.com/image.png"}]
