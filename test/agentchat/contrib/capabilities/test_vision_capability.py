@@ -24,13 +24,7 @@ def lmm_config():
     }
 
 
-def png_filename() -> str:
-    filename = "tmp/test_image.png"
-    if not os.path.exists(filename):
-        # Setup: Create a PNG file
-        image = Image.new("RGB", (100, 100), color="blue")
-        image.save(filename)
-    return filename  # This is what the test will use
+img_name = os.path.abspath("test/test_files/test_image.png")
 
 
 @pytest.fixture
@@ -84,9 +78,9 @@ def test_process_last_received_message_text(mock_lmm_client, vision_capability):
 def test_process_last_received_message_with_image(
     mock_get_caption, mock_convert_base64, mock_get_image_data, vision_capability
 ):
-    content = [{"type": "image_url", "image_url": {"url": (png_filename())}}]
+    content = [{"type": "image_url", "image_url": {"url": (img_name)}}]
     expected_caption = (
-        f"<img {png_filename()}> in case you can not see, the caption of this image is: A sample image caption.\n"
+        f"<img {img_name}> in case you can not see, the caption of this image is: A sample image caption.\n"
     )
     processed_content = vision_capability.process_last_received_message(content)
     assert processed_content == expected_caption
@@ -113,7 +107,7 @@ def custom_caption_func():
 class TestCustomCaptionFunc:
     def test_custom_caption_func_with_valid_url(self, custom_caption_func):
         """Test custom caption function with a valid image URL."""
-        image_url = png_filename()
+        image_url = img_name
         expected_caption = f"An image description. The image is from {image_url}."
         assert custom_caption_func(image_url) == expected_caption, "Caption does not match expected output."
 
@@ -121,7 +115,7 @@ class TestCustomCaptionFunc:
         """Test processing a message containing an image URL with a custom caption function."""
         vision_capability = VisionCapability(lmm_config, custom_caption_func=custom_caption_func)
 
-        image_url = png_filename()
+        image_url = img_name
         content = [{"type": "image_url", "image_url": {"url": image_url}}]
         expected_output = f" An image description. The image is from {image_url}."
         processed_content = vision_capability.process_last_received_message(content)
