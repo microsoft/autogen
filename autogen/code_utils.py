@@ -13,7 +13,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import docker
 
 from autogen import oai
-from autogen.agentchat.contrib.img_utils import AGImage
 from autogen.multimodal_utils import MultimodalObject
 
 from .types import UserMessageImageContentPart, UserMessageTextContentPart
