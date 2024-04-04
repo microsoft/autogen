@@ -17,13 +17,9 @@ from .env_config import (
     WIKIPEDIA,
 )
 
-
-# Need to update openai
-# from .openai_utils import (
-#    generate_from_openai_chat_completion,
-# )
-def generate_from_openai_chat_completion(**args):
-    raise NotImplementedError()
+from .openai_utils import (
+    generate_from_openai_chat_completion,
+)
 
 
 def shopping_get_auth_token() -> str:

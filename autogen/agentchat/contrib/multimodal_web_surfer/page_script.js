@@ -26,7 +26,7 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
   let getInteractiveElements = function() {
 
       let results = []
-      let roles = ["scrollbar", "searchbox", "slider", "spinbutton", "switch", "tab", "tabpanel", "treeitem", "button", "checkbox", "gridcell", "link", "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar", "radio", "textbox", "combobox", "menu", "menubar", "tablist", "tree", "treegrid", "grid", "listbox", "radiogroup", "widget"];
+      let roles = ["scrollbar", "searchbox", "slider", "spinbutton", "switch", "tab", "treeitem", "button", "checkbox", "gridcell", "link", "menuitem", "menuitemcheckbox", "menuitemradio", "option", "progressbar", "radio", "textbox", "combobox", "menu", "menubar", "tablist", "tree", "treegrid", "grid", "listbox", "radiogroup", "widget"];
 
 
       // Get the main interactive elements

@@ -227,6 +227,8 @@ class URLEvaluator(Evaluator):
         ref_urls = [clean_url(url) for url in ref_urls]
         matching_rule = configs["eval"].get("url_note", "GOLD in PRED")
         if matching_rule == "GOLD in PRED":
+            print(f"Pred: {pred}")
+            print(f"Ref: {ref_urls}")
             ref_base_paths, ref_queries = parse_urls(ref_urls)
             pred_base_paths, pred_query = parse_url(pred)
 
