@@ -2,8 +2,12 @@ import os
 import json
 import testbed_utils
 import autogen
+import evaluation_harness
+import sys
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from mmagent import MultimodalAgent
+
+from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
 
 testbed_utils.init()
 ##############################
@@ -16,27 +20,6 @@ with open("task_prompt.json.txt", "rt") as fh:
 config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
-# Figure out the starting URL
-start_url = {
-    "__SHOPPING__": os.getenv("SHOPPING_URL"),
-    "__SHOPPING_ADMIN__": os.getenv("SHOPPING_ADMIN_URL"),
-    "__REDDIT__": os.getenv("REDDIT_URL"),
-    "__GITLAB__": os.getenv("GITLAB_URL"),
-    "__MAP__": os.getenv("MAP_URL"),
-    "__WIKIPEDIA__": os.getenv("WIKIPEDIA_URL"),
-    "__HOMEPAGE__": os.getenv("HOMEPAGE_URL"),
-}
-
-# Figure out the user name
-user_name = {
-    "__REDDIT__": os.getenv("REDDIT_USER_NAME"),
-}
-
-# Figure out the password
-password = {
-    "__REDDIT__": os.getenv("REDDIT_PASSWORD"),
-}
-
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
@@ -45,7 +28,7 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     chromium_channel="chromium",
     chromium_data_dir=None,
-    start_page=os.getenv("HOMEPAGE_URL"),
+    start_page=HOMEPAGE,
     debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
@@ -60,17 +43,25 @@ Once the user has taken the final necessary action to complete the task, and you
     max_consecutive_auto_reply=20,
 )
 
+# BEGIN TODO: Make this conditional on the sites involved
+login_url = REDDIT
+username = ACCOUNTS["reddit"]["username"]
+password = ACCOUNTS["reddit"]["password"]
+start_url = TASK["start_url"].replace("__REDDIT__", REDDIT)
+if start_url == REDDIT:
+    start_url = start_url + "/forums"
 
 user_proxy.initiate_chat(
     web_surfer,
-    message=f"Navigate to {start_url[TASK['start_url']]}. Click \"Log in\", type the username '{user_name[TASK['start_url']]}', and password is '{password[TASK['start_url']]}'. Finally click the login button.",
+    message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
     clear_history=True,
 )
+## END TODO
 
 user_proxy.reset()
 web_surfer.reset()
 
-user_proxy.send(f"Navigate to {start_url[TASK['start_url']]}", web_surfer, request_reply=True)
+user_proxy.send(f"Navigate to {start_url}", web_surfer, request_reply=True)
 
 user_proxy.reset()
 web_surfer.reset()
@@ -78,12 +69,31 @@ web_surfer.reset()
 web_surfer.initiate_chat(
     user_proxy,
     message=f"""
-We are visiting the website {start_url[TASK['start_url']]}, which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/. On this website, please complete the following task:
+We are visiting the website {start_url}, which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/. On this website, please complete the following task:
 
 {TASK['intent']}
 """.strip(),
     clear_history=True,
 )
 
-##############################
+########## EVALUATION ##########
+
+# playwright = web_surfer._playwright
+context = web_surfer._context
+page = web_surfer._page
+cdp_session = context.new_cdp_session(page)
+config_file = "full_task.json.txt"
+final_answer = "TODO"
+
+evaluator = evaluation_harness.evaluator_router(config_file)
+score = evaluator(
+    trajectory=evaluation_harness.make_answer_trajecotry(final_answer),
+    config_file=config_file,
+    page=page,
+    client=cdp_session,
+)
+
+print("FINAL SCORE: " + str(score))
+
+################################
 testbed_utils.finalize(agents=[web_surfer, user_proxy])
