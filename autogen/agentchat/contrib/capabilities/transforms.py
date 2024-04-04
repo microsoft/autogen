@@ -6,17 +6,7 @@ from termcolor import colored
 
 from autogen import token_count_utils
 
-
-IMPORT_ERROR: Optional[Exception] = None
-try:
-    import llmlingua
-except ImportError:
-    IMPORT_ERROR = ImportError(
-        "LLMLingua is not installed. Please install it with `pip install pyautogen[long-context]`"
-    )
-    PromptCompressor = object
-else:
-    from llmlingua import PromptCompressor
+from .text_compressors import LLMLingua, TextCompressor
 
 
 class MessageTransform(Protocol):
@@ -213,66 +203,22 @@ class MessageTokenLimiter:
 
 
 class TextMessageCompressor:
-    """Compresses text messages using LLMLingua for improved efficiency in processing and response generation.
+    """A transform for compressing text messages in a conversation history.
 
-    This class leverages LLMLingua, a prompt compression library, to reduce the token count of messages without
-    significant loss of meaning. This is particularly useful for when the input size can affect processing speed and
-    costs. The compressor supports both plain text and multimodal text messages.
-
-    Example:
-        ```python
-        compressor = TextMessageCompressor()
-        compressed_messages = compressor.apply_transform(messages)
-        ```
-
-    NOTE: The effectiveness of compression and the resultant token savings can vary based on the content of the messages
-    and the specific configurations used for the PromptCompressor.
+    It uses a specified text compression method to reduce the token count of messages, which can lead to more efficient
+    processing and response generation by downstream models.
     """
 
     def __init__(
-        self,
-        prompt_compressor: Optional[PromptCompressor] = None,
-        compress_args: dict = dict(),
-        structured_compression: bool = False,
-        messages_to_compress: Literal["last", "all"] = "last",
+        self, text_compressor: TextCompressor = LLMLingua(), messages_to_compress: Literal["last", "all"] = "last"
     ):
-        """Initializes the TextMessageCompressor with specified compression settings.
-
-        Args:
-            prompt_compressor (PromptCompressor): An instance of LLMLingua's PromptCompressor configured for prompt
-                compression. If not provided, it defaults to 'microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank'
-                model and uses llmlingua2 on the cpu.
-            compress_args (dict): Additional arguments to pass to the compressor's compression method. This allows for
-                customization of the compression process.
-            structured_compression (bool): Flag to determine the type of compression applied. When True, uses structured
-                compression. Otherwise, uses standard compression.
-            messages_to_compress (Literal["last", "all"]): Determines which messages in the conversation history to compress. "last" compresses
-                only the most recent message, while "all" compresses all messages.
-
-        Raises:
-            ImportError: If LLMLingua is not installed, an ImportError is raised.
         """
-
-        if IMPORT_ERROR:
-            raise IMPORT_ERROR
-
-        if prompt_compressor is None:
-            prompt_compressor = PromptCompressor(
-                model_name="microsoft/llmlingua-2-bert-base-multilingual-cased-meetingbank",
-                use_llmlingua2=True,
-                device_map="cpu",
-            )
-
-        assert prompt_compressor is not None
-        assert isinstance(prompt_compressor, llmlingua.PromptCompressor)
-
-        self._prompt_compressor = prompt_compressor
-        self._compress_args = compress_args
-        self._compression_method = (
-            self._prompt_compressor.structured_compress_prompt
-            if structured_compression
-            else self._prompt_compressor.compress_prompt
-        )
+        Args:
+            text_compressor (TextCompressor): An instance of a class that implements the TextCompressor protocol.
+            messages_to_compress (Literal["last", "all"]): Determines which messages to compress. If set to "last", only the
+                last message will be compressed. If set to "all", all messages will be compressed.
+        """
+        self._text_compressor = text_compressor
         self._messages_to_compress = messages_to_compress
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
@@ -345,16 +291,18 @@ class TextMessageCompressor:
 
     def _compress_text(self, text: str) -> Tuple[int, str]:
         """Compresses the given text using the specified compression method."""
-        compressed_text = self._compression_method([text], **self._compress_args)
-        return (
-            compressed_text["origin_tokens"] - compressed_text["compressed_tokens"],
-            compressed_text["compressed_prompt"],
-        )
+        compressed_text = self._text_compressor.compress_text(text)
+
+        savings = 0
+        if "origin_tokens" in compressed_text and "compressed_tokens" in compressed_text:
+            savings = compressed_text["origin_tokens"] - compressed_text["compressed_tokens"]
+
+        return savings, compressed_text["compressed_prompt"]
 
     def _print_stats(self, tokens_saved: int):
         """Prints a message indicating the number of tokens saved through compression."""
         if tokens_saved > 0:
-            print(colored(f"{tokens_saved} tokens saved with compression.", "green"))
+            print(colored(f"{tokens_saved} tokens saved with text compression.", "green"))
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
