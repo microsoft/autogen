@@ -1,7 +1,7 @@
 import os
-from typing import Any, Callable, Dict, List
+from typing import Callable, List
 
-from .types import Document, GetResults, ItemID, QueryResults
+from .base import Document, GetResults, ItemID, QueryResults
 from .utils import filter_results_by_distance, get_logger
 
 try:

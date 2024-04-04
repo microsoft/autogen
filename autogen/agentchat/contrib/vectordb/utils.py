@@ -1,5 +1,6 @@
-from typing import List, Dict
 import logging
+from typing import Dict, List
+
 from termcolor import colored
 
 
