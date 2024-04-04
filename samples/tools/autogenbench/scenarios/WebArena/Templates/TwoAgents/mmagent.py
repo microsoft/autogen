@@ -38,6 +38,6 @@ class MultimodalAgent(autogen.ConversableAgent):
             history.append(message)
         history.append(messages[-1])
 
-        response = self.client.create(messages=self._oai_system_message + messages)
+        response = self.client.create(messages=self._oai_system_message + history)
         completion = self.client.extract_text_or_completion_object(response)[0]
         return True, completion

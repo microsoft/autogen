@@ -11,8 +11,14 @@ SCRIPT_DIR = os.path.dirname(SCRIPT_PATH)
 
 TABULATE_FILE = "custom_tabulate.py"
 
+# Is the task considered a success?
 SUCCESS_STRINGS = [
     "ALL TESTS PASSED !#!#",
+]
+
+# Did the task exit cleanly, or did it crash?
+EXIT_SUCCESS_STRINGS = [
+    "SCENARIO.PY COMPLETE !#!#",
 ]
 
 EXCLUDE_DIR_NAMES = ["__pycache__"]
@@ -52,11 +58,21 @@ def find_tabulate_module(search_dir, stop_dir=None):
         search_dir = parent_dir
 
 
-def default_scorer(instance_dir, success_strings=SUCCESS_STRINGS):
+def default_scorer(instance_dir, success_strings=SUCCESS_STRINGS, exit_success_strings=EXIT_SUCCESS_STRINGS):
     console_log = os.path.join(instance_dir, "console_log.txt")
     if os.path.isfile(console_log):
         with open(console_log, "rt") as fh:
             content = fh.read()
+
+            exit_success = False
+            for s in exit_success_strings:
+                if s in content:
+                    exit_success = True
+                    break
+
+            if not exit_success:
+                return None
+
             for s in success_strings:
                 if s in content:
                     return True
