@@ -4,20 +4,20 @@ Now that you have learned the basics of AutoGen, you can start to build your own
 agents. Here are some ideas to get you started without going to the advanced
 topics:
 
-1.  **Chat with LLMs**: In [Human in the Loop](./human-in-the-loop) we covered
+1.  **Chat with LLMs**: In [Human in the Loop](./human-in-the-loop.ipynb) we covered
     the basic human-in-the-loop usage. You can try to hook up different LLMs
     using local model servers like
     [Ollama](https://github.com/ollama/ollama)
     and [LM Studio](https://lmstudio.ai/), and
     chat with them using the human-in-the-loop component of your human proxy
     agent.
-2.  **Prompt Engineering**: In [Code Executors](./code-executors) we
-    covered the simple two agent scenario using GPT-4 and Python code executor.
+2.  **Prompt Engineering**: In [Code Executors](./code-executors.ipynb) we
+    covered the simple two-agent scenario using GPT-4 and Python code executor.
     To make this scenario work for different LLMs and programming languages, you
     probably need to tune the system message of the code writer agent. Same with
     other scenarios that we have covered in this tutorial, you can also try to
     tune system messages for different LLMs.
-3.  **Complex Tasks**: In [ConversationPatterns](./conversation-patterns)
+3.  **Complex Tasks**: In [ConversationPatterns](./conversation-patterns.ipynb) website/docs/tutorial/conversation-patterns.ipynb
     we covered the basic conversation patterns. You can try to find other tasks
     that can be decomposed into these patterns, and leverage the code executors
     and tools
