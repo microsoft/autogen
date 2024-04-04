@@ -52,7 +52,7 @@ exclude = [
      # This file needs to be either upgraded or removed and therefore should be
     # ignore from type checking for now
     "math_utils\\.py$",
-    "samples\\apps\\cap\\py\\autogencap\\proto\\.*\\.py",
+    "**/cap/py/autogencap/proto/*",
 ]
 ignore-init-module-imports = true
 unfixable = ["F401"]
