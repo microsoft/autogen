@@ -234,7 +234,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
         self._recursive = self._retrieve_config.get("recursive", True)
-        self._context_max_tokens = self._max_tokens * 0.8
+        self._context_max_tokens = self._retrieve_config.get("context_max_tokens", self._max_tokens * 0.8)
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
