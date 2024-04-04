@@ -210,14 +210,18 @@ class TextMessageCompressor:
     """
 
     def __init__(
-        self, text_compressor: TextCompressor = LLMLingua(), messages_to_compress: Literal["last", "all"] = "last"
+        self, text_compressor: Optional[TextCompressor] = None, messages_to_compress: Literal["last", "all"] = "last"
     ):
         """
         Args:
-            text_compressor (TextCompressor): An instance of a class that implements the TextCompressor protocol.
+            text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor protocol. If None, it defaults to LLMLingua.
             messages_to_compress (Literal["last", "all"]): Determines which messages to compress. If set to "last", only the
                 last message will be compressed. If set to "all", all messages will be compressed.
         """
+
+        if text_compressor is None:
+            text_compressor = LLMLingua()
+
         self._text_compressor = text_compressor
         self._messages_to_compress = messages_to_compress
 
