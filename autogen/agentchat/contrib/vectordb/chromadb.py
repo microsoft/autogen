@@ -23,7 +23,7 @@ class ChromaVectorDB:
     """
 
     def __init__(
-        self, client=None, path: str = None, embedding_function: Callable = None, metadata: dict = None, **kwargs
+        self, *, client=None, path: str = None, embedding_function: Callable = None, metadata: dict = None, **kwargs
     ) -> None:
         """
         Initialize the vector database.
