@@ -1,8 +1,8 @@
-from typing import Any, List, Mapping, Optional, Protocol, Sequence, TypedDict, Union, runtime_checkable
+from typing import Any, List, Mapping, Optional, Protocol, Sequence, Tuple, TypedDict, Union, runtime_checkable
 
-Metadata = Union[Mapping[str, Union[str, int, float, bool, None]], None]
+Metadata = Union[Mapping[str, Any], None]
 Vector = Union[Sequence[float], Sequence[int]]
-ItemID = str  # chromadb doesn't support int ids
+ItemID = Union[str, int]  # chromadb doesn't support int ids, VikingDB does
 
 
 class Document(TypedDict):
@@ -10,9 +10,9 @@ class Document(TypedDict):
 
     id: ItemID | the unique identifier of the document.
     content: str | the text content of the chunk.
-    metadata: Metadata | contains additional information about the document such as source, date, etc.
-    embedding: Vector | the vector representation of the content.
-    dimensions: int | the dimensions of the content_embedding.
+    metadata: Metadata, Optional | contains additional information about the document such as source, date, etc.
+    embedding: Vector, Optional | the vector representation of the content.
+    dimensions: int, Optional | the dimensions of the content_embedding.
     """
 
     id: ItemID
@@ -22,36 +22,11 @@ class Document(TypedDict):
     dimensions: Optional[int]
 
 
-class QueryResults(TypedDict):
-    """QueryResults is the response from the vector database for a query.
-
-    ids: List[List[ItemID]] | the unique identifiers of the documents.
-    contents: List[List[str]] | the text content of the documents.
-    embeddings: List[List[Vector]] | the vector representations of the documents.
-    metadatas: List[List[Metadata]] | the metadata of the documents.
-    distances: List[List[float]] | the distances between the query and the documents.
-    """
-
-    ids: List[List[ItemID]]
-    contents: List[List[str]]
-    embeddings: Optional[List[List[Vector]]]
-    metadatas: Optional[List[List[Metadata]]]
-    distances: Optional[List[List[float]]]
-
-
-class GetResults(TypedDict):
-    """GetResults is the response from the vector database for getting documents by ids.
-
-    ids: List[ItemID] | the unique identifiers of the documents.
-    contents: List[str] | the text content of the documents.
-    embeddings: List[Vector] | the vector representations of the documents.
-    metadatas: List[Metadata] | the metadata of the documents.
-    """
-
-    ids: List[ItemID]
-    contents: Optional[List[str]]
-    embeddings: Optional[List[Vector]]
-    metadatas: Optional[List[Metadata]]
+"""QueryResults is the response from the vector database for a query/queries.
+A query is a list containing one string while queries is a list containing multiple strings.
+The response is a list of query results, each query result is a list of tuples containing the document and the distance.
+"""
+QueryResults = List[List[Tuple[Document, float]]]
 
 
 @runtime_checkable
@@ -166,36 +141,8 @@ class VectorDB(Protocol):
             kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            QueryResults | The query results. Each query result is a TypedDict `QueryResults`.
-            It should include the following fields:
-                - required: "ids", "contents"
-                - optional: "embeddings", "metadatas", "distances", etc.
-
-            queries example: ["query1", "query2"]
-            query results example: {
-                "ids": [["id1", "id2", ...], ["id3", "id4", ...]],
-                "contents": [["content1", "content2", ...], ["content3", "content4", ...]],
-                "embeddings": [["embedding1", "embedding2", ...], ["embedding3", "embedding4", ...]],
-                "metadatas": [["metadata1", "metadata2", ...], ["metadata3", "metadata4", ...]],
-                "distances": [["distance1", "distance2", ...], ["distance3", "distance4", ...]],
-            }
-
-        """
-        ...
-
-    def get_docs_by_ids(self, ids: List[ItemID], collection_name: str = None, include=None, **kwargs) -> GetResults:
-        """
-        Retrieve documents from the collection of the vector database based on the ids.
-
-        Args:
-            ids: List[Any] | A list of document ids.
-            collection_name: str | The name of the collection. Default is None.
-            include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"]. ids are always included.
-            kwargs: Dict | Additional keyword arguments.
-
-        Returns:
-            GetResults | The results.
+            QueryResults | The query results. Each query result is a list of list of tuples containing the document and
+                the distance.
         """
         ...
 
