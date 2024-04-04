@@ -512,6 +512,10 @@ class GroupChat:
 
     def _mentioned_agents(self, message_content: Union[str, List], agents: Optional[List[Agent]]) -> Dict:
         """Counts the number of times each agent is mentioned in the provided message content.
+        Agent names will match under any of the following conditions (all case-sensitive):
+        - Exact name match
+        - If the agent name has underscores it will match with spaces instead (e.g. 'Story_writer' == 'Story writer')
+        - If the agent name has underscores it will match with '\\_' instead of '_' (e.g. 'Story_writer' == 'Story\\_writer')
 
         Args:
             message_content (Union[str, List]): The content of the message, either as a single string or a list of strings.
@@ -530,9 +534,17 @@ class GroupChat:
 
         mentions = dict()
         for agent in agents:
+            # Finds agent mentions, taking word boundaries into account,
+            # accommodates escaping underscores and underscores as spaces
             regex = (
-                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
-            )  # Finds agent mentions, taking word boundaries into account
+                r"(?<=\W)("
+                + re.escape(agent.name)
+                + r"|"
+                + re.escape(agent.name.replace("_", " "))
+                + r"|"
+                + re.escape(agent.name.replace("_", r"\_"))
+                + r")(?=\W)"
+            )
             count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
