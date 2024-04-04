@@ -28,7 +28,7 @@ IS_WIN32 = sys.platform == "win32"
 
 # This is the tag given to the image that is *built* when no other image is provided.
 # Do not use this field to specify the name of an existing image (e.g., on Dockerhub)
-DEFAULT_DOCKER_IMAGE_TAG = "autogenbench:default"
+DEFAULT_DOCKER_IMAGE_TAG = "autogenbench:webarena"
 
 DEFAULT_ENV_FILE = "ENV.json"
 
