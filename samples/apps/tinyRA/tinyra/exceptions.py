@@ -1,8 +1,12 @@
-class ChatMessageError(Exception):
+class DatabaseError(Exception):
     pass
 
 
-class ToolUpdateError(Exception):
+class ChatMessageError(DatabaseError):
+    pass
+
+
+class ToolUpdateError(DatabaseError):
     pass
 
 
@@ -11,4 +15,8 @@ class InvalidToolError(Exception):
 
 
 class SubprocessError(Exception):
+    pass
+
+
+class FileManagerError(Exception):
     pass

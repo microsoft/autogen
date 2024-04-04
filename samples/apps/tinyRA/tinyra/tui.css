@@ -15,18 +15,7 @@ Footer {
     layer: top;
 }
 
-#directory-tree-grid {
-    row-span: 10;
-    column-span: 3;
 
-    margin: 2;
-    margin-top: 1;
-    margin-bottom: 1;
-
-    grid-size: 2 10;
-
-    align: center middle;
-}
 
 #chat-grid{
     margin: 2;
@@ -38,23 +27,6 @@ Footer {
     grid-rows: 1fr 4;
 }
 
-#directory-tree{
-    row-span: 9;
-    column-span: 2;
-    padding: 1;
-}
-
-#directory-tree-footer{
-    column-span: 2;
-    row-span: 1;
-
-    grid-size: 2 1;
-    align: center middle;
-}
-
-#directory-tree-footer Button {
-    column-span: 1;
-}
 
 #history-footer{
     column-span: 10;
@@ -144,11 +116,6 @@ NotificationScreen {
     /* border: solid red; */
 }
 
-QuitScreen {
-    align: center middle;
-    layer: notifications;
-
-}
 
 #quit-screen-grid {
     height: 40%;
@@ -159,34 +126,6 @@ QuitScreen {
 
     grid-size: 2 3;
     grid-gutter: 1 2;
-}
-
-#question {
-    column-span: 2;
-    row-span: 2;
-    text-style: bold;
-    width: 100%;
-    height: 100%;
-    content-align: center middle;
-
-    /* border: solid red; */
-}
-
-#quit-screen-footer {
-    column-span: 2;
-    row-span: 1;
-    align: center middle;
-    /* border: solid red; */
-
-    grid-size: 2 1;
-    grid-gutter: 1 2;
-}
-
-#quit-screen-footer Button{
-    /* column-span: 1; */
-    /* row-span: 1; */
-    width: 40%;
-    /* border: solid red; */
 }
 
 ChatScreen, LearningScreen {
@@ -369,31 +308,4 @@ SettingsScreen {
 #tool-list ListItem {
     padding: 1;
     margin: 1;
-}
-
-Sidebar {
-    width: 40%;
-    background: $panel;
-    border: thick $primary-background 90%;
-    transition: offset 500ms in_out_cubic;
-    padding: 2;
-    layer: overlay;
-}
-
-Sidebar:focus-within {
-    offset: 0 0 !important;
-}
-
-Sidebar.-hidden {
-    offset-x: -100%;
-}
-
-Sidebar Static {
-    background: $boost;
-    color: $secondary;
-    padding: 2 4;
-    border-right: vkey $background;
-    dock: top;
-    text-align: center;
-    text-style: bold;
 }
