@@ -3,6 +3,8 @@ from typing import Dict, List
 
 from termcolor import colored
 
+from .base import QueryResults
+
 
 class ColoredLogger(logging.Logger):
     def __init__(self, name, level=logging.NOTSET):
@@ -36,37 +38,18 @@ def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
 logger = get_logger(__name__)
 
 
-def filter_results_by_distance(
-    results: Dict[str, List[List[Dict]]], distance_threshold: float = -1
-) -> Dict[str, List[List[Dict]]]:
+def filter_results_by_distance(results: QueryResults, distance_threshold: float = -1) -> QueryResults:
     """Filters results based on a distance threshold.
 
     Args:
-        results: A dictionary containing results to be filtered.
+        results: QueryResults | The query results. List[List[Tuple[Document, float]]]
         distance_threshold: The maximum distance allowed for results.
 
     Returns:
-        Dict[str, List[List[Dict]]] | A filtered dictionary containing only results within the threshold.
+        QueryResults | A filtered results containing only distances smaller than the threshold.
     """
 
     if distance_threshold > 0:
-        # Filter distances first:
-        return_ridx = [
-            [ridx for ridx, distance in enumerate(distances) if distance < distance_threshold]
-            for distances in results["distances"]
-        ]
-
-        # Filter other keys based on filtered distances:
-        results = {
-            key: (
-                [
-                    [value for ridx, value in enumerate(results_list) if ridx in return_ridx[qidx]]
-                    for qidx, results_list in enumerate(results_lists)
-                ]
-                if isinstance(results_lists, list)
-                else results_lists
-            )
-            for key, results_lists in results.items()
-        }
+        results = [[(key, value) for key, value in data if value < distance_threshold] for data in results]
 
     return results
