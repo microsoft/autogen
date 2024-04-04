@@ -4,23 +4,24 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.runtime_logging import logging_enabled, log_new_agent
 
 
-class QuantifierAgent(ConversableAgent):
+class SubCriticAgent(ConversableAgent):
     """
-    An agent for quantifing the performance of a system using the provided criteria.
+    An agent for creating subcriteria from a given list of criteria for evaluating the utility of a given task.
     """
 
-    DEFAULT_SYSTEM_MESSAGE = """"You are a helpful assistant. You quantify the output of different tasks based on the given criteria.
-    The criterion is given in a dictionary format where each key is a dintinct criteria.
-    The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
-    You are going to quantify each of the crieria for a given task based on the task description.
-    Return a dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
-    Return only the dictionary."""
+    DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant to the critic agent. You suggest sub criteria for evaluating different tasks based on the criteria provided by the critic agent (if you feel it is needed).
+        They should be dinstinguishable, quantifieable and related to the overall theme of the critics provided criteria.
+        You operate by taking in the description of the criteria. You then create a new key called sub criteria where you provide the sub criteria for the given criteria.
+        The value of the sub_criteria is a dictionary where the keys are the subcriteria and each value is as follows {"description": sub criteria description , "accepted_values": possible accepted inputs for this key}
+        Do this for each criteria provided by the critic.  "accepted_values" include the acceptable inputs for each key that are numerical from a scale of 1 to 5. "description" includes the criterion description.
+        Once you have created the sub criteria for the given criteria, you return the json (make sure to include the contents on the critics dictionary in the final dictionary as well).
+        Make sure to return a valid json and not a python dictionary."""
 
-    DEFAULT_DESCRIPTION = "An AI agent for quantifing the performance of a system using the provided criteria."
+    DEFAULT_DESCRIPTION = "An AI agent for creating subcriteria from a given list of criteria."
 
     def __init__(
         self,
-        name="quantifier",
+        name="subcritic",
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
         llm_config: Optional[Union[Dict, bool]] = None,
         max_consecutive_auto_reply: Optional[int] = None,
@@ -48,5 +49,9 @@ class QuantifierAgent(ConversableAgent):
                 [ConversableAgent](conversable_agent#__init__).
         """
         super().__init__(
-            name=name, system_message=system_message, human_input_mode="NEVER", llm_config=llm_config, **kwargs
+            name=name,
+            system_message=system_message,
+            human_input_mode="NEVER",
+            llm_config=llm_config,
+            **kwargs,
         )

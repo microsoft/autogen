@@ -2,6 +2,7 @@ import autogen
 from criterion import Criterion
 from critic_agent import CriticAgent
 from quantifier_agent import QuantifierAgent
+from subcritic_agent import SubCriticAgent
 from task import Task
 from test_case import TestCase
 
@@ -11,7 +12,11 @@ from typing import Callable, Dict, Optional, Union
 
 
 def generate_criteria(
-    llm_config: Optional[Union[Dict, bool]] = None, task: Task = None, additional_instructions: str = "", max_round=2
+    llm_config: Optional[Union[Dict, bool]] = None,
+    task: Task = None,
+    additional_instructions: str = "",
+    max_round=2,
+    use_subcritic: bool = False,
 ):
     """
     Creates a list of criteria for evaluating the utility of a given task.
@@ -20,12 +25,13 @@ def generate_criteria(
     - task (Task): The task to evaluate.
     - additional_instructions (str): Additional instructions for the criteria agent.
     - max_round (int): The maximum number of rounds to run the conversation.
+    - use_subcritic (bool): Whether to use the subcritic agent to generate subcriteria.
     returns:
     - list: A list of Criterion objects for evaluating the utility of the given task.
     """
     critic = CriticAgent(
+        system_message=CriticAgent.DEFAULT_SYSTEM_MESSAGE + "\n" + additional_instructions,
         llm_config=llm_config,
-        additional_instructions=additional_instructions,
     )
 
     critic_user = autogen.UserProxyAgent(
@@ -36,6 +42,13 @@ def generate_criteria(
     )
 
     agents = [critic_user, critic]
+
+    if use_subcritic:
+        subcritic = SubCriticAgent(
+            llm_config=llm_config,
+        )
+        agents.append(subcritic)
+
     groupchat = autogen.GroupChat(
         agents=agents, messages=[], max_round=max_round, speaker_selection_method="round_robin"
     )
