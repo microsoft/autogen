@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Protocol, runtime_checkable
 
-from ._types import Document, GetResults, ItemID, QueryResults
+from .types import Document, GetResults, ItemID, QueryResults
 
 
 @runtime_checkable
