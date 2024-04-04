@@ -80,11 +80,12 @@ messages = [
 
 processed_messages = max_msg_transfrom.apply_transform(copy.deepcopy(messages))
 pprint.pprint(processed_messages)
+```
 
-# Output:
-# [{'content': 'how', 'role': 'user'},
-#  {'content': [{'text': 'are you doing?', 'type': 'text'}], 'role': 'assistant'},
-#  {'content': 'very very very very very very long string', 'role': 'user'}]
+```console
+[{'content': 'how', 'role': 'user'},
+{'content': [{'text': 'are you doing?', 'type': 'text'}], 'role': 'assistant'},
+{'content': 'very very very very very very long string', 'role': 'user'}]
 ```
 
 By applying the `MessageHistoryLimiter`, we can see that we limited the context history to the 3 most recent messages.
@@ -100,13 +101,14 @@ token_limit_transform = transforms.MessageTokenLimiter(max_tokens_per_message=3)
 processed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
 
 pprint.pprint(processed_messages)
+```
 
-# Output:
- #[{'content': 'hello', 'role': 'user'},
- # {'content': [{'text': 'there', 'type': 'text'}], 'role': 'assistant'},
- # {'content': 'how', 'role': 'user'},
- # {'content': [{'text': 'are you doing', 'type': 'text'}], 'role': 'assistant'},
- # {'content': 'very very very', 'role': 'user'}]
+```console
+[{'content': 'hello', 'role': 'user'},
+{'content': [{'text': 'there', 'type': 'text'}], 'role': 'assistant'},
+{'content': 'how', 'role': 'user'},
+{'content': [{'text': 'are you doing', 'type': 'text'}], 'role': 'assistant'},
+{'content': 'very very very', 'role': 'user'}]
 ```
 
 We can see that we can limit the number of tokens to 3, which is equivalent to 3 words in this instance.
@@ -184,7 +186,7 @@ You can use the `MessageTransform` protocol to create custom message transformat
 
 Now, we will create a custom message transform to detect any OpenAI API key and redact it.
 
-````python
+```python
 # The transform must adhere to transform_messages.MessageTransform protocol.
 class MessageRedact:
     def __init__(self):
@@ -230,41 +232,74 @@ for message in messages:
 result = user_proxy.initiate_chat(
     assistant_with_redact, message="What are the two API keys that I just provided", clear_history=False
 
-# Output:
-#
-# user_proxy (to assistant):
-#
-# What are the two API keys that I just provided
-#
-# --------------------------------------------------------------------------------
-# assistant (to user_proxy):
-#
-# To retrieve the two API keys you provided, I will display them individually in the output.
-#
-# Here is the first API key:
-# ```python
-# # Display the first API key
-# print("API key 1 =", "REDACTED")
-# ```
-#
-# Here is the second API key:
-# ```python
-# # Display the second API key
-# print("API key 2 =", "REDACTED")
-# ```
-#
-# Please run the code snippets to see the API keys. After that, I will mark this task as complete.
-#
-# --------------------------------------------------------------------------------
-#
-# >>>>>>>> EXECUTING CODE BLOCK 0 (inferred language is python)...
-#
-# >>>>>>>> EXECUTING CODE BLOCK 1 (inferred language is python)...
-# user_proxy (to assistant):
-#
-# exitcode: 0 (execution succeeded)
-# Code output:
-# API key 1 = REDACTED
-#
-# API key 2 = REDACTED
+```
+
+````console
+ user_proxy (to assistant):
+
+
+
+ What are the two API keys that I just provided
+
+
+
+ --------------------------------------------------------------------------------
+
+ assistant (to user_proxy):
+
+
+
+ To retrieve the two API keys you provided, I will display them individually in the output.
+
+
+
+ Here is the first API key:
+
+ ```python
+
+ # Display the first API key
+
+ print("API key 1 =", "REDACTED")
+
+ ```
+
+
+
+ Here is the second API key:
+
+ ```python
+
+ # Display the second API key
+
+ print("API key 2 =", "REDACTED")
+
+ ```
+
+
+
+ Please run the code snippets to see the API keys. After that, I will mark this task as complete.
+
+
+
+ --------------------------------------------------------------------------------
+
+
+
+ >>>>>>>> EXECUTING CODE BLOCK 0 (inferred language is python)...
+
+
+
+ >>>>>>>> EXECUTING CODE BLOCK 1 (inferred language is python)...
+
+ user_proxy (to assistant):
+
+
+
+ exitcode: 0 (execution succeeded)
+
+ Code output:
+
+ API key 1 = REDACTED
+
+ API key 2 = REDACTED
 ````
