@@ -1,7 +1,8 @@
 import os
-from typing import Any, Callable, List, Dict
+from typing import Any, Callable, Dict, List
 
-from .utils import get_logger, filter_results_by_distance
+from ._types import Document, GetResults, ItemID, QueryResults
+from .utils import filter_results_by_distance, get_logger
 
 try:
     import chromadb
@@ -21,36 +22,32 @@ class ChromaVectorDB:
     A vector database that uses ChromaDB as the backend.
     """
 
-    def __init__(self, db_config: Dict = None) -> None:
+    def __init__(
+        self, client=None, path: str = None, embedding_function: Callable = None, metadata: dict = None, **kwargs
+    ) -> None:
         """
         Initialize the vector database.
 
         Args:
-            db_config: Dict | configuration for initializing the vector database. Default is None.
-                It can contain the following keys:
-                client: chromadb.Client | The client object of the vector database. Default is None.
-                    If not None, it will use the client object to connect to the vector database.
-                path: str | The path to the vector database. Default is None.
-                embedding_function: Callable | The embedding function used to generate the vector representation
-                    of the documents. Default is None.
-                metadata: Dict | The metadata of the vector database. Default is None. If None, it will use this
-                    setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}. For more details of
-                    the metadata, please refer to [distances](https://github.com/nmslib/hnswlib#supported-distances),
-                    [hnsw](https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184),
-                    and [ALGO_PARAMS](https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md).
-                kwargs: Dict | Additional keyword arguments.
+            client: chromadb.Client | The client object of the vector database. Default is None.
+            path: str | The path to the vector database. Default is None.
+            embedding_function: Callable | The embedding function used to generate the vector representation
+                of the documents. Default is None.
+            metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
+                setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}. For more details of
+                the metadata, please refer to [distances](https://github.com/nmslib/hnswlib#supported-distances),
+                [hnsw](https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184),
+                and [ALGO_PARAMS](https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md).
+            kwargs: dict | Additional keyword arguments.
 
         Returns:
             None
         """
-        if db_config is None:
-            db_config = {}
-        self.client = db_config.get("client")
+        self.client = client
         if not self.client:
-            self.path = db_config.get("path")
-            self.embedding_function = db_config.get("embedding_function")
-            self.metadata = db_config.get("metadata", {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32})
-            kwargs = db_config.get("kwargs", {})
+            self.path = path
+            self.embedding_function = embedding_function
+            self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}
             if self.path is not None:
                 self.client = chromadb.PersistentClient(path=self.path, **kwargs)
             else:
@@ -136,7 +133,9 @@ class ChromaVectorDB:
             if self.active_collection.name == collection_name:
                 self.active_collection = None
 
-    def _batch_insert(self, collection, embeddings=None, ids=None, metadata=None, documents=None, upsert=False):
+    def _batch_insert(
+        self, collection: Collection, embeddings=None, ids=None, metadata=None, documents=None, upsert=False
+    ):
         batch_size = int(CHROMADB_MAX_BATCH_SIZE)
         for i in range(0, len(documents), min(batch_size, len(documents))):
             end_idx = i + min(batch_size, len(documents) - i)
@@ -151,15 +150,12 @@ class ChromaVectorDB:
             else:
                 collection.add(**collection_kwargs)
 
-    def insert_docs(self, docs: List[Dict], collection_name: str = None, upsert: bool = False) -> None:
+    def insert_docs(self, docs: List[Document], collection_name: str = None, upsert: bool = False) -> None:
         """
         Insert documents into the collection of the vector database.
 
         Args:
-            docs: List[Dict] | A list of documents. Each document is a dictionary.
-                It should include the following fields:
-                    - required: "id", "content"
-                    - optional: "embedding", "metadata", "distance", etc.
+            docs: List[Document] | A list of documents. Each document is a TypedDict `Document`.
             collection_name: str | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             kwargs: Dict | Additional keyword arguments.
@@ -189,12 +185,12 @@ class ChromaVectorDB:
             metadata = [doc.get("metadata") for doc in docs]
         self._batch_insert(collection, embeddings, ids, metadata, documents, upsert)
 
-    def update_docs(self, docs: List[Dict], collection_name: str = None) -> None:
+    def update_docs(self, docs: List[Document], collection_name: str = None) -> None:
         """
         Update documents in the collection of the vector database.
 
         Args:
-            docs: List[Dict] | A list of documents.
+            docs: List[Document] | A list of documents.
             collection_name: str | The name of the collection. Default is None.
 
         Returns:
@@ -202,12 +198,12 @@ class ChromaVectorDB:
         """
         self.insert_docs(docs, collection_name, upsert=True)
 
-    def delete_docs(self, ids: List[Any], collection_name: str = None, **kwargs) -> None:
+    def delete_docs(self, ids: List[ItemID], collection_name: str = None, **kwargs) -> None:
         """
         Delete documents from the collection of the vector database.
 
         Args:
-            ids: List[Any] | A list of document ids.
+            ids: List[ItemID] | A list of document ids. Each id is a typed `ItemID`.
             collection_name: str | The name of the collection. Default is None.
             kwargs: Dict | Additional keyword arguments.
 
@@ -224,7 +220,7 @@ class ChromaVectorDB:
         n_results: int = 10,
         distance_threshold: float = -1,
         **kwargs,
-    ) -> Dict[str, List[List[Dict]]]:
+    ) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
 
@@ -237,7 +233,7 @@ class ChromaVectorDB:
             kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            Dict[str, List[List[Dict]]] | The query results. Each query result is a dictionary.
+            QueryResults | The query results. Each query result is a TypedDict `QueryResults`.
             It should include the following fields:
                 - required: "ids", "contents"
                 - optional: "embeddings", "metadatas", "distances", etc.
@@ -265,9 +261,7 @@ class ChromaVectorDB:
 
         return results
 
-    def get_docs_by_ids(
-        self, ids: List[Any], collection_name: str = None, include=None, **kwargs
-    ) -> Dict[str, List[Dict]]:
+    def get_docs_by_ids(self, ids: List[ItemID], collection_name: str = None, include=None, **kwargs) -> GetResults:
         """
         Retrieve documents from the collection of the vector database based on the ids.
 
@@ -275,11 +269,11 @@ class ChromaVectorDB:
             ids: List[Any] | A list of document ids.
             collection_name: str | The name of the collection. Default is None.
             include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"]
+                If None, will include ["metadatas", "documents"]. ids are always included.
             kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            Dict[str, List[Dict]] | The results.
+            GetResults | The results.
         """
         collection = self.get_collection(collection_name)
         include = include if include else ["metadatas", "documents"]
