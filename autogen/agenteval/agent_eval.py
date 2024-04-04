@@ -4,7 +4,6 @@ from critic_agent import CriticAgent
 from quantifier_agent import QuantifierAgent
 from subcritic_agent import SubCriticAgent
 from task import Task
-from test_case import TestCase
 
 import os
 import sys
@@ -65,7 +64,8 @@ def quantify_criteria(
     llm_config: Optional[Union[Dict, bool]] = None,
     criteria: [Criterion] = None,
     task: Task = None,
-    test_case: TestCase = None,
+    test_case: Dict = None,
+    ground_truth: str = "",
 ):
     """
     Quantifies the performance of a system using the provided criteria.
@@ -73,7 +73,8 @@ def quantify_criteria(
     - llm_config (dict or bool): llm inference configuration.
     - criteria ([Criterion]): A list of criteria for evaluating the utility of a given task.
     - task (Task): The task to evaluate.
-    - test_case (TestCase): The test case to evaluate.
+    - test_case (dict): The test case to evaluate.
+    - ground_truth (str): The ground truth for the test case.
     returns:
     - dict: A dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
     """
@@ -94,7 +95,7 @@ def quantify_criteria(
         + "Evaluation dictionary: "
         + Criterion.write_json(criteria)
         + "actual test case to evaluate: "
-        + str(test_case.test_details),
+        + str(test_case),
     )
     quantified_results = quantifier_user.last_message()
-    return {"actual_success": test_case.correctness, "estimated_performance": quantified_results["content"]}
+    return {"actual_success": ground_truth, "estimated_performance": quantified_results["content"]}
