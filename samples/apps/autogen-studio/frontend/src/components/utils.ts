@@ -243,6 +243,33 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
+export const sampleAgentConfig = (user_id: string = "guestuser@gmail.com") => {
+  const sampleAgent: IAgentFlowSpec = {
+    type: "assistant",
+    user_id: user_id,
+    config: {
+      name: "sample_assistant",
+      description: "Sample assistant",
+      llm_config: {
+        config_list: [
+          {
+            model: "gpt-4-1106-preview",
+          },
+        ],
+        temperature: 0.1,
+        timeout: 600,
+        cache_seed: null,
+      },
+      human_input_mode: "NEVER",
+      code_execution_config: false,
+      max_consecutive_auto_reply: 8,
+      system_message:
+        "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
+    },
+  };
+  return sampleAgent;
+};
+
 export const sampleWorkflowConfig = (type = "twoagents") => {
   const llm_model_config: IModelConfig[] = [
     {
@@ -279,6 +306,7 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     llm_config: llm_config,
     human_input_mode: "NEVER",
     max_consecutive_auto_reply: 8,
+    code_execution_config: false,
     system_message:
       "You are a helpful AI assistant. Solve tasks using your coding and language skills. In the following cases, suggest python code (in a python coding block) or shell script (in a sh coding block) for the user to execute. 1. When you need to collect info, use the code to output the info you need, for example, browse or search the web, download/read a file, print the content of a webpage or a file, get the current date/time, check the operating system. After sufficient info is printed and the task is ready to be solved based on your language skill, you can solve the task by yourself. 2. When you need to perform some task with code, use the code to perform the task and output the result. Finish the task smartly. Solve the task step by step if you need to. If a plan is not provided, explain your plan first. Be clear which step uses code, and which step uses your language skill. When using code, you must indicate the script type in the code block. The user cannot provide any other feedback or perform any other action beyond executing the code you suggest. The user can't modify your code. So do not suggest incomplete code which requires users to modify. Don't use a code block if it's not intended to be executed by the user. If you want the user to save the code in a file before executing it, put # filename: <filename> inside the code block as the first line. Don't include multiple code blocks in one response. Do not ask users to copy and paste the result. Instead, use 'print' function for the output when relevant. Check the execution result returned by the user. If the result indicates there is an error, fix the error and output the code again. Suggest the full code instead of partial code or code changes. If the error can't be fixed or if the task is not solved even after the code is executed successfully, analyze the problem, revisit your assumption, collect additional info you need, and think of a different approach to try. When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible. Reply 'TERMINATE' in the end when everything is done.",
   };
@@ -404,6 +432,10 @@ export const getSampleSkill = () => {
 };
 
 export const timeAgo = (dateString: string): string => {
+  // if dateStr is empty, return empty string
+  if (!dateString) {
+    return "";
+  }
   // Parse the date string into a Date object
   const timestamp = new Date(dateString);
 
@@ -466,6 +498,11 @@ export const examplePrompts = [
     prompt:
       "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
   },
+  {
+    title: "Travel",
+    prompt:
+      "Plan a 2 day trip to hawaii. Limit to 3 activities per day, be as brief as possible!",
+  },
 ];
 
 export const fetchVersion = () => {
@@ -490,19 +527,118 @@ export const fetchVersion = () => {
  */
 export const sanitizeConfig = (
   data: any,
-  keys: string[] = ["api_key"],
-  replacement: string = "********"
+  keys: string[] = ["api_key", "id"]
 ): any => {
   if (Array.isArray(data)) {
-    return data.map((item) => sanitizeConfig(item, keys, replacement));
+    return data.map((item) => sanitizeConfig(item, keys));
   } else if (typeof data === "object" && data !== null) {
     Object.keys(data).forEach((key) => {
       if (keys.includes(key)) {
-        data[key] = replacement;
+        delete data[key];
       } else {
-        data[key] = sanitizeConfig(data[key], keys, replacement);
+        data[key] = sanitizeConfig(data[key], keys);
       }
     });
   }
   return data;
+};
+
+/**
+ * Checks the input text against the regex '^[a-zA-Z0-9_-]{1,64}$' and returns an object with
+ * status, message, and sanitizedText. Status is boolean indicating whether input text is valid,
+ * message provides information about the outcome, and sanitizedText contains a valid version
+ * of the input text or the original text if it was already valid.
+ *
+ * @param text - The input string to be checked and sanitized.
+ * @returns An object containing a status, a message, and sanitizedText.
+ */
+export const checkAndSanitizeInput = (
+  text: string
+): { status: boolean; message: string; sanitizedText: string } => {
+  // Create a regular expression pattern to match valid characters
+  const regexPattern: RegExp = /^[a-zA-Z0-9_-]{1,64}$/;
+  let status: boolean = true;
+  let message: string;
+  let sanitizedText: string;
+
+  // Check if the input text matches the pattern
+  if (regexPattern.test(text)) {
+    // Text already adheres to the pattern
+    message = `The text '${text}' is valid.`;
+    sanitizedText = text;
+  } else {
+    // The text does not match; sanitize the input
+    status = false;
+    sanitizedText = text.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 64);
+    message = `'${text}' is invalid. Consider using '${sanitizedText}' instead.`;
+  }
+
+  return { status, message, sanitizedText };
+};
+
+export const isValidConfig = (
+  jsonObj: any,
+  templateObj: any,
+  diffThreshold: number = 4
+): {
+  status: boolean;
+  message: string;
+} => {
+  // Check if both parameters are indeed objects and not null
+  if (
+    typeof jsonObj !== "object" ||
+    jsonObj === null ||
+    Array.isArray(jsonObj) ||
+    typeof templateObj !== "object" ||
+    templateObj === null ||
+    Array.isArray(templateObj)
+  ) {
+    return {
+      status: false,
+      message:
+        "Invalid input: One or both parameters are not objects, or are null or arrays.",
+    };
+  }
+
+  const jsonKeys = new Set(Object.keys(jsonObj));
+  const templateKeys = new Set(Object.keys(templateObj));
+
+  if (jsonKeys.size !== templateKeys.size) {
+    if (Math.abs(jsonKeys.size - templateKeys.size) > diffThreshold) {
+      return {
+        status: false,
+        message:
+          "Configuration does not match template: Number of keys differ.",
+      };
+    }
+  }
+
+  for (const key of templateKeys) {
+    if (!jsonKeys.has(key)) {
+      return {
+        status: false,
+        message: `Configuration does not match template: Missing key '${key}' in configuration.`,
+      };
+    }
+
+    // If the value is an object, recursively validate
+    if (
+      typeof templateObj[key] === "object" &&
+      templateObj[key] !== null &&
+      !Array.isArray(templateObj[key])
+    ) {
+      const result = isValidConfig(jsonObj[key], templateObj[key]);
+      if (!result.status) {
+        return {
+          status: false,
+          message: `Configuration error in nested key '${key}': ${result.message}`,
+        };
+      }
+    }
+  }
+
+  return {
+    status: true,
+    message: "Configuration is valid.",
+  };
 };

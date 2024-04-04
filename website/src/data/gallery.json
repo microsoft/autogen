@@ -191,5 +191,19 @@
     "description": "X-Force IDE is a low-code, agent-as-a-service UI framework that lets you create AutoGen-based workforces from a drag-and-drop-like user interface.",
     "image": "x-force-ide-ui.png",
     "tags": ["ui"]
+  },
+  {
+    "title": "Multimodal Webagent created with AutoGen and OpenAI's Assistants API",
+    "link": "https://github.com/schauppi/MultimodalWebAgent",
+    "description": "A multimodal webbrowsing agent that autonomously browses the web.",
+    "image": "webagent.jpg",
+    "tags": ["tools", "app"]
+  },
+  {
+    "title": "Create Issues from Code Commits - using Autogen",
+    "link": "https://blog.composio.dev/automating-task-creation-with-openai-assistant-from-code-comments-to-linear-issues/",
+    "description": "Automatically creating linear tasks and assigning them to the right person, project, and team from GitHub commits using AutoGen Agents.",
+    "image": "composio-autogen.png",
+    "tags": ["tools"]
   }
 ]

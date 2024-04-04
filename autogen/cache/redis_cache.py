@@ -1,6 +1,6 @@
 import pickle
 from types import TracebackType
-from typing import Any, Optional, Type
+from typing import Any, Optional, Type, Union
 import redis
 import sys
 from .abstract_cache_base import AbstractCache
@@ -19,7 +19,7 @@ class RedisCache(AbstractCache):
     interface using the Redis database for caching data.
 
     Attributes:
-        seed (str): A seed or namespace used as a prefix for cache keys.
+        seed (Union[str, int]): A seed or namespace used as a prefix for cache keys.
         cache (redis.Redis): The Redis client used for caching.
 
     Methods:
@@ -32,12 +32,12 @@ class RedisCache(AbstractCache):
         __exit__(self, exc_type, exc_value, traceback): Context management exit.
     """
 
-    def __init__(self, seed: str, redis_url: str):
+    def __init__(self, seed: Union[str, int], redis_url: str):
         """
         Initialize the RedisCache instance.
 
         Args:
-            seed (str): A seed or namespace for the cache. This is used as a prefix for all cache keys.
+            seed (Union[str, int]): A seed or namespace for the cache. This is used as a prefix for all cache keys.
             redis_url (str): The URL for the Redis server.
 
         """
@@ -56,7 +56,7 @@ class RedisCache(AbstractCache):
         """
         return f"autogen:{self.seed}:{key}"
 
-    def get(self, key: str, default: Optional[Any] = None) -> Any:
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the Redis cache.
 

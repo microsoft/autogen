@@ -1,15 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-from autogen import AssistantAgent, UserProxyAgent
-from autogen import GroupChat, GroupChatManager
-import asyncio
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import pytest
-from conftest import skip_openai
+import asyncio
+import sys
+import os
 import autogen
-from typing import Literal
-from typing_extensions import Annotated
-from autogen import initiate_chats
+from autogen import AssistantAgent, UserProxyAgent
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
 
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
@@ -31,6 +31,7 @@ async def test_async_chats():
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
         llm_config={"config_list": config_list},
+        system_message="You are a knowledgeable AI Assistant. Reply TERMINATE when everything is done.",
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
@@ -59,8 +60,8 @@ async def test_async_chats():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
-    def my_summary_method(recipient, sender):
-        return recipient.chat_messages[sender][0].get("content", "")
+    def my_summary_method(recipient, sender, summary_args):
+        return recipient.chat_messages[sender][1].get("content", "")
 
     chat_res = await user.a_initiate_chats(
         [
@@ -70,6 +71,7 @@ async def test_async_chats():
                 "message": financial_tasks[0],
                 "silent": False,
                 "summary_method": my_summary_method,
+                "max_turns": 1,
             },
             {
                 "chat_id": 2,
@@ -78,6 +80,7 @@ async def test_async_chats():
                 "message": financial_tasks[1],
                 "silent": True,
                 "summary_method": "reflection_with_llm",
+                "max_turns": 3,
             },
             {
                 "chat_id": 3,
@@ -86,6 +89,7 @@ async def test_async_chats():
                 "message": financial_tasks[2],
                 "summary_method": "last_msg",
                 "clear_history": False,
+                "max_turns": 1,
             },
             {
                 "chat_id": 4,
@@ -94,6 +98,7 @@ async def test_async_chats():
                 "message": writing_tasks[0],
                 "carryover": "I want to include a figure or a table of data in the blogpost.",
                 "summary_method": "last_msg",
+                "max_turns": 2,
             },
         ]
     )
@@ -115,4 +120,4 @@ async def test_async_chats():
 
 
 if __name__ == "__main__":
-    test_async_chats()
+    asyncio.run(test_async_chats())

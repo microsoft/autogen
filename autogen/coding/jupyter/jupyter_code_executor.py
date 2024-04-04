@@ -5,8 +5,10 @@ from pathlib import Path
 import re
 from types import TracebackType
 import uuid
-from typing import Any, ClassVar, List, Optional, Union
+from typing import Any, ClassVar, List, Optional, Type, Union
 import sys
+
+from autogen.coding.utils import silence_pip
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -22,48 +24,12 @@ from .jupyter_client import JupyterClient
 
 
 class JupyterCodeExecutor(CodeExecutor):
-    DEFAULT_SYSTEM_MESSAGE_UPDATE: ClassVar[
-        str
-    ] = """
-# IPython Coding Capability
-You have been given coding capability to solve tasks using Python code in a stateful IPython kernel.
-You are responsible for writing the code, and the user is responsible for executing the code.
-
-When you write Python code, put the code in a markdown code block with the language set to Python.
-For example:
-```python
-x = 3
-```
-You can use the variable `x` in subsequent code blocks.
-```python
-print(x)
-```
-
-Write code incrementally and leverage the statefulness of the kernel to avoid repeating code.
-Import libraries in a separate code block.
-Define a function or a class in a separate code block.
-Run code that produces output in a separate code block.
-Run code that involves expensive operations like download, upload, and call external APIs in a separate code block.
-
-When your code produces an output, the output will be returned to you.
-Because you have limited conversation memory, if your code creates an image,
-the output will be a path to the image instead of the image itself.
-"""
-
-    class UserCapability:
-        def __init__(self, system_message_update: str):
-            self._system_message_update = system_message_update
-
-        def add_to_agent(self, agent: LLMAgent) -> None:
-            agent.update_system_message(agent.system_message + self._system_message_update)
-
     def __init__(
         self,
         jupyter_server: Union[JupyterConnectable, JupyterConnectionInfo],
         kernel_name: str = "python3",
         timeout: int = 60,
         output_dir: Union[Path, str] = Path("."),
-        system_message_update: str = DEFAULT_SYSTEM_MESSAGE_UPDATE,
     ):
         """(Experimental) A code executor class that executes code statefully using
         a Jupyter server supplied to this class.
@@ -104,11 +70,6 @@ the output will be a path to the image instead of the image itself.
         self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
         self._timeout = timeout
         self._output_dir = output_dir
-        self._system_message_update = system_message_update
-
-    @property
-    def user_capability(self) -> "JupyterCodeExecutor.UserCapability":
-        return JupyterCodeExecutor.UserCapability(self._system_message_update)
 
     @property
     def code_extractor(self) -> CodeExtractor:
@@ -132,7 +93,7 @@ the output will be a path to the image instead of the image itself.
         outputs = []
         output_files = []
         for code_block in code_blocks:
-            code = self._process_code(code_block.code)
+            code = silence_pip(code_block.code, code_block.language)
             result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
             if result.is_ok:
                 outputs.append(result.output)
@@ -181,18 +142,6 @@ the output will be a path to the image instead of the image itself.
             f.write(html_data)
         return os.path.abspath(path)
 
-    def _process_code(self, code: str) -> str:
-        """Process code before execution."""
-        # Find lines that start with `! pip install` and make sure "-qqq" flag is added.
-        lines = code.split("\n")
-        for i, line in enumerate(lines):
-            # use regex to find lines that start with `! pip install` or `!pip install`.
-            match = re.search(r"^! ?pip install", line)
-            if match is not None:
-                if "-qqq" not in line:
-                    lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
-        return "\n".join(lines)
-
     def stop(self) -> None:
         """Stop the kernel."""
         self._jupyter_client.delete_kernel(self._kernel_id)
@@ -201,6 +150,6 @@ the output will be a path to the image instead of the image itself.
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()

@@ -73,7 +73,7 @@ def notebooks_target_dir(website_directory: Path) -> Path:
 
 
 def load_metadata(notebook: Path) -> typing.Dict:
-    content = json.load(notebook.open())
+    content = json.load(notebook.open(encoding="utf-8"))
     return content["metadata"]
 
 
