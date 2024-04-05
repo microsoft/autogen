@@ -1,29 +1,30 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
-import sys
-import pytest
 from io import StringIO
+from unittest.mock import patch
+
+import pytest
+from conftest import skip_docker
 
 import autogen
 from autogen.code_utils import (
     UNKNOWN,
+    check_can_use_docker_or_throw,
     content_str,
+    decide_use_docker,
     execute_code,
     extract_code,
-    improve_code,
     get_powershell_command,
+    improve_code,
     improve_function,
+    in_docker_container,
     infer_lang,
     is_docker_running,
-    in_docker_container,
-    decide_use_docker,
-    check_can_use_docker_or_throw,
 )
-from conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
