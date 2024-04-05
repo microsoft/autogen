@@ -1,5 +1,6 @@
 from autogencap.DebugLog import Error
-from autogencap.proto.CAP_pb2 import Error as ErrorMsg, ErrorCode
+from autogencap.proto.CAP_pb2 import Error as ErrorMsg
+from autogencap.proto.CAP_pb2 import ErrorCode
 
 
 def report_error_msg(msg: ErrorMsg, src: str):

@@ -2,9 +2,11 @@
 
 import os
 import sys
+
 import pytest
-from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+
 from autogen import config_list_from_json
+from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import skip_openai  # noqa: E402
@@ -13,13 +15,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
+    import fastembed
     from qdrant_client import QdrantClient
+
     from autogen.agentchat.contrib.qdrant_retrieve_user_proxy_agent import (
-        create_qdrant_from_dir,
         QdrantRetrieveUserProxyAgent,
+        create_qdrant_from_dir,
         query_qdrant,
     )
-    import fastembed
 
     QDRANT_INSTALLED = True
 except ImportError:
