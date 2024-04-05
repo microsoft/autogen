@@ -2,11 +2,11 @@
 # ruff: noqa: F821
 
 import glob
+import json
 import os
+import shutil
 import subprocess
 import sys
-import shutil
-import json
 
 
 def scoring(content: str, should_contain: list, should_not_contain: list):

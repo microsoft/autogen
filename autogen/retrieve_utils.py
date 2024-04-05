@@ -1,18 +1,21 @@
-from typing import List, Union, Callable
-import os
-import requests
-from urllib.parse import urlparse
 import glob
+import os
+from typing import Callable, List, Union
+from urllib.parse import urlparse
+
 import chromadb
+import requests
 
 if chromadb.__version__ < "0.4.15":
     from chromadb.api import API
 else:
     from chromadb.api import ClientAPI as API
-from chromadb.api.types import QueryResult
-import chromadb.utils.embedding_functions as ef
 import logging
+
+import chromadb.utils.embedding_functions as ef
 import pypdf
+from chromadb.api.types import QueryResult
+
 from autogen.token_count_utils import count_token
 
 try:

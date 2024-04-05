@@ -1,8 +1,10 @@
 import time
 from typing import Callable, Dict, List, Optional, Union
+
 from autogen import Agent, ConversableAgent
-from .AutoGenConnector import AutoGenConnector
+
 from ..LocalActorNetwork import LocalActorNetwork
+from .AutoGenConnector import AutoGenConnector
 
 
 class AG2CAP(ConversableAgent):

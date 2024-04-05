@@ -1,6 +1,6 @@
+import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
-import logging
 from typing import Any, Iterator, Optional, Protocol, runtime_checkable
 
 __all__ = ("OutputStream", "InputStream", "IOStream")
