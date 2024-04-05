@@ -81,7 +81,7 @@ class TestRetrieveUtils:
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         files = get_files_from_dir([pdf_file_path, txt_file_path])
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         files = get_files_from_dir(
             [
                 pdf_file_path,
@@ -91,7 +91,7 @@ class TestRetrieveUtils:
             ],
             recursive=True,
         )
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         files = get_files_from_dir(
             [
                 pdf_file_path,
@@ -102,7 +102,7 @@ class TestRetrieveUtils:
             recursive=True,
             types=["pdf", "txt"],
         )
-        assert all(os.path.isfile(file) for file in files)
+        assert all(os.path.isfile(file) if isinstance(file, str) else os.path.isfile(file[0]) for file in files)
         assert len(files) == 3
 
     def test_is_url(self):
