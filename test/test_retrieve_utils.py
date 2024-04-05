@@ -69,7 +69,7 @@ class TestRetrieveUtils:
     def test_split_files_to_chunks(self):
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
-        chunks = split_files_to_chunks([pdf_file_path, txt_file_path])
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path])
         assert all(
             isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
             for chunk in chunks
@@ -243,7 +243,7 @@ class TestRetrieveUtils:
         pdf_file_path = os.path.join(test_dir, "example.pdf")
         txt_file_path = os.path.join(test_dir, "example.txt")
         word_file_path = os.path.join(test_dir, "example.docx")
-        chunks = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
+        chunks, _ = split_files_to_chunks([pdf_file_path, txt_file_path, word_file_path])
         assert all(
             isinstance(chunk, str) and "AutoGen is an advanced tool designed to assist developers" in chunk.strip()
             for chunk in chunks
