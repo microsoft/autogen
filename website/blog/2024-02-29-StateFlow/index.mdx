@@ -29,12 +29,12 @@ For this task, a desired procedure is:
 For each step, we create a corresponding state. Also, we define an error state to handle failures.
 In the figure, execution outcomes are indicated by red arrows for failures and green for successes.
 Transition to different states is based on specific rules. For example, at a successful "Submit" command, the model transits to the *End* state.
-When reaching a state, a sequence of output functions defined is executed (e.g., M_i -> E means to first call the model and then call the SQL/Bash execution).
+When reaching a state, a sequence of output functions defined is executed (e.g., M_i -> E means to first call the model and then execute the SQL command).
 ![Intercode Example](./img/intercode.png)
 
 
 ## Experiments
-We evaluate **StateFlow** on the SQL task and Bash task from the InterCode benchmark, with both GTP-3.5-Turbo and GPT-4-Turbo.
+**InterCode:** We evaluate StateFlow on the SQL task and Bash task from the InterCode benchmark, with both GTP-3.5-Turbo and GPT-4-Turbo.
 We record different metrics for a comprehensive comparison. The 'SR' (success rate) measures the performance,
 'Turns' represents the number of interactions with the environment, and 'Error Rate' represents the percentage of errors of the commands executed.
 We also record the cost of the LLM usage.
@@ -47,17 +47,18 @@ The results of the Bash task are presented below:
 
 ![Bash Result](./img/bash_result.png)
 
+**ALFWorld:**
 We also experiment with the ALFWorld benchmark, a synthetic text-based game implemented in the TextWorld environments.
 We tested with GPT-3.5-Turbo and took an average of 3 attempts.
 
 We evaluate with:
-1. ReAct: We use the two-shot prompt from the ReAct. Note there is a specific prompt for each type of task.
-2. ALFChat (2 agents): A two-agent system setting from AutoGen consisting of an assistant agent and an executor agent. ALFChat is based on ReAct, which modifies the ReAct prompt to follow a conversational manner.
-3. ALFChat (3 agents): Based on the 2-agent system, it introduces a grounding agent to provide commonsense facts whenever the assistant outputs the same action three times in a row.
+(1) ReAct: We use the two-shot prompt from the ReAct. Note there is a specific prompt for each type of task.
+(2) ALFChat (2 agents): A two-agent system setting from AutoGen consisting of an assistant agent and an executor agent. ALFChat is based on ReAct, which modifies the ReAct prompt to follow a conversational manner.
+(3) ALFChat (3 agents): Based on the 2-agent system, it introduces a grounding agent to provide commonsense facts whenever the assistant outputs the same action three times in a row.
 
 ![ALFWorld Result](./img/alfworld.png)
 
-For both tasks, **StateFlow** achieves the best performance with the lowest cost
+For both tasks, **StateFlow** achieves the best performance with the lowest cost. For more details, please refer to our [paper](https://arxiv.org/abs/2403.11322).
 
 
 ## Implement StateFlow With GroupChat
