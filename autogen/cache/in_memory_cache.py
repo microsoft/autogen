@@ -1,6 +1,7 @@
+import sys
 from types import TracebackType
 from typing import Any, Dict, Optional, Type, Union
-import sys
+
 from .abstract_cache_base import AbstractCache
 
 if sys.version_info >= (3, 11):

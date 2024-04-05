@@ -1,6 +1,7 @@
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
 
 
 class RetrieveAssistantAgent(AssistantAgent):
