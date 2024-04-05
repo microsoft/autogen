@@ -1,8 +1,10 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))

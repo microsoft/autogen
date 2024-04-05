@@ -29,6 +29,7 @@ select = [
 #    "D",  # see: https://pypi.org/project/pydocstyle
 #    "N",  # see: https://pypi.org/project/pep8-naming
 #    "S",  # see: https://pypi.org/project/flake8-bandit
+    "I",  # see: https://pypi.org/project/isort/
 ]
 
 ignore = [
@@ -52,7 +53,7 @@ exclude = [
      # This file needs to be either upgraded or removed and therefore should be
     # ignore from type checking for now
     "math_utils\\.py$",
-    "samples\\apps\\cap\\py\\autogencap\\proto\\.*\\.py",
+    "**/cap/py/autogencap/proto/*",
 ]
 ignore-init-module-imports = true
 unfixable = ["F401"]

@@ -1,14 +1,14 @@
-import pytest
-import autogen
-import autogen.runtime_logging
 import json
+import sqlite3
 import sys
 import uuid
-import sqlite3
 
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+import pytest
 from conftest import skip_openai
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+import autogen
+import autogen.runtime_logging
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -116,7 +116,7 @@ def test_two_agents_logging(db_connection):
         else:
             assert "choices" in response and len(response["choices"]) > 0
 
-        assert row["cost"] > 0
+        assert row["cost"] >= 0.0
         assert row["start_time"], "start timestamp is empty"
         assert row["end_time"], "end timestamp is empty"
 

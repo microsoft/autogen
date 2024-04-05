@@ -1,21 +1,23 @@
 #!/usr/bin/env python3 -m pytest
 
-import shutil
-import time
-import pytest
-from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
-import sys
 import os
+import shutil
+import sys
+import time
+
+import pytest
+
+from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from autogen.cache.cache import Cache
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
 
 TOOL_ENABLED = False
 try:
-    from openai import OpenAI
     import openai
+    from openai import OpenAI
 
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
