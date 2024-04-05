@@ -525,7 +525,7 @@ class GroupChat:
             else:
                 # Requery failed to identify just one agent name
                 logger.warning(
-                    f"GroupChat select_speaker failed to resolve the next speaker's name (even with requery). Requery speaker selection returned:\n{name_single}"
+                    f"GroupChat select_speaker failed to resolve the next speaker's name (including with requery). Requery speaker selection returned:\n{name_single}"
                 )
         else:
             logger.warning(
