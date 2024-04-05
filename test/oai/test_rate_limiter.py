@@ -1,10 +1,12 @@
-import pytest
 import time
+import pytest
+
 from autogen.oai.rate_limiter import TimeRateLimiter
 
 
-def test_time_rate_limiter():
-    current_time_seconds = time.perf_counter()
+@pytest.mark.parametrize("execution_number", range(5))
+def test_time_rate_limiter(execution_number):
+    current_time_seconds = time.time()
 
     rate = 1
     rate_limiter = TimeRateLimiter(rate)
@@ -13,6 +15,6 @@ def test_time_rate_limiter():
     for _ in range(n_loops):
         rate_limiter.wait()
 
-    total_time = time.perf_counter() - current_time_seconds
+    total_time = time.time() - current_time_seconds
     min_expected_time = (n_loops - 1) / rate
     assert total_time >= min_expected_time
