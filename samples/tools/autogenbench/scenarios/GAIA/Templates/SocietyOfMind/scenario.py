@@ -1,15 +1,17 @@
 # ruff: noqa: E722
+import copy
+import json
 import os
 import sys
-import json
-import autogen
-import copy
 import traceback
 from datetime import datetime
+
 import testbed_utils
-from autogen.agentchat.contrib.web_surfer import WebSurferAgent
-from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
+
+import autogen
 from autogen.agentchat.contrib.group_chat_moderator import GroupChatModerator
+from autogen.agentchat.contrib.society_of_mind_agent import SocietyOfMindAgent
+from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.token_count_utils import count_token, get_max_token_limit
 
 testbed_utils.init()

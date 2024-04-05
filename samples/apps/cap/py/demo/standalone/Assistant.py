@@ -1,9 +1,11 @@
 import time
+
 import _paths
-from autogen import AssistantAgent, config_list_from_json
+from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
-from autogencap.ag_adapter.CAP2AG import CAP2AG
+
+from autogen import AssistantAgent, config_list_from_json
 
 
 # Starts the Broker and the Assistant. The UserProxy is started separately.

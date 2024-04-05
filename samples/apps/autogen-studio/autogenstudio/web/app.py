@@ -1,26 +1,25 @@
 import asyncio
-from contextlib import asynccontextmanager
 import json
 import os
 import queue
 import threading
 import traceback
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi import HTTPException
 from openai import OpenAIError
-from ..version import VERSION, APP_NAME
 
+from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
 from ..datamodel import (
     DBWebRequestModel,
     DeleteMessageWebRequestModel,
     Message,
     Session,
 )
-from ..utils import md5_hash, init_app_folders, DBManager, dbutils, test_model
-from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
-
+from ..utils import DBManager, dbutils, init_app_folders, md5_hash, test_model
+from ..version import APP_NAME, VERSION
 
 managers = {"chat": None}  # manage calls to autogen
 # Create thread-safe queue for messages between api thread and autogen threads

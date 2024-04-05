@@ -1,9 +1,11 @@
 import itertools
 import os
+import sys
 import tempfile
 from typing import Any, Dict, Tuple
+
 import pytest
-import sys
+
 from autogen import code_utils
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.agentchat.user_proxy_agent import UserProxyAgent
