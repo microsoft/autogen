@@ -1,8 +1,9 @@
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-from autogencap.DebugLog import Info
-from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
 from autogencap.ag_adapter.CAPGroupChatManager import CAPGroupChatManager
+from autogencap.DebugLog import Info
+from autogencap.LocalActorNetwork import LocalActorNetwork
+
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 
 def cap_ag_group_demo():

@@ -33,6 +33,11 @@ module.exports = {
     format: 'detect', // Support for MD files with .md extension
   },
   themeConfig: {
+    docs: {
+      sidebar: {
+        autoCollapseCategories: true,
+      },
+    },
     navbar: {
       title: "AutoGen",
       logo: {

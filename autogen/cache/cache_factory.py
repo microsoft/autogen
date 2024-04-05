@@ -1,8 +1,8 @@
+import logging
 from typing import Optional, Union
+
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
-
-import logging
 
 
 class CacheFactory:
