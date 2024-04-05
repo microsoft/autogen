@@ -1,28 +1,30 @@
-from time import sleep
 import logging
-import time
-from typing import List, Optional, Dict, Callable, Union
-import sys
 import shutil
-import numpy as np
-from flaml import tune, BlendSearch
-from flaml.tune.space import is_constant
-from flaml.automl.logger import logger_formatter
-from .openai_utils import get_key
+import sys
+import time
 from collections import defaultdict
+from time import sleep
+from typing import Callable, Dict, List, Optional, Union
+
+import numpy as np
+from flaml import BlendSearch, tune
+from flaml.automl.logger import logger_formatter
+from flaml.tune.space import is_constant
+
+from .openai_utils import get_key
 
 try:
+    import diskcache
     import openai
     from openai import (
-        RateLimitError,
-        APIError,
-        BadRequestError,
         APIConnectionError,
-        Timeout,
+        APIError,
         AuthenticationError,
+        BadRequestError,
+        RateLimitError,
+        Timeout,
     )
     from openai import Completion as openai_Completion
-    import diskcache
 
     ERROR = None
     assert openai.__version__ < "1"
@@ -792,7 +794,7 @@ class Completion(openai_Completion):
             raise ERROR
 
         # Warn if a config list was provided but was empty
-        if type(config_list) is list and len(config_list) == 0:
+        if isinstance(config_list, list) and len(config_list) == 0:
             logger.warning(
                 "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
             )
@@ -866,12 +868,14 @@ class Completion(openai_Completion):
         if prompt is None:
             params["messages"] = (
                 [
-                    {
-                        **m,
-                        "content": cls.instantiate(m["content"], context, allow_format_str_template),
-                    }
-                    if m.get("content")
-                    else m
+                    (
+                        {
+                            **m,
+                            "content": cls.instantiate(m["content"], context, allow_format_str_template),
+                        }
+                        if m.get("content")
+                        else m
+                    )
                     for m in messages
                 ]
                 if context

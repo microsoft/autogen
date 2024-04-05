@@ -77,7 +77,7 @@ Then after the code cell where this is used, include the following markdown snip
 ``````
 ````{=mdx}
 :::tip
-Learn more about configuring LLMs for agents [here](/docs/llm_configuration).
+Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
 :::
 ````
 ``````

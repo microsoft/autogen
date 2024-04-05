@@ -1,7 +1,9 @@
+import argparse
 import os
 import sys
-import argparse
+
 import tabulate as tb
+
 from .load_module import load_module
 
 # Figure out where everything is
