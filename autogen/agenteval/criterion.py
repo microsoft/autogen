@@ -37,11 +37,12 @@ class Criterion:
         parsed_json = json.loads(criteria)
         for criterion_name, criterion_data in parsed_json.items():
             sub_criteria = None
+            accepted_values = ""
             if criterion_data.get("sub_criteria") is not None:
                 sub_criteria = Criterion.parse_json_str(json.dumps(criterion_data.get("sub_criteria")))
-            criterion = Criterion(
-                criterion_name, criterion_data["description"], criterion_data["accepted_values"], sub_criteria
-            )
+            else:
+                accepted_values = criterion_data.get("accepted_values")
+            criterion = Criterion(criterion_name, criterion_data["description"], accepted_values, sub_criteria)
             criteria_list.append(criterion)
         return criteria_list
 
@@ -57,4 +58,4 @@ class Criterion:
         criteria_json = {}
         for criterion in criteria:
             criteria_json.update(criterion.to_json())
-        return json.dumps(criteria_json)
+        return json.dumps(criteria_json, indent=2)

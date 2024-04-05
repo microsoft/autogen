@@ -9,7 +9,7 @@ class CriticAgent(ConversableAgent):
     An agent for creating list of criteria for evaluating the utility of a given task.
     """
 
-    DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant. You suggest criteria for evaluating different tasks. They should be dinstinguishable, quantifieable and not redundant.
+    DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant. You suggest criteria for evaluating different tasks. They should be distinguishable, quantifiable and not redundant.
     Convert the evaluation criteria into a dictionary where the keys are the criteria.
     The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
     Make sure the keys are criteria for assessing the given task.  "accepted_values" include the acceptable inputs for each key that are fine-grained and preferably multi-graded levels. "description" includes the criterion description.
@@ -44,7 +44,7 @@ class CriticAgent(ConversableAgent):
                 - "SOMETIMES": The agent will sometimes require human input.
             - description (str): The description of the agent.
             **kwargs (dict): Please refer to other kwargs in
-                [ConversableAgent](conversable_agent#__init__).
+                [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
             name=name,
