@@ -377,7 +377,7 @@ class OpenAIWrapper:
             config_list = [config.copy() for config in config_list]  # make a copy before modifying
             for config in config_list:
                 # Instantiate the rate limiter
-                if config.get("api_rate_limit") is not None:
+                if "api_rate_limit" in config:
                     self._rate_limiters.append(TimeRateLimiter(config["api_rate_limit"]))
                     del config["api_rate_limit"]
                 else:
