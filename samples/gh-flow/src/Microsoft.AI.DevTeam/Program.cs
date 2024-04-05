@@ -12,6 +12,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
@@ -41,33 +42,46 @@ builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddOptions<GithubOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
-        configuration.GetSection("GithubOptions").Bind(settings);
-    });
+        configuration.GetSection(nameof(GithubOptions)).Bind(settings);
+    })
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddOptions<AzureOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
-        configuration.GetSection("AzureOptions").Bind(settings);
-    });
+        configuration.GetSection(nameof(AzureOptions)).Bind(settings);
+    })
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddOptions<OpenAIOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
-        configuration.GetSection("OpenAIOptions").Bind(settings);
-    });
+        configuration.GetSection(nameof(OpenAIOptions)).Bind(settings);
+    })
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddOptions<QdrantOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
-        configuration.GetSection("QdrantOptions").Bind(settings);
-    });
+        configuration.GetSection(nameof(QdrantOptions)).Bind(settings);
+    })
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
 builder.Services.AddOptions<ServiceOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
-        configuration.GetSection("ServiceOptions").Bind(settings);
-    });
+        configuration.GetSection(nameof(ServiceOptions)).Bind(settings);
+    })
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 builder.Services.AddSingleton<IManageAzure, AzureService>();
 builder.Services.AddSingleton<IManageGithub, GithubService>();
 builder.Services.AddSingleton<IAnalyzeCode, CodeAnalyzer>();
-
 
 builder.Host.UseOrleans(siloBuilder =>
 {
@@ -91,7 +105,7 @@ app.UseRouting()
    .UseEndpoints(endpoints =>
 {
     var ghOptions = app.Services.GetService<IOptions<GithubOptions>>().Value;
-    endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret );
+    endpoints.MapGitHubWebhooks(secret: ghOptions.WebhookSecret);
 });
 
 app.Map("/dashboard", x => x.UseOrleansDashboard());
@@ -125,11 +139,12 @@ static Kernel CreateKernel(IServiceProvider provider)
     clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
     var openAIClient = new OpenAIClient(new Uri(openAiConfig.Endpoint), new AzureKeyCredential(openAiConfig.ApiKey), clientOptions);
     var builder = Kernel.CreateBuilder();
-    builder.Services.AddLogging( c=> c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
+    builder.Services.AddLogging(c => c.AddConsole().AddDebug().SetMinimumLevel(LogLevel.Debug));
     builder.Services.AddAzureOpenAIChatCompletion(openAiConfig.DeploymentOrModelId, openAIClient);
-    builder.Services.ConfigureHttpClientDefaults(c=>
+    builder.Services.ConfigureHttpClientDefaults(c =>
     {
-        c.AddStandardResilienceHandler().Configure( o=> {
+        c.AddStandardResilienceHandler().Configure(o =>
+        {
             o.Retry.MaxRetryAttempts = 5;
             o.Retry.BackoffType = Polly.DelayBackoffType.Exponential;
         });
