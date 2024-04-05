@@ -12,14 +12,12 @@ class Document(TypedDict):
     content: str | the text content of the chunk.
     metadata: Metadata, Optional | contains additional information about the document such as source, date, etc.
     embedding: Vector, Optional | the vector representation of the content.
-    dimensions: int, Optional | the dimensions of the content_embedding.
     """
 
     id: ItemID
     content: str
     metadata: Optional[Metadata]
     embedding: Optional[Vector]
-    dimensions: Optional[int]
 
 
 """QueryResults is the response from the vector database for a query/queries.

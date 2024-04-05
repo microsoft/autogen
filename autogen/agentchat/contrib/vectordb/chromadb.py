@@ -1,7 +1,7 @@
 import os
 from typing import Callable, List
 
-from .base import Document, GetResults, ItemID, QueryResults
+from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import filter_results_by_distance, get_logger
 
 try:
@@ -17,7 +17,7 @@ CHROMADB_MAX_BATCH_SIZE = os.environ.get("CHROMADB_MAX_BATCH_SIZE", 40000)
 logger = get_logger(__name__)
 
 
-class ChromaVectorDB:
+class ChromaVectorDB(VectorDB):
     """
     A vector database that uses ChromaDB as the backend.
     """
@@ -73,7 +73,10 @@ class ChromaVectorDB:
             Collection | The collection object.
         """
         try:
-            collection = self.client.get_collection(collection_name)
+            if self.active_collection and self.active_collection.name == collection_name:
+                collection = self.active_collection
+            else:
+                collection = self.client.get_collection(collection_name)
         except ValueError:
             collection = None
         if collection is None:
@@ -115,7 +118,8 @@ class ChromaVectorDB:
                     f"No collection is specified. Using current active collection {self.active_collection.name}."
                 )
         else:
-            self.active_collection = self.client.get_collection(collection_name)
+            if not (self.active_collection and self.active_collection.name == collection_name):
+                self.active_collection = self.client.get_collection(collection_name)
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:
@@ -129,12 +133,11 @@ class ChromaVectorDB:
             None
         """
         self.client.delete_collection(collection_name)
-        if self.active_collection:
-            if self.active_collection.name == collection_name:
-                self.active_collection = None
+        if self.active_collection and self.active_collection.name == collection_name:
+            self.active_collection = None
 
     def _batch_insert(
-        self, collection: Collection, embeddings=None, ids=None, metadata=None, documents=None, upsert=False
+        self, collection: Collection, embeddings=None, ids=None, metadatas=None, documents=None, upsert=False
     ):
         batch_size = int(CHROMADB_MAX_BATCH_SIZE)
         for i in range(0, len(documents), min(batch_size, len(documents))):
@@ -142,7 +145,7 @@ class ChromaVectorDB:
             collection_kwargs = {
                 "documents": documents[i:end_idx],
                 "ids": ids[i:end_idx],
-                "metadatas": metadata[i:end_idx] if metadata else None,
+                "metadatas": metadatas[i:end_idx] if metadatas else None,
                 "embeddings": embeddings[i:end_idx] if embeddings else None,
             }
             if upsert:
@@ -180,10 +183,10 @@ class ChromaVectorDB:
         else:
             embeddings = [doc.get("embedding") for doc in docs]
         if docs[0].get("metadata") is None:
-            metadata = None
+            metadatas = None
         else:
-            metadata = [doc.get("metadata") for doc in docs]
-        self._batch_insert(collection, embeddings, ids, metadata, documents, upsert)
+            metadatas = [doc.get("metadata") for doc in docs]
+        self._batch_insert(collection, embeddings, ids, metadatas, documents, upsert)
 
     def update_docs(self, docs: List[Document], collection_name: str = None) -> None:
         """
@@ -213,6 +216,63 @@ class ChromaVectorDB:
         collection = self.get_collection(collection_name)
         collection.delete(ids, **kwargs)
 
+    @staticmethod
+    def _chroma_results_to_query_results(data_dict, special_key="distances"):
+        """Converts a dictionary with list-of-list values to a list of tuples.
+
+        Args:
+            data_dict: A dictionary where keys map to lists of lists or None.
+            special_key: The key in the dictionary containing the special values
+                        for each tuple.
+
+        Returns:
+            A list of tuples, where each tuple contains a sub-dictionary with
+            some keys from the original dictionary and the value from the
+            special_key.
+
+        Example:
+            data_dict = {
+                "key1s": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+                "key2s": [["a", "b", "c"], ["c", "d", "e"], ["e", "f", "g"]],
+                "key3s": None,
+                "key4s": [["x", "y", "z"], ["1", "2", "3"], ["4", "5", "6"]],
+                "distances": [[0.1, 0.2, 0.3], [0.4, 0.5, 0.6], [0.7, 0.8, 0.9]],
+            }
+
+            results = [
+                [
+                    ({"key1": 1, "key2": "a", "key4": "x"}, 0.1),
+                    ({"key1": 2, "key2": "b", "key4": "y"}, 0.2),
+                    ({"key1": 3, "key2": "c", "key4": "z"}, 0.3),
+                ],
+                [
+                    ({"key1": 4, "key2": "c", "key4": "1"}, 0.4),
+                    ({"key1": 5, "key2": "d", "key4": "2"}, 0.5),
+                    ({"key1": 6, "key2": "e", "key4": "3"}, 0.6),
+                ],
+                [
+                    ({"key1": 7, "key2": "e", "key4": "4"}, 0.7),
+                    ({"key1": 8, "key2": "f", "key4": "5"}, 0.8),
+                    ({"key1": 9, "key2": "g", "key4": "6"}, 0.9),
+                ],
+            ]
+        """
+
+        keys = [key for key in data_dict if key != special_key]
+        result = []
+
+        for i in range(len(data_dict[special_key])):
+            sub_result = []
+            for j, distance in enumerate(data_dict[special_key][i]):
+                sub_dict = {}
+                for key in keys:
+                    if data_dict[key] is not None and len(data_dict[key]) > i:
+                        sub_dict[key[:-1]] = data_dict[key][i][j]  # remove 's' in the end from key
+                sub_result.append((sub_dict, distance))
+            result.append(sub_result)
+
+        return result
+
     def retrieve_docs(
         self,
         queries: List[str],
@@ -233,20 +293,8 @@ class ChromaVectorDB:
             kwargs: Dict | Additional keyword arguments.
 
         Returns:
-            QueryResults | The query results. Each query result is a TypedDict `QueryResults`.
-            It should include the following fields:
-                - required: "ids", "contents"
-                - optional: "embeddings", "metadatas", "distances", etc.
-
-            queries example: ["query1", "query2"]
-            query results example: {
-                "ids": [["id1", "id2", ...], ["id3", "id4", ...]],
-                "contents": [["content1", "content2", ...], ["content3", "content4", ...]],
-                "embeddings": [["embedding1", "embedding2", ...], ["embedding3", "embedding4", ...]],
-                "metadatas": [["metadata1", "metadata2", ...], ["metadata3", "metadata4", ...]],
-                "distances": [["distance1", "distance2", ...], ["distance3", "distance4", ...]],
-            }
-
+            QueryResults | The query results. Each query result is a list of list of tuples containing the document and
+                the distance.
         """
         collection = self.get_collection(collection_name)
         if isinstance(queries, str):
@@ -257,25 +305,6 @@ class ChromaVectorDB:
             **kwargs,
         )
         results["contents"] = results.pop("documents")
+        results = self._chroma_results_to_query_results(results)
         results = filter_results_by_distance(results, distance_threshold)
-
-        return results
-
-    def get_docs_by_ids(self, ids: List[ItemID], collection_name: str = None, include=None, **kwargs) -> GetResults:
-        """
-        Retrieve documents from the collection of the vector database based on the ids.
-
-        Args:
-            ids: List[Any] | A list of document ids.
-            collection_name: str | The name of the collection. Default is None.
-            include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"]. ids are always included.
-            kwargs: Dict | Additional keyword arguments.
-
-        Returns:
-            GetResults | The results.
-        """
-        collection = self.get_collection(collection_name)
-        include = include if include else ["metadatas", "documents"]
-        results = collection.get(ids, include=include, **kwargs)
         return results
