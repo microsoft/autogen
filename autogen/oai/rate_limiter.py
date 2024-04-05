@@ -1,5 +1,4 @@
 import time
-import asyncio
 
 
 class TimeRateLimiter:
@@ -12,7 +11,7 @@ class TimeRateLimiter:
     def __init__(self, rate: float):
         """
         Args:
-            rate (int): The frequency of the time-based rate limiter (NOT time).
+            rate (int): The frequency of the time-based rate limiter (NOT time interval).
         """
         self._time_interval_seconds = 1.0 / rate
         self._last_time_called = 0.0
@@ -25,17 +24,6 @@ class TimeRateLimiter:
         """
         if self._elapsed_time() < self._time_interval_seconds:
             time.sleep(self._time_interval_seconds - self._elapsed_time())
-
-        self._last_time_called = time.perf_counter()
-
-    async def a_wait(self):
-        """Asynchronously waits until enough time has passed to allow the next operation.
-
-        If the elapsed time since the last operation is less than the required time interval,
-        this method will asynchronously sleep for the remaining time, allowing other tasks to run.
-        """
-        if self._elapsed_time() < self._time_interval_seconds:
-            await asyncio.sleep(self._time_interval_seconds - self._elapsed_time())
 
         self._last_time_called = time.perf_counter()
 
