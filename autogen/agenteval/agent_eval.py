@@ -1,13 +1,14 @@
-import autogen
+import os
+import sys
+from typing import Callable, Dict, Optional, Union
+
 from criterion import Criterion
 from critic_agent import CriticAgent
 from quantifier_agent import QuantifierAgent
 from subcritic_agent import SubCriticAgent
 from task import Task
 
-import os
-import sys
-from typing import Callable, Dict, Optional, Union
+import autogen
 
 
 def generate_criteria(

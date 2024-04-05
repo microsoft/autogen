@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Literal, Optional, Union
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.runtime_logging import logging_enabled, log_new_agent
+from autogen.runtime_logging import log_new_agent, logging_enabled
 
 
 class QuantifierAgent(ConversableAgent):
