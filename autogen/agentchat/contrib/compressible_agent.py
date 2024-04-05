@@ -1,10 +1,10 @@
-from typing import Callable, Dict, Optional, Union, Tuple, List, Any
-from autogen import OpenAIWrapper
-from autogen import Agent, ConversableAgent
-import copy
 import asyncio
-import logging
+import copy
 import inspect
+import logging
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from autogen import Agent, ConversableAgent, OpenAIWrapper
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
 
 from ...formatting_utils import colored

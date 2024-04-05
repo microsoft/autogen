@@ -1,7 +1,8 @@
 import time
-from termcolor import colored
-from autogencap.LocalActorNetwork import LocalActorNetwork
+
 from AppAgents import FidelityAgent, FinancialPlannerAgent, PersonalAssistant, QuantAgent, RiskManager
+from autogencap.LocalActorNetwork import LocalActorNetwork
+from termcolor import colored
 
 
 def complex_actor_demo():

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import os
 import sys
+
+import pytest
+
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
@@ -12,15 +14,16 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
+    import chromadb
     import openai
+    from chromadb.utils import embedding_functions as ef
+
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
     )
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
-    import chromadb
-    from chromadb.utils import embedding_functions as ef
 except ImportError:
     skip = True
 else:

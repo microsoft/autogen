@@ -1,5 +1,6 @@
-from autogen import ConversableAgent, Agent, OpenAIWrapper, ModelClient
 from typing import Any, Dict, List, Protocol
+
+from autogen import Agent, ConversableAgent, ModelClient, OpenAIWrapper
 
 
 class UpdateableModelClient(ModelClient, Protocol):
