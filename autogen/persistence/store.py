@@ -1,4 +1,4 @@
-from typing import Callable, List, Dict, Any, Literal, Optional, Protocol, Type, TypeVar, runtime_checkable
+from typing import Any, Callable, Dict, List, Literal, Optional, Protocol, Type, TypeVar, runtime_checkable
 
 from pydantic import BaseModel, Field
 

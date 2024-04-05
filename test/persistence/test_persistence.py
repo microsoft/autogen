@@ -1,10 +1,10 @@
 import json
 from typing import Any, Dict, Iterator, Type
 
-from pydantic import BaseModel
 import pytest
+from pydantic import BaseModel
 
-from autogen.persistence.store import Serializable, SerializableRegistry, S
+from autogen.persistence.store import S, Serializable, SerializableRegistry
 from autogen.version import __version__ as version
 
 
