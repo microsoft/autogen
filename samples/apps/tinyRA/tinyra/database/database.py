@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol, List
+from typing import Protocol, List, Optional
 from pathlib import Path
 
 from ..tools import Tool
@@ -16,11 +16,11 @@ class User:
 @dataclass
 class ChatMessage:
 
-    id: int
     root_id: int
     role: str
     content: str
-    timestamp: int
+    timestamp: float
+    id: Optional[int] = None
 
 
 @dataclass
@@ -35,7 +35,7 @@ class DatabaseManager(Protocol):
     async def initialize(self) -> None:
         pass
 
-    async def reset(self) -> None:
+    async def reset(self) -> bool:
         pass
 
     async def get_chat_history(self) -> ChatHistory:
@@ -44,7 +44,7 @@ class DatabaseManager(Protocol):
     async def get_chat_message(self, root_id: int, id: int) -> ChatMessage:
         pass
 
-    async def set_chat_message(self, message: ChatMessage) -> None:
+    async def set_chat_message(self, message: ChatMessage) -> ChatMessage:
         pass
 
     async def clear_chat_history(self) -> None:

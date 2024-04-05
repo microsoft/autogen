@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 import os
 import json
 import logging
@@ -10,11 +11,13 @@ from collections import namedtuple
 import functools
 from dataclasses import dataclass
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 
 from typing import Any, List, Dict, Optional, Set, Callable
 
 from textual import on
 from textual import work
+from textual.worker import Worker, get_current_worker
 from textual.app import App, ComposeResult
 from textual.screen import ModalScreen
 from textual.containers import ScrollableContainer, Grid, Container, Horizontal, Vertical
@@ -35,24 +38,26 @@ from textual.widgets import (
     ListItem,
     TextArea,
 )
-from textual.reactive import reactive
-from textual.message import Message
 
-import autogen
-from autogen import config_list_from_json  # type: ignore[import-untyped]
-from autogen import Agent, AssistantAgent, UserProxyAgent, ConversableAgent  # type: ignore[import-untyped], ConversableAgent
-from autogen.coding import LocalCommandLineCodeExecutor
-from autogen.coding.func_with_reqs import FunctionWithRequirements
 
 from .tools import Tool, InvalidToolError
 from .exceptions import ChatMessageError, ToolUpdateError, SubprocessError
+
+from .database.database import ChatMessage, User
 from .database.database_sqllite import SQLLiteDatabaseManager
-from .agents.agents import ReversedAgents
 from .files import CodespacesFileManager
+
+from .agents.agents import ReversedAgents
+from .agents.autogen_agents import AutoGenAgentManager
+
+
 from .app_config import AppConfiguration
 
 from .screens.quit_screen import QuitScreen
 from .screens.sidebar import Sidebar
+from .screens.chat_display import ChatDisplay, ReactiveMessageWidget
+
+from .messages import AppErrorMessage
 
 
 # def fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
@@ -217,125 +222,13 @@ from .screens.sidebar import Sidebar
 #         raise ChatMessageError(f"Error inserting or updating chat message: {e}")
 
 
-# def message2markdown(message) -> str:
-#     """
-#     Convert a message to markdown that can be displayed in the chat display.
+class ChatInput(Input):
+    """
+    A widget for user input.
+    """
 
-#     Args:
-#         message: a message
-
-#     Returns:
-#         A markdown string.
-#     """
-#     role = message.role
-#     if role == "user":
-#         display_name = APP_CONFIG.get_user_name()
-#     elif role == "assistant":
-#         display_name = "TinyRA"
-#     else:
-#         display_name = "\U0001F4AD" * 3
-
-#     display_id = message.id
-
-#     content = message.content
-
-#     return f"[{display_id}] {display_name}: {content}"
-
-
-# MessageData = namedtuple("MessageData", ["role", "content", "id"])
-
-
-# class ReactiveMessageWidget(Markdown):
-#     """
-#     A reactive markdown widget for displaying assistant messages.
-#     """
-
-#     message = reactive(MessageData(None, None, None))
-
-#     class Selected(Message):
-#         """Assistant message selected message."""
-
-#         def __init__(self, msg_id: str) -> None:
-#             self.msg_id = msg_id
-#             super().__init__()
-
-#     def __init__(self, id=None, role=None, content=None, **kwargs):
-#         super().__init__(**kwargs)
-#         # self.message = {"role": role, "content": content, "id": id}
-#         self.message = MessageData(role, content, id)
-
-#     def on_mount(self) -> None:
-#         self.set_interval(1, self.update_message)
-#         chat_display = self.app.query_one(ChatDisplay)
-#         chat_display.scroll_end()
-
-#     def on_click(self) -> None:
-#         self.post_message(self.Selected(self.message.id))
-
-#     async def update_message(self):
-#         message = await a_fetch_row(self.message.id)
-
-#         if message is None:
-#             self.remove()
-#             return
-
-#         message = MessageData(message["role"], message["content"], message["id"])
-
-#         self.classes = f"{message.role.lower()}-message message"
-
-#         self.message = message
-
-#     async def watch_message(self) -> str:
-#         return await self.update(message2markdown(self.message))
-
-
-# def message_display_handler(message: Dict[str, str]):
-#     """
-#     Given a message, return a widget for displaying the message.
-#     If the message is from the user, return a markdown widget.
-#     If the message is from the assistant, return a reactive markdown widget.
-
-#     Args:
-#         message: a message
-
-#     Returns:
-#         A markdown widget or a reactive markdown widget.
-#     """
-#     role = message["role"]
-#     id = message["id"]
-#     content = message["content"]
-#     message_widget = ReactiveMessageWidget(id=id, role=role, content=content, classes=f"{role.lower()}-message message")
-#     return message_widget
-
-
-# class ChatDisplay(ScrollableContainer):
-#     """
-#     A container for displaying the chat history.
-
-#     When a new message is detected, it is mounted to the container.
-#     """
-
-#     limit_history = 100
-
-#     # num_messages = reactive(len(fetch_chat_history()))
-
-#     # async def watch_num_messages(self) -> None:
-#     # self.scroll_end()
-
-#     def compose(self) -> ComposeResult:
-#         chat_history = fetch_chat_history()
-#         for message in chat_history[-self.limit_history :]:
-#             widget = message_display_handler(message)
-#             yield widget
-
-
-# class ChatInput(Input):
-#     """
-#     A widget for user input.
-#     """
-
-#     def on_mount(self) -> None:
-#         self.focus()
+    def on_mount(self) -> None:
+        self.focus()
 
 
 # class NotificationScreen(ModalScreen):
@@ -678,14 +571,6 @@ from .screens.sidebar import Sidebar
 #         for state in self.states:
 #             repr += str(state) + " "
 #         return repr
-
-
-# class AppErrorMessage(Message):
-#     """An error message for the app."""
-
-#     def __init__(self, message: str) -> None:
-#         self.message = message
-#         super().__init__()
 
 
 # class Profiler:
@@ -1202,11 +1087,9 @@ class TinyRA(App):
 
         yield Sidebar(classes="-hidden", id="sidebar")
 
-        yield Static("Hello!")
-
-        # with Grid(id="chat-grid"):
-        #     yield ChatDisplay(id="chat-history")
-        #     yield ChatInput(id="chat-input-box")
+        with Grid(id="chat-grid"):
+            yield ChatDisplay(id="chat-history")
+            yield ChatInput(id="chat-input-box")
 
         yield Footer()
 
@@ -1214,7 +1097,8 @@ class TinyRA(App):
 
         def check_quit(quit: bool) -> None:
             if quit:
-                self.exit()
+                self.workers.cancel_all()
+                self.exit(message="Exiting TinyRA...")
 
         self.push_screen(QuitScreen(), check_quit)
 
@@ -1269,10 +1153,10 @@ class TinyRA(App):
     #             file_path = str(highlighted_node.data.path)
     #             APP_CONFIG.delete_file_or_dir(file_path)
 
-    # def on_input_submitted(self, event: Input.Submitted) -> None:
-    #     user_input = self.query_one("#chat-input-box", Input).value.strip()
-    #     self.query_one(Input).value = ""
-    #     self.handle_input(user_input)
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        user_input = self.query_one("#chat-input-box", Input).value.strip()
+        self.query_one(Input).value = ""
+        self.handle_input(user_input)
 
     # def on_reactive_message_selected(self, event: ReactiveMessageWidget.Selected) -> None:
     #     """Called when a reactive assistant message is selected."""
@@ -1280,41 +1164,66 @@ class TinyRA(App):
     #     new_chat_screen.root_msg_id = int(event.msg_id)
     #     self.push_screen(new_chat_screen)
 
-    # @work()
-    # async def handle_input(self, user_input: str) -> None:
-    #     chat_display_widget = self.query_one(ChatDisplay)
+    @work()
+    async def handle_input(self, user_input: str) -> None:
+        chat_display_widget = self.query_one(ChatDisplay)
 
-    #     # display the user input in the chat display
-    #     id = await a_insert_chat_message("user", user_input, root_id=0)
-    #     user_message = await a_fetch_row(id)
-    #     if user_message is None:
-    #         # TODO - what to do if the message is not found?
-    #         return
-    #     reactive_message = message_display_handler(user_message)
-    #     await chat_display_widget.mount(reactive_message)
+        dbm = self.app.config.db_manager
+        user = await dbm.get_user()
 
-    #     # display the assistant response in the chat display
-    #     assistant_message = {
-    #         "role": "info",
-    #         "content": "Computing response…",
-    #         "id": str(id + 1),
-    #     }
-    #     await self.app_config.db.insert_chat_message("info", "Computing response…", root_id=0, id=id + 1)
-    #     reactive_message = message_display_handler(assistant_message)
-    #     await chat_display_widget.mount(reactive_message)
+        # display the user input in the chat display
+        self.logger.info(f"User input: {user_input}")
 
-    #     try:
-    #         # await run_in_subprocess(generate_response_process, id)
-    #         self.generate_response(id)
-    #     except SubprocessError as e:
-    #         error_message = f"{e}"
-    #         await a_insert_chat_message("error", error_message, root_id=0, id=id + 1)
-    #         self.post_message(AppErrorMessage(error_message))
-    #         # raise e
+        new_chat_message = ChatMessage(role="user", content=user_input, root_id=0, timestamp=datetime.now().timestamp())
+        self.logger.info(str(new_chat_message))
+        new_chat_message = await dbm.set_chat_message(new_chat_message)
+        reactive_message = ReactiveMessageWidget(new_chat_message, user)
+        await chat_display_widget.mount(reactive_message)
 
-    # @work(thread=True)
-    # def generate_response(self, msg_idx: int) -> None:
-    #     generate_response_process(msg_idx)
+        # asyncio.sleep(1)  # take a second before starting new message
+
+        assistant_message = ChatMessage(
+            role="info", content="Computing response…", root_id=0, timestamp=datetime.now().timestamp()
+        )
+        self.logger.info("Mounting a new assistant chat widget")
+        assistant_message = await self.config.db_manager.set_chat_message(assistant_message)
+        reactive_message = ReactiveMessageWidget(assistant_message, user)
+        await chat_display_widget.mount(reactive_message)
+        reactive_message.scroll_visible()  # Fix: This is a hack to make the container scroll; Not sure why on_mount doesn't handle
+
+        try:
+            self.logger.info(f"Generating response for {new_chat_message}")
+            self.generate_response(new_chat_message, assistant_message)
+        except SubprocessError as e:
+            error_message = f"{e}"
+            await dbm.set_chat_message("error", error_message, root_id=0, id=id + 1)
+            self.post_message(AppErrorMessage(error_message))
+
+    @work(thread=True)
+    async def generate_response(self, in_message: ChatMessage, out_message: ChatMessage) -> None:
+        """
+        Run the agents in a separate thread because AutoGen may block the main thread.
+        But allow the worker to be canceled if the user cancels the operation.
+        Worker can be cancelled between non-blocking operations in the thread.
+        """
+        worker = get_current_worker()  # this is the worker running this thread
+        task = asyncio.create_task(self.config.agent_manager.generate_response(in_message, out_message))
+
+        while not task.done():
+            self.logger.debug(f"Waiting for task to complete, {worker}")
+            if worker.is_cancelled:
+                self.logger.info(f"Canceling the worker, {worker}")
+                task.cancel()
+                return
+            await asyncio.sleep(1)  # sleep for a short time before checking again
+
+        out_message = await task
+        out_message = await self.config.db_manager.set_chat_message(out_message)
+        self.logger.info(str(out_message))
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Called when the worker state changes."""
+        self.logger.info(event)
 
 
 def run_app() -> None:
@@ -1337,11 +1246,10 @@ def run_app() -> None:
     logger = logging.getLogger(__name__)
 
     db_manager = SQLLiteDatabaseManager(data_path=app_path)
-
-    # llm_config = {"config_list": config_list_from_json("OAI_CONFIG_LIST")}
-    agent_manager = ReversedAgents()
-
     file_manager = CodespacesFileManager(root_path=work_dir)
+
+    # agent_manager = ReversedAgents()
+    agent_manager = AutoGenAgentManager(llm_config=None, db_manager=db_manager, file_manager=file_manager)
 
     app_config = AppConfiguration(
         app_path=None, db_manager=db_manager, file_manager=file_manager, agent_manager=agent_manager
@@ -1352,18 +1260,25 @@ def run_app() -> None:
         print("Press enter to continue or Ctrl+C to cancel.")
         input()
         app_config.reset()
+        exit()
 
     if args.reset_db:
         print("Warning: Reset the database?")
         print("Press enter to continue or Ctrl+C to cancel.")
         input()
-        app_config.db_manager.reset()
+        success = asyncio.run(app_config.db_manager.reset())
+        if success:
+            print("Database reset successful.")
+        else:
+            print("Database reset failed.")
+        exit()
 
     if args.reset_files:
         print("Warning: Reset the files?")
         print("Press enter to continue or Ctrl+C to cancel.")
         input()
         app_config.file_manager.reset()
+        exit()
 
     logger.info("Initializing the app")
     try:

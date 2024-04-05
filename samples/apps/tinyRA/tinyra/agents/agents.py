@@ -1,21 +1,21 @@
 import asyncio
 from typing import Protocol, List
 
+from ..database.database import ChatMessage
+
 
 class AgentManager(Protocol):
 
-    async def generate_response(self, message: str) -> str:
+    async def generate_response(self, in_message: ChatMessage, out_message: ChatMessage) -> ChatMessage:
         pass
 
 
 class ReversedAgents:
 
-    async def generate_response(self, message: str) -> str:
+    async def generate_response(self, in_message: ChatMessage, out_message: ChatMessage) -> ChatMessage:
 
-        # sleep for a random amount of time
-        # this is to simulate a long running task
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(3)
 
-        reversed_message = message[::-1]
-
-        return reversed_message
+        out_message.content = in_message.content[::-1]
+        out_message.role = "assistant"
+        return out_message

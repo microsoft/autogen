@@ -1,3 +1,4 @@
+import os
 import aiosqlite
 import logging
 from pathlib import Path
@@ -10,6 +11,7 @@ from .database import ChatHistory, ChatMessage, User
 class SQLLiteDatabaseManager:
 
     DEFAULT_DB_FILE = "tinyra.db"
+    DEFAULT_USER = User(name="Default User", bio="", preferences="")
 
     def __init__(self, data_path: Path):
         self.database_path = data_path / self.DEFAULT_DB_FILE
@@ -19,11 +21,22 @@ class SQLLiteDatabaseManager:
         """
         Initialize the database and create the necessary tables.
         """
+        self.logger.info(f"Initializing database at {self.database_path}")
         try:
+            self.logger.info("Creating user table")
             await self.create_user_table()
+            self.logger.info("Creating chat history table")
             await self.create_chat_history_table()
         except Exception as e:
             raise DatabaseError("Error initializing database", e)
+
+    async def _create_default_user(self):
+        current_user = await self.get_user()
+        if not current_user:
+            default_user = self.DEFAULT_USER
+            # try getting the name from the environment
+            default_user.name = os.getenv("USER_NAME", default_user.name)
+            await self.set_user(default_user)
 
     async def create_user_table(self):
         """
@@ -43,33 +56,62 @@ class SQLLiteDatabaseManager:
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
             await c.execute(
-                "CREATE TABLE IF NOT EXISTS chat_history (root_id INTEGER, id INTEGER, role TEXT, content TEXT)"
+                "CREATE TABLE IF NOT EXISTS chat_history (root_id INTEGER, id INTEGER, role TEXT, content TEXT, timestamp FLOAT)"
             )
             await conn.commit()
 
-    async def get_chat_history(self) -> ChatHistory:
+    async def get_chat_history(self, root_id: int) -> ChatHistory:
         try:
-            self._get_chat_history()
+            return await self._get_chat_history(root_id=root_id)
         except aiosqlite.Error as e:
             raise DatabaseError("Error fetching chat history", e)
 
     async def get_chat_message(self, root_id: int, id: int) -> ChatMessage:
         try:
-            self._get_chat_message(root_id, id)
+            return await self._get_chat_message(root_id, id)
         except aiosqlite.Error as e:
             raise DatabaseError("Error fetching chat message", e)
 
-    async def set_chat_message(self, message: ChatMessage):
+    async def set_chat_message(self, message: ChatMessage) -> ChatMessage:
         try:
-            self._set_chat_message(message)
+            return await self._set_chat_message(message)
         except aiosqlite.Error as e:
             raise DatabaseError("Error setting chat message", e)
 
     async def get_user(self) -> User:
         try:
-            self._get_user()
+            return await self._get_user()
         except aiosqlite.Error as e:
             raise DatabaseError("Error fetching user", e)
+
+    async def set_user(self, user: User) -> User:
+        try:
+            return await self._set_user(user)
+        except aiosqlite.Error as e:
+            raise DatabaseError("Error setting user", e)
+
+    async def _set_user(self, user: User) -> User:
+        """
+        Set the user's information in the database.
+
+        Args:
+            user: the User object to set
+
+        Returns:
+            A User object.
+        """
+        async with aiosqlite.connect(self.database_path) as conn:
+            c = await conn.cursor()
+            await c.execute("SELECT user_name FROM configuration")
+            if (await c.fetchone()) is None:
+                data = (user.name, user.bio, user.preferences)
+                await c.execute("INSERT INTO configuration (user_name, bio, preferences) VALUES (?, ?, ?)", data)
+                await conn.commit()
+            else:
+                data = (user.name, user.bio, user.preferences)
+                await c.execute("UPDATE configuration SET user_name = ?, bio = ?, preferences = ?", data)
+                await conn.commit()
+            return user
 
     async def _get_chat_history(self, root_id: int = 0) -> ChatHistory:
         """
@@ -83,14 +125,16 @@ class SQLLiteDatabaseManager:
         """
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
-            await c.execute("SELECT root_id, id, role, content FROM chat_history WHERE root_id = ?", (root_id,))
+            await c.execute(
+                "SELECT root_id, id, role, content, timestamp FROM chat_history WHERE root_id = ?", (root_id,)
+            )
             chat_history = [
-                ChatMessage(root_id=root_id, id=id, role=role, content=content)
-                for root_id, id, role, content in await c.fetchall()
+                ChatMessage(root_id=root_id, id=id, role=role, content=content, timestamp=timestamp)
+                for root_id, id, role, content, timestamp in await c.fetchall()
             ]
             return ChatHistory(root_id=root_id, messages=chat_history)
 
-    async def _get_chat_message(self, id: int, root_id: int = 0) -> Optional[ChatMessage]:
+    async def _get_chat_message(self, root_id: int, id: int) -> Optional[ChatMessage]:
         """
         Fetch a single chat message from the database.
 
@@ -103,13 +147,16 @@ class SQLLiteDatabaseManager:
         """
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
-            await c.execute("SELECT role, content FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id))
+            await c.execute(
+                "SELECT role, content, timestamp FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id)
+            )
             row = [
-                {"role": role, "content": content, "id": id, "root_id": root_id} for role, content in await c.fetchall()
+                {"role": role, "content": content, "id": id, "root_id": root_id, "timestamp": timestamp}
+                for role, content, timestamp in await c.fetchall()
             ]
             return ChatMessage(**row[0]) if row else None
 
-    async def _set_chat_message(self, message: ChatMessage) -> None:
+    async def _set_chat_message(self, message: ChatMessage) -> ChatMessage:
         """
         Insert or update a chat message in the database.
 
@@ -131,6 +178,7 @@ class SQLLiteDatabaseManager:
                 data_a = (message.root_id, message.id, message.role, message.content)
                 await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
                 await conn.commit()
+                return message
             else:
                 await c.execute(
                     "SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (message.root_id, message.id)
@@ -145,6 +193,7 @@ class SQLLiteDatabaseManager:
                         "UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c
                     )
                     await conn.commit()
+                return message
 
     async def _get_user(self) -> User:
         """
@@ -156,5 +205,38 @@ class SQLLiteDatabaseManager:
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
             await c.execute("SELECT user_name FROM configuration")
-            user_name = (await c.fetchone())[0]
-            return User(name=user_name)
+            output = await c.fetchone()
+
+            if output is None:
+                return self.get_default_user()
+
+            user_name, bio, preferences = output
+            return User(name=user_name, bio=bio, preferences=preferences)
+
+    def get_default_user(self) -> User:
+        """
+        Get the default user.
+        """
+        default_user = self.DEFAULT_USER
+        default_user.name = os.environ.get("USER", self.DEFAULT_USER.name)
+        return default_user
+
+    async def reset(self) -> bool:
+        """
+        Reset the database.
+        """
+        try:
+            await self._reset()
+            return True
+        except aiosqlite.Error as e:
+            raise DatabaseError("Error resetting database", e)
+
+    async def _reset(self):
+        """
+        Reset the database.
+        """
+        async with aiosqlite.connect(self.database_path) as conn:
+            c = await conn.cursor()
+            await c.execute("DROP TABLE IF EXISTS configuration")
+            await c.execute("DROP TABLE IF EXISTS chat_history")
+            await conn.commit()
