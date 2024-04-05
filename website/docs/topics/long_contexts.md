@@ -35,24 +35,13 @@ import autogen
 from autogen.agentchat.contrib.capabilities import transform_messages, transforms
 from typing import Dict, List
 
-config_list = autogen.config_list_from_json(
-    env_or_file="OAI_CONFIG_LIST",
-)
-# Define your llm config
-llm_config = {"config_list": config_list}
-```
 
-```{=mdx}
-:::tip
-Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
-:::
-```
+config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
 
-```python
 # Define your agent; the user proxy and an assistant
 assistant = autogen.AssistantAgent(
     "assistant",
-    llm_config=llm_config,
+    llm_config={"config_list": config_list},
 )
 user_proxy = autogen.UserProxyAgent(
     "user_proxy",
@@ -60,6 +49,12 @@ user_proxy = autogen.UserProxyAgent(
     is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
     max_consecutive_auto_reply=10,
 )
+```
+
+```{=mdx}
+:::tip
+Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
+:::
 ```
 
 ### Example 1: Limiting the Total Number of Messages
@@ -118,13 +113,11 @@ We can see that we can limit the number of tokens to 3, which is equivalent to 3
 Let's test these transforms with AutoGen's agents. We will see that the agent without the capability to handle long context will result in an error, while the agent with the capability will have no issues.
 
 ```python
-llm_config = {
-    "config_list": [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}],
-}
+config_list = [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}]
 
 assistant_base = autogen.AssistantAgent(
     "assistant",
-    llm_config=llm_config,
+    llm_config={"config_list": config_list},
 )
 
 assistant_with_context_handling = autogen.AssistantAgent(

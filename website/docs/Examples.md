@@ -80,13 +80,14 @@ Links to notebook examples:
 
 ### Multimodal Agent
 
-- Multimodal Agent Chat with DALLE and GPT-4V - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_dalle_and_gpt4v.ipynb)
-- Multimodal Agent Chat with Llava - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
+- Multimodal Agent Chat with DALLE and GPT-4V   - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_dalle_and_gpt4v.ipynb)
+- Multimodal Agent Chat with Llava  - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_llava.ipynb)
 - Multimodal Agent Chat with GPT-4V - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_lmm_gpt-4v.ipynb)
 
 ### Long Context Handling
 
-- Long Context Handling with `TransformMessages` - [View Notebook](/docs/notebooks/agentchat_transform_messages/)
+<!-- - Conversations with Chat History Compression Enabled - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_compression.ipynb) -->
+- Long Context Handling as A Capability - [View Notebook](/docs/notebooks/agentchat_capability_long_context_handling)
 
 ### Evaluation and Assessment
 
@@ -101,7 +102,7 @@ Links to notebook examples:
 
 ### Utilities
 
-- API Unification - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
+- API Unification  - [View Documentation with Code Example](https://microsoft.github.io/autogen/docs/Use-Cases/enhanced_inference/#api-unification)
 - Utility Functions to Help Managing API configurations effectively - [View Notebook](/docs/topics/llm_configuration)
 - Cost Calculation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_cost_token_tracking.ipynb)
 
@@ -111,6 +112,5 @@ AutoGen offers a cost-effective hyperparameter optimization technique [EcoOptiGe
 Please find documentation about this feature [here](/docs/Use-Cases/enhanced_inference).
 
 Links to notebook examples:
-
-- [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
-- [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
+* [Optimize for Code Generation](https://github.com/microsoft/autogen/blob/main/notebook/oai_completion.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_completion.ipynb)
+* [Optimize for Math](https://github.com/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb) | [Open in colab](https://colab.research.google.com/github/microsoft/autogen/blob/main/notebook/oai_chatgpt_gpt4.ipynb)
