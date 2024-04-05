@@ -33,6 +33,11 @@ module.exports = {
     format: 'detect', // Support for MD files with .md extension
   },
   themeConfig: {
+    docs: {
+      sidebar: {
+        autoCollapseCategories: true,
+      },
+    },
     navbar: {
       title: "AutoGen",
       logo: {
@@ -82,8 +87,8 @@ module.exports = {
             },
             {
               type: "doc",
-              label: "Contribute",
-              docId: "Contribute",
+              label: "Contributor Guide",
+              docId: "contributor-guide/contributing",
             },
             {
               type: "doc",
@@ -250,10 +255,6 @@ module.exports = {
             from: ["/docs/llm_endpoint_configuration/"],
           },
           {
-            to: "/docs/ecosystem/memgpt/",
-            from: ["/docs/Ecosystem"],
-          },
-          {
             to: "/docs/Getting-Started",
             from: ["/docs/"],
           },
@@ -276,6 +277,10 @@ module.exports = {
           {
             to: "/docs/notebooks/agentchat_nested_chats_chess",
             from: ["/docs/notebooks/agentchat_chess"],
+          },
+          {
+            to: "/docs/contributor-guide/contributing",
+            from: ["/docs/Contribute"],
           }
         ],
       },

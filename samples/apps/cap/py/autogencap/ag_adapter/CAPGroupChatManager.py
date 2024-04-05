@@ -1,9 +1,10 @@
+import time
+
 from autogen import GroupChatManager
 from autogencap.ActorConnector import ActorConnector
-from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.ag_adapter.CAPGroupChat import CAPGroupChat
-import time
+from autogencap.LocalActorNetwork import LocalActorNetwork
 
 
 class CAPGroupChatManager:
@@ -33,6 +34,8 @@ class CAPGroupChatManager:
     def _wait_for_user_exit(self) -> None:
         try:
             while self.is_running():
+                # Hang out for a while and print out
+                # status every now and then
                 time.sleep(0.5)
         except KeyboardInterrupt:
             print("Interrupted by user, shutting down.")

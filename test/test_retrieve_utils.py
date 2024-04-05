@@ -7,14 +7,15 @@ import pytest
 
 try:
     import chromadb
+
     from autogen.retrieve_utils import (
-        split_text_to_chunks,
+        create_vector_db_from_dir,
         extract_text_from_pdf,
-        split_files_to_chunks,
         get_files_from_dir,
         is_url,
-        create_vector_db_from_dir,
         query_vector_db,
+        split_files_to_chunks,
+        split_text_to_chunks,
     )
     from autogen.token_count_utils import count_token
 except ImportError:
