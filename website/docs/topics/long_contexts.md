@@ -110,29 +110,34 @@ We can see that we can limit the number of tokens to 3, which is equivalent to 3
 
 ### Example 3: Combining Multiple Transformations Using the `TransformMessages` Capability
 
-Let's test these transforms with AutoGen's agents. We will see that the agent without the capability to handle long context will result in an error, while the agent with the capability will have no issues.
+Let's test these transforms with AutoGen's agents. The first run will be the default implementation, where the agent does not have the `TransformMessages` capability.
 
 ```python
+# Create a very long chat history that is bound to cause a crash for gpt 3.5
+def test(assistant: autogen.ConversableAgent, user_proxy: autogen.UserProxyAgent):
+    # for gpt 3.5
+    for _ in range(1000):
+        # define a fake, very long messages
+        assitant_msg = {"role": "assistant", "content": "test " * 1000}
+        user_msg = {"role": "user", "content": ""}
+
+        assistant.send(assitant_msg, user_proxy, request_reply=False, silent=True)
+        user_proxy.send(user_msg, assistant, request_reply=False, silent=True)
+
+    try:
+        user_proxy.initiate_chat(assistant, message="plot and save a graph of x^2 from -10 to 10", clear_history=False)
+    except Exception as e:
+        print("Encountered an error with the base assistant")
+        print(e)
+        print("\n\n")
+
+
 config_list = [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}]
 
-assistant_base = autogen.AssistantAgent(
+assistant = autogen.AssistantAgent(
     "assistant",
     llm_config={"config_list": config_list},
 )
-
-assistant_with_context_handling = autogen.AssistantAgent(
-    "assistant",
-    llm_config=llm_config,
-)
-# suppose this capability is not available
-context_handling = transform_messages.TransformMessages(
-    transforms=[
-        transforms.MessageHistoryLimiter(max_messages=10),
-        transforms.MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=50),
-    ]
-)
-
-context_handling.add_to_agent(assistant_with_context_handling)
 
 user_proxy = autogen.UserProxyAgent(
     "user_proxy",
@@ -144,34 +149,97 @@ user_proxy = autogen.UserProxyAgent(
     },
     max_consecutive_auto_reply=2,
 )
-
-# suppose the chat history is large
-# Create a very long chat history that is bound to cause a crash
-# for gpt 3.5
-for i in range(1000):
-    # define a fake, very long messages
-    assitant_msg = {"role": "assistant", "content": "test " * 1000}
-    user_msg = {"role": "user", "content": ""}
-
-    assistant_base.send(assitant_msg, user_proxy, request_reply=False, silent=True)
-    assistant_with_context_handling.send(assitant_msg, user_proxy, request_reply=False, silent=True)
-    user_proxy.send(user_msg, assistant_base, request_reply=False, silent=True)
-    user_proxy.send(user_msg, assistant_with_context_handling, request_reply=False, silent=True)
-
-try:
-    user_proxy.initiate_chat(assistant_base, message="plot and save a graph of x^2 from -10 to 10", clear_history=False)
-except Exception as e:
-    print("Encountered an error with the base assistant")
-    print(e)
-    print("\n\n")
-
-try:
-    user_proxy.initiate_chat(
-        assistant_with_context_handling, message="plot and save a graph of x^2 from -10 to 10", clear_history=False
-    )
-except Exception as e:
-    print(e)
+test(assistant, user_proxy)
 ```
+
+Running this code will result in an error due to the large number of tokens sent to OpenAI's gpt 3.5.
+
+```console
+user_proxy (to assistant):
+
+plot and save a graph of x^2 from -10 to 10
+
+--------------------------------------------------------------------------------
+Encountered an error with the base assistant
+Error code: 429 - {'error': {'message': 'Request too large for gpt-3.5-turbo in organization org-U58JZBsXUVAJPlx2MtPYmdx1 on tokens per min (TPM): Limit 60000, Requested 1252546. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}
+```
+
+Now let's add the `TransformMessages` capability to the agent and run the same test.
+
+```python
+user_proxy = autogen.UserProxyAgent(
+    "user_proxy",
+    human_input_mode="NEVER",
+    is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
+    max_consecutive_auto_reply=2,
+)
+
+assistant_with_context_handling = autogen.AssistantAgent(
+    "assistant",
+    llm_config={"config_list": config_list},
+)
+context_handling = transform_messages.TransformMessages(
+    transforms=[
+        transforms.MessageHistoryLimiter(max_messages=10),
+        transforms.MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=50),
+    ]
+)
+context_handling.add_to_agent(assistant_with_context_handling)
+
+test(assistant_with_context_handling, user_proxy)
+```
+
+The following console output shows that the agent is now able to handle the large number of tokens sent to OpenAI's gpt 3.5.
+
+`````console
+user_proxy (to assistant):
+
+plot and save a graph of x^2 from -10 to 10
+
+--------------------------------------------------------------------------------
+Truncated 3804 tokens. Tokens reduced from 4019 to 215
+assistant (to user_proxy):
+
+To plot and save a graph of \( x^2 \) from -10 to 10, we can use Python with the matplotlib library. Here's the code to generate the plot and save it to a file named "plot.png":
+
+```python
+# filename: plot_quadratic.py
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Create an array of x values from -10 to 10
+x = np.linspace(-10, 10, 100)
+y = x**2
+
+# Plot the graph
+plt.plot(x, y)
+plt.xlabel('x')
+plt.ylabel('x^2')
+plt.title('Plot of x^2')
+plt.grid(True)
+
+# Save the plot as an image file
+plt.savefig('plot.png')
+
+# Display the plot
+plt.show()
+````
+
+You can run this script in a Python environment. It will generate a plot of \( x^2 \) from -10 to 10 and save it as "plot.png" in the same directory where the script is executed.
+
+Execute the Python script to create and save the graph.
+After executing the code, you should see a file named "plot.png" in the current directory, containing the graph of \( x^2 \) from -10 to 10. You can view this file to see the plotted graph.
+
+Is there anything else you would like to do or need help with?
+If not, you can type "TERMINATE" to end our conversation.
+
+---
+
+`````
 
 ### Example 4: Creating Custom Transformations to Handle Sensitive Content
 
