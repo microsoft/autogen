@@ -138,6 +138,9 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+        # Take a copy to avoid modifying the given dict
+        if isinstance(llm_config, dict):
+            llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
 
