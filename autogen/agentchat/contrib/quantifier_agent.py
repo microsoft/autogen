@@ -35,7 +35,7 @@ class QuantifierAgent(ConversableAgent):
                 Please override this attribute if you want to reprogram the agent.
             - llm_config (dict or False or None): llm inference configuration.
                 Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
-                for available options.
+                for available options. To disable llm-based auto reply, set to False.
             - max_consecutive_auto_reply (int): the maximum number of consecutive auto replies.
                 default to None (no limit provided, class attribute MAX_CONSECUTIVE_AUTO_REPLY will be used as the limit in this case).
                 The limit only plays a role when human_input_mode is not "ALWAYS".
@@ -45,7 +45,7 @@ class QuantifierAgent(ConversableAgent):
                 - "SOMETIMES": The agent will sometimes require human input.
             - description (str): The description of the agent.
             **kwargs (dict): Please refer to other kwargs in
-                [ConversableAgent](conversable_agent#__init__).
+                [ConversableAgent](../conversable_agent#__init__).
         """
         super().__init__(
             name=name, system_message=system_message, human_input_mode="NEVER", llm_config=llm_config, **kwargs
