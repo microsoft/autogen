@@ -31,9 +31,9 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -43,10 +43,10 @@ jobs:
           python -c "import autogen"
           pip install pytest mock
       - name: Install optional dependencies for code executors
-        # code executors auto skip without deps, so only run for python 3.11
+        # code executors and udfs auto skip without deps, so only run for python 3.11
         if: matrix.python-version == '3.11'
         run: |
-          pip install -e ".[jupyter-executor]"
+          pip install -e ".[jupyter-executor,test]"
           python -m ipykernel install --user --name python3
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
@@ -57,16 +57,16 @@ jobs:
       - name: Test with pytest skipping openai tests
         if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
         run: |
-          pytest test --skip-openai
+          pytest test --skip-openai --durations=10 --durations-min=1.0
       - name: Test with pytest skipping openai and docker tests
         if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
         run: |
-          pytest test --skip-openai --skip-docker
+          pytest test --skip-openai --skip-docker --durations=10 --durations-min=1.0
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test,redis]
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
+          pip install -e .[test,redis,websockets]
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

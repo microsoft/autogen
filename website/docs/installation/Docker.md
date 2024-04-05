@@ -20,13 +20,13 @@ AutoGen now provides updated Dockerfiles tailored for different needs. Building 
 - **Autogen Basic**: Ideal for general use, this setup includes common Python libraries and essential dependencies. Perfect for those just starting with AutoGen.
 
   ```bash
-  docker build -f .devcontainer/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/Dockerfile -t autogen_base_img https://github.com/microsoft/autogen.git#main
   ```
 
 - **Autogen Advanced**: Advanced users or those requiring all the things that AutoGen has to offer `autogen_full_img`
 
   ```bash
-  docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git
+  docker build -f .devcontainer/full/Dockerfile -t autogen_full_img https://github.com/microsoft/autogen.git#main
   ```
 
 ## Step 3: Run AutoGen Applications from Docker Image
@@ -84,4 +84,4 @@ docker run -it -p {WorkstationPortNum}:{DockerPortNum} -v {WorkStation_Dir}:{Doc
 
 - Details on all the Dockerfile options can be found in the [Dockerfile](https://github.com/microsoft/autogen/.devcontainer/README.md) README.
 - For more information on Docker usage and best practices, refer to the [official Docker documentation](https://docs.docker.com).
-- Details on how to use the Dockerfile dev version can be found on the [Contributing](Contribute.md#docker)
+- Details on how to use the Dockerfile dev version can be found on the [Contributor Guide](/docs/contributor-guide/docker).
