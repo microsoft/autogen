@@ -34,7 +34,7 @@ public class Hubber : Agent
             case nameof(GithubFlowEventType.DevPlanGenerated):
             case nameof(GithubFlowEventType.CodeGenerated):
                 var contents = string.IsNullOrEmpty(item.Message)? "Sorry, I got tired, can you try again please? ": item.Message;
-                await PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), item.Message);
+                await PostComment(item.Data["org"], item.Data["repo"], long.Parse(item.Data["issueNumber"]), contents);
                 break;
             case nameof(GithubFlowEventType.DevPlanCreated):
                 {

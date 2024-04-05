@@ -71,7 +71,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error committing to branch");
-             throw;
+            throw;
         }
     }
 
@@ -85,7 +85,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating branch");
-             throw;
+            throw;
         }
     }
 
@@ -100,7 +100,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting main language");
-             throw;
+            throw;
         }
     }
 
@@ -120,7 +120,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating issue");
-             throw;
+            throw;
         }
     }
 
@@ -134,7 +134,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating PR");
-             throw;
+            throw;
         }
     }
 
@@ -147,7 +147,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error posting comment");
-             throw;
+            throw;
         }
     }
 
@@ -161,7 +161,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting files");
-             throw;
+            throw;
         }
     }
 
@@ -192,7 +192,7 @@ public class GithubService : IManageGithub
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error collecting files");
-             throw;
+            throw;
         }
     }
 }
