@@ -115,7 +115,6 @@ Let's test these transforms with AutoGen's agents. The first run will be the def
 ```python
 # Create a very long chat history that is bound to cause a crash for gpt 3.5
 def test(assistant: autogen.ConversableAgent, user_proxy: autogen.UserProxyAgent):
-    # for gpt 3.5
     for _ in range(1000):
         # define a fake, very long messages
         assitant_msg = {"role": "assistant", "content": "test " * 1000}
