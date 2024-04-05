@@ -1,6 +1,6 @@
+import importlib.util
 import os
 import sys
-import importlib.util
 
 
 def load_module(module_path):

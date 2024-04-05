@@ -1,14 +1,14 @@
-import re
 import os
-from pydantic import BaseModel, Extra, root_validator
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+import re
 from time import sleep
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
+from pydantic import BaseModel, Extra, root_validator
 
 from autogen._pydantic import PYDANTIC_V1
 from autogen.agentchat import Agent, UserProxyAgent
-from autogen.code_utils import UNKNOWN, extract_code, execute_code, infer_lang
+from autogen.code_utils import UNKNOWN, execute_code, extract_code, infer_lang
 from autogen.math_utils import get_answer
-
 
 PROMPTS = {
     # default
