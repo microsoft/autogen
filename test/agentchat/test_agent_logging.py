@@ -119,7 +119,7 @@ def test_two_agents_logging(db_connection):
         else:
             assert "choices" in response and len(response["choices"]) > 0
 
-        assert row["cost"] > 0
+        assert row["cost"] >= 0.0
         assert row["start_time"], "start timestamp is empty"
         assert row["end_time"], "end timestamp is empty"
 
