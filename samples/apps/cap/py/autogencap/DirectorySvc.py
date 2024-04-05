@@ -111,7 +111,7 @@ class DirectorySvc:
         Debug("DirectorySvc", "Pinging existing DirectorySvc")
         ping = Ping()
         serialized_msg = ping.SerializeToString()
-        _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
+        _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=1)
         if resp is None:
             return True
         return False
