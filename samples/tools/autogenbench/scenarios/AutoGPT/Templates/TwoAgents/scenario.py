@@ -2,8 +2,10 @@
 # ruff: noqa: E722
 
 import traceback
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+
 import testbed_utils
+
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 # Assistant agent can call check.py to check if all the unit tests have passed
 testbed_utils.init()

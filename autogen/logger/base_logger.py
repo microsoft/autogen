@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, TYPE_CHECKING, Union
 import sqlite3
 import uuid
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
-from openai import OpenAI, AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:

@@ -1,14 +1,15 @@
-import json
-import os
-import requests
-import re
-import markdownify
 import io
-import uuid
+import json
 import mimetypes
+import os
+import re
+import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin, urlparse
+
+import markdownify
+import requests
 from bs4 import BeautifulSoup
-from typing import Any, Dict, List, Optional, Union, Tuple
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
