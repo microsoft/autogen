@@ -105,7 +105,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 following keys:
                 - `task` (Optional, str) - the task of the retrieve chat. Possible values are
                     "code", "qa" and "default". System prompt will be different for different tasks.
-                     The default value is `default`, which supports both code and qa.
+                     The default value is `default`, which supports both code and qa, and provides
+                     source information in the end of the response.
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
