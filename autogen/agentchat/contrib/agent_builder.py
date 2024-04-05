@@ -113,6 +113,19 @@ output after executing the code) and provide a corrected answer or code.
     # Only return the list of agent names.
     """
 
+    AGENT_FUNCTION_MAP_PROMPT = """Consider the following function.
+    Function Name: {function_name}
+    Function Description: {function_description}
+
+    The agent details are given in the format: {format_agent_details}
+
+    Which one of the following agents should be able to execute this function?
+    {agent_details}
+
+    Hint:
+    # Only respond with the name of the agent that is most suited to execute the function and nothing else.
+    """
+
     def __init__(
         self,
         config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
@@ -338,6 +351,7 @@ output after executing the code) and provide a corrected answer or code.
         self,
         building_task: str,
         default_llm_config: Dict,
+        list_of_functions: Optional[List[Dict]] = None,
         coding: Optional[bool] = None,
         code_execution_config: Optional[Dict] = None,
         use_oai_assistant: Optional[bool] = False,
@@ -461,7 +475,7 @@ output after executing the code) and provide a corrected answer or code.
             }
         )
 
-        return self._build_agents(use_oai_assistant, **kwargs)
+        return self._build_agents(use_oai_assistant, list_of_functions, **kwargs)
 
     def build_from_library(
         self,
@@ -631,7 +645,7 @@ output after executing the code) and provide a corrected answer or code.
         return self._build_agents(use_oai_assistant, **kwargs)
 
     def _build_agents(
-        self, use_oai_assistant: Optional[bool] = False, **kwargs
+        self, use_oai_assistant: Optional[bool] = False, list_of_functions: Optional[List[Dict]] = None, **kwargs
     ) -> Tuple[List[autogen.ConversableAgent], Dict]:
         """
         Build agents with generated configs.
@@ -679,6 +693,48 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                 ]
                 + agent_list
             )
+
+            agent_details = []
+
+            for agent in agent_list[1:]:
+                agent_details.append({"name": agent.name, "description": agent.description})
+
+            config_list = autogen.config_list_from_json(
+                self.config_file_or_env,
+                file_location=self.config_file_location,
+                filter_dict={"model": [self.builder_model]},
+            )
+
+            build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
+            for func in list_of_functions:
+                resp = (
+                    build_manager.create(
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
+                                    function_name=func["name"],
+                                    function_description=func["description"],
+                                    format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
+                                    agent_details=str(json.dumps(agent_details)),
+                                ),
+                            }
+                        ]
+                    )
+                    .choices[0]
+                    .message.content
+                )
+
+                autogen.agentchat.register_function(
+                    func["function"],
+                    caller=self.agent_procs_assign[resp][0],
+                    executor=agent_list[0],
+                    name=func["name"],
+                    description=func["description"],
+                )
+
+                print(f"Function {func['name']} is registered to agent {resp}.")
 
         return agent_list, self.cached_configs.copy()
 
