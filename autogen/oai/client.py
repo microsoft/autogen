@@ -289,6 +289,8 @@ class OpenAIClient:
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -805,6 +807,8 @@ class OpenAIWrapper:
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
+            if completion_tokens is None:
+                completion_tokens = 0
             total_tokens = response_usage["total_tokens"]
 
             if usage_summary is None:
