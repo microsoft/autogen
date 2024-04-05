@@ -144,6 +144,22 @@ class VectorDB(Protocol):
         """
         ...
 
+    def get_docs_by_ids(self, ids: List[ItemID], collection_name: str = None, include=None, **kwargs) -> List[Document]:
+        """
+        Retrieve documents from the collection of the vector database based on the ids.
+
+        Args:
+            ids: List[ItemID] | A list of document ids.
+            collection_name: str | The name of the collection. Default is None.
+            include: List[str] | The fields to include. Default is None.
+                If None, will include ["metadatas", "documents"], ids will always be included.
+            kwargs: dict | Additional keyword arguments.
+
+        Returns:
+            List[Document] | The results.
+        """
+        ...
+
 
 class VectorDBFactory:
     """

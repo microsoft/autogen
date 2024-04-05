@@ -69,6 +69,10 @@ def test_chromadb():
     print(res)
     assert [[r[0]["id"] for r in rr] for rr in res] == [["2"], ["3"]]
 
+    # test_get_docs_by_ids
+    res = db.get_docs_by_ids(["1", "2"], collection_name)
+    assert [r["id"] for r in res] == ["2"]  # "1" has been deleted
+
     # test _chroma_results_to_query_results
     data_dict = {
         "key1s": [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
@@ -95,6 +99,21 @@ def test_chromadb():
         ],
     ]
     assert db._chroma_results_to_query_results(data_dict) == results
+
+    # test _chroma_get_results_to_list_documents
+    data_dict = {
+        "key1s": [1, 2, 3],
+        "key2s": ["a", "b", "c"],
+        "key3s": None,
+        "key4s": ["x", "y", "z"],
+    }
+
+    results = [
+        {"key1": 1, "key2": "a", "key4": "x"},
+        {"key1": 2, "key2": "b", "key4": "y"},
+        {"key1": 3, "key2": "c", "key4": "z"},
+    ]
+    assert db._chroma_get_results_to_list_documents(data_dict) == results
 
 
 if __name__ == "__main__":

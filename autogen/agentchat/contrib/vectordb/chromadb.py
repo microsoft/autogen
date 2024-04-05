@@ -308,3 +308,61 @@ class ChromaVectorDB(VectorDB):
         results = self._chroma_results_to_query_results(results)
         results = filter_results_by_distance(results, distance_threshold)
         return results
+
+    @staticmethod
+    def _chroma_get_results_to_list_documents(data_dict, include=None):
+        """Converts a dictionary with list values to a list of Document.
+
+        Args:
+            data_dict: A dictionary where keys map to lists or None.
+            include: List[str] | The fields to include. Default is None.
+                If None, will include ["metadatas", "documents"], ids will always be included.
+
+        Returns:
+            List[Document] | The list of Document.
+
+        Example:
+            data_dict = {
+                "key1s": [1, 2, 3],
+                "key2s": ["a", "b", "c"],
+                "key3s": None,
+                "key4s": ["x", "y", "z"],
+            }
+
+            results = [
+                {"key1": 1, "key2": "a", "key4": "x"},
+                {"key1": 2, "key2": "b", "key4": "y"},
+                {"key1": 3, "key2": "c", "key4": "z"},
+            ]
+        """
+
+        results = []
+        keys = [key for key in data_dict if data_dict[key] is not None]
+
+        for i in range(len(data_dict[keys[0]])):
+            sub_dict = {}
+            for key in data_dict.keys():
+                if data_dict[key] is not None and len(data_dict[key]) > i:
+                    sub_dict[key[:-1]] = data_dict[key][i]
+            results.append(sub_dict)
+        return results
+
+    def get_docs_by_ids(self, ids: List[ItemID], collection_name: str = None, include=None, **kwargs) -> List[Document]:
+        """
+        Retrieve documents from the collection of the vector database based on the ids.
+
+        Args:
+            ids: List[ItemID] | A list of document ids.
+            collection_name: str | The name of the collection. Default is None.
+            include: List[str] | The fields to include. Default is None.
+                If None, will include ["metadatas", "documents"], ids will always be included.
+            kwargs: dict | Additional keyword arguments.
+
+        Returns:
+            List[Document] | The results.
+        """
+        collection = self.get_collection(collection_name)
+        include = include if include else ["metadatas", "documents"]
+        results = collection.get(ids, include=include, **kwargs)
+        results = self._chroma_get_results_to_list_documents(results)
+        return results
