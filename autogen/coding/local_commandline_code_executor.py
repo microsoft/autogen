@@ -1,11 +1,15 @@
-from hashlib import md5
-from pathlib import Path
+import logging
 import re
-from string import Template
+import subprocess
 import sys
 import warnings
+from hashlib import md5
+from pathlib import Path
+from string import Template
 from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
+
 from typing_extensions import ParamSpec
+
 from autogen.coding.func_with_reqs import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
@@ -16,12 +20,7 @@ from autogen.coding.func_with_reqs import (
 from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-
 from .utils import _get_file_name_from_content, silence_pip
-
-import subprocess
-
-import logging
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 

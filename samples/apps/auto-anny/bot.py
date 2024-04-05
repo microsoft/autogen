@@ -1,11 +1,10 @@
-import os
 import logging
 import logging.handlers
+import os
 
 import discord
-from discord.ext import commands
-
 from agent_utils import solve_task
+from discord.ext import commands
 
 logger = logging.getLogger("anny")
 logger.setLevel(logging.INFO)

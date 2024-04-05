@@ -1,14 +1,16 @@
-from pathlib import Path
-import sys
 import os
+import sys
 import tempfile
 import uuid
+from pathlib import Path
+
 import pytest
+
 from autogen.agentchat.conversable_agent import ConversableAgent
 from autogen.code_utils import is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
-from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
+from autogen.coding.factory import CodeExecutorFactory
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))

@@ -29,6 +29,7 @@ select = [
 #    "D",  # see: https://pypi.org/project/pydocstyle
 #    "N",  # see: https://pypi.org/project/pep8-naming
 #    "S",  # see: https://pypi.org/project/flake8-bandit
+    "I",  # see: https://pypi.org/project/isort/
 ]
 
 ignore = [
