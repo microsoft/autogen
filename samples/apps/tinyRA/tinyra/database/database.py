@@ -38,13 +38,16 @@ class DatabaseManager(Protocol):
     async def reset(self) -> bool:
         pass
 
-    async def get_chat_history(self) -> ChatHistory:
+    async def get_chat_history(self, root_id: int) -> ChatHistory:
         pass
 
     async def get_chat_message(self, root_id: int, id: int) -> ChatMessage:
         pass
 
     async def set_chat_message(self, message: ChatMessage) -> ChatMessage:
+        pass
+
+    def sync_set_chat_message(self, message: ChatMessage) -> ChatMessage:
         pass
 
     async def clear_chat_history(self) -> None:

@@ -57,7 +57,7 @@ from .screens.quit_screen import QuitScreen
 from .screens.sidebar import Sidebar
 from .screens.chat_display import ChatDisplay, ReactiveMessageWidget
 
-from .messages import AppErrorMessage
+from .messages import AppErrorMessage, SelectedReactiveMessage
 
 
 # def fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
@@ -786,42 +786,51 @@ class ChatInput(Input):
 #         yield self.profile_diagram
 
 
-# class ChatScreen(ModalScreen):
-#     """A screen that displays a chat history"""
+class MonitoringScreen(ModalScreen):
+    """A screen that displays a chat history"""
 
-#     root_msg_id = 0
-#     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
+    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
-#     def compose(self) -> ComposeResult:
-#         history = fetch_chat_history(self.root_msg_id)
-#         with Grid(id="chat-screen"):
+    def __init__(self, *args, root_id: int = -1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.root_id = root_id
 
-#             with Container(id="chat-screen-header"):
-#                 yield Label(f"Monitoring 🧵 Thread: {self.root_msg_id}", classes="heading")
+    def compose(self) -> ComposeResult:
 
-#             with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
-#                 profiler = ProfilerContainer(id="chat-profiler")
-#                 profiler.root_id = self.root_msg_id
-#                 profiler.chat_history = history
+        # dbm = self.app.config.db_manager
+        # history = dbm.get_chat_history(self.root_msg_id)
 
-#                 yield profiler
+        with Grid(id="chat-screen"):
 
-#                 with ScrollableContainer(id="chat-screen-contents"):
-#                     for msg in history:
-#                         if msg["role"] == "assistant":
-#                             msg_class = "assistant-message"
-#                         if msg["role"] == "user":
-#                             msg_class = "user-message"
-#                         yield Markdown(f"{msg['role']}:\n{msg['content']}", classes=msg_class + " message")
+            with Container(id="chat-screen-header"):
+                yield Label(f"Monitoring 🧵 Thread: {self.root_id}", classes="heading")
 
-#             with Horizontal(id="chat-screen-footer"):
-#                 yield Button("Learn New Tool", variant="error", id="learn")
+            # with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
+            with TabbedContent("Details", id="chat-screen-tabs"):
 
-#     @on(Button.Pressed, "#learn")
-#     def learn(self) -> None:
-#         learning_screen = LearningScreen()
-#         learning_screen.root_msg_id = self.root_msg_id
-#         self.app.push_screen(learning_screen)
+                # profiler = ProfilerContainer(id="chat-profiler")
+                # profiler.root_id = self.root_msg_id
+                # profiler.chat_history = history
+
+                # yield profiler
+
+                with ScrollableContainer(id="chat-screen-contents"):
+                    yield ChatDisplay(root_id=self.root_id)
+                    # for msg in history.messages:
+                    #     if msg.role == "assistant":
+                    #         msg_class = "assistant-message"
+                    #     if msg.role == "user":
+                    #         msg_class = "user-message"
+                    #     yield Markdown(f"{msg['role']}:\n{msg['content']}", classes=msg_class + " message")
+
+            # with Horizontal(id="chat-screen-footer"):
+            # yield Button("Learn New Tool", variant="error", id="learn")
+
+    # @on(Button.Pressed, "#learn")
+    # def learn(self) -> None:
+    #     learning_screen = LearningScreen()
+    #     learning_screen.root_msg_id = self.root_msg_id
+    #     self.app.push_screen(learning_screen)
 
 
 # class LearningScreen(ModalScreen):
@@ -1088,7 +1097,7 @@ class TinyRA(App):
         yield Sidebar(classes="-hidden", id="sidebar")
 
         with Grid(id="chat-grid"):
-            yield ChatDisplay(id="chat-history")
+            yield ChatDisplay(id="chat-history", root_id=0)
             yield ChatInput(id="chat-input-box")
 
         yield Footer()
@@ -1158,11 +1167,13 @@ class TinyRA(App):
         self.query_one(Input).value = ""
         self.handle_input(user_input)
 
-    # def on_reactive_message_selected(self, event: ReactiveMessageWidget.Selected) -> None:
-    #     """Called when a reactive assistant message is selected."""
-    #     new_chat_screen = ChatScreen()
-    #     new_chat_screen.root_msg_id = int(event.msg_id)
-    #     self.push_screen(new_chat_screen)
+    @on(SelectedReactiveMessage)
+    def on_reactive_message_selected(self, message: SelectedReactiveMessage) -> None:
+        """Called when a reactive assistant message is selected."""
+        message = message.message
+        self.logger.info(f"Click on a reactive message {message}")
+        new_chat_screen = MonitoringScreen(root_id=message.id)
+        self.push_screen(new_chat_screen)
 
     @work()
     async def handle_input(self, user_input: str) -> None:
@@ -1180,8 +1191,6 @@ class TinyRA(App):
         reactive_message = ReactiveMessageWidget(new_chat_message, user)
         await chat_display_widget.mount(reactive_message)
 
-        # asyncio.sleep(1)  # take a second before starting new message
-
         assistant_message = ChatMessage(
             role="info", content="Computing response…", root_id=0, timestamp=datetime.now().timestamp()
         )
@@ -1191,23 +1200,28 @@ class TinyRA(App):
         await chat_display_widget.mount(reactive_message)
         reactive_message.scroll_visible()  # Fix: This is a hack to make the container scroll; Not sure why on_mount doesn't handle
 
+        def update_callback(update: str) -> None:
+            assistant_message.role = "info"
+            assistant_message.content = update
+            self.config.db_manager.sync_set_chat_message(assistant_message)
+
         try:
             self.logger.info(f"Generating response for {new_chat_message}")
-            self.generate_response(new_chat_message, assistant_message)
+            self.generate_response(new_chat_message, assistant_message, update_callback)
         except SubprocessError as e:
             error_message = f"{e}"
             await dbm.set_chat_message("error", error_message, root_id=0, id=id + 1)
             self.post_message(AppErrorMessage(error_message))
 
     @work(thread=True)
-    async def generate_response(self, in_message: ChatMessage, out_message: ChatMessage) -> None:
+    async def generate_response(self, *args) -> None:
         """
         Run the agents in a separate thread because AutoGen may block the main thread.
         But allow the worker to be canceled if the user cancels the operation.
         Worker can be cancelled between non-blocking operations in the thread.
         """
         worker = get_current_worker()  # this is the worker running this thread
-        task = asyncio.create_task(self.config.agent_manager.generate_response(in_message, out_message))
+        task = asyncio.create_task(self.config.agent_manager.generate_response(*args))
 
         while not task.done():
             self.logger.debug(f"Waiting for task to complete, {worker}")

@@ -1,13 +1,14 @@
 import asyncio
-from typing import Dict
+from typing import Dict, Optional
 
 from textual.app import ComposeResult
 from textual.containers import ScrollableContainer
 from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Markdown
+from textual.widgets import Markdown, LoadingIndicator
 
 from ..database.database import ChatMessage, User, ChatHistory
+from ..messages import SelectedReactiveMessage
 
 
 class ReactiveMessageWidget(Markdown):
@@ -16,13 +17,6 @@ class ReactiveMessageWidget(Markdown):
     """
 
     message = reactive(None)
-
-    class Selected(Message):
-        """Assistant message selected message."""
-
-        def __init__(self, chat_msg_id: str) -> None:
-            self.msg_id = chat_msg_id
-            super().__init__()
 
     def __init__(self, message: ChatMessage, user: User, **kwargs):
         super().__init__(**kwargs)
@@ -36,7 +30,7 @@ class ReactiveMessageWidget(Markdown):
         chat_display.scroll_end()
 
     def on_click(self) -> None:
-        self.post_message(self.Selected(self.message.id))
+        self.post_message(SelectedReactiveMessage(self.message))
 
     async def update_message(self) -> None:
         dbm = self.app.config.db_manager
@@ -93,24 +87,36 @@ class ChatDisplay(ScrollableContainer):
     When a new message is detected, it is mounted to the container.
     """
 
-    root_id = 0
     limit_history = 100
+    num_messages = reactive(None, recompose=True)
     chat_history = ChatHistory(0, [])
 
-    async def on_mount(self):
+    def __init__(self, *args, root_id: int = -1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.root_id = root_id
+
+    async def update_history(self) -> None:
         dbm = self.app.config.db_manager
         self.chat_history = await dbm.get_chat_history(self.root_id)
         self.user = await dbm.get_user()
-        logger = self.app.logger
-        num_messages = len(self.chat_history.messages)
-        logger.info(f"Chat Display fetched {num_messages} messages")
+        self.num_messages = len(self.chat_history.messages)
 
-        await self.recompose()
+    async def on_mount(self):
+        self.set_interval(1, self.update_history)
 
     def compose(self) -> ComposeResult:
+
         logger = self.app.logger
-        num_messages = len(self.chat_history.messages)
-        logger.info(f"Composing chat display with {num_messages} messages")
+        logger.info(f"Composing chat display with {self.num_messages} messages from {self.root_id}")
+
+        if self.num_messages is None:
+            yield LoadingIndicator()
+            return
+
+        if self.num_messages == 0:
+            yield Markdown("No messages yet.")
+            return
+
         for message in self.chat_history.messages[-self.limit_history :]:
             widget = message_display_handler(message, self.user)
             yield widget

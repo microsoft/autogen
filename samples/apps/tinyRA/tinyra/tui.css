@@ -128,7 +128,7 @@ NotificationScreen {
     grid-gutter: 1 2;
 }
 
-ChatScreen, LearningScreen {
+MonitoringScreen, LearningScreen {
     align: center middle;
 }
 

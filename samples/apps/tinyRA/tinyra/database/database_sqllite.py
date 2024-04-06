@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import aiosqlite
 import logging
 from pathlib import Path
@@ -63,8 +64,11 @@ class SQLLiteDatabaseManager:
     async def get_chat_history(self, root_id: int) -> ChatHistory:
         try:
             return await self._get_chat_history(root_id=root_id)
-        except aiosqlite.Error as e:
-            raise DatabaseError("Error fetching chat history", e)
+        except Exception as e:
+            if isinstance(e, DatabaseError):
+                raise e
+            else:
+                raise DatabaseError("Error fetching chat history", e)
 
     async def get_chat_message(self, root_id: int, id: int) -> ChatMessage:
         try:
@@ -76,6 +80,12 @@ class SQLLiteDatabaseManager:
         try:
             return await self._set_chat_message(message)
         except aiosqlite.Error as e:
+            raise DatabaseError("Error setting chat message", e)
+
+    def sync_set_chat_message(self, message: ChatMessage) -> ChatMessage:
+        try:
+            return self._sync_set_chat_message(message)
+        except Exception as e:
             raise DatabaseError("Error setting chat message", e)
 
     async def get_user(self) -> User:
@@ -123,6 +133,9 @@ class SQLLiteDatabaseManager:
         Returns:
             A ChatHistory object.
         """
+        if root_id < 0:
+            raise DatabaseError("root_id must be a positive integer")
+
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
             await c.execute(
@@ -194,6 +207,36 @@ class SQLLiteDatabaseManager:
                     )
                     await conn.commit()
                 return message
+
+    def _sync_set_chat_message(self, message: ChatMessage) -> ChatMessage:
+        """
+        Set the chat message in the database synchronously using sqlite3.
+
+        """
+        conn = sqlite3.connect(self.database_path)
+        c = conn.cursor()
+        if message.id is None:
+            c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (message.root_id,))
+            item = c.fetchone()
+            max_id = None
+            if item is not None:
+                max_id = item[0]
+            message.id = max_id + 1 if max_id is not None else 0
+            data_a = (message.root_id, message.id, message.role, message.content)
+            c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
+            conn.commit()
+            return message
+        else:
+            c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (message.root_id, message.id))
+            if c.fetchone() is None:
+                data_b = (message.root_id, message.id, message.role, message.content)
+                c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_b)
+                conn.commit()
+            else:
+                data_c = (message.role, message.content, message.root_id, message.id)
+                c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c)
+                conn.commit()
+            return message
 
     async def _get_user(self) -> User:
         """
