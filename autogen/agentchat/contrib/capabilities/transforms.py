@@ -76,7 +76,7 @@ class MessageHistoryLimiter:
         if post_transform_messages_len < pre_transform_messages_len:
             print(
                 colored(
-                    f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. " \
+                    f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
                     f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
                     "yellow",
                 )
@@ -158,7 +158,6 @@ class MessageTokenLimiter:
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
-
         return processed_messages
 
     def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
@@ -168,7 +167,7 @@ class MessageTokenLimiter:
         if post_transform_messages_tokens < pre_transform_messages_tokens:
             print(
                 colored(
-                    f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. " \
+                    f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
                     f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}",
                     "yellow",
                 )

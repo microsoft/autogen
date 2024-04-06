@@ -76,7 +76,7 @@ class TransformMessages:
                 temp_messages = transform.apply_transform(temp_messages)
                 transform.print_stats(pre_transform_messages, temp_messages)
             else:
-               temp_messages = transform.apply_transform(temp_messages)
+                temp_messages = transform.apply_transform(temp_messages)
 
         if system_message:
             temp_messages.insert(0, system_message)
