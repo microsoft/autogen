@@ -148,6 +148,34 @@ def test_transform_messages_capability():
             assert False, f"Chat initiation failed with error {str(e)}"
 
 
+def test_transform_messages_printing(capsys):
+    messages = [
+        {"role": "user", "content": "hello"},
+        {"role": "assistant", "content": [{"type": "text", "text": "there"}]},
+        {"role": "user", "content": "how"},
+        {"role": "assistant", "content": [{"type": "text", "text": "are you doing?"}]},
+        {"role": "user", "content": "very very very very very very long string"},
+    ]
+
+    context_handling = TransformMessages(
+        transforms=[
+            MessageHistoryLimiter(max_messages=3),
+            MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=3),
+        ],
+    )
+
+    context_handling._transform_messages(messages)
+
+    captured = capsys.readouterr()
+
+    captured_output = captured.out.strip().split("\n")
+
+    assert captured_output == [
+        "Removed 2 messages. Number of messages reduced from 5 to 3.",
+        "Truncated 6 tokens. Number of tokens reduced from 13 to 7",
+    ]
+
+
 if __name__ == "__main__":
     test_limit_token_transform()
     test_max_message_history_length_transform()
