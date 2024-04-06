@@ -1241,6 +1241,191 @@ def test_role_for_select_speaker_messages():
     assert "role_for_select_speaker_messages cannot be empty or None." in str(e.value)
 
 
+def test_select_speaker_message_and_prompt_templates():
+    """
+    In this test, two agents are part of a group chat which has customized select speaker message and select speaker prompt templates. Both valid and empty string values will be used.
+    The expected behaviour is that the customized speaker selection message and prompts will override the default values or throw exceptions if empty.
+    """
+
+    agent1 = autogen.ConversableAgent(
+        "Alice",
+        description="A wonderful employee named Alice.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+    agent2 = autogen.ConversableAgent(
+        "Bob",
+        description="An amazing employee named Bob.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+
+    # Customised message, this is always the first message in the context
+    custom_msg = """You are the CEO of a niche organisation creating small software tools for the healthcare sector with a small team of specialists. Call them in sequence.
+    The job roles and responsibilities are:
+    {roles}
+    You must select only from {agentlist}."""
+
+    # Customised prompt, this is always the last message in the context
+    custom_prompt = """Read the above conversation.
+    Then select the next job role from {agentlist} to take action.
+    RETURN ONLY THE NAME OF THE NEXT ROLE."""
+
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_message_template=custom_msg,
+        select_speaker_prompt_template=custom_prompt,
+    )
+
+    # Test with valid strings, checking for the correct string and roles / agentlist to be included
+
+    assert groupchat.select_speaker_msg() == custom_msg.replace(
+        "{roles}", "Alice: A wonderful employee named Alice.\nBob: An amazing employee named Bob."
+    ).replace("{agentlist}", "['Alice', 'Bob']")
+
+    assert groupchat.select_speaker_prompt() == custom_prompt.replace("{agentlist}", "['Alice', 'Bob']")
+
+    # Test with empty strings
+    with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="",
+            select_speaker_prompt_template="Not empty.",
+        )
+
+    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="Not empty.",
+            select_speaker_prompt_template=None,
+        )
+
+    # Test with None
+    with pytest.raises(ValueError, match="select_speaker_message_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template=None,
+            select_speaker_prompt_template="Not empty.",
+        )
+
+    with pytest.raises(ValueError, match="select_speaker_prompt_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_message_template="Not empty.",
+            select_speaker_prompt_template="",
+        )
+
+
+def test_speaker_selection_agent_name_match():
+    """
+    In this test a group chat, with auto speaker selection, the speaker name match
+    function is tested against the extended name match regex.
+    """
+
+    user_proxy = autogen.UserProxyAgent(
+        name="User_proxy",
+        system_message="A human admin.",
+        code_execution_config=False,
+        human_input_mode="NEVER",
+    )
+    storywriter = autogen.AssistantAgent(
+        name="Story_writer",
+        system_message="An ideas person.",
+        llm_config=None,
+    )
+    pm = autogen.AssistantAgent(
+        name="Product_manager",
+        system_message="Great in evaluating story ideas.",
+        llm_config=None,
+    )
+
+    all_agents = [user_proxy, storywriter, pm]
+    groupchat = autogen.GroupChat(agents=all_agents, messages=[], max_round=8, speaker_selection_method="auto")
+
+    # Test exact match (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story_writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with extra text (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents,
+        message_content="' Story_writer.\n\nHere are three story ideas for Grade 3 kids:\n\n1. **The Adventure of the Magic Garden:** A you...",
+    )
+    assert result == {"Story_writer": 1}
+
+    # Test match with escaped underscore (new outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story\\_writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with space (new outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story writer")
+    assert result == {"Story_writer": 1}
+
+    # Test match with different casing (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="Story_Writer")
+    assert result == {}
+
+    # Test match with invalid name (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="NoName_Person")
+    assert result == {}
+
+    # Test match with no name (unchanged outcome)
+    result = groupchat._mentioned_agents(agents=all_agents, message_content="")
+    assert result == {}
+
+    # Test match with multiple agents and exact matches (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story_writer will follow the Product_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story\\_writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story\\_writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and spaces (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story writer will follow the Product manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and escaped underscores and spaces mixed (new outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story writer will follow the Product\\_manager."
+    )
+    assert result == {"Story_writer": 1, "Product_manager": 1}
+
+    # Test match with multiple agents and incorrect casing (unchanged outcome)
+    result = groupchat._mentioned_agents(
+        agents=all_agents, message_content="Story Writer will follow the product\\_manager."
+    )
+    assert result == {}
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1256,5 +1441,7 @@ if __name__ == "__main__":
     # test_graceful_exit_before_max_round()
     # test_clear_agents_history()
     # test_custom_speaker_selection_overrides_transition_graph()
-    test_role_for_select_speaker_messages()
+    # test_role_for_select_speaker_messages()
+    # test_select_speaker_message_and_prompt_templates()
+    test_speaker_selection_agent_name_match()
     # pass

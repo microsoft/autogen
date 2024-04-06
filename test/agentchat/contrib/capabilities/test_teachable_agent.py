@@ -1,16 +1,18 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import os
 import sys
-from autogen.formatting_utils import colored
+
+import pytest
+
 from autogen import ConversableAgent, config_list_from_json
+from autogen.formatting_utils import colored
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from autogen.agentchat.contrib.capabilities.teachability import Teachability

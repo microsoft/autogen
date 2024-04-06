@@ -1,11 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
-import autogen
-import pytest
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+import autogen
 
 try:
     from openai import OpenAI
