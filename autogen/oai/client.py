@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
-import logging
 import inspect
+import logging
+import sys
 import uuid
-from flaml.automl.logger import logger_formatter
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
+from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
-from typing import Protocol
 
 from autogen.cache import Cache
 from autogen.io.base import IOStream
-from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
-from autogen.token_count_utils import count_token
-
-from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
 from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
+from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
 try:
@@ -27,14 +25,15 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
+    from openai import APIError, APITimeoutError, AzureOpenAI, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
+        ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
-        ChoiceDeltaFunctionCall,
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
@@ -290,6 +289,8 @@ class OpenAIClient:
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -806,6 +807,8 @@ class OpenAIWrapper:
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
+            if completion_tokens is None:
+                completion_tokens = 0
             total_tokens = response_usage["total_tokens"]
 
             if usage_summary is None:

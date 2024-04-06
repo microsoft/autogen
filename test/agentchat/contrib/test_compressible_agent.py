@@ -1,9 +1,11 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import sys
-import autogen
 import os
+import sys
+
+import pytest
+
+import autogen
 from autogen.agentchat.contrib.compressible_agent import CompressibleAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
@@ -12,7 +14,7 @@ from conftest import skip_openai  # noqa: E402
 here = os.path.abspath(os.path.dirname(__file__))
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     import openai

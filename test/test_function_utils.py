@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 import unittest.mock
-from typing import Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import pytest
 from pydantic import BaseModel, Field
@@ -25,11 +25,11 @@ from autogen.function_utils import (
 )
 
 
-def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1, *, d):
+def f(a: Annotated[str, "Parameter a"], b: int = 2, c: Annotated[float, "Parameter c"] = 0.1, *, d):  # type: ignore[no-untyped-def]
     pass
 
 
-def g(
+def g(  # type: ignore[empty-body]
     a: Annotated[str, "Parameter a"],
     b: int = 2,
     c: Annotated[float, "Parameter c"] = 0.1,
@@ -39,7 +39,7 @@ def g(
     pass
 
 
-async def a_g(
+async def a_g(  # type: ignore[empty-body]
     a: Annotated[str, "Parameter a"],
     b: int = 2,
     c: Annotated[float, "Parameter c"] = 0.1,
@@ -83,7 +83,7 @@ def test_get_parameter_json_schema() -> None:
         b: float
         c: str
 
-    expected = {
+    expected: Dict[str, Any] = {
         "description": "b",
         "properties": {"b": {"title": "B", "type": "number"}, "c": {"title": "C", "type": "string"}},
         "required": ["b", "c"],
@@ -107,7 +107,7 @@ def test_get_default_values() -> None:
 
 
 def test_get_param_annotations() -> None:
-    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):
+    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):  # type: ignore[no-untyped-def]
         pass
 
     expected = {"a": Annotated[str, "Parameter a"], "c": Annotated[float, "Parameter c"]}
@@ -119,14 +119,14 @@ def test_get_param_annotations() -> None:
 
 
 def test_get_missing_annotations() -> None:
-    def _f1(a: str, b=2):
+    def _f1(a: str, b=2):  # type: ignore[no-untyped-def]
         pass
 
     missing, unannotated_with_default = get_missing_annotations(get_typed_signature(_f1), ["a"])
     assert missing == set()
     assert unannotated_with_default == {"b"}
 
-    def _f2(a: str, b) -> str:
+    def _f2(a: str, b) -> str:  # type: ignore[empty-body,no-untyped-def]
         "ok"
 
     missing, unannotated_with_default = get_missing_annotations(get_typed_signature(_f2), ["a", "b"])
@@ -142,7 +142,7 @@ def test_get_missing_annotations() -> None:
 
 
 def test_get_parameters() -> None:
-    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):
+    def f(a: Annotated[str, "Parameter a"], b=1, c: Annotated[float, "Parameter c"] = 1.0):  # type: ignore[no-untyped-def]
         pass
 
     typed_signature = get_typed_signature(f)
@@ -165,7 +165,7 @@ def test_get_parameters() -> None:
 
 
 def test_get_function_schema_no_return_type() -> None:
-    def f(a: Annotated[str, "Parameter a"], b: int, c: float = 0.1):
+    def f(a: Annotated[str, "Parameter a"], b: int, c: float = 0.1):  # type: ignore[no-untyped-def]
         pass
 
     expected = (
@@ -182,7 +182,7 @@ def test_get_function_schema_no_return_type() -> None:
 def test_get_function_schema_unannotated_with_default() -> None:
     with unittest.mock.patch("autogen.function_utils.logger.warning") as mock_logger_warning:
 
-        def f(
+        def f(  # type: ignore[no-untyped-def]
             a: Annotated[str, "Parameter a"], b=2, c: Annotated[float, "Parameter c"] = 0.1, d="whatever", e=None
         ) -> str:
             return "ok"
@@ -195,7 +195,7 @@ def test_get_function_schema_unannotated_with_default() -> None:
 
 
 def test_get_function_schema_missing() -> None:
-    def f(a: Annotated[str, "Parameter a"], b, c: Annotated[float, "Parameter c"] = 0.1) -> float:
+    def f(a: Annotated[str, "Parameter a"], b, c: Annotated[float, "Parameter c"] = 0.1) -> float:  # type: ignore[no-untyped-def, empty-body]
         pass
 
     expected = (
@@ -291,7 +291,7 @@ class Currency(BaseModel):
 
 
 def test_get_function_schema_pydantic() -> None:
-    def currency_calculator(
+    def currency_calculator(  # type: ignore[empty-body]
         base: Annotated[Currency, "Base currency: amount and currency symbol"],
         quote_currency: Annotated[CurrencySymbol, "Quote currency symbol (default: 'EUR')"] = "EUR",
     ) -> Currency:
@@ -346,12 +346,12 @@ def test_get_function_schema_pydantic() -> None:
 
 def test_get_load_param_if_needed_function() -> None:
     assert get_load_param_if_needed_function(CurrencySymbol) is None
-    assert get_load_param_if_needed_function(Currency)({"currency": "USD", "amount": 123.45}, Currency) == Currency(
+    assert get_load_param_if_needed_function(Currency)({"currency": "USD", "amount": 123.45}, Currency) == Currency(  # type: ignore[misc]
         currency="USD", amount=123.45
     )
 
     f = get_load_param_if_needed_function(Annotated[Currency, "amount and a symbol of a currency"])
-    actual = f({"currency": "USD", "amount": 123.45}, Currency)
+    actual = f({"currency": "USD", "amount": 123.45}, Currency)  # type: ignore[misc]
     expected = Currency(currency="USD", amount=123.45)
     assert actual == expected, actual
 
@@ -391,7 +391,7 @@ async def test_load_basemodels_if_needed_async() -> None:
     assert actual[1] == "EUR"
 
 
-def test_serialize_to_json():
+def test_serialize_to_json() -> None:
     assert serialize_to_str("abc") == "abc"
     assert serialize_to_str(123) == "123"
     assert serialize_to_str([123, 456]) == "[123, 456]"

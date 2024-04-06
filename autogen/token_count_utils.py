@@ -1,9 +1,9 @@
-from typing import List, Union, Dict
-import logging
 import json
-import tiktoken
+import logging
 import re
+from typing import Dict, List, Union
 
+import tiktoken
 
 logger = logging.getLogger(__name__)
 
