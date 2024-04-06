@@ -10,6 +10,7 @@ except ImportError:
 from autogen import logger
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
+from autogen.agentchat.contrib.vectordb.base import VectorDBFactory
 from autogen.code_utils import extract_code
 from autogen.retrieve_utils import TEXT_FORMATS, create_vector_db_from_dir, query_vector_db
 from autogen.token_count_utils import count_token
@@ -102,9 +103,13 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - `task` (Optional, str) - the task of the retrieve chat. Possible values are
                     "code", "qa" and "default". System prompt will be different for different tasks.
                      The default value is `default`, which supports both code and qa.
+                - `vector_db` (Optional, Union[str, VectorDB]) - the vector db for the retrieve chat.
+                    If it's a string, it should be the type of the vector db, such as "chroma"; otherwise,
+                    it should be an instance of the VectorDB protocol. Default is "chroma".
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
+                     **Deprecated**: use `vector_db` instead.
                 - `docs_path` (Optional, Union[str, List[str]]) - the path to the docs directory. It
                      can also be the path to a single file, the url to a single file or a list
                      of directories, files and urls. Default is None, which works only if the
@@ -118,8 +123,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     By default, "extra_docs" is set to false, starting document IDs from zero.
                     This poses a risk as new documents might overwrite existing ones, potentially
                     causing unintended loss or alteration of data in the collection.
-                - `collection_name` (Optional, str) - the name of the collection.
-                    If key not provided, a default name `autogen-docs` will be used.
                 - `model` (Optional, str) - the model to use for the retrieve chat.
                     If key not provided, a default model `gpt-4` will be used.
                 - `chunk_token_size` (Optional, int) - the chunk token size for the retrieve chat.
@@ -151,10 +154,14 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     `Update Context` will be triggered.
                 - `update_context` (Optional, bool) - if False, will not apply `Update Context` for
                     interactive retrieval. Default is True.
-                - `get_or_create` (Optional, bool) - if True, will create/return a collection for the
-                    retrieve chat. This is the same as that used in chromadb.
-                    Default is False. Will raise ValueError if the collection already exists and
-                    get_or_create is False. Will be set to True if docs_path is None.
+                - `collection_name` (Optional, str) - the name of the collection.
+                    If key not provided, a default name `autogen-docs` will be used.
+                - `get_or_create` (Optional, bool) - Whether to get the collection if it exists. Default is True.
+                - `overwrite` (Optional, bool) - Whether to overwrite the collection if it exists. Default is False.
+                    Case 1. if the collection does not exist, create the collection.
+                    Case 2. the collection exists, if overwrite is True, it will overwrite the collection.
+                    Case 3. the collection exists and overwrite is False, if get_or_create is True, it will get the collection,
+                        otherwise it raise a ValueError.
                 - `custom_token_count_function` (Optional, Callable) - a custom function to count the
                     number of tokens in a string.
                     The function should take (text:str, model:str) as input and return the
@@ -178,6 +185,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         Example of overriding retrieve_docs - If you have set up a customized vector db, and it's
         not compatible with chromadb, you can easily plug in it with below code.
+        **Deprecated**: Use `vector_db` instead. You can extend VectorDB and pass it to the agent.
         ```python
         class MyRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             def query_vector_db(
@@ -210,6 +218,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
         self._task = self._retrieve_config.get("task", "default")
+        self._vector_db = self._retrieve_config.get("vector_db", "chroma")
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
@@ -231,6 +240,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.customized_answer_prefix = self._retrieve_config.get("customized_answer_prefix", "").upper()
         self.update_context = self._retrieve_config.get("update_context", True)
         self._get_or_create = self._retrieve_config.get("get_or_create", False) if self._docs_path is not None else True
+        self._overwrite = self._retrieve_config.get("overwrite", False)
         self.custom_token_count_function = self._retrieve_config.get("custom_token_count_function", count_token)
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
@@ -248,6 +258,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
+        if isinstance(self._vector_db, str):
+            self._vector_db = VectorDBFactory.create_vector_db(
+                self._vector_db, path=".db", embedding_function=self._embedding_function
+            )
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
     def _is_termination_msg_retrievechat(self, message):
