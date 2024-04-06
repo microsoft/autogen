@@ -30,6 +30,7 @@ class ChromaVectorDB(VectorDB):
 
         Args:
             client: chromadb.Client | The client object of the vector database. Default is None.
+                If provided, it will use the client object directly and ignore other arguments.
             path: str | The path to the vector database. Default is None.
             embedding_function: Callable | The embedding function used to generate the vector representation
                 of the documents. Default is None.
