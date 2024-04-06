@@ -72,6 +72,8 @@ files = [
     "autogen/_pydantic.py",
     "autogen/function_utils.py",
     "autogen/io",
+    "test/test_pydantic.py",
+    "test/test_function_utils.py",
     "test/io",
 ]
 
