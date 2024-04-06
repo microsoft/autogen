@@ -25,6 +25,15 @@ class MessageTransform(Protocol):
         """
         ...
 
+    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+        """Prints stats of the executed transformation.
+
+        Args:
+            pre_transform_messages: A list of dictionaries representing messages before the transformation.
+            post_transform_messages: A list of dictionaries representig messages after the transformation.
+        """
+        ...
+
 
 class MessageHistoryLimiter:
     """Limits the number of messages considered by an agent for response generation.
@@ -59,6 +68,19 @@ class MessageHistoryLimiter:
             return messages
 
         return messages[-self._max_messages :]
+
+    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+        pre_transform_messages_len = len(pre_transform_messages)
+        post_transform_messages_len = len(post_transform_messages)
+
+        if post_transform_messages_len < pre_transform_messages_len:
+            print(
+                colored(
+                    f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. " \
+                    f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
+                    "yellow",
+                )
+            )
 
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
@@ -124,9 +146,6 @@ class MessageTokenLimiter:
         processed_messages = []
         processed_messages_tokens = 0
 
-        # calculate tokens for all messages
-        total_tokens = sum(_count_tokens(msg["content"]) for msg in temp_messages)
-
         for msg in reversed(temp_messages):
             msg["content"] = self._truncate_str_to_tokens(msg["content"])
             msg_tokens = _count_tokens(msg["content"])
@@ -139,15 +158,21 @@ class MessageTokenLimiter:
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
-        if total_tokens > processed_messages_tokens:
+
+        return processed_messages
+
+    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+        pre_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in pre_transform_messages)
+        post_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in post_transform_messages)
+
+        if post_transform_messages_tokens < pre_transform_messages_tokens:
             print(
                 colored(
-                    f"Truncated {total_tokens - processed_messages_tokens} tokens. Tokens reduced from {total_tokens} to {processed_messages_tokens}",
+                    f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. " \
+                    f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}",
                     "yellow",
                 )
             )
-
-        return processed_messages
 
     def _truncate_str_to_tokens(self, contents: Union[str, List]) -> Union[str, List]:
         if isinstance(contents, str):

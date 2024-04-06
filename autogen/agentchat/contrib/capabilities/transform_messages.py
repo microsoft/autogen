@@ -43,12 +43,14 @@ class TransformMessages:
         ```
     """
 
-    def __init__(self, *, transforms: List[MessageTransform] = []):
+    def __init__(self, *, transforms: List[MessageTransform] = [], to_print_stats: bool = True):
         """
         Args:
             transforms: A list of message transformations to apply.
+            to_print_stats: Whether to print stats of each transformation or not.
         """
         self._transforms = transforms
+        self._to_print_stats = to_print_stats
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds the message transformations capability to the specified ConversableAgent.
@@ -69,23 +71,14 @@ class TransformMessages:
             temp_messages.pop(0)
 
         for transform in self._transforms:
-            temp_messages = transform.apply_transform(temp_messages)
+            if self._to_print_stats:
+                pre_transform_messages = copy.deepcopy(temp_messages)
+                temp_messages = transform.apply_transform(temp_messages)
+                transform.print_stats(pre_transform_messages, temp_messages)
+            else:
+               temp_messages = transform.apply_transform(temp_messages)
 
         if system_message:
             temp_messages.insert(0, system_message)
 
-        self._print_stats(messages, temp_messages)
-
         return temp_messages
-
-    def _print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
-        pre_transform_messages_len = len(pre_transform_messages)
-        post_transform_messages_len = len(post_transform_messages)
-
-        if pre_transform_messages_len < post_transform_messages_len:
-            print(
-                colored(
-                    f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
-                    "yellow",
-                )
-            )
