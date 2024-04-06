@@ -11,7 +11,16 @@ package-lock.json
 docs/reference
 /docs/notebooks
 
-docs/llm_configuration.mdx
+docs/tutorial/*.mdx
+docs/tutorial/**/*.png
+!docs/tutorial/assets/*.png
+docs/topics/llm_configuration.mdx
+docs/topics/code-execution/*.mdx
+docs/topics/task_decomposition.mdx
+docs/topics/prompting-and-reasoning/*.mdx
+docs/topics/non-openai-models/*.mdx
+docs/topics/non-openai-models/**/*.py
+docs/topics/non-openai-models/**/*.svg
 
 # Misc
 .DS_Store

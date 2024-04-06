@@ -1,6 +1,8 @@
-import unittest
+#!/usr/bin/env python3 -m pytest
+
 import pickle
-from unittest.mock import patch, MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
 
 import pytest
 

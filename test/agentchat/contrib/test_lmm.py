@@ -1,12 +1,13 @@
+#!/usr/bin/env python3 -m pytest
+
 import unittest
 from unittest.mock import MagicMock
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen
 from autogen.agentchat.conversable_agent import ConversableAgent
-
-from conftest import MOCK_OPEN_AI_API_KEY
 
 try:
     from autogen.agentchat.contrib.img_utils import get_pil_image

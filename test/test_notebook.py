@@ -1,5 +1,8 @@
-import sys
+#!/usr/bin/env python3 -m pytest
+
 import os
+import sys
+
 import pytest
 from conftest import skip_openai
 
@@ -16,8 +19,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 def run_notebook(input_nb, output_nb="executed_openai_notebook.ipynb", save=False):
     import nbformat
-    from nbconvert.preprocessors import ExecutePreprocessor
-    from nbconvert.preprocessors import CellExecutionError
+    from nbconvert.preprocessors import CellExecutionError, ExecutePreprocessor
 
     try:
         nb_loc = os.path.join(here, os.pardir, "notebook")
@@ -115,6 +117,14 @@ def test_agentchat_groupchat_finite_state_machine(save=False):
 )
 def test_agentchat_cost_token_tracking(save=False):
     run_notebook("agentchat_cost_token_tracking.ipynb", save=save)
+
+
+@pytest.mark.skipif(
+    skip or not sys.version.startswith("3.11"),
+    reason="do not run if openai is not installed or py!=3.11",
+)
+def test_agentchat_groupchat_stateflow(save=False):
+    run_notebook("agentchat_groupchat_stateflow.ipynb", save=save)
 
 
 if __name__ == "__main__":

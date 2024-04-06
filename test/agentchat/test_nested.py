@@ -1,6 +1,10 @@
-import pytest
-import sys
+#!/usr/bin/env python3 -m pytest
+
 import os
+import sys
+
+import pytest
+
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -13,7 +17,7 @@ def test_nested():
     llm_config = {"config_list": config_list}
 
     tasks = [
-        """What's Microsoft's Stock price today?""",
+        """What's the date today?""",
         """Make a pleasant joke about it.""",
     ]
 
@@ -58,7 +62,24 @@ def test_nested():
         # is_termination_msg=lambda x: x.get("content", "") == "",
     )
 
+    assistant_2 = autogen.AssistantAgent(
+        name="Assistant",
+        llm_config={"config_list": config_list},
+        # is_termination_msg=lambda x: x.get("content", "") == "",
+    )
+
     user = autogen.UserProxyAgent(
+        name="User",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
+    user_2 = autogen.UserProxyAgent(
         name="User",
         human_input_mode="NEVER",
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
@@ -80,7 +101,7 @@ def test_nested():
         """,
     )
 
-    reviewer = autogen.AssistantAgent(
+    autogen.AssistantAgent(
         name="Reviewer",
         llm_config={"config_list": config_list},
         system_message="""
@@ -96,22 +117,19 @@ def test_nested():
     )
 
     def writing_message(recipient, messages, sender, config):
-        return f"Polish the content to make an engaging and nicely formatted blog post. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
+        return f"Make a one-sentence comment. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
 
     nested_chat_queue = [
-        {"recipient": manager, "summary_method": "reflection_with_llm"},
+        {"sender": user_2, "recipient": manager, "summary_method": "reflection_with_llm"},
         {"recipient": writer, "message": writing_message, "summary_method": "last_msg", "max_turns": 1},
-        {
-            "recipient": reviewer,
-            "message": "Review the content provided.",
-            "summary_method": "last_msg",
-            "max_turns": 1,
-        },
     ]
     assistant.register_nested_chats(
         nested_chat_queue,
+        trigger=user,
     )
-    user.initiate_chats([{"recipient": assistant, "message": tasks[0]}, {"recipient": assistant, "message": tasks[1]}])
+    user.initiate_chats(
+        [{"recipient": assistant, "message": tasks[0], "max_turns": 1}, {"recipient": assistant_2, "message": tasks[1]}]
+    )
 
 
 if __name__ == "__main__":

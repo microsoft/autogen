@@ -1,13 +1,17 @@
-import pytest
-import sys
+#!/usr/bin/env python3 -m pytest
+
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.agentchat.contrib.math_user_proxy_agent import (
     MathUserProxyAgent,
-    _remove_print,
     _add_print_to_last_line,
+    _remove_print,
 )
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -51,11 +55,7 @@ def test_math_user_proxy_agent():
     assistant.reset()
 
     math_problem = "$x^3=125$. What is x?"
-    # assistant.receive(
-    #     message=mathproxyagent.generate_init_message(math_problem),
-    #     sender=mathproxyagent,
-    # )
-    res = mathproxyagent.initiate_chat(assistant, problem=math_problem)
+    res = mathproxyagent.initiate_chat(assistant, message=mathproxyagent.message_generator, problem=math_problem)
     print(conversations)
     print("Chat summary:", res.summary)
     print("Chat history:", res.chat_history)
@@ -119,13 +119,13 @@ def test_execute_one_wolfram_query():
 def test_generate_prompt():
     mathproxyagent = MathUserProxyAgent(name="MathChatAgent", human_input_mode="NEVER")
 
-    assert "customized" in mathproxyagent.generate_init_message(
-        problem="2x=4", prompt_type="python", customized_prompt="customized"
+    assert "customized" in mathproxyagent.message_generator(
+        mathproxyagent, None, {"problem": "2x=4", "prompt_type": "python", "customized_prompt": "customized"}
     )
 
 
 if __name__ == "__main__":
     # test_add_remove_print()
     # test_execute_one_python_code()
-    # test_generate_prompt()
+    test_generate_prompt()
     test_math_user_proxy_agent()

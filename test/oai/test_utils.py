@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import json
 import logging
 import os
@@ -6,11 +8,10 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config, is_valid_api_key
-
-from conftest import MOCK_OPEN_AI_API_KEY
 
 # Example environment variables
 ENV_VARS = {

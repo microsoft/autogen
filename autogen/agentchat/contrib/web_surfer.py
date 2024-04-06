@@ -1,16 +1,18 @@
-import json
 import copy
+import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
+from datetime import datetime
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+
 from typing_extensions import Annotated
-from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
+
+from ... import Agent, AssistantAgent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper, UserProxyAgent
 from ...browser_utils import SimpleTextBrowser
 from ...code_utils import content_str
-from datetime import datetime
-from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config
+from ...token_count_utils import count_token, get_max_token_limit
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +81,7 @@ class WebSurferAgent(ConversableAgent):
         if inner_llm_config not in [None, False]:
             self._register_functions()
 
-        self._reply_func_list = []
-        self.register_reply([Agent, None], WebSurferAgent.generate_surfer_reply)
+        self.register_reply([Agent, None], WebSurferAgent.generate_surfer_reply, remove_other_reply_funcs=True)
         self.register_reply([Agent, None], ConversableAgent.generate_code_execution_reply)
         self.register_reply([Agent, None], ConversableAgent.generate_function_call_reply)
         self.register_reply([Agent, None], ConversableAgent.check_termination_and_human_reply)
