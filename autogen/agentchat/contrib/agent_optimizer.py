@@ -172,19 +172,16 @@ class AgentOptimizer:
     def __init__(
         self,
         max_actions_per_step: int,
-        llm_config: Optional[Union[Dict, Literal[False]]] = None,
+        llm_config: dict,
         optimizer_model: Optional[str] = "gpt-4-1106-preview",
     ):
         """
         (These APIs are experimental and may change in the future.)
         Args:
             max_actions_per_step (int): the maximum number of actions that the optimizer can take in one step.
-            llm_config (dict or False or None): llm inference configuration.
-                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create)
-                for available options.
+            llm_config (dict): llm inference configuration.
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create) for available options.
                 When using OpenAI or Azure OpenAI endpoints, please specify a non-empty 'model' either in `llm_config` or in each config of 'config_list' in `llm_config`.
-                To disable llm-based auto reply, set to False.
-                When set to None, will use self.DEFAULT_CONFIG, which defaults to False.
             optimizer_model: the model used for the optimizer.
         """
         self.max_actions_per_step = max_actions_per_step
