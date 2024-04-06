@@ -496,7 +496,7 @@ class GroupChat:
             name = next(iter(mentions))
         elif self.requery_on_multiple_speaker_names and len(mentions) > 1:
             # We have more than one name mentioned in the response, requery and
-            # ask the LLM to choose one from the response
+            # ask the LLM to choose one name from that response
             select_name_message = [
                 {
                     "content": f"""Your role is to identify the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. To determine the speaker use these prioritised rules:
