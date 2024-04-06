@@ -152,7 +152,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
         return self._work_dir
-    
+
     @property
     def bind_dir(self) -> Path:
         """(Experimental) The binding directory for the code execution container."""
