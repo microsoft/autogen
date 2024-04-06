@@ -4,15 +4,15 @@
 
 1. Navigate to the directory containing the example:
     ```
-    cd /workspaces/autogen/samples/apps/websockets
+    cd samples/apps/websockets
     ```
 
 2. Install the necessary dependencies:
     ```
-    ./setup.sh
+    ./setup.py
     ```
 
-3. Run the application.
+3. Run the application:
     ```
     uvicorn application:app --reload
     ```
