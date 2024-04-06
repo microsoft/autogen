@@ -52,6 +52,7 @@ class GroupChat:
             ) -> Union[Agent, str, None]:
             ```
     - requery_on_multiple_speaker_names: whether to requery the LLM if multiple speaker names are returned during speaker selection.
+        The response with multiple names will be fed back to the LLM with a prompt asking it to select the primary speaker's name.
         Applies only to "auto" speaker selection method.
         Default is False, in which case if the LLM returns multiple speaker names it will not requery the LLM.
         If set to True and the LLM returns multiple speaker names, a message will be sent to the LLM with that response asking the LLM to return just one name based on it.
@@ -515,6 +516,8 @@ class GroupChat:
                 messages=select_name_message,
                 cache=None,
             )
+
+            # Returned name
             name_single = selector.client.extract_text_or_completion_object(response)[0]
 
             # Evaluate the response for agent names
