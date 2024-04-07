@@ -136,9 +136,7 @@ def test(assistant: autogen.ConversableAgent, user_proxy: autogen.UserProxyAgent
     try:
         user_proxy.initiate_chat(assistant, message="plot and save a graph of x^2 from -10 to 10", clear_history=False)
     except Exception as e:
-        print("Encountered an error with the base assistant")
-        print(e)
-        print("\n\n")
+        print(f"Encountered an error with the base assistant: \n{e}")
 ```
 
 The first run will be the default implementation, where the agent does not have the `TransformMessages` capability.
