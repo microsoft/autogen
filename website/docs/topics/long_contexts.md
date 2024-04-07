@@ -223,9 +223,9 @@ If not, you can type "TERMINATE" to end our conversation.
 
 ### Create Custom Transformations to Handle Sensitive Content
 
-You can use the `MessageTransform` protocol to create custom message transformations that redact sensitive data from the chat history. This is particularly useful when you want to ensure that sensitive information, such as API keys, passwords, or personal data, is not exposed in the chat history or logs.
+You can create custom transformations by implementing the `MessageTransform` protocol, which provides flexibility to handle various use cases. One practical application is to create a custom transformation that redacts sensitive information, such as API keys, passwords, or personal data, from the chat history or logs. This ensures that confidential data is not inadvertently exposed, enhancing the security and privacy of your conversational AI system.
 
-Now, we will create a custom message transform to detect any OpenAI API key and redact it.
+We will demonstrate this by implementing a custom transformation called `MessageRedact` that detects and redacts OpenAI API keys from the conversation history. This transformation is particularly useful when you want to prevent accidental leaks of API keys, which could compromise the security of your system.
 
 ```python
 import os
