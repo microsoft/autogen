@@ -72,6 +72,8 @@ def test_chromadb():
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
     assert [r["id"] for r in res] == ["2"]  # "1" has been deleted
+    res = db.get_docs_by_ids(collection_name=collection_name)
+    assert [r["id"] for r in res] == ["2", "3"]
 
     # test _chroma_results_to_query_results
     data_dict = {
