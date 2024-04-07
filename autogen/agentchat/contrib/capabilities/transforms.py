@@ -210,20 +210,20 @@ class TextMessageCompressor:
     """
 
     def __init__(
-        self, text_compressor: Optional[TextCompressor] = None, messages_to_compress: Literal["last", "all"] = "last"
+        self, text_compressor: Optional[TextCompressor] = None, compress_all_messages_on_first_apply: bool = False
     ):
         """
         Args:
             text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor protocol. If None, it defaults to LLMLingua.
-            messages_to_compress (Literal["last", "all"]): Determines which messages to compress. If set to "last", only the
-                last message will be compressed. If set to "all", all messages will be compressed.
+            compress_all_messages_on_first_apply (bool): Whether to apply the text compression to all messages initially. Defaults to False.
         """
 
         if text_compressor is None:
             text_compressor = LLMLingua()
 
         self._text_compressor = text_compressor
-        self._messages_to_compress = messages_to_compress
+        self._init_all_messages = compress_all_messages_on_first_apply
+        self._transform_applied_once = False
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies compression to messages in a conversation history based on the specified configuration.
@@ -241,11 +241,12 @@ class TextMessageCompressor:
         """
         savings = 0
 
-        if self._messages_to_compress == "last":
-            savings, processed_messages = self._compress_last(messages)
-        else:
+        if self._init_all_messages and not self._transform_applied_once:
             savings, processed_messages = self._compress_all(messages)
+        else:
+            savings, processed_messages = self._compress_last(messages)
 
+        self._transform_applied_once = True
         self._print_stats(savings)
         return processed_messages
 
