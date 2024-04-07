@@ -122,6 +122,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 - `vector_db` (Optional, Union[str, VectorDB]) - the vector db for the retrieve chat.
                     If it's a string, it should be the type of the vector db, such as "chroma"; otherwise,
                     it should be an instance of the VectorDB protocol. Default is "chroma".
+                    Set `None` to use the deprecated `client`.
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
@@ -139,6 +140,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     By default, "extra_docs" is set to false, starting document IDs from zero.
                     This poses a risk as new documents might overwrite existing ones, potentially
                     causing unintended loss or alteration of data in the collection.
+                    **Deprecated**: use `new_docs` when use `vector_db` instead of `client`.
+                - `new_docs` (Optional, bool) - when True, only adds new documents to the collection;
+                    when False, updates existing documents and adds new ones. Default is True.
+                    Document id is used to determine if a document is new or existing. By default, the
+                    id is the hash value of the content.
                 - `model` (Optional, str) - the model to use for the retrieve chat.
                     If key not provided, a default model `gpt-4` will be used.
                 - `chunk_token_size` (Optional, int) - the chunk token size for the retrieve chat.
@@ -157,6 +163,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     models can be found at `https://www.sbert.net/docs/pretrained_models.html`.
                     The default model is a fast model. If you want to use a high performance model,
                     `all-mpnet-base-v2` is recommended.
+                    **Deprecated**: no need when use `vector_db` instead of `client`.
                 - `embedding_function` (Optional, Callable) - the embedding function for creating the
                     vector db. Default is None, SentenceTransformer with the given `embedding_model`
                     will be used. If you want to use OpenAI, Cohere, HuggingFace or other embedding
@@ -240,6 +247,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
+        self._new_docs = self._retrieve_config.get("new_docs", True)
         self._collection_name = self._retrieve_config.get("collection_name", "autogen-docs")
         if "docs_path" not in self._retrieve_config:
             logger.warning(
@@ -277,16 +285,18 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
-        self._init_db()
-        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
-
-    def _init_db(self):
         if isinstance(self._vector_db, str):
             self._vector_db = VectorDBFactory.create_vector_db(
                 self._vector_db, path="tmp/db", embedding_function=self._embedding_function
             )
+        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
+
+    def _init_db(self):
+        if not self._vector_db:
+            return
+
         IS_TO_CHUNK = False  # whether to chunk the raw files
-        if self._extra_docs:
+        if self._new_docs:
             IS_TO_CHUNK = True
         if not self._docs_path:
             try:
@@ -330,7 +340,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 )
             logger.info(f"Found {len(chunks)} chunks.")
 
-            if not self._extra_docs:
+            if self._new_docs:
                 all_docs_ids = set(
                     [
                         doc["id"]
@@ -519,6 +529,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             None.
         """
         if isinstance(self._vector_db, VectorDB):
+            if not self._collection or not self._get_or_create:
+                print("Trying to create collection.")
+                self._init_db()
+                self._collection = True
+                self._get_or_create = True
+
             kwargs = {}
             if hasattr(self._vector_db, "type") and self._vector_db.type == "chroma":
                 kwargs["where_document"] = {"$contains": search_string} if search_string else None
@@ -529,8 +545,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 distance_threshold=self._distance_threshold,
                 **kwargs,
             )
+            self._search_string = search_string
             self._results = results
-            print("doc_ids: ", [[r[0]["id"] for r in rr] for rr in results])
+            print("VectorDB returns doc_ids: ", [[r[0]["id"] for r in rr] for rr in results])
             return
 
         if not self._collection or not self._get_or_create:
@@ -562,12 +579,13 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_model=self._embedding_model,
             embedding_function=self._embedding_function,
         )
+        results["contents"] = results.pop("documents")
         results = chroma_results_to_query_results(results, "distances")
         results = filter_results_by_distance(results, self._distance_threshold)
 
         self._search_string = search_string
         self._results = results
-        print("doc_ids: ", results["ids"])
+        print("doc_ids: ", [[r[0]["id"] for r in rr] for rr in results])
 
     @staticmethod
     def message_generator(sender, recipient, context):
