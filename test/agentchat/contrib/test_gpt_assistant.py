@@ -40,7 +40,7 @@ if not skip:
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "api_version": ["2024-02-15-preview"]},
+        filter_dict={"api_type": ["azure"], "tags": ["assistant"]},
     )
 
 
