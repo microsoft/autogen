@@ -262,6 +262,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._vector_db = VectorDBFactory.create_vector_db(
                 self._vector_db, path=".db", embedding_function=self._embedding_function
             )
+            self._vector_db.active_collection = self._vector_db.create_collection(
+                self._collection_name, overwrite=self._overwrite, get_or_create=self._get_or_create
+            )
+
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
     def _is_termination_msg_retrievechat(self, message):
