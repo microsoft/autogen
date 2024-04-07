@@ -1,9 +1,12 @@
+from typing import List
+
 from textual import on
 from textual.reactive import reactive
 from textual.app import ComposeResult
 from textual.screen import ModalScreen
 from textual.containers import Grid, Container, Horizontal, Vertical
 from textual.widgets import (
+    Static,
     Markdown,
     Input,
     Label,
@@ -64,9 +67,37 @@ class UserSettingsTab(Grid):
         self.screen.close_settings()
 
 
+class ToolViewer(Grid):
+
+    tool: Tool = reactive(None, recompose=True)
+
+    def compose(self) -> ComposeResult:
+        if self.tool is None:
+            yield Static("Select a tool to view or edit its settings", classes="instructions")
+            return
+
+        with Vertical():
+            yield Label("Tool ID", classes="form-label")
+            yield Input(value=str(self.tool.id), id="tool-id-input", disabled=True)
+
+        with Vertical():
+            yield Label("Tool Name (Display)", classes="form-label")
+            yield Input(value=self.tool.name, id="tool-name-input")
+
+        # code editor for the selected tool
+        with Horizontal(id="tool-code-container"):
+            yield TextArea.code_editor(self.tool.code, language="python", id="tool-code-textarea")
+
+        # footer for the tool view
+        with Horizontal(id="tool-view-footer-grid"):
+            yield Button("Save", variant="primary", id="save-tool-settings")
+            yield Button("Delete", variant="error", id="delete-tool-button")
+
+
 class ToolSettingsTab(Grid):
 
-    tools = None
+    tools: List[Tool] = None
+    selected_tool: Tool = None
 
     async def on_mount(self) -> None:
         dbm = self.app.config.db_manager
@@ -89,25 +120,7 @@ class ToolSettingsTab(Grid):
             yield Button("+", variant="primary", id="new-tool-button")
 
         # display the settings for the selected tool
-        with Grid(id="tool-view-grid"):
-
-            with Vertical():
-                yield Label("Tool ID", classes="form-label")
-                yield Input(id="tool-id-input", disabled=True)
-
-            with Vertical():
-                yield Label("Tool Name (Display)", classes="form-label")
-                yield Input(id="tool-name-input")
-
-            # code editor for the selected tool
-            with Horizontal(id="tool-code-container"):
-                # yield Label("Code", classes="form-label")
-                yield TextArea.code_editor("", language="python", id="tool-code-textarea")
-
-            # footer for the tool view
-            with Horizontal(id="tool-view-footer-grid"):
-                yield Button("Save", variant="primary", id="save-tool-settings")
-                yield Button("Delete", variant="error", id="delete-tool-button")
+        yield ToolViewer(id="tool-view-grid")
 
     @on(Button.Pressed, "#new-tool-button")
     async def create_new_tool(self) -> None:
@@ -209,17 +222,20 @@ class ToolSettingsTab(Grid):
         self.screen.close_settings()
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
-        dbm = self.app.config.db_manager
-
         tool_id = int(event.item.id[5:])
         self.app.logger.info(f"Selected tool id: {tool_id}")
-        tool = await dbm.get_tool_with_id(tool_id)
-        if tool:
-            self.query_one("#tool-code-textarea", TextArea).text = tool.code
-            self.query_one("#tool-name-input", Input).value = tool.name
-            self.query_one("#tool-id-input", Input).value = str(tool_id)
-        else:
-            self.app.post_message(AppErrorMessage("Tool not found"))
+        dbm = self.app.config.db_manager
+
+        try:
+            tool = await dbm.get_tool_with_id(tool_id)
+        except Exception as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
+
+        self.app.logger.info(f"Selected tool: {tool}")
+        viewer_widget = self.query_one("#tool-view-grid", ToolViewer)
+        viewer_widget.tool = tool
 
     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
         list_view_widget = self.query_one("#tool-list", ListView)

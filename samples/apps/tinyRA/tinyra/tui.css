@@ -289,6 +289,12 @@ SettingsScreen {
     border-left: solid $primary-background;
 }
 
+.instructions {
+    align: center middle;
+    text-align: center;
+    column-span: 2;
+}
+
 #tool-view-footer-grid {
     column-span: 2;
     align-horizontal: center;
