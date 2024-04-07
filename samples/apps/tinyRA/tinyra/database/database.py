@@ -7,6 +7,9 @@ from ..tools import Tool
 
 @dataclass
 class User:
+    """
+    Represents a user in the database.
+    """
 
     name: str
     bio: str
@@ -15,6 +18,9 @@ class User:
 
 @dataclass
 class ChatMessage:
+    """
+    Represents a chat message in the database.
+    """
 
     root_id: int
     role: str
@@ -28,6 +34,9 @@ class ChatMessage:
 
 @dataclass
 class ChatHistory:
+    """
+    Represents a chat history in the database.
+    """
 
     root_id: int
     messages: List[ChatMessage]

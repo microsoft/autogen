@@ -20,3 +20,7 @@ class SubprocessError(Exception):
 
 class FileManagerError(Exception):
     pass
+
+
+class AppErrorMessage(Exception):
+    pass

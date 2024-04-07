@@ -1,17 +1,20 @@
 import ast
 from typing import Optional
+from dataclasses import dataclass
 
 from .exceptions import InvalidToolError
 
 
+@dataclass
 class Tool:
-    def __init__(
-        self, name: str, code: Optional[str] = None, description: Optional[str] = None, id: Optional[int] = None
-    ):
-        self.id = id
-        self.name = name or ""
-        self.code = code or ""
-        self.description = description or ""
+    """
+    Represents a tool in the system.
+    """
+
+    id: Optional[int] = None
+    name: str = ""
+    code: Optional[str] = ""
+    description: Optional[str] = ""
 
     def validate_tool(self):
         # validate the name
@@ -41,17 +44,3 @@ class Tool:
                 raise InvalidToolError("Code must contain a valid (sync/async) function definition")
 
         return True
-
-    @staticmethod
-    def _extract_description_from_code(code: str) -> str:
-        module = ast.parse(code)
-        function_def = module.body[0]
-        if not isinstance(function_def, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            raise InvalidToolError("Code must contain a valid (sync/async) function definition")
-
-        docstring = ast.get_docstring(function_def)
-
-        if not docstring:
-            raise InvalidToolError("Code must contain a doc string")
-
-        return docstring

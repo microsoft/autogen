@@ -33,6 +33,8 @@ class AppConfiguration:
         llm_service: ChatCompletionService,
     ):
         self._app_path = app_path or self.DEFAULT_APP_PATH
+        if not isinstance(db_manager, DatabaseManager):
+            raise ValueError("db_manager must be an instance of DatabaseManager")
         self.db_manager = db_manager
         self.file_manager = file_manager
         self.agent_manager = agent_manager
