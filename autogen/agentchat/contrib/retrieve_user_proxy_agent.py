@@ -260,7 +260,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc
-        self._results = {}  # the results of the current query
+        self._results = []  # the results of the current query
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
@@ -346,37 +346,38 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     def _reset(self, intermediate=False):
         self._doc_idx = -1  # the index of the current used doc
-        self._results = {}  # the results of the current query
+        self._results = []  # the results of the current query
         if not intermediate:
             self._intermediate_answers = set()  # the intermediate answers
             self._doc_contents = []  # the contents of the current used doc
             self._doc_ids = []  # the ids of the current used doc
 
-    def _get_context(self, results: Dict[str, Union[List[str], List[List[str]]]]):
+    def _get_context(self, results: QueryResults):
         doc_contents = ""
         current_tokens = 0
         _doc_idx = self._doc_idx
         _tmp_retrieve_count = 0
-        for idx, doc in enumerate(results["documents"][0]):
+        for idx, doc in enumerate(results[0]):
+            doc = doc[0]
             if idx <= _doc_idx:
                 continue
-            if results["ids"][0][idx] in self._doc_ids:
+            if doc["id"] in self._doc_ids:
                 continue
-            _doc_tokens = self.custom_token_count_function(doc, self._model)
+            _doc_tokens = self.custom_token_count_function(doc["content"], self._model)
             if _doc_tokens > self._context_max_tokens:
-                func_print = f"Skip doc_id {results['ids'][0][idx]} as it is too long to fit in the context."
+                func_print = f"Skip doc_id {doc['id']} as it is too long to fit in the context."
                 print(colored(func_print, "green"), flush=True)
                 self._doc_idx = idx
                 continue
             if current_tokens + _doc_tokens > self._context_max_tokens:
                 break
-            func_print = f"Adding doc_id {results['ids'][0][idx]} to context."
+            func_print = f"Adding content of doc {doc['id']} to context."
             print(colored(func_print, "green"), flush=True)
             current_tokens += _doc_tokens
-            doc_contents += doc + "\n"
+            doc_contents += doc["content"] + "\n"
             self._doc_idx = idx
             self._doc_ids.append(results["ids"][0][idx])
-            self._doc_contents.append(doc)
+            self._doc_contents.append(doc["content"])
             _tmp_retrieve_count += 1
             if _tmp_retrieve_count >= self.n_results:
                 break
@@ -522,7 +523,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_model=self._embedding_model,
             embedding_function=self._embedding_function,
         )
-        results = chroma_results_to_query_results(results)
+        results = chroma_results_to_query_results(results, "distances")
         results = filter_results_by_distance(results, distance_threshold)
 
         self._search_string = search_string
