@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from termcolor import colored
 
@@ -55,7 +55,7 @@ def filter_results_by_distance(results: QueryResults, distance_threshold: float 
     return results
 
 
-def chroma_results_to_query_results(data_dict, special_key="distances"):
+def chroma_results_to_query_results(data_dict: Dict[str, List[List[Any]]], special_key="distances") -> QueryResults:
     """Converts a dictionary with list-of-list values to a list of tuples.
 
     Args:
