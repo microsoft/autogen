@@ -16,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, List, Dict, Optional, Set, Callable
 
 from textual import on
+from textual.reactive import reactive
 from textual import work
 from textual.worker import Worker, get_current_worker
 from textual.app import App, ComposeResult
@@ -50,7 +51,6 @@ from .files import CodespacesFileManager
 from .agents.agents import ReversedAgents
 from .agents.autogen_agents import AutoGenAgentManager
 
-
 from .app_config import AppConfiguration
 
 from .screens.quit_screen import QuitScreen
@@ -59,167 +59,9 @@ from .screens.chat_display import ChatDisplay, ReactiveMessageWidget
 
 from .messages import AppErrorMessage, SelectedReactiveMessage
 
+from .llm import AutoGenChatCompletionService
 
-# def fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
-#     """
-#     Fetch the chat history from the database.
-
-#     Args:
-#         root_id: the root id of the messages to fetch. If None, all messages are fetched.
-
-#     Returns:
-#         A list of chat messages.
-#     """
-#     conn = sqlite3.connect(APP_CONFIG.get_database_path())
-#     c = conn.cursor()
-#     c.execute("SELECT root_id, id, role, content FROM chat_history WHERE root_id = ?", (root_id,))
-#     chat_history = [
-#         {"root_id": root_id, "id": id, "role": role, "content": content} for root_id, id, role, content in c.fetchall()
-#     ]
-#     conn.close()
-#     return chat_history
-
-
-# async def a_fetch_chat_history(root_id: int = 0) -> List[Dict[str, str]]:
-#     """
-#     Fetch the chat history from the database.
-
-#     Args:
-#         root_id: the root id of the messages to fetch. If None, all messages are fetched.
-
-#     Returns:
-#         A list of chat messages.
-#     """
-#     async with aiosqlite.connect(APP_CONFIG.get_database_path()) as conn:
-#         c = await conn.cursor()
-#         await c.execute("SELECT root_id, id, role, content FROM chat_history WHERE root_id = ?", (root_id,))
-#         chat_history = [
-#             {"root_id": root_id, "id": id, "role": role, "content": content}
-#             for root_id, id, role, content in await c.fetchall()
-#         ]
-#         return chat_history
-
-
-# def fetch_row(id: int, root_id: int = 0) -> Optional[Dict[str, str]]:
-#     """
-#     Fetch a single row from the database.
-
-#     Args:
-#         id: the id of the row to fetch
-#         root_id: the root id of the row to fetch. If not specified, it's assumed to be 0.
-
-#     Returns:
-#         A single row from the database.
-#     """
-#     conn = sqlite3.connect(APP_CONFIG.get_database_path())
-#     c = conn.cursor()
-#     c.execute("SELECT role, content FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id))
-#     row = [{"role": role, "content": content, "id": id, "root_id": root_id} for role, content in c.fetchall()]
-#     conn.close()
-#     return row[0] if row else None
-
-
-# async def a_fetch_row(id: int, root_id: int = 0) -> Optional[Dict[str, str]]:
-#     """
-#     Fetch a single row from the database.
-
-#     Args:
-#         id: the id of the row to fetch
-#         root_id: the root id of the row to fetch. If not specified, it's assumed to be 0.
-
-#     Returns:
-#         A single row from the database.
-#     """
-#     async with aiosqlite.connect(APP_CONFIG.get_database_path()) as conn:
-#         c = await conn.cursor()
-#         await c.execute("SELECT role, content FROM chat_history WHERE id = ? AND root_id = ?", (id, root_id))
-#         row = [{"role": role, "content": content, "id": id, "root_id": root_id} for role, content in await c.fetchall()]
-#         return row[0] if row else None
-
-
-# def insert_chat_message(role: str, content: str, root_id: int, id: Optional[int] = None) -> int:
-#     """
-#     Insert a chat message into the database.
-
-#     Args:
-#         role: the role of the message
-#         content: the content of the message
-#         root_id: the root id of the message
-#         id: the id of the row to update. If None, a new row is inserted.
-
-#     Returns:
-#         The id of the inserted (or modified) row.
-#     """
-#     try:
-#         with sqlite3.connect(APP_CONFIG.get_database_path()) as conn:
-#             c = conn.cursor()
-#             if id is None:
-#                 c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
-#                 max_id = c.fetchone()[0]
-#                 id = max_id + 1 if max_id is not None else 0
-#                 data_a = (root_id, id, role, content)
-#                 c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
-#                 conn.commit()
-#                 return id
-#             else:
-#                 c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
-#                 if c.fetchone() is None:
-#                     data_b = (root_id, id, role, content)
-#                     c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_b)
-#                     conn.commit()
-#                     return id
-#                 else:
-#                     data_c = (role, content, root_id, id)
-#                     c.execute("UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c)
-#                     conn.commit()
-#                     return id
-#     except sqlite3.Error as e:
-#         raise ChatMessageError(f"Error inserting or updating chat message: {e}")
-
-
-# async def a_insert_chat_message(role: str, content: str, root_id: int, id: Optional[int] = None) -> int:
-#     """
-#     Insert a chat message into the database.
-
-#     Args:
-#         role: the role of the message
-#         content: the content of the message
-#         root_id: the root id of the message
-#         id: the id of the row to update. If None, a new row is inserted.
-
-#     Returns:
-#         The id of the inserted (or modified) row.
-#     """
-#     try:
-#         async with aiosqlite.connect(APP_CONFIG.get_database_path()) as conn:
-#             c = await conn.cursor()
-#             if id is None:
-#                 await c.execute("SELECT MAX(id) FROM chat_history WHERE root_id = ?", (root_id,))
-#                 item = await c.fetchone()
-#                 max_id = None
-#                 if item is not None:
-#                     max_id = item[0]
-#                 id = max_id + 1 if max_id is not None else 0
-#                 data_a = (root_id, id, role, content)
-#                 await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_a)
-#                 await conn.commit()
-#                 return id
-#             else:
-#                 await c.execute("SELECT * FROM chat_history WHERE root_id = ? AND id = ?", (root_id, id))
-#                 if await c.fetchone() is None:
-#                     data_b = (root_id, id, role, content)
-#                     await c.execute("INSERT INTO chat_history (root_id, id, role, content) VALUES (?, ?, ?, ?)", data_b)
-#                     await conn.commit()
-#                     return id
-#                 else:
-#                     data_c = (role, content, root_id, id)
-#                     await c.execute(
-#                         "UPDATE chat_history SET role = ?, content = ? WHERE root_id = ? AND id = ?", data_c
-#                     )
-#                     await conn.commit()
-#                     return id
-#     except aiosqlite.Error as e:
-#         raise ChatMessageError(f"Error inserting or updating chat message: {e}")
+from .profiler.profiler import Profiler, MessageProfile, ChatProfile, State
 
 
 class ChatInput(Input):
@@ -516,274 +358,98 @@ class ChatInput(Input):
 #         self.app.pop_screen()
 
 
-# @dataclass
-# class AgentMessage:
+class ProfileNode(Static):
 
-#     role: str
-#     content: str
+    message_profile: MessageProfile
 
-#     def __str__(self):
-#         return f"{self.role}:\n{self.content}"
+    DEFAULT_CSS = """
+    ProfileNode Markdown {
+        border: solid $primary;
+        padding: 1;
+    }
+"""
 
+    def compose(self) -> ComposeResult:
+        states = self.message_profile.states
 
-# @dataclass
-# class State:
+        def state_name_comparator(x: State, y: State):
+            return x.name < y.name
 
-#     name: str
-#     description: str
-#     tags: List[str]
+        states.sort(key=functools.cmp_to_key(state_name_comparator))
 
-#     def __str__(self):
-#         return f"{self.name}"
+        state_display_str = " ".join([str(state) for state in states])
 
-#     def __eq__(self, other):
-#         if isinstance(other, State):
-#             return self.name == other.name and self.description == other.description and self.tags == other.tags
-#         return False
-
-#     def __hash__(self):
-#         return hash((self.name, self.description, tuple(self.tags)))
+        with Collapsible(collapsed=True, title=state_display_str):
+            yield Static(str(self.message_profile))
+            yield Markdown(str(self.message_profile.message))
 
 
-# @dataclass
-# class StateSpace:
+class ProfileDiagram(ScrollableContainer):
 
-#     states: Set[State]
+    chat_profile: ChatProfile = reactive(None, recompose=True)
 
-#     def __str__(self):
-#         return " ".join([str(state) for state in self.states])
+    def compose(self) -> ComposeResult:
 
-#     def filter_states(self, condition: Callable[State, bool]) -> "StateSpace":
-#         filtered_states = {state for state in self.states if condition(state)}
-#         return StateSpace(filtered_states)
+        if self.chat_profile is None:
+            yield Label("Profiling...")
+            yield LoadingIndicator()
+            return
 
-
-# @dataclass
-# class MessageProfile:
-
-#     message: AgentMessage
-#     cost: float
-#     duration: float
-#     states: Set[State]  # unorddered collection of states
-
-#     def __str__(self):
-#         repr = f"Cost: {self.cost}\tDuration: {self.duration}\t"
-#         for state in self.states:
-#             repr += str(state) + " "
-#         return repr
+        num_messages = self.chat_profile.num_messages
+        yield Label(f"Number of messages: {num_messages}", classes="heading")
+        for message_profile in self.chat_profile.message_profiles:
+            node = ProfileNode()
+            node.message_profile = message_profile
+            yield node
 
 
-# class Profiler:
+class ProfilerContainer(Container):
 
-#     DEFAULT_STATE_SPACE = StateSpace(
-#         states={
-#             State(
-#                 name="USER-REQUEST",
-#                 description="The message shows the *user* requesting a task that needs to be completed",
-#                 tags=["user"],
-#             ),
-#             State(
-#                 name="CODING",
-#                 description="The message shows the assistant writing python or shell code to solve a problem. IE the message contains code blocks. This code does not apply to markdown code blocks",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="PLANNING",
-#                 description="The message shows that the agent is create a step by step plan to accomplish some task.",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="ANALYSING-RESULTS",
-#                 description="The assistant's message is reflecting on results obtained so far",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="CODE-EXECUTION",
-#                 description="The user shared results of code execution, e.g., results, logs, error trace",
-#                 tags=["user"],
-#             ),
-#             State(
-#                 name="CODE-EXECUTION-ERROR",
-#                 description="The user shared results of code execution and they show an error in execution",
-#                 tags=["user"],
-#             ),
-#             State(
-#                 name="CODE-EXECUTION-SUCCESS",
-#                 description="The user shared results of code execution and they show a successful execution",
-#                 tags=["user"],
-#             ),
-#             State(
-#                 name="CODING-TOOL-USE",
-#                 description="The message contains a code block and the code uses method from the `functions` module eg indicated by presence of `from functions import....`",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="ASKING-FOR-INFO",
-#                 description="The assistant is asking a question",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="SUMMARIZING",
-#                 description="The assistant is synthesizing/summarizing information gathered so far",
-#                 tags=["assistant"],
-#             ),
-#             State(
-#                 name="TERMINATE", description="The agent's message contains the word 'TERMINATE'", tags=["assistant"]
-#             ),
-#             State(name="EMPTY", description="The message is empty", tags=["user"]),
-#             State(
-#                 name="UNDEFINED",
-#                 description="Use this code when the message does not fit any of the other codes",
-#                 tags=["user", "assistant"],
-#             ),
-#         }
-#     )
+    chat_history = reactive(None)
+    profile_diagram = None
 
-#     def __init__(self, state_space: StateSpace = None):
-#         self.state_space = state_space or self.DEFAULT_STATE_SPACE
+    def __init__(self, *args, root_id: int = -1, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.root_id = root_id
 
-#     def profile_message(self, message: AgentMessage) -> MessageProfile:
+    def on_mount(self) -> None:
+        self.set_interval(1, self.update_chat_history)
 
-#         def role_in_tags(state: State) -> bool:
-#             # if state has no tags, the state applies to all roles
-#             if state.tags is None:
-#                 return True
-#             return message.role in state.tags
+    async def update_chat_history(self) -> None:
+        dbm = self.app.config.db_manager
+        self.chat_history = await dbm.get_chat_history(self.root_id)
 
-#         state_space = self.state_space.filter_states(condition=role_in_tags)
-#         state_space_str = ""
+    def watch_chat_history(self, new_chat_history) -> None:
+        if new_chat_history is None:
+            return
 
-#         for state in state_space.states:
-#             state_space_str += f"{state.name}: {state.description}" + "\n"
+        self.start_profiling()
 
-#         prompt = f"""Which of the following codes apply to the message:
-# List of codes:
-# {state_space_str}
+    @work(thread=True, exclusive=True)
+    async def start_profiling(self):
+        chat_profile = await self.profile_chat()
+        if self.profile_diagram is None:
+            self.profile_diagram = ProfileDiagram()
+        self.profile_diagram.chat_profile = chat_profile
 
-# Message
-#     role: "{message.role}"
-#     content: "{message.content}"
+    async def profile_chat(self) -> ChatProfile:
+        llm_service = self.app.config.llm_service
+        profiler = Profiler(llm_service=llm_service)
 
-# Only respond with codes that apply. Codes should be separated by commas.
-#     """
-#         client = autogen.OpenAIWrapper(**LLM_CONFIG)
-#         response = client.create(messages=[{"role": "user", "content": prompt}])
-#         response = client.extract_text_or_completion_object(response)[0]
+        message_profile_list = []
 
-#         extracted_states_names = response.split(",")
-#         extracted_states = []
-#         for state_name in extracted_states_names:
-#             extracted_states.append(State(name=state_name, description="", tags=[]))
+        for message in self.chat_history.messages:
+            msg_profile = profiler.profile_message(message)
+            message_profile_list.append(msg_profile)
 
-#         message_profile = MessageProfile(cost=0.0, duration=0.0, states=extracted_states, message=message)
+        chat_profile = ChatProfile(num_messages=len(self.chat_history.messages), message_profiles=message_profile_list)
 
-#         return message_profile
+        return chat_profile
 
-
-# @dataclass
-# class ChatProfile:
-
-#     num_messages: int
-#     message_profiles: List[MessageProfile]  # ordered collection of message profiles
-
-#     def __str__(self):
-#         repr = f"Num messages: {self.num_messages}" + "\n"
-#         for message_profile in self.message_profiles:
-#             repr += str(message_profile) + "\n"
-#         return repr
-
-
-# class ProfileNode(Static):
-
-#     message_profile: MessageProfile
-
-#     DEFAULT_CSS = """
-#     ProfileNode Markdown {
-#         border: solid $primary;
-#         padding: 1;
-#     }
-# """
-
-#     def compose(self) -> ComposeResult:
-#         states = self.message_profile.states
-
-#         def state_name_comparator(x: State, y: State):
-#             return x.name < y.name
-
-#         states.sort(key=functools.cmp_to_key(state_name_comparator))
-
-#         state_display_str = " ".join([str(state) for state in states])
-
-#         with Collapsible(collapsed=True, title=state_display_str):
-#             yield Static(str(self.message_profile))
-#             yield Markdown(str(self.message_profile.message))
-
-
-# class ProfileDiagram(ScrollableContainer):
-
-#     chat_profile: ChatProfile = reactive(None, recompose=True)
-
-#     def compose(self) -> ComposeResult:
-
-#         if self.chat_profile is None:
-#             yield Label("Profiling...")
-#             yield LoadingIndicator()
-#             return
-
-#         # if self.chat_profile.num_messages == 0:
-#         #     yield LoadingIndicator()
-#         #     return
-#         num_messages = self.chat_profile.num_messages
-#         yield Label(f"Number of messages: {num_messages}", classes="heading")
-#         for message_profile in self.chat_profile.message_profiles:
-#             node = ProfileNode()
-#             node.message_profile = message_profile
-#             yield node
-
-
-# class ProfilerContainer(Container):
-
-#     root_id = None
-#     chat_history = reactive(None)
-#     profile_diagram = None
-
-#     def on_mount(self) -> None:
-#         # self.update_chat_history()
-#         # self.start_profiling()
-#         self.set_interval(1, self.update_chat_history)
-
-#     def update_chat_history(self) -> None:
-#         self.chat_history = fetch_chat_history(self.root_id)
-
-#     def watch_chat_history(self, new_chat_history) -> None:
-#         if new_chat_history is None:
-#             return
-
-#         self.start_profiling()
-
-#     @work(thread=True, exclusive=True)
-#     async def start_profiling(self):
-#         chat_profile = await self.profile_chat()
-#         if self.profile_diagram is None:
-#             self.profile_diagram = ProfileDiagram()
-#         self.profile_diagram.chat_profile = chat_profile
-
-#     async def profile_chat(self) -> ChatProfile:
-#         profiler = Profiler()
-#         message_profile_list = []
-#         for message in self.chat_history:
-#             _message = AgentMessage(role=message["role"], content=message["content"])
-#             msg_profile = profiler.profile_message(_message)
-#             message_profile_list.append(msg_profile)
-
-#         chat_profile = ChatProfile(num_messages=len(self.chat_history), message_profiles=message_profile_list)
-
-#         return chat_profile
-
-#     def compose(self):
-#         if self.profile_diagram is None:
-#             self.profile_diagram = ProfileDiagram()
-#         yield self.profile_diagram
+    def compose(self):
+        if self.profile_diagram is None:
+            self.profile_diagram = ProfileDiagram()
+        yield self.profile_diagram
 
 
 class MonitoringScreen(ModalScreen):
@@ -805,23 +471,14 @@ class MonitoringScreen(ModalScreen):
             with Container(id="chat-screen-header"):
                 yield Label(f"Monitoring 🧵 Thread: {self.root_id}", classes="heading")
 
-            # with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
-            with TabbedContent("Details", id="chat-screen-tabs"):
+            with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
+                # with TabbedContent("Details", id="chat-screen-tabs"):
 
-                # profiler = ProfilerContainer(id="chat-profiler")
-                # profiler.root_id = self.root_msg_id
-                # profiler.chat_history = history
-
-                # yield profiler
+                profiler = ProfilerContainer(id="chat-profiler", root_id=self.root_id)
+                yield profiler
 
                 with ScrollableContainer(id="chat-screen-contents"):
                     yield ChatDisplay(root_id=self.root_id)
-                    # for msg in history.messages:
-                    #     if msg.role == "assistant":
-                    #         msg_class = "assistant-message"
-                    #     if msg.role == "user":
-                    #         msg_class = "user-message"
-                    #     yield Markdown(f"{msg['role']}:\n{msg['content']}", classes=msg_class + " message")
 
             # with Horizontal(id="chat-screen-footer"):
             # yield Button("Learn New Tool", variant="error", id="learn")
@@ -1261,12 +918,17 @@ def run_app() -> None:
 
     db_manager = SQLLiteDatabaseManager(data_path=app_path)
     file_manager = CodespacesFileManager(root_path=work_dir)
+    llm_service = AutoGenChatCompletionService(llm_config=None)
 
     # agent_manager = ReversedAgents()
     agent_manager = AutoGenAgentManager(llm_config=None, db_manager=db_manager, file_manager=file_manager)
 
     app_config = AppConfiguration(
-        app_path=None, db_manager=db_manager, file_manager=file_manager, agent_manager=agent_manager
+        app_path=None,
+        db_manager=db_manager,
+        file_manager=file_manager,
+        agent_manager=agent_manager,
+        llm_service=llm_service,
     )
 
     if args.reset_app:

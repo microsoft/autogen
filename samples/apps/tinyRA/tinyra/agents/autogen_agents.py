@@ -55,3 +55,5 @@ class AutoGenAgentManager:
         out_message.content = result.summary
         out_message.role = "assistant"
         return out_message
+
+    # def create(self, messages: List[OpenAIMessage])

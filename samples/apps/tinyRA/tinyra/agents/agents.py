@@ -1,6 +1,7 @@
 import logging
 import asyncio
-from typing import Protocol, List, Callable, Awaitable
+from dataclasses import dataclass
+from typing import Protocol, Callable, Awaitable
 
 from ..database.database import ChatMessage
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Protocol, List, Optional
+from typing import Protocol, List, Optional, runtime_checkable
 from pathlib import Path
 
 from ..tools import Tool
@@ -22,6 +22,9 @@ class ChatMessage:
     timestamp: float
     id: Optional[int] = None
 
+    def __str__(self) -> str:
+        return f"{self.role}: {self.content}"
+
 
 @dataclass
 class ChatHistory:
@@ -30,6 +33,7 @@ class ChatHistory:
     messages: List[ChatMessage]
 
 
+@runtime_checkable
 class DatabaseManager(Protocol):
 
     async def initialize(self) -> None:

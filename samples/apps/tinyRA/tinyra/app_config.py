@@ -5,6 +5,7 @@ from typing import Dict, Optional, Protocol
 from .database.database import DatabaseManager
 from .files import FileManager
 from .agents.agents import AgentManager
+from .llm import ChatCompletionService
 
 
 class TinyRAConfiguration(Protocol):
@@ -29,11 +30,13 @@ class AppConfiguration:
         db_manager: DatabaseManager,
         file_manager: FileManager,
         agent_manager: AgentManager,
+        llm_service: ChatCompletionService,
     ):
         self._app_path = app_path or self.DEFAULT_APP_PATH
         self.db_manager = db_manager
         self.file_manager = file_manager
         self.agent_manager = agent_manager
+        self.llm_service = llm_service
 
     async def initialize(self):
         """Initialize the app configuration."""
