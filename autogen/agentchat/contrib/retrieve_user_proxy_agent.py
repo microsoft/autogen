@@ -282,10 +282,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             )
 
         if self._docs_path is not None:
-            if self._custom_text_split_function is not None:
+            if self.custom_text_split_function is not None:
                 chunks = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
-                    custom_text_split_function=self._custom_text_split_function,
+                    custom_text_split_function=self.custom_text_split_function,
                 )
             else:
                 chunks = split_files_to_chunks(
