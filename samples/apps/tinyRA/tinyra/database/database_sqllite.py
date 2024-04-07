@@ -142,11 +142,13 @@ class SQLLiteDatabaseManager:
             return await self._get_tool_with_id(id)
         except aiosqlite.Error as e:
             raise DatabaseError("Error fetching tool", e)
+        except Exception as e:
+            raise DatabaseError("Error fetching tool", e)
 
     async def set_tool(self, tool: Tool) -> None:
         try:
             return await self._set_tool(tool)
-        except aiosqlite.Error as e:
+        except Exception as e:
             raise DatabaseError("Error setting tool", e)
 
     async def delete_tool(self, id: int) -> None:
@@ -370,18 +372,11 @@ class SQLLiteDatabaseManager:
         """
         async with aiosqlite.connect(self.database_path) as conn:
             c = await conn.cursor()
-            if tool.id is None:
-                await c.execute(
-                    "INSERT INTO tools (name, code, description) VALUES (?, ?, ?)",
-                    (tool.name, tool.code, tool.description),
-                )
-                await conn.commit()
-            else:
-                await c.execute(
-                    "UPDATE tools SET name = ?, code = ?, description = ? WHERE id = ?",
-                    (tool.name, tool.code, tool.description, tool.id),
-                )
-                await conn.commit()
+            await c.execute(
+                "INSERT OR REPLACE INTO tools (id, name, code, description) VALUES (?, ?, ?, ?)",
+                (tool.id, tool.name, tool.code, tool.description),
+            )
+            await conn.commit()
 
     async def _delete_tool(self, id: int) -> None:
         """

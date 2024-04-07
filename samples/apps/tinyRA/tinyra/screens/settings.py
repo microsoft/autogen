@@ -15,8 +15,10 @@ from textual.widgets import (
     LoadingIndicator,
 )
 
-from ..exceptions import AppErrorMessage
+from ..exceptions import ToolUpdateError, InvalidToolError
 from ..database.database import User
+from ..tools import Tool
+from ..messages import AppErrorMessage
 
 
 class UserSettingsTab(Grid):
@@ -62,156 +64,176 @@ class UserSettingsTab(Grid):
         self.screen.close_settings()
 
 
-# class ToolSettingsTab(Grid):
+class ToolSettingsTab(Grid):
 
-#     def compose(self) -> ComposeResult:
-#         tools = APP_CONFIG.get_tools()
-#         # list of tools
-#         with Container(id="tool-list-container"):
-#             yield ListView(
-#                 *(ListItem(Label(tools[tool_id].name), id=f"tool-{tool_id}") for tool_id in tools),
-#                 id="tool-list",
-#             )
-#             yield Button("+", variant="primary", id="new-tool-button")
+    tools = None
 
-#         # display the settings for the selected tool
-#         with Grid(id="tool-view-grid"):
+    async def on_mount(self) -> None:
+        dbm = self.app.config.db_manager
+        tools = await dbm.get_tools()
+        self.tools = tools
+        await self.recompose()
 
-#             with Vertical():
-#                 yield Label("Tool ID", classes="form-label")
-#                 yield Input(id="tool-id-input", disabled=True)
+    def compose(self) -> ComposeResult:
+        if self.tools is None:
+            yield LoadingIndicator()
+            return
 
-#             with Vertical():
-#                 yield Label("Tool Name (Display)", classes="form-label")
-#                 yield Input(id="tool-name-input")
+        tools = self.tools
+        # list of tools
+        with Container(id="tool-list-container"):
+            yield ListView(
+                *(ListItem(Label(tool.name), id=f"tool-{tool.id}") for tool in tools),
+                id="tool-list",
+            )
+            yield Button("+", variant="primary", id="new-tool-button")
 
-#             # code editor for the selected tool
-#             with Horizontal(id="tool-code-container"):
-#                 # yield Label("Code", classes="form-label")
-#                 yield TextArea.code_editor("", language="python", id="tool-code-textarea")
+        # display the settings for the selected tool
+        with Grid(id="tool-view-grid"):
 
-#             # footer for the tool view
-#             with Horizontal(id="tool-view-footer-grid"):
-#                 yield Button("Save", variant="primary", id="save-tool-settings")
-#                 yield Button("Delete", variant="error", id="delete-tool-button")
+            with Vertical():
+                yield Label("Tool ID", classes="form-label")
+                yield Input(id="tool-id-input", disabled=True)
 
-#     @on(Button.Pressed, "#new-tool-button")
-#     def create_new_tool(self) -> None:
-#         tools = APP_CONFIG.get_tools()
+            with Vertical():
+                yield Label("Tool Name (Display)", classes="form-label")
+                yield Input(id="tool-name-input")
 
-#         new_id = max(tools.keys()) + 1 if tools else 1
+            # code editor for the selected tool
+            with Horizontal(id="tool-code-container"):
+                # yield Label("Code", classes="form-label")
+                yield TextArea.code_editor("", language="python", id="tool-code-textarea")
 
-#         new_tool_name = f"tool-{new_id}"
+            # footer for the tool view
+            with Horizontal(id="tool-view-footer-grid"):
+                yield Button("Save", variant="primary", id="save-tool-settings")
+                yield Button("Delete", variant="error", id="delete-tool-button")
 
-#         tool = Tool(new_tool_name, id=new_id)
+    @on(Button.Pressed, "#new-tool-button")
+    async def create_new_tool(self) -> None:
+        dbm = self.app.config.db_manager
 
-#         try:
-#             tool.validate_tool()
-#         except InvalidToolError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+        tools = self.tools
+        max_id = max(tools.id for tools in tools) if tools else 0
+        new_id = max_id + 1
+        new_tool_name = f"tool-{new_id}"
+        tool = Tool(name=new_tool_name, id=new_id)
 
-#         try:
-#             APP_CONFIG.update_tool(tool)
-#         except ToolUpdateError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+        try:
+            tool.validate_tool()
+        except InvalidToolError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#         list_view_widget = self.query_one("#tool-list", ListView)
-#         new_list_item = ListItem(Label(new_tool_name), id=f"tool-{new_id}")
+        try:
+            await dbm.set_tool(tool)
+            self.app.logger.info(f"Created new tool: {new_tool_name}")
+        except ToolUpdateError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#         list_view_widget.append(new_list_item)
-#         num_items = len(list_view_widget)
-#         list_view_widget.index = num_items - 1
-#         list_view_widget.action_select_cursor()
+        list_view_widget = self.query_one("#tool-list", ListView)
+        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{new_id}")
 
-#     @on(Button.Pressed, "#delete-tool-button")
-#     def delete_tool(self) -> None:
-#         # get the id of the selected tool
-#         tool_id_str = self.query_one("#tool-id-input", Input).value
-#         # check if its a valid int
-#         try:
-#             tool_id = int(tool_id_str)
-#         except ValueError:
-#             error_message = "Tool ID must be an integer"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+        list_view_widget.append(new_list_item)
+        num_items = len(list_view_widget)
+        list_view_widget.index = num_items - 1
+        list_view_widget.action_select_cursor()
 
-#         # tool_id = int(self.query_one("#tool-id-input", Input).value)
-#         item = self.query_one(f"#tool-{tool_id}", ListItem)
-#         # delete the tool from the database
-#         try:
-#             APP_CONFIG.delete_tool(tool_id)
-#         except ToolUpdateError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+    @on(Button.Pressed, "#delete-tool-button")
+    async def delete_tool(self) -> None:
+        dbm = self.app.config.db_manager
 
-#         # remove the tool from the list view
-#         item.remove()
+        # get the id of the selected tool
+        tool_id_str = self.query_one("#tool-id-input", Input).value
+        # check if its a valid int
+        try:
+            tool_id = int(tool_id_str)
+        except ValueError:
+            error_message = "Tool ID must be an integer"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#         list_view_widget = self.query_one("#tool-list", ListView)
+        # tool_id = int(self.query_one("#tool-id-input", Input).value)
+        item = self.query_one(f"#tool-{tool_id}", ListItem)
+        # delete the tool from the database
+        try:
+            await dbm.delete_tool(tool_id)
+        except ToolUpdateError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#         if len(list_view_widget) > 0:
-#             list_view_widget.action_cursor_up()
-#             list_view_widget.action_select_cursor()
-#         else:
-#             self.query_one("#tool-code-textarea", TextArea).text = ""
-#             self.query_one("#tool-name-input", Input).value = ""
-#             self.query_one("#tool-id-input", Input).value = ""
+        # remove the tool from the list view
+        item.remove()
 
-#     @on(Button.Pressed, "#save-tool-settings")
-#     def save_tool_settings(self) -> None:
-#         # get the id of the selected tool
-#         tool_id = int(self.query_one("#tool-id-input", Input).value)
-#         tool_name = self.query_one("#tool-name-input", Input).value
-#         tool_code = self.query_one("#tool-code-textarea", TextArea).text
+        list_view_widget = self.query_one("#tool-list", ListView)
 
-#         tool = Tool(tool_name, tool_code, id=tool_id)
+        if len(list_view_widget) > 0:
+            list_view_widget.action_cursor_up()
+            list_view_widget.action_select_cursor()
+        else:
+            self.query_one("#tool-code-textarea", TextArea).text = ""
+            self.query_one("#tool-name-input", Input).value = ""
+            self.query_one("#tool-id-input", Input).value = ""
 
-#         try:
-#             tool.validate_tool()
-#         except InvalidToolError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+    @on(Button.Pressed, "#save-tool-settings")
+    async def save_tool_settings(self) -> None:
+        # get the id of the selected tool
+        dbm = self.app.config.db_manager
 
-#         try:
-#             APP_CONFIG.update_tool(tool)
-#         except ToolUpdateError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
+        tool_id = int(self.query_one("#tool-id-input", Input).value)
+        tool_name = self.query_one("#tool-name-input", Input).value
+        tool_code = self.query_one("#tool-code-textarea", TextArea).text
 
-#         item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
-#         item_label.update(tool_name)
-#         self.screen.close_settings()
+        tool = Tool(name=tool_name, code=tool_code, id=tool_id)
 
-#     def on_list_view_selected(self, event: ListView.Selected) -> None:
-#         tool_id = int(event.item.id[5:])
-#         tool = APP_CONFIG.get_tools(tool_id)[tool_id]
-#         if tool:
-#             self.query_one("#tool-code-textarea", TextArea).text = tool.code
-#             self.query_one("#tool-name-input", Input).value = tool.name
-#             self.query_one("#tool-id-input", Input).value = str(tool_id)
-#         else:
-#             self.app.post_message(AppErrorMessage("Tool not found"))
+        try:
+            tool.validate_tool()
+        except InvalidToolError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#     def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
-#         list_view_widget = self.query_one("#tool-list", ListView)
-#         # check if a item is already selected in the list view
+        try:
+            await dbm.set_tool(tool)
+        except ToolUpdateError as e:
+            error_message = f"{e}"
+            self.post_message(AppErrorMessage(error_message))
+            return
 
-#         if len(list_view_widget) == 0:
-#             return
+        item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
+        item_label.update(tool_name)
+        self.screen.close_settings()
 
-#         elif list_view_widget.highlighted_child is None:
-#             list_view_widget.index = 0
-#             list_view_widget.action_select_cursor()
+    async def on_list_view_selected(self, event: ListView.Selected) -> None:
+        dbm = self.app.config.db_manager
 
-#         elif list_view_widget.highlighted_child is not None:
-#             list_view_widget.action_select_cursor()
+        tool_id = int(event.item.id[5:])
+        self.app.logger.info(f"Selected tool id: {tool_id}")
+        tool = await dbm.get_tool_with_id(tool_id)
+        if tool:
+            self.query_one("#tool-code-textarea", TextArea).text = tool.code
+            self.query_one("#tool-name-input", Input).value = tool.name
+            self.query_one("#tool-id-input", Input).value = str(tool_id)
+        else:
+            self.app.post_message(AppErrorMessage("Tool not found"))
+
+    def on_tabbed_content_tab_activated(self, event: TabbedContent.TabActivated) -> None:
+        list_view_widget = self.query_one("#tool-list", ListView)
+        # check if a item is already selected in the list view
+
+        if len(list_view_widget) == 0:
+            return
+
+        elif list_view_widget.highlighted_child is None:
+            list_view_widget.index = 0
+            list_view_widget.action_select_cursor()
+
+        elif list_view_widget.highlighted_child is not None:
+            list_view_widget.action_select_cursor()
 
 
 class HistoryTab(Grid):
@@ -253,13 +275,13 @@ class SettingsScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
 
-        # with TabbedContent("User", "Tools", "History", id="settings-screen"):
-        with TabbedContent("User", "History", id="settings-screen"):
+        with TabbedContent("User", "Tools", "History", id="settings-screen"):
+            # with TabbedContent("User", "History", id="settings-screen"):
             # Tab for user settings
             yield UserSettingsTab(id="user-settings")
 
             # # Tab for tools settings
-            # yield ToolSettingsTab(id="tools-tab-grid")
+            yield ToolSettingsTab(id="tools-tab-grid")
 
             # Tab for history settings
             yield HistoryTab(id="history-settings")

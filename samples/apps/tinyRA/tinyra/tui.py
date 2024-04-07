@@ -43,6 +43,7 @@ from .screens.quit_screen import QuitScreen
 from .screens.sidebar import Sidebar
 from .screens.chat_display import ChatDisplay, ReactiveMessageWidget
 from .screens.settings import SettingsScreen
+from .screens.notifications import NotificationScreen
 
 from .messages import AppErrorMessage, SelectedReactiveMessage
 
@@ -58,27 +59,6 @@ class ChatInput(Input):
 
     def on_mount(self) -> None:
         self.focus()
-
-
-# class NotificationScreen(ModalScreen):
-#     """Screen with a dialog to display notifications."""
-
-#     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
-
-#     def __init__(self, *args, message: Optional[str] = None, **kwargs):
-#         self.message = message or ""
-#         super().__init__(*args, **kwargs)
-
-#     def compose(self) -> ComposeResult:
-#         with Grid(id="notification-screen-grid"):
-#             yield Static(self.message, id="notification")
-
-#             with Grid(id="notification-screen-footer"):
-#                 yield Button("Dismiss", variant="primary", id="dismiss-notification")
-
-#     @on(Button.Pressed, "#dismiss-notification")
-#     def dismiss(self, result: Any) -> None:  # type: ignore[override]
-#         self.app.pop_screen()
 
 
 # class Title(Static):
@@ -551,9 +531,9 @@ class TinyRA(App):
                 self.screen.set_focus(None)
             sidebar.add_class("-hidden")
 
-    # @on(AppErrorMessage)
-    # def notify_error_to_user(self, event: AppErrorMessage) -> None:
-    #     self.push_screen(NotificationScreen(message=event.message))
+    @on(AppErrorMessage)
+    def notify_error_to_user(self, event: AppErrorMessage) -> None:
+        self.push_screen(NotificationScreen(message=event.message))
 
     # @on(Button.Pressed, "#empty-work-dir-button")
     # def empty_work_dir(self, event: Button.Pressed) -> None:
