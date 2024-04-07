@@ -12,8 +12,6 @@ Why do we need to handle long contexts? The problem arises from several constrai
 
 The `TransformMessages` capability is designed to modify incoming messages before they are processed by the LLM agent. This can include limiting the number of messages, truncating messages to meet token limits, and more.
 
-### Installation and Setup
-
 ````{=mdx}
 :::info Requirements
 Install `pyautogen`:
@@ -25,39 +23,18 @@ For more information, please refer to the [installation guide](/docs/installatio
 :::
 ````
 
+### Exploring and Understanding Transformations
+
+Let's start by exploring the available transformations and understanding how they work. We will start off by importing the required modules.
+
 ```python
-import os
-import pprint
 import copy
-import re
+import pprint
 
-import autogen
-from autogen.agentchat.contrib.capabilities import transform_messages, transforms
-from typing import Dict, List
-
-
-config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
-
-# Define your agent; the user proxy and an assistant
-assistant = autogen.AssistantAgent(
-    "assistant",
-    llm_config={"config_list": config_list},
-)
-user_proxy = autogen.UserProxyAgent(
-    "user_proxy",
-    human_input_mode="NEVER",
-    is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
-    max_consecutive_auto_reply=10,
-)
+from autogen.agentchat.contrib.capabilities import transforms
 ```
 
-```{=mdx}
-:::tip
-Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
-:::
-```
-
-### Example 1: Limiting the Total Number of Messages
+#### Example 1: Limiting the Total Number of Messages
 
 Consider a scenario where you want to limit the context history to only the most recent messages to maintain efficiency and relevance. You can achieve this with the MessageHistoryLimiter transformation:
 
@@ -85,7 +62,7 @@ pprint.pprint(processed_messages)
 
 By applying the `MessageHistoryLimiter`, we can see that we limited the context history to the 3 most recent messages.
 
-### Example 2: Limiting the Number of Tokens
+#### Example 2: Limiting the Number of Tokens
 
 To adhere to token limitations, use the `MessageTokenLimiter` transformation. This limits tokens per message and the total token count across all messages:
 
@@ -108,9 +85,42 @@ pprint.pprint(processed_messages)
 
 We can see that we can limit the number of tokens to 3, which is equivalent to 3 words in this instance.
 
-### Example 3: Combining Multiple Transformations Using the `TransformMessages` Capability
+### Apply Transformations Using Agents
 
-Let's test these transforms with AutoGen's agents. The first run will be the default implementation, where the agent does not have the `TransformMessages` capability.
+So far, we have only tested the `MessageHistoryLimiter` and `MessageTokenLimiter` transformations individually, let's test these transformations with AutoGen's agents.
+
+#### Setting Up the Stage
+
+```python
+import os
+import copy
+
+import autogen
+from autogen.agentchat.contrib.capabilities import transform_messages, transforms
+from typing import Dict, List
+
+config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
+
+# Define your agent; the user proxy and an assistant
+assistant = autogen.AssistantAgent(
+    "assistant",
+    llm_config={"config_list": config_list},
+)
+user_proxy = autogen.UserProxyAgent(
+    "user_proxy",
+    human_input_mode="NEVER",
+    is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
+    max_consecutive_auto_reply=10,
+)
+```
+
+```{=mdx}
+:::tip
+Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
+:::
+```
+
+We first need to write the `test` function that creates a very long chat history by exchanging messages between an assistant and a user proxy agent, and then attempts to initiate a new chat without clearing the history, potentially triggering an error due to token limits.
 
 ```python
 # Create a very long chat history that is bound to cause a crash for gpt 3.5
@@ -129,29 +139,15 @@ def test(assistant: autogen.ConversableAgent, user_proxy: autogen.UserProxyAgent
         print("Encountered an error with the base assistant")
         print(e)
         print("\n\n")
+```
 
+The first run will be the default implementation, where the agent does not have the `TransformMessages` capability.
 
-config_list = [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}]
-
-assistant = autogen.AssistantAgent(
-    "assistant",
-    llm_config={"config_list": config_list},
-)
-
-user_proxy = autogen.UserProxyAgent(
-    "user_proxy",
-    human_input_mode="NEVER",
-    is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
-    code_execution_config={
-        "work_dir": "coding",
-        "use_docker": False,
-    },
-    max_consecutive_auto_reply=2,
-)
+```python
 test(assistant, user_proxy)
 ```
 
-Running this code will result in an error due to the large number of tokens sent to OpenAI's gpt 3.5.
+Running this test will result in an error due to the large number of tokens sent to OpenAI's gpt 3.5.
 
 ```console
 user_proxy (to assistant):
@@ -163,33 +159,18 @@ Encountered an error with the base assistant
 Error code: 429 - {'error': {'message': 'Request too large for gpt-3.5-turbo in organization org-U58JZBsXUVAJPlx2MtPYmdx1 on tokens per min (TPM): Limit 60000, Requested 1252546. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more.', 'type': 'tokens', 'param': None, 'code': 'rate_limit_exceeded'}}
 ```
 
-Now let's add the `TransformMessages` capability to the agent and run the same test.
+Now let's add the `TransformMessages` capability to the assistant and run the same test.
 
 ```python
-user_proxy = autogen.UserProxyAgent(
-    "user_proxy",
-    human_input_mode="NEVER",
-    is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
-    code_execution_config={
-        "work_dir": "coding",
-        "use_docker": False,
-    },
-    max_consecutive_auto_reply=2,
-)
-
-assistant_with_context_handling = autogen.AssistantAgent(
-    "assistant",
-    llm_config={"config_list": config_list},
-)
 context_handling = transform_messages.TransformMessages(
     transforms=[
         transforms.MessageHistoryLimiter(max_messages=10),
         transforms.MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=50),
     ]
 )
-context_handling.add_to_agent(assistant_with_context_handling)
+context_handling.add_to_agent(assistant)
 
-test(assistant_with_context_handling, user_proxy)
+test(assistant, user_proxy)
 ```
 
 The following console output shows that the agent is now able to handle the large number of tokens sent to OpenAI's gpt 3.5.
@@ -240,13 +221,22 @@ If not, you can type "TERMINATE" to end our conversation.
 
 `````
 
-### Example 4: Creating Custom Transformations to Handle Sensitive Content
+### Create Custom Transformations to Handle Sensitive Content
 
 You can use the `MessageTransform` protocol to create custom message transformations that redact sensitive data from the chat history. This is particularly useful when you want to ensure that sensitive information, such as API keys, passwords, or personal data, is not exposed in the chat history or logs.
 
 Now, we will create a custom message transform to detect any OpenAI API key and redact it.
 
 ```python
+import os
+import pprint
+import copy
+import re
+
+import autogen
+from autogen.agentchat.contrib.capabilities import transform_messages, transforms
+from typing import Dict, List
+
 # The transform must adhere to transform_messages.MessageTransform protocol.
 class MessageRedact:
     def __init__(self):
@@ -270,7 +260,6 @@ assistant_with_redact = autogen.AssistantAgent(
     llm_config=llm_config,
     max_consecutive_auto_reply=1,
 )
-# suppose this capability is not available
 redact_handling = transform_messages.TransformMessages(transforms=[MessageRedact()])
 
 redact_handling.add_to_agent(assistant_with_redact)
@@ -282,7 +271,7 @@ user_proxy = autogen.UserProxyAgent(
 )
 
 messages = [
-    {"content": "api key 1 = sk-7nwt00xv6fuegfu3gnwmhrgxvuc1cyrhxcq1quur9zvf05fy"},  # Don't worry, randomly generated
+    {"content": "api key 1 = sk-7nwt00xv6fuegfu3gnwmhrgxvuc1cyrhxcq1quur9zvf05fy"},  # Don't worry, the key is randomly generated
     {"content": [{"type": "text", "text": "API key 2 = sk-9wi0gf1j2rz6utaqd3ww3o6c1h1n28wviypk7bd81wlj95an"}]},
 ]
 

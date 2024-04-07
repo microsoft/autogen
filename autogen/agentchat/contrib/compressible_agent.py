@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 warn(
     "Context handling with CompressibleAgent is deprecated. "
-    "Please use TransformMessages from autogen/agentchat/contrib/capabilities/transform_messages.py instead.",
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/capabilities/transform_messages",
     DeprecationWarning,
     stacklevel=2,
 )
