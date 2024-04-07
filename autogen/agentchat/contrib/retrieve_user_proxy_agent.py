@@ -194,6 +194,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     included files and urls will be chunked regardless of their types.
                 - `recursive` (Optional, bool) - whether to search documents recursively in the
                     docs_path. Default is True.
+                - `distance_threshold` (Optional, float) - the threshold for the distance score, only
+                    distance smaller than it will be returned. Will be ignored if < 0. Default is -1.
 
             `**kwargs` (dict): other kwargs in [UserProxyAgent](../user_proxy_agent#__init__).
 
@@ -270,6 +272,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
         self._search_string = ""  # the search string used in the current query
+        self._distance_threshold = self._retrieve_config.get("distance_threshold", -1)
         # update the termination message function
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
@@ -501,7 +504,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         else:
             return False, None
 
-    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", distance_threshold=-1):
+    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
         """Retrieve docs based on the given problem and assign the results to the class property `_results`.
         The retrieved docs should be type of `QueryResults` which is a list of tuples containing the document and
         the distance.
@@ -510,19 +513,21 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             problem (str): the problem to be solved.
             n_results (int): the number of results to be retrieved. Default is 20.
             search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
-                **Deprecated**: not used for `vector_db`.
-            distance_threshold (float): the threshold for the distance score, only distance smaller than it will be
-                returned. Will be ignored if < 0. Default is -1.
+                Not used if the vector_db doesn't support it.
 
         Returns:
             None.
         """
         if isinstance(self._vector_db, VectorDB):
+            kwargs = {}
+            if hasattr(self._vector_db, "type") and self._vector_db.type == "chroma":
+                kwargs["where_document"] = {"$contains": search_string} if search_string else None
             results = self._vector_db.retrieve_docs(
                 queries=[problem],
                 n_results=n_results,
                 collection_name=self._collection_name,
-                distance_threshold=distance_threshold,
+                distance_threshold=self._distance_threshold,
+                **kwargs,
             )
             self._results = results
             print("doc_ids: ", [[r[0]["id"] for r in rr] for rr in results])
@@ -558,7 +563,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_function=self._embedding_function,
         )
         results = chroma_results_to_query_results(results, "distances")
-        results = filter_results_by_distance(results, distance_threshold)
+        results = filter_results_by_distance(results, self._distance_threshold)
 
         self._search_string = search_string
         self._results = results
