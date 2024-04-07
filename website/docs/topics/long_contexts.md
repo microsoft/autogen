@@ -60,7 +60,7 @@ pprint.pprint(processed_messages)
 {'content': 'very very very very very very long string', 'role': 'user'}]
 ```
 
-By applying the `MessageHistoryLimiter`, we can see that we limited the context history to the 3 most recent messages.
+By applying the `MessageHistoryLimiter`, we can see that we were able to limit the context history to the 3 most recent messages.
 
 #### Example 2: Limiting the Number of Tokens
 
@@ -83,7 +83,7 @@ pprint.pprint(processed_messages)
 {'content': 'very very very', 'role': 'user'}]
 ```
 
-We can see that we can limit the number of tokens to 3, which is equivalent to 3 words in this instance.
+We can see that we were able to limit the number of tokens to 3, which is equivalent to 3 words for this instance.
 
 ### Apply Transformations Using Agents
 
