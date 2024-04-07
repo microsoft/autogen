@@ -139,7 +139,7 @@ class ChromaVectorDB(VectorDB):
 
     def _batch_insert(
         self, collection: Collection, embeddings=None, ids=None, metadatas=None, documents=None, upsert=False
-    ):
+    ) -> None:
         batch_size = int(CHROMADB_MAX_BATCH_SIZE)
         for i in range(0, len(documents), min(batch_size, len(documents))):
             end_idx = i + min(batch_size, len(documents) - i)
@@ -254,13 +254,11 @@ class ChromaVectorDB(VectorDB):
         return results
 
     @staticmethod
-    def _chroma_get_results_to_list_documents(data_dict, include=None):
+    def _chroma_get_results_to_list_documents(data_dict) -> List[Document]:
         """Converts a dictionary with list values to a list of Document.
 
         Args:
             data_dict: A dictionary where keys map to lists or None.
-            include: List[str] | The fields to include. Default is None.
-                If None, will include ["metadatas", "documents"], ids will always be included.
 
         Returns:
             List[Document] | The list of Document.
