@@ -9,6 +9,7 @@ try:
 
     if chromadb.__version__ < "0.4.15":
         raise ImportError("Please upgrade chromadb to version 0.4.15 or later.")
+    import chromadb.utils.embedding_functions as ef
     from chromadb.api.models.Collection import Collection
 except ImportError:
     raise ImportError("Please install chromadb: `pip install chromadb`")
@@ -33,7 +34,7 @@ class ChromaVectorDB(VectorDB):
                 If provided, it will use the client object directly and ignore other arguments.
             path: str | The path to the vector database. Default is None.
             embedding_function: Callable | The embedding function used to generate the vector representation
-                of the documents. Default is None.
+                of the documents. Default is None, SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2") will be used.
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
                 setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}. For more details of
                 the metadata, please refer to [distances](https://github.com/nmslib/hnswlib#supported-distances),
@@ -45,15 +46,20 @@ class ChromaVectorDB(VectorDB):
             None
         """
         self.client = client
+        self.path = path
+        self.embedding_function = (
+            ef.SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2")
+            if embedding_function is None
+            else embedding_function
+        )
+        self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}
         if not self.client:
-            self.path = path
-            self.embedding_function = embedding_function
-            self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}
             if self.path is not None:
                 self.client = chromadb.PersistentClient(path=self.path, **kwargs)
             else:
                 self.client = chromadb.Client(**kwargs)
         self.active_collection = None
+        self.type = "chroma"
 
     def create_collection(
         self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
