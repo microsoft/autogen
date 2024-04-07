@@ -9,11 +9,14 @@ try:
     import chromadb
 except ImportError:
     raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
-from autogen import logger
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
-from autogen.agentchat.contrib.vectordb.utils import chroma_results_to_query_results, filter_results_by_distance
+from autogen.agentchat.contrib.vectordb.utils import (
+    chroma_results_to_query_results,
+    filter_results_by_distance,
+    get_logger,
+)
 from autogen.code_utils import extract_code
 from autogen.retrieve_utils import (
     TEXT_FORMATS,
@@ -25,6 +28,8 @@ from autogen.retrieve_utils import (
 from autogen.token_count_utils import count_token
 
 from ...formatting_utils import colored
+
+logger = get_logger(__name__)
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user. You should follow the following steps to answer a question:
@@ -275,13 +280,39 @@ class RetrieveUserProxyAgent(UserProxyAgent):
     def _init_db(self):
         if isinstance(self._vector_db, str):
             self._vector_db = VectorDBFactory.create_vector_db(
-                self._vector_db, path=".db", embedding_function=self._embedding_function
+                self._vector_db, path="tmp/db", embedding_function=self._embedding_function
             )
-            self._vector_db.active_collection = self._vector_db.create_collection(
-                self._collection_name, overwrite=self._overwrite, get_or_create=self._get_or_create
-            )
+        IS_TO_CHUNK = False  # whether to chunk the raw files
+        if self._extra_docs:
+            IS_TO_CHUNK = True
+        if not self._docs_path:
+            try:
+                self._vector_db.get_collection(self._collection_name)
+                logger.warning(f"`docs_path` is not provided. Use the existing collection `{self._collection_name}`.")
+                self._overwrite = False
+                self._get_or_create = True
+                IS_TO_CHUNK = False
+            except ValueError:
+                raise ValueError(
+                    "`docs_path` is not provided. "
+                    f"The collection `{self._collection_name}` doesn't exist either. "
+                    "Please provide `docs_path` or create the collection first."
+                )
+        elif self._get_or_create and not self._overwrite:
+            try:
+                self._vector_db.get_collection(self._collection_name)
+                logger.info(f"Use the existing collection `{self._collection_name}`.", color="green")
+            except ValueError:
+                IS_TO_CHUNK = True
+        else:
+            IS_TO_CHUNK = True
 
-        if self._docs_path is not None:
+        self._vector_db.active_collection = self._vector_db.create_collection(
+            self._collection_name, overwrite=self._overwrite, get_or_create=self._get_or_create
+        )
+
+        docs = None
+        if IS_TO_CHUNK:
             if self.custom_text_split_function is not None:
                 chunks = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
@@ -306,13 +337,16 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             else:
                 all_docs_ids = set()
 
-            hashed_chunks = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            chunk_ids = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            chunk_ids_set = set(chunk_ids)
+            chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
             docs = [
-                Document(id=hashed_chunk, content=chunk)
-                for chunk, hashed_chunk in zip(chunks, hashed_chunks)
-                if hashed_chunk not in all_docs_ids
+                Document(id=chunk_ids[idx], content=chunks[idx])
+                for idx in chunk_ids_set_idx
+                if chunk_ids[idx] not in all_docs_ids
             ]
-            self._vector_db.insert_docs(docs=docs, collection_name=self._collection_name, upsert=True)
+
+        self._vector_db.insert_docs(docs=docs, collection_name=self._collection_name, upsert=True)
 
     def _is_termination_msg_retrievechat(self, message):
         """Check if a message is a termination message.
@@ -376,7 +410,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             current_tokens += _doc_tokens
             doc_contents += doc["content"] + "\n"
             self._doc_idx = idx
-            self._doc_ids.append(results["ids"][0][idx])
+            self._doc_ids.append(doc["id"])
             self._doc_contents.append(doc["content"])
             _tmp_retrieve_count += 1
             if _tmp_retrieve_count >= self.n_results:
@@ -476,6 +510,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             problem (str): the problem to be solved.
             n_results (int): the number of results to be retrieved. Default is 20.
             search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
+                **Deprecated**: not used for `vector_db`.
             distance_threshold (float): the threshold for the distance score, only distance smaller than it will be
                 returned. Will be ignored if < 0. Default is -1.
 
@@ -486,7 +521,6 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             results = self._vector_db.retrieve_docs(
                 queries=[problem],
                 n_results=n_results,
-                search_string=search_string,
                 collection_name=self._collection_name,
                 distance_threshold=distance_threshold,
             )

@@ -30,7 +30,7 @@ def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
     logger = ColoredLogger(name, level)
     console_handler = logging.StreamHandler()
     logger.addHandler(console_handler)
-    formatter = logging.Formatter("%(asctime)s - %(filename)s:%(lineno)5d - %(levelname)s - %(message)s")
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.handlers[0].setFormatter(formatter)
     return logger
 
