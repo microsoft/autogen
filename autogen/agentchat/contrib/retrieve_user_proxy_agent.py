@@ -13,6 +13,7 @@ from autogen import logger
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
+from autogen.agentchat.contrib.vectordb.utils import chroma_results_to_query_results, filter_results_by_distance
 from autogen.code_utils import extract_code
 from autogen.retrieve_utils import (
     TEXT_FORMATS,
@@ -521,6 +522,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_model=self._embedding_model,
             embedding_function=self._embedding_function,
         )
+        results = chroma_results_to_query_results(results)
+        results = filter_results_by_distance(results, distance_threshold)
 
         self._search_string = search_string
         self._results = results
