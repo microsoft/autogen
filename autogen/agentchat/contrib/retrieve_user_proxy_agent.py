@@ -1,3 +1,5 @@
+import hashlib
+import os
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -10,9 +12,15 @@ except ImportError:
 from autogen import logger
 from autogen.agentchat import UserProxyAgent
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.contrib.vectordb.base import VectorDBFactory
+from autogen.agentchat.contrib.vectordb.base import Document, QueryResults, VectorDB, VectorDBFactory
 from autogen.code_utils import extract_code
-from autogen.retrieve_utils import TEXT_FORMATS, create_vector_db_from_dir, query_vector_db
+from autogen.retrieve_utils import (
+    TEXT_FORMATS,
+    create_vector_db_from_dir,
+    get_files_from_dir,
+    query_vector_db,
+    split_files_to_chunks,
+)
 from autogen.token_count_utils import count_token
 
 from ...formatting_utils import colored
@@ -61,6 +69,8 @@ User's question is: {input_question}
 
 Context is: {input_context}
 """
+
+HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
 
 
 class RetrieveUserProxyAgent(UserProxyAgent):
@@ -258,6 +268,10 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._is_termination_msg = (
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
+        self._init_db()
+        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
+
+    def _init_db(self):
         if isinstance(self._vector_db, str):
             self._vector_db = VectorDBFactory.create_vector_db(
                 self._vector_db, path=".db", embedding_function=self._embedding_function
@@ -266,7 +280,38 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 self._collection_name, overwrite=self._overwrite, get_or_create=self._get_or_create
             )
 
-        self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
+        if self._docs_path is not None:
+            if self._custom_text_split_function is not None:
+                chunks = split_files_to_chunks(
+                    get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
+                    custom_text_split_function=self._custom_text_split_function,
+                )
+            else:
+                chunks = split_files_to_chunks(
+                    get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
+                    self._max_tokens,
+                    self._chunk_mode,
+                    self._must_break_at_empty_line,
+                )
+            logger.info(f"Found {len(chunks)} chunks.")
+
+            if not self._extra_docs:
+                all_docs_ids = set(
+                    [
+                        doc["id"]
+                        for doc in self._vector_db.get_docs_by_ids(ids=None, collection_name=self._collection_name)
+                    ]
+                )
+            else:
+                all_docs_ids = set()
+
+            hashed_chunks = [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:HASH_LENGTH] for chunk in chunks]
+            docs = [
+                Document(id=hashed_chunk, content=chunk)
+                for chunk, hashed_chunk in zip(chunks, hashed_chunks)
+                if hashed_chunk not in all_docs_ids
+            ]
+            self._vector_db.insert_docs(docs=docs, collection_name=self._collection_name, upsert=True)
 
     def _is_termination_msg_retrievechat(self, message):
         """Check if a message is a termination message.
@@ -420,23 +465,33 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         else:
             return False, None
 
-    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
+    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = "", distance_threshold=-1):
         """Retrieve docs based on the given problem and assign the results to the class property `_results`.
-        In case you want to customize the retrieval process, such as using a different vector db whose APIs are not
-        compatible with chromadb or filter results with metadata, you can override this function. Just keep the current
-        parameters and add your own parameters with default values, and keep the results in below type.
-
-        Type of the results: Dict[str, List[List[Any]]], should have keys "ids" and "documents", "ids" for the ids of
-        the retrieved docs and "documents" for the contents of the retrieved docs. Any other keys are optional. Refer
-        to `chromadb.api.types.QueryResult` as an example.
-            ids: List[string]
-            documents: List[List[string]]
+        The retrieved docs should be type of `QueryResults` which is a list of tuples containing the document and
+        the distance.
 
         Args:
             problem (str): the problem to be solved.
             n_results (int): the number of results to be retrieved. Default is 20.
             search_string (str): only docs that contain an exact match of this string will be retrieved. Default is "".
+            distance_threshold (float): the threshold for the distance score, only distance smaller than it will be
+                returned. Will be ignored if < 0. Default is -1.
+
+        Returns:
+            None.
         """
+        if isinstance(self._vector_db, VectorDB):
+            results = self._vector_db.retrieve_docs(
+                queries=[problem],
+                n_results=n_results,
+                search_string=search_string,
+                collection_name=self._collection_name,
+                distance_threshold=distance_threshold,
+            )
+            self._results = results
+            print("doc_ids: ", [[r[0]["id"] for r in rr] for rr in results])
+            return
+
         if not self._collection or not self._get_or_create:
             print("Trying to create collection.")
             self._client = create_vector_db_from_dir(
@@ -466,6 +521,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             embedding_model=self._embedding_model,
             embedding_function=self._embedding_function,
         )
+
         self._search_string = search_string
         self._results = results
         print("doc_ids: ", results["ids"])
