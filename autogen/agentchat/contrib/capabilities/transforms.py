@@ -228,9 +228,9 @@ class TextMessageCompressor:
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies compression to messages in a conversation history based on the specified configuration.
 
-        The function processes each message according to the `messages_to_compress` setting ("last" or "all"), applying
-        the specified compression configuration and returning a new list of messages with reduced token counts where
-        possible.
+        The function processes each message according to the `compress_all_messages_on_first_apply` setting, applying
+        the specified compression configuration and returning a new list of messages with reduced token counts
+        where possible.
 
         Args:
             messages (List[Dict]): A list of message dictionaries to be compressed.
