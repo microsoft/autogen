@@ -151,8 +151,8 @@ MonitoringScreen, LearningScreen {
     border: thick $primary-background 80%;
 
     layout: grid;
-    grid-size: 1 3;
-    grid-rows: 4 1fr 5;
+    grid-size: 1 2;
+    grid-rows: 4 1fr;
 }
 
 #chat-screen-header {
