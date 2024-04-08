@@ -47,7 +47,7 @@
 
 :fire: FLAML supports Code-First AutoML & Tuning – Private Preview in [Microsoft Fabric Data Science](https://learn.microsoft.com/en-us/fabric/data-science/). -->
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -67,7 +67,7 @@ AutoGen is a framework that enables the development of LLM applications using mu
 
 AutoGen is powered by collaborative [research studies](https://microsoft.github.io/autogen/docs/Research) from Microsoft, Penn State University, and the University of Washington.
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -78,7 +78,7 @@ AutoGen is powered by collaborative [research studies](https://microsoft.github.
 To see what we are working on and what we plan to work on, please check our
 [Roadmap Issues](https://aka.ms/autogen-roadmap).
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -95,7 +95,7 @@ The easiest way to start playing is
 
 *NOTE*: OAI_CONFIG_LIST_sample lists GPT-4 as the default model, as this represents our current recommendation, and is known to work well with AutoGen. If you use a model other than GPT-4, you may need to revise various system prompts (especially if using weaker models like GPT-3.5-turbo). Moreover, if you use models other than those hosted by OpenAI or Azure, you may incur additional risks related to alignment and safety. Proceed with caution if updating this default.
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -129,7 +129,7 @@ Even if you are installing and running AutoGen locally outside of docker, the re
 
 For LLM inference configurations, check the [FAQs](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints).
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -174,7 +174,7 @@ The figure below shows an example conversation flow with AutoGen.
 Alternatively, the [sample code](https://github.com/microsoft/autogen/blob/main/samples/simple_chat.py) here allows a user to chat with an AutoGen agent in ChatGPT style.
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#automated-multi-agent-chat) for this feature.
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -203,7 +203,7 @@ response = autogen.Completion.create(context=test_instance, **config)
 
 Please find more [code examples](https://microsoft.github.io/autogen/docs/Examples#tune-gpt-models) for this feature. -->
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -223,7 +223,7 @@ In addition, you can find:
 
 - [Roadmap](https://github.com/orgs/microsoft/projects/989/views/3)
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -266,7 +266,7 @@ In addition, you can find:
 }
 ```
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -288,7 +288,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 For more information, see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
 contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -299,7 +299,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
   <img src="https://contrib.rocks/image?repo=microsoft/autogen&max=204" />
 </a>
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
@@ -322,7 +322,7 @@ Privacy information can be found at https://privacy.microsoft.com/en-us/
 Microsoft and any contributors reserve all other rights, whether under their respective copyrights, patents,
 or trademarks, whether by implication, estoppel, or otherwise.
 
-<p style="text-align: right; font-size: 14px; color: #555; margin-top: 20px;">
+<p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑
   </a>
