@@ -566,6 +566,11 @@ class TinyRA(App):
         """Called when a reactive assistant message is selected."""
         message = message.message
         self.logger.info(f"Click on a reactive message {message}")
+
+        # only allow profiling of root messages
+        if message.root_id != 0:
+            return
+
         new_chat_screen = MonitoringScreen(root_id=message.id)
         self.push_screen(new_chat_screen)
 
