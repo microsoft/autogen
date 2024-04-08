@@ -287,7 +287,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         )
         if isinstance(self._vector_db, str):
             self._vector_db = VectorDBFactory.create_vector_db(
-                self._vector_db, path="tmp/db", embedding_function=self._embedding_function
+                db_type=self._vector_db, path="tmp/db", embedding_function=self._embedding_function
             )
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
