@@ -24,6 +24,8 @@ def test_record_conversation():
     )
     llm_config = {
         "config_list": config_list,
+        "timeout": 60,
+        "cache_seed": 42,
     }
 
     assistant = AssistantAgent("assistant", system_message="You are a helpful assistant.", llm_config=llm_config)
@@ -64,6 +66,8 @@ def test_step():
     )
     llm_config = {
         "config_list": config_list,
+        "timeout": 60,
+        "cache_seed": 42,
     }
     assistant = AssistantAgent(
         "assistant",
