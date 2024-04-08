@@ -43,14 +43,14 @@ class TransformMessages:
         ```
     """
 
-    def __init__(self, *, transforms: List[MessageTransform] = [], to_print_stats: bool = True):
+    def __init__(self, *, transforms: List[MessageTransform] = [], verbose: bool = True):
         """
         Args:
             transforms: A list of message transformations to apply.
-            to_print_stats: Whether to print stats of each transformation or not.
+            verbose: Whether to print stats of each transformation or not.
         """
         self._transforms = transforms
-        self._to_print_stats = to_print_stats
+        self._verbose = verbose
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds the message transformations capability to the specified ConversableAgent.
@@ -71,7 +71,7 @@ class TransformMessages:
             temp_messages.pop(0)
 
         for transform in self._transforms:
-            if self._to_print_stats:
+            if self._verbose:
                 pre_transform_messages = copy.deepcopy(temp_messages)
                 temp_messages = transform.apply_transform(temp_messages)
                 stats_str, had_effect = transform.get_stats_str(pre_transform_messages, temp_messages)
