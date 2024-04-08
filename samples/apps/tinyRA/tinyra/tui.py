@@ -22,7 +22,7 @@ from textual.widgets import (
     Input,
     Label,
     Collapsible,
-    LoadingIndicator,
+    # LoadingIndicator,
     TabbedContent,
 )
 
@@ -50,6 +50,8 @@ from .messages import AppErrorMessage, SelectedReactiveMessage
 from .llm import AutoGenChatCompletionService
 
 from .profiler.profiler import Profiler, MessageProfile, ChatProfile, State
+
+from .widgets.custom_widgets import NamedLoadingIndicator
 
 
 class ChatInput(Input):
@@ -128,8 +130,8 @@ class ProfileDiagram(ScrollableContainer):
     def compose(self) -> ComposeResult:
 
         if self.chat_profile is None:
-            yield Label("Profiling...")
-            yield LoadingIndicator()
+            # yield Label("Profiling...")
+            yield NamedLoadingIndicator(text="Profiling")
             return
 
         num_messages = self.chat_profile.num_messages

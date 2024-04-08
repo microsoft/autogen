@@ -9,6 +9,7 @@ from textual.widgets import Markdown, LoadingIndicator
 
 from ..database.database import ChatMessage, User, ChatHistory
 from ..messages import SelectedReactiveMessage
+from ..widgets.custom_widgets import NamedLoadingIndicator
 
 
 class ReactiveMessageWidget(Markdown):
@@ -116,7 +117,7 @@ class ChatDisplay(ScrollableContainer):
         logger.info(f"Composing chat display with {self.num_messages} messages from {self.root_id}")
 
         if self.num_messages is None:
-            yield LoadingIndicator()
+            yield NamedLoadingIndicator(text="Loading chat history")
             return
 
         if self.num_messages == 0:
