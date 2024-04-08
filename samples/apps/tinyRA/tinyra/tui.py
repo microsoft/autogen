@@ -41,7 +41,7 @@ from .app_config import AppConfiguration
 
 from .screens.quit_screen import QuitScreen
 from .screens.sidebar import Sidebar
-from .screens.chat_display import ChatDisplay, ReactiveMessageWidget
+from .screens.chat_display import ChatDisplay, message_display_handler
 from .screens.settings import SettingsScreen
 from .screens.notifications import NotificationScreen
 
@@ -582,7 +582,7 @@ class TinyRA(App):
         new_chat_message = ChatMessage(role="user", content=user_input, root_id=0, timestamp=datetime.now().timestamp())
         self.logger.info(str(new_chat_message))
         new_chat_message = await dbm.set_chat_message(new_chat_message)
-        reactive_message = ReactiveMessageWidget(new_chat_message, user)
+        reactive_message = message_display_handler(new_chat_message, user)
         await chat_display_widget.mount(reactive_message)
 
         assistant_message = ChatMessage(
@@ -590,7 +590,7 @@ class TinyRA(App):
         )
         self.logger.info("Mounting a new assistant chat widget")
         assistant_message = await self.config.db_manager.set_chat_message(assistant_message)
-        reactive_message = ReactiveMessageWidget(assistant_message, user)
+        reactive_message = message_display_handler(assistant_message, user)
         await chat_display_widget.mount(reactive_message)
         reactive_message.scroll_visible()  # Fix: This is a hack to make the container scroll; Not sure why on_mount doesn't handle
 

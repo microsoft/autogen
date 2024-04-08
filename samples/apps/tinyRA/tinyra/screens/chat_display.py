@@ -29,9 +29,6 @@ class ReactiveMessageWidget(Markdown):
         chat_display = self.app.query_one(ChatDisplay)
         chat_display.scroll_end()
 
-    def on_click(self) -> None:
-        self.post_message(SelectedReactiveMessage(self.message))
-
     async def update_message(self) -> None:
         dbm = self.app.config.db_manager
         new_message = await dbm.get_chat_message(root_id=self.message.root_id, id=self.message.id)
@@ -75,8 +72,17 @@ class ReactiveMessageWidget(Markdown):
         return f"[{display_id}] {display_name}: {content}"
 
 
+class ClickableReactiveMessageWidget(ReactiveMessageWidget):
+
+    def on_click(self) -> None:
+        self.post_message(SelectedReactiveMessage(self.message))
+
+
 def message_display_handler(message: ChatMessage, user: User):
-    message_widget = ReactiveMessageWidget(message, user)
+    if message.role == "user":
+        message_widget = ReactiveMessageWidget(message, user)
+    else:
+        message_widget = ClickableReactiveMessageWidget(message, user)
     return message_widget
 
 
