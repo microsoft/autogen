@@ -74,7 +74,9 @@ class TransformMessages:
             if self._to_print_stats:
                 pre_transform_messages = copy.deepcopy(temp_messages)
                 temp_messages = transform.apply_transform(temp_messages)
-                transform.print_stats(pre_transform_messages, temp_messages)
+                stats_str, had_effect = transform.get_stats_str(pre_transform_messages, temp_messages)
+                if had_effect:
+                    print(stats_str)
             else:
                 temp_messages = transform.apply_transform(temp_messages)
 

@@ -1,5 +1,6 @@
+import copy
 import sys
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
@@ -25,12 +26,19 @@ class MessageTransform(Protocol):
         """
         ...
 
-    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
-        """Prints stats of the executed transformation.
+    def get_stats_str(
+        self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]
+    ) -> Tuple[str, bool]:
+        """Creates the string includin the stats of the transformation
+
+        Alongside the string, it returns a boolean indicating whether the transformation had an effect or not.
 
         Args:
             pre_transform_messages: A list of dictionaries representing messages before the transformation.
             post_transform_messages: A list of dictionaries representig messages after the transformation.
+
+        Returns:
+            A tuple with a string with the stats and a flag indicating whether the transformation had an effect or not.
         """
         ...
 
@@ -69,18 +77,17 @@ class MessageHistoryLimiter:
 
         return messages[-self._max_messages :]
 
-    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+    def get_stats_str(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
         pre_transform_messages_len = len(pre_transform_messages)
         post_transform_messages_len = len(post_transform_messages)
 
         if post_transform_messages_len < pre_transform_messages_len:
-            print(
-                colored(
-                    f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
-                    f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
-                    "yellow",
-                )
+            stats_str = (
+                f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
+                f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}."
             )
+            return stats_str, True
+        return "No messages were removed.", False
 
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
@@ -142,7 +149,7 @@ class MessageTokenLimiter:
         assert self._max_tokens_per_message is not None
         assert self._max_tokens is not None
 
-        temp_messages = messages.copy()
+        temp_messages = copy.deepcopy(messages)
         processed_messages = []
         processed_messages_tokens = 0
 
@@ -160,18 +167,17 @@ class MessageTokenLimiter:
 
         return processed_messages
 
-    def print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+    def get_stats_str(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
         pre_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in pre_transform_messages)
         post_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in post_transform_messages)
 
         if post_transform_messages_tokens < pre_transform_messages_tokens:
-            print(
-                colored(
-                    f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
-                    f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}",
-                    "yellow",
-                )
+            stats_str = (
+                f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
+                f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
             )
+            return stats_str, True
+        return "No tokens were truncated.", False
 
     def _truncate_str_to_tokens(self, contents: Union[str, List]) -> Union[str, List]:
         if isinstance(contents, str):
