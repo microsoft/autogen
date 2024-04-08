@@ -6,15 +6,15 @@ import os
 import sqlite3
 import threading
 import uuid
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+
+from openai import AzureOpenAI, OpenAI
+from openai.types.chat import ChatCompletion
 
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
-from openai import OpenAI, AzureOpenAI
-from openai.types.chat import ChatCompletion
-from typing import Any, Dict, List, TYPE_CHECKING, Tuple, Union
 from .base_logger import LLMConfig
-
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper

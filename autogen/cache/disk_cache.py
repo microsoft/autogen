@@ -1,8 +1,10 @@
+import sys
 from types import TracebackType
 from typing import Any, Optional, Type, Union
+
 import diskcache
+
 from .abstract_cache_base import AbstractCache
-import sys
 
 if sys.version_info >= (3, 11):
     from typing import Self

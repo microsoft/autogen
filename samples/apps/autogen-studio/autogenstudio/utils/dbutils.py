@@ -1,12 +1,12 @@
 import json
 import logging
+import os
 import sqlite3
 import threading
-import os
-from typing import Any, List, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
 from ..datamodel import AgentFlowSpec, AgentWorkFlowConfig, Gallery, Message, Model, Session, Skill
 from ..version import __version__ as __db_version__
-
 
 VERSION_TABLE_SQL = """
             CREATE TABLE IF NOT EXISTS version (

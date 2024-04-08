@@ -233,7 +233,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Contributors Wall
 <a href="https://github.com/microsoft/autogen/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=microsoft/autogen&max=200" />
+  <img src="https://contrib.rocks/image?repo=microsoft/autogen&max=204" />
 </a>
 
 # Legal Notices

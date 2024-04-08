@@ -1,8 +1,9 @@
+from typing import List
+
 from autogen import Agent, AssistantAgent, GroupChat
 from autogencap.ag_adapter.AG2CAP import AG2CAP
 from autogencap.ag_adapter.CAP2AG import CAP2AG
 from autogencap.LocalActorNetwork import LocalActorNetwork
-from typing import List
 
 
 class CAPGroupChat(GroupChat):

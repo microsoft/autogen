@@ -8,7 +8,8 @@ import re
 import warnings
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Type,
+                    TypeVar, Union)
 
 from openai import BadRequestError
 
@@ -16,19 +17,14 @@ from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 from .._pydantic import model_dump
 from ..cache.cache import AbstractCache
-from ..code_utils import (
-    UNKNOWN,
-    check_can_use_docker_or_throw,
-    content_str,
-    decide_use_docker,
-    execute_code,
-    extract_code,
-    infer_lang,
-)
+from ..code_utils import (UNKNOWN, check_can_use_docker_or_throw, content_str,
+                          decide_use_docker, execute_code, extract_code,
+                          infer_lang)
 from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
-from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..function_utils import (get_function_schema, load_basemodels_if_needed,
+                              serialize_to_str)
 from ..io.base import IOStream
 from ..multimodal_utils import MultimodalObject, convert_to_ag_format_list
 from ..oai.client import ModelClient, OpenAIWrapper
@@ -145,6 +141,9 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+        # Take a copy to avoid modifying the given dict
+        if isinstance(llm_config, dict):
+            llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
 

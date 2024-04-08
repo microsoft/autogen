@@ -198,5 +198,12 @@
     "description": "A multimodal webbrowsing agent that autonomously browses the web.",
     "image": "webagent.jpg",
     "tags": ["tools", "app"]
+  },
+  {
+    "title": "Create Issues from Code Commits - using Autogen",
+    "link": "https://blog.composio.dev/automating-task-creation-with-openai-assistant-from-code-comments-to-linear-issues/",
+    "description": "Automatically creating linear tasks and assigning them to the right person, project, and team from GitHub commits using AutoGen Agents.",
+    "image": "composio-autogen.png",
+    "tags": ["tools"]
   }
 ]

@@ -1,7 +1,8 @@
 import time
+
 from AppAgents import GreeterAgent
-from autogencap.LocalActorNetwork import LocalActorNetwork
 from autogencap.DebugLog import Error
+from autogencap.LocalActorNetwork import LocalActorNetwork
 
 
 def simple_actor_demo():
