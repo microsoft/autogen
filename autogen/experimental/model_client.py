@@ -6,9 +6,9 @@ from ..cache import AbstractCache
 from .types import ChatMessage, CreateResponse, RequestUsage
 
 
-class ChatModelClient(Protocol):
+class ModelClient(Protocol):
     @classmethod
-    def create_from_config(cls, config: Dict[str, Any]) -> ChatModelClient: ...
+    def create_from_config(cls, config: Dict[str, Any]) -> ModelClient: ...
 
     # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
     async def create(

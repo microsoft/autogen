@@ -31,6 +31,6 @@ class ChatAgent(Agent):
             self._chat.append_message(message)
 
         while not self._chat.done:
-            step = await self._chat.step()
+            _ = await self._chat.step()
 
         return AssistantMessage(content=self._chat.result)

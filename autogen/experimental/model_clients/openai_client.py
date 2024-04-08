@@ -25,7 +25,7 @@ from typing_extensions import Unpack
 
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
-from ..model_client import ChatModelClient
+from ..model_client import ModelClient
 from ...token_count_utils import count_token
 from ..types import (
     ChatMessage,
@@ -252,7 +252,7 @@ class OpenAIClientConfiguration(CreateArguments, total=False):
     azure_ad_token_provider: AsyncAzureADTokenProvider
 
 
-class OpenAIChatModelClient(ChatModelClient):
+class OpenAI(ModelClient):
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
         self._client = _openai_client_from_config(kwargs)
         self._create_args = _create_args_from_config(kwargs)
@@ -260,8 +260,8 @@ class OpenAIChatModelClient(ChatModelClient):
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
 
     @classmethod
-    def create_from_config(cls, config: Dict[str, Any]) -> ChatModelClient:
-        return OpenAIChatModelClient(**config)
+    def create_from_config(cls, config: Dict[str, Any]) -> ModelClient:
+        return OpenAI(**config)
 
     async def create(
         self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}

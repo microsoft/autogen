@@ -3,7 +3,7 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import pytest
 from autogen.cache.abstract_cache_base import AbstractCache
-from autogen.experimental.model_client import ChatModelClient
+from autogen.experimental.model_client import ModelClient
 from autogen.experimental.model_clients.factory import ModelClientFactory
 from autogen.experimental.types import ChatMessage, CreateResponse, RequestUsage, ToolCall
 import sys
@@ -15,9 +15,9 @@ from conftest import skip_openai  # noqa: E402
 
 @pytest.mark.asyncio
 async def test_create() -> None:
-    class MyClient(ChatModelClient):
+    class MyClient(ModelClient):
         @classmethod
-        def create_from_config(cls, config: Dict[str, Any]) -> ChatModelClient:
+        def create_from_config(cls, config: Dict[str, Any]) -> ModelClient:
             assert config["config_var"] == "value1"
             return cls()
 

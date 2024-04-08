@@ -1,5 +1,6 @@
 from typing import List, Optional, Protocol, TypeVar
 
+from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationReason, TerminationResult
 from autogen.experimental.types import ChatMessage
 
@@ -20,6 +21,9 @@ class Chat(Protocol):
 
     @property
     def chat_history(self) -> List[ChatMessage]: ...
+
+    @property
+    def next_speaker(self) -> Agent: ...
 
 
 async def run(conversation: Chat) -> str:

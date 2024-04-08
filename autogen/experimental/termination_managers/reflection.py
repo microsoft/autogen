@@ -3,7 +3,7 @@ from enum import Enum
 from typing import ClassVar, List, Optional, Protocol
 
 from autogen.experimental.agent import Agent
-from autogen.experimental.model_client import ChatModelClient
+from autogen.experimental.model_client import ModelClient
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 import json
 from ..types import ChatMessage, SystemMessage, UserMessage, AssistantMessage, ToolMessage
@@ -28,7 +28,7 @@ class ReflectionTerminationManager(TerminationManager):
     def __init__(
         self,
         *,
-        model_client: ChatModelClient,
+        model_client: ModelClient,
         goal: str,
         system_message: str = SYSTEM_MESSAGE,
         max_turns: Optional[int] = None,

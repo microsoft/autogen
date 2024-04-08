@@ -3,7 +3,7 @@ import logging
 from typing import Awaitable, Callable, List, Optional, Tuple, Union, cast
 
 
-from ..model_client import ChatModelClient
+from ..model_client import ModelClient
 from ..types import AssistantMessage, ChatMessage, SystemMessage, UserMessage
 
 from ...cache import AbstractCache
@@ -11,10 +11,10 @@ from ...cache import AbstractCache
 from ...coding.base import CodeExecutor
 from ..agent import Agent
 
-__all__ = ("DefaultAgent",)
+__all__ = ("UserProxyAgent",)
 
-ReplyFunctionAsync = Callable[["DefaultAgent", List[ChatMessage]], Awaitable[Optional[ChatMessage]]]
-ReplyFunctionSync = Callable[["DefaultAgent", List[ChatMessage]], Optional[ChatMessage]]
+ReplyFunctionAsync = Callable[["UserProxyAgent", List[ChatMessage]], Awaitable[Optional[ChatMessage]]]
+ReplyFunctionSync = Callable[["UserProxyAgent", List[ChatMessage]], Optional[ChatMessage]]
 ReplyFunction = Union[ReplyFunctionAsync, ReplyFunctionSync]
 HumanInputCallback = Callable[[str], Awaitable[str]]
 
@@ -24,10 +24,10 @@ HumanInputCallback = Callable[[str], Awaitable[str]]
 logger = logging.getLogger(__name__)
 
 
-class DefaultAgent(Agent):
+class UserProxyAgent(Agent):
     _code_executor: Optional[CodeExecutor]
     _human_input_callback: Optional[HumanInputCallback]
-    _model_client: Optional[ChatModelClient]
+    _model_client: Optional[ModelClient]
     _system_message: Optional[SystemMessage]
     _cache: Optional[AbstractCache]
     _reply_func_list: List[ReplyFunction]
@@ -37,36 +37,25 @@ class DefaultAgent(Agent):
         *,
         name: str,
         description: Optional[str] = None,
-        system_message: Optional[str] = "You are a helpful AI Assistant.",
         code_executor: Optional[CodeExecutor] = None,
-        model_client: Optional[ChatModelClient] = None,
         human_input_callback: Optional[HumanInputCallback] = None,
-        cache: Optional[AbstractCache] = None,
     ):
         self._name = name
-        self._system_message = SystemMessage(content=system_message) if system_message is not None else None
 
         if description is not None:
             self._description = description
-        elif system_message is not None:
-            self._description = system_message
         else:
             """"""
 
-        self._cache = cache
 
         self._reply_func_list: List[ReplyFunction] = []
         self._human_input_callback = human_input_callback
         if self._human_input_callback is not None:
-            self._reply_func_list.append(DefaultAgent.get_human_reply)
-
-        self._model_client = model_client
-        if self._model_client is not None:
-            self._reply_func_list.append(DefaultAgent.generate_oai_reply)
+            self._reply_func_list.append(UserProxyAgent.get_human_reply)
 
         self._code_executor = code_executor
         if self._code_executor is not None:
-            self._reply_func_list.append(DefaultAgent._generate_code_execution_reply_using_executor)
+            self._reply_func_list.append(UserProxyAgent._generate_code_execution_reply_using_executor)
 
     @property
     def name(self) -> str:
@@ -78,40 +67,10 @@ class DefaultAgent(Agent):
         """Get the description of the agent."""
         return self._description
 
-    @description.setter
-    def description(self, description: str) -> None:
-        """Set the description of the agent."""
-        self._description = description
-
     @property
     def code_executor(self) -> Optional[CodeExecutor]:
         """The code executor used by this agent. Returns None if code execution is disabled."""
         return self._code_executor
-
-    @property
-    def system_message(self) -> Optional[str]:
-        """Return the system message."""
-        return self._system_message.content if self._system_message is not None else None
-
-    async def generate_oai_reply(
-        self,
-        messages: List[ChatMessage],
-    ) -> Optional[AssistantMessage]:
-        # Should only be called when valid model_client is provided.
-        # This is checked in the constructor
-        assert self._model_client is not None, "Model client is not provided."
-
-        # TODO support tools
-        all_messages: List[ChatMessage] = []
-        if self._system_message is not None:
-            all_messages.append(self._system_message)
-        all_messages.extend(messages)
-        response = await self._model_client.create(all_messages, self._cache)
-        if isinstance(response.content, str):
-            return AssistantMessage(content=response.content)
-        else:
-            raise NotImplementedError("Tools not supported yet.")
-            # return True, AssistantMessage(tool_calls=response.content)
 
     def _generate_code_execution_reply_using_executor(
         self,

@@ -1,16 +1,12 @@
 import os
-
-from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
-from autogen.experimental.agents.default_agent import DefaultAgent
-from autogen.experimental.chats.two_person_chat import TwoPersonChat
-from autogen.experimental.drivers.terminal import run_in_terminal
-from autogen.experimental.model_clients.openai_client import OpenAIChatModelClient
-
-from autogen.experimental.termination_managers.reflection import ReflectionTerminationManager
-from autogen.oai.openai_utils import config_list_from_json
-
 import asyncio
 import aioconsole
+
+from autogen.coding import LocalCommandLineCodeExecutor
+from autogen.experimental import AssistantAgent, TwoAgentChat, UserProxyAgent, OpenAI
+from autogen.experimental.drivers import run_in_terminal
+from autogen.experimental.termination_managers import ReflectionTerminationManager
+
 
 async def user_input(prompt: str) -> str:
     res = await aioconsole.ainput(prompt)
@@ -31,20 +27,20 @@ If you want the user to save the code in a file before executing it, put # filen
 If it looks like the task is done and the code has already been executed you can respond with 'TERMINATE' to end the conversation.
 """
 
-    model_client = OpenAIChatModelClient(
+    model_client = OpenAI(
         model="gpt-4-0125-preview",
         api_key=os.environ["OPENAI_API_KEY"]
     )
 
-    json_model_client = OpenAIChatModelClient(
+    json_model_client = OpenAI(
         model="gpt-4-0125-preview",
         api_key=os.environ["OPENAI_API_KEY"],
         response_format={"type": "json_object"}
     )
 
-    assistant = DefaultAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
-    user_proxy = DefaultAgent(name="user", human_input_callback=user_input, code_executor=LocalCommandLineCodeExecutor())
-    chat = TwoPersonChat(
+    assistant = AssistantAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
+    user_proxy = UserProxyAgent(name="user", human_input_callback=user_input, code_executor=LocalCommandLineCodeExecutor())
+    chat = TwoAgentChat(
         assistant,
         user_proxy,
         termination_manager=ReflectionTerminationManager(model_client=json_model_client, goal="The code has run and the plot was shown."),

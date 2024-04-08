@@ -1,19 +1,27 @@
 from typing import Callable, Dict, List, Optional, Protocol, TypeVar, Union
 import warnings
 
-from autogen.experimental.chat_summarizers.last_message import LastMessageSummarizer
-from autogen.experimental.termination import TerminationManager, TerminationResult
-from autogen.experimental.termination_managers.default_termination_manager import DefaultTerminationManager
+from ..chat_summarizers.last_message import LastMessageSummarizer
+from ..speaker_selection import SpeakerSelectionStrategy
+from ..termination import TerminationManager, TerminationResult
+from ..termination_managers.default_termination_manager import DefaultTerminationManager
 
 from ..summarizer import ChatSummarizer
 from ..chat import Chat
 from ..agent import Agent
 from ..types import ChatMessage, UserMessage
 
-import asyncio
+DEFAULT_INTRO_MSG = (
+    "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
+)
+
+def _introduction_message(agents: List[Agent], intro_message: str) -> str:
+    participant_roles = [f"{agent.name}: {agent.description}".strip() for agent in agents]
+    slash_n = "\n"
+    return f"{intro_message}{slash_n}{slash_n}{slash_n.join(participant_roles)}"
 
 
-class TwoPersonChat(Chat):
+class GroupChat(Chat):
     """(Experimental) This is a work in progress new interface for two person chats."""
 
     _termination_manager: TerminationManager
@@ -21,24 +29,35 @@ class TwoPersonChat(Chat):
 
     def __init__(
         self,
-        first: Agent,
-        second: Agent,
+        agents: List[Agent],
         *,
+        speaker_selection: SpeakerSelectionStrategy,
         termination_manager: TerminationManager = DefaultTerminationManager(),
         summarizer: ChatSummarizer = LastMessageSummarizer(),
-        initial_message: Optional[Union[str, ChatMessage]] = None
+        initial_message: Optional[Union[str, ChatMessage]] = None,
+        send_introduction: bool = True,
+        intro_message: str = DEFAULT_INTRO_MSG
     ):
-        self._agents = [first, second]
-        self._current_agent_index = 0
+        self._agents = agents
+        self._speaker_selection = speaker_selection
         self._termination_manager = termination_manager
         self._termination_result: Optional[TerminationResult] = None
-
         self._summarizer = summarizer
         self._summary: Optional[str] = None
+
         self._finalize_done = False
         if isinstance(initial_message, str):
             initial_message = UserMessage(content=initial_message)
-        self._chat_history = [initial_message] if initial_message is not None else []
+        self._chat_history: List[ChatMessage] = []
+        if send_introduction:
+            self._chat_history.append(UserMessage(content=_introduction_message(agents, intro_message)))
+
+        if initial_message is not None:
+            if isinstance(initial_message, str):
+                initial_message = UserMessage(content=initial_message)
+            self._chat_history.append(initial_message)
+
+        self._speaker = speaker_selection.select_speaker(None, self._agents, self._chat_history)
 
     async def _finalize(self, termination_result: TerminationResult) -> None:
         self._termination_result = termination_result
@@ -61,21 +80,22 @@ class TwoPersonChat(Chat):
     def termination_result(self) -> Optional[TerminationResult]:
         return self._termination_result
 
+    @property
+    def next_speaker(self) -> Agent:
+        return self._speaker
+
     async def step(self) -> ChatMessage:
-        next_to_reply = self._agents[self._current_agent_index]
-        reply = await next_to_reply.generate_reply(messages=self._chat_history)
+
+        reply = await self._speaker.generate_reply(messages=self._chat_history)
         self._chat_history.append(reply)
-        self._termination_manager.record_turn_taken(next_to_reply)
-        self._current_agent_index = (self._current_agent_index + 1) % len(self._agents)
+        self._termination_manager.record_turn_taken(self._speaker)
+        self._speaker = self._speaker_selection.select_speaker(self._speaker, self._agents, self._chat_history)
 
         maybe_termination = await self._termination_manager.check_termination(self._chat_history)
         if maybe_termination is not None:
             await self._finalize(maybe_termination)
 
         return reply
-
-    def step_sync(self) -> ChatMessage:
-        return asyncio.run(self.step())
 
     def append_message(self, message: ChatMessage) -> None:
         self._chat_history.append(message)
