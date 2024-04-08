@@ -1,12 +1,14 @@
-from typing import List, Optional, Protocol, TypeVar
+from typing import AsyncGenerator, List, Optional, Protocol, TypeVar
 
 from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationReason, TerminationResult
-from autogen.experimental.types import ChatMessage
+from autogen.experimental.types import ChatMessage, StreamResponse
 
 
 class Chat(Protocol):
     async def step(self) -> ChatMessage: ...
+
+    def stream_step(self) -> AsyncGenerator[StreamResponse, None]: ...
 
     @property
     def done(self) -> bool: ...

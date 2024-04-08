@@ -1,12 +1,15 @@
-from typing import List
+from typing import List, Optional
 from autogen.experimental.chat import Chat
 from autogen.experimental.types import AssistantMessage, ChatMessage
 from ..agent import Agent
 
 
 class ChatAgent(Agent):
-    def __init__(self, chat: Chat):
+    def __init__(self, name: str, chat: Chat, description: Optional[str] = None, intitial_message: str = ""):
         self._chat = chat
+        self._name = name
+        self._description = description
+        self._initial_message = intitial_message
 
     @property
     def name(self) -> str:
@@ -27,6 +30,8 @@ class ChatAgent(Agent):
         self,
         messages: List[ChatMessage],
     ) -> ChatMessage:
+        # self._chat.reset()
+
         for message in messages:
             self._chat.append_message(message)
 

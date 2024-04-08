@@ -1,8 +1,8 @@
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 
 
 from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, SystemMessage
+from ..types import AssistantMessage, ChatMessage, PartialContent, StreamResponse, SystemMessage
 
 from ...cache import AbstractCache
 from ..agent import Agent
@@ -56,6 +56,24 @@ class AssistantAgent(Agent):
             return AssistantMessage(content=response.content)
         else:
             raise NotImplementedError("Tools not supported yet.")
+
+    async def stream_generate_reply(
+        self,
+        messages: List[ChatMessage],
+    ) -> AsyncGenerator[StreamResponse, None]:
+        all_messages: List[ChatMessage] = []
+        if self._system_message is not None:
+            all_messages.append(self._system_message)
+        all_messages.extend(messages)
+
+        async for response in self._model_client.create_stream(all_messages, self._cache):
+            if isinstance(response, str):
+                yield PartialContent(response)
+            else:
+                if isinstance(response.content, str):
+                    yield AssistantMessage(content=response.content)
+                else:
+                    raise NotImplementedError("Tools not supported yet.")
 
     def reset(self) -> None:
         """Reset the agent's state."""

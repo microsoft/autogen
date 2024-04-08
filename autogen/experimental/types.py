@@ -71,6 +71,20 @@ ChatMessage = Union[SystemMessage, UserMessage, AssistantMessage, ToolMessage]
 
 
 @dataclass
+class PartialContent:
+    content: str
+
+
+@dataclass
+class StatusUpdate:
+    content: str
+
+
+# Must end with ChatMessage
+StreamResponse = Union[PartialContent, StatusUpdate, ChatMessage]
+
+
+@dataclass
 class CreateResponse:
     finish_reason: Literal["stop", "length", "tool_calls", "content_filter"]
     content: Union[str, List[ToolCall]]

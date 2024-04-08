@@ -1,10 +1,10 @@
 import inspect
 import logging
-from typing import Awaitable, Callable, List, Optional, Tuple, Union, cast
+from typing import AsyncGenerator, Awaitable, Callable, List, Optional, Tuple, Union, cast
 
 
 from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, SystemMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, UserMessage
 
 from ...cache import AbstractCache
 
@@ -46,7 +46,6 @@ class UserProxyAgent(Agent):
             self._description = description
         else:
             """"""
-
 
         self._reply_func_list: List[ReplyFunction] = []
         self._human_input_callback = human_input_callback
@@ -157,6 +156,12 @@ class UserProxyAgent(Agent):
         else:
             # TODO add a default reply
             return AssistantMessage(content="I am not sure how to respond to that.")
+
+    async def stream_generate_reply(
+        self,
+        messages: List[ChatMessage],
+    ) -> AsyncGenerator[StreamResponse, None]:
+        yield await self.generate_reply(messages)
 
     def reset(self) -> None:
         """Reset the agent's state."""

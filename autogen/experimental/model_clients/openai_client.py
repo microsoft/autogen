@@ -383,20 +383,24 @@ class OpenAI(ModelClient):
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
-        prompt_tokens = count_token(messages, model=model)
+        # TODO fix count token
+        prompt_tokens = 0
+        # prompt_tokens = count_token(messages, model=model)
         if stop_reason is None:
             raise ValueError("No stop reason found")
 
         content: Union[str, List[ToolCall]]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
-            completion_tokens = count_token(content, model=model)
+            completion_tokens = 0
+            # completion_tokens = count_token(content, model=model)
         else:
             completion_tokens = 0
             # TODO: fix assumption that dict values were added in order and actually order by int index
             for tool_call in full_tool_calls.values():
                 value = json.dumps(tool_call)
-                completion_tokens += count_token(value, model=model)
+                # completion_tokens += count_token(value, model=model)
+                completion_tokens += 0
             content = list(full_tool_calls.values())
 
         usage = RequestUsage(

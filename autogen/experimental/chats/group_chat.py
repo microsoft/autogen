@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Protocol, TypeVar, Union
+from typing import AsyncGenerator, Callable, Dict, List, Optional, Protocol, TypeVar, Union
 import warnings
 
 from ..chat_summarizers.last_message import LastMessageSummarizer
@@ -9,11 +9,12 @@ from ..termination_managers.default_termination_manager import DefaultTerminatio
 from ..summarizer import ChatSummarizer
 from ..chat import Chat
 from ..agent import Agent
-from ..types import ChatMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, ToolMessage, UserMessage
 
 DEFAULT_INTRO_MSG = (
     "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
 )
+
 
 def _introduction_message(agents: List[Agent], intro_message: str) -> str:
     participant_roles = [f"{agent.name}: {agent.description}".strip() for agent in agents]
@@ -36,7 +37,7 @@ class GroupChat(Chat):
         summarizer: ChatSummarizer = LastMessageSummarizer(),
         initial_message: Optional[Union[str, ChatMessage]] = None,
         send_introduction: bool = True,
-        intro_message: str = DEFAULT_INTRO_MSG
+        intro_message: str = DEFAULT_INTRO_MSG,
     ):
         self._agents = agents
         self._speaker_selection = speaker_selection
@@ -96,6 +97,28 @@ class GroupChat(Chat):
             await self._finalize(maybe_termination)
 
         return reply
+
+    async def stream_step(self) -> AsyncGenerator[StreamResponse, None]:
+        final_response = None
+        async for response in self._speaker.stream_generate_reply(messages=self._chat_history):
+            if isinstance(response, (SystemMessage, UserMessage, AssistantMessage, ToolMessage)):
+                self._chat_history.append(response)
+                self._termination_manager.record_turn_taken(self._speaker)
+                self._speaker = self._speaker_selection.select_speaker(self._speaker, self._agents, self._chat_history)
+
+                maybe_termination = await self._termination_manager.check_termination(self._chat_history)
+                if maybe_termination is not None:
+                    await self._finalize(maybe_termination)
+
+                final_response = response
+                break
+            else:
+                yield response
+
+        if final_response is None:
+            raise ValueError("Final streamed response was not the final message.")
+
+        yield final_response
 
     def append_message(self, message: ChatMessage) -> None:
         self._chat_history.append(message)

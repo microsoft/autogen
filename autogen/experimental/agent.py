@@ -1,6 +1,6 @@
-from typing import List, Protocol, Union, runtime_checkable
+from typing import AsyncGenerator, List, Protocol, Union, runtime_checkable
 
-from .types import ChatMessage
+from .types import ChatMessage, StreamResponse
 
 
 @runtime_checkable
@@ -30,3 +30,8 @@ class Agent(Protocol):
         self,
         messages: List[ChatMessage],
     ) -> ChatMessage: ...
+
+    def stream_generate_reply(
+        self,
+        messages: List[ChatMessage],
+    ) -> AsyncGenerator[StreamResponse, None]: ...

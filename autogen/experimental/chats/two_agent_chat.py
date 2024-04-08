@@ -12,7 +12,6 @@ from ..agent import Agent
 from ..types import ChatMessage
 
 
-
 class TwoAgentChat(GroupChat):
     def __init__(
         self,
@@ -29,5 +28,5 @@ class TwoAgentChat(GroupChat):
             termination_manager=termination_manager,
             summarizer=summarizer,
             initial_message=initial_message,
-            send_introduction=False
+            send_introduction=False,
         )
