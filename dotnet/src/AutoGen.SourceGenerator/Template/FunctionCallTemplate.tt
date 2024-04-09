@@ -98,7 +98,7 @@ namespace <#=NameSpace#>
             };
         }
 
-        public FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
+        public Azure.AI.OpenAI.FunctionDefinition <#=functionContract.GetFunctionDefinitionName()#>
         {
             get => this.<#=functionContract.GetFunctionContractName()#>.ToOpenAIFunctionDefinition();
         }

@@ -152,7 +152,7 @@ if (parameter.DefaultValue != null) {
 }
             this.Write("                },\r\n");
 }
-            this.Write("            };\r\n        }\r\n\r\n        public FunctionDefinition ");
+            this.Write("            };\r\n        }\r\n\r\n        public Azure.AI.OpenAI.FunctionDefinition ");
             this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.GetFunctionDefinitionName()));
             this.Write("\r\n        {\r\n            get => this.");
             this.Write(this.ToStringHelper.ToStringWithCulture(functionContract.GetFunctionContractName()));
