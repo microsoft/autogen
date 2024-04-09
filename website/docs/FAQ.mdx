@@ -1,4 +1,4 @@
-import TOCInline from '@theme/TOCInline';
+import TOCInline from "@theme/TOCInline";
 
 # Frequently Asked Questions
 
@@ -7,6 +7,7 @@ import TOCInline from '@theme/TOCInline';
 ## Install the correct package - `pyautogen`
 
 The name of Autogen package at PyPI is `pyautogen`:
+
 ```
 pip install pyautogen
 ```
@@ -50,6 +51,7 @@ Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-e
 When you call `initiate_chat` the conversation restarts by default. You can use `send` or `initiate_chat(clear_history=False)` to continue the conversation.
 
 ## `max_consecutive_auto_reply` vs `max_turn` vs `max_round`
+
 - [`max_consecutive_auto_reply`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
 - [`max_turns` in `ConversableAgent.initiate_chat`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
 - [`max_round` in GroupChat](https://microsoft.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
@@ -135,6 +137,7 @@ prompt += termination_notice
 (from [issue #251](https://github.com/microsoft/autogen/issues/251))
 
 Code examples that use chromadb (like retrieval) fail in codespaces due to a sqlite3 requirement.
+
 ```
 >>> import chromadb
 Traceback (most recent call last):
@@ -146,6 +149,7 @@ Please visit https://docs.trychroma.com/troubleshooting#sqlite to learn how to u
 ```
 
 Workaround:
+
 1. `pip install pysqlite3-binary`
 2. `mkdir /home/vscode/.local/lib/python3.10/site-packages/google/colab`
 
@@ -157,7 +161,8 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
 
- For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
+For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
+
 ```python
 def print_messages(recipient, messages, sender, config):
     if "callback" in config and  config["callback"] is not None:
@@ -178,6 +183,7 @@ assistant.register_reply(
     config={"callback": None},
 )
 ```
+
 In the above, we register a `print_messages` function that is called each time the agent's `generate_reply` is triggered after receiving a message.
 
 ## How to get last message ?
@@ -252,3 +258,13 @@ user_proxy = autogen.UserProxyAgent(
     name="agent", llm_config=llm_config,
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
+
+## Migrating from `CompressibleAgent` and `TransformChatHistory` to `TransformMessages`
+
+### Why migrate to `TransformMessages`?
+
+Migrating enhances flexibility, modularity, and customization in handling chat message transformations. `TransformMessages` introduces an improved, extensible approach for pre-processing messages for conversational agents.
+
+### How to migrate?
+
+To ensure a smooth migration process, simply follow the detailed guide provided in [Handling Long Context Conversations with Transform Messages](/docs/topics/long_contexts.md).
