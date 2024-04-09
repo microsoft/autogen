@@ -7,8 +7,8 @@ from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
 
 from ..summarizer import ChatSummarizer
-from ..chat import Chat
-from ..agent import Agent
+from ..chat import Chat, ChatStream
+from ..agent import Agent, AgentStream
 from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, ToolMessage, UserMessage
 
 DEFAULT_INTRO_MSG = (
@@ -22,7 +22,7 @@ def _introduction_message(agents: List[Agent], intro_message: str) -> str:
     return f"{intro_message}{slash_n}{slash_n}{slash_n.join(participant_roles)}"
 
 
-class GroupChat(Chat):
+class GroupChat(ChatStream):
     """(Experimental) This is a work in progress new interface for two person chats."""
 
     _termination_manager: TerminationManager
@@ -30,7 +30,7 @@ class GroupChat(Chat):
 
     def __init__(
         self,
-        agents: List[Agent],
+        agents: List[Union[Agent, AgentStream]],
         *,
         speaker_selection: SpeakerSelectionStrategy,
         termination_manager: TerminationManager = DefaultTerminationManager(),
@@ -99,21 +99,29 @@ class GroupChat(Chat):
         return reply
 
     async def stream_step(self) -> AsyncGenerator[StreamResponse, None]:
+
+        async def handle_response(response: ChatMessage) -> None:
+            self._chat_history.append(response)
+            self._termination_manager.record_turn_taken(self._speaker)
+            self._speaker = self._speaker_selection.select_speaker(self._speaker, self._agents, self._chat_history)
+
+            maybe_termination = await self._termination_manager.check_termination(self._chat_history)
+            if maybe_termination is not None:
+                await self._finalize(maybe_termination)
+
         final_response = None
-        async for response in self._speaker.stream_generate_reply(messages=self._chat_history):
-            if isinstance(response, (SystemMessage, UserMessage, AssistantMessage, ToolMessage)):
-                self._chat_history.append(response)
-                self._termination_manager.record_turn_taken(self._speaker)
-                self._speaker = self._speaker_selection.select_speaker(self._speaker, self._agents, self._chat_history)
-
-                maybe_termination = await self._termination_manager.check_termination(self._chat_history)
-                if maybe_termination is not None:
-                    await self._finalize(maybe_termination)
-
-                final_response = response
-                break
-            else:
-                yield response
+        if isinstance(self._speaker, AgentStream):
+            async for response in self._speaker.stream_generate_reply(messages=self._chat_history):
+                if isinstance(response, (SystemMessage, UserMessage, AssistantMessage, ToolMessage)):
+                    await handle_response(response)
+                    final_response = response
+                    break
+                else:
+                    yield response
+        else:
+            response = await self._speaker.generate_reply(messages=self._chat_history)
+            await handle_response(response)
+            final_response = response
 
         if final_response is None:
             raise ValueError("Final streamed response was not the final message.")

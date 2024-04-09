@@ -22,15 +22,18 @@ class Agent(Protocol):
         a group chat setting."""
         ...
 
-    def reset(self) -> None:
-        """Reset the agent's state."""
-        ...
+    # def reset(self) -> None:
+    #     """Reset the agent's state."""
+    #     ...
 
     async def generate_reply(
         self,
         messages: List[ChatMessage],
     ) -> ChatMessage: ...
 
+
+@runtime_checkable
+class AgentStream(Agent, Protocol):
     def stream_generate_reply(
         self,
         messages: List[ChatMessage],

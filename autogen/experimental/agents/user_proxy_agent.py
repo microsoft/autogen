@@ -156,13 +156,3 @@ class UserProxyAgent(Agent):
         else:
             # TODO add a default reply
             return AssistantMessage(content="I am not sure how to respond to that.")
-
-    async def stream_generate_reply(
-        self,
-        messages: List[ChatMessage],
-    ) -> AsyncGenerator[StreamResponse, None]:
-        yield await self.generate_reply(messages)
-
-    def reset(self) -> None:
-        """Reset the agent's state."""
-        pass

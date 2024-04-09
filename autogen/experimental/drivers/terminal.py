@@ -1,9 +1,9 @@
 from aioconsole import aprint
-from autogen.experimental.chat import Chat
+from autogen.experimental.chat import Chat, ChatStream
 from autogen.experimental.types import AssistantMessage, SystemMessage, ToolMessage, UserMessage
 
 
-async def run_in_terminal(chat: Chat) -> str:
+async def run_in_terminal(chat: ChatStream) -> str:
     while not chat.done:
         had_partial_content = False
         async for content in chat.stream_step():

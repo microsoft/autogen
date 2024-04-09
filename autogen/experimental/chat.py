@@ -1,14 +1,13 @@
-from typing import AsyncGenerator, List, Optional, Protocol, TypeVar
+from typing import AsyncGenerator, List, Optional, Protocol, TypeVar, runtime_checkable
 
 from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationReason, TerminationResult
 from autogen.experimental.types import ChatMessage, StreamResponse
 
 
+@runtime_checkable
 class Chat(Protocol):
     async def step(self) -> ChatMessage: ...
-
-    def stream_step(self) -> AsyncGenerator[StreamResponse, None]: ...
 
     @property
     def done(self) -> bool: ...
@@ -26,6 +25,11 @@ class Chat(Protocol):
 
     @property
     def next_speaker(self) -> Agent: ...
+
+
+@runtime_checkable
+class ChatStream(Chat, Protocol):
+    def stream_step(self) -> AsyncGenerator[StreamResponse, None]: ...
 
 
 async def run(conversation: Chat) -> str:

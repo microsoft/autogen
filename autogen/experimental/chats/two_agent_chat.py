@@ -8,15 +8,15 @@ from ..termination_managers.default_termination_manager import DefaultTerminatio
 
 from ..summarizer import ChatSummarizer
 from .group_chat import GroupChat
-from ..agent import Agent
+from ..agent import Agent, AgentStream
 from ..types import ChatMessage
 
 
 class TwoAgentChat(GroupChat):
     def __init__(
         self,
-        first: Agent,
-        second: Agent,
+        first: Union[Agent, AgentStream],
+        second: Union[Agent, AgentStream],
         *,
         termination_manager: TerminationManager = DefaultTerminationManager(),
         summarizer: ChatSummarizer = LastMessageSummarizer(),

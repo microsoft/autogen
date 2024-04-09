@@ -5,10 +5,10 @@ from ..model_client import ModelClient
 from ..types import AssistantMessage, ChatMessage, PartialContent, StreamResponse, SystemMessage
 
 from ...cache import AbstractCache
-from ..agent import Agent
+from ..agent import AgentStream
 
 
-class AssistantAgent(Agent):
+class AssistantAgent(AgentStream):
 
     def __init__(
         self,
