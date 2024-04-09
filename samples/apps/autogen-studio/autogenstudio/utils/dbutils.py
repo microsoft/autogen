@@ -27,6 +27,7 @@ MODELS_TABLE_SQL = """
                 api_type TEXT,
                 api_version TEXT,
                 description TEXT,
+                default_headers TEXT,
                 UNIQUE (id, user_id)
             )
             """
@@ -147,6 +148,7 @@ class DBManager:
         """
         self.add_column_if_not_exists("sessions", "name", "TEXT")
         self.add_column_if_not_exists("models", "description", "TEXT")
+        self.add_column_if_not_exists("models", "default_headers", "TEXT")
 
     def add_column_if_not_exists(self, table: str, column: str, column_type: str):
         """
@@ -226,7 +228,7 @@ class DBManager:
             for model in models:
                 model = Model(**model)
                 self.cursor.execute(
-                    "INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description, default_headers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (
                         model.id,
                         "default",
@@ -237,6 +239,7 @@ class DBManager:
                         model.api_type,
                         model.api_version,
                         model.description,
+                        model.default_headers,
                     ),
                 )
 
@@ -362,13 +365,14 @@ def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
             "user_id": model.user_id,
             "timestamp": model.timestamp,
             "description": model.description,
+            "default_headers": model.default_headers,
         }
         update_item("models", model.id, updated_data, dbmanager)
     else:
         # If the model config does not exist, insert a new one
         query = """
-            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO models (id, user_id, timestamp, model, api_key, base_url, api_type, api_version, description, default_headers)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         args = (
             model.id,
@@ -380,6 +384,7 @@ def upsert_model(model: Model, dbmanager: DBManager) -> List[dict]:
             model.api_type,
             model.api_version,
             model.description,
+            model.default_headers,
         )
         dbmanager.query(query=query, args=args)
 

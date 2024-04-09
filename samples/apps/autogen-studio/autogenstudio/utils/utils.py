@@ -393,7 +393,7 @@ def sanitize_model(model: Model):
     """
     if isinstance(model, Model):
         model = model.dict()
-    valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
+    valid_keys = ["model", "base_url", "api_key", "api_type", "api_version", "default_headers"]
     # only add key if value is not None
     sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
     return sanitized_model

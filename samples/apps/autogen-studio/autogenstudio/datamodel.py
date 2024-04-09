@@ -71,6 +71,7 @@ class Model:
     timestamp: Optional[str] = None
     user_id: Optional[str] = None
     description: Optional[str] = None
+    default_headers: Optional[str] = None
 
     def dict(self):
         result = asdict(self)
