@@ -120,12 +120,12 @@ class VectorDB(Protocol):
         ...
 
     def retrieve_docs(
-        self,
-        queries: List[str],
-        collection_name: str = None,
-        n_results: int = 10,
-        distance_threshold: float = -1,
-        **kwargs,
+            self,
+            queries: List[str],
+            collection_name: str = None,
+            n_results: int = 10,
+            distance_threshold: float = -1,
+            **kwargs,
     ) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
@@ -145,7 +145,7 @@ class VectorDB(Protocol):
         ...
 
     def get_docs_by_ids(
-        self, ids: List[ItemID] = None, collection_name: str = None, include=None, **kwargs
+            self, ids: List[ItemID] = None, collection_name: str = None, include=None, **kwargs
     ) -> List[Document]:
         """
         Retrieve documents from the collection of the vector database based on the ids.
@@ -168,7 +168,7 @@ class VectorDBFactory:
     Factory class for creating vector databases.
     """
 
-    PREDEFINED_VECTOR_DB = ["chroma"]
+    PREDEFINED_VECTOR_DB = ["chroma", "pgvector"]
 
     @staticmethod
     def create_vector_db(db_type: str, **kwargs) -> VectorDB:
@@ -186,6 +186,10 @@ class VectorDBFactory:
             from .chromadb import ChromaVectorDB
 
             return ChromaVectorDB(**kwargs)
+        if db_type.lower() in ["pgvector", "pgvectordb"]:
+            from .pgvectordb import PGVectorDB
+
+            return PGVectorDB(**kwargs)
         else:
             raise ValueError(
                 f"Unsupported vector database type: {db_type}. Valid types are {VectorDBFactory.PREDEFINED_VECTOR_DB}."
