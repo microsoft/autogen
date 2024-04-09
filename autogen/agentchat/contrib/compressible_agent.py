@@ -3,6 +3,7 @@ import copy
 import inspect
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from warnings import warn
 
 from autogen import Agent, ConversableAgent, OpenAIWrapper
 from autogen.token_count_utils import count_token, get_max_token_limit, num_tokens_from_functions
@@ -11,10 +12,17 @@ from ...formatting_utils import colored
 
 logger = logging.getLogger(__name__)
 
+warn(
+    "Context handling with CompressibleAgent is deprecated. "
+    "Please use `TransformMessages`, documentation can be found at https://microsoft.github.io/autogen/docs/reference/agentchat/contrib/capabilities/transform_messages",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 
 class CompressibleAgent(ConversableAgent):
-    """(CompressibleAgent will be deprecated. Refer to https://github.com/microsoft/autogen/blob/main/notebook/agentchat_capability_long_context_handling.ipynb for long context handling capability.) CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
-        it also provides the added feature of compression when activated through the `compress_config` setting.
+    """CompressibleAgent agent. While this agent retains all the default functionalities of the `AssistantAgent`,
+    it also provides the added feature of compression when activated through the `compress_config` setting.
 
     `compress_config` is set to False by default, making this agent equivalent to the `AssistantAgent`.
     This agent does not work well in a GroupChat: The compressed messages will not be sent to all the agents in the group.
