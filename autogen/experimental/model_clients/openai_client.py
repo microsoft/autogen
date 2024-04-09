@@ -232,30 +232,31 @@ class CreateArguments(TypedDict, total=False):
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
 
 
-# See OpenAI docs for explanation of these parameters
-class OpenAIClientConfiguration(CreateArguments, total=False):
-    # Defaults to openai
-    api_type: NotRequired[Literal["openai", "azure"]]
-
-    # Init
+class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     api_key: str
-    organization: str
-    base_url: str
     timeout: Union[float, None]
     max_retries: int
 
+
+# See OpenAI docs for explanation of these parameters
+class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
+    organization: str
+    base_url: str
+
+
+class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     # Azure specific
-    azure_endpoint: str
-    azure_deployment: str
+    azure_endpoint: Required[str]
+    azure_deployment: Required[str]
     api_version: str
     azure_ad_token: str
     azure_ad_token_provider: AsyncAzureADTokenProvider
 
 
-class OpenAI(ModelClient):
-    def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
-        self._client = _openai_client_from_config(kwargs)
-        self._create_args = _create_args_from_config(kwargs)
+class BaseOpenAI(ModelClient):
+    def __init__(self, client: Union[AsyncOpenAI, AsyncAzureOpenAI], create_args: Dict[str, Any]):
+        self._client = client
+        self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
 
@@ -275,17 +276,17 @@ class OpenAI(ModelClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
+        oai_messages_nested = [to_oai_type(m) for m in messages]
+        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
+
         if cache is not None:
-            cache_key = get_key({**create_args, "messages": messages})
+            cache_key = get_key({**create_args, "messages": oai_messages})
             cached_value = cache.get(cache_key)
             if cached_value is not None:
                 response = cast(CreateResponse, cached_value)
                 response.cached = True
                 _add_usage(self._total_usage, response.usage)
                 return response
-
-        oai_messages_nested = [to_oai_type(m) for m in messages]
-        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
 
@@ -424,3 +425,17 @@ class OpenAI(ModelClient):
 
     def total_usage(self) -> RequestUsage:
         return self._total_usage
+
+
+class OpenAI(BaseOpenAI):
+    def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
+        client = _openai_client_from_config(kwargs)
+        create_args = _create_args_from_config(kwargs)
+        super().__init__(client, create_args)
+
+
+class AzureOpenAI(BaseOpenAI):
+    def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
+        client = _openai_client_from_config(kwargs)
+        create_args = _create_args_from_config(kwargs)
+        super().__init__(client, create_args)

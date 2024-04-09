@@ -1,31 +1,20 @@
 #!/usr/bin/env python3 -m pytest
 
 import pytest
-from autogen import config_list_from_json
 from autogen.cache.in_memory_cache import InMemoryCache
-from autogen.experimental.model_clients.factory import DEFAULT_FACTORY
 import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from autogen.experimental.types import UserMessage
+from autogen.experimental.model_clients.openai_client import OpenAI
+from autogen.experimental.types import CreateResponse, UserMessage
 from conftest import skip_openai  # noqa: E402
-
-OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
 async def test_create() -> None:
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
-    )
-    client = DEFAULT_FACTORY.create_from_config(
-        {
-            "config_list": config_list,
-        }
-    )
+    client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
     response = await client.create(messages=[UserMessage("2+2=")])
     assert response.cached is False
     assert response.finish_reason == "stop"
@@ -35,16 +24,7 @@ async def test_create() -> None:
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
 async def test_tool_calling_extraction() -> None:
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
-    )
-    client = DEFAULT_FACTORY.create_from_config(
-        {
-            "config_list": config_list,
-        }
-    )
-
+    client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
     response = await client.create(
         messages=[
             UserMessage("What is the weather in San Francisco?")
@@ -83,15 +63,7 @@ async def test_tool_calling_extraction() -> None:
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
 async def test_cache() -> None:
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
-    )
-    client = DEFAULT_FACTORY.create_from_config(
-        {
-            "config_list": config_list,
-        }
-    )
+    client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
     with InMemoryCache(seed="") as cache:
         response = await client.create(messages=[UserMessage("2+2=")], cache=cache)
         assert response.cached is False
@@ -114,15 +86,7 @@ async def test_cache() -> None:
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
 @pytest.mark.asyncio
 async def test_create_stream() -> None:
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        filter_dict={"api_type": ["azure"], "model": ["gpt-3.5-turbo", "gpt-35-turbo"]},
-    )
-    client = DEFAULT_FACTORY.create_from_config(
-        {
-            "config_list": config_list,
-        }
-    )
+    client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
     stream = client.create_stream(messages=[UserMessage("2+2=")])
     content = ""
     result = None
@@ -132,7 +96,7 @@ async def test_create_stream() -> None:
         else:
             result = chunk
 
-    assert isinstance(result, dict)
+    assert isinstance(result, CreateResponse)
     assert result.cached is False
     assert result.finish_reason == "stop"
     assert isinstance(result.content, str)
