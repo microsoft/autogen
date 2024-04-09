@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class CosmosDBLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.client = CosmosClient(config['endpoint'], credential=config['key'])
+        self.client = CosmosClient.from_connection_string(config['connection_string'])
         self.database_name = config.get('database_name', 'AutogenLogging')
         self.database = self.client.get_database_client(self.database_name)
         self.container_name = config.get('container_name', 'Logs')
