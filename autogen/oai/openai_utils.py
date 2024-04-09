@@ -47,7 +47,7 @@ OAI_PRICE1K = {
     "gpt-4-32k-0613": (0.06, 0.12),
     "gpt-4-turbo-preview": (0.01, 0.03),
     # https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/#pricing
-    # "gpt-35-turbo": (0.001, 0.002),  # what's the default?
+    "gpt-35-turbo": (0.0005, 0.0015),  # what's the default? using 0125 here.
     "gpt-35-turbo-0125": (0.0005, 0.0015),
     "gpt-35-turbo-instruct": (0.0015, 0.002),
     "gpt-35-turbo-1106": (0.001, 0.002),
