@@ -894,6 +894,13 @@ export const ModelSelector = ({
           value={newModelConfig?.api_version}
           onChange={(e) => updateNewModelConfig("api_version", e.target.value)}
         />
+
+        <Input
+          className="mt-2"
+          placeholder="Default Headers (optional)"
+          value={newModelConfig?.default_headers}
+          onChange={(e) => updateNewModelConfig("default_headers", e.target.value)}
+        />
       </Modal>
     </div>
   );

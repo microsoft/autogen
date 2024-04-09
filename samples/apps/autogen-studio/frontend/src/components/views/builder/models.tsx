@@ -385,6 +385,16 @@ const ModelsView = ({}: any) => {
               }
             }}
           />
+          <Input
+            className="mt-2"
+            placeholder="Default Headers (optional)"
+            value={localModel?.default_headers}
+            onChange={(e) => {
+              if (localModel) {
+                setLocalModel({ ...localModel, default_headers: e.target.value });
+              }
+            }}
+          />
           <TextArea
             className="mt-2"
             placeholder="Description"
