@@ -1,4 +1,5 @@
 ﻿using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Orleans.Runtime;
 using Orleans.Streams;
@@ -23,7 +24,7 @@ public class Sandbox : Agent, IRemindable
         _azService = azService;
         _state = state;
     }
-    public override async Task HandleEvent(Event item, StreamSequenceToken? token)
+    public override async Task HandleEvent(Event item)
     {
        switch(item.Type)
        {

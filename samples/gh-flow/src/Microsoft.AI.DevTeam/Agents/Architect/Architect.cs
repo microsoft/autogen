@@ -1,8 +1,8 @@
 using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Orleans;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
-using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -17,7 +17,7 @@ public class Architect : AiAgent<ArchitectState>
     {
     }
 
-    public override Task HandleEvent(Event item, StreamSequenceToken? token)
+    public override Task HandleEvent(Event item)
     {
        return Task.CompletedTask;
     }

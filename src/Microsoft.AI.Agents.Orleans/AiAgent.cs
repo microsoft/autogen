@@ -1,12 +1,13 @@
 using System.Text;
+using Microsoft.AI.Agents.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
 
-namespace Microsoft.AI.Agents.Abstractions;
+namespace Microsoft.AI.Agents.Orleans;
 
-public abstract class AiAgent<T> : Agent
+public abstract class AiAgent<T> : Agent, IAiAgent
 {
     public AiAgent(
         [PersistentState("state", "messages")] IPersistentState<AgentState<T>> state, ISemanticTextMemory memory, Kernel kernel)
@@ -19,7 +20,7 @@ public abstract class AiAgent<T> : Agent
     private readonly ISemanticTextMemory _memory;
     private readonly Kernel _kernel;
 
-    protected void AddToHistory(string message, ChatUserType userType)
+    public void AddToHistory(string message, ChatUserType userType)
     {
         if (_state.State.History == null) _state.State.History = new List<ChatHistoryItem>();
         _state.State.History.Add(new ChatHistoryItem
@@ -30,13 +31,13 @@ public abstract class AiAgent<T> : Agent
         });
     }
 
-    protected string AppendChatHistory(string ask)
+    public string AppendChatHistory(string ask)
     {
         AddToHistory(ask, ChatUserType.User);
         return string.Join("\n", _state.State.History.Select(message => $"{message.UserType}: {message.Message}"));
     }
 
-    protected virtual async Task<string> CallFunction(string template, KernelArguments arguments, OpenAIPromptExecutionSettings? settings = null)
+    public virtual async Task<string> CallFunction(string template, KernelArguments arguments, OpenAIPromptExecutionSettings? settings = null)
     {
         var propmptSettings = (settings == null) ? new OpenAIPromptExecutionSettings { MaxTokens = 18000, Temperature = 0.8, TopP = 1 }
                                                 : settings;
@@ -53,7 +54,7 @@ public abstract class AiAgent<T> : Agent
     /// <param name="index">Knowledge index</param>
     /// <param name="arguments">The sk arguments, "input" is the argument </param>
     /// <returns></returns>
-    protected async Task<KernelArguments> AddKnowledge(string instruction, string index, KernelArguments arguments)
+    public async Task<KernelArguments> AddKnowledge(string instruction, string index, KernelArguments arguments)
     {
         var documents = _memory.SearchAsync(index, arguments["input"].ToString(), 5);
         var kbStringBuilder = new StringBuilder();
@@ -64,26 +65,4 @@ public abstract class AiAgent<T> : Agent
         arguments[index] = instruction.Replace($"!{index}!", $"{kbStringBuilder}");
         return arguments;
     }
-}
-
-[Serializable]
-public class ChatHistoryItem
-{
-    public string Message { get; set; }
-    public ChatUserType UserType { get; set; }
-    public int Order { get; set; }
-
-}
-
-public class AgentState<T>
-{
-    public List<ChatHistoryItem> History { get; set; }
-    public T Data { get; set; }
-}
-
-public enum ChatUserType
-{
-    System,
-    User,
-    Agent
 }

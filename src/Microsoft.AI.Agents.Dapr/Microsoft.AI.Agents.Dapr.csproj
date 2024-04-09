@@ -6,9 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-   
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
+   <ItemGroup>
+    <PackageReference Include="Dapr.Actors" Version="1.13.0" />
   </ItemGroup>
 
+   <ItemGroup>
+     <ProjectReference Include="..\Microsoft.AI.Agents\Microsoft.AI.Agents.csproj" />
+   </ItemGroup>
+  
 </Project>

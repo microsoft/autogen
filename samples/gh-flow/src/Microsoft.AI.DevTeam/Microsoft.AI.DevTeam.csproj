@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\src\Microsoft.AI.Agents\Microsoft.AI.Agents.csproj" />
+    <ProjectReference Include="..\..\..\..\src\Microsoft.AI.Agents.Orleans\Microsoft.AI.Agents.Orleans.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

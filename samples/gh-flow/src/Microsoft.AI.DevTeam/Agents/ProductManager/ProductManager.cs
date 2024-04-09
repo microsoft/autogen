@@ -1,9 +1,9 @@
 using Microsoft.AI.Agents.Abstractions;
+using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 using Orleans.Runtime;
-using Orleans.Streams;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -19,7 +19,7 @@ public class ProductManager : AiAgent<ProductManagerState>, IManageProducts
         _logger = logger;
     }
 
-    public async override Task HandleEvent(Event item, StreamSequenceToken? token)
+    public async override Task HandleEvent(Event item)
     {
         switch (item.Type)
         {

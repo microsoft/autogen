@@ -19,6 +19,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "seed-memory", "samples\seed
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkflowsApp", "samples\WorkflowsApp\WorkflowsApp.csproj", "{3EE3F061-CC63-41B0-84BA-C95A256E18A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AI.Agents.Orleans", "src\Microsoft.AI.Agents.Orleans\Microsoft.AI.Agents.Orleans.csproj", "{12381ECC-7ECD-4D13-911B-83A07BB58134}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AI.Agents.Dapr", "src\Microsoft.AI.Agents.Dapr\Microsoft.AI.Agents.Dapr.csproj", "{6CCA9961-D498-4E59-8781-D94AE8228200}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +45,14 @@ Global
 		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3EE3F061-CC63-41B0-84BA-C95A256E18A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{12381ECC-7ECD-4D13-911B-83A07BB58134}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12381ECC-7ECD-4D13-911B-83A07BB58134}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12381ECC-7ECD-4D13-911B-83A07BB58134}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12381ECC-7ECD-4D13-911B-83A07BB58134}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6CCA9961-D498-4E59-8781-D94AE8228200}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6CCA9961-D498-4E59-8781-D94AE8228200}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6CCA9961-D498-4E59-8781-D94AE8228200}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6CCA9961-D498-4E59-8781-D94AE8228200}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +64,7 @@ Global
 		{F02CC33B-B479-480B-B886-25ED0E18494A} = {DADD59B8-4B8B-4F2B-BFEB-0F93B8A6AA55}
 		{A1EB6145-FE32-45EC-8A1B-A76268B6DFDE} = {17FFA72B-390A-4BF6-A277-2099897D2132}
 		{3EE3F061-CC63-41B0-84BA-C95A256E18A9} = {17FFA72B-390A-4BF6-A277-2099897D2132}
+		{12381ECC-7ECD-4D13-911B-83A07BB58134} = {7EC6823E-99FB-403F-9941-0CB08C6BFFD4}
+		{6CCA9961-D498-4E59-8781-D94AE8228200} = {7EC6823E-99FB-403F-9941-0CB08C6BFFD4}
 	EndGlobalSection
 EndGlobal
