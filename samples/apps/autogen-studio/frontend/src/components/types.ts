@@ -94,6 +94,7 @@ export interface IModelConfig {
   timestamp?: string;
   description?: string;
   id?: string;
+  default_headers?: string;
 }
 
 export interface IMetadataFile {

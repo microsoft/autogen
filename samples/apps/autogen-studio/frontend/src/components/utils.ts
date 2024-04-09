@@ -527,7 +527,7 @@ export const fetchVersion = () => {
  */
 export const sanitizeConfig = (
   data: any,
-  keys: string[] = ["api_key", "id"]
+  keys: string[] = ["api_key", "default_headers", "id"]
 ): any => {
   if (Array.isArray(data)) {
     return data.map((item) => sanitizeConfig(item, keys));
