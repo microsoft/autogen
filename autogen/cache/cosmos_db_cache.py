@@ -1,44 +1,44 @@
-#install Azure Cosmos DB asynchronous I/O packages if you haven't already
 pip install azure-cosmos
-pip install aiohttp
+
 
 import pickle
 from typing import Any, Optional, Union
-from azure.cosmos.aio import CosmosClient
-from azure.cosmos import PartitionKey
+from azure.cosmos import PartitionKey, CosmosClient, exceptions
 from autogen.cache.abstract_cache_base import AbstractCache
 
 class CosmosDBCache(AbstractCache):
-    def __init__(self, seed: Union[str, int], connection_string: Optional[str] = None, database_id: str = "", container_id: str = "", client: Optional[CosmosClient] = None):
+    """
+    Synchronous implementation of AbstractCache using Azure Cosmos DB NoSQL API.
+
+    This class provides a concrete implementation of the AbstractCache
+    interface using Azure Cosmos DB for caching data, with synchronous operations.
+
+    Attributes:
+        seed (Union[str, int]): A seed or namespace used as a partition key.
+        client (CosmosClient): The Cosmos DB client used for caching.
+        container: The container instance used for caching.
+    """
+    def __init__(self, seed: Union[str, int], connection_string: str, database_id: str, container_id: str, client: Optional[CosmosClient] = None):
         """
         Initialize the CosmosDBCache instance.
 
         Args:
-            seed (Union[str, int]): A seed or namespace for the cache. Used as a partition key.
-            connection_string (str): The connection string for the Cosmos DB account. Required if client is not provided.
-            database_id (str): The database ID to be used. Required if client is not provided.
-            container_id (str): The container ID to be used for caching. Required if client is not provided.
+            seed (Union[str, int]): A seed or namespace for the cache, used as a partition key.
+            connection_string (str): The connection string for the Cosmos DB account.
+            database_id (str): The database ID to be used.
+            container_id (str): The container ID to be used for caching.
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
         self.seed = seed
-        if client is None:
-            if not connection_string:
-                raise ValueError("connection_string must be provided if client is not passed")
-            self.client = CosmosClient.from_connection_string(connection_string)
-            self.database = self.client.get_database_client(database_id)
-        else:
-            self.client = client
-            self.database = self.client.get_database_client(database_id)
+        self.client = client if client else CosmosClient.from_connection_string(connection_string)
+        self.database = self.client.get_database_client(database_id)
+        self.container = self.database.get_container_client(container_id)
         self.container = database.get_container_client(container_id)
 
-    async def init_container(self):
-        """
-        Initialize the container for caching, creating it if it doesn't exist.
-        """
-        if not await self.container.exists():
-            await self.database.create_container(id=self.container.id, partition_key=PartitionKey(path='/partitionKey'))
-
-    async def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:    
+        if not self.container.exists():
+            self.database.create_container(id=container_id, partition_key=PartitionKey(path='/partitionKey'))
+    
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:    
         """
         Retrieve an item from the Cosmos DB cache.
 
@@ -59,7 +59,7 @@ class CosmosDBCache(AbstractCache):
             # Consider logging or handling the error appropriately here
             raise e
 
-    async def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: Any) -> None:
         """
         Set an item in the Cosmos DB cache.
 
@@ -74,16 +74,15 @@ class CosmosDBCache(AbstractCache):
         item = {'id': key, 'partitionKey': str(self.seed), 'data': serialized_value}
         await self.container.upsert_item(item)
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """
         Close the Cosmos DB client.
 
         Perform any necessary cleanup, such as closing network connections.
         """
-        # The client should be closed if it was created inside this class,
-        # otherwise, it's the responsibility of the caller to close it.
-        if 'connection_string' in self.__dict__:
-            await self.client.close()
+        # CosmosClient doesn't require explicit close in the current SDK
+        # If you created the client inside this class, you should close it if necessary
+        pass
 
     async def __enter__(self):
         """
@@ -92,13 +91,12 @@ class CosmosDBCache(AbstractCache):
         Returns:
             self: The instance itself.
         """
-        await self.init_container()
         return self
 
-    async def __exit__(self, exc_type: Optional[type], exc_value: Optional[Exception], traceback: Optional[TracebackType]) -> None:
+    def __exit__(self, exc_type: Optional[type], exc_value: Optional[Exception], traceback: Optional[Any]) -> None:
         """
         Context management exit.
 
         Perform cleanup actions such as closing the Cosmos DB client.
         """
-        await self.close()
+        self.close()
