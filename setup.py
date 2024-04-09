@@ -57,6 +57,10 @@ setuptools.setup(
             "pytest>=6.1.1,<8",
             "pandas",
         ],
+        "pgvector": [
+            "pgvector>=0.2.5",
+            "psycopg>=3.1.18",
+        ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"],
