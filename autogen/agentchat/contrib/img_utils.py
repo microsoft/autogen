@@ -10,12 +10,12 @@ from PIL import Image
 
 from autogen.agentchat import utils
 
-from ...multimodal_utils import MultimodalObject
 from ..utils import parse_tags_from_content
 
 
-class AGImage(MultimodalObject):
+class AGImage:
     def __init__(self, image_file: str):
+        self.image_file = image_file
         self.data = get_pil_image(image_file)  # PIL image
 
     def __str__(self):
@@ -23,6 +23,13 @@ class AGImage(MultimodalObject):
 
     def __repr__(self) -> str:
         return self.data.__repr__()
+
+    def __eq__(self, other: object) -> bool:
+        try:
+            return self.data == other.data or self.image_file == other.image_file
+        except Exception as e:
+            print(e)
+            return False
 
     @property
     def __dict__(self) -> Dict:
@@ -215,24 +222,32 @@ def convert_base64_to_data_uri(base64_image):
     return data_uri
 
 
-def gpt4v_formatter(prompt: str, img_format: str = "uri", mm_tag_style: Optional[str] = None) -> List[dict]:
+def gpt4v_formatter(
+    prompt: str, img_format: str = "uri", output_format: str = "autogen", mm_tag_style: Optional[str] = None
+) -> List:
     """
     Formats the input prompt by replacing image tags and returns a list of text and images.
 
     Args:
         - prompt (str): The input string that may contain image tags like <img ...>.
         - img_format (str): what image format should be used. One of "uri", "url", "pil".
+        - output_format (str): what format should be used for the output. One of "autogen", "openai".
         - mm_tag_style (Optional[str], optional): what style tag of use used. It can be either `html` or `tokenizer`.
                 Defaults to None, which means no tagging.
     Returns:
         - List[Union[str, dict]]: A list of alternating text and image dictionary items.
     """
+    assert isinstance(prompt, str)
     assert img_format in ["uri", "url", "pil"]
+    assert output_format in ["autogen", "openai"]
     assert isinstance(prompt, str)
 
     if mm_tag_style is None:
         # we do not modify the prompt if we don't want to tag it.
-        return [{"type": "text", "text": prompt}]
+        if output_format == "openai":
+            return [{"type": "text", "text": prompt}]
+        else:
+            return [prompt]
 
     output = []
     last_index = 0
@@ -243,7 +258,9 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri", mm_tag_style: Optional
     for parsed_tag in parsed:
         image_location = parsed_tag["attr"]["src"]
         try:
-            if img_format == "pil":
+            if output_format == "autogen":
+                img_data = AGImage(image_location)
+            elif img_format == "pil":
                 img_data = get_pil_image(image_location)
             elif img_format == "uri":
                 img_data = get_image_data(image_location)
@@ -257,17 +274,24 @@ def gpt4v_formatter(prompt: str, img_format: str = "uri", mm_tag_style: Optional
             print(f"Warning! Unable to load image from {image_location}, because {e}")
             continue
 
-        # Add text before this image tag to output list
-        output.append({"type": "text", "text": prompt[last_index : parsed_tag["match"].start()]})
-
-        # Add image data to output list
-        output.append({"type": "image_url", "image_url": {"url": img_data}})
+        text = prompt[last_index : parsed_tag["match"].start()]
+        if output_format == "openai":
+            # Add text before this image tag to output list
+            output.append({"type": "text", "text": text})
+            # Add image data to output list
+            output.append({"type": "image_url", "image_url": {"url": img_data}})
+        else:
+            output += [text, img_data]
 
         last_index = parsed_tag["match"].end()
         image_count += 1
 
     # Add remaining text to output list
-    output.append({"type": "text", "text": prompt[last_index:]})
+    if output_format == "openai":
+        output.append({"type": "text", "text": prompt[last_index:]})
+    else:
+        output.append(prompt[last_index:])
+
     return output
 
 

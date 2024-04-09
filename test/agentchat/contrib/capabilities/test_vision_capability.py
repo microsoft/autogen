@@ -9,6 +9,7 @@ try:
     from PIL import Image
 
     from autogen.agentchat.contrib.capabilities.vision_capability import VisionCapability
+    from autogen.agentchat.contrib.img_utils import AGImage
 except ImportError:
     skip_test = True
 else:
@@ -59,7 +60,7 @@ def test_process_last_received_message_text(mock_lmm_client, vision_capability):
     mock_lmm_client.create.return_value = MagicMock(choices=[MagicMock(message=MagicMock(content="A description"))])
     content = "Test message without image"
     processed_content = vision_capability.process_last_received_message(content)
-    assert processed_content == content
+    assert processed_content == [content]
 
 
 @patch("autogen.agentchat.contrib.img_utils.get_image_data", return_value="base64_image_data")
@@ -78,12 +79,13 @@ def test_process_last_received_message_text(mock_lmm_client, vision_capability):
 def test_process_last_received_message_with_image(
     mock_get_caption, mock_convert_base64, mock_get_image_data, vision_capability
 ):
-    content = [{"type": "image_url", "image_url": {"url": (img_name)}}]
-    expected_caption = (
-        f"<img {img_name}> in case you can not see, the caption of this image is: A sample image caption.\n"
-    )
+    content = [AGImage(img_name)]
+    expected_result = [
+        AGImage(img_name),
+        "In case you can not see the image, the caption of this image is: A sample image caption.\n",
+    ]
     processed_content = vision_capability.process_last_received_message(content)
-    assert processed_content == expected_caption
+    assert processed_content == expected_result
 
 
 ####### Test the Custom Caption Func
@@ -115,8 +117,10 @@ class TestCustomCaptionFunc:
         """Test processing a message containing an image URL with a custom caption function."""
         vision_capability = VisionCapability(lmm_config, custom_caption_func=custom_caption_func)
 
-        image_url = img_name
-        content = [{"type": "image_url", "image_url": {"url": image_url}}]
-        expected_output = f" An image description. The image is from {image_url}."
+        content = [AGImage(img_name)]
+        expected_output = [
+            AGImage(img_name),
+            f"In case you can not see the image, the caption of this image is: An image description. The image is from {img_name}.\n",
+        ]
         processed_content = vision_capability.process_last_received_message(content)
-        assert expected_output in processed_content, "Processed content does not contain the expected caption."
+        assert expected_output == processed_content, "Processed content does not equal to the expected caption."

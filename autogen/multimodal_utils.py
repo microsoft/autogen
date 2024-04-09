@@ -2,10 +2,12 @@ import re
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
+from autogen.agentchat.contrib.img_utils import AGImage, gpt4v_formatter
+
 IMPORTANT_KEYS = ["vision_model", "tool_calling", "json_object", "max_num_image"]
 
 
-class MultimodalObject:
+class MultimodalObject(Protocol):
     def __init__(self, data: Union[str, Dict]):
         """
         The data can either be input file, input URL, or OpenAI format.
@@ -29,23 +31,22 @@ class MultimodalObject:
         return {}
 
 
-def convert_to_ag_format_list(content: Union[str, List], mm_tag_style: Optional[str] = None) -> List[dict]:
+def convert_to_ag_format_list(content: Union[str, List, MultimodalObject], mm_tag_style: Optional[str] = None) -> List:
     """
     Converts input data to a standardized list format of AG objects. The input can be a JSON-formatted string,
     a dictionary representing a single item, or a list of dictionaries. This function standardizes these various
     formats into a consistent list of dictionaries formatted according to the AG specification, which might include
     converting string representations of data into structured AG format or wrapping single dictionaries into a list.
 
-
     The content can be either:
-    1. a string, which may need mm_tag_format
+    1. a string, which may need mm_tag_style
     2. a list of string and MultimodalObject, which should be return as is
     3. a list of dictionaries in OpenAI message content format, which may need to be converted to a list of string and MultimodalObject.
 
     Args:
         content (Union[str, Dict, List[dict]]): The input data to convert.
         a dictionary (representing a single AG object), or a list of dictionaries (representing multiple AG objects).
-        mm_tag_format (str): one of "html", "token", or None. If provided, the function will parse multimodal objects
+        mm_tag_style (str): one of "html", "token", or None. If provided, the function will parse multimodal objects
             from the text using the specified format.
             Default to None, which means we do not parse the string to extract multimodal objects.
 
@@ -57,22 +58,20 @@ def convert_to_ag_format_list(content: Union[str, List], mm_tag_style: Optional[
 
     converted = []
 
+    if isinstance(content, AGImage):
+        # TODO: check other multimodal objects
+        return [content.openai_format()]
+
     if isinstance(content, str):
         if mm_tag_style == "html":
-            # TODO: add parsing html and tokenzier later.
-            pass
+            return gpt4v_formatter(content, img_format="pil", output_format="autogen", mm_tag_style="html")
         elif mm_tag_style == "tokenizer":
-            pass
+            # TODO: add parsing tokenzier later.
+            return []
         else:
-            raise ValueError(f"Invalid mm_tag_style: {mm_tag_style}")
-
-        return converted  # TODO: converted content
+            return [content]
 
     assert isinstance(content, list), "content must be a list"
-
-    if all(isinstance(x, str) or isinstance(x, MultimodalObject) for x in content):
-        # The input is already in AG format
-        return content
 
     if all(isinstance(x, dict) for x in content):
         # The input is openAI format
@@ -83,9 +82,15 @@ def convert_to_ag_format_list(content: Union[str, List], mm_tag_style: Optional[
                 converted.append(component["text"])
             elif component["type"] == "image_url":
                 # TODO: recursive import, how to define AGImage here?
-                converted.append(MultimodalObject(component))
+                converted.append(AGImage(component["image_url"]["url"]))
+        return converted
 
-    return converted
+    if all(isinstance(x, str) or isinstance(x, AGImage) for x in content):
+        # TODO: check other multimodal objects
+        # The input is already in AG format
+        return content
+
+    raise ValueError("Invalid content format")
 
 
 def ag_params_to_openai(params: Dict) -> Dict:

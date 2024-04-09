@@ -4,12 +4,14 @@ from typing import Callable, Dict, List, Optional, Union
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.img_utils import (
+    AGImage,
     convert_base64_to_data_uri,
     get_image_data,
     get_pil_image,
     gpt4v_formatter,
 )
 from autogen.code_utils import content_str
+from autogen.multimodal_utils import MultimodalObject, convert_to_ag_format_list
 from autogen.oai.client import OpenAIWrapper
 
 DEFAULT_DESCRIPTION_PROMPT = (
@@ -100,7 +102,7 @@ class VisionCapability(AgentCapability):
         # Register a hook for processing the last message.
         agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
 
-    def process_last_received_message(self, content: Union[str, List[dict]]) -> str:
+    def process_last_received_message(self, content: Union[str, List]) -> List:
         """
         Processes the last received message content by normalizing and augmenting it
         with descriptions of any included images. The function supports input content
@@ -125,61 +127,29 @@ class VisionCapability(AgentCapability):
 
         Raises:
             AssertionError: If an item in the content list is not a dictionary.
-
-        Examples:
-            Assuming `self._get_image_caption(img_data)` returns
-            "A beautiful sunset over the mountains" for the image.
-
-        - Input as String:
-            content = "Check out this cool photo!"
-            Output: "Check out this cool photo!"
-            (Content is a string without an image, remains unchanged.)
-
-        - Input as String, with image location:
-            content = "What's weather in this cool photo: <img http://example.com/photo.jpg>"
-            Output: "What's weather in this cool photo: <img http://example.com/photo.jpg> in case you can not see, the caption of this image is:
-            A beautiful sunset over the mountains\n"
-            (Caption added after the image)
-
-        - Input as List with Text Only:
-            content = [{"type": "text", "text": "Here's an interesting fact."}]
-            Output: "Here's an interesting fact."
-            (No images in the content, it remains unchanged.)
-
-        - Input as List with Image URL:
-            content = [
-                {"type": "text", "text": "What's weather in this cool photo:"},
-                {"type": "image_url", "image_url": {"url": "http://example.com/photo.jpg"}}
-            ]
-            Output: "What's weather in this cool photo: <img http://example.com/photo.jpg> in case you can not see, the caption of this image is:
-            A beautiful sunset over the mountains\n"
-            (Caption added after the image)
         """
         # normalize the content into the gpt-4v format for multimodal
         # we want to keep the URL format to keep it concise.
-        if isinstance(content, str):
-            content = gpt4v_formatter(copy.deepcopy(content), img_format="url", mm_tag_style=self._mm_tag_style)
+        content: List = convert_to_ag_format_list(content, self._mm_tag_style)
 
-        aug_content: str = ""
+        aug_content = []
         for item in content:
-            assert isinstance(item, dict)
-            if item["type"] == "text":
-                aug_content += item["text"]
-            elif item["type"] == "image_url":
-                img_url = item["image_url"]["url"]
-                img_caption = ""
-
+            if isinstance(item, AGImage):
+                img_url = item.image_file
+                pil_image = item.data
                 if self._custom_caption_func:
-                    img_caption = self._custom_caption_func(img_url, get_pil_image(img_url), self._lmm_client)
+                    img_caption = self._custom_caption_func(img_url, pil_image, self._lmm_client)
                 elif self._lmm_client:
-                    img_data = get_image_data(img_url)
-                    img_caption = self._get_image_caption(img_data)
+                    img_caption = self._get_image_caption(pil_image)
                 else:
                     img_caption = ""
-
-                aug_content += f"<img {img_url}> in case you can not see, the caption of this image is: {img_caption}\n"
+                aug_content += [
+                    item,
+                    f"In case you can not see the image, the caption of this image is: {img_caption}\n",
+                ]
             else:
-                print(f"Warning: the input type should either be `test` or `image_url`. Skip {item['type']} here.")
+                # the item is string, audio, video, etc.
+                aug_content.append(item)
 
         return aug_content
 
