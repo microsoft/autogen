@@ -39,7 +39,7 @@ public class Choice
     /// Gets or Sets FinishReason
     /// </summary>
     [JsonPropertyName("finish_reason")]
-    public FinishReasonEnum FinishReason { get; set; }
+    public FinishReasonEnum? FinishReason { get; set; }
 
     [JsonPropertyName("index")]
     public int Index { get; set; }
