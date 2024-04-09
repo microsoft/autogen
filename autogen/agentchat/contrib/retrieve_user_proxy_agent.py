@@ -317,7 +317,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             print(colored(func_print, "green"), flush=True)
             current_tokens += _doc_tokens
             doc_contents += doc + "\n"
-            self._current_docs_in_context.append(results["metadatas"][0][idx].get("source", ""))
+            _metadatas = results.get("metadatas")
+            if isinstance(_metadatas, list) and isinstance(_metadatas[0][idx], dict):
+                self._current_docs_in_context.append(results["metadatas"][0][idx].get("source", ""))
             self._doc_idx = idx
             self._doc_ids.append(results["ids"][0][idx])
             self._doc_contents.append(doc)

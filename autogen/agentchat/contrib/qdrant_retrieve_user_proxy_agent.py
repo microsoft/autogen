@@ -298,5 +298,6 @@ def query_qdrant(
     data = {
         "ids": [[result.id for result in sublist] for sublist in results],
         "documents": [[result.document for result in sublist] for sublist in results],
+        "metadatas": [[result.metadata for result in sublist] for sublist in results],
     }
     return data
