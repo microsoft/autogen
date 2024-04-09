@@ -36,7 +36,7 @@ class SimpleTextBrowser:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
-        bing_base_url: Optional[str] = None,
+        bing_base_url: Optional[str] = "https://api.bing.microsoft.com/v7.0/search",
         bing_api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
@@ -145,10 +145,6 @@ class SimpleTextBrowser:
         request_kwargs["params"]["textFormat"] = "raw"
 
         request_kwargs["stream"] = False
-
-        # Supports custom base url for bing search
-        if not self.bing_base_url:
-            self.bing_base_url = "https://api.bing.microsoft.com/v7.0/search"
 
         # Make the request
         response = requests.get(self.bing_base_url, **request_kwargs)
