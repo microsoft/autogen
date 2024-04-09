@@ -1,5 +1,5 @@
-pip install azure-cosmos
-
+#Install Azure Cosmos DB SDK if not already
+# pip install azure-cosmos
 
 import pickle
 from typing import Any, Optional, Union
