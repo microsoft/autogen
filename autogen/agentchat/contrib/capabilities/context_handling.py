@@ -35,7 +35,8 @@ class TransformChatHistory:
     3. Third, it limits the total number of tokens in the chat history
 
     When adding this capability to an agent, the following are modified:
-    - A hook is added to the hookable method `process_all_messages_before_reply` to transform the received messages for possible truncation.
+    - A hook is added to the hookable method `process_all_messages_before_reply` to transform the
+    received messages for possible truncation.
     Not modifying the stored message history.
     """
 
