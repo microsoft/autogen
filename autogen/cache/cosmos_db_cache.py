@@ -72,7 +72,7 @@ class CosmosDBCache(AbstractCache):
         """
         serialized_value = pickle.dumps(value)
         item = {'id': key, 'partitionKey': str(self.seed), 'data': serialized_value}
-        await self.container.upsert_item(item)
+        self.container.upsert_item(item)
 
     def close(self) -> None:
         """
