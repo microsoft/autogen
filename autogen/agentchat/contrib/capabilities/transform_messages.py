@@ -1,10 +1,9 @@
 import copy
 from typing import Dict, List
 
-from termcolor import colored
-
 from autogen import ConversableAgent
 
+from ....formatting_utils import colored
 from .transforms import MessageTransform
 
 
@@ -63,24 +62,24 @@ class TransformMessages:
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
-        temp_messages = copy.deepcopy(messages)
+        post_transform_messages = copy.deepcopy(messages)
         system_message = None
 
         if messages[0]["role"] == "system":
             system_message = copy.deepcopy(messages[0])
-            temp_messages.pop(0)
+            post_transform_messages.pop(0)
 
         for transform in self._transforms:
             if self._verbose:
-                pre_transform_messages = copy.deepcopy(temp_messages)
-                temp_messages = transform.apply_transform(temp_messages)
-                stats_str, had_effect = transform.get_stats_str(pre_transform_messages, temp_messages)
+                pre_transform_messages = copy.deepcopy(post_transform_messages)
+                post_transform_messages = transform.apply_transform(post_transform_messages)
+                stats_str, had_effect = transform.get_stats(pre_transform_messages, post_transform_messages)
                 if had_effect:
-                    print(stats_str)
+                    print(colored(stats_str, "yellow"))
             else:
-                temp_messages = transform.apply_transform(temp_messages)
+                post_transform_messages = transform.apply_transform(post_transform_messages)
 
         if system_message:
-            temp_messages.insert(0, system_message)
+            post_transform_messages.insert(0, system_message)
 
-        return temp_messages
+        return post_transform_messages

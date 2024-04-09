@@ -26,10 +26,8 @@ class MessageTransform(Protocol):
         """
         ...
 
-    def get_stats_str(
-        self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]
-    ) -> Tuple[str, bool]:
-        """Creates the string includin the stats of the transformation
+    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        """Creates the string including the stats of the transformation
 
         Alongside the string, it returns a boolean indicating whether the transformation had an effect or not.
 
@@ -77,7 +75,7 @@ class MessageHistoryLimiter:
 
         return messages[-self._max_messages :]
 
-    def get_stats_str(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_len = len(pre_transform_messages)
         post_transform_messages_len = len(post_transform_messages)
 
@@ -167,7 +165,7 @@ class MessageTokenLimiter:
 
         return processed_messages
 
-    def get_stats_str(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
+    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in pre_transform_messages)
         post_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in post_transform_messages)
 

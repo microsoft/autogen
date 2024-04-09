@@ -2,6 +2,7 @@ import copy
 from typing import Dict, List
 
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 from autogen.agentchat.contrib.capabilities.transforms import MessageHistoryLimiter, MessageTokenLimiter, _count_tokens
 
@@ -39,59 +40,53 @@ def message_token_limiter() -> MessageTokenLimiter:
 # MessageHistoryLimiter tests
 
 
-def test_MessageHistoryLimiter_apply_transform_long(message_history_limiter, long_messages):
-    transformed_messages = message_history_limiter.apply_transform(long_messages)
-    assert len(transformed_messages) == 3
+@pytest.mark.parametrize(
+    "messages, expected_len", [(lazy_fixture("long_messages"), 3), (lazy_fixture("short_messages"), 3)]
+)
+def test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_len):
+    transformed_messages = message_history_limiter.apply_transform(messages)
+    assert len(transformed_messages) == expected_len
 
 
-def test_MessageHistoryLimiter_apply_transform_short(message_history_limiter, short_messages):
-    transformed_messages = message_history_limiter.apply_transform(short_messages)
-    assert len(transformed_messages) == 3
-
-
-def test_MessageHistoryLimiter_get_stats_str_long(message_history_limiter, long_messages):
-    pre_transform_messages = copy.deepcopy(long_messages)
-    transformed_messages = message_history_limiter.apply_transform(long_messages)
-    stats_str, had_effect = message_history_limiter.get_stats_str(pre_transform_messages, transformed_messages)
-    assert had_effect
-    assert stats_str == "Removed 2 messages. Number of messages reduced from 5 to 3."
-
-
-def test_MessageHistoryLimiter_get_stats_str_short(message_history_limiter, short_messages):
-    pre_transform_messages = copy.deepcopy(short_messages)
-    transformed_messages = message_history_limiter.apply_transform(short_messages)
-    stats_str, had_effect = message_history_limiter.get_stats_str(pre_transform_messages, transformed_messages)
-    assert not had_effect
-    assert stats_str == "No messages were removed."
+@pytest.mark.parametrize(
+    "messages, expected_stats, expected_effect",
+    [
+        (lazy_fixture("long_messages"), "Removed 2 messages. Number of messages reduced from 5 to 3.", True),
+        (lazy_fixture("short_messages"), "No messages were removed.", False),
+    ],
+)
+def test_message_history_limiter_get_stats(message_history_limiter, messages, expected_stats, expected_effect):
+    pre_transform_messages = copy.deepcopy(messages)
+    transformed_messages = message_history_limiter.apply_transform(messages)
+    stats_str, had_effect = message_history_limiter.get_stats(pre_transform_messages, transformed_messages)
+    assert had_effect == expected_effect
+    assert stats_str == expected_stats
 
 
 # MessageTokenLimiter tests
 
 
-def test_MessageTokenLimiter_apply_transform_long(message_token_limiter, long_messages):
-    transformed_messages = message_token_limiter.apply_transform(long_messages)
-    assert sum(_count_tokens(msg["content"]) for msg in transformed_messages) == 9
+@pytest.mark.parametrize(
+    "messages, expected_token_count", [(lazy_fixture("long_messages"), 9), (lazy_fixture("short_messages"), 3)]
+)
+def test_message_token_limiter_apply_transform(message_token_limiter, messages, expected_token_count):
+    transformed_messages = message_token_limiter.apply_transform(messages)
+    assert sum(_count_tokens(msg["content"]) for msg in transformed_messages) == expected_token_count
 
 
-def test_MessageTokenLimiter_apply_transform_short(message_token_limiter, short_messages):
-    transformed_messages = message_token_limiter.apply_transform(short_messages)
-    assert sum(_count_tokens(msg["content"]) for msg in transformed_messages) == 3
-
-
-def test_MessageTokenLimiter_get_stats_str_long(message_token_limiter, long_messages):
-    pre_transform_messages = copy.deepcopy(long_messages)
-    transformed_messages = message_token_limiter.apply_transform(long_messages)
-    stats_str, had_effect = message_token_limiter.get_stats_str(pre_transform_messages, transformed_messages)
-    assert had_effect
-    assert stats_str == "Truncated 6 tokens. Number of tokens reduced from 15 to 9"
-
-
-def test_MessageTokenLimiter_get_stats_str_short(message_token_limiter, short_messages):
-    pre_transform_messages = copy.deepcopy(short_messages)
-    transformed_messages = message_token_limiter.apply_transform(short_messages)
-    stats_str, had_effect = message_token_limiter.get_stats_str(pre_transform_messages, transformed_messages)
-    assert not had_effect
-    assert stats_str == "No tokens were truncated."
+@pytest.mark.parametrize(
+    "messages, expected_stats, expected_effect",
+    [
+        (lazy_fixture("long_messages"), "Truncated 6 tokens. Number of tokens reduced from 15 to 9", True),
+        (lazy_fixture("short_messages"), "No tokens were truncated.", False),
+    ],
+)
+def test_message_token_limiter_get_stats(message_token_limiter, messages, expected_stats, expected_effect):
+    pre_transform_messages = copy.deepcopy(messages)
+    transformed_messages = message_token_limiter.apply_transform(messages)
+    stats_str, had_effect = message_token_limiter.get_stats(pre_transform_messages, transformed_messages)
+    assert had_effect == expected_effect
+    assert stats_str == expected_stats
 
 
 if __name__ == "__main__":
@@ -110,12 +105,18 @@ if __name__ == "__main__":
     message_history_limiter = MessageHistoryLimiter(max_messages=3)
     message_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
 
-    test_MessageHistoryLimiter_apply_transform_long(message_history_limiter, long_messages)
-    test_MessageHistoryLimiter_apply_transform_short(message_history_limiter, short_messages)
-    test_MessageHistoryLimiter_get_stats_str_long(message_history_limiter, long_messages)
-    test_MessageHistoryLimiter_get_stats_str_short(message_history_limiter, short_messages)
+    # Call the MessageHistoryLimiter tests
+    test_message_history_limiter_apply_transform(message_history_limiter, long_messages, 3)
+    test_message_history_limiter_apply_transform(message_history_limiter, short_messages, 3)
+    test_message_history_limiter_get_stats(
+        message_history_limiter, long_messages, "Removed 2 messages. Number of messages reduced from 5 to 3.", True
+    )
+    test_message_history_limiter_get_stats(message_history_limiter, short_messages, "No messages were removed.", False)
 
-    test_MessageTokenLimiter_apply_transform_long(message_token_limiter, long_messages)
-    test_MessageTokenLimiter_apply_transform_short(message_token_limiter, short_messages)
-    test_MessageTokenLimiter_get_stats_str_long(message_token_limiter, long_messages)
-    test_MessageTokenLimiter_get_stats_str_short(message_token_limiter, short_messages)
+    # Call the MessageTokenLimiter tests
+    test_message_token_limiter_apply_transform(message_token_limiter, long_messages, 9)
+    test_message_token_limiter_apply_transform(message_token_limiter, short_messages, 3)
+    test_message_token_limiter_get_stats(
+        message_token_limiter, long_messages, "Truncated 6 tokens. Number of tokens reduced from 15 to 9", True
+    )
+    test_message_token_limiter_get_stats(message_token_limiter, short_messages, "No tokens were truncated.", False)
