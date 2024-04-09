@@ -6,7 +6,7 @@ from autogen.experimental.types import ChatMessage, StreamResponse
 
 
 @runtime_checkable
-class Chat(Protocol):
+class ChatOrchestrator(Protocol):
     async def step(self) -> ChatMessage: ...
 
     @property
@@ -28,11 +28,11 @@ class Chat(Protocol):
 
 
 @runtime_checkable
-class ChatStream(Chat, Protocol):
+class ChatOrchestratorStream(ChatOrchestrator, Protocol):
     def stream_step(self) -> AsyncGenerator[StreamResponse, None]: ...
 
 
-async def run(conversation: Chat) -> str:
+async def run(conversation: ChatOrchestrator) -> str:
     while not conversation.done:
         step = await conversation.step()
         print(step)

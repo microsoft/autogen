@@ -7,7 +7,7 @@ from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
 
 from ..summarizer import ChatSummarizer
-from ..chat import Chat, ChatStream
+from ..chat import ChatOrchestrator, ChatOrchestratorStream
 from ..agent import Agent, AgentStream
 from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, ToolMessage, UserMessage
 
@@ -17,12 +17,12 @@ DEFAULT_INTRO_MSG = (
 
 
 def _introduction_message(agents: List[Agent], intro_message: str) -> str:
-    participant_roles = [f"{agent.name}: {agent.description}".strip() for agent in agents]
+    participant_roles = [f"{agent.name}: {agent.description}".strip() for agent   in agents]
     slash_n = "\n"
     return f"{intro_message}{slash_n}{slash_n}{slash_n.join(participant_roles)}"
 
 
-class GroupChat(ChatStream):
+class GroupChat(ChatOrchestratorStream):
     """(Experimental) This is a work in progress new interface for two person chats."""
 
     _termination_manager: TerminationManager
@@ -72,7 +72,7 @@ class GroupChat(ChatStream):
     @property
     def result(self) -> str:
         if not self.done:
-            raise ValueError("Chat is not done yet.")
+            raise ValueError("ChatOrchestrator is not done yet.")
 
         assert self._summary is not None
         return self._summary

@@ -1,11 +1,11 @@
 from typing import List, Optional
-from autogen.experimental.chat import Chat
+from autogen.experimental.chat import ChatOrchestrator
 from autogen.experimental.types import AssistantMessage, ChatMessage
 from ..agent import Agent
 
 
 class ChatAgent(Agent):
-    def __init__(self, name: str, chat: Chat, description: Optional[str] = None, intitial_message: str = ""):
+    def __init__(self, name: str, chat: ChatOrchestrator, description: Optional[str] = None, intitial_message: str = ""):
         self._chat = chat
         self._name = name
         self._description = description
