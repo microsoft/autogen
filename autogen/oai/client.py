@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 import logging
 import sys
 import uuid
@@ -411,6 +412,10 @@ class OpenAIWrapper:
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
         api_type = config.get("api_type")
+        default_headers = config.get("default_headers")
+        if isinstance(default_headers, str):
+            openai_config["default_headers"] = json.loads(default_headers)
+
         model_client_cls_name = config.get("model_client_cls")
         if model_client_cls_name is not None:
             # a config for a custom client is set
