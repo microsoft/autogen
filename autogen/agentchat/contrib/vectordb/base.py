@@ -31,7 +31,24 @@ QueryResults = List[List[Tuple[Document, float]]]
 class VectorDB(Protocol):
     """
     Abstract class for vector database. A vector database is responsible for storing and retrieving documents.
+
+    Attributes:
+        active_collection: Any | The active collection in the vector database. Make get_collection faster. Default is None.
+        type: str | The type of the vector database, chroma, pgvector, etc. Default is "".
+
+    Methods:
+        create_collection: Callable[[str, bool, bool], Any] | Create a collection in the vector database.
+        get_collection: Callable[[str], Any] | Get the collection from the vector database.
+        delete_collection: Callable[[str], Any] | Delete the collection from the vector database.
+        insert_docs: Callable[[List[Document], str, bool], None] | Insert documents into the collection of the vector database.
+        update_docs: Callable[[List[Document], str], None] | Update documents in the collection of the vector database.
+        delete_docs: Callable[[List[ItemID], str], None] | Delete documents from the collection of the vector database.
+        retrieve_docs: Callable[[List[str], str, int, float], QueryResults] | Retrieve documents from the collection of the vector database based on the queries.
+        get_docs_by_ids: Callable[[List[ItemID], str], List[Document]] | Retrieve documents from the collection of the vector database based on the ids.
     """
+
+    active_collection: Any = None
+    type: str = ""
 
     def create_collection(self, collection_name: str, overwrite: bool = False, get_or_create: bool = True) -> Any:
         """

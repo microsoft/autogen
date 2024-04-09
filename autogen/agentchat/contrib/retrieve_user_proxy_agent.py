@@ -123,6 +123,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                     If it's a string, it should be the type of the vector db, such as "chroma"; otherwise,
                     it should be an instance of the VectorDB protocol. Default is "chroma".
                     Set `None` to use the deprecated `client`.
+                - `db_config` (Optional, Dict) - the config for the vector db. Default is `{}`. Please make
+                    sure you understand the config for the vector db you are using, otherwise, leave it as `{}`.
+                    Only valid when `vector_db` is a string.
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
@@ -244,6 +247,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._retrieve_config = {} if retrieve_config is None else retrieve_config
         self._task = self._retrieve_config.get("task", "default")
         self._vector_db = self._retrieve_config.get("vector_db", "chroma")
+        self._db_config = self._retrieve_config.get("db_config", {})
         self._client = self._retrieve_config.get("client", chromadb.Client())
         self._docs_path = self._retrieve_config.get("docs_path", None)
         self._extra_docs = self._retrieve_config.get("extra_docs", False)
@@ -286,9 +290,11 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             self._is_termination_msg_retrievechat if is_termination_msg is None else is_termination_msg
         )
         if isinstance(self._vector_db, str):
-            self._vector_db = VectorDBFactory.create_vector_db(
-                self._vector_db, path="tmp/db", embedding_function=self._embedding_function
-            )
+            if not isinstance(self._db_config, dict):
+                raise ValueError("`db_config` should be a dictionary.")
+            if "embedding_function" in self._retrieve_config:
+                self._db_config["embedding_function"] = self._embedding_function
+            self._vector_db = VectorDBFactory.create_vector_db(db_type=self._vector_db, **self._db_config)
         self.register_reply(Agent, RetrieveUserProxyAgent._generate_retrieve_user_reply, position=2)
 
     def _init_db(self):
