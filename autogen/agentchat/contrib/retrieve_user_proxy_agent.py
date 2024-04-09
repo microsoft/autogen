@@ -1,19 +1,20 @@
 import re
-from typing import Callable, Dict, Optional, Union, List, Tuple, Any
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 from IPython import get_ipython
 
 try:
     import chromadb
 except ImportError:
     raise ImportError("Please install dependencies first. `pip install pyautogen[retrievechat]`")
-from autogen.agentchat.agent import Agent
-from autogen.agentchat import UserProxyAgent
-from autogen.retrieve_utils import create_vector_db_from_dir, query_vector_db, TEXT_FORMATS
-from autogen.token_count_utils import count_token
-from autogen.code_utils import extract_code
 from autogen import logger
-from ...formatting_utils import colored
+from autogen.agentchat import UserProxyAgent
+from autogen.agentchat.agent import Agent
+from autogen.code_utils import extract_code
+from autogen.retrieve_utils import TEXT_FORMATS, create_vector_db_from_dir, query_vector_db
+from autogen.token_count_utils import count_token
 
+from ...formatting_utils import colored
 
 PROMPT_DEFAULT = """You're a retrieve augmented chatbot. You answer user's questions based on your own knowledge and the
 context provided by the user. You should follow the following steps to answer a question:
@@ -234,7 +235,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self.custom_text_split_function = self._retrieve_config.get("custom_text_split_function", None)
         self._custom_text_types = self._retrieve_config.get("custom_text_types", TEXT_FORMATS)
         self._recursive = self._retrieve_config.get("recursive", True)
-        self._context_max_tokens = self._max_tokens * 0.8
+        self._context_max_tokens = self._retrieve_config.get("context_max_tokens", self._max_tokens * 0.8)
         self._collection = True if self._docs_path is None else False  # whether the collection is created
         self._ipython = get_ipython()
         self._doc_idx = -1  # the index of the current used doc

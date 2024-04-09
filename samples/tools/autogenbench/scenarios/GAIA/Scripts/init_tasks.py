@@ -5,8 +5,9 @@
 
 import json
 import os
-import sys
 import re
+import sys
+
 from huggingface_hub import snapshot_download
 
 SCRIPT_PATH = os.path.realpath(__file__)

@@ -1,21 +1,23 @@
 #!/usr/bin/env python3 -m pytest
 
-import datasets
+import json
+import os
 import sys
+from functools import partial
+from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
+
+import datasets
 import numpy as np
 import pytest
-from functools import partial
-import os
-import json
+
 import autogen
 from autogen.code_utils import (
     eval_function_completions,
     generate_assertions,
-    implement,
     generate_code,
+    implement,
 )
 from autogen.math_utils import eval_math_responses, solve_problem
-from test.oai.test_utils import KEY_LOC, OAI_CONFIG_LIST
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -121,8 +123,8 @@ def test_multi_model():
 
 def test_nocontext():
     try:
-        import openai
         import diskcache
+        import openai
     except ImportError as exc:
         print(exc)
         return
@@ -216,8 +218,8 @@ def test_humaneval(num_samples=1):
     autogen.Completion.clear_cache(cache_path_root="{here}/cache")
     autogen.Completion.set_cache(seed)
     try:
-        import openai
         import diskcache
+        import openai
     except ImportError as exc:
         print(exc)
         return
@@ -338,8 +340,8 @@ def test_humaneval(num_samples=1):
 
 def test_math(num_samples=-1):
     try:
-        import openai
         import diskcache
+        import openai
     except ImportError as exc:
         print(exc)
         return

@@ -1,26 +1,29 @@
-from autogencap.Constants import Directory_Svc_Topic
-from autogencap.Config import xpub_url, xsub_url, router_url
-from autogencap.DebugLog import Debug, Info, Error
-from autogencap.ActorConnector import ActorConnector, ActorSender
-from autogencap.Actor import Actor
-from autogencap.Broker import Broker
-from autogencap.proto.CAP_pb2 import (
-    ActorRegistration,
-    ActorInfo,
-    ActorLookup,
-    ActorLookupResponse,
-    Ping,
-    Pong,
-    ActorInfoCollection,
-    Error as ErrorMsg,
-    ErrorCode,
-)
-from autogencap.utility import report_error_msg
-
-import zmq
+import re
 import threading
 import time
-import re
+
+import zmq
+
+from autogencap.Actor import Actor
+from autogencap.ActorConnector import ActorConnector, ActorSender
+from autogencap.Broker import Broker
+from autogencap.Config import router_url, xpub_url, xsub_url
+from autogencap.Constants import Directory_Svc_Topic
+from autogencap.DebugLog import Debug, Error, Info
+from autogencap.proto.CAP_pb2 import (
+    ActorInfo,
+    ActorInfoCollection,
+    ActorLookup,
+    ActorLookupResponse,
+    ActorRegistration,
+    ErrorCode,
+    Ping,
+    Pong,
+)
+from autogencap.proto.CAP_pb2 import (
+    Error as ErrorMsg,
+)
+from autogencap.utility import report_error_msg
 
 # TODO (Future DirectorySv PR) use actor description, network_id, other properties to make directory
 # service more generic and powerful
@@ -108,7 +111,7 @@ class DirectorySvc:
         Debug("DirectorySvc", "Pinging existing DirectorySvc")
         ping = Ping()
         serialized_msg = ping.SerializeToString()
-        _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=0)
+        _, _, resp = self._directory_connector.binary_request(Ping.__name__, serialized_msg, retry=1)
         if resp is None:
             return True
         return False

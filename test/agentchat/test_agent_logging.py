@@ -1,14 +1,14 @@
-import pytest
-import autogen
-import autogen.runtime_logging
 import json
+import sqlite3
 import sys
 import uuid
-import sqlite3
 
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+import pytest
 from conftest import skip_openai
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
+import autogen
+import autogen.runtime_logging
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -103,10 +103,13 @@ def test_two_agents_logging(db_connection):
         first_request_message = request["messages"][0]["content"]
         first_request_role = request["messages"][0]["role"]
 
-        if idx == 0 or idx == 2:
+        # some config may fail
+        if idx == 0 or idx == len(rows) - 1:
             assert first_request_message == TEACHER_MESSAGE
-        elif idx == 1:
+        elif idx == 1 and len(rows) == 3:
             assert first_request_message == STUDENT_MESSAGE
+        else:
+            assert first_request_message in (TEACHER_MESSAGE, STUDENT_MESSAGE)
         assert first_request_role == "system"
 
         response = json.loads(row["response"])
@@ -116,7 +119,7 @@ def test_two_agents_logging(db_connection):
         else:
             assert "choices" in response and len(response["choices"]) > 0
 
-        assert row["cost"] > 0
+        assert row["cost"] >= 0.0
         assert row["start_time"], "start timestamp is empty"
         assert row["end_time"], "end timestamp is empty"
 

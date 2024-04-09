@@ -29,10 +29,10 @@ from ..coding.base import CodeExecutor
 from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
+from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
-from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 
@@ -138,6 +138,9 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+        # Take a copy to avoid modifying the given dict
+        if isinstance(llm_config, dict):
+            llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
 
