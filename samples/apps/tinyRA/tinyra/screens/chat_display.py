@@ -71,6 +71,7 @@ class ReactiveMessageWidget(Markdown):
         content = self.message.content
 
         return f"[{display_id}] {display_name}: {content}"
+        # return f"{display_name}: sample"
 
 
 class ClickableReactiveMessageWidget(ReactiveMessageWidget):

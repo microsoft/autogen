@@ -46,7 +46,9 @@ Footer {
 }
 
 .message{
-    padding: 1;
+    /* padding: 1;  */
+    padding-top: 1;
+    padding-left: 1;
 }
 
 .info-message {
@@ -70,6 +72,8 @@ Footer {
 .assistant-message {
     border: $primary;
     margin-left: 10;
+    content-align: left middle;
+    /* padding: 0; */
 }
 
 NotificationScreen {

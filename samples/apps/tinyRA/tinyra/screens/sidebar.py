@@ -59,3 +59,24 @@ class Sidebar(Grid):
         with Grid(id="directory-tree-footer"):
             yield Button("Delete", variant="error", id="delete-file-button")
             yield Button("Empty Work Dir", variant="error", id="empty-work-dir-button")
+
+    # @on(Button.Pressed, "#empty-work-dir-button")
+    # def empty_work_dir(self, event: Button.Pressed) -> None:
+    #     work_dir = APP_CONFIG.get_workdir()
+    #     for file in os.listdir(work_dir):
+    #         file_path = os.path.join(work_dir, file)
+    #         if os.path.isfile(file_path):
+    #             os.remove(file_path)
+    #         elif os.path.isdir(file_path):
+    #             shutil.rmtree(file_path)
+
+    # @on(Button.Pressed, "#delete-file-button")
+    # def delete_file(self, event: Button.Pressed) -> None:
+    #     dir_tree = self.query_one("#directory-tree > DirectoryTree", DirectoryTree)
+    #     highlighted_node = dir_tree.cursor_node
+
+    #     if highlighted_node is not None:
+    #         dir_tree.action_cursor_up()
+    #         if highlighted_node.data is not None:
+    #             file_path = str(highlighted_node.data.path)
+    #             APP_CONFIG.delete_file_or_dir(file_path)

@@ -2,41 +2,28 @@ import asyncio
 from datetime import datetime
 import logging
 import argparse
-from collections import namedtuple
-import functools
-from dataclasses import dataclass
 from pathlib import Path
 
 from textual import on
-from textual.reactive import reactive
 from textual import work
 from textual.worker import Worker, get_current_worker
 from textual.app import App, ComposeResult
-from textual.screen import ModalScreen
-from textual.containers import ScrollableContainer, Grid, Container
+from textual.containers import Grid
 from textual.widgets import (
     Footer,
     Header,
-    Markdown,
-    Static,
     Input,
-    Label,
-    Collapsible,
-    # LoadingIndicator,
-    TabbedContent,
 )
 
 
-from .tools import Tool, InvalidToolError
-from .exceptions import ChatMessageError, ToolUpdateError, SubprocessError
+from .exceptions import SubprocessError
+from .messages import AppErrorMessage, SelectedReactiveMessage
 
-from .database.database import ChatMessage, User
+from .llm import AutoGenChatCompletionService
+from .database.database import ChatMessage
 from .database.database_sqllite import SQLLiteDatabaseManager
 from .files import CodespacesFileManager
-
-from .agents.agents import ReversedAgents
 from .agents.autogen_agents import AutoGenAgentManager
-
 from .app_config import AppConfiguration
 
 from .screens.quit_screen import QuitScreen
@@ -44,14 +31,7 @@ from .screens.sidebar import Sidebar
 from .screens.chat_display import ChatDisplay, message_display_handler
 from .screens.settings import SettingsScreen
 from .screens.notifications import NotificationScreen
-
-from .messages import AppErrorMessage, SelectedReactiveMessage
-
-from .llm import AutoGenChatCompletionService
-
-from .profiler.profiler import Profiler, MessageProfile, ChatProfile, State
-
-from .widgets.custom_widgets import NamedLoadingIndicator
+from .screens.monitoring import MonitoringScreen
 
 
 class ChatInput(Input):
@@ -61,293 +41,6 @@ class ChatInput(Input):
 
     def on_mount(self) -> None:
         self.focus()
-
-
-# class Title(Static):
-#     pass
-
-
-# class OptionGroup(Container):
-#     pass
-
-
-# class DarkSwitch(Horizontal):
-#     def compose(self) -> ComposeResult:
-#         yield Switch(value=self.app.dark)
-#         yield Static("Dark mode toggle", classes="label")
-
-#     def on_mount(self) -> None:
-#         self.watch(self.app, "dark", self.on_dark_change, init=False)
-
-#     def on_dark_change(self) -> None:
-#         self.query_one(Switch).value = self.app.dark
-
-#     def on_switch_changed(self, event: Switch.Changed) -> None:
-#         self.app.dark = event.value
-
-
-# class CustomMessage(Static):
-#     pass
-
-
-# class CloseScreen(Message):
-
-#     def __init__(self, screen_id: str) -> None:
-#         self.screen_id = screen_id
-#         super().__init__()
-
-
-class ProfileNode(Static):
-
-    message_profile: MessageProfile
-
-    DEFAULT_CSS = """
-    ProfileNode Markdown {
-        border: solid $primary;
-        padding: 1;
-    }
-"""
-
-    def compose(self) -> ComposeResult:
-        states = self.message_profile.states
-
-        def state_name_comparator(x: State, y: State):
-            return x.name < y.name
-
-        states.sort(key=functools.cmp_to_key(state_name_comparator))
-
-        state_display_str = " ".join([str(state) for state in states])
-
-        with Collapsible(collapsed=True, title=state_display_str):
-            yield Static(str(self.message_profile))
-            yield Markdown(str(self.message_profile.message))
-
-
-class ProfileDiagram(ScrollableContainer):
-
-    chat_profile: ChatProfile = reactive(None, recompose=True)
-
-    def compose(self) -> ComposeResult:
-
-        if self.chat_profile is None:
-            # yield Label("Profiling...")
-            yield NamedLoadingIndicator(text="Profiling")
-            return
-
-        num_messages = self.chat_profile.num_messages
-        yield Label(f"Number of messages: {num_messages}", classes="heading")
-        for message_profile in self.chat_profile.message_profiles:
-            node = ProfileNode()
-            node.message_profile = message_profile
-            yield node
-
-
-class ProfilerContainer(Container):
-
-    chat_history = reactive(None)
-    profile_diagram = None
-
-    def __init__(self, *args, root_id: int = -1, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.root_id = root_id
-
-    def on_mount(self) -> None:
-        self.set_interval(1, self.update_chat_history)
-
-    async def update_chat_history(self) -> None:
-        dbm = self.app.config.db_manager
-        self.chat_history = await dbm.get_chat_history(self.root_id)
-
-    def watch_chat_history(self, new_chat_history) -> None:
-        if new_chat_history is None:
-            return
-
-        self.start_profiling()
-
-    @work(thread=True, exclusive=True)
-    async def start_profiling(self):
-        chat_profile = await self.profile_chat()
-        if self.profile_diagram is None:
-            self.profile_diagram = ProfileDiagram()
-        self.profile_diagram.chat_profile = chat_profile
-
-    async def profile_chat(self) -> ChatProfile:
-        llm_service = self.app.config.llm_service
-        profiler = Profiler(llm_service=llm_service)
-
-        message_profile_list = []
-
-        for message in self.chat_history.messages:
-            msg_profile = profiler.profile_message(message)
-            message_profile_list.append(msg_profile)
-
-        chat_profile = ChatProfile(num_messages=len(self.chat_history.messages), message_profiles=message_profile_list)
-
-        return chat_profile
-
-    def compose(self):
-        if self.profile_diagram is None:
-            self.profile_diagram = ProfileDiagram()
-        yield self.profile_diagram
-
-
-class MonitoringScreen(ModalScreen):
-    """A screen that displays a chat history"""
-
-    BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
-
-    def __init__(self, *args, root_id: int = -1, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.root_id = root_id
-
-    def compose(self) -> ComposeResult:
-
-        # dbm = self.app.config.db_manager
-        # history = dbm.get_chat_history(self.root_msg_id)
-
-        with Grid(id="chat-screen"):
-
-            with Container(id="chat-screen-header"):
-                yield Label(f"Monitoring 🧵 Thread: {self.root_id}", classes="heading")
-
-            with TabbedContent("Overview", "Details", id="chat-screen-tabs"):
-                # with TabbedContent("Details", id="chat-screen-tabs"):
-
-                profiler = ProfilerContainer(id="chat-profiler", root_id=self.root_id)
-                yield profiler
-
-                with ScrollableContainer(id="chat-screen-contents"):
-                    yield ChatDisplay(root_id=self.root_id)
-
-            # with Horizontal(id="chat-screen-footer"):
-            # yield Button("Learn New Tool", variant="error", id="learn")
-
-    # @on(Button.Pressed, "#learn")
-    # def learn(self) -> None:
-    #     learning_screen = LearningScreen()
-    #     learning_screen.root_msg_id = self.root_msg_id
-    #     self.app.push_screen(learning_screen)
-
-
-# class LearningScreen(ModalScreen):
-
-#     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
-
-#     root_msg_id = None
-
-#     def compose(self) -> ComposeResult:
-#         with Grid(id="learning-screen"):
-#             yield Horizontal(Label("Interactive Tool Learning", classes="heading"), id="learning-screen-header")
-#             yield ScrollableContainer(
-#                 TextArea.code_editor(
-#                     f"""
-#                     # Learning a function for {self.root_msg_id}
-#                     """,
-#                     language="python",
-#                 ),
-#                 id="learning-screen-contents",
-#             )
-#             with Horizontal(id="learning-screen-footer"):
-#                 # yield Button("Start", variant="error", id="start-learning")
-#                 yield Button("Save", variant="primary", id="save")
-
-#     def on_mount(self) -> None:
-#         self.start_learning()
-
-#     @on(Button.Pressed, "#save")
-#     def save(self) -> None:
-#         widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
-#         code = widget.text
-#         name = code.split("\n")[0][1:]
-
-#         tool = Tool(name, code)
-#         try:
-#             tool.validate_tool()
-#             APP_CONFIG.update_tool(tool)
-#             self.app.pop_screen()
-#             self.app.push_screen(NotificationScreen(message="Tool saved successfully"))
-
-#         except InvalidToolError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
-
-#         except ToolUpdateError as e:
-#             error_message = f"{e}"
-#             self.post_message(AppErrorMessage(error_message))
-#             return
-
-#     @work(thread=True)
-#     async def start_learning(self) -> None:
-#         widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
-#         widget.text = "# Learning..."
-
-#         history = await a_fetch_chat_history(self.root_msg_id)
-#         name, code = learn_tool_from_history(history)
-
-#         widget.text = "#" + name + "\n" + code
-
-
-# def learn_tool_from_history(history: List[Dict[str, str]]) -> str:
-
-#     # return "hola"
-
-#     markdown = ""
-#     for msg in history:
-#         markdown += f"{msg['role']}: {msg['content']}\n"
-
-#     agent = ConversableAgent(
-#         "learning_assistant",
-#         llm_config=LLM_CONFIG,
-#         system_message="""You are a helpful assistant that for the given chat
-# history can return a standalone, documented python function.
-
-# Try to extract a most general version of the function based on the chat history.
-# That can be reused in the future for similar tasks. Eg do not use hardcoded arguments.
-# Instead make them function parameters.
-
-# The chat history contains a task the agents were trying to accomplish.
-# Analyze the following chat history to assess if the task was completed,
-# and if it was return the python function that would accomplish the task.
-#         """,
-#     )
-#     messages = [
-#         {
-#             "role": "user",
-#             "content": f"""The chat history is
-
-#             {markdown}
-
-#             Only generate a single python function in code blocks and nothing else.
-#             Make sure all imports are inside the function.
-#             Both ast.FunctionDef, ast.AsyncFunctionDef are acceptable.
-
-#             Function signature should be annotated properly.
-#             Function should return a string as the final result.
-#             """,
-#         }
-#     ]
-#     reply = agent.generate_reply(messages)
-#     from autogen.code_utils import extract_code
-
-#     # extract a code block from the reply
-#     code_blocks = extract_code(reply)
-#     lang, code = code_blocks[0]
-
-#     messages.append({"role": "assistant", "content": code})
-
-#     messages.append(
-#         {
-#             "role": "user",
-#             "content": """suggest a max two word english phrase that is a friendly
-#           display name for the function. Only reply with the name in a code block.
-#           no need to use an quotes or code blocks. Just two words.""",
-#         }
-#     )
-
-#     name = agent.generate_reply(messages)
-
-#     return name, code
 
 
 # def generate_response_process(msg_idx: int):
@@ -514,14 +207,6 @@ class TinyRA(App):
     def action_request_settings(self) -> None:
         self.push_screen(SettingsScreen())
 
-    # def action_toggle_sidebar(self) -> None:
-    #     self.logger.info("Toggling sidebar.")
-    #     sidebar = self.query_one(Sidebar)
-    #     if sidebar.has_class("-hidden"):
-    #         sidebar.remove_class("-hidden")
-    #     else:
-    #         sidebar.add_class("-hidden")
-
     def action_toggle_sidebar(self) -> None:
         self.logger.info("Toggling sidebar.")
         sidebar = self.query_one(Sidebar)
@@ -536,27 +221,6 @@ class TinyRA(App):
     @on(AppErrorMessage)
     def notify_error_to_user(self, event: AppErrorMessage) -> None:
         self.push_screen(NotificationScreen(message=event.message))
-
-    # @on(Button.Pressed, "#empty-work-dir-button")
-    # def empty_work_dir(self, event: Button.Pressed) -> None:
-    #     work_dir = APP_CONFIG.get_workdir()
-    #     for file in os.listdir(work_dir):
-    #         file_path = os.path.join(work_dir, file)
-    #         if os.path.isfile(file_path):
-    #             os.remove(file_path)
-    #         elif os.path.isdir(file_path):
-    #             shutil.rmtree(file_path)
-
-    # @on(Button.Pressed, "#delete-file-button")
-    # def delete_file(self, event: Button.Pressed) -> None:
-    #     dir_tree = self.query_one("#directory-tree > DirectoryTree", DirectoryTree)
-    #     highlighted_node = dir_tree.cursor_node
-
-    #     if highlighted_node is not None:
-    #         dir_tree.action_cursor_up()
-    #         if highlighted_node.data is not None:
-    #             file_path = str(highlighted_node.data.path)
-    #             APP_CONFIG.delete_file_or_dir(file_path)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         user_input = self.query_one("#chat-input-box", Input).value.strip()
