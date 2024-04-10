@@ -1,6 +1,8 @@
-##### Update on 0.0.11 (2024-03-26)
+##### Update on 0.0.11 (2024-04-10)
 - Add link to Discord channel in nuget's readme.md
 - Document improvements
+- In `AutoGen.OpenAI`, update `Azure.AI.OpenAI` to 1.0.0-beta.15 and add support for json mode and deterministic output in `OpenAIChatAgent` [Issue #2346](https://github.com/microsoft/autogen/issues/2346)
+- In `AutoGen.SemanticKernel`, update `SemanticKernel` package to 1.7.1
 - [API Breaking Change] Rename `PrintMessageMiddlewareExtension.RegisterPrintFormatMessageHook' to `PrintMessageMiddlewareExtension.RegisterPrintMessage`.
 ##### Update on 0.0.10 (2024-03-12)
 - Rename `Workflow` to `Graph`
