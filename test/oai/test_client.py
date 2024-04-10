@@ -9,13 +9,7 @@ import pytest
 
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from autogen.cache.cache import Cache
-from autogen.oai.client import (
-    LEGACY_CACHE_DIR,
-    LEGACY_DEFAULT_CACHE_SEED,
-    AzureOpenAI,
-    OpenAIClient,
-    PlaceHolderClient,
-)
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED, AzureOpenAI, OpenAIClient, PlaceHolderClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -83,10 +77,7 @@ def test_oai_tool_calling_extraction():
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "location": {
-                                "type": "string",
-                                "description": "The city and state e.g. San Francisco, CA",
-                            },
+                            "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
                             "unit": {"type": "string", "enum": ["c", "f"]},
                         },
                         "required": ["location"],
