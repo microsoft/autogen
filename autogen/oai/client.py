@@ -353,6 +353,14 @@ class OpenAIWrapper:
             {
                 "model": "llama-7B",
                 "base_url": "http://127.0.0.1:8080",
+            },
+            {
+                "model": "gpt-4",
+                "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
+                "api_type": "azure",
+                "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
+                "api_version": "2024-02-15-preview",
+                "default_headers": {"Authorization": f"Bearer {os.environ.get('AZURE_OPENAI_API')}"},
             }
         ]
         ```
