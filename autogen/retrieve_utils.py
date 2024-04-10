@@ -1,7 +1,7 @@
 import glob
 import os
 import re
-from typing import Callable, List, Union
+from typing import Callable, List, Tuple, Union
 from urllib.parse import urlparse
 
 import chromadb
@@ -160,8 +160,14 @@ def split_files_to_chunks(
     """Split a list of files into chunks of max_tokens."""
 
     chunks = []
+    sources = []
 
     for file in files:
+        if isinstance(file, tuple):
+            url = file[1]
+            file = file[0]
+        else:
+            url = None
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
 
@@ -179,11 +185,13 @@ def split_files_to_chunks(
             continue  # Skip to the next file if no text is available
 
         if custom_text_split_function is not None:
-            chunks += custom_text_split_function(text)
+            tmp_chunks = custom_text_split_function(text)
         else:
-            chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+            tmp_chunks = split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+        chunks += tmp_chunks
+        sources += [{"source": url if url else file}] * len(tmp_chunks)
 
-    return chunks
+    return chunks, sources
 
 
 def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
@@ -267,7 +275,7 @@ def parse_html_to_markdown(html: str, url: str = None) -> str:
     return webpage_text
 
 
-def get_file_from_url(url: str, save_path: str = None):
+def get_file_from_url(url: str, save_path: str = None) -> Tuple[str, str]:
     """Download a file from a URL."""
     if save_path is None:
         save_path = "tmp/chromadb"
@@ -303,7 +311,7 @@ def get_file_from_url(url: str, save_path: str = None):
         with open(save_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-    return save_path
+    return save_path, url
 
 
 def is_url(string: str):
@@ -383,12 +391,12 @@ def create_vector_db_from_dir(
             length = len(collection.get()["ids"])
 
         if custom_text_split_function is not None:
-            chunks = split_files_to_chunks(
+            chunks, sources = split_files_to_chunks(
                 get_files_from_dir(dir_path, custom_text_types, recursive),
                 custom_text_split_function=custom_text_split_function,
             )
         else:
-            chunks = split_files_to_chunks(
+            chunks, sources = split_files_to_chunks(
                 get_files_from_dir(dir_path, custom_text_types, recursive),
                 max_tokens,
                 chunk_mode,
@@ -401,6 +409,7 @@ def create_vector_db_from_dir(
             collection.upsert(
                 documents=chunks[i:end_idx],
                 ids=[f"doc_{j+length}" for j in range(i, end_idx)],  # unique for each doc
+                metadatas=sources[i:end_idx],
             )
     except ValueError as e:
         logger.warning(f"{e}")

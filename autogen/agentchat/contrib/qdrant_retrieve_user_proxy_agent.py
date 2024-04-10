@@ -199,12 +199,12 @@ def create_qdrant_from_dir(
         client.set_model(embedding_model)
 
     if custom_text_split_function is not None:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive),
             custom_text_split_function=custom_text_split_function,
         )
     else:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
         )
     logger.info(f"Found {len(chunks)} chunks.")
@@ -308,5 +308,6 @@ def query_qdrant(
         "ids": [[result.id for result in sublist] for sublist in results],
         "documents": [[result.document for result in sublist] for sublist in results],
         "distances": [[result.score for result in sublist] for sublist in results],
+        "metadatas": [[result.metadata for result in sublist] for sublist in results],
     }
     return data
