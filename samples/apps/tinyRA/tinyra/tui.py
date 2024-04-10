@@ -17,7 +17,7 @@ from textual.widgets import (
 
 
 from .exceptions import SubprocessError
-from .messages import AppErrorMessage, SelectedReactiveMessage
+from .messages import SelectedReactiveMessage, UserNotificationError, UserNotificationSuccess
 
 from .llm import AutoGenChatCompletionService
 from .database.database import ChatMessage
@@ -30,7 +30,7 @@ from .screens.quit_screen import QuitScreen
 from .screens.sidebar import Sidebar
 from .screens.chat_display import ChatDisplay, message_display_handler
 from .screens.settings import SettingsScreen
-from .screens.notifications import NotificationScreen
+from .screens.notifications import NotificationScreenError, NotificationScreenSuccess
 from .screens.monitoring import MonitoringScreen
 
 
@@ -218,9 +218,13 @@ class TinyRA(App):
                 self.screen.set_focus(None)
             sidebar.add_class("-hidden")
 
-    @on(AppErrorMessage)
-    def notify_error_to_user(self, event: AppErrorMessage) -> None:
-        self.push_screen(NotificationScreen(message=event.message))
+    @on(UserNotificationError)
+    def notify_error_to_user(self, event: UserNotificationError) -> None:
+        self.push_screen(NotificationScreenError(message=event.message))
+
+    @on(UserNotificationSuccess)
+    def notify_success_to_user(self, event: UserNotificationSuccess) -> None:
+        self.push_screen(NotificationScreenSuccess(message=event.message))
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         user_input = self.query_one("#chat-input-box", Input).value.strip()
@@ -276,7 +280,7 @@ class TinyRA(App):
         except SubprocessError as e:
             error_message = f"{e}"
             await dbm.set_chat_message("error", error_message, root_id=0, id=id + 1)
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
 
     @work(thread=True)
     async def generate_response(self, *args) -> None:

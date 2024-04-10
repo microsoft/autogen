@@ -21,7 +21,7 @@ from textual.widgets import (
 from ..exceptions import ToolUpdateError, InvalidToolError
 from ..database.database import User
 from ..tools import Tool
-from ..messages import AppErrorMessage
+from ..messages import UserNotificationError, UserNotificationSuccess
 
 
 class UserSettingsTab(Grid):
@@ -126,7 +126,7 @@ class ToolSettingsTab(Grid):
     async def create_new_tool(self) -> None:
         dbm = self.app.config.db_manager
 
-        tools = self.tools
+        tools = await dbm.get_tools()
         max_id = max(tools.id for tools in tools) if tools else 0
         new_id = max_id + 1
         new_tool_name = f"tool-{new_id}"
@@ -134,21 +134,21 @@ class ToolSettingsTab(Grid):
 
         try:
             tool.validate_tool()
-        except InvalidToolError as e:
+        except Exception as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         try:
             await dbm.set_tool(tool)
             self.app.logger.info(f"Created new tool: {new_tool_name}")
-        except ToolUpdateError as e:
+        except Exception as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         list_view_widget = self.query_one("#tool-list", ListView)
-        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{new_id}")
+        new_list_item = ListItem(Label(new_tool_name), id=f"tool-{tool.id}")
 
         list_view_widget.append(new_list_item)
         num_items = len(list_view_widget)
@@ -166,7 +166,7 @@ class ToolSettingsTab(Grid):
             tool_id = int(tool_id_str)
         except ValueError:
             error_message = "Tool ID must be an integer"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         # tool_id = int(self.query_one("#tool-id-input", Input).value)
@@ -176,7 +176,7 @@ class ToolSettingsTab(Grid):
             await dbm.delete_tool(tool_id)
         except ToolUpdateError as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         # remove the tool from the list view
@@ -207,19 +207,22 @@ class ToolSettingsTab(Grid):
             tool.validate_tool()
         except InvalidToolError as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         try:
             await dbm.set_tool(tool)
         except ToolUpdateError as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
+        else:
+            self.app.logger.info(f"Updated tool: {tool_name}")
+            self.post_message(UserNotificationSuccess(f"Successfully saved {tool_name}"))
 
         item_label = self.query_one(f"#tool-{tool_id} > Label", Label)
         item_label.update(tool_name)
-        self.screen.close_settings()
+        # self.screen.close_settings()
 
     async def on_list_view_selected(self, event: ListView.Selected) -> None:
         tool_id = int(event.item.id[5:])
@@ -230,7 +233,7 @@ class ToolSettingsTab(Grid):
             tool = await dbm.get_tool_with_id(tool_id)
         except Exception as e:
             error_message = f"{e}"
-            self.post_message(AppErrorMessage(error_message))
+            self.post_message(UserNotificationError(error_message))
             return
 
         self.app.logger.info(f"Selected tool: {tool}")

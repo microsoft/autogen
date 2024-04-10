@@ -49,12 +49,12 @@ class LearningTab(Grid):
 
     #     except InvalidToolError as e:
     #         error_message = f"{e}"
-    #         self.post_message(AppErrorMessage(error_message))
+    #         self.post_message(UserNotificationError(error_message))
     #         return
 
     #     except ToolUpdateError as e:
     #         error_message = f"{e}"
-    #         self.post_message(AppErrorMessage(error_message))
+    #         self.post_message(UserNotificationError(error_message))
     #         return
 
     @work(thread=True)
