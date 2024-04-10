@@ -67,7 +67,7 @@ class AssistantMessage:
 @dataclass
 class FunctionCallResult:
     content: str
-    tool_call_id: str
+    call_id: str
 
 
 @dataclass

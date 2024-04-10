@@ -134,7 +134,7 @@ def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallPara
 
 def tool_message_to_oai(message: FunctionCallMessage) -> Sequence[ChatCompletionToolMessageParam]:
     return [
-        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.tool_call_id)
+        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id)
         for x in message.call_results
     ]
 

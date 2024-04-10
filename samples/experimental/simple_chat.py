@@ -9,10 +9,11 @@ from autogen.experimental.termination_managers import ReflectionTerminationManag
 
 
 async def user_input(prompt: str) -> str:
-    res = await aioconsole.ainput(prompt) # type: ignore
+    res = await aioconsole.ainput(prompt)  # type: ignore
     if not isinstance(res, str):
         raise ValueError("Expected a string")
     return res
+
 
 async def main() -> None:
     code_writer_system_message = """
@@ -27,24 +28,23 @@ If you want the user to save the code in a file before executing it, put # filen
 If it looks like the task is done and the code has already been executed you can respond with 'TERMINATE' to end the conversation.
 """
 
-    model_client = OpenAI(
-        model="gpt-4-0125-preview",
-        api_key=os.environ["OPENAI_API_KEY"]
-    )
+    model_client = OpenAI(model="gpt-4-0125-preview", api_key=os.environ["OPENAI_API_KEY"])
 
     json_model_client = OpenAI(
-        model="gpt-4-0125-preview",
-        api_key=os.environ["OPENAI_API_KEY"],
-        response_format={"type": "json_object"}
+        model="gpt-4-0125-preview", api_key=os.environ["OPENAI_API_KEY"], response_format={"type": "json_object"}
     )
 
     assistant = AssistantAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
-    user_proxy = UserProxyAgent(name="user", human_input_callback=user_input, code_executor=LocalCommandLineCodeExecutor())
+    user_proxy = UserProxyAgent(
+        name="user", human_input_callback=user_input, code_executor=LocalCommandLineCodeExecutor()
+    )
     chat = TwoAgentChat(
         assistant,
         user_proxy,
-        termination_manager=ReflectionTerminationManager(model_client=json_model_client, goal="The code has run and the plot was shown."),
-        initial_message="Plot the graph of NVDA vs AAPL ytd."
+        termination_manager=ReflectionTerminationManager(
+            model_client=json_model_client, goal="The code has run and the plot was shown."
+        ),
+        initial_message="Plot the graph of NVDA vs AAPL ytd.",
     )
     await run_in_terminal(chat)
     print(chat.termination_result)
