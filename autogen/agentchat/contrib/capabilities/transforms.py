@@ -176,11 +176,11 @@ class MessageTokenLimiter:
                 tmp_contents.append(content)
         return tmp_contents
 
-    def _truncate_tokens(self, text: str, tokens: int) -> str:
+    def _truncate_tokens(self, text: str, n_tokens: int) -> str:
         encoding = tiktoken.encoding_for_model(self._model)  # Get the appropriate tokenizer
 
         encoded_tokens = encoding.encode(text)
-        truncated_tokens = encoded_tokens[:tokens]
+        truncated_tokens = encoded_tokens[:n_tokens]
         truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
 
         return truncated_text
