@@ -183,17 +183,6 @@ public partial class MistralClientTests
         person!.Email.Should().Be("g123456@gmail.com");
     }
 
-    private class Person
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
-
-        [JsonPropertyName("age")]
-        public int Age { get; set; }
-
-        [JsonPropertyName("email")]
-        public string Email { get; set; } = string.Empty;
-    }
 
     [ApiKeyFact("MISTRAL_API_KEY")]
     public async Task MistralClientFunctionCallTestAsync()
@@ -284,4 +273,15 @@ public partial class MistralClientTests
         finalResult.Usage!.TotalTokens.Should().BeGreaterThan(0);
         finalResult.Choices!.First().Message!.ToolCalls!.First().Function.Name.Should().Be("GetWeather");
     }
+}
+public class Person
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("age")]
+    public int Age { get; set; }
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
 }

@@ -20,7 +20,7 @@ public class ChatCompletionRequest
     /// <param name="stream">Whether to stream back partial progress. If set, tokens will be sent as data-only server-sent events as they become available, with the stream terminated by a data: [DONE] message. Otherwise, the server will hold the request open until the timeout or until completion, with the response containing the full result as JSON.  (default to false).</param>
     /// <param name="safePrompt">Whether to inject a safety prompt before all conversations.  (default to false).</param>
     /// <param name="randomSeed">The seed to use for random sampling. If set, different calls will generate deterministic results. .</param>
-    public ChatCompletionRequest(string? model = default(string), List<ChatMessage>? messages = default(List<ChatMessage>), decimal? temperature = 0.7M, decimal? topP = 1M, int? maxTokens = default(int?), bool? stream = false, bool safePrompt = false, int? randomSeed = default(int?))
+    public ChatCompletionRequest(string? model = default(string), List<ChatMessage>? messages = default(List<ChatMessage>), float? temperature = 0.7f, float? topP = 1f, int? maxTokens = default(int?), bool? stream = false, bool safePrompt = false, int? randomSeed = default(int?))
     {
         // to ensure "model" is required (not null)
         if (model == null)
@@ -35,9 +35,9 @@ public class ChatCompletionRequest
         }
         this.Messages = messages;
         // use default value if no "temperature" provided
-        this.Temperature = temperature ?? 0.7M;
+        this.Temperature = temperature ?? 0.7f;
         // use default value if no "topP" provided
-        this.TopP = topP ?? 1M;
+        this.TopP = topP ?? 1f;
         this.MaxTokens = maxTokens;
         // use default value if no "stream" provided
         this.Stream = stream ?? false;
@@ -66,7 +66,7 @@ public class ChatCompletionRequest
     /// <value>What sampling temperature to use, between 0.0 and 1.0. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.  We generally recommend altering this or &#x60;top_p&#x60; but not both. </value>
     /// <example>0.7</example>
     [JsonPropertyName("temperature")]
-    public decimal? Temperature { get; set; }
+    public float? Temperature { get; set; }
 
     /// <summary>
     /// Nucleus sampling, where the model considers the results of the tokens with &#x60;top_p&#x60; probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.  We generally recommend altering this or &#x60;temperature&#x60; but not both. 
@@ -74,7 +74,7 @@ public class ChatCompletionRequest
     /// <value>Nucleus sampling, where the model considers the results of the tokens with &#x60;top_p&#x60; probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.  We generally recommend altering this or &#x60;temperature&#x60; but not both. </value>
     /// <example>1</example>
     [JsonPropertyName("top_p")]
-    public decimal? TopP { get; set; }
+    public float? TopP { get; set; }
 
     /// <summary>
     /// The maximum number of tokens to generate in the completion.  The token count of your prompt plus &#x60;max_tokens&#x60; cannot exceed the model&#39;s context length.  
