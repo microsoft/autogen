@@ -54,7 +54,8 @@ Links to notebook examples:
 - Constrained Responses via Guidance - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_guidance.ipynb)
 - Browse the Web with Agents - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_surfer.ipynb)
 - **SQL**: Natural Language Text to SQL Query using the [Spider](https://yale-lily.github.io/spider) Text-to-SQL Benchmark - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_sql_spider.ipynb)
-- **Web Scraping**: Web Scraping with Apify - [View Notebook](/docs/notebooks/agentchat_webscraping_with_apify).
+- **Web Scraping**: Web Scraping with Apify - [View Notebook](/docs/notebooks/agentchat_webscraping_with_apify)
+- **Write a software app, task by task, with specially designed functions.** - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_code_writing.ipynb).
 
 ### Human Involvement
 
