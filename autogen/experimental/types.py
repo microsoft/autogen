@@ -5,12 +5,19 @@ from typing_extensions import Literal, NotRequired, Required, TypedDict
 
 
 @dataclass
-class ToolCall:
+class FunctionCall:
     id: str
     # JSON args
     arguments: str
     # Function to call
     name: str
+
+
+@dataclass
+class FunctionDefinition:
+    name: str
+    parameters: Dict[str, Any]
+    description: str
 
 
 @dataclass
@@ -54,21 +61,21 @@ class UserMessage:
 @dataclass
 class AssistantMessage:
     content: Optional[str] = None
-    tool_calls: Optional[List[ToolCall]] = None
+    function_calls: Optional[List[FunctionCall]] = None
 
 
 @dataclass
-class ToolResponse:
+class FunctionCallResult:
     content: str
     tool_call_id: str
 
 
 @dataclass
-class ToolMessage:
-    responses: List[ToolResponse]
+class FunctionCallMessage:
+    call_results: List[FunctionCallResult]
 
 
-ChatMessage = Union[SystemMessage, UserMessage, AssistantMessage, ToolMessage]
+ChatMessage = Union[SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage]
 
 
 @dataclass
@@ -83,12 +90,13 @@ class StatusUpdate:
 
 # Must end with ChatMessage
 StreamResponse = Union[PartialContent, StatusUpdate, ChatMessage]
+FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
 
 
 @dataclass
 class CreateResponse:
-    finish_reason: Literal["stop", "length", "tool_calls", "content_filter"]
-    content: Union[str, List[ToolCall]]
+    finish_reason: FinishReasons
+    content: Union[str, List[FunctionCall]]
     usage: RequestUsage
     cached: bool
 

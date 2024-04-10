@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import pytest
 from autogen.cache.abstract_cache_base import AbstractCache
 from autogen.experimental.model_client import ModelClient, ModelCapabilities
-from autogen.experimental.types import ChatMessage, CreateResponse, RequestUsage, ToolCall
+from autogen.experimental.types import ChatMessage, CreateResponse, FunctionDefinition, RequestUsage
 import sys
 import os
 
@@ -19,6 +19,7 @@ async def test_create() -> None:
             self,
             messages: List[ChatMessage],
             cache: Optional[AbstractCache] = None,
+            functions: List[FunctionDefinition] = [],
             extra_create_args: Dict[str, Any] = {},
         ) -> CreateResponse:
             return CreateResponse(
@@ -32,6 +33,7 @@ async def test_create() -> None:
             self,
             messages: List[ChatMessage],
             cache: Optional[AbstractCache] = None,
+            functions: List[FunctionDefinition] = [],
             extra_create_args: Dict[str, Any] = {},
         ) -> AsyncGenerator[Union[Union[str, CreateResponse]], None]:
             raise NotImplementedError

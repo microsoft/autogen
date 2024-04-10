@@ -3,7 +3,7 @@ from typing import Sequence
 from autogen.experimental.termination import TerminationResult
 
 from ..summarizer import ChatSummarizer
-from ..types import AssistantMessage, ChatMessage, SystemMessage, ToolMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, SystemMessage, FunctionCallMessage, UserMessage
 
 
 class LastMessageSummarizer(ChatSummarizer):
@@ -21,7 +21,7 @@ class LastMessageSummarizer(ChatSummarizer):
             if last_message.content is None:
                 raise ValueError("Cannot summarize a chat that ends with an assistant message with tool calls.")
             return last_message.content
-        elif isinstance(last_message, ToolMessage):
-            return "\n".join((tool_message.content for tool_message in last_message.responses))
+        elif isinstance(last_message, FunctionCallMessage):
+            return "\n".join((tool_message.content for tool_message in last_message.call_results))
         else:
             raise ValueError("Unknown message type encountered.")

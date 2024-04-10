@@ -1,11 +1,9 @@
-from dataclasses import dataclass
-from enum import Enum
-from typing import List, Optional, Protocol
+from typing import List, Optional
 
 from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import AssistantMessage, ChatMessage, SystemMessage, ToolMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, UserMessage
 
 
 class DefaultTerminationManager(TerminationManager):

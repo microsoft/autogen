@@ -29,6 +29,7 @@ from openai.types.chat import (
     ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
     ChatCompletionUserMessageParam,
+    ChatCompletionToolParam,
     completion_create_params,
 )
 from typing_extensions import NotRequired, Required, Self, TypedDict, Unpack
@@ -42,10 +43,13 @@ from ..types import (
     AssistantMessage,
     ChatMessage,
     CreateResponse,
+    FinishReasons,
+    FunctionCall,
+    FunctionDefinition,
     RequestUsage,
     SystemMessage,
-    ToolCall,
-    ToolMessage,
+    FunctionCallMessage,
+    FunctionCallMessage,
     UserMessage,
 )
 from . import model_info
@@ -104,7 +108,7 @@ def type_to_role(message: ChatMessage) -> ChatCompletionRole:
         return "user"
     elif isinstance(message, AssistantMessage):
         return "assistant"
-    elif isinstance(message, ToolMessage):
+    elif isinstance(message, FunctionCallMessage):
         return "tool"
 
 
@@ -123,7 +127,7 @@ def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessage
     )
 
 
-def tool_call_to_oai(message: ToolCall) -> ChatCompletionMessageToolCallParam:
+def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
     return ChatCompletionMessageToolCallParam(
         id=message.id,
         function={
@@ -134,10 +138,10 @@ def tool_call_to_oai(message: ToolCall) -> ChatCompletionMessageToolCallParam:
     )
 
 
-def tool_message_to_oai(message: ToolMessage) -> Sequence[ChatCompletionToolMessageParam]:
+def tool_message_to_oai(message: FunctionCallMessage) -> Sequence[ChatCompletionToolMessageParam]:
     return [
         ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.tool_call_id)
-        for x in message.responses
+        for x in message.call_results
     ]
 
 
@@ -146,8 +150,8 @@ def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssista
         content=message.content,
         role="assistant",
     )
-    if message.tool_calls is not None:
-        msg["tool_calls"] = [tool_call_to_oai(x) for x in message.tool_calls]
+    if message.function_calls is not None:
+        msg["tool_calls"] = [func_call_to_oai(x) for x in message.function_calls]
 
     return msg
 
@@ -160,7 +164,7 @@ def to_oai_type(message: ChatMessage) -> Sequence[ChatCompletionMessageParam]:
         return [user_message_to_oai(message)]
     elif isinstance(message, AssistantMessage):
         return [assistant_message_to_oai(message)]
-    elif isinstance(message, ToolMessage):
+    elif isinstance(message, FunctionCallMessage):
         return tool_message_to_oai(message)
     else:
         raise ValueError(f"Invalid message type: {type(message)}")
@@ -253,6 +257,22 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     model_capabilities: Required[ModelCapabilities]
 
 
+def convert_functions(functions: List[FunctionDefinition]) -> List[ChatCompletionToolParam]:
+    result: List[ChatCompletionToolParam] = []
+    for func in functions:
+        result.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": func.name,
+                    "parameters": func.parameters,
+                    "description": func.description,
+                },
+            }
+        )
+    return result
+
+
 class BaseOpenAI(ModelClient):
     def __init__(
         self,
@@ -281,7 +301,11 @@ class BaseOpenAI(ModelClient):
         return OpenAI(**config)
 
     async def create(
-        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
+        self,
+        messages: List[ChatMessage],
+        cache: Optional[AbstractCache] = None,
+        functions: List[FunctionDefinition] = [],
+        extra_create_args: Dict[str, Any] = {},
     ) -> CreateResponse:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -304,7 +328,16 @@ class BaseOpenAI(ModelClient):
                 _add_usage(self._total_usage, response.usage)
                 return response
 
-        result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
+        if self.capabilities["function_calling"] is False and len(functions) > 0:
+            raise ValueError("Model does not support function calling")
+
+        if len(functions) > 0:
+            tools = convert_functions(functions)
+            result = await self._client.chat.completions.create(
+                messages=oai_messages, stream=False, tools=tools, **create_args
+            )
+        else:
+            result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
 
         usage = RequestUsage(
             prompt_tokens=result.usage.prompt_tokens,
@@ -320,18 +353,27 @@ class BaseOpenAI(ModelClient):
 
         # Limited to a single choice currently.
         choice = result.choices[0]
-        content: Union[str, List[ToolCall]]
+        if choice.finish_reason == "function_call":
+            raise ValueError("Function calls are not supported in this context")
+
+        content: Union[str, List[FunctionCall]]
         if choice.finish_reason == "tool_calls":
             assert choice.message.tool_calls is not None
             assert choice.message.function_call is None
 
             # NOTE: If OAI response type changes, this will need to be updated
-            tool_calls = [x.model_dump() for x in choice.message.tool_calls]
-            content = tool_calls
+            content = [
+                FunctionCall(id=x.id, arguments=x.function.arguments, name=x.function.name)
+                for x in choice.message.tool_calls
+            ]
+            finish_reason = "function_calls"
         else:
+            finish_reason = choice.finish_reason
             content = choice.message.content or ""
 
-        result = CreateResponse(finish_reason=choice.finish_reason, content=content, usage=usage, cached=False)
+        response = CreateResponse(
+            finish_reason=cast(FinishReasons, finish_reason), content=content, usage=usage, cached=False
+        )
 
         if cache is not None:
             cache.set(cache_key, result)
@@ -340,10 +382,14 @@ class BaseOpenAI(ModelClient):
         _add_usage(self._total_usage, usage)
 
         # TODO - why is this cast needed?
-        return cast(CreateResponse, result)
+        return response
 
     async def create_stream(
-        self, messages: List[ChatMessage], cache: Optional[AbstractCache] = None, extra_create_args: Dict[str, Any] = {}
+        self,
+        messages: List[ChatMessage],
+        cache: Optional[AbstractCache] = None,
+        functions: List[FunctionDefinition] = [],
+        extra_create_args: Dict[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResponse], None]:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
@@ -366,12 +412,18 @@ class BaseOpenAI(ModelClient):
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
-        stream = await self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
+        if len(functions) > 0:
+            tools = convert_functions(functions)
+            stream = await self._client.chat.completions.create(
+                messages=oai_messages, stream=True, tools=tools, **create_args
+            )
+        else:
+            stream = await self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
 
         stop_reason = None
         maybe_model = None
         content_deltas = []
-        full_tool_calls: Dict[int, ToolCall] = {}
+        full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
 
         async for chunk in stream:
@@ -392,7 +444,7 @@ class BaseOpenAI(ModelClient):
                     idx = tool_call_chunk.index
                     if idx not in full_tool_calls:
                         # We ignore the type hint here because we want to fill in type when the delta provides it
-                        full_tool_calls[idx] = ToolCall(id="", arguments="", name="")
+                        full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
                     if tool_call_chunk.id is not None:
                         full_tool_calls[idx].id += tool_call_chunk.id
@@ -412,7 +464,7 @@ class BaseOpenAI(ModelClient):
         if stop_reason is None:
             raise ValueError("No stop reason found")
 
-        content: Union[str, List[ToolCall]]
+        content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
             completion_tokens = 0
@@ -421,7 +473,7 @@ class BaseOpenAI(ModelClient):
             completion_tokens = 0
             # TODO: fix assumption that dict values were added in order and actually order by int index
             for tool_call in full_tool_calls.values():
-                value = json.dumps(tool_call)
+                # value = json.dumps(tool_call)
                 # completion_tokens += count_token(value, model=model)
                 completion_tokens += 0
             content = list(full_tool_calls.values())
@@ -431,6 +483,10 @@ class BaseOpenAI(ModelClient):
             completion_tokens=completion_tokens,
             cost=_cost((model, prompt_tokens, completion_tokens)),
         )
+        if stop_reason == "function_call":
+            raise ValueError("Function calls are not supported in this context")
+        if stop_reason == "tool_calls":
+            stop_reason = "function_calls"
 
         result = CreateResponse(finish_reason=stop_reason, content=content, usage=usage, cached=False)
 

@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from autogen.experimental.model_clients.openai_client import OpenAI
-from autogen.experimental.types import CreateResponse, UserMessage
+from autogen.experimental.types import CreateResponse, FunctionDefinition, UserMessage
 from conftest import skip_openai  # noqa: E402
 
 
@@ -25,35 +25,28 @@ async def test_create() -> None:
 @pytest.mark.asyncio
 async def test_tool_calling_extraction() -> None:
     client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
+    getWeatherFunction = FunctionDefinition(
+        name="getCurrentWeather",
+        description="Get the weather in location",
+        parameters={
+            "type": "object",
+            "properties": {
+                "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+                "unit": {"type": "string", "enum": ["c", "f"]},
+            },
+            "required": ["location"],
+        },
+    )
+
     response = await client.create(
         messages=[
             UserMessage("What is the weather in San Francisco?")
         ],
-        extra_create_args={
-            "tools": [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "getCurrentWeather",
-                        "description": "Get the weather in location",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "location": {
-                                    "type": "string",
-                                    "description": "The city and state e.g. San Francisco, CA",
-                                },
-                                "unit": {"type": "string", "enum": ["c", "f"]},
-                            },
-                            "required": ["location"],
-                        },
-                    },
-                }
-            ],
-        },
+        functions=[getWeatherFunction],
+
     )
     assert response.cached is False
-    assert response.finish_reason == "tool_calls"
+    assert response.finish_reason == "function_calls"
     assert isinstance(response.content, list)
     response_content = response.content
     assert len(response_content) > 0

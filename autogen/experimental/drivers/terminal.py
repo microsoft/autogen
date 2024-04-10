@@ -1,14 +1,14 @@
 from aioconsole import aprint
 
 from autogen.experimental.chat import ChatOrchestrator, ChatOrchestratorStream
-from autogen.experimental.types import AssistantMessage, SystemMessage, ToolMessage, UserMessage
+from autogen.experimental.types import AssistantMessage, SystemMessage, FunctionCallMessage, UserMessage
 
 
 async def run_in_terminal(chat: ChatOrchestratorStream) -> str:
     while not chat.done:
         had_partial_content = False
         async for content in chat.stream_step():
-            if isinstance(content, (SystemMessage, UserMessage, AssistantMessage, ToolMessage)):
+            if isinstance(content, (SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage)):
                 if had_partial_content:
                     await aprint()
                 else:

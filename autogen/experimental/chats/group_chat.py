@@ -8,7 +8,7 @@ from ..speaker_selection import SpeakerSelectionStrategy
 from ..summarizer import ChatSummarizer
 from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
-from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, ToolMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, FunctionCallMessage, UserMessage
 
 DEFAULT_INTRO_MSG = (
     "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
@@ -111,7 +111,7 @@ class GroupChat(ChatOrchestratorStream):
         final_response = None
         if isinstance(self._speaker, AgentStream):
             async for response in self._speaker.stream_generate_reply(messages=self._chat_history):
-                if isinstance(response, (SystemMessage, UserMessage, AssistantMessage, ToolMessage)):
+                if isinstance(response, (SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage)):
                     await handle_response(response)
                     final_response = response
                     break

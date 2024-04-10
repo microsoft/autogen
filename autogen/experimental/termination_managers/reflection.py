@@ -7,7 +7,7 @@ from autogen.experimental.agent import Agent
 from autogen.experimental.model_client import ModelClient
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import AssistantMessage, ChatMessage, SystemMessage, ToolMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, SystemMessage, FunctionCallMessage, UserMessage
 
 
 class ReflectionTerminationManager(TerminationManager):
