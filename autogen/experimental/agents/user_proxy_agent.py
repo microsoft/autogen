@@ -2,14 +2,11 @@ import inspect
 import logging
 from typing import AsyncGenerator, Awaitable, Callable, List, Optional, Tuple, Union, cast
 
-
-from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, UserMessage
-
 from ...cache import AbstractCache
-
 from ...coding.base import CodeExecutor
 from ..agent import Agent
+from ..model_client import ModelClient
+from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, UserMessage
 
 __all__ = ("UserProxyAgent",)
 
@@ -127,7 +124,7 @@ class UserProxyAgent(Agent):
         assert self._human_input_callback is not None, "Human input callback is not provided."
 
         reply = await self._human_input_callback(
-            f"Provide feedback. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
+            "Provide feedback. Press enter to skip and use auto-reply, or type 'exit' to end the conversation: "
         )
 
         if reply == "":

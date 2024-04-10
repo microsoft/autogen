@@ -1,3 +1,3 @@
-from .openai_client import OpenAI, AzureOpenAI
+from .openai_client import AzureOpenAI, OpenAI
 
 __all__ = ("OpenAI", "AzureOpenAI")

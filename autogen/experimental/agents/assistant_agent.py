@@ -1,11 +1,9 @@
 from typing import AsyncGenerator, List, Optional
 
-
-from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, PartialContent, StreamResponse, SystemMessage
-
 from ...cache import AbstractCache
 from ..agent import AgentStream
+from ..model_client import ModelClient
+from ..types import AssistantMessage, ChatMessage, PartialContent, StreamResponse, SystemMessage
 
 
 class AssistantAgent(AgentStream):

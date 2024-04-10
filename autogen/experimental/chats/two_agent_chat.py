@@ -1,15 +1,14 @@
-from typing import Callable, Dict, List, Optional, Protocol, TypeVar, Union
 import warnings
+from typing import Callable, Dict, List, Optional, Protocol, TypeVar, Union
 
+from ..agent import Agent, AgentStream
 from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
+from ..summarizer import ChatSummarizer
 from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
-
-from ..summarizer import ChatSummarizer
-from .group_chat import GroupChat
-from ..agent import Agent, AgentStream
 from ..types import ChatMessage
+from .group_chat import GroupChat
 
 
 class TwoAgentChat(GroupChat):

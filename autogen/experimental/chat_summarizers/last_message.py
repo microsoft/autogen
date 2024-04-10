@@ -3,7 +3,7 @@ from typing import Sequence
 from autogen.experimental.termination import TerminationResult
 
 from ..summarizer import ChatSummarizer
-from ..types import ChatMessage, SystemMessage, UserMessage, AssistantMessage, ToolMessage
+from ..types import AssistantMessage, ChatMessage, SystemMessage, ToolMessage, UserMessage
 
 
 class LastMessageSummarizer(ChatSummarizer):

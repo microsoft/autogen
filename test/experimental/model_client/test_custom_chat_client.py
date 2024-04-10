@@ -3,7 +3,7 @@
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import pytest
 from autogen.cache.abstract_cache_base import AbstractCache
-from autogen.experimental.model_client import ModelClient
+from autogen.experimental.model_client import ModelClient, ModelCapabilities
 from autogen.experimental.types import ChatMessage, CreateResponse, RequestUsage, ToolCall
 import sys
 import os
@@ -40,6 +40,10 @@ async def test_create() -> None:
             raise NotImplementedError
 
         def total_usage(self) -> RequestUsage:
+            raise NotImplementedError
+
+        @property
+        def capabilities(self) -> ModelCapabilities:
             raise NotImplementedError
 
     client = MyClient()

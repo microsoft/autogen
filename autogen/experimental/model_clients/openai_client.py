@@ -1,6 +1,7 @@
-from dataclasses import asdict
 import inspect
 import json
+import warnings
+from dataclasses import asdict
 from typing import (
     Any,
     AsyncGenerator,
@@ -16,40 +17,38 @@ from typing import (
     Union,
     cast,
 )
-from typing_extensions import TypedDict, NotRequired, Required
-from openai import AsyncOpenAI, AsyncAzureOpenAI
-from typing_extensions import Self
-from jsonschema import validate
 
-from typing_extensions import Unpack
+from jsonschema import validate
+from openai import AsyncAzureOpenAI, AsyncOpenAI
+from openai.types.chat import (
+    ChatCompletion,
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionMessageParam,
+    ChatCompletionMessageToolCallParam,
+    ChatCompletionRole,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionToolMessageParam,
+    ChatCompletionUserMessageParam,
+    completion_create_params,
+)
+from typing_extensions import NotRequired, Required, Self, TypedDict, Unpack
 
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
-from ..model_client import ModelClient
+from ...oai.openai_utils import OAI_PRICE1K, get_key
 from ...token_count_utils import count_token
+from ..model_client import ModelCapabilities, ModelClient
 from ..types import (
+    AssistantMessage,
     ChatMessage,
     CreateResponse,
     RequestUsage,
-    ToolCall,
     SystemMessage,
-    UserMessage,
-    AssistantMessage,
+    ToolCall,
     ToolMessage,
+    UserMessage,
 )
-from ...oai.openai_utils import OAI_PRICE1K, get_key
-
-from openai.types.chat import completion_create_params
-
-from openai.types.chat import (
-    ChatCompletionSystemMessageParam,
-    ChatCompletionUserMessageParam,
-    ChatCompletionAssistantMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionMessageParam,
-    ChatCompletionMessageToolCallParam,
-)
-from openai.types.chat import ChatCompletion, ChatCompletionRole
+from . import model_info
 
 openai_init_kwargs = set(inspect.getfullargspec(AsyncOpenAI.__init__).kwonlyargs)
 aopenai_init_kwargs = set(inspect.getfullargspec(AsyncAzureOpenAI.__init__).kwonlyargs)
@@ -215,7 +214,6 @@ class ResponseFormat(TypedDict):
 
 
 class CreateArguments(TypedDict, total=False):
-    model: Required[str]
     frequency_penalty: Optional[float]
     logit_bias: Optional[Dict[str, int]]
     max_tokens: Optional[int]
@@ -233,6 +231,7 @@ AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
 
 
 class BaseOpenAIClientConfiguration(CreateArguments, total=False):
+    model: str
     api_key: str
     timeout: Union[float, None]
     max_retries: int
@@ -247,15 +246,32 @@ class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
 class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     # Azure specific
     azure_endpoint: Required[str]
-    azure_deployment: Required[str]
+    azure_deployment: str
     api_version: str
     azure_ad_token: str
     azure_ad_token_provider: AsyncAzureADTokenProvider
+    model_capabilities: Required[ModelCapabilities]
 
 
 class BaseOpenAI(ModelClient):
-    def __init__(self, client: Union[AsyncOpenAI, AsyncAzureOpenAI], create_args: Dict[str, Any]):
+    def __init__(
+        self,
+        client: Union[AsyncOpenAI, AsyncAzureOpenAI],
+        create_args: Dict[str, Any],
+        model_capabilities: Optional[ModelCapabilities] = None,
+    ):
         self._client = client
+        if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
+            raise ValueError("AzureOpenAI requires explicit model capabilities")
+        elif model_capabilities is None:
+            self._model_capabilities = model_info.get_capabilties(create_args["model"])
+        else:
+            self._model_capabilities = model_capabilities
+
+        self._resolved_model: Optional[str] = None
+        if "model" in create_args:
+            self._resolved_model = model_info.resolve_model(create_args["model"])
+
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
@@ -295,6 +311,12 @@ class BaseOpenAI(ModelClient):
             completion_tokens=result.usage.completion_tokens,
             cost=_cost(result),
         )
+
+        if self._resolved_model is not None:
+            if self._resolved_model != result.model:
+                warnings.warn(
+                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. AutoGen model mapping may be incorrect."
+                )
 
         # Limited to a single choice currently.
         choice = result.choices[0]
@@ -426,9 +448,16 @@ class BaseOpenAI(ModelClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
+    @property
+    def capabilities(self) -> ModelCapabilities:
+        return self._model_capabilities
+
 
 class OpenAI(BaseOpenAI):
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
+        if "model" not in kwargs:
+            raise ValueError("model is required for OpenAI")
+
         client = _openai_client_from_config(kwargs)
         create_args = _create_args_from_config(kwargs)
         super().__init__(client, create_args)
@@ -436,6 +465,13 @@ class OpenAI(BaseOpenAI):
 
 class AzureOpenAI(BaseOpenAI):
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
+        if "model" in kwargs and "azure_deployment" in kwargs:
+            raise ValueError("Cannot specify both model and azure_deployment")
+
+        if "model" in kwargs:
+            kwargs["azure_deployment"] = kwargs["model"]
+            del kwargs["model"]
+
         client = _openai_client_from_config(kwargs)
         create_args = _create_args_from_config(kwargs)
         super().__init__(client, create_args)

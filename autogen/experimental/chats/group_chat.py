@@ -1,14 +1,13 @@
-from typing import AsyncGenerator, Callable, Dict, List, Optional, Protocol, TypeVar, Union
 import warnings
+from typing import AsyncGenerator, Callable, Dict, List, Optional, Protocol, TypeVar, Union
 
+from ..agent import Agent, AgentStream
+from ..chat import ChatOrchestrator, ChatOrchestratorStream
 from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection import SpeakerSelectionStrategy
+from ..summarizer import ChatSummarizer
 from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
-
-from ..summarizer import ChatSummarizer
-from ..chat import ChatOrchestrator, ChatOrchestratorStream
-from ..agent import Agent, AgentStream
 from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, ToolMessage, UserMessage
 
 DEFAULT_INTRO_MSG = (
@@ -17,7 +16,7 @@ DEFAULT_INTRO_MSG = (
 
 
 def _introduction_message(agents: List[Agent], intro_message: str) -> str:
-    participant_roles = [f"{agent.name}: {agent.description}".strip() for agent   in agents]
+    participant_roles = [f"{agent.name}: {agent.description}".strip() for agent in agents]
     slash_n = "\n"
     return f"{intro_message}{slash_n}{slash_n}{slash_n.join(participant_roles)}"
 

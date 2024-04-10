@@ -5,7 +5,7 @@ from typing import List, Optional, Protocol
 from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import ChatMessage, SystemMessage, UserMessage, AssistantMessage, ToolMessage
+from ..types import AssistantMessage, ChatMessage, SystemMessage, ToolMessage, UserMessage
 
 
 class DefaultTerminationManager(TerminationManager):

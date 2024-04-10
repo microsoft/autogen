@@ -1,6 +1,7 @@
-from typing import Any, Dict, List, Optional, Union
-from typing_extensions import Literal, Required, TypedDict, NotRequired
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Union
+
+from typing_extensions import Literal, NotRequired, Required, TypedDict
 
 
 @dataclass

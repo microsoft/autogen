@@ -1,8 +1,8 @@
 from typing import List, Optional
 
 from ..agent import Agent
-from ..types import ChatMessage
 from ..speaker_selection import SpeakerSelectionStrategy
+from ..types import ChatMessage
 
 
 class RoundRobin(SpeakerSelectionStrategy):

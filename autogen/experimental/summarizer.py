@@ -1,7 +1,6 @@
 from typing import Protocol, Sequence
 
 from .termination import TerminationResult
-
 from .types import ChatMessage
 
 
