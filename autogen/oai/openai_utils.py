@@ -13,6 +13,27 @@ from openai.types.beta.assistant import Assistant
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
+    # https://openai.com/pricing
+    # gpt-4-turbo
+    "gpt-4-0125-preview": (0.01, 0.03),
+    "gpt-4-1106-preview": (0.01, 0.03),
+    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    # gpt-4
+    "gpt-4": (0.03, 0.06),
+    "gpt-4-32k": (0.06, 0.12),
+    # gpt-3.5 turbo
+    "gpt-3.5-turbo": (0.0005, 0.0015),  # default is 0125
+    "gpt-3.5-turbo-0125": (0.0005, 0.0015),  # 16k
+    "gpt-3.5-turbo-instruct": (0.0015, 0.002),
+    # base model
+    "davinci-002": 0.002,
+    "babbage-002": 0.0004,
+    # old model
+    "gpt-3.5-turbo-1106": (0.001, 0.002),
+    "gpt-3.5-turbo-0613": (0.0015, 0.002),
+    # "gpt-3.5-turbo-16k": (0.003, 0.004),
+    "gpt-3.5-turbo-16k-0613": (0.003, 0.004),
+    "gpt-3.5-turbo-0301": (0.0015, 0.002),
     "text-ada-001": 0.0004,
     "text-babbage-001": 0.0005,
     "text-curie-001": 0.002,
@@ -20,28 +41,20 @@ OAI_PRICE1K = {
     "code-davinci-002": 0.1,
     "text-davinci-002": 0.02,
     "text-davinci-003": 0.02,
-    "gpt-3.5-turbo-instruct": (0.0015, 0.002),
-    "gpt-3.5-turbo-0301": (0.0015, 0.002),  # deprecate in Sep
-    "gpt-3.5-turbo-0613": (0.0015, 0.002),
-    "gpt-3.5-turbo-16k": (0.003, 0.004),
-    "gpt-3.5-turbo-16k-0613": (0.003, 0.004),
-    "gpt-35-turbo": (0.0015, 0.002),
-    "gpt-35-turbo-16k": (0.003, 0.004),
-    "gpt-35-turbo-instruct": (0.0015, 0.002),
-    "gpt-4": (0.03, 0.06),
-    "gpt-4-32k": (0.06, 0.12),
     "gpt-4-0314": (0.03, 0.06),  # deprecate in Sep
     "gpt-4-32k-0314": (0.06, 0.12),  # deprecate in Sep
     "gpt-4-0613": (0.03, 0.06),
     "gpt-4-32k-0613": (0.06, 0.12),
-    # 11-06
-    "gpt-3.5-turbo": (0.0015, 0.002),  # default is still 0613
-    "gpt-3.5-turbo-1106": (0.001, 0.002),
-    "gpt-35-turbo-1106": (0.001, 0.002),
-    "gpt-4-1106-preview": (0.01, 0.03),
-    "gpt-4-0125-preview": (0.01, 0.03),
     "gpt-4-turbo-preview": (0.01, 0.03),
-    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    # https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/#pricing
+    "gpt-35-turbo": (0.0005, 0.0015),  # what's the default? using 0125 here.
+    "gpt-35-turbo-0125": (0.0005, 0.0015),
+    "gpt-35-turbo-instruct": (0.0015, 0.002),
+    "gpt-35-turbo-1106": (0.001, 0.002),
+    "gpt-35-turbo-0613": (0.0015, 0.002),
+    "gpt-35-turbo-0301": (0.0015, 0.002),
+    "gpt-35-turbo-16k": (0.003, 0.004),
+    "gpt-35-turbo-16k-0613": (0.003, 0.004),
 }
 
 
