@@ -34,6 +34,10 @@ If user's intent is question answering, you must give as short an answer as poss
 User's question is: {input_question}
 
 Context is: {input_context}
+
+The source of the context is: {input_sources}
+
+If you can answer the question, in the end of your answer, add the source of the context in the format of `Sources: source1, source2, ...`.
 """
 
 PROMPT_CODE = """You're a retrieve augmented coding assistant. You answer user's questions based on your own knowledge and the
@@ -101,7 +105,8 @@ class RetrieveUserProxyAgent(UserProxyAgent):
                 following keys:
                 - `task` (Optional, str) - the task of the retrieve chat. Possible values are
                     "code", "qa" and "default". System prompt will be different for different tasks.
-                     The default value is `default`, which supports both code and qa.
+                     The default value is `default`, which supports both code and qa, and provides
+                     source information in the end of the response.
                 - `client` (Optional, chromadb.Client) - the chromadb client. If key not provided, a
                      default client `chromadb.Client()` will be used. If you want to use other
                      vector db, extend this class and override the `retrieve_docs` function.
@@ -243,6 +248,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         self._intermediate_answers = set()  # the intermediate answers
         self._doc_contents = []  # the contents of the current used doc
         self._doc_ids = []  # the ids of the current used doc
+        self._current_docs_in_context = []  # the ids of the current context sources
         self._search_string = ""  # the search string used in the current query
         # update the termination message function
         self._is_termination_msg = (
@@ -290,6 +296,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
 
     def _get_context(self, results: Dict[str, Union[List[str], List[List[str]]]]):
         doc_contents = ""
+        self._current_docs_in_context = []
         current_tokens = 0
         _doc_idx = self._doc_idx
         _tmp_retrieve_count = 0
@@ -310,6 +317,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             print(colored(func_print, "green"), flush=True)
             current_tokens += _doc_tokens
             doc_contents += doc + "\n"
+            _metadatas = results.get("metadatas")
+            if isinstance(_metadatas, list) and isinstance(_metadatas[0][idx], dict):
+                self._current_docs_in_context.append(results["metadatas"][0][idx].get("source", ""))
             self._doc_idx = idx
             self._doc_ids.append(results["ids"][0][idx])
             self._doc_contents.append(doc)
@@ -329,7 +339,9 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         elif task.upper() == "QA":
             message = PROMPT_QA.format(input_question=self.problem, input_context=doc_contents)
         elif task.upper() == "DEFAULT":
-            message = PROMPT_DEFAULT.format(input_question=self.problem, input_context=doc_contents)
+            message = PROMPT_DEFAULT.format(
+                input_question=self.problem, input_context=doc_contents, input_sources=self._current_docs_in_context
+            )
         else:
             raise NotImplementedError(f"task {task} is not implemented.")
         return message
