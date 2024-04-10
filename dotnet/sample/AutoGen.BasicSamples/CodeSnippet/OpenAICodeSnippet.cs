@@ -4,6 +4,7 @@
 #region using_statement
 using AutoGen.Core;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 #endregion using_statement
 using FluentAssertions;
@@ -69,10 +70,9 @@ public partial class OpenAICodeSnippet
         #endregion create_openai_chat_agent_streaming
 
         #region register_openai_chat_message_connector
-        // register openai chat message connector to support more message types
-        var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
+        // register message connector to support more message types
         var agentWithConnector = openAIChatAgent
-            .RegisterMiddleware(openAIChatMessageConnector);
+            .RegisterMessageConnector();
 
         // now the agentWithConnector supports more message types
         var messages = new IMessage[]
@@ -109,11 +109,9 @@ public partial class OpenAICodeSnippet
             openAIClient: openAIClient,
             name: "assistant",
             modelName: modelId,
-            systemMessage: "You are an assistant that help user to do some tasks.");
+            systemMessage: "You are an assistant that help user to do some tasks.")
+            .RegisterMessageConnector();
 
-        var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
-        var agentWithMiddleware = openAIChatAgent
-            .RegisterMiddleware(openAIChatMessageConnector);
         #endregion openai_chat_agent_get_weather_function_call
 
         #region create_function_call_middleware
@@ -125,11 +123,11 @@ public partial class OpenAICodeSnippet
                 { functions.GetWeatherFunctionContract.Name, functions.GetWeatherWrapper } // GetWeatherWrapper is a wrapper function for GetWeather, which is also auto-generated
             });
 
-        agentWithMiddleware = agentWithMiddleware.RegisterMiddleware(functionCallMiddleware);
+        openAIChatAgent = openAIChatAgent.RegisterMiddleware(functionCallMiddleware);
         #endregion create_function_call_middleware
 
         #region chat_agent_send_function_call
-        var reply = await agentWithMiddleware.SendAsync("what is the weather in Seattle?");
+        var reply = await openAIChatAgent.SendAsync("what is the weather in Seattle?");
         reply.GetContent().Should().Be("The weather in Seattle is sunny.");
         reply.GetToolCalls().Count.Should().Be(1);
         reply.GetToolCalls().First().Should().Be(this.GetWeatherFunctionContract.Name);

@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using AutoGen.BasicSample;
 using Xunit.Abstractions;
 
 namespace AutoGen.Tests
@@ -34,6 +35,12 @@ namespace AutoGen.Tests
         public async Task AgentFunctionCallTestAsync()
         {
             await Example03_Agent_FunctionCall.RunAsync();
+        }
+
+        [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
+        public async Task OpenAIAgent_JsonMode()
+        {
+            await Example13_OpenAIAgent_JsonMode.RunAsync();
         }
 
         [ApiKeyFact("OPENAI_API_KEY")]
