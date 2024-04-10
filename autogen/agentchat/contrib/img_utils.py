@@ -6,9 +6,11 @@ from io import BytesIO
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import requests
-from PIL import Image
 
-from autogen.agentchat import utils
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 from ..utils import parse_tags_from_content
 
@@ -23,6 +25,10 @@ class AGImage:
 
     def __repr__(self) -> str:
         return self.data.__repr__()
+
+    def _repr_html_(self) -> str:
+        # Show the image in Jupyter notebook
+        return f'<img src="{pil_to_data_uri(self.data)}"/>'
 
     def __eq__(self, other: object) -> bool:
         try:

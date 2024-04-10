@@ -1,12 +1,13 @@
 import re
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union, runtime_checkable
 
 from autogen.agentchat.contrib.img_utils import AGImage, gpt4v_formatter
 
 IMPORTANT_KEYS = ["vision_model", "tool_calling", "json_object", "max_num_image"]
 
 
+@runtime_checkable
 class MultimodalObject(Protocol):
     def __init__(self, data: Union[str, Dict]):
         """
