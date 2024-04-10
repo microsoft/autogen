@@ -1,12 +1,11 @@
 import base64
 import json
 import os
-import re
 import sys
 import uuid
 from pathlib import Path
 from types import TracebackType
-from typing import Any, ClassVar, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from autogen.coding.utils import silence_pip
 
@@ -16,7 +15,6 @@ else:
     from typing_extensions import Self
 
 
-from ...agentchat.agent import LLMAgent
 from ..base import CodeBlock, CodeExecutor, CodeExtractor, IPythonCodeResult
 from ..markdown_code_extractor import MarkdownCodeExtractor
 from .base import JupyterConnectable, JupyterConnectionInfo
@@ -90,8 +88,8 @@ class JupyterCodeExecutor(CodeExecutor):
             IPythonCodeResult: The result of the code execution.
         """
         self._jupyter_kernel_client.wait_for_ready()
-        outputs = []
-        output_files = []
+        outputs: List[str] = []
+        output_files: List[str] = []
         for code_block in code_blocks:
             code = silence_pip(code_block.code, code_block.language)
             result = self._jupyter_kernel_client.execute(code, timeout_seconds=self._timeout)
@@ -153,3 +151,6 @@ class JupyterCodeExecutor(CodeExecutor):
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
+
+    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
+        raise NotImplementedError

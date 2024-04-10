@@ -31,6 +31,7 @@ class ChatOrchestrator(Protocol):
 class ChatOrchestratorStream(ChatOrchestrator, Protocol):
     def stream_step(self) -> AsyncGenerator[StreamResponse, None]: ...
 
+
 # Example of driving:
 # async def run(conversation: ChatOrchestrator) -> str:
 #     while not conversation.done:

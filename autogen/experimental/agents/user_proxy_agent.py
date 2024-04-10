@@ -2,11 +2,9 @@ import inspect
 import logging
 from typing import Awaitable, Callable, List, Optional, Union, cast
 
-from ...cache import AbstractCache
 from ...coding.base import CodeExecutor
 from ..agent import Agent
-from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, SystemMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, UserMessage
 
 __all__ = ("UserProxyAgent",)
 
@@ -22,13 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class UserProxyAgent(Agent):
-    _code_executor: Optional[CodeExecutor]
-    _human_input_callback: Optional[HumanInputCallback]
-    _model_client: Optional[ModelClient]
-    _system_message: Optional[SystemMessage]
-    _cache: Optional[AbstractCache]
-    _reply_func_list: List[ReplyFunction]
-
     def __init__(
         self,
         *,

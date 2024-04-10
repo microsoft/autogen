@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Union
 
 from ..code_utils import CODE_BLOCK_PATTERN, UNKNOWN, content_str, infer_lang
 from ..types import UserMessageImageContentPart, UserMessageTextContentPart
@@ -28,7 +28,7 @@ class MarkdownCodeExtractor(CodeExtractor):
         match = re.findall(CODE_BLOCK_PATTERN, text, flags=re.DOTALL)
         if not match:
             return []
-        code_blocks = []
+        code_blocks: List[CodeBlock] = []
         for lang, code in match:
             if lang == "":
                 lang = infer_lang(code)

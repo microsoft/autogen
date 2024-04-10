@@ -33,28 +33,18 @@ class UserMessageContentPartText:
 
 
 @dataclass
-class ImageURL:
-    url: str
-    detail: Literal["auto", "low", "high"] = "auto"
-
-
-@dataclass
-class UserMessageContentPartImage:
-    image_url: ImageURL
-    type: Literal["image_url"]
-
-
-UserMessageContentPart = Union[UserMessageContentPartText, UserMessageContentPartImage]
-
-
-@dataclass
 class SystemMessage:
     content: str
 
 
 @dataclass
+class Image:
+    data: bytes
+
+
+@dataclass
 class UserMessage:
-    content: Union[str, List[UserMessageContentPart]]
+    content: Union[str, List[Union[str, Image]]]
     is_termination: bool = False
 
 
@@ -99,4 +89,3 @@ class CreateResponse:
     content: Union[str, List[FunctionCall]]
     usage: RequestUsage
     cached: bool
-

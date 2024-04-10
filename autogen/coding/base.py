@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, Literal, Mapping, Optional, Protocol, TypedDict, Union, runtime_checkable
+from typing import Any, Dict, List, Literal, Mapping, Optional, Protocol, TypedDict, Union, runtime_checkable
 
 from pydantic import BaseModel, Field
 
@@ -63,6 +63,11 @@ class CodeExecutor(Protocol):
             CodeResult: The result of the code execution.
         """
         ...  # pragma: no cover
+
+    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str: ...
+
+    @property
+    def functions(self) -> List[str]: ...
 
     def restart(self) -> None:
         """(Experimental) Restart the code executor.
