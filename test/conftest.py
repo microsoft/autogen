@@ -19,8 +19,8 @@ def pytest_addoption(parser):
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
     global skip_openai
-    skip_openai = config.getoption("--skip-openai", False)
+    skip_openai: bool = config.getoption("--skip-openai", False)
     global skip_redis
-    skip_redis = config.getoption("--skip-redis", False)
+    skip_redis: bool = config.getoption("--skip-redis", False)
     global skip_docker
-    skip_docker = config.getoption("--skip-docker", False)
+    skip_docker: bool = config.getoption("--skip-docker", False)
