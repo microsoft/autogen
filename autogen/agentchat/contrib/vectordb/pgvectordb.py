@@ -75,9 +75,11 @@ class Collection:
             None
         """
         cursor = self.client.cursor()
+        sql_string = ""
         for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
-            cursor.execute(f'INSERT INTO {self.name} (id, embedding, metadata, document) '
-                           f'VALUES ({doc_id}, {embedding}, {metadata}, {document})')
+            sql_string = (f'{sql_string}INSERT INTO {self.name} (id, embedding, metadata, document) '
+                          f'VALUES ({doc_id}, {embedding}, {metadata}, {document}); ')
+        cursor.execute(sql_string)
         cursor.close()
 
     def upsert(self, ids: List[ItemID], documents: List, embeddings: List = None, metadatas: List = None):
@@ -94,41 +96,43 @@ class Collection:
             None
         """
         cursor = self.client.cursor()
+        sql_string = ""
         if embeddings is not None and metadatas is not None:
             for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                cursor.execute(f'INSERT INTO {self.name} (id, embedding, metadatas, documents) '
-                               f'VALUES (%s, %s, %s, %s)'
-                               f'ON CONFLICT (id)'
-                               f'DO UPDATE SET embedding = %s, '
-                               f'metadatas = %s, documents = %s;',
-                               (doc_id, embedding, metadata, document, embedding, metadata, document))
+                sql_string = (f'{sql_string}INSERT INTO {self.name} (id, embedding, metadatas, documents) '
+                              f'VALUES (%s, %s, %s, %s)'
+                              f'ON CONFLICT (id)'
+                              f'DO UPDATE SET embedding = %s, '
+                              f'metadatas = %s, documents = %s; ',
+                              (doc_id, embedding, metadata, document, embedding, metadata, document))
         elif embeddings is not None:
             for doc_id, embedding, document in zip(ids, embeddings, documents):
-                cursor.execute(f'INSERT INTO {self.name} (id, embedding, documents) '
-                               f'VALUES (%s, %s, %s)'
-                               f'ON CONFLICT (id)'
-                               f'DO UPDATE SET embedding = %s, '
-                               f'documents = %s;',
-                               (doc_id, embedding, document, embedding, document))
+                sql_string = (f'{sql_string}INSERT INTO {self.name} (id, embedding, documents) '
+                              f'VALUES (%s, %s, %s)'
+                              f'ON CONFLICT (id)'
+                              f'DO UPDATE SET embedding = %s, '
+                              f'documents = %s; ',
+                              (doc_id, embedding, document, embedding, document))
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
                 embedding = self.embedding_function.encode(document)
-                cursor.execute(f'INSERT INTO {self.name} (id, metadatas, documents, embedding) '
-                               f'VALUES (%s, %s, %s, %s)'
-                               f'ON CONFLICT (id)'
-                               f'DO UPDATE SET metadatas = %s, '
-                               f'documents = %s;',
-                               (doc_id, metadata, document, embedding, metadata, document))
+                sql_string = (f'{sql_string}INSERT INTO {self.name} (id, metadatas, documents, embedding) '
+                              f'VALUES (%s, %s, %s, %s)'
+                              f'ON CONFLICT (id)'
+                              f'DO UPDATE SET metadatas = %s, '
+                              f'documents = %s; ',
+                              (doc_id, metadata, document, embedding, metadata, document))
         else:
             for doc_id, document in zip(ids, documents):
                 embedding = self.embedding_function.encode(document)
-                cursor.execute(f'INSERT INTO {self.name} (id, documents, embedding) '
-                               f'VALUES (%s, %s, %s)'
-                               f'ON CONFLICT (id)'
-                               f'DO UPDATE SET documents = %s;',
-                               (doc_id, document, embedding, document))
+                sql_string = (f'{sql_string}INSERT INTO {self.name} (id, documents, embedding) '
+                              f'VALUES (%s, %s, %s)'
+                              f'ON CONFLICT (id)'
+                              f'DO UPDATE SET documents = %s; ',
+                              (doc_id, document, embedding, document))
+        cursor.execute(sql_string)
         cursor.close()
 
     def count(self):
@@ -182,7 +186,8 @@ class Collection:
             retrieval = cursor.fetchall()
             for retrieved_document in retrieval:
                 retreived_documents.append(Document(id=retrieved_document[0][0], metadata=retrieved_document[0][1],
-                                                    content=retrieved_document[0][2], embedding=retrieved_document[0][3]))
+                                                    content=retrieved_document[0][2],
+                                                    embedding=retrieved_document[0][3]))
         except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn):
             logger.info(f"Error executing select on non-existant table: {self.name}. Creating it instead.")
             self.create_collection(collection_name=self.name)
@@ -204,12 +209,14 @@ class Collection:
             None
         """
         cursor = self.client.cursor()
+        sql_string = ""
         for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
-            cursor.execute(f'INSERT INTO {self.name} (id, embedding, metadata, document) '
-                           f'VALUES ({doc_id}, {embedding}, {metadata}, {document}) '
-                           f'ON CONFLICT (id) '
-                           f'DO UPDATE SET id = {doc_id}, embedding = {embedding}, '
-                           f'metadata = {metadata}, document = {document};')
+            sql_string = (f'{sql_string}INSERT INTO {self.name} (id, embedding, metadata, document) '
+                          f'VALUES ({doc_id}, {embedding}, {metadata}, {document}) '
+                          f'ON CONFLICT (id) '
+                          f'DO UPDATE SET id = {doc_id}, embedding = {embedding}, '
+                          f'metadata = {metadata}, document = {document}; ')
+        cursor.execute(sql_string)
         cursor.close()
 
     def modify(self, name, metadata):
@@ -241,7 +248,7 @@ class Collection:
         Returns:
         - float: The Euclidean distance between arr1 and arr2.
         """
-        dist = np.linalg.norm(arr1-arr2)
+        dist = np.linalg.norm(arr1 - arr2)
         return dist
 
     @staticmethod
@@ -256,7 +263,7 @@ class Collection:
         Returns:
         - float: The cosine distance between arr1 and arr2.
         """
-        dist = np.dot(arr1, arr2)/(np.linalg.norm(arr1)*np.linalg.norm(arr2))
+        dist = np.dot(arr1, arr2) / (np.linalg.norm(arr1) * np.linalg.norm(arr2))
         return dist
 
     def query(self, query_texts: List[str], collection_name: str = None, n_results: int = 10,
@@ -283,21 +290,28 @@ class Collection:
 
         cursor = self.client.cursor()
         results = []
+        sql_string = ""
         for query in query_texts:
             vector = self.embedding_function.encode(query, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
-                query = f"SELECT id, documents, embedding, metadatas FROM {self.name} ORDER BY embedding  <=> '{str(vector)}'::vector {distance_threshold} LIMIT {n_results}"
+                sql_string = (f"{sql_string}SELECT id, documents, embedding, metadatas FROM {self.name} "
+                              f"ORDER BY embedding  <=> '{str(vector)}'::vector {distance_threshold} "
+                              f"LIMIT {n_results}; ")
             else:
-                query = f"SELECT id, documents, embedding, metadatas FROM {self.name} ORDER BY embedding  <-> '{str(vector)}'::vector {distance_threshold} LIMIT {n_results}"
-            cursor.execute(query)
-            for row in cursor.fetchall():
-                fetched_document = Document(id=row[0], content=row[1], embedding=row[2], metadata=row[3])
-                fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get('embedding'))
-                if distance_type.lower() == "cosine":
-                    distance = self.cosine_distance(fetched_document_array, vector)
-                else:
-                    distance = self.euclidian_distance(fetched_document_array, vector)
-                results.append((fetched_document, distance))
+                sql_string = (f"{sql_string}SELECT id, documents, embedding, metadatas FROM {self.name} "
+                              f"ORDER BY embedding  <-> '{str(vector)}'::vector {distance_threshold} "
+                              f"LIMIT {n_results}; ")
+
+        cursor.execute(sql_string)
+
+        for row in cursor.fetchall():
+            fetched_document = Document(id=row[0], content=row[1], embedding=row[2], metadata=row[3])
+            fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get('embedding'))
+            if distance_type.lower() == "cosine":
+                distance = self.cosine_distance(fetched_document_array, vector)
+            else:
+                distance = self.euclidian_distance(fetched_document_array, vector)
+            results.append((fetched_document, distance))
         cursor.close()
         results = [results]
         logger.debug(f"Query Results: {results}")
