@@ -100,9 +100,3 @@ class CreateResponse:
     usage: RequestUsage
     cached: bool
 
-
-@dataclass
-class ToolDefinition:
-    name: str
-    parameters: Dict[str, Any]
-    description: str = ""
