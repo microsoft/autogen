@@ -2,14 +2,13 @@
 
 import os
 import sys
-from autogen import UserProxyAgent, config_list_from_json
+
+from autogen import ConversableAgent, UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.capabilities.teachability import Teachability
-from autogen import ConversableAgent
 from autogen.formatting_utils import colored
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
-
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 # Specify the model to use. GPT-3.5 is less reliable than GPT-4 at learning from user input.
 filter_dict = {"model": ["gpt-4-0125-preview"]}

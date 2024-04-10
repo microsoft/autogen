@@ -1,22 +1,22 @@
 from __future__ import annotations
+
 import atexit
-from hashlib import md5
 import logging
+import sys
+import uuid
+from hashlib import md5
 from pathlib import Path
 from time import sleep
 from types import TracebackType
-import uuid
 from typing import Any, List, Optional, Type, Union
+
 import docker
 from docker.errors import ImageNotFound
 
-from .utils import _get_file_name_from_content, silence_pip
-from .base import CommandLineCodeResult
-
 from ..code_utils import TIMEOUT_MSG, _cmd
-from .base import CodeBlock, CodeExecutor, CodeExtractor
+from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-import sys
+from .utils import _get_file_name_from_content, silence_pip
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -83,8 +83,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            raise ValueError(f"Working directory {work_dir} does not exist.")
+        work_dir.mkdir(exist_ok=True)
 
         client = docker.from_env()
 

@@ -11,7 +11,6 @@ from autogen.code_utils import content_str
 
 from ..._pydantic import model_dump
 
-
 DEFAULT_LMM_SYS_MSG = """You are a helpful AI assistant."""
 DEFAULT_MODEL = "gpt-4-vision-preview"
 

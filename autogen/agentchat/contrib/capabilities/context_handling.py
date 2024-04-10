@@ -1,9 +1,18 @@
 import sys
-from termcolor import colored
-from typing import Dict, Optional, List
-from autogen import ConversableAgent
-from autogen import token_count_utils
+from typing import Dict, List, Optional
+from warnings import warn
+
 import tiktoken
+from termcolor import colored
+
+from autogen import ConversableAgent, token_count_utils
+
+warn(
+    "Context handling with TransformChatHistory is deprecated. "
+    "Please use TransformMessages from autogen/agentchat/contrib/capabilities/transform_messages.py instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class TransformChatHistory:
@@ -26,7 +35,8 @@ class TransformChatHistory:
     3. Third, it limits the total number of tokens in the chat history
 
     When adding this capability to an agent, the following are modified:
-    - A hook is added to the hookable method `process_all_messages_before_reply` to transform the received messages for possible truncation.
+    - A hook is added to the hookable method `process_all_messages_before_reply` to transform the
+    received messages for possible truncation.
     Not modifying the stored message history.
     """
 
