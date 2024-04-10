@@ -85,7 +85,8 @@ class MessageTokenLimiter:
     2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
         and other types of content, only the text content is truncated.
     3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
-        exceeds this limit, the current message being processed as well as any remaining messages are discarded.
+        exceeds this limit, the current message being processed get truncated to meet the total token count and any
+        remaining messages get discarded.
     4. The truncated conversation history is reconstructed by prepending the messages to a new list to preserve the
         original message order.
     """
