@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
+using AutoGen.Mistral.Extension;
 
 namespace AutoGen.Mistral;
 
@@ -17,12 +18,14 @@ public class MistralClientAgent : IStreamingAgent
     private readonly string _model;
     private readonly int? _randomSeed;
     private readonly bool _jsonOutput = false;
+    private ToolChoiceEnum? _toolChoice;
     public MistralClientAgent(
         MistralClient client,
         string name,
         string model,
         string systemMessage = "You are a helpful AI assistant",
         int? randomSeed = null,
+        ToolChoiceEnum? toolChoice = null,
         bool jsonOutput = false)
     {
         _client = client;
@@ -31,6 +34,7 @@ public class MistralClientAgent : IStreamingAgent
         _model = model;
         _randomSeed = randomSeed;
         _jsonOutput = jsonOutput;
+        _toolChoice = toolChoice;
     }
 
     public string Name { get; }
@@ -73,6 +77,12 @@ public class MistralClientAgent : IStreamingAgent
             MaxTokens = options?.MaxToken,
             ResponseFormat = _jsonOutput ? new ResponseFormat() { ResponseFormatType = "json_object" } : null,
         };
+
+        if (options?.Functions != null)
+        {
+            chatRequest.Tools = options.Functions.Select(f => new FunctionTool(f.ToMistralFunctionDefinition())).ToList();
+            chatRequest.ToolChoice = _toolChoice ?? ToolChoiceEnum.Auto;
+        }
 
         return chatRequest;
     }
