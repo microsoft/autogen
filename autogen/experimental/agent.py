@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, List, Protocol, Union, runtime_checkable
+from typing import AsyncGenerator, List, Protocol, runtime_checkable
 
 from .types import ChatMessage, StreamResponse
 

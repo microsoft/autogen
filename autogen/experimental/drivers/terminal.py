@@ -1,6 +1,6 @@
-from aioconsole import aprint
+from aioconsole import aprint  # type: ignore
 
-from autogen.experimental.chat import ChatOrchestrator, ChatOrchestratorStream
+from autogen.experimental.chat import ChatOrchestratorStream
 from autogen.experimental.types import AssistantMessage, SystemMessage, FunctionCallMessage, UserMessage
 
 

@@ -35,7 +35,7 @@ async def test_create() -> None:
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
             extra_create_args: Dict[str, Any] = {},
-        ) -> AsyncGenerator[Union[Union[str, CreateResponse]], None]:
+        ) -> AsyncGenerator[Union[str, CreateResponse], None]:
             raise NotImplementedError
 
         def actual_usage(self) -> RequestUsage:

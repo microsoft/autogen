@@ -1,12 +1,12 @@
 import inspect
 import logging
-from typing import AsyncGenerator, Awaitable, Callable, List, Optional, Tuple, Union, cast
+from typing import Awaitable, Callable, List, Optional, Union, cast
 
 from ...cache import AbstractCache
 from ...coding.base import CodeExecutor
 from ..agent import Agent
 from ..model_client import ModelClient
-from ..types import AssistantMessage, ChatMessage, StreamResponse, SystemMessage, UserMessage
+from ..types import AssistantMessage, ChatMessage, SystemMessage, UserMessage
 
 __all__ = ("UserProxyAgent",)
 
@@ -77,11 +77,12 @@ class UserProxyAgent(Agent):
         assert self._code_executor is not None, "Code executor is not provided."
 
         last_n_messages_or_auto = "auto"
-        if (
-            not (isinstance(last_n_messages_or_auto, (int, float)) and last_n_messages_or_auto >= 0)
-            and last_n_messages_or_auto != "auto"
-        ):
-            raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
+        # TODO last n messages
+        # if (
+        #     not (isinstance(last_n_messages_or_auto, (int, float)) and last_n_messages_or_auto >= 0)
+        #     and last_n_messages_or_auto != "auto"
+        # ):
+        #     raise ValueError("last_n_messages must be either a non-negative integer, or the string 'auto'.")
 
         if last_n_messages_or_auto == "auto":
             # Find when the agent last spoke

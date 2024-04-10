@@ -1,7 +1,5 @@
 import inspect
-import json
 import warnings
-from dataclasses import asdict
 from typing import (
     Any,
     AsyncGenerator,
@@ -18,7 +16,6 @@ from typing import (
     cast,
 )
 
-from jsonschema import validate
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -32,23 +29,20 @@ from openai.types.chat import (
     ChatCompletionToolParam,
     completion_create_params,
 )
-from typing_extensions import NotRequired, Required, Self, TypedDict, Unpack
+from typing_extensions import Required, TypedDict, Unpack
 
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
-from ...oai.openai_utils import OAI_PRICE1K, get_key
-from ...token_count_utils import count_token
+from ...oai.openai_utils import OAI_PRICE1K, get_key  # type: ignore
 from ..model_client import ModelCapabilities, ModelClient
 from ..types import (
     AssistantMessage,
     ChatMessage,
     CreateResponse,
-    FinishReasons,
     FunctionCall,
     FunctionDefinition,
     RequestUsage,
     SystemMessage,
-    FunctionCallMessage,
     FunctionCallMessage,
     UserMessage,
 )
@@ -108,7 +102,7 @@ def type_to_role(message: ChatMessage) -> ChatCompletionRole:
         return "user"
     elif isinstance(message, AssistantMessage):
         return "assistant"
-    elif isinstance(message, FunctionCallMessage):
+    else:
         return "tool"
 
 
@@ -164,10 +158,8 @@ def to_oai_type(message: ChatMessage) -> Sequence[ChatCompletionMessageParam]:
         return [user_message_to_oai(message)]
     elif isinstance(message, AssistantMessage):
         return [assistant_message_to_oai(message)]
-    elif isinstance(message, FunctionCallMessage):
-        return tool_message_to_oai(message)
     else:
-        raise ValueError(f"Invalid message type: {type(message)}")
+        return tool_message_to_oai(message)
 
 
 def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
@@ -206,7 +198,7 @@ def _cost(response: Union[ChatCompletion, Tuple[str, int, int]]) -> float:
         # logger.debug(f"Model {model} is not found. The cost will be 0.", exc_info=True)
         return 0
 
-    tmp_price1K = cast(Union[float, Tuple[float, float]], OAI_PRICE1K[model])
+    tmp_price1K = OAI_PRICE1K[model]
     # First value is input token rate, second value is output token rate
     if isinstance(tmp_price1K, tuple):
         return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
@@ -319,6 +311,7 @@ class BaseOpenAI(ModelClient):
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
+        cache_key = None
         if cache is not None:
             cache_key = get_key({**create_args, "messages": oai_messages})
             cached_value = cache.get(cache_key)
@@ -340,8 +333,9 @@ class BaseOpenAI(ModelClient):
             result = await self._client.chat.completions.create(messages=oai_messages, stream=False, **create_args)
 
         usage = RequestUsage(
-            prompt_tokens=result.usage.prompt_tokens,
-            completion_tokens=result.usage.completion_tokens,
+            # TODO backup token counting
+            prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
+            completion_tokens=result.usage.completion_tokens if result.usage is not None else 0,
             cost=_cost(result),
         )
 
@@ -371,11 +365,10 @@ class BaseOpenAI(ModelClient):
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
 
-        response = CreateResponse(
-            finish_reason=cast(FinishReasons, finish_reason), content=content, usage=usage, cached=False
-        )
+        response = CreateResponse(finish_reason=finish_reason, content=content, usage=usage, cached=False)
 
         if cache is not None:
+            assert cache_key is not None
             cache.set(cache_key, result)
 
         _add_usage(self._actual_usage, usage)
@@ -400,6 +393,7 @@ class BaseOpenAI(ModelClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
+        cache_key = None
         if cache is not None:
             cache_key = get_key({**create_args, "messages": messages})
             cached_value = cache.get(cache_key)
@@ -422,7 +416,7 @@ class BaseOpenAI(ModelClient):
 
         stop_reason = None
         maybe_model = None
-        content_deltas = []
+        content_deltas: List[str] = []
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
 
@@ -472,10 +466,10 @@ class BaseOpenAI(ModelClient):
         else:
             completion_tokens = 0
             # TODO: fix assumption that dict values were added in order and actually order by int index
-            for tool_call in full_tool_calls.values():
-                # value = json.dumps(tool_call)
-                # completion_tokens += count_token(value, model=model)
-                completion_tokens += 0
+            # for tool_call in full_tool_calls.values():
+            #     # value = json.dumps(tool_call)
+            #     # completion_tokens += count_token(value, model=model)
+            #     completion_tokens += 0
             content = list(full_tool_calls.values())
 
         usage = RequestUsage(
@@ -491,6 +485,7 @@ class BaseOpenAI(ModelClient):
         result = CreateResponse(finish_reason=stop_reason, content=content, usage=usage, cached=False)
 
         if cache is not None:
+            assert cache_key is not None
             cache.set(cache_key, result)
 
         _add_usage(self._actual_usage, usage)

@@ -1,13 +1,11 @@
 import json
-from dataclasses import dataclass
-from enum import Enum
-from typing import ClassVar, List, Optional, Protocol
+from typing import ClassVar, List, Optional
 
 from autogen.experimental.agent import Agent
 from autogen.experimental.model_client import ModelClient
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import AssistantMessage, ChatMessage, SystemMessage, FunctionCallMessage, UserMessage
+from ..types import ChatMessage, SystemMessage, UserMessage
 
 
 class ReflectionTerminationManager(TerminationManager):

@@ -9,7 +9,7 @@ from autogen.experimental.termination_managers import ReflectionTerminationManag
 
 
 async def user_input(prompt: str) -> str:
-    res = await aioconsole.ainput(prompt)
+    res = await aioconsole.ainput(prompt) # type: ignore
     if not isinstance(res, str):
         raise ValueError("Expected a string")
     return res

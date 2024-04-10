@@ -1,7 +1,7 @@
-from typing import AsyncGenerator, List, Optional, Protocol, TypeVar, runtime_checkable
+from typing import AsyncGenerator, List, Optional, Protocol, runtime_checkable
 
 from autogen.experimental.agent import Agent
-from autogen.experimental.termination import TerminationReason, TerminationResult
+from autogen.experimental.termination import TerminationResult
 from autogen.experimental.types import ChatMessage, StreamResponse
 
 
