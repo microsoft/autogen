@@ -9,7 +9,13 @@ import pytest
 
 from autogen import OpenAIWrapper, config_list_from_json, config_list_openai_aoai
 from autogen.cache.cache import Cache
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED, AzureOpenAI, OpenAIClient, PlaceHolderClient
+from autogen.oai.client import (
+    LEGACY_CACHE_DIR,
+    LEGACY_DEFAULT_CACHE_SEED,
+    AzureOpenAI,
+    OpenAIClient,
+    PlaceHolderClient,
+)
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -77,7 +83,10 @@ def test_oai_tool_calling_extraction():
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "location": {"type": "string", "description": "The city and state e.g. San Francisco, CA"},
+                            "location": {
+                                "type": "string",
+                                "description": "The city and state e.g. San Francisco, CA",
+                            },
                             "unit": {"type": "string", "enum": ["c", "f"]},
                         },
                         "required": ["location"],
@@ -299,6 +308,7 @@ def test_cache():
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_register_default_client_with_custom_model_client():
     config = {
         "model_client_cls": "CustomModelClient",
@@ -312,11 +322,13 @@ def test_register_default_client_with_custom_model_client():
     assert client._clients[0].config == config
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_register_default_client_with_azure_api_type():
     config = {"api_type": "azure", "default_headers": '{"Another-Header": "HEADER_TEST"}'}
     openai_config = {"base_url": "https://api.openai.com/openai/", "api_key": "YOUR_API_KEY"}
     client = OpenAIWrapper(config_list=[config])
     client._register_default_client(config, openai_config)
+    assert client._clients[0].config.default_headers == {"Another-Header": "HEADER_TEST"}
     assert isinstance(client._clients[0], OpenAIClient)
     assert isinstance(client._clients[0]._oai_client, AzureOpenAI)
     assert client._clients[0]._oai_client.base_url == "https://api.openai.com/openai/"
@@ -324,6 +336,7 @@ def test_register_default_client_with_azure_api_type():
     assert client._clients[0]._oai_client.default_headers.get("Another-Header") == "HEADER_TEST"
 
 
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
 def test_register_default_client_with_openai_api_type():
     config = {"api_type": "openai", "default_headers": '{"Another-Header": "HEADER_TEST"}'}
     openai_config = {"base_url": "https://api.openai.com/v1/", "api_key": "YOUR_API_KEY"}
