@@ -7,11 +7,14 @@ authors:
 tags: [AutoGen, UI, web, UX]
 ---
 
-
-
-
 ![AutoGen Studio Playground View: Solving a task with multiple agents that generate a pdf document with images.](img/autogenstudio_home.png)
-<p align="center"><em>AutoGen Studio: Solving a task with multiple agents that generate a pdf document with images.</em></p>
+
+<p align="center">
+  <em>
+    AutoGen Studio: Solving a task with multiple agents that generate a pdf
+    document with images.
+  </em>
+</p>
 
 ## TL;DR
 
@@ -22,12 +25,11 @@ To help you rapidly prototype multi-agent solutions for your tasks, we are intro
 - Explicitly add skills to your agents and accomplish more tasks.
 - Publish your sessions to a local gallery.
 
-AutoGen Studio is open source [code here](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio), and can be installed via pip.  Give it a try!
+AutoGen Studio is open source [code here](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio), and can be installed via pip. Give it a try!
 
 ```bash
 pip install autogenstudio
 ```
-
 
 ## Introduction
 
@@ -44,7 +46,6 @@ The following guide will help you get AutoGen Studio up and running on your syst
 ### Configuring an LLM Provider
 
 To get started, you need access to a language model. You can get this set up by following the steps in the AutoGen documentation [here](https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints). Configure your environment with either `OPENAI_API_KEY` or `AZURE_OPENAI_API_KEY`.
-
 
 For example, in your terminal, you would set the API key like this:
 
@@ -66,7 +67,6 @@ llm_config = LLMConfig(
     temperature=0,
 )
 ```
-
 
 ### Installation
 
@@ -103,7 +103,6 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
 
    For Windows users, to build the frontend, you may need alternative commands provided in the [autogen studio readme](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio).
 
-
 ### Running the Application
 
 Once installed, run the web UI by entering the following in your terminal:
@@ -117,6 +116,7 @@ This will start the application on the specified port. Open your web browser and
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
 ## What Can You Do with AutoGen Studio?
+
 The AutoGen Studio UI is organized into 3 high level sections - **Build**, **Playground**, and **Gallery**.
 
 ### Build
@@ -128,20 +128,28 @@ This section focuses on defining the properties of agents and agent workflows. I
 **Skills**: Skills are functions (e.g., Python functions) that describe how to solve a task. In general, a good skill has a descriptive name (e.g. `generate_images`), extensive docstrings and good defaults (e.g., writing out files to disk for persistence and reuse). You can add new skills to AutoGen Studio via the provided UI. At inference time, these skills are made available to the assistant agent as they address your tasks.
 
 ![View and add skills.](img/autogenstudio_skills.png)
-<p align="center"><em>AutoGen Studio Build View: View, add or edit skills that an agent can leverage in addressing tasks.</em></p>
 
+<p align="center">
+  <em>
+    AutoGen Studio Build View: View, add or edit skills that an agent can
+    leverage in addressing tasks.
+  </em>
+</p>
 
 **Agents**: This provides an interface to declaratively specify properties for an AutoGen agent (mirrors most of the members of a base [AutoGen conversable agent](https://github.com/microsoft/autogen/blob/main/autogen/agentchat/conversable_agent.py) class).
 
 **Agent Workflows**: An agent workflow is a specification of a set of agents that can work together to accomplish a task. The simplest version of this is a setup with two agents – a user proxy agent (that represents a user i.e. it compiles code and prints result) and an assistant that can address task requests (e.g., generating plans, writing code, evaluating responses, proposing error recovery steps, etc.). A more complex flow could be a group chat where even more agents work towards a solution.
 
-
-
 ### Playground
 
 ![AutoGen Studio Playground View: Solving a task with multiple agents that generate a pdf document with images.](img/autogenstudio_home.png)
-<p align="center"><em>AutoGen Studio Playground View: Agents collaborate, use available skills (ability to generate images) to address a user task (generate pdf's).</em></p>
 
+<p align="center">
+  <em>
+    AutoGen Studio Playground View: Agents collaborate, use available skills
+    (ability to generate images) to address a user task (generate pdf's).
+  </em>
+</p>
 
 The playground section is focused on interacting with agent workflows defined in the previous build section. It includes the following concepts:
 
@@ -153,16 +161,11 @@ The playground section is focused on interacting with agent workflows defined in
 
 This section is focused on sharing and reusing artifacts (e.g., workflow configurations, sessions, etc.).
 
-
-
-
 AutoGen Studio comes with 3 example skills: `fetch_profile`, `find_papers`, `generate_images`. Please feel free to review the repo to learn more about how they work.
-
-
 
 ## The AutoGen Studio API
 
-While  AutoGen Studio is a web interface, it is powered by an underlying python API that is reusable and modular. Importantly, we have implemented an API where agent workflows can be declaratively specified (in JSON), loaded and run. An example of the current API is shown below. Please consult the [AutoGen Studio repo](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) for more details.
+While AutoGen Studio is a web interface, it is powered by an underlying python API that is reusable and modular. Importantly, we have implemented an API where agent workflows can be declaratively specified (in JSON), loaded and run. An example of the current API is shown below. Please consult the [AutoGen Studio repo](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio) for more details.
 
 ```python
 import json
@@ -191,8 +194,6 @@ As we continue to develop and refine AutoGen Studio, the road map below outlines
 - **Expansion of Agent Skills**: We will work towards improving the workflow for authoring, composing and reusing agent skills.
 - **Community Features**: Facilitation of sharing and collaboration within AutoGen Studio user community is a key goal. We're exploring options for sharing sessions and results more easily among users and contributing to a shared repository of skills, agents, and agent workflows.
 
-
-
 ## Contribution Guide
 
 We welcome contributions to AutoGen Studio. We recommend the following general steps to contribute to the project:
@@ -204,7 +205,6 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 - Submit a pull request with your contribution!
 - If you are modifying AutoGen Studio in vscode, it has its own devcontainer to simplify dev work. See instructions in `.devcontainer/README.md` on how to use it.
 - Please use the tag `studio` for any issues, questions, and PRs related to Studio.
-
 
 ### FAQ
 
@@ -218,19 +218,17 @@ A: To reset your conversation history, you can delete the `database.sqlite` file
 A: Yes, you can view the generated messages in the debug console of the web UI, providing insights into the agent interactions. Alternatively, you can inspect the `database.sqlite` file for a comprehensive record of messages.
 
 **Q: Where can I find documentation and support for AutoGen Studio?**
-A: We are constantly working to improve AutoGen Studio. For the latest updates, please refer to the [AutoGen Studio Readme](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio). For additional support, please open an issue on [GitHub](https://github.com/microsoft/autogen) or ask questions on [Discord](https://discord.gg/pAbnFJrkgZ).
+A: We are constantly working to improve AutoGen Studio. For the latest updates, please refer to the [AutoGen Studio Readme](https://github.com/microsoft/autogen/tree/main/samples/apps/autogen-studio). For additional support, please open an issue on [GitHub](https://github.com/microsoft/autogen) or ask questions on [Discord](https://aka.ms/autogen-dc).
 
 **Q: Can I use Other Models with AutoGen Studio?**
 Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model name`, `api key`, `base url`, `model type` and `api version`. For Azure OpenAI models, you can find these details in the Azure portal. Note that for Azure OpenAI, the `model name` is the deployment id or engine, and the `model type` is "azure".
 For other OSS models, we recommend using a server such as vllm to instantiate an openai compliant endpoint.
 
 **Q: The Server Starts But I Can't Access the UI**
-A: If you are running the server on a remote machine (or a local machine that fails to resolve localhost correstly), you may need to specify the host address. By default, the host address is set to `localhost`.  You can specify the host address using the `--host <host>` argument. For example, to start the server on port 8081 and local address such that it is accessible from other machines on the network, you can run the following command:
+A: If you are running the server on a remote machine (or a local machine that fails to resolve localhost correstly), you may need to specify the host address. By default, the host address is set to `localhost`. You can specify the host address using the `--host <host>` argument. For example, to start the server on port 8081 and local address such that it is accessible from other machines on the network, you can run the following command:
 
 ```bash
 autogenstudio ui --port 8081 --host 0.0.0.0
 ```
-
-
 
 <br />

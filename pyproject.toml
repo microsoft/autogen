@@ -29,6 +29,7 @@ select = [
 #    "D",  # see: https://pypi.org/project/pydocstyle
 #    "N",  # see: https://pypi.org/project/pep8-naming
 #    "S",  # see: https://pypi.org/project/flake8-bandit
+    "I",  # see: https://pypi.org/project/isort/
 ]
 
 ignore = [
@@ -52,6 +53,7 @@ exclude = [
      # This file needs to be either upgraded or removed and therefore should be
     # ignore from type checking for now
     "math_utils\\.py$",
+    "**/cap/py/autogencap/proto/*",
 ]
 ignore-init-module-imports = true
 unfixable = ["F401"]
@@ -67,6 +69,12 @@ files = [
     "autogen/exception_utils.py",
     "autogen/coding",
     "autogen/oai/openai_utils.py",
+    "autogen/_pydantic.py",
+    "autogen/function_utils.py",
+    "autogen/io",
+    "test/test_pydantic.py",
+    "test/test_function_utils.py",
+    "test/io",
 ]
 
 exclude = [

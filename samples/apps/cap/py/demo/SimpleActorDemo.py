@@ -1,5 +1,7 @@
 import time
+
 from AppAgents import GreeterAgent
+from autogencap.DebugLog import Error
 from autogencap.LocalActorNetwork import LocalActorNetwork
 
 
@@ -17,10 +19,11 @@ def simple_actor_demo():
     network.connect()
     # Get a channel to the actor
     greeter_link = network.lookup_actor("Greeter")
-    time.sleep(1)
-    # Send a message to the actor
-    greeter_link.send_txt_msg("Hello World!")
-    time.sleep(1)
-    # Cleanup
-    greeter_link.close()
+    if greeter_link:
+        # Send a message to the actor
+        greeter_link.send_txt_msg("Hello World!")
+        # Cleanup
+        greeter_link.close()
+    else:
+        Error("simple_actor_demo", "Could not find Greeter")
     network.disconnect()
