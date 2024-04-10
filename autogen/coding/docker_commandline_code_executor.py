@@ -8,15 +8,15 @@ from hashlib import md5
 from pathlib import Path
 from time import sleep
 from types import TracebackType
-from typing import Any, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import docker
-from docker.errors import ImageNotFound
+from docker.errors import ImageNotFound, NotFound
 
-from ..code_utils import TIMEOUT_MSG, _cmd
+from ..code_utils import TIMEOUT_MSG, _cmd  # type: ignore
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-from .utils import _get_file_name_from_content, silence_pip
+from .utils import get_file_name_from_content, silence_pip
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -24,7 +24,7 @@ else:
     from typing_extensions import Self
 
 
-def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
+def wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 0.1) -> None:
     elapsed_time = 0.0
     while container.status != "running" and elapsed_time < timeout:
         sleep(stop_time)
@@ -85,7 +85,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         work_dir.mkdir(exist_ok=True)
 
-        client = docker.from_env()
+        client: Any = docker.from_env()  # type: ignore
 
         # Check if the image exists
         try:
@@ -99,7 +99,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             container_name = f"autogen-code-exec-{uuid.uuid4()}"
 
         # Start a container from the image, read to exec commands later
-        self._container = client.containers.create(
+        self._container: Any = client.containers.create(
             image,
             name=container_name,
             entrypoint="/bin/sh",
@@ -110,13 +110,13 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         )
         self._container.start()
 
-        _wait_for_ready(self._container)
+        wait_for_ready(self._container)
 
         def cleanup() -> None:
             try:
                 container = client.containers.get(container_name)
                 container.stop()
-            except docker.errors.NotFound:
+            except NotFound:
                 pass
 
             atexit.unregister(cleanup)
@@ -160,8 +160,8 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         if len(code_blocks) == 0:
             raise ValueError("No code blocks to execute.")
 
-        outputs = []
-        files = []
+        outputs: List[str] = []
+        files: List[Path] = []
         last_exit_code = 0
         for code_block in code_blocks:
             lang = code_block.language
@@ -169,7 +169,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
             try:
                 # Check if there is a filename comment
-                filename = _get_file_name_from_content(code, Path("/workspace"))
+                filename = get_file_name_from_content(code, Path("/workspace"))
             except ValueError:
                 return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
 
@@ -186,7 +186,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
             result = self._container.exec_run(command)
             exit_code = result.exit_code
-            output = result.output.decode("utf-8")
+            output: str = result.output.decode("utf-8")
             if exit_code == 124:
                 output += "\n"
                 output += TIMEOUT_MSG
@@ -218,3 +218,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
+
+    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
+        raise NotImplementedError

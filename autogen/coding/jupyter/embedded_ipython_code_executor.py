@@ -5,17 +5,16 @@ import re
 import uuid
 from pathlib import Path
 from queue import Empty
-from typing import Any, ClassVar, List
+from typing import Any, Dict, List
 
 from jupyter_client import KernelManager  # type: ignore[attr-defined]
 from jupyter_client.kernelspec import KernelSpecManager
 from pydantic import BaseModel, Field, field_validator
 
-from ...agentchat.agent import LLMAgent
 from ..base import CodeBlock, CodeExtractor, IPythonCodeResult
 from ..markdown_code_extractor import MarkdownCodeExtractor
 
-__all__ = "EmbeddedIPythonCodeExecutor"
+__all__ = ("EmbeddedIPythonCodeExecutor",)
 
 
 class EmbeddedIPythonCodeExecutor(BaseModel):
@@ -85,8 +84,8 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
             IPythonCodeResult: The result of the code execution.
         """
         self._kernel_client.wait_for_ready()
-        outputs = []
-        output_files = []
+        outputs: List[str] = []
+        output_files: List[str] = []
         for code_block in code_blocks:
             code = self._process_code(code_block.code)
             self._kernel_client.execute(code, store_history=True)
@@ -174,3 +173,10 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
                 if "-qqq" not in line:
                     lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
         return "\n".join(lines)
+
+    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
+        raise NotImplementedError
+
+    @property
+    def functions(self) -> List[str]:
+        raise NotImplementedError

@@ -6,21 +6,21 @@ import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
+from typing import Any, Callable, ClassVar, Dict, List, Union
 
 from typing_extensions import ParamSpec
 
 from autogen.coding.func_with_reqs import (
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
-    _build_python_functions_file,
+    build_python_functions_file,
     to_stub,
 )
 
-from ..code_utils import TIMEOUT_MSG, WIN32, _cmd
+from ..code_utils import TIMEOUT_MSG, WIN32, _cmd  # type: ignore
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-from .utils import _get_file_name_from_content, silence_pip
+from .utils import get_file_name_from_content, silence_pip
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
@@ -117,11 +117,8 @@ $functions"""
         return self._functions_module
 
     @property
-    def functions(
-        self,
-    ) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]:
-        """(Experimental) The functions that are available to the code executor."""
-        return self._functions
+    def functions(self) -> List[str]:
+        raise NotImplementedError
 
     @property
     def timeout(self) -> int:
@@ -161,7 +158,7 @@ $functions"""
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
     def _setup_functions(self) -> None:
-        func_file_content = _build_python_functions_file(self._functions)
+        func_file_content = build_python_functions_file(self._functions)
         func_file = self._work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
 
@@ -208,8 +205,9 @@ $functions"""
         return self._execute_code_dont_check_setup(code_blocks)
 
     def _execute_code_dont_check_setup(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
-        logs_all = ""
-        file_names = []
+        logs_all: str = ""
+        file_names: List[Path] = []
+        exitcode = 0
         for code_block in code_blocks:
             lang, code = code_block.language, code_block.code
             lang = lang.lower()
@@ -228,7 +226,7 @@ $functions"""
 
             try:
                 # Check if there is a filename comment
-                filename = _get_file_name_from_content(code, self._work_dir)
+                filename = get_file_name_from_content(code, self._work_dir)
             except ValueError:
                 return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
 
@@ -269,69 +267,5 @@ $functions"""
         """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
 
-
-# From stack overflow: https://stackoverflow.com/a/52087847/2214524
-class _DeprecatedClassMeta(type):
-    def __new__(cls, name, bases, classdict, *args, **kwargs):  # type: ignore[no-untyped-def]
-        alias = classdict.get("_DeprecatedClassMeta__alias")
-
-        if alias is not None:
-
-            def new(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
-                alias = getattr(cls, "_DeprecatedClassMeta__alias")
-
-                if alias is not None:
-                    warnings.warn(
-                        "{} has been renamed to {}, the alias will be "
-                        "removed in the future".format(cls.__name__, alias.__name__),
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
-
-                return alias(*args, **kwargs)
-
-            classdict["__new__"] = new
-            classdict["_DeprecatedClassMeta__alias"] = alias
-
-        fixed_bases = []
-
-        for b in bases:
-            alias = getattr(b, "_DeprecatedClassMeta__alias", None)
-
-            if alias is not None:
-                warnings.warn(
-                    "{} has been renamed to {}, the alias will be "
-                    "removed in the future".format(b.__name__, alias.__name__),
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-
-            # Avoid duplicate base classes.
-            b = alias or b
-            if b not in fixed_bases:
-                fixed_bases.append(b)
-
-        fixed_bases = tuple(fixed_bases)  # type: ignore[assignment]
-
-        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)  # type: ignore[call-overload]
-
-    def __instancecheck__(cls, instance):  # type: ignore[no-untyped-def]
-        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})  # type: ignore[no-untyped-call]
-
-    def __subclasscheck__(cls, subclass):  # type: ignore[no-untyped-def]
-        if subclass is cls:
-            return True
-        else:
-            return issubclass(subclass, getattr(cls, "_DeprecatedClassMeta__alias"))
-
-
-class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
-    """LocalCommandlineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
-
-    _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
-
-
-class CommandlineCodeResult(metaclass=_DeprecatedClassMeta):
-    """CommandlineCodeResult renamed to CommandLineCodeResult"""
-
-    _DeprecatedClassMeta__alias = CommandLineCodeResult
+    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
+        raise NotImplementedError

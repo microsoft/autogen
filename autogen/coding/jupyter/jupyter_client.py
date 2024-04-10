@@ -85,7 +85,7 @@ class JupyterClient:
 
     def get_kernel_client(self, kernel_id: str) -> JupyterKernelClient:
         ws_url = f"{self._get_ws_base_url()}/api/kernels/{kernel_id}/channels"
-        ws = websocket.create_connection(ws_url, header=self._get_headers())
+        ws = websocket.create_connection(ws_url, header=self._get_headers())  # type: ignore
         return JupyterKernelClient(ws)
 
 
@@ -176,8 +176,8 @@ class JupyterKernelClient:
             message_type="execute_request",
         )
 
-        text_output = []
-        data_output = []
+        text_output: List[str] = []
+        data_output: List[JupyterKernelClient.ExecutionResult.DataItem] = []
         while True:
             message = self._receive_message(timeout_seconds)
             if message is None:

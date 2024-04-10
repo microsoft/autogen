@@ -5,7 +5,7 @@ from typing import Optional
 
 
 # Raises ValueError if the file is not in the workspace
-def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str]:
+def get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str]:
     first_line = code.split("\n")[0]
     # TODO - support other languages
     if first_line.startswith("# filename:"):

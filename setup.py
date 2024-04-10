@@ -25,6 +25,8 @@ install_requires = [
     # Disallowing 2.6.0 can be removed when this is fixed https://github.com/pydantic/pydantic/issues/8705
     "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
     "docker",
+    "jsonschema",
+    "aioconsole"
 ]
 
 jupyter_executor = [
@@ -45,6 +47,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
+    package_data={"autogen":["py.typed"]},
     install_requires=install_requires,
     extras_require={
         "test": [

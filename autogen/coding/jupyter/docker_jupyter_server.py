@@ -8,11 +8,12 @@ import sys
 import uuid
 from pathlib import Path
 from types import TracebackType
-from typing import Dict, Optional, Type, Union
+from typing import Any, Dict, Optional, Type, Union
 
 import docker
+from docker.errors import ImageNotFound, NotFound
 
-from ..docker_commandline_code_executor import _wait_for_ready
+from ..docker_commandline_code_executor import wait_for_ready
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -81,13 +82,13 @@ WORKDIR "${HOME}"
         if container_name is None:
             container_name = f"autogen-jupyterkernelgateway-{uuid.uuid4()}"
 
-        client = docker.from_env()
+        client: Any = docker.from_env()  # type: ignore
         if custom_image_name is None:
             image_name = "autogen-jupyterkernelgateway"
             # Make sure the image exists
             try:
                 client.images.get(image_name)
-            except docker.errors.ImageNotFound:
+            except ImageNotFound:
                 # Build the image
                 # Get this script directory
                 here = Path(__file__).parent
@@ -100,7 +101,7 @@ WORKDIR "${HOME}"
             # Check if the image exists
             try:
                 client.images.get(image_name)
-            except docker.errors.ImageNotFound:
+            except ImageNotFound:
                 raise ValueError(f"Custom image {image_name} does not exist")
 
         if isinstance(token, DockerJupyterServer.GenerateToken):
@@ -119,7 +120,7 @@ WORKDIR "${HOME}"
             publish_all_ports=True,
             name=container_name,
         )
-        _wait_for_ready(container)
+        wait_for_ready(container)
         container_ports = container.ports
         self._port = int(container_ports["8888/tcp"][0]["HostPort"])
         self._container_id = container.id
@@ -128,7 +129,7 @@ WORKDIR "${HOME}"
             try:
                 inner_container = client.containers.get(container.id)
                 inner_container.stop()
-            except docker.errors.NotFound:
+            except NotFound:
                 pass
 
             atexit.unregister(cleanup)

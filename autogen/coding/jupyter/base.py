@@ -23,4 +23,4 @@ class JupyterConnectable(Protocol):
     @property
     def connection_info(self) -> JupyterConnectionInfo:
         """Return the connection information for this connectable."""
-        pass
+        ...

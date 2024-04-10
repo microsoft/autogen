@@ -75,6 +75,9 @@ files = [
     "test/test_pydantic.py",
     "test/test_function_utils.py",
     "test/io",
+    "autogen/experimental",
+    "test/experimental",
+    "samples/experimental"
 ]
 
 exclude = [
@@ -107,3 +110,15 @@ warn_unused_ignores = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_any_unimported = true
+
+[tool.pyright]
+
+include = [
+    "autogen/experimental",
+    "test/experimental",
+    "samples/experimental"
+]
+typeCheckingMode = "strict"
+
+reportUnnecessaryIsInstance = false
+reportMissingTypeStubs = false

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import functools
-import importlib
 import inspect
 from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
 from textwrap import dedent, indent
-from typing import Any, Callable, Generic, List, TypeVar, Union
+from typing import Any, Callable, Generic, List, Set, TypeVar, Union
 
 from typing_extensions import ParamSpec
+
+from importlib.util import spec_from_loader, module_from_spec
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -74,7 +75,7 @@ class _StringLoader(SourceLoader):
 @dataclass
 class FunctionWithRequirementsStr:
     func: str
-    _compiled_func: Callable[..., Any]
+    compiled_func: Callable[..., Any]
     _func_name: str
     python_packages: List[str] = field(default_factory=list)
     global_imports: List[Import] = field(default_factory=list)
@@ -86,10 +87,10 @@ class FunctionWithRequirementsStr:
 
         module_name = "func_module"
         loader = _StringLoader(func)
-        spec = importlib.util.spec_from_loader(module_name, loader)
+        spec = spec_from_loader(module_name, loader)
         if spec is None:
             raise ValueError("Could not create spec")
-        module = importlib.util.module_from_spec(spec)
+        module = module_from_spec(spec)
         if spec.loader is None:
             raise ValueError("Could not create loader")
 
@@ -102,7 +103,7 @@ class FunctionWithRequirementsStr:
         if len(functions) != 1:
             raise ValueError("The string must contain exactly one function")
 
-        self._func_name, self._compiled_func = functions[0]
+        self._func_name, self.compiled_func = functions[0]
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError("String based function with requirement objects are not directly callable")
@@ -155,11 +156,11 @@ def with_requirements(
     return wrapper
 
 
-def _build_python_functions_file(
+def build_python_functions_file(
     funcs: List[Union[FunctionWithRequirements[Any, P], Callable[..., Any], FunctionWithRequirementsStr]]
 ) -> str:
     # First collect all global imports
-    global_imports = set()
+    global_imports: Set[Import] = set()
     for func in funcs:
         if isinstance(func, (FunctionWithRequirements, FunctionWithRequirementsStr)):
             global_imports.update(func.global_imports)
@@ -182,7 +183,7 @@ def to_stub(func: Union[Callable[..., Any], FunctionWithRequirementsStr]) -> str
         str: The stub for the function
     """
     if isinstance(func, FunctionWithRequirementsStr):
-        return to_stub(func._compiled_func)
+        return to_stub(func.compiled_func)
 
     content = f"def {func.__name__}{inspect.signature(func)}:\n"
     docstring = func.__doc__
