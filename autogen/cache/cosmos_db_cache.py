@@ -18,7 +18,7 @@ class CosmosDBCache(AbstractCache):
         client (CosmosClient): The Cosmos DB client used for caching.
         container: The container instance used for caching.
     """
-    def __init__(self, seed: Union[str, int], connection_string: str, database_id: str, container_id: str, client: Optional[CosmosClient] = None):
+    def __init__(self, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
         """
         Initialize the CosmosDBCache instance.
 
@@ -30,13 +30,19 @@ class CosmosDBCache(AbstractCache):
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
         self.seed = seed
-        self.client = client if client else CosmosClient.from_connection_string(connection_string)
+        self.client = client
         self.database = self.client.get_database_client(database_id)
         self.container = self.database.get_container_client(container_id)
-        self.container = database.get_container_client(container_id)
 
         if not self.container.exists():
             self.database.create_container(id=container_id, partition_key=PartitionKey(path='/partitionKey'))
+
+    def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
+        client = CosmosClient.from_connection_string(connection_string)
+        return cls(seed, client, database_id, container_id)
+
+    def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
+        return cls(seed, client, database_id, container_id)
     
     def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:    
         """
