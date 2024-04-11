@@ -23,7 +23,7 @@ from .llm import AutoGenChatCompletionService
 from .database.database import ChatMessage
 from .database.database_sqllite import SQLLiteDatabaseManager
 from .files import CodespacesFileManager
-from .agents.autogen_agents import AutoGenAgentManager
+from .agents.autogen_agents import AutoGenAgentManager, AGMPlusTools
 from .app_config import AppConfiguration
 
 from .screens.quit_screen import QuitScreen
@@ -41,120 +41,6 @@ class ChatInput(Input):
 
     def on_mount(self) -> None:
         self.focus()
-
-
-# def generate_response_process(msg_idx: int):
-#     chat_history = fetch_chat_history()
-#     task = chat_history[msg_idx]["content"]
-
-#     def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
-#         # check the contents of the last N messages
-#         # if all empty, terminate
-#         consecutive_are_empty = None
-#         last_n = 2
-
-#         for message in reversed(messages):
-#             if last_n == 0:
-#                 break
-#             if message["role"] == "user":
-#                 last_n -= 1
-#                 if len(message["content"]) == 0:
-#                     consecutive_are_empty = True
-#                 else:
-#                     consecutive_are_empty = False
-#                     break
-
-#         if consecutive_are_empty:
-#             return True, "TERMINATE"
-
-#         return False, None
-
-#     def summarize(text):
-#         return text[:100]
-
-#     def post_snippet_and_record_history(sender, message, recipient, silent):
-#         if silent is True:
-#             return message
-
-#         if isinstance(message, str):
-#             summary = message
-#             insert_chat_message(sender.name, message, root_id=msg_idx + 1)
-#         elif isinstance(message, Dict):
-#             if message.get("content"):
-#                 summary = message["content"]
-#                 insert_chat_message(sender.name, message["content"], root_id=msg_idx + 1)
-#             elif message.get("tool_calls"):
-#                 tool_calls = message["tool_calls"]
-#                 summary = "Calling tools…"
-#                 insert_chat_message(sender.name, json.dumps(tool_calls), root_id=msg_idx + 1)
-#             else:
-#                 raise ValueError("Message must have a content or tool_calls key")
-
-#         snippet = summarize(summary)
-#         insert_chat_message("info", snippet, root_id=0, id=msg_idx + 1)
-#         return message
-
-#     tools = APP_CONFIG.get_tools()
-
-#     functions = []
-#     for tool in tools.values():
-#         func = FunctionWithRequirements.from_str(tool.code)
-#         functions.append(func)
-#     executor = LocalCommandLineCodeExecutor(work_dir=APP_CONFIG.get_workdir(), functions=functions)
-
-#     system_message = APP_CONFIG.get_assistant_system_message()
-#     system_message += executor.format_functions_for_prompt()
-
-#     assistant = AssistantAgent(
-#         "assistant",
-#         llm_config=LLM_CONFIG,
-#         system_message=system_message,
-#     )
-#     user = UserProxyAgent(
-#         "user",
-#         code_execution_config={"executor": executor},
-#         human_input_mode="NEVER",
-#         is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
-#     )
-
-#     # populate the history before registering new reply functions
-#     for msg in chat_history:
-#         if msg["role"] == "user":
-#             user.send(msg["content"], assistant, request_reply=False, silent=True)
-#         else:
-#             assistant.send(msg["content"], user, request_reply=False, silent=True)
-
-#     assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
-#     assistant.register_hook("process_message_before_send", post_snippet_and_record_history)
-#     user.register_hook("process_message_before_send", post_snippet_and_record_history)
-
-#     logging.info("Current history:")
-#     logging.info(assistant.chat_messages[user])
-
-#     # hack to get around autogen's current api...
-#     initial_reply = assistant.generate_reply(None, user)
-#     assistant.initiate_chat(user, message=initial_reply, clear_history=False, silent=False)
-
-#     # user.send(task, assistant, request_reply=True, silent=False)
-
-#     user.send(
-#         f"""Based on the results in above conversation, create a response for the user.
-# While computing the response, remember that this conversation was your inner mono-logue. The user does not need to know every detail of the conversation.
-# All they want to see is the appropriate result for their task (repeated below) in a manner that would be most useful.
-# The task was: {task}
-
-# There is no need to use the word TERMINATE in this response.
-#         """,
-#         assistant,
-#         request_reply=False,
-#         silent=True,
-#     )
-#     response = assistant.generate_reply(assistant.chat_messages[user], user)
-#     assistant.send(response, user, request_reply=False, silent=True)
-
-#     response = assistant.chat_messages[user][-1]["content"]
-
-#     insert_chat_message("assistant", response, root_id=0, id=msg_idx + 1)
 
 
 class TinyRA(App):
@@ -333,7 +219,8 @@ def run_app() -> None:
     llm_service = AutoGenChatCompletionService(llm_config=None)
 
     # agent_manager = ReversedAgents()
-    agent_manager = AutoGenAgentManager(llm_config=None, db_manager=db_manager, file_manager=file_manager)
+    # agent_manager = AutoGenAgentManager(llm_config=None, db_manager=db_manager, file_manager=file_manager)
+    agent_manager = AGMPlusTools(llm_config=None, db_manager=db_manager, file_manager=file_manager)
 
     app_config = AppConfiguration(
         app_path=None,
