@@ -4,6 +4,7 @@ from textual.widgets import TabbedContent, Markdown
 
 from ...widgets.custom_widgets import NamedLoadingIndicator
 from .tool_learning import ToolLearningWidget
+from .preference_learning import PrefLearningWidget
 
 
 class LearningTab(Grid):
@@ -36,4 +37,4 @@ class LearningTab(Grid):
 
         with TabbedContent("Tools", "Preferences", id="learning-tabs"):
             yield ToolLearningWidget(history=self.history, app_config=self.app.config)
-            yield Markdown("## Learning Preferences")
+            yield PrefLearningWidget(history=self.history, app_config=self.app.config)

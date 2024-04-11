@@ -18,6 +18,7 @@ class ToolLearningWidget(Static):
     ToolLearningWidget {
         layout: grid;
         grid-size: 1 2;
+        grid-gutter: 1 2;
         grid-rows: 1fr 4;
     }
 
