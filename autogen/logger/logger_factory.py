@@ -23,6 +23,6 @@ class LoggerFactory:
             if cosmos_imported:
                 return CosmosDBLogger(config)
             else:
-                raise ImportError("CosmosDBLogger could not be imported. Please ensure the cosmos package is installed.")
+                raise ImportError("CosmosDBLogger could not be imported. Please ensure the cosmos package is installed by using pip install pyautogen[cosmosdb].")
         else:
             raise ValueError(f"[logger_factory] Unknown logger type: {logger_type}")
