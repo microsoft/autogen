@@ -196,14 +196,6 @@ SettingsScreen {
     /* border: solid red; */
 }
 
-
-#tool-view-grid {
-    grid-size: 2 3;
-    grid-rows: 6 1fr 6;
-    grid-gutter: 1 2;
-    border-left: solid $primary-background;
-}
-
 .instructions {
     align: center middle;
     text-align: center;

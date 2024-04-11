@@ -9,7 +9,7 @@ from textual.widgets import Markdown, LoadingIndicator
 
 from ..database.database import ChatMessage, User, ChatHistory
 from ..messages import SelectedReactiveMessage
-from ..widgets.custom_widgets import NamedLoadingIndicator
+from ..widgets.custom_widgets import NamedLoadingIndicator, PlaceholderStatic
 
 
 class ReactiveMessageWidget(Markdown):
@@ -122,7 +122,8 @@ class ChatDisplay(ScrollableContainer):
             return
 
         if self.num_messages == 0:
-            yield Markdown("No messages yet.")
+            # yield Markdown("No messages yet.")
+            yield PlaceholderStatic("Hi there! There are no messages yet 🦗")
             return
 
         for message in self.chat_history.messages[-self.limit_history :]:

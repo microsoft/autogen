@@ -22,6 +22,7 @@ from ..exceptions import ToolUpdateError, InvalidToolError
 from ..database.database import User
 from ..tools import Tool
 from ..messages import UserNotificationError, UserNotificationSuccess
+from ..widgets.custom_widgets import PlaceholderStatic
 
 
 class UserSettingsTab(Grid):
@@ -69,20 +70,36 @@ class UserSettingsTab(Grid):
 
 class ToolViewer(Grid):
 
+    DEFAULT_CSS = """
+
+    ToolViewer {
+        grid-size: 1 3;
+        grid-rows: 6 1fr 4;
+        grid-gutter: 1 2;
+        border-left: solid $primary-background;
+    }
+
+    ToolViewer > PlaceholderStatic {
+        row-span: 3;
+    }
+
+    """
+
     tool: Tool = reactive(None, recompose=True)
 
     def compose(self) -> ComposeResult:
         if self.tool is None:
-            yield Static("Select a tool to view or edit its settings", classes="instructions")
+            yield PlaceholderStatic("Select a tool to view or edit its settings", classes="instructions")
             return
 
-        with Vertical():
-            yield Label("Tool ID", classes="form-label")
-            yield Input(value=str(self.tool.id), id="tool-id-input", disabled=True)
+        with Horizontal():
+            with Vertical():
+                yield Label("Tool ID", classes="form-label")
+                yield Input(value=str(self.tool.id), id="tool-id-input", disabled=True)
 
-        with Vertical():
-            yield Label("Tool Name (Display)", classes="form-label")
-            yield Input(value=self.tool.name, id="tool-name-input")
+            with Vertical():
+                yield Label("Tool Name (Display)", classes="form-label")
+                yield Input(value=self.tool.name, id="tool-name-input")
 
         # code editor for the selected tool
         with Horizontal(id="tool-code-container"):

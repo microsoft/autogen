@@ -48,6 +48,19 @@ class NamedLoadingIndicator(Grid):
         yield LoadingIndicator()
 
 
+class PlaceholderStatic(Static):
+
+    DEFAULT_CSS = """
+
+    PlaceholderStatic {
+        color: $accent;
+        content-align: center middle;
+        height: 100%;
+    }
+
+    """
+
+
 # class DarkSwitch(Horizontal):
 #     def compose(self) -> ComposeResult:
 #         yield Switch(value=self.app.dark)
