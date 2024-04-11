@@ -46,6 +46,7 @@ resource cosmos 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' existing = {
 }
 
 var contributorRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')
+var wehbookSecret = uniqueString(resourceGroup().id)
 
 resource rgContributor 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(subscription().id, resourceGroup().id, contributorRole)
@@ -88,6 +89,10 @@ module app '../core/host/container-app.bicep' = {
       {
         name: 'GithubOptions__InstallationId'
         value: githubAppInstallationId
+      }
+      {
+        name: 'GithubOptions__WebhookSecret'
+        value: wehbookSecret
       }
       {
         name: 'AzureOptions__SubscriptionId'
@@ -162,3 +167,4 @@ module app '../core/host/container-app.bicep' = {
 output SERVICE_TRANSLATE_API_IDENTITY_PRINCIPAL_ID string = app.outputs.identityPrincipalId
 output SERVICE_TRANSLATE_API_NAME string = app.outputs.name
 output SERVICE_TRANSLATE_API_URI string = app.outputs.uri
+output WEBHOOK_SECRET string = wehbookSecret

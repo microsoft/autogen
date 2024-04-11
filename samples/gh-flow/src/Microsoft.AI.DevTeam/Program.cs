@@ -12,7 +12,8 @@ using Microsoft.Extensions.Http.Resilience;
 using Microsoft.SemanticKernel.Memory;
 using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using System.Configuration;
+using Orleans.Configuration;
+using Orleans.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
@@ -85,13 +86,64 @@ builder.Services.AddSingleton<IAnalyzeCode, CodeAnalyzer>();
 
 builder.Host.UseOrleans(siloBuilder =>
 {
-
-    siloBuilder.UseLocalhostClustering()
+    siloBuilder.UseDashboard(x => x.HostSelf = true);
+    siloBuilder.Services.AddSerializer( sb => {
+        sb.AddNewtonsoftJsonSerializer(isSupported: t => true);
+    });
+    if (builder.Environment.IsDevelopment())
+    {
+        siloBuilder.UseLocalhostClustering()
                .AddMemoryStreams("StreamProvider")
                .AddMemoryGrainStorage("PubSubStore")
                .AddMemoryGrainStorage("messages");
-    siloBuilder.UseInMemoryReminderService();
-    siloBuilder.UseDashboard(x => x.HostSelf = true);
+        siloBuilder.UseInMemoryReminderService();
+    }
+    else
+    {
+        var cosmosDbconnectionString = builder.Configuration.GetValue<string>("AzureOptions:CosmosConnectionString");
+        siloBuilder.Configure<ClusterOptions>(options =>
+        {
+            options.ClusterId = "ai-dev-cluster";
+            options.ServiceId = "ai-dev-cluster";
+        });
+        siloBuilder.Configure<SiloMessagingOptions>(options =>
+        {
+            options.ResponseTimeout = TimeSpan.FromMinutes(3);
+            options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
+        });
+         siloBuilder.Configure<ClientMessagingOptions>(options =>
+        {
+            options.ResponseTimeout = TimeSpan.FromMinutes(3);
+        });
+        siloBuilder.UseCosmosClustering( o =>
+            {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "clustering";
+                o.IsResourceCreationEnabled = true;
+            });
+        
+        siloBuilder.UseCosmosReminderService( o => 
+        {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "reminders";
+                o.IsResourceCreationEnabled = true;
+        });
+        siloBuilder.AddCosmosGrainStorage(
+            name: "messages",
+            configureOptions: o =>
+            {
+                o.ConfigureCosmosClient(cosmosDbconnectionString);
+                o.ContainerName = "devteam";
+                o.DatabaseName = "persistence";
+                o.IsResourceCreationEnabled = true;
+            });
+         //TODO: replace with EventHub
+         siloBuilder
+               .AddMemoryStreams("StreamProvider")
+               .AddMemoryGrainStorage("PubSubStore");
+    }    
 
 });
 

@@ -80,7 +80,8 @@ public class GithubService : IManageGithub
         try
         {
             var ghRepo = await _ghClient.Repository.Get(org, repo);
-            if (ghRepo.Size == 0)
+            var contents = await _ghClient.Repository.Content.GetAllContents(org, repo);
+            if (!contents.Any())
             {
                 // Create a new file and commit it to the repository
                 var createChangeSet = await _ghClient.Repository.Content.CreateFile(
@@ -90,7 +91,6 @@ public class GithubService : IManageGithub
                     new CreateFileRequest("Initial commit", "# Readme")
                 );
             }
-
             await _ghClient.Git.Reference.CreateBranch(org, repo, branch, ghRepo.DefaultBranch);
         }
         catch (Exception ex)

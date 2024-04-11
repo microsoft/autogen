@@ -3,8 +3,8 @@
 name: ai-dev-team
 services:
   gh-flow:
-    project: "src/Microsoft.AI.DevTeam/Microsoft.AI.DevTeam.csproj"
+    project: "src/Microsoft.AI.DevTeam"
     language: csharp
     host: containerapp
     docker:
-      context: ../../../
+      context: ../../../../

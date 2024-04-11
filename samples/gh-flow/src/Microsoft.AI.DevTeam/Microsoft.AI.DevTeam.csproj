@@ -44,6 +44,7 @@
     <PackageReference Include="Azure.Identity" Version="1.11.0-beta.1" />
    
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
+    <PackageReference Include="Microsoft.Orleans.Serialization.NewtonsoftJson" Version="8.0.0" />
     
     
   </ItemGroup>

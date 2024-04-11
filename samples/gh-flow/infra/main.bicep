@@ -9,6 +9,18 @@ param environmentName string
 @description('Primary location for all resources')
 param location string
 
+@secure()
+param githubAppKey string
+param githubAppId string
+param githubAppInstallationId string
+param openAIServiceType string
+param openAIServiceId string
+param openAIDeploymentId string
+param openAIEmbeddingId string
+param openAIEndpoint string
+@secure()
+param openAIKey string
+
 param applicationInsightsDashboardName string = ''
 param applicationInsightsName string = ''
 param logAnalyticsName string = ''
@@ -16,6 +28,8 @@ param resourceGroupName string = ''
 param storageAccountName string = ''
 param containerAppsEnvironmentName string = ''
 param containerRegistryName string = ''
+param ghFlowServiceName string = ''
+param cosmosAccountName string = ''
 
 
 var aciShare = 'acishare'
@@ -85,6 +99,46 @@ module qdrant './core/database/qdrant/qdrant-aca.bicep' = {
   }
 }
 
+// The application database
+module cosmos './app/db.bicep' = {
+  name: 'cosmos'
+  scope: rg
+  params: {
+    accountName: !empty(cosmosAccountName) ? cosmosAccountName : '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
+    databaseName: 'devteam'
+    location: location
+    tags: tags
+  }
+}
+
+module ghFlow './app/gh-flow.bicep' = {
+  name: 'gh-flow'
+  scope: rg
+  params: {
+    name: !empty(ghFlowServiceName) ? ghFlowServiceName : '${abbrs.appContainerApps}ghflow-${resourceToken}'
+    location: location
+    tags: tags
+    identityName: '${abbrs.managedIdentityUserAssignedIdentities}ghflow-${resourceToken}'
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+    containerAppsEnvironmentName: containerApps.outputs.environmentName
+    containerRegistryName:containerApps.outputs.registryName
+    storageAccountName: storage.outputs.name
+    aciShare: aciShare
+    githubAppId: githubAppId
+    githubAppInstallationId: githubAppInstallationId
+    githubAppKey: githubAppKey
+    openAIDeploymentId: openAIDeploymentId
+    openAIEmbeddingId: openAIEmbeddingId
+    openAIEndpoint: openAIEndpoint
+    openAIKey: openAIKey
+    openAIServiceId: openAIServiceId
+    openAIServiceType: openAIServiceType
+    qdrantEndpoint: 'https://${qdrant.outputs.fqdn}'
+    rgName: rg.name
+    cosmosAccountName: cosmos.outputs.accountName
+  }
+}
+
 
 // App outputs
 output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
@@ -98,3 +152,9 @@ output AZURE_RESOURCE_GROUP_NAME string = rg.name
 output AZURE_FILESHARE_NAME string = aciShare
 output AZURE_FILESHARE_ACCOUNT_NAME string = storage.outputs.name
 output QDRANT_ENDPOINT string = 'https://${qdrant.outputs.fqdn}'
+output WEBHOOK_SECRET string = ghFlow.outputs.WEBHOOK_SECRET
+
+// Data outputs
+output AZURE_COSMOS_ENDPOINT string = cosmos.outputs.endpoint
+output AZURE_COSMOS_CONNECTION_STRING_KEY string = cosmos.outputs.connectionStringKey
+output AZURE_COSMOS_DATABASE_NAME string = cosmos.outputs.databaseName
