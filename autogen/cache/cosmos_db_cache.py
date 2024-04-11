@@ -36,11 +36,13 @@ class CosmosDBCache(AbstractCache):
 
         if not self.container.exists():
             self.database.create_container(id=container_id, partition_key=PartitionKey(path='/partitionKey'))
-
+    
+    @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
         client = CosmosClient.from_connection_string(connection_string)
         return cls(seed, client, database_id, container_id)
-
+    
+    @classmethod
     def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
         return cls(seed, client, database_id, container_id)
     
