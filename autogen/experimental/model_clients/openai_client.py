@@ -20,6 +20,8 @@ from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionAssistantMessageParam,
+    ChatCompletionContentPartParam,
+    ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
     ChatCompletionMessageToolCallParam,
     ChatCompletionRole,
@@ -30,6 +32,8 @@ from openai.types.chat import (
     completion_create_params,
 )
 from typing_extensions import Required, TypedDict, Unpack
+
+from autogen.experimental.image import Image
 
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
@@ -107,11 +111,30 @@ def type_to_role(message: Message) -> ChatCompletionRole:
 
 
 def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
-    assert isinstance(message.content, str), "Only text content is supported for now"
-    return ChatCompletionUserMessageParam(
-        content=message.content,
-        role="user",
-    )
+    if isinstance(message.content, str):
+        return ChatCompletionUserMessageParam(
+            content=message.content,
+            role="user",
+        )
+    else:
+        parts: List[ChatCompletionContentPartParam] = []
+        for part in message.content:
+            if isinstance(part, str):
+                oai_part = ChatCompletionContentPartTextParam(
+                    text=part,
+                    type="text",
+                )
+                parts.append(oai_part)
+            elif isinstance(part, Image):
+                # TODO: support url based images
+                # TODO: support specifying details
+                parts.append(part.to_openai_format())
+            else:
+                raise ValueError(f"Unknown content type: {part}")
+        return ChatCompletionUserMessageParam(
+            content=parts,
+            role="user",
+        )
 
 
 def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
@@ -150,7 +173,6 @@ def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssista
     return msg
 
 
-# TODO: these should additionally disallow additional properties
 def to_oai_type(message: Message) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
@@ -307,6 +329,14 @@ class BaseOpenAI(ModelClient):
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
+
+        # TODO: allow custom handling.
+        # For now we raise an error if images are present and vision is not supported
+        if self.capabilities["vision"] is False:
+            for message in messages:
+                if isinstance(message, UserMessage):
+                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
+                        raise ValueError("Model does not support vision and image was provided")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]

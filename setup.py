@@ -27,6 +27,8 @@ install_requires = [
     "docker",
     "jsonschema",
     "aioconsole",
+    "pillow",
+    "aiohttp",
 ]
 
 jupyter_executor = [

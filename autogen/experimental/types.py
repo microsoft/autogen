@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 from .agent import Agent
+from .image import Image
 from .termination import TerminationResult
 
 
@@ -40,11 +41,6 @@ class UserMessageContentPartText:
 @dataclass
 class SystemMessage:
     content: str
-
-
-@dataclass
-class Image:
-    data: bytes
 
 
 @dataclass
