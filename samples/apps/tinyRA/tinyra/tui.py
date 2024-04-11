@@ -208,6 +208,9 @@ def run_app() -> None:
 
     app_path = Path.home() / ".tinyra"
     work_dir = app_path / "work_dir"
+    # if app_path does not exist, create it
+    app_path.mkdir(parents=True, exist_ok=True)
+    work_dir.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(
         filename=app_path / "app.log", level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
