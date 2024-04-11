@@ -5,11 +5,38 @@ from textual.containers import Grid, Container, ScrollableContainer
 
 from .profiler_screen import ProfilerContainer
 from .chat_display import ChatDisplay
-from .learning import LearningTab
+from .learning.learning import LearningTab
 
 
 class MonitoringScreen(ModalScreen):
     """A screen that displays a chat history"""
+
+    DEFAULT_CSS = """
+
+    MonitoringScreen {
+        align: center middle;
+    }
+
+    #monitoring {
+        height: 90%;
+        width: 90%;
+
+        background: $surface;
+        border: thick $primary-background 80%;
+
+        layout: grid;
+        grid-size: 1 2;
+        grid-rows: 3 1fr;
+    }
+
+    #monitoring-header {
+        align: center middle;
+    }
+
+    #chat-screen-learning {
+        padding: 0;
+    }
+    """
 
     BINDINGS = [("escape", "app.pop_screen", "Pop screen")]
 
@@ -19,10 +46,10 @@ class MonitoringScreen(ModalScreen):
 
     def compose(self) -> ComposeResult:
 
-        with Grid(id="chat-screen"):
+        with Grid(id="monitoring"):
 
-            with Container(id="chat-screen-header"):
-                yield Label(f"Monitoring Agents at Task-{self.root_id}", classes="heading")
+            with Container(id="monitoring-header"):
+                yield Label(f"Monitoring Agents (Task-{self.root_id})", classes="heading")
 
             with TabbedContent("Overview", "Details", "Learning", id="chat-screen-tabs"):
 

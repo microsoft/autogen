@@ -87,38 +87,6 @@ Footer {
     grid-gutter: 1 2;
 }
 
-MonitoringScreen, LearningScreen {
-    align: center middle;
-}
-
-#learning-screen {
-    height: 80%;
-    width: 80%;
-    background: $surface;
-    border: thick $primary-background 80%;
-    padding: 1;
-
-    grid-size: 1 3;
-    grid-rows: 2 1fr 5;
-}
-
-#chat-screen {
-    height: 90%;
-    width: 90%;
-
-    background: $surface;
-    border: thick $primary-background 80%;
-
-    layout: grid;
-    grid-size: 1 2;
-    grid-rows: 4 1fr;
-}
-
-#chat-screen-header {
-    content-align: center middle;
-    align: center middle;
-}
-
 #chat-screen-contents {
     border: solid $background 40%;
 }
@@ -133,18 +101,6 @@ MonitoringScreen, LearningScreen {
     margin: 1;
 }
 
-#learning-screen-header {
-    content-align: center middle;
-    align: center middle;
-}
-
-#learning-screen-footer{
-    align: center middle;
-}
-
-#learning-screen-footer Button {
-    margin: 1;
-}
 
 #chat-screen-footer Button {
     width: 20;

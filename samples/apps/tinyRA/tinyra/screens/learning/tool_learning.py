@@ -1,74 +1,81 @@
-from textual import work
+from textual import work, on
 from textual.app import ComposeResult
-from textual.widgets import Label, TextArea, Button
-from textual.containers import ScrollableContainer, Grid, Horizontal
-
-from ..llm import ChatCompletionService, OpenAIMessage
-from ..database.database import ChatHistory
+from textual.widgets import TextArea, Button, Static
+from textual.containers import Horizontal
 
 from autogen.code_utils import extract_code
 
+from ...tools import Tool
+from ...database.database import ChatHistory
+from ...llm import ChatCompletionService, OpenAIMessage
+from ...app_config import AppConfiguration
+from ...messages import UserNotificationError, UserNotificationSuccess
 
-class LearningTab(Grid):
 
-    def __init__(self, *args, root_id: int = -1, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.root_msg_id = root_id
+class ToolLearningWidget(Static):
 
-    def compose(self) -> ComposeResult:
-        with Grid(id="learning-screen"):
-            yield Horizontal(Label("Interactive Tool Learning", classes="heading"), id="learning-screen-header")
-            yield ScrollableContainer(
-                TextArea.code_editor(
-                    f"""
-                    # Learning a function for {self.root_msg_id}
-                    """,
-                    language="python",
-                ),
-                id="learning-screen-contents",
-            )
-            with Horizontal(id="learning-screen-footer"):
-                # yield Button("Start", variant="error", id="start-learning")
-                yield Button("Save", variant="primary", id="save")
+    DEFAULT_CSS = """
+    ToolLearningWidget {
+        layout: grid;
+        grid-size: 1 2;
+        grid-rows: 1fr 4;
+    }
 
-    def on_mount(self) -> None:
+    #tool-learning-editor {
+        width: 100%;
+        height: 100%;
+        content-align: center middle;
+    }
+
+    #tool-learning-footer{
+        align: center middle;
+    }
+
+    #learning-screen-footer Button {
+        margin: 1;
+    }
+
+    """
+
+    def __init__(self, history: ChatHistory = None, app_config: AppConfiguration = None, **kwargs):
+        super().__init__(**kwargs)
+        self.history = history
+        self.app_config = app_config
+
+    async def on_mount(self) -> None:
         self.start_learning()
 
-    # @on(Button.Pressed, "#save")
-    # def save(self) -> None:
-    #     widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
-    #     code = widget.text
-    #     name = code.split("\n")[0][1:]
-
-    #     tool = Tool(name, code)
-    #     try:
-    #         tool.validate_tool()
-    #         APP_CONFIG.update_tool(tool)
-    #         self.app.pop_screen()
-    #         self.app.push_screen(NotificationScreen(message="Tool saved successfully"))
-
-    #     except InvalidToolError as e:
-    #         error_message = f"{e}"
-    #         self.post_message(UserNotificationError(error_message))
-    #         return
-
-    #     except ToolUpdateError as e:
-    #         error_message = f"{e}"
-    #         self.post_message(UserNotificationError(error_message))
-    #         return
+    def compose(self) -> ComposeResult:
+        yield TextArea.code_editor("", language="python", id="tool-learning-editor")
+        with Horizontal(id="tool-learning-footer"):
+            yield Button("Save", variant="primary", id="save-learned-tool")
 
     @work(thread=True)
     async def start_learning(self) -> None:
-        widget = self.query_one("#learning-screen-contents > TextArea", TextArea)
+        widget = self.query_one("#tool-learning-editor", TextArea)
         widget.text = "# Learning..."
 
-        dbm = self.app.config.db_manager
-
-        history = await dbm.get_chat_history(self.root_msg_id)
-        name, code = learn_tool_from_history(self.app.config.llm_service, history)
-        # name, code = "Test function", "def test_function():\n    return 'Hello, World!'"
+        history = self.history
+        name, code = learn_tool_from_history(self.app_config.llm_service, history)
 
         widget.text = "#" + name + "\n" + code
+
+    @on(Button.Pressed, "#save-learned-tool")
+    async def save(self) -> None:
+        widget = self.query_one("#tool-learning-editor", TextArea)
+        code = widget.text
+        name = code.split("\n")[0][1:]
+
+        tool = Tool(name=name, code=code)
+        try:
+            tool.validate_tool()
+            await self.app_config.db_manager.set_tool(tool)
+        except Exception as e:
+            error_message = f"{e}"
+            self.post_message(UserNotificationError(error_message))
+            return
+        else:
+            self.post_message(UserNotificationSuccess(f"New tool {tool.name} saved successfully"))
 
 
 def learn_tool_from_history(llm_service: ChatCompletionService, history: ChatHistory) -> str:
