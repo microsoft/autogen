@@ -1,14 +1,13 @@
 import base64
-from pathlib import Path
 import re
 from io import BytesIO
-from typing_extensions import Literal
+from pathlib import Path
 
 import aiohttp
-
-from PIL import Image as PILImage
-
 from openai.types.chat import ChatCompletionContentPartImageParam
+from PIL import Image as PILImage
+from typing_extensions import Literal
+
 
 class Image:
     def __init__(self, image: PILImage.Image):
@@ -56,6 +55,7 @@ class Image:
     def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> ChatCompletionContentPartImageParam:
         return {"type": "image_url", "image_url": {"url": self.data_uri, "detail": detail}}
 
+
 def _convert_base64_to_data_uri(base64_image: str) -> str:
     def _get_mime_type_from_data_uri(base64_image: str):
         # Decode the base64 string
@@ -74,5 +74,3 @@ def _convert_base64_to_data_uri(base64_image: str) -> str:
     mime_type = _get_mime_type_from_data_uri(base64_image)
     data_uri = f"data:{mime_type};base64,{base64_image}"
     return data_uri
-
-
