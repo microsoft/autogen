@@ -18,6 +18,7 @@ from .._pydantic import model_dump
 from ..cache.cache import AbstractCache
 from ..code_utils import (
     UNKNOWN,
+    PYTHON_VARIANTS,
     check_can_use_docker_or_throw,
     content_str,
     decide_use_docker,
@@ -2079,7 +2080,7 @@ class ConversableAgent(LLMAgent):
             )
             if lang in ["bash", "shell", "sh"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
-            elif lang in ["python", "Python", "py"]:
+            elif lang in PYTHON_VARIANTS:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
