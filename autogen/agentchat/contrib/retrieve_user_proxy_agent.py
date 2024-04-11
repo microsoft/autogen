@@ -339,12 +339,12 @@ class RetrieveUserProxyAgent(UserProxyAgent):
         docs = None
         if IS_TO_CHUNK:
             if self.custom_text_split_function is not None:
-                chunks = split_files_to_chunks(
+                chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
                     custom_text_split_function=self.custom_text_split_function,
                 )
             else:
-                chunks = split_files_to_chunks(
+                chunks, sources = split_files_to_chunks(
                     get_files_from_dir(self._docs_path, self._custom_text_types, self._recursive),
                     self._max_tokens,
                     self._chunk_mode,
@@ -366,7 +366,7 @@ class RetrieveUserProxyAgent(UserProxyAgent):
             chunk_ids_set = set(chunk_ids)
             chunk_ids_set_idx = [chunk_ids.index(hash_value) for hash_value in chunk_ids_set]
             docs = [
-                Document(id=chunk_ids[idx], content=chunks[idx])
+                Document(id=chunk_ids[idx], content=chunks[idx], metadata=sources[idx])
                 for idx in chunk_ids_set_idx
                 if chunk_ids[idx] not in all_docs_ids
             ]
