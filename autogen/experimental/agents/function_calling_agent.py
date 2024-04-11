@@ -1,13 +1,11 @@
+import asyncio
+import functools
+import json
 from typing import Any, Awaitable, Callable, List, Union
 
+from ..agent import Agent, GenerateReplyResult
+from ..types import AssistantMessage, FunctionCallMessage, FunctionCallResult, MessageAndSender
 from .assistant_agent import FunctionInfo
-
-from ..agent import Agent
-from ..types import AssistantMessage, ChatMessage, FunctionCallMessage, FunctionCallResult
-
-import asyncio
-import json
-import functools
 
 
 class FunctionCallingAgent(Agent):
@@ -47,8 +45,8 @@ class FunctionCallingAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> ChatMessage:
+        messages: List[MessageAndSender],
+    ) -> GenerateReplyResult:
         last_message = messages[-1]
         if not isinstance(last_message, AssistantMessage):
             return AssistantMessage(content="I can only call functions")

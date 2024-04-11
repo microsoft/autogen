@@ -1,8 +1,10 @@
 from typing import Protocol, Sequence
 
 from .termination import TerminationResult
-from .types import ChatMessage
+from .types import MessageAndSender
 
 
 class ChatSummarizer(Protocol):
-    async def summarize_chat(self, messages: Sequence[ChatMessage], termination_result: TerminationResult) -> str: ...
+    async def summarize_chat(
+        self, messages: Sequence[MessageAndSender], termination_result: TerminationResult
+    ) -> str: ...

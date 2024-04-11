@@ -4,7 +4,7 @@ from typing import List, Optional, Protocol
 
 from autogen.experimental.agent import Agent
 
-from .types import ChatMessage
+from .types import MessageAndSender
 
 
 class TerminationReason(Enum):
@@ -21,9 +21,10 @@ class TerminationResult:
     explanation: Optional[str]
 
 
+# TODO allow termination manager to have an understanding of cose
 class TerminationManager(Protocol):
     def record_turn_taken(self, agent: Agent) -> None: ...
 
-    async def check_termination(self, chat_history: List[ChatMessage]) -> Optional[TerminationResult]: ...
+    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]: ...
 
     def reset(self) -> None: ...

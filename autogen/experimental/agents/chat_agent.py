@@ -1,9 +1,9 @@
 from typing import List, Optional
 
 from autogen.experimental.chat import ChatOrchestrator
-from autogen.experimental.types import AssistantMessage, ChatMessage
+from autogen.experimental.types import AssistantMessage, MessageAndSender, MessageContext
 
-from ..agent import Agent
+from ..agent import Agent, GenerateReplyResult
 
 
 class ChatAgent(Agent):
@@ -32,8 +32,8 @@ class ChatAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> ChatMessage:
+        messages: List[MessageAndSender],
+    ) -> GenerateReplyResult:
         # self._chat.reset()
 
         for message in messages:
@@ -42,4 +42,4 @@ class ChatAgent(Agent):
         while not self._chat.done:
             _ = await self._chat.step()
 
-        return AssistantMessage(content=self._chat.result)
+        return AssistantMessage(content=self._chat.result.summary), MessageContext(nested_chat_result=self._chat.result)

@@ -3,14 +3,14 @@ from typing import Sequence
 from autogen.experimental.termination import TerminationResult
 
 from ..summarizer import ChatSummarizer
-from ..types import AssistantMessage, ChatMessage, SystemMessage, FunctionCallMessage, UserMessage
+from ..types import AssistantMessage, FunctionCallMessage, MessageAndSender, SystemMessage, UserMessage
 
 
 class LastMessageSummarizer(ChatSummarizer):
-    async def summarize_chat(self, messages: Sequence[ChatMessage], termination_result: TerminationResult) -> str:
+    async def summarize_chat(self, messages: Sequence[MessageAndSender], termination_result: TerminationResult) -> str:
         if len(messages) == 0:
             raise ValueError("Cannot summarize an empty chat.")
-        last_message = messages[-1]
+        last_message = messages[-1].message
         if isinstance(last_message, SystemMessage):
             raise ValueError("Cannot summarize a chat that ends with a system message.")
         elif isinstance(last_message, UserMessage):

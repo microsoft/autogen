@@ -5,7 +5,7 @@ from autogen.experimental.agent import Agent
 from autogen.experimental.model_client import ModelClient
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import ChatMessage, SystemMessage, UserMessage
+from ..types import MessageAndSender, SystemMessage, UserMessage
 
 
 class ReflectionTerminationManager(TerminationManager):
@@ -47,7 +47,7 @@ class ReflectionTerminationManager(TerminationManager):
     def record_turn_taken(self, agent: Agent) -> None:
         self._turns += 1
 
-    async def check_termination(self, chat_history: List[ChatMessage]) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]:
         if self._max_turns is not None and self._turns >= self._max_turns:
             return TerminationResult(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
 
@@ -61,7 +61,7 @@ class ReflectionTerminationManager(TerminationManager):
             content=f"Please provide your response as JSON, with two properties: `is_done` (bool) and `reason` (str). Goal: {self._goal}",
         )
         system_message = SystemMessage(content=self._system_message.format(goal=self._goal))
-        entire_conversation = [system_message] + chat_history + [reminder_message]
+        entire_conversation = [system_message] + [x.message for x in chat_history] + [reminder_message]
         response = await self._model_client.create(entire_conversation)
         try:
             assert isinstance(response.content, str), "tool calls not supported now"

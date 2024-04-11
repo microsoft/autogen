@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 import pytest
 from autogen.cache.abstract_cache_base import AbstractCache
 from autogen.experimental.model_client import ModelClient, ModelCapabilities
-from autogen.experimental.types import ChatMessage, CreateResponse, FunctionDefinition, RequestUsage
+from autogen.experimental.types import Message, CreateResult, FunctionDefinition, RequestUsage
 import sys
 import os
 
@@ -17,12 +17,12 @@ async def test_create() -> None:
         # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
         async def create(
             self,
-            messages: List[ChatMessage],
+            messages: List[Message],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
             extra_create_args: Dict[str, Any] = {},
-        ) -> CreateResponse:
-            return CreateResponse(
+        ) -> CreateResult:
+            return CreateResult(
                 finish_reason="stop",
                 content="4",
                 cached=False,
@@ -31,11 +31,11 @@ async def test_create() -> None:
 
         def create_stream(
             self,
-            messages: List[ChatMessage],
+            messages: List[Message],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
             extra_create_args: Dict[str, Any] = {},
-        ) -> AsyncGenerator[Union[str, CreateResponse], None]:
+        ) -> AsyncGenerator[Union[str, CreateResult], None]:
             raise NotImplementedError
 
         def actual_usage(self) -> RequestUsage:

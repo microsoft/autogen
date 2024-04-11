@@ -3,13 +3,13 @@ import logging
 from typing import Awaitable, Callable, List, Optional, Union, cast
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent
-from ..types import AssistantMessage, ChatMessage, UserMessage
+from ..agent import Agent, GenerateReplyResult
+from ..types import AssistantMessage, Message, MessageAndSender, UserMessage
 
 __all__ = ("UserProxyAgent",)
 
-ReplyFunctionAsync = Callable[["UserProxyAgent", List[ChatMessage]], Awaitable[Optional[ChatMessage]]]
-ReplyFunctionSync = Callable[["UserProxyAgent", List[ChatMessage]], Optional[ChatMessage]]
+ReplyFunctionAsync = Callable[["UserProxyAgent", List[MessageAndSender]], Awaitable[Optional[Message]]]
+ReplyFunctionSync = Callable[["UserProxyAgent", List[MessageAndSender]], Optional[Message]]
 ReplyFunction = Union[ReplyFunctionAsync, ReplyFunctionSync]
 HumanInputCallback = Callable[[str], Awaitable[str]]
 
@@ -61,7 +61,7 @@ class UserProxyAgent(Agent):
 
     def _generate_code_execution_reply_using_executor(
         self,
-        messages: List[ChatMessage],
+        messages: List[MessageAndSender],
     ) -> Optional[UserMessage]:
         """Generate a reply using code executor."""
         # Only added to generate reply if this is not none
@@ -110,7 +110,7 @@ class UserProxyAgent(Agent):
 
     async def get_human_reply(
         self,
-        messages: List[ChatMessage],
+        messages: List[MessageAndSender],
     ) -> Optional[UserMessage]:
 
         assert self._human_input_callback is not None, "Human input callback is not provided."
@@ -129,8 +129,8 @@ class UserProxyAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> ChatMessage:
+        messages: List[MessageAndSender],
+    ) -> GenerateReplyResult:
 
         for reply_func in self._reply_func_list:
             if inspect.iscoroutinefunction(reply_func):

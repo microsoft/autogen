@@ -6,7 +6,7 @@ from ..speaker_selection_strategies.round_robin_speaker_selection import RoundRo
 from ..summarizer import ChatSummarizer
 from ..termination import TerminationManager
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
-from ..types import ChatMessage
+from ..types import Message, MessageAndSender
 from .group_chat import GroupChat
 
 
@@ -18,7 +18,7 @@ class TwoAgentChat(GroupChat):
         *,
         termination_manager: TerminationManager = DefaultTerminationManager(),
         summarizer: ChatSummarizer = LastMessageSummarizer(),
-        initial_message: Optional[Union[str, ChatMessage]] = None
+        initial_message: Optional[Union[str, MessageAndSender, Message]] = None
     ):
         super().__init__(
             agents=[first, second],

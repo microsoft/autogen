@@ -3,7 +3,7 @@ from typing import List, Optional
 from autogen.experimental.agent import Agent
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import AssistantMessage, ChatMessage, UserMessage
+from ..types import AssistantMessage, MessageAndSender, UserMessage
 
 
 class DefaultTerminationManager(TerminationManager):
@@ -15,12 +15,13 @@ class DefaultTerminationManager(TerminationManager):
     def record_turn_taken(self, agent: Agent) -> None:
         self._turns += 1
 
-    async def check_termination(self, chat_history: List[ChatMessage]) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]:
         if self._turns >= self._max_turns:
             return TerminationResult(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
 
+        messages = [message.message for message in chat_history]
         # TODO handle tool message
-        for message in chat_history:
+        for message in messages:
             if isinstance(message, UserMessage):
                 if message.is_termination:
                     return TerminationResult(TerminationReason.USER_REQUESTED, "User requested termination.")

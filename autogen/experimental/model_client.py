@@ -5,7 +5,7 @@ from typing import Optional, runtime_checkable
 from typing_extensions import Any, AsyncGenerator, Dict, List, Protocol, Required, TypedDict, Union
 
 from ..cache import AbstractCache
-from .types import ChatMessage, CreateResponse, FunctionDefinition, RequestUsage
+from .types import CreateResult, FunctionDefinition, Message, RequestUsage
 
 
 class ModelCapabilities(TypedDict, total=False):
@@ -18,19 +18,19 @@ class ModelClient(Protocol):
     # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
     async def create(
         self,
-        messages: List[ChatMessage],
+        messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         extra_create_args: Dict[str, Any] = {},
-    ) -> CreateResponse: ...
+    ) -> CreateResult: ...
 
     def create_stream(
         self,
-        messages: List[ChatMessage],
+        messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         extra_create_args: Dict[str, Any] = {},
-    ) -> AsyncGenerator[Union[str, CreateResponse], None]: ...
+    ) -> AsyncGenerator[Union[str, CreateResult], None]: ...
 
     def actual_usage(self) -> RequestUsage: ...
 

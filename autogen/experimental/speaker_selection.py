@@ -1,12 +1,8 @@
-from typing import List, Optional, Protocol
+from typing import List, Protocol
 
 from .agent import Agent
-from .types import ChatMessage
+from .types import MessageAndSender
 
 
 class SpeakerSelectionStrategy(Protocol):
-
-    # Is None on the first turn
-    def select_speaker(
-        self, current_speaker: Optional[Agent], agents: List[Agent], chat_history: List[ChatMessage]
-    ) -> Agent: ...
+    def select_speaker(self, agents: List[Agent], chat_history: List[MessageAndSender]) -> Agent: ...

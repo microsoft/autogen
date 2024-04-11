@@ -7,7 +7,7 @@ import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from autogen.experimental.model_clients.openai_client import OpenAI
-from autogen.experimental.types import CreateResponse, FunctionDefinition, UserMessage
+from autogen.experimental.types import CreateResult, FunctionDefinition, UserMessage
 from conftest import skip_openai  # noqa: E402
 
 
@@ -89,7 +89,7 @@ async def test_create_stream() -> None:
         else:
             result = chunk
 
-    assert isinstance(result, CreateResponse)
+    assert isinstance(result, CreateResult)
     assert result.cached is False
     assert result.finish_reason == "stop"
     assert isinstance(result.content, str)

@@ -1,6 +1,8 @@
-from typing import AsyncGenerator, List, Protocol, runtime_checkable
+from typing import AsyncGenerator, List, Protocol, Tuple, Union, runtime_checkable
 
-from .types import ChatMessage, StreamResponse
+from .types import IntermediateResponse, Message, MessageAndSender, MessageContext
+
+GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]
 
 
 @runtime_checkable
@@ -22,19 +24,15 @@ class Agent(Protocol):
         a group chat setting."""
         ...
 
-    # def reset(self) -> None:
-    #     """Reset the agent's state."""
-    #     ...
-
     async def generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> ChatMessage: ...
+        messages: List[MessageAndSender],
+    ) -> GenerateReplyResult: ...
 
 
 @runtime_checkable
 class AgentStream(Agent, Protocol):
     def stream_generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> AsyncGenerator[StreamResponse, None]: ...
+        messages: List[MessageAndSender],
+    ) -> AsyncGenerator[Union[IntermediateResponse, GenerateReplyResult], None]: ...

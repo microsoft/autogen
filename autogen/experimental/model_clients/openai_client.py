@@ -25,8 +25,8 @@ from openai.types.chat import (
     ChatCompletionRole,
     ChatCompletionSystemMessageParam,
     ChatCompletionToolMessageParam,
-    ChatCompletionUserMessageParam,
     ChatCompletionToolParam,
+    ChatCompletionUserMessageParam,
     completion_create_params,
 )
 from typing_extensions import Required, TypedDict, Unpack
@@ -37,13 +37,13 @@ from ...oai.openai_utils import OAI_PRICE1K, get_key  # type: ignore
 from ..model_client import ModelCapabilities, ModelClient
 from ..types import (
     AssistantMessage,
-    ChatMessage,
-    CreateResponse,
+    CreateResult,
     FunctionCall,
+    FunctionCallMessage,
     FunctionDefinition,
+    Message,
     RequestUsage,
     SystemMessage,
-    FunctionCallMessage,
     UserMessage,
 )
 from . import model_info
@@ -95,7 +95,7 @@ oai_assistant_message_schema = type2schema(ChatCompletionAssistantMessageParam)
 oai_tool_message_schema = type2schema(ChatCompletionToolMessageParam)
 
 
-def type_to_role(message: ChatMessage) -> ChatCompletionRole:
+def type_to_role(message: Message) -> ChatCompletionRole:
     if isinstance(message, SystemMessage):
         return "system"
     elif isinstance(message, UserMessage):
@@ -151,7 +151,7 @@ def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssista
 
 
 # TODO: these should additionally disallow additional properties
-def to_oai_type(message: ChatMessage) -> Sequence[ChatCompletionMessageParam]:
+def to_oai_type(message: Message) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
     elif isinstance(message, UserMessage):
@@ -294,11 +294,11 @@ class BaseOpenAI(ModelClient):
 
     async def create(
         self,
-        messages: List[ChatMessage],
+        messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         extra_create_args: Dict[str, Any] = {},
-    ) -> CreateResponse:
+    ) -> CreateResult:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
@@ -316,7 +316,7 @@ class BaseOpenAI(ModelClient):
             cache_key = get_key({**create_args, "messages": oai_messages})
             cached_value = cache.get(cache_key)
             if cached_value is not None:
-                response = cast(CreateResponse, cached_value)
+                response = cast(CreateResult, cached_value)
                 response.cached = True
                 _add_usage(self._total_usage, response.usage)
                 return response
@@ -365,7 +365,7 @@ class BaseOpenAI(ModelClient):
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
 
-        response = CreateResponse(finish_reason=finish_reason, content=content, usage=usage, cached=False)
+        response = CreateResult(finish_reason=finish_reason, content=content, usage=usage, cached=False)
 
         if cache is not None:
             assert cache_key is not None
@@ -379,11 +379,11 @@ class BaseOpenAI(ModelClient):
 
     async def create_stream(
         self,
-        messages: List[ChatMessage],
+        messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         extra_create_args: Dict[str, Any] = {},
-    ) -> AsyncGenerator[Union[str, CreateResponse], None]:
+    ) -> AsyncGenerator[Union[str, CreateResult], None]:
         # Make sure all extra_create_args are valid
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
@@ -398,7 +398,7 @@ class BaseOpenAI(ModelClient):
             cache_key = get_key({**create_args, "messages": messages})
             cached_value = cache.get(cache_key)
             if cached_value is not None:
-                response = cast(CreateResponse, cached_value)
+                response = cast(CreateResult, cached_value)
                 response.cached = True
                 _add_usage(self._total_usage, response.usage)
                 yield response
@@ -482,7 +482,7 @@ class BaseOpenAI(ModelClient):
         if stop_reason == "tool_calls":
             stop_reason = "function_calls"
 
-        result = CreateResponse(finish_reason=stop_reason, content=content, usage=usage, cached=False)
+        result = CreateResult(finish_reason=stop_reason, content=content, usage=usage, cached=False)
 
         if cache is not None:
             assert cache_key is not None

@@ -1,11 +1,19 @@
+import json
 import logging
 from typing import List, Optional
+
 from typing_extensions import Literal
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent
-from ..types import AssistantMessage, ChatMessage, FunctionCall, FunctionCallMessage, UserMessage, FunctionCallResult
-import json
+from ..agent import Agent, GenerateReplyResult
+from ..types import (
+    AssistantMessage,
+    FunctionCall,
+    FunctionCallMessage,
+    FunctionCallResult,
+    MessageAndSender,
+    UserMessage,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +69,8 @@ class CodeExecutionAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[ChatMessage],
-    ) -> ChatMessage:
+        messages: List[MessageAndSender],
+    ) -> GenerateReplyResult:
         # Find the last message that contains either code, or unexecuted tool calls up to max lookback
         if self._max_lookback is not None:
             messages_to_scan = messages[-self._max_lookback :]

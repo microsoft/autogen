@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 from typing_extensions import Literal
+
+from .agent import Agent
+from .termination import TerminationResult
 
 
 @dataclass
@@ -65,7 +70,41 @@ class FunctionCallMessage:
     call_results: List[FunctionCallResult]
 
 
-ChatMessage = Union[SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage]
+Message = Union[SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage]
+
+
+@dataclass
+class ChatResult:
+    chat_history: List[MessageAndSender]
+    message_contexts: List[Optional[MessageContext]]
+    summary: str
+    termination_result: TerminationResult
+
+
+@dataclass
+class MessageAndSender:
+    message: Message
+    sender: Optional[Agent] = None
+
+
+@dataclass
+class MessageContext:
+    # If this agent modified the input, this should be set
+    input: Optional[List[Message]] = None
+
+    # If this agent initiated a nested conversation, this should be set
+    nested_chat_result: Optional[ChatResult] = None
+
+
+FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
+
+
+@dataclass
+class CreateResult:
+    finish_reason: FinishReasons
+    content: Union[str, List[FunctionCall]]
+    usage: RequestUsage
+    cached: bool
 
 
 @dataclass
@@ -78,14 +117,6 @@ class StatusUpdate:
     content: str
 
 
-# Must end with ChatMessage
-StreamResponse = Union[PartialContent, StatusUpdate, ChatMessage]
-FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
-
-
 @dataclass
-class CreateResponse:
-    finish_reason: FinishReasons
-    content: Union[str, List[FunctionCall]]
-    usage: RequestUsage
-    cached: bool
+class IntermediateResponse:
+    item: Union[PartialContent, StatusUpdate]
