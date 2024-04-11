@@ -1,14 +1,17 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-from autogen.cache.in_memory_cache import InMemoryCache
-import sys
 import os
+import sys
+
+import pytest
+
+from autogen.cache.in_memory_cache import InMemoryCache
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai  # noqa: E402
+
 from autogen.experimental.model_clients.openai_client import OpenAI
 from autogen.experimental.types import CreateResult, FunctionDefinition, UserMessage
-from conftest import skip_openai  # noqa: E402
 
 
 @pytest.mark.skipif(skip_openai, reason="openai tests skipped")
@@ -39,11 +42,8 @@ async def test_tool_calling_extraction() -> None:
     )
 
     response = await client.create(
-        messages=[
-            UserMessage("What is the weather in San Francisco?")
-        ],
+        messages=[UserMessage("What is the weather in San Francisco?")],
         functions=[getWeatherFunction],
-
     )
     assert response.cached is False
     assert response.finish_reason == "function_calls"

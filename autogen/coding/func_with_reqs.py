@@ -4,12 +4,11 @@ import functools
 import inspect
 from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
+from importlib.util import module_from_spec, spec_from_loader
 from textwrap import dedent, indent
 from typing import Any, Callable, Generic, List, Set, TypeVar, Union
 
 from typing_extensions import ParamSpec
-
-from importlib.util import spec_from_loader, module_from_spec
 
 T = TypeVar("T")
 P = ParamSpec("P")

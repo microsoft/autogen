@@ -1,7 +1,7 @@
-import os
 import asyncio
+import os
 
-from autogen.experimental import AssistantAgent, TwoAgentChat, OpenAI
+from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat
 from autogen.experimental.agents.function_calling_agent import FunctionCallingAgent
 from autogen.experimental.drivers import run_in_terminal
 

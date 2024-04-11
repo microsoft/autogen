@@ -1,9 +1,10 @@
-import os
 import asyncio
+import os
+
 import aioconsole
 
 from autogen.coding import LocalCommandLineCodeExecutor
-from autogen.experimental import AssistantAgent, TwoAgentChat, UserProxyAgent, OpenAI
+from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat, UserProxyAgent
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.termination_managers import ReflectionTerminationManager
 
