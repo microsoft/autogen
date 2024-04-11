@@ -37,7 +37,21 @@ public class OpenAIChatAgent : IStreamingAgent
     private readonly int _maxTokens = 1024;
     private readonly IEnumerable<FunctionDefinition>? _functions;
     private readonly string _systemMessage;
+    private readonly ChatCompletionsResponseFormat? _responseFormat;
+    private readonly int? _seed;
 
+    /// <summary>
+    /// Create a new instance of <see cref="OpenAIChatAgent"/>.
+    /// </summary>
+    /// <param name="openAIClient">openai client</param>
+    /// <param name="name">agent name</param>
+    /// <param name="modelName">model name. e.g. gpt-turbo-3.5</param>
+    /// <param name="systemMessage">system message</param>
+    /// <param name="temperature">temperature</param>
+    /// <param name="maxTokens">max tokens to generated</param>
+    /// <param name="responseFormat">response format, set it to <see cref="ChatCompletionsResponseFormat.JsonObject"/> to enable json mode.</param>
+    /// <param name="seed">seed to use, set it to enable deterministic output</param>
+    /// <param name="functions">functions</param>
     public OpenAIChatAgent(
         OpenAIClient openAIClient,
         string name,
@@ -45,6 +59,8 @@ public class OpenAIChatAgent : IStreamingAgent
         string systemMessage = "You are a helpful AI assistant",
         float temperature = 0.7f,
         int maxTokens = 1024,
+        int? seed = null,
+        ChatCompletionsResponseFormat? responseFormat = null,
         IEnumerable<FunctionDefinition>? functions = null)
     {
         this.openAIClient = openAIClient;
@@ -54,6 +70,8 @@ public class OpenAIChatAgent : IStreamingAgent
         _maxTokens = maxTokens;
         _functions = functions;
         _systemMessage = systemMessage;
+        _responseFormat = responseFormat;
+        _seed = seed;
     }
 
     public string Name { get; }
@@ -113,6 +131,8 @@ public class OpenAIChatAgent : IStreamingAgent
         {
             MaxTokens = options?.MaxToken ?? _maxTokens,
             Temperature = options?.Temperature ?? _temperature,
+            ResponseFormat = _responseFormat,
+            Seed = _seed,
         };
 
         var openAIFunctionDefinitions = options?.Functions?.Select(f => f.ToOpenAIFunctionDefinition());
