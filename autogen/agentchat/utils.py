@@ -26,14 +26,14 @@ def consolidate_chat_info(chat_info, uniform_sender=None) -> None:
             ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
 
 
-def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str, any]]:
+def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, any], Dict[str, any]]:
     r"""Gather usage summary from all agents.
 
     Args:
         agents: (list): List of agents.
 
     Returns:
-        tuple: (total_usage_summary, actual_usage_summary)
+        dictionary: (total_usage_summary, actual_usage_summary)
 
     Example:
 
@@ -77,7 +77,7 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
             aggregate_summary(total_usage_summary, agent.client.total_usage_summary)
             aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
 
-    return total_usage_summary, actual_usage_summary
+    return {"total_usage_summary": total_usage_summary, "actual_usage_summary": actual_usage_summary}
 
 
 def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Dict[str, str]]]:

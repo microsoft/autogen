@@ -62,11 +62,11 @@ def test_gathering():
         "gpt-4": {"cost": 0.3, "prompt_tokens": 100, "completion_tokens": 200, "total_tokens": 300},
     }
 
-    total_usage, _ = gather_usage_summary([assistant1, assistant2, assistant3])
+    total_usage = gather_usage_summary([assistant1, assistant2, assistant3])
 
-    assert round(total_usage["total_cost"], 8) == 0.6
-    assert round(total_usage["gpt-35-turbo"]["cost"], 8) == 0.3
-    assert round(total_usage["gpt-4"]["cost"], 8) == 0.3
+    assert round(total_usage["total_usage_summary"]["total_cost"], 8) == 0.6
+    assert round(total_usage["total_usage_summary"]["gpt-35-turbo"]["cost"], 8) == 0.3
+    assert round(total_usage["total_usage_summary"]["gpt-4"]["cost"], 8) == 0.3
 
     # test when agent doesn't have client
     user_proxy = UserProxyAgent(
@@ -77,7 +77,8 @@ def test_gathering():
         default_auto_reply="That's all. Thank you.",
     )
 
-    total_usage, acutal_usage = gather_usage_summary([user_proxy])
+    total_usage = gather_usage_summary([user_proxy])
+    total_usage_summary = total_usage["total_usage_summary"]
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
