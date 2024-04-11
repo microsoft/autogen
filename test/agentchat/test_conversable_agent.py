@@ -2,22 +2,23 @@
 
 import asyncio
 import copy
+import inspect
+import os
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
 import unittest
-import inspect
+from typing import Any, Callable, Dict, Literal
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel, Field
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
+
 import autogen
-import os
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
@@ -1262,6 +1263,54 @@ def test_messages_with_carryover():
     context = dict(message="hello", carryover=3)
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
+
+    # Test multimodal messages
+    mm_content = [
+        {"type": "text", "text": "hello"},
+        {"type": "text", "text": "goodbye"},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.png"},
+        },
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(
+        message=mm_message,
+        carryover="Testing carryover.",
+    )
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test without carryover
+    print(mm_message)
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 3
+
+    # Test without text in multimodal message
+    mm_content = [
+        {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 1
+
+    generated_message = agent1.generate_init_message(**context, carryover="Testing carryover.")
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 2
 
 
 if __name__ == "__main__":

@@ -1,28 +1,30 @@
-from time import sleep
 import logging
-import time
-from typing import List, Optional, Dict, Callable, Union
-import sys
 import shutil
-import numpy as np
-from flaml import tune, BlendSearch
-from flaml.tune.space import is_constant
-from flaml.automl.logger import logger_formatter
-from .openai_utils import get_key
+import sys
+import time
 from collections import defaultdict
+from time import sleep
+from typing import Callable, Dict, List, Optional, Union
+
+import numpy as np
+from flaml import BlendSearch, tune
+from flaml.automl.logger import logger_formatter
+from flaml.tune.space import is_constant
+
+from .openai_utils import get_key
 
 try:
+    import diskcache
     import openai
     from openai import (
-        RateLimitError,
-        APIError,
-        BadRequestError,
         APIConnectionError,
-        Timeout,
+        APIError,
         AuthenticationError,
+        BadRequestError,
+        RateLimitError,
+        Timeout,
     )
     from openai import Completion as openai_Completion
-    import diskcache
 
     ERROR = None
     assert openai.__version__ < "1"

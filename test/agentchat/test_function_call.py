@@ -1,13 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import asyncio
 import json
+import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.math_utils import eval_math_responses
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-import sys
-import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -140,8 +142,9 @@ def test_execute_function():
 
 @pytest.mark.asyncio
 async def test_a_execute_function():
-    from autogen.agentchat import UserProxyAgent
     import time
+
+    from autogen.agentchat import UserProxyAgent
 
     # Create an async function
     async def add_num(num_to_be_added):

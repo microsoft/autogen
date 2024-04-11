@@ -5,13 +5,13 @@ import sys
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from autogen.agentchat.agent import Agent
-from autogen.agentchat.conversable_agent import ConversableAgent
-
 from ..code_utils import content_str
 from ..exception_utils import AgentNameConflict, NoEligibleSpeaker, UndefinedNextAgent
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
+from ..io.base import IOStream
 from ..runtime_logging import log_new_agent, logging_enabled
+from .agent import Agent
+from .conversable_agent import ConversableAgent
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,13 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
+    - select_speaker_message_template: customize the select speaker message (used in "auto" speaker selection), which appears first in the message context and generally includes the agent descriptions and list of agents. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "You are in a role play game. The following roles are available:
+                {roles}.
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."
+    - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
@@ -61,6 +68,7 @@ class GroupChat:
         "clear history" phrase in user prompt. This is experimental feature.
         See description of GroupChatManager.clear_agents_history function for more info.
     - send_introductions: send a round of introductions at the start of the group chat, so agents know who they can speak to (default: False)
+    - role_for_select_speaker_messages: sets the role name for speaker selection when in 'auto' mode, typically 'user' or 'system'. (default: 'system')
     """
 
     agents: List[Agent]
@@ -74,6 +82,14 @@ class GroupChat:
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
     enable_clear_history: Optional[bool] = False
     send_introductions: bool = False
+    select_speaker_message_template: str = """You are in a role play game. The following roles are available:
+                {roles}.
+                Read the following conversation.
+                Then select the next role from {agentlist} to play. Only return the role."""
+    select_speaker_prompt_template: str = (
+        "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+    )
+    role_for_select_speaker_messages: Optional[str] = "system"
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
     _VALID_SPEAKER_TRANSITIONS_TYPE = ["allowed", "disallowed", None]
@@ -162,6 +178,16 @@ class GroupChat:
             agents=self.agents,
         )
 
+        # Check select_speaker_message_template and select_speaker_prompt_template have values
+        if self.select_speaker_message_template is None or len(self.select_speaker_message_template) == 0:
+            raise ValueError("select_speaker_message_template cannot be empty or None.")
+
+        if self.select_speaker_prompt_template is None or len(self.select_speaker_prompt_template) == 0:
+            raise ValueError("select_speaker_prompt_template cannot be empty or None.")
+
+        if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
+            raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
+
     @property
     def agent_names(self) -> List[str]:
         """Return the names of the agents in the group chat."""
@@ -232,17 +258,22 @@ class GroupChat:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"""You are in a role play game. The following roles are available:
-{self._participant_roles(agents)}.
 
-Read the following conversation.
-Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."""
+        roles = self._participant_roles(agents)
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agentlist)
+        return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the floating system prompt selecting the next speaker. This is always the *last* message in the context."""
         if agents is None:
             agents = self.agents
-        return f"Read the above conversation. Then select the next role from {[agent.name for agent in agents]} to play. Only return the role."
+
+        agentlist = f"{[agent.name for agent in agents]}"
+
+        return_prompt = self.select_speaker_prompt_template.format(agentlist=agentlist)
+        return return_prompt
 
     def introductions_msg(self, agents: Optional[List[Agent]] = None) -> str:
         """Return the system message for selecting the next speaker. This is always the *first* message in the context."""
@@ -257,22 +288,26 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def manual_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
         """Manually select the next speaker."""
+        iostream = IOStream.get_default()
+
         if agents is None:
             agents = self.agents
 
-        print("Please select the next speaker from the following list:")
+        iostream.print("Please select the next speaker from the following list:")
         _n_agents = len(agents)
         for i in range(_n_agents):
-            print(f"{i+1}: {agents[i].name}")
+            iostream.print(f"{i+1}: {agents[i].name}")
         try_count = 0
         # Assume the user will enter a valid number within 3 tries, otherwise use auto selection to avoid blocking.
         while try_count <= 3:
             try_count += 1
             if try_count >= 3:
-                print(f"You have tried {try_count} times. The next speaker will be selected automatically.")
+                iostream.print(f"You have tried {try_count} times. The next speaker will be selected automatically.")
                 break
             try:
-                i = input("Enter the number of the next speaker (enter nothing or `q` to use auto selection): ")
+                i = iostream.input(
+                    "Enter the number of the next speaker (enter nothing or `q` to use auto selection): "
+                )
                 if i == "" or i == "q":
                     break
                 i = int(i)
@@ -281,7 +316,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
                 else:
                     raise ValueError
             except ValueError:
-                print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
+                iostream.print(f"Invalid input. Please enter a number between 1 and {_n_agents}.")
         return None
 
     def random_select_speaker(self, agents: Optional[List[Agent]] = None) -> Union[Agent, None]:
@@ -407,7 +442,7 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             selected_agent = self.next_agent(last_speaker, graph_eligible_agents)
         elif speaker_selection_method.lower() == "random":
             selected_agent = self.random_select_speaker(graph_eligible_agents)
-        else:
+        else:  # auto
             selected_agent = None
             select_speaker_messages = self.messages.copy()
             # If last message is a tool call or function call, blank the call so the api doesn't throw
@@ -416,7 +451,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
             if select_speaker_messages[-1].get("tool_calls", False):
                 select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
             select_speaker_messages = select_speaker_messages + [
-                {"role": "system", "content": self.select_speaker_prompt(graph_eligible_agents)}
+                {
+                    "role": self.role_for_select_speaker_messages,
+                    "content": self.select_speaker_prompt(graph_eligible_agents),
+                }
             ]
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
@@ -474,6 +512,10 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
     def _mentioned_agents(self, message_content: Union[str, List], agents: Optional[List[Agent]]) -> Dict:
         """Counts the number of times each agent is mentioned in the provided message content.
+        Agent names will match under any of the following conditions (all case-sensitive):
+        - Exact name match
+        - If the agent name has underscores it will match with spaces instead (e.g. 'Story_writer' == 'Story writer')
+        - If the agent name has underscores it will match with '\\_' instead of '_' (e.g. 'Story_writer' == 'Story\\_writer')
 
         Args:
             message_content (Union[str, List]): The content of the message, either as a single string or a list of strings.
@@ -492,9 +534,17 @@ Then select the next role from {[agent.name for agent in agents]} to play. Only 
 
         mentions = dict()
         for agent in agents:
+            # Finds agent mentions, taking word boundaries into account,
+            # accommodates escaping underscores and underscores as spaces
             regex = (
-                r"(?<=\W)" + re.escape(agent.name) + r"(?=\W)"
-            )  # Finds agent mentions, taking word boundaries into account
+                r"(?<=\W)("
+                + re.escape(agent.name)
+                + r"|"
+                + re.escape(agent.name.replace("_", " "))
+                + r"|"
+                + re.escape(agent.name.replace("_", r"\_"))
+                + r")(?=\W)"
+            )
             count = len(re.findall(regex, f" {message_content} "))  # Pad the message to help with matching
             if count > 0:
                 mentions[agent.name] = count
@@ -740,6 +790,8 @@ class GroupChatManager(ConversableAgent):
             reply (dict): reply message dict to analyze.
             groupchat (GroupChat): GroupChat object.
         """
+        iostream = IOStream.get_default()
+
         reply_content = reply["content"]
         # Split the reply into words
         words = reply_content.split()
@@ -775,21 +827,21 @@ class GroupChatManager(ConversableAgent):
         # clear history
         if agent_to_memory_clear:
             if nr_messages_to_preserve:
-                print(
+                iostream.print(
                     f"Clearing history for {agent_to_memory_clear.name} except last {nr_messages_to_preserve} messages."
                 )
             else:
-                print(f"Clearing history for {agent_to_memory_clear.name}.")
+                iostream.print(f"Clearing history for {agent_to_memory_clear.name}.")
             agent_to_memory_clear.clear_history(nr_messages_to_preserve=nr_messages_to_preserve)
         else:
             if nr_messages_to_preserve:
-                print(f"Clearing history for all agents except last {nr_messages_to_preserve} messages.")
+                iostream.print(f"Clearing history for all agents except last {nr_messages_to_preserve} messages.")
                 # clearing history for groupchat here
                 temp = groupchat.messages[-nr_messages_to_preserve:]
                 groupchat.messages.clear()
                 groupchat.messages.extend(temp)
             else:
-                print("Clearing history for all agents.")
+                iostream.print("Clearing history for all agents.")
                 # clearing history for groupchat here
                 groupchat.messages.clear()
             # clearing history for agents
