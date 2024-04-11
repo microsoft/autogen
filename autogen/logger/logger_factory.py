@@ -2,7 +2,6 @@ from typing import Any, Dict, Optional
 
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
-from autogen.logger.cosmos_db_logger import CosmosDBLogger
 
 __all__ = ("LoggerFactory",)
 
