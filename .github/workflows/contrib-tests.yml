@@ -58,9 +58,6 @@ jobs:
           if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
-      - name: Test RetrieveChat
-        run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
       - name: Coverage
         run: |
           pip install coverage>=5.3
