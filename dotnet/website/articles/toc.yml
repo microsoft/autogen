@@ -54,7 +54,7 @@
   items:
     - name: Overview
       href: AutoGen-OpenAI-Overview.md
-    - name: OpenAIChatAgent examples
+    - name: Examples
       items:
         - name: Simple chat and streaming chat
           href: OpenAIChatAgent-simple-chat.md
@@ -62,6 +62,8 @@
           href: OpenAIChatAgent-support-more-messages.md
         - name: Use function call in OpenAIChatAgent
           href: OpenAIChatAgent-use-function-call.md
+        - name: Use json mode in OpenAIChatAgent
+          href: OpenAIChatAgent-use-json-mode.md
 
 - name: AutoGen.SemanticKernel
   items:
