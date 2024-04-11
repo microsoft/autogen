@@ -1,6 +1,6 @@
 import uuid
 import logging
-from typing import Any, Dict, Union, TYPE_CHECKING
+from typing import Any, Dict, Union, TYPE_CHECKING, TypedDict
 from azure.cosmos import CosmosClient
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
@@ -11,8 +11,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+class CosmosDBConfig(TypedDict):
+    connection_string: str
+    database_name: str  # Optional key, hence not enforcing it as mandatory
+    container_name: str  # Optional key, hence not enforcing it as mandatory
+
 class CosmosDBLogger(BaseLogger):
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: CosmosDBConfig):
         self.config = config
         self.client = CosmosClient.from_connection_string(config['connection_string'])
         self.database_name = config.get('database_name', 'AutogenLogging')
