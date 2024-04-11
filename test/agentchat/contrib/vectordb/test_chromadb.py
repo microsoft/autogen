@@ -16,7 +16,7 @@ else:
     skip = False
 
 
-@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
+@pytest.mark.skipif(skip, reason="dependency is not installed")
 def test_chromadb():
     # test create collection
     db = ChromaVectorDB(path=".db")
