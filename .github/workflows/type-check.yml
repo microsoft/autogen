@@ -4,6 +4,10 @@ on:  # Trigger the workflow on pull request or merge
   pull_request:
   merge_group:
     types: [checks_requested]
+  push:
+    branches:
+      - 'experimental'
+
 defaults:
   run:
     shell: bash
@@ -23,5 +27,4 @@ jobs:
       # All additional modules should be defined in setup.py
       - run: pip install ".[types]"
       # Any additional configuration should be defined in pyproject.toml
-      - run: |
-          mypy
+      - uses: jakebailey/pyright-action@v2
