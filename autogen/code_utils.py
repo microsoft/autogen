@@ -245,7 +245,7 @@ def get_powershell_command():
 
 
 def _cmd(lang: str) -> str:
-    if lang in ["Python", "py"]:
+    if lang in PYTHON_VARIANTS:
         return "python"
     if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
