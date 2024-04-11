@@ -74,7 +74,7 @@ setuptools.setup(
         "cosmosdb": ["azure-cosmos>=4.2.0"],
         "websockets": ["websockets>=12.0,<13"],
         "jupyter-executor": jupyter_executor,
-        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
+        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8", "types-Pillow"] + jupyter_executor,
     },
     classifiers=[
         "Programming Language :: Python :: 3",
