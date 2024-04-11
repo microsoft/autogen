@@ -9,13 +9,11 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
-from autogen.cache import Cache
 from autogen.cache.cache import Cache
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
-from autogen.runtime_logging import (log_chat_completion, log_new_client,
-                                     log_new_wrapper, logging_enabled)
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
 from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
@@ -31,11 +29,12 @@ else:
     from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
-    from openai.types.chat.chat_completion import (  # type: ignore [attr-defined]
-        ChatCompletionMessage, Choice)
+    from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
-        ChoiceDeltaFunctionCall, ChoiceDeltaToolCall,
-        ChoiceDeltaToolCallFunction)
+        ChoiceDeltaFunctionCall,
+        ChoiceDeltaToolCall,
+        ChoiceDeltaToolCallFunction,
+    )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
 

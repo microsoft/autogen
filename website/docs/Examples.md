@@ -98,10 +98,6 @@ Links to notebook examples:
 - Automatically Build Multi-agent System with AgentBuilder - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_basic.ipynb)
 - Automatically Build Multi-agent System from Agent Library - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/autobuild_agent_library.ipynb)
 
-1. **Non-OpenAI Models**
-
-   - Using Gemini with AutoGen - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_gemini.ipynb)
-
 ## Enhanced Inferences
 
 ### Utilities

@@ -64,7 +64,7 @@ setuptools.setup(
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
-        "gemini": ["google-generativeai", "pillow"],
+        "gemini": ["google-generativeai", "pillow", "pydantic==1.10.9"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
         "cosmosdb": ["azure-cosmos>=4.2.0"],
