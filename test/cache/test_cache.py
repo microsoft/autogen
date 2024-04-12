@@ -27,7 +27,7 @@ class TestCache(unittest.TestCase):
             ".test_cache",
             None,  # connection_string
             None,  # database_id
-            None,   # container_id
+            None,  # container_id
         )
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
