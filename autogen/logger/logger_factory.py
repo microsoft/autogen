@@ -23,7 +23,9 @@ class LoggerFactory:
             return SqliteLogger(config)
         elif logger_type == "cosmos":
             if not cosmos_imported:
-                raise ImportError("CosmosDBLogger could not be imported. Please ensure the cosmos package is installed.")
+                raise ImportError(
+                    "CosmosDBLogger could not be imported. Please ensure the cosmos package is installed."
+                )
             if isinstance(config, dict) and all(key in CosmosDBConfig.__annotations__ for key in config.keys()):
                 return CosmosDBLogger(config)  # Type cast to CosmosDBConfig if using Python < 3.10
             else:
