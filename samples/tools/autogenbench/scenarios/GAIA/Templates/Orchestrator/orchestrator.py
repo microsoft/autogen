@@ -249,6 +249,7 @@ To make progress on the request, please answer the following questions, includin
     - Are we making forward progress? (True if just starting, or recent messages are adding value. False if recent messages show evidence of being stuck in a reasoning or action loop, or there is evidence of significant barriers to success such as the inability to read from a required file)
     - Who should speak next? (select from: {names})
     - What instruction or question would you give this team member? (Phrase as if speaking directly to them, and include any specific information they may need)
+    - What is the likelihood that further exploration of the current set of actions will successfully answer the original question? The answer should be between 0 and 100. 0 meaning there is no chance of success and 100 being a guaranteed success. Please take things such as the capabilities of the team you have available, the probability of the data you are looking for existing at the location, or the probability of finding information that can help you make an educated guess into account.
 
 Please output an answer in pure JSON format according to the following schema. The JSON object must be parsable as-is. DO NOT OUTPUT ANYTHING OTHER THAN JSON, AND DO NOT DEVIATE FROM THIS SCHEMA:
 
@@ -268,6 +269,10 @@ Please output an answer in pure JSON format according to the following schema. T
         "instruction_or_question": {{
             "reason": string,
             "answer": string
+        }},
+        "probability_of_success": {{
+            "reason": string,
+            "probability": integer
         }}
     }}
 """.strip()
@@ -354,7 +359,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         if data["has_educated_guesses"]["answer"]:
                             return True, "TERMINATE"
 
-                    new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
+                    new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else. If the team does not have the capabilities to answer the question, try to obtain information that will help you to make an educated guess.
 
 Team membership:
 {team}
