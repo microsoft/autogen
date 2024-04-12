@@ -23,6 +23,7 @@ else:
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
+PYTHON_VARIANTS = ["python", "Python", "py"]
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
@@ -60,23 +61,26 @@ def test_commandline_executor_init(cls) -> None:
         executor = cls(timeout=111, work_dir="/invalid/directory")
 
 
+@pytest.mark.parametrize("py_variant", PYTHON_VARIANTS)
 @pytest.mark.parametrize("cls", classes_to_test)
-def test_commandline_executor_execute_code(cls) -> None:
+def test_commandline_executor_execute_code(cls, py_variant) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir)
-        _test_execute_code(executor=executor)
+        _test_execute_code(py_variant, executor=executor)
 
 
-def _test_execute_code(executor: CodeExecutor) -> None:
+@pytest.mark.parametrize("py_variant", PYTHON_VARIANTS)
+def _test_execute_code(py_variant, executor: CodeExecutor) -> None:
+
     # Test single code block.
-    code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
+    code_blocks = [CodeBlock(code="import sys; print('hello world!')", language=py_variant)]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == 0 and "hello world!" in code_result.output and code_result.code_file is not None
 
     # Test multiple code blocks.
     code_blocks = [
-        CodeBlock(code="import sys; print('hello world!')", language="python"),
-        CodeBlock(code="a = 100 + 100; print(a)", language="python"),
+        CodeBlock(code="import sys; print('hello world!')", language=py_variant),
+        CodeBlock(code="a = 100 + 100; print(a)", language=py_variant),
     ]
     code_result = executor.execute_code_blocks(code_blocks)
     assert (
@@ -94,7 +98,7 @@ def _test_execute_code(executor: CodeExecutor) -> None:
 
     # Test running code.
     file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
-    code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
+    code_blocks = [CodeBlock(code="\n".join(file_lines), language=py_variant)]
     code_result = executor.execute_code_blocks(code_blocks)
     assert (
         code_result.exit_code == 0
