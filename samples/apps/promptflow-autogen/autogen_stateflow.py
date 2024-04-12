@@ -80,7 +80,7 @@ class AgStateFlow:
                 # retrieve --(execution failed)--> retrieve
                 return self.coder
             else:
-                # retrieve --(execution sucess)--> research
+                # retrieve --(execution success)--> research
                 return self.scientist
         elif last_speaker == "Scientist":
             # research -> end
