@@ -1,13 +1,15 @@
+import time
+from typing import List
+
 import zmq
-from .DebugLog import Debug, Warn
+
+from .Actor import Actor
 from .ActorConnector import ActorConnector
 from .Broker import Broker
-from .DirectorySvc import DirectorySvc
 from .Constants import Termination_Topic
-from .Actor import Actor
+from .DebugLog import Debug, Warn
+from .DirectorySvc import DirectorySvc
 from .proto.CAP_pb2 import ActorInfo, ActorInfoCollection
-from typing import List
-import time
 
 # TODO: remove time import
 
@@ -33,6 +35,7 @@ class LocalActorNetwork:
         if self._directory_svc is None:
             self._directory_svc = DirectorySvc(self._context)
             self._directory_svc.start()
+        time.sleep(0.25)  # Process queued thread events in Broker and Directory
 
     def register(self, actor: Actor):
         self._init_runtime()

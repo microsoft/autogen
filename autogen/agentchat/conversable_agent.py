@@ -17,6 +17,7 @@ from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from .._pydantic import model_dump
 from ..cache.cache import AbstractCache
 from ..code_utils import (
+    PYTHON_VARIANTS,
     UNKNOWN,
     check_can_use_docker_or_throw,
     content_str,
@@ -138,6 +139,9 @@ class ConversableAgent(LLMAgent):
             if is_termination_msg is not None
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
+        # Take a copy to avoid modifying the given dict
+        if isinstance(llm_config, dict):
+            llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
 
@@ -2084,7 +2088,7 @@ class ConversableAgent(LLMAgent):
             )
             if lang in ["bash", "shell", "sh"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
-            elif lang in ["python", "Python"]:
+            elif lang in PYTHON_VARIANTS:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:
@@ -2267,29 +2271,53 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = self.get_human_input(">")
-        if isinstance(message, str):
-            return self._process_carryover(message, kwargs)
-        elif isinstance(message, dict):
-            message = message.copy()
-            # TODO: Do we need to do the following?
-            # if message.get("content") is None:
-            #     message["content"] = self.get_human_input(">")
-            message["content"] = self._process_carryover(message.get("content", ""), kwargs)
+
+        return self._handle_carryover(message, kwargs)
+
+    def _handle_carryover(self, message: Union[str, Dict], kwargs: dict) -> Union[str, Dict]:
+        if not kwargs.get("carryover"):
             return message
 
-    def _process_carryover(self, message: str, kwargs: dict) -> str:
-        carryover = kwargs.get("carryover")
-        if carryover:
-            # if carryover is string
-            if isinstance(carryover, str):
-                message += "\nContext: \n" + carryover
-            elif isinstance(carryover, list):
-                message += "\nContext: \n" + ("\n").join([t for t in carryover])
-            else:
-                raise InvalidCarryOverType(
-                    "Carryover should be a string or a list of strings. Not adding carryover to the message."
-                )
+        if isinstance(message, str):
+            return self._process_carryover(message, kwargs)
+
+        elif isinstance(message, dict):
+            if isinstance(message.get("content"), str):
+                # Makes sure the original message is not mutated
+                message = message.copy()
+                message["content"] = self._process_carryover(message["content"], kwargs)
+            elif isinstance(message.get("content"), list):
+                # Makes sure the original message is not mutated
+                message = message.copy()
+                message["content"] = self._process_multimodal_carryover(message["content"], kwargs)
+        else:
+            raise InvalidCarryOverType("Carryover should be a string or a list of strings.")
+
         return message
+
+    def _process_carryover(self, content: str, kwargs: dict) -> str:
+        # Makes sure there's a carryover
+        if not kwargs.get("carryover"):
+            return content
+
+        # if carryover is string
+        if isinstance(kwargs["carryover"], str):
+            content += "\nContext: \n" + kwargs["carryover"]
+        elif isinstance(kwargs["carryover"], list):
+            content += "\nContext: \n" + ("\n").join([t for t in kwargs["carryover"]])
+        else:
+            raise InvalidCarryOverType(
+                "Carryover should be a string or a list of strings. Not adding carryover to the message."
+            )
+        return content
+
+    def _process_multimodal_carryover(self, content: List[Dict], kwargs: dict) -> List[Dict]:
+        """Prepends the context to a multimodal message."""
+        # Makes sure there's a carryover
+        if not kwargs.get("carryover"):
+            return content
+
+        return [{"type": "text", "text": self._process_carryover("", kwargs)}] + content
 
     async def a_generate_init_message(self, message: Union[Dict, str, None], **kwargs) -> Union[str, Dict]:
         """Generate the initial message for the agent.
@@ -2303,12 +2331,8 @@ class ConversableAgent(LLMAgent):
         """
         if message is None:
             message = await self.a_get_human_input(">")
-        if isinstance(message, str):
-            return self._process_carryover(message, kwargs)
-        elif isinstance(message, dict):
-            message = message.copy()
-            message["content"] = self._process_carryover(message["content"], kwargs)
-            return message
+
+        return self._handle_carryover(message, kwargs)
 
     def register_function(self, function_map: Dict[str, Union[Callable, None]]):
         """Register functions to the agent.

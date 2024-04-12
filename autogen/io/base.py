@@ -1,6 +1,6 @@
+import logging
 from contextlib import contextmanager
 from contextvars import ContextVar
-import logging
 from typing import Any, Iterator, Optional, Protocol, runtime_checkable
 
 __all__ = ("OutputStream", "InputStream", "IOStream")
@@ -76,8 +76,9 @@ class IOStream(InputStream, OutputStream, Protocol):
         """
         iostream = IOStream._default_io_stream.get()
         if iostream is None:
-            logger.warning("No default IOStream has been set, defaulting to IOConsole.")
-            return IOStream.get_global_default()
+            iostream = IOStream.get_global_default()
+            # Set the default IOStream of the current context (thread/cooroutine)
+            IOStream.set_default(iostream)
         return iostream
 
     @staticmethod

@@ -1,5 +1,7 @@
 import tempfile
+
 import pytest
+
 from autogen.coding.base import CodeBlock
 from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeExecutor
 
@@ -10,7 +12,7 @@ except ImportError:
 else:
     skip = False
 
-from autogen.coding.func_with_reqs import with_requirements
+from autogen.coding.func_with_reqs import FunctionWithRequirements, with_requirements
 
 classes_to_test = [LocalCommandLineCodeExecutor]
 
@@ -54,7 +56,7 @@ def function_missing_reqs() -> "pandas.DataFrame":
 def test_can_load_function_with_reqs(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[load_data])
-        code = f"""from {cls.FUNCTIONS_MODULE} import load_data
+        code = f"""from {executor.functions_module} import load_data
 import pandas
 
 # Get first row's name
@@ -74,7 +76,7 @@ print(load_data().iloc[0]['name'])"""
 def test_can_load_function(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
-        code = f"""from {cls.FUNCTIONS_MODULE} import add_two_numbers
+        code = f"""from {executor.functions_module} import add_two_numbers
 print(add_two_numbers(1, 2))"""
 
         result = executor.execute_code_blocks(
@@ -93,7 +95,7 @@ print(add_two_numbers(1, 2))"""
 # def test_fails_for_missing_reqs(cls) -> None:
 #     with tempfile.TemporaryDirectory() as temp_dir:
 #         executor = cls(work_dir=temp_dir, functions=[function_missing_reqs])
-#         code = f"""from {cls.FUNCTIONS_MODULE} import function_missing_reqs
+#         code = f"""from {executor.functions_module} import function_missing_reqs
 # function_missing_reqs()"""
 
 #         with pytest.raises(ValueError):
@@ -109,7 +111,7 @@ print(add_two_numbers(1, 2))"""
 def test_fails_for_function_incorrect_import(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[function_incorrect_import])
-        code = f"""from {cls.FUNCTIONS_MODULE} import function_incorrect_import
+        code = f"""from {executor.functions_module} import function_incorrect_import
 function_incorrect_import()"""
 
         with pytest.raises(ValueError):
@@ -125,7 +127,7 @@ function_incorrect_import()"""
 def test_fails_for_function_incorrect_dep(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[function_incorrect_dep])
-        code = f"""from {cls.FUNCTIONS_MODULE} import function_incorrect_dep
+        code = f"""from {executor.functions_module} import function_incorrect_dep
 function_incorrect_dep()"""
 
         with pytest.raises(ValueError):
@@ -137,7 +139,6 @@ function_incorrect_dep()"""
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
-@pytest.mark.skipif(skip, reason="pandas not installed")
 def test_formatted_prompt(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir, functions=[add_two_numbers])
@@ -149,3 +150,85 @@ def test_formatted_prompt(cls) -> None:
 '''
             in result
         )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_formatted_prompt_str_func(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+        executor = cls(work_dir=temp_dir, functions=[func])
+
+        result = executor.format_functions_for_prompt()
+        assert (
+            '''def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+'''
+            in result
+        )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_can_load_str_function_with_reqs(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+        executor = cls(work_dir=temp_dir, functions=[func])
+        code = f"""from {executor.functions_module} import add_two_numbers
+print(add_two_numbers(1, 2))"""
+
+        result = executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python", code=code),
+            ]
+        )
+        assert result.output == "3\n"
+        assert result.exit_code == 0
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_cant_load_broken_str_function_with_reqs(cls) -> None:
+
+    with pytest.raises(ValueError):
+        _ = FunctionWithRequirements.from_str(
+            '''
+invaliddef add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_cant_run_broken_str_function_with_reqs(cls) -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        func = FunctionWithRequirements.from_str(
+            '''
+def add_two_numbers(a: int, b: int) -> int:
+    """Add two numbers together."""
+    return a + b
+'''
+        )
+
+        executor = cls(work_dir=temp_dir, functions=[func])
+        code = f"""from {executor.functions_module} import add_two_numbers
+print(add_two_numbers(object(), False))"""
+
+        result = executor.execute_code_blocks(
+            code_blocks=[
+                CodeBlock(language="python", code=code),
+            ]
+        )
+        assert "TypeError: unsupported operand type(s) for +:" in result.output
+        assert result.exit_code == 1

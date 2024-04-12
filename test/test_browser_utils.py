@@ -1,13 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import os
-import sys
-import requests
 import hashlib
-import re
 import math
+import os
+import re
+import sys
 
+import pytest
+import requests
 from agentchat.test_assistant_agent import KEY_LOC  # noqa: E402
 
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
