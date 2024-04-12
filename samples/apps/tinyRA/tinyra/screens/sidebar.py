@@ -48,6 +48,45 @@ class DirectoryTreeContainer(Container):
 
 class Sidebar(Grid):
 
+    DEFAULT_CSS = """
+    Sidebar {
+        width: 40%;
+        background: $panel;
+        border: thick $primary-background 90%;
+        transition: offset 500ms in_out_cubic;
+        layer: overlay;
+        margin: 1;
+        padding: 1;
+
+        grid-size: 1 2;
+        grid-rows: 1fr 5;
+        grid-gutter: 1 2;
+    }
+
+    Sidebar:focus-within {
+        offset: 0 0 !important;
+    }
+
+    Sidebar.-hidden {
+        offset-x: -100%;
+    }
+
+    Sidebar Static {
+        background: $boost;
+        color: $secondary;
+        border-right: vkey $background;
+        dock: top;
+        text-align: center;
+        text-style: bold;
+    }
+
+    #directory-tree-footer{
+        grid-size: 2 1;
+        align: center middle;
+    }
+
+    """
+
     def compose(self) -> ComposeResult:
         logger = logging.getLogger(__name__)
         logger.info("Composing the sidebar")

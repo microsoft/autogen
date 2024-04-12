@@ -54,7 +54,7 @@ class TinyRA(App):
         ("ctrl+s", "request_settings", "Settings"),
     ]
 
-    CSS_PATH = ["tui.css", Path("screens") / "sidebar.css"]
+    CSS_PATH = ["tui.css"]
 
     TITLE = "TinyRA"
     SUB_TITLE = "A minimalistic, long-lived research assistant"

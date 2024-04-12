@@ -1,7 +1,3 @@
-* {
-    transition: background 500ms in_out_cubic, color 500ms in_out_cubic;
-}
-
 Screen {
     layers: base overlay top;
     overflow: hidden;
@@ -14,7 +10,6 @@ Header {
 Footer {
     layer: top;
 }
-
 
 
 #chat-grid{
@@ -73,18 +68,6 @@ Footer {
     border: $primary;
     margin-left: 10;
     content-align: left middle;
-}
-
-
-#quit-screen-grid {
-    height: 40%;
-    width: 40%;
-    background: $surface;
-    border: thick $primary-background 80%;
-    padding: 1;
-
-    grid-size: 2 3;
-    grid-gutter: 1 2;
 }
 
 #chat-screen-contents {
