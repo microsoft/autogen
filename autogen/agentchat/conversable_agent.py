@@ -1182,14 +1182,16 @@ class ConversableAgent(LLMAgent):
         """
         _chat_queue = chat_queue.copy()
         for chat_info in _chat_queue:
-            chat_info["sender"] = self
+            if chat_info.get("sender") is None:
+                chat_info["sender"] = self
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
     async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
         _chat_queue = chat_queue.copy()
         for chat_info in _chat_queue:
-            chat_info["sender"] = self
+            if chat_info.get("sender") is None:
+                chat_info["sender"] = self
         self._finished_chats = await a_initiate_chats(_chat_queue)
         return self._finished_chats
 
