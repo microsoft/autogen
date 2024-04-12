@@ -3,6 +3,12 @@ from typing import Any, Dict, Optional
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
 
+try:
+    from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBConfig
+    cosmos_imported = True
+except ImportError:
+    cosmos_imported = False
+
 __all__ = ("LoggerFactory",)
 
 try:
