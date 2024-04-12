@@ -42,7 +42,7 @@ is_satisfied is a bool value that represents whether the user is satisfied with 
 Example:
 
 ```python
-optimizer = AgentOptimizer(max_actions_per_step=3, config_file_or_env="OAI_CONFIG_LIST")
+optimizer = AgentOptimizer(max_actions_per_step=3, llm_config = llm_config)
 # ------------ code to solve a problem ------------
 # ......
 # -------------------------------------------------
@@ -76,7 +76,7 @@ Moreover, it also includes mechanisms to check whether each update is feasible, 
 The optimization process is as follows:
 
 ```python
-optimizer = AgentOptimizer(max_actions_per_step=3, config_file_or_env="OAI_CONFIG_LIST")
+optimizer = AgentOptimizer(max_actions_per_step=3, llm_config = llm_config)
 for i in range(EPOCH):
     is_correct = user_proxy.initiate_chat(assistant, message = problem)
     history = assistant.chat_messages_for_summary(user_proxy)
