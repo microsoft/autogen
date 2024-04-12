@@ -126,9 +126,16 @@ class MessageTokenLimiter:
         processed_messages_tokens = 0
 
         # calculate tokens for all messages
-        total_tokens = sum(_count_tokens(msg["content"]) for msg in temp_messages)
+        total_tokens = sum(
+            _count_tokens(msg["content"]) for msg in temp_messages if isinstance(msg.get("content"), (str, list))
+        )
 
         for msg in reversed(temp_messages):
+            # Some messages may not have content.
+            if not isinstance(msg.get("content"), (str, list)):
+                processed_messages.insert(0, msg)
+                continue
+
             expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
 
             # If adding this message would exceed the token limit, truncate the last message to meet the total token
