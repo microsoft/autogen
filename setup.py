@@ -66,6 +66,7 @@ setuptools.setup(
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
+        "cosmosdb": ["azure-cosmos>=4.2.0"],
         "websockets": ["websockets>=12.0,<13"],
         "jupyter-executor": jupyter_executor,
         "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,

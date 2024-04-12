@@ -76,6 +76,29 @@ def test_limit_token_transform():
     assert len(transformed_messages) <= len(messages)
 
 
+def test_limit_token_transform_without_content():
+    """Test the TokenLimitTransform with messages that don't have content."""
+
+    messages = [{"role": "user", "function_call": "example"}, {"role": "assistant", "content": None}]
+
+    # check if token limit per message works nicely with total token limit.
+    token_limit_transform = MessageTokenLimiter(max_tokens=10, max_tokens_per_message=5)
+
+    transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
+
+    assert len(transformed_messages) == len(messages)
+
+
+def test_limit_token_transform_total_token_count():
+    """Tests if the TokenLimitTransform truncates without dropping messages."""
+    messages = [{"role": "very very very very very"}]
+
+    token_limit_transform = MessageTokenLimiter(max_tokens=1)
+    transformed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
+
+    assert len(transformed_messages) == 1
+
+
 def test_max_message_history_length_transform():
     """
     Test the MessageHistoryLimiter capability to limit the number of messages.
