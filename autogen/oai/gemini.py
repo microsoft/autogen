@@ -51,7 +51,13 @@ class GeminiClient:
             self.api_key
         ), "Please provide api_key in your config list entry for Gemini or set the GOOGLE_API_KEY env variable."
 
-        self.model = kwargs.get("model", "gemini-pro")
+        self.model = kwargs.get("model", None)
+        if not self.model:
+            raise ValueError(
+                "Please provide a model name for the Gemini Client. "
+                "You can configurate it in the OAI Config List file. "
+                "See this [LLM configuration tutorial](https://microsoft.github.io/autogen/docs/topics/llm_configuration/) for more details."
+            )
 
     def message_retrieval(self, response) -> List:
         """
@@ -307,4 +313,5 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
     if use_b64:
         return base64.b64encode(content).decode("utf-8")
     else:
+        return content
         return content
