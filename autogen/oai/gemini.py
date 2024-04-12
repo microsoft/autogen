@@ -139,7 +139,7 @@ class GeminiClient:
 
             response = model.generate_content(user_message, stream=stream)
             # ans = response.text
-            ans = response._result.candidates[0].content.parts[0].text
+            ans: str = response._result.candidates[0].content.parts[0].text
 
         # 3. convert output
         message = ChatCompletionMessage(role="assistant", content=ans, function_call=None, tool_calls=None)
