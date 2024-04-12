@@ -1128,7 +1128,7 @@ class ConversableAgent(LLMAgent):
             elif isinstance(content, list):
                 summary = content
                 for component in summary:
-                    if "text" in component and isinstance(component, dict):
+                    if isinstance(component, dict) and "text" in component:
                         component["text"] = component["text"].replace("TERMINATE", "")
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
