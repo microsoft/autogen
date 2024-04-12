@@ -1,7 +1,7 @@
-from promptflow.core import tool
-from promptflow.connections import AzureOpenAIConnection, CustomConnection
-from autogen_stateflow import AgStateFlow
 from agentchat_nestedchat import AgNestedChat
+from autogen_stateflow import AgStateFlow
+from promptflow.connections import AzureOpenAIConnection, CustomConnection
+from promptflow.core import tool
 
 
 @tool
