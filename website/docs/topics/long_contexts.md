@@ -12,7 +12,6 @@ Why do we need to handle long contexts? The problem arises from several constrai
 
 The `TransformMessages` capability is designed to modify incoming messages before they are processed by the LLM agent. This can include limiting the number of messages, truncating messages to meet token limits, and more.
 
-````{=mdx}
 :::info Requirements
 Install `pyautogen`:
 ```bash
@@ -21,7 +20,6 @@ pip install pyautogen
 
 For more information, please refer to the [installation guide](/docs/installation/).
 :::
-````
 
 ### Exploring and Understanding Transformations
 
@@ -114,11 +112,9 @@ user_proxy = autogen.UserProxyAgent(
 )
 ```
 
-```{=mdx}
 :::tip
 Learn more about configuring LLMs for agents [here](/docs/topics/llm_configuration).
 :::
-```
 
 We first need to write the `test` function that creates a very long chat history by exchanging messages between an assistant and a user proxy agent, and then attempts to initiate a new chat without clearing the history, potentially triggering an error due to token limits.
 
