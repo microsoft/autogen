@@ -78,6 +78,28 @@ class AGMPlusTools(AutoGenAgentManager):
 
         update_callback("Thinking...")
 
+        def terminate_on_consecutive_empty(recipient, messages, sender, **kwargs):
+            # check the contents of the last N messages
+            # if all empty, terminate
+            consecutive_are_empty = None
+            last_n = 2
+
+            for message in reversed(messages):
+                if last_n == 0:
+                    break
+                if message["role"] == "user":
+                    last_n -= 1
+                    if len(message["content"]) == 0:
+                        consecutive_are_empty = True
+                    else:
+                        consecutive_are_empty = False
+                        break
+
+            if consecutive_are_empty:
+                return True, "TERMINATE"
+
+            return False, None
+
         def post_snippet_and_record_history(sender: Agent, message: str, recipient: Agent, silent: bool):
 
             update_callback(message[:100])
@@ -103,6 +125,7 @@ class AGMPlusTools(AutoGenAgentManager):
             human_input_mode="NEVER",
             is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
         )
+        assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
         assistant.register_hook("process_message_before_send", post_snippet_and_record_history)
         user.register_hook("process_message_before_send", post_snippet_and_record_history)
 
