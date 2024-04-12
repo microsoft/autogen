@@ -13,6 +13,7 @@ try:
 except ImportError:
     skip_cosmos_tests = True
 
+
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
         self.seed = "test_seed"
@@ -59,6 +60,7 @@ class TestCosmosDBCache(unittest.TestCase):
         with CosmosDBCache(self.seed, self.client, self.database_id, self.container_id) as cache:
             self.assertIsInstance(cache, CosmosDBCache)
         # Note: Testing of close method if needed when CosmosClient requires explicit closing logic
+
 
 if __name__ == "__main__":
     unittest.main()
