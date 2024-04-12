@@ -5,7 +5,7 @@ from autogen.logger.sqlite_logger import SqliteLogger
 
 try:
     from autogen.logger.cosmos_db_logger import CosmosDBConfig, CosmosDBLogger
-    
+
     cosmos_imported = True
 except ImportError:
     cosmos_imported = False
