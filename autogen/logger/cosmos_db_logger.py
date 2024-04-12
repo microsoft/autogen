@@ -59,7 +59,7 @@ class CosmosDBLogger(BaseLogger):
             "is_cached": is_cached,
             "cost": cost,
             "start_time": start_time,
-            "end_time": get_current_ts()
+            "end_time": get_current_ts(),
         }
         self.container.upsert_item(document)
 
@@ -70,7 +70,7 @@ class CosmosDBLogger(BaseLogger):
             "agent_id": id(agent),
             "agent_name": agent.name,
             "init_args": to_dict(init_args),
-            "timestamp": get_current_ts()
+            "timestamp": get_current_ts(),
         }
         self.container.upsert_item(document)
 
@@ -80,7 +80,7 @@ class CosmosDBLogger(BaseLogger):
             "session_id": self.session_id,
             "wrapper_id": id(wrapper),
             "init_args": to_dict(init_args),
-            "timestamp": get_current_ts()
+            "timestamp": get_current_ts(),
         }
         self.container.upsert_item(document)
 
@@ -92,7 +92,7 @@ class CosmosDBLogger(BaseLogger):
             "wrapper_id": id(wrapper),
             "client_class": type(client).__name__,
             "init_args": to_dict(init_args),
-            "timestamp": get_current_ts()
+            "timestamp": get_current_ts(),
         }
         self.container.upsert_item(document)
 
