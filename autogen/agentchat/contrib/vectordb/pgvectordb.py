@@ -36,7 +36,7 @@ class Collection:
 
     """
 
-    def __init__(self, client=None, collection_name: str = "documents", embedding_function: Callable = None,
+    def __init__(self, client=None, collection_name: str = "autogen-docs", embedding_function: Callable = None,
                  metadata=None, get_or_create=None):
         """
         Initialize the Collection object.
@@ -53,13 +53,18 @@ class Collection:
         """
         self.client = client
         self.embedding_function = embedding_function
-        self.name = re.sub("-", "_", collection_name)
+        self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
         self.embeddings = None
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
+
+    def set_collection_name(self, collection_name):
+        name = re.sub("-", "_", collection_name)
+        self.name = name
+        return self.name
 
     def add(self, ids: List[ItemID], embeddings: List, metadatas: List, documents: List):
         """
@@ -471,6 +476,7 @@ class PGVectorDB(VectorDB):
                 get_or_create=get_or_create,
                 metadata=self.metadata,
             )
+            collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
             return collection
         elif overwrite:
@@ -481,6 +487,7 @@ class PGVectorDB(VectorDB):
                 get_or_create=get_or_create,
                 metadata=self.metadata,
             )
+            collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
             return collection
         elif get_or_create:
@@ -507,8 +514,8 @@ class PGVectorDB(VectorDB):
                     f"No collection is specified. Using current active collection {self.active_collection.name}."
                 )
         else:
-            if not (self.active_collection and self.active_collection.name == collection_name):
-                self.active_collection = Collection(client=self.client, embedding_function=self.embedding_function)
+            self.active_collection = Collection(client=self.client, collection_name=collection_name,
+                                                embedding_function=self.embedding_function)
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:
