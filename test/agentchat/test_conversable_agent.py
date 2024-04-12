@@ -1223,6 +1223,26 @@ def test_summary():
     )
     print(chat_res_play.summary)
 
+    chat_res_play_with_multimodal = user.initiate_chat(
+        player,
+        message={
+            "content": [
+                {"type": "text", "text": "Let's play a game."},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg=="
+                    },
+                },
+            ],
+            "function_call": {"name": "get_random_number", "arguments": "{}"},
+        },
+        max_turns=1,
+        summary_method=my_summary,
+        summary_args={"prefix": "This is the last message:"},
+    )
+    print(chat_res_play_with_multimodal.summary)
+
 
 def test_process_before_send():
     print_mock = unittest.mock.MagicMock()
