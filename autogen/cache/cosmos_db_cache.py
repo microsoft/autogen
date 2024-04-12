@@ -6,6 +6,8 @@ from typing import Any, Optional, Union
 
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 
+from azure.cosmos.exceptions import CosmosResourceNotFoundError
+
 from autogen.cache.abstract_cache_base import AbstractCache
 
 
