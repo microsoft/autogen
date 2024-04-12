@@ -17,7 +17,7 @@ from autogen.coding.func_with_reqs import (
     to_stub,
 )
 
-from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, PYTHON_VARIANTS
+from ..code_utils import PYTHON_VARIANTS, TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
 from .utils import _get_file_name_from_content, silence_pip

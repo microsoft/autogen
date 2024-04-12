@@ -25,6 +25,7 @@ UNIX_SHELLS = ["bash", "sh", "shell"]
 WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
 PYTHON_VARIANTS = ["python", "Python", "py"]
 
+
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_is_code_executor(cls) -> None:
     assert isinstance(cls, CodeExecutor)
@@ -66,6 +67,7 @@ def test_commandline_executor_execute_code(cls, py_variant) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir)
         _test_execute_code(py_variant, executor=executor)
+
 
 @pytest.mark.parametrize("py_variant", PYTHON_VARIANTS)
 def _test_execute_code(py_variant, executor: CodeExecutor) -> None:
