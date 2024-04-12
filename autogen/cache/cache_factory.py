@@ -8,26 +8,26 @@ from .disk_cache import DiskCache
 class CacheFactory:
     @staticmethod
     def cache_factory(
-        seed: Union[str, int], 
-        redis_url: Optional[str] = None, 
+        seed: Union[str, int],
+        redis_url: Optional[str] = None,
         cache_path_root: str = ".cache",
         connection_string: Optional[str] = None,
         database_id: Optional[str] = None,
-        container_id: Optional[str] = None
+        container_id: Optional[str] = None,
     ) -> AbstractCache:
         """
         Factory function for creating cache instances.
 
-        This function decides whether to create a RedisCache, DiskCache, or CosmosDBCache instance 
+        This function decides whether to create a RedisCache, DiskCache, or CosmosDBCache instance
         based on the provided parameters. If RedisCache is available and a redis_url is provided,
-        a RedisCache instance is created. If connection_string, database_id, and container_id 
+        a RedisCache instance is created. If connection_string, database_id, and container_id
         are provided, a CosmosDBCache is created. Otherwise, a DiskCache instance is used.
 
         Args:
             seed (Union[str, int]): A string or int used as a seed or namespace for the cache.
                         This could be useful for creating distinct cache instances
                         or for namespacing keys in the cache.
-            redis_url (Optional[str]): The URL for the Redis server. If this is provided and Redis is available, 
+            redis_url (Optional[str]): The URL for the Redis server. If this is provided and Redis is available,
                                        a RedisCache instance is created.
             cache_path_root (str): The root path for the disk cache. Defaults to ".cache".
             connection_string (Optional[str]): The connection string for the Cosmos DB account. Required for creating a CosmosDBCache.
@@ -55,18 +55,20 @@ class CacheFactory:
         ```python
         cosmos_cache = cache_factory("myseed", connection_string="your_connection_string", database_id="your_database_id", container_id="your_container_id")
         ```
-        
+
         """
         if redis_url:
             try:
                 from .redis_cache import RedisCache
+
                 return RedisCache(seed, redis_url)
             except ImportError:
                 logging.warning("RedisCache is not available. Fallback to DiskCache.")
-        
+
         if connection_string and database_id and container_id:
             try:
                 from .cosmos_db_cache import CosmosDBCache
+
                 return CosmosDBCache(seed, connection_string, database_id, container_id)
             except ImportError:
                 logging.warning("CosmosDBCache is not available. Fallback to DiskCache.")
