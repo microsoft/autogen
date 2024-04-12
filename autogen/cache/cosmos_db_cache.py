@@ -3,8 +3,11 @@
 
 import pickle
 from typing import Any, Optional, Union
+
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
+
 from autogen.cache.abstract_cache_base import AbstractCache
+
 
 class CosmosDBCache(AbstractCache):
     """
@@ -18,6 +21,7 @@ class CosmosDBCache(AbstractCache):
         client (CosmosClient): The Cosmos DB client used for caching.
         container: The container instance used for caching.
     """
+
     def __init__(self, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
         """
         Initialize the CosmosDBCache instance.
