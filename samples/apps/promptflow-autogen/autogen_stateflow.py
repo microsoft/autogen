@@ -27,9 +27,7 @@ class AgStateFlow:
 
         # Create a local command line code executor with a timeout of 10 seconds
         # and use the temporary directory to store the code files
-        self.local_executor = LocalCommandLineCodeExecutor(
-            timeout=10, work_dir=self.temp_dir.name
-        )
+        self.local_executor = LocalCommandLineCodeExecutor(timeout=10, work_dir=self.temp_dir.name)
 
         # Define the GPT-4 configuration
         self.gpt4_config = {
@@ -113,13 +111,9 @@ class AgStateFlow:
         )
 
         # Create a group chat manager
-        self.manager = autogen.GroupChatManager(
-            groupchat=self.groupchat, llm_config=self.gpt4_config
-        )
+        self.manager = autogen.GroupChatManager(groupchat=self.groupchat, llm_config=self.gpt4_config)
 
     def chat(self, question: str):
         # Initiate a chat and return the result
-        chat_result = self.initializer.initiate_chat(
-            self.manager, message=question, cache=self.redis_cache
-        )
+        chat_result = self.initializer.initiate_chat(self.manager, message=question, cache=self.redis_cache)
         return chat_result
