@@ -5,6 +5,13 @@ from autogen.logger.sqlite_logger import SqliteLogger
 
 __all__ = ("LoggerFactory",)
 
+try:
+    from autogen.logger.cosmos_db_logger import CosmosDBLogger
+
+    cosmos_imported = True
+except ImportError:
+    cosmos_imported = False
+
 
 class LoggerFactory:
     @staticmethod
@@ -14,5 +21,12 @@ class LoggerFactory:
 
         if logger_type == "sqlite":
             return SqliteLogger(config)
+        elif logger_type == "cosmos":
+            if cosmos_imported:
+                return CosmosDBLogger(config)
+            else:
+                raise ImportError(
+                    "CosmosDBLogger could not be imported. Please ensure the cosmos package is installed by using pip install pyautogen[cosmosdb]."
+                )
         else:
             raise ValueError(f"[logger_factory] Unknown logger type: {logger_type}")
