@@ -66,7 +66,7 @@ public class AzureService : IManageAzure
     {
         try
         {
-            var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}";
+            var runId = $"sk-sandbox-{org}-{repo}-{parentIssueNumber}-{issueNumber}".ToLower();
             var resourceGroupResourceId = ResourceGroupResource.CreateResourceIdentifier(_azSettings.SubscriptionId, _azSettings.ContainerInstancesResourceGroup);
             var resourceGroupResource = _client.GetResourceGroupResource(resourceGroupResourceId);
             var scriptPath = $"/azfiles/output/{org}-{repo}/{parentIssueNumber}/{issueNumber}/run.sh";

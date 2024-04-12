@@ -103,7 +103,7 @@ module app '../core/host/container-app.bicep' = {
         value: location
       }
       {
-        name: 'AzureOptions__ManagedIdentity'
+        name: 'AZURE_CLIENT_ID'
         value: ghFlowIdentity.properties.clientId
       }
       {

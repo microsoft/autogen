@@ -53,7 +53,7 @@ public class Sandbox : Agent, IRemindable
     {
         if (!_state.State.IsCompleted)
         {
-            var sandboxId =  $"sk-sandbox-{_state.State.Org}-{_state.State.Repo}-{_state.State.ParentIssueNumber}-{_state.State.IssueNumber}";
+            var sandboxId =  $"sk-sandbox-{_state.State.Org}-{_state.State.Repo}-{_state.State.ParentIssueNumber}-{_state.State.IssueNumber}".ToLower();
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
                 await _azService.DeleteSandbox(sandboxId);

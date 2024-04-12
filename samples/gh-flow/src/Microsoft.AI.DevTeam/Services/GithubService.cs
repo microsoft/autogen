@@ -51,9 +51,23 @@ public class GithubService : IManageGithub
                             {
                                 var value = reader.ReadToEnd();
 
-                                await _ghClient.Repository.Content.CreateFile(
+                                 // Check if the file exists
+                                var existingFiles = await _ghClient.Repository.Content.GetAllContentsByRef(org, repo, filePath, branch);
+                                if (existingFiles.Any())
+                                {
+                                    var existingFile = existingFiles.First();
+                                    // If the file exists, update it
+                                    var updateChangeSet = await _ghClient.Repository.Content.UpdateFile(
                                         org, repo, filePath,
-                                        new CreateFileRequest($"Commit message", value, branch)); // TODO: add more meaningfull commit message
+                                        new UpdateFileRequest("Updated file via AI", value, existingFile.Sha, branch)); // TODO: add more meaningfull commit message
+                                }
+                                else
+                                {
+                                    // If the file doesn't exist, create it
+                                    var createChangeSet = await _ghClient.Repository.Content.CreateFile(
+                                        org, repo, filePath,
+                                        new CreateFileRequest("Created file via AI", value, branch)); // TODO: add more meaningfull commit message
+                                }
                             }
                         }
                         catch (Exception ex)

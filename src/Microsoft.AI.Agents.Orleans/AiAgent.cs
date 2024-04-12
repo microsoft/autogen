@@ -44,6 +44,7 @@ public abstract class AiAgent<T> : Agent, IAiAgent
         var function = _kernel.CreateFunctionFromPrompt(template, propmptSettings);
         var result = (await _kernel.InvokeAsync(function, arguments)).ToString();
         AddToHistory(result, ChatUserType.Agent);
+        await _state.WriteStateAsync();
         return result;
     }
 

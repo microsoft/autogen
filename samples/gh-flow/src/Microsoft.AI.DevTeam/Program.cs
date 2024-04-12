@@ -21,7 +21,8 @@ builder.Services.AddTransient(CreateKernel);
 builder.Services.AddTransient(CreateMemory);
 builder.Services.AddHttpClient();
 
-builder.Services.AddSingleton(s =>
+
+builder.Services.AddTransient(s =>
 {
     var ghOptions = s.GetService<IOptions<GithubOptions>>();
     var logger = s.GetService<ILogger<GithubAuthService>>();
@@ -30,11 +31,10 @@ builder.Services.AddSingleton(s =>
     return client;
 });
 
-
 builder.Services.AddAzureClients(clientBuilder =>
 {
-    clientBuilder.UseCredential(new DefaultAzureCredential());
     clientBuilder.AddArmClient(default);
+    clientBuilder.UseCredential(new DefaultAzureCredential());
 });
 
 builder.Services.AddSingleton<GithubAuthService>();
