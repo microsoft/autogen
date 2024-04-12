@@ -1,4 +1,5 @@
 import glob
+import hashlib
 import os
 import re
 from typing import Callable, List, Tuple, Union
@@ -275,15 +276,22 @@ def parse_html_to_markdown(html: str, url: str = None) -> str:
     return webpage_text
 
 
+def _generate_file_name_from_url(url: str, max_length=255) -> str:
+    url_bytes = url.encode("utf-8")
+    hash = hashlib.blake2b(url_bytes).hexdigest()
+    parsed_url = urlparse(url)
+    file_name = os.path.basename(url)
+    file_name = f"{parsed_url.netloc}_{file_name}_{hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
+    return file_name
+
+
 def get_file_from_url(url: str, save_path: str = None) -> Tuple[str, str]:
     """Download a file from a URL."""
     if save_path is None:
         save_path = "tmp/chromadb"
         os.makedirs(save_path, exist_ok=True)
     if os.path.isdir(save_path):
-        filename = os.path.basename(url)
-        if filename == "":  # "www.example.com/"
-            filename = url.split("/")[-2]
+        filename = _generate_file_name_from_url(url)
         save_path = os.path.join(save_path, filename)
     else:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
