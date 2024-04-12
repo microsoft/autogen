@@ -111,7 +111,3 @@ class AssistantAgent(AgentStream):
 
         assert final_message is not None
         yield final_message
-
-    def reset(self) -> None:
-        """Reset the agent's state."""
-        pass

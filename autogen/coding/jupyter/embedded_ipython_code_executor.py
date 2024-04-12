@@ -173,10 +173,3 @@ class EmbeddedIPythonCodeExecutor(BaseModel):
                 if "-qqq" not in line:
                     lines[i] = line.replace(match.group(0), match.group(0) + " -qqq")
         return "\n".join(lines)
-
-    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
-        raise NotImplementedError
-
-    @property
-    def functions(self) -> List[str]:
-        raise NotImplementedError

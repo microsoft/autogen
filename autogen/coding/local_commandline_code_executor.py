@@ -266,6 +266,3 @@ $functions"""
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
-
-    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
-        raise NotImplementedError

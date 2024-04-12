@@ -64,11 +64,6 @@ class CodeExecutor(Protocol):
         """
         ...  # pragma: no cover
 
-    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str: ...
-
-    @property
-    def functions(self) -> List[str]: ...
-
     def restart(self) -> None:
         """(Experimental) Restart the code executor.
 

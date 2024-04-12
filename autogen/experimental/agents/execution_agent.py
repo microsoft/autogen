@@ -1,8 +1,11 @@
+import asyncio
 import json
 import logging
-from typing import List, Optional
+from typing import Awaitable, List, Optional
 
 from typing_extensions import Literal
+
+from autogen.experimental.function_executor import FunctionExecutor
 
 from ...coding.base import CodeExecutor
 from ..agent import Agent, GenerateReplyResult
@@ -18,14 +21,16 @@ from ..types import (
 logger = logging.getLogger(__name__)
 
 
-class CodeExecutionAgent(Agent):
+class ExecutionAgent(Agent):
     def __init__(
         self,
         *,
         name: str,
         description: Optional[str] = None,
-        code_executor: CodeExecutor,
+        code_executor: Optional[CodeExecutor],
+        function_executor: Optional[FunctionExecutor],
         # Max messages to lookback for either code or unexecuted tool calls
+        # None means no limit
         max_lookback: Optional[int] = None,
         handle_function_missing: Literal["ignore", "error"] = "ignore",
     ):
@@ -36,6 +41,7 @@ class CodeExecutionAgent(Agent):
             self._description = description
 
         self._code_executor = code_executor
+        self._function_executor = function_executor
         self._max_lookback = max_lookback
         self._handle_function_missing = handle_function_missing
 
@@ -50,21 +56,37 @@ class CodeExecutionAgent(Agent):
         return self._description
 
     @property
-    def code_executor(self) -> CodeExecutor:
+    def code_executor(self) -> Optional[CodeExecutor]:
         """The code executor used by this agent. Returns None if code execution is disabled."""
         return self._code_executor
+
+    @property
+    def function_executor(self) -> Optional[FunctionExecutor]:
+        """The code executor used by this agent. Returns None if code execution is disabled."""
+        return self._function_executor
 
     async def handle_function_calls(
         self,
         function_calls: List[FunctionCall],
     ) -> FunctionCallMessage:
+        assert self._function_executor is not None
+        calls: List[Awaitable[str]] = []
+        ids: List[str] = []
+        for call in function_calls:
+            if call.name not in self._function_executor.functions:
+                if self._handle_function_missing == "error":
+                    raise ValueError(f"Function {call.name} is not available for execution")
+                else:
+                    logger.warning(f"Function {call.name} is not available for execution")
+                    continue
+
+            calls.append(self._function_executor.execute_function(call.name, json.loads(call.arguments)))
+            ids.append(call.id)
+
+        results = await asyncio.gather(*calls)
+
         return FunctionCallMessage(
-            call_results=[
-                FunctionCallResult(
-                    content=self._code_executor.execute_function(x.name, json.loads(x.arguments)), call_id=x.id
-                )
-                for x in function_calls
-            ]
+            call_results=[FunctionCallResult(content=result, call_id=id) for result, id in zip(results, ids)]
         )
 
     async def generate_reply(
@@ -87,17 +109,18 @@ class CodeExecutionAgent(Agent):
                 if message.content is None and message.function_calls is None:
                     raise ValueError("AssistantMessage must have content or function_calls")
 
-                if message.function_calls is not None:
+                if self._function_executor is not None and message.function_calls is not None:
                     return await self.handle_function_calls(message.function_calls)
 
-                code_blocks = self._code_executor.code_extractor.extract_code_blocks(message.content)
-                if len(code_blocks) == 0:
-                    continue
-                # found code blocks, execute code.
-                code_result = self._code_executor.execute_code_blocks(code_blocks)
-                exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
-                return UserMessage(
-                    content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
-                )
+                if self._code_executor is not None and message.content is not None:
+                    code_blocks = self._code_executor.code_extractor.extract_code_blocks(message.content)
+                    if len(code_blocks) == 0:
+                        continue
+                    # found code blocks, execute code.
+                    code_result = self._code_executor.execute_code_blocks(code_blocks)
+                    exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
+                    return UserMessage(
+                        content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+                    )
 
         return UserMessage(content="No function or code block found to execute")

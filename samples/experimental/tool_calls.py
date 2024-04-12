@@ -2,8 +2,9 @@ import asyncio
 import os
 
 from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat
-from autogen.experimental.agents.function_calling_agent import FunctionCallingAgent
+from autogen.experimental.agents.execution_agent import ExecutionAgent
 from autogen.experimental.drivers import run_in_terminal
+from autogen.experimental.function_executors.in_process_function_executor import InProcessFunctionExecutor
 
 
 def get_weather(city: str) -> str:
@@ -19,8 +20,10 @@ async def main() -> None:
         model_client=model_client,
         functions=[{"func": get_weather, "description": "Get the weather in a city."}],
     )
-    function_executor = FunctionCallingAgent(name="caller", functions=[get_weather])
-    chat = TwoAgentChat(assistant, function_executor, initial_message="What is the weather in Seattle?")
+    executor = ExecutionAgent(
+        name="executor", code_executor=None, function_executor=InProcessFunctionExecutor([get_weather])
+    )
+    chat = TwoAgentChat(assistant, executor, initial_message="What is the weather in Seattle?")
     await run_in_terminal(chat)
     print(chat.termination_result)
 

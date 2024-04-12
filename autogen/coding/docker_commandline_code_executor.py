@@ -218,6 +218,3 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
-
-    def execute_function(self, function_name: str, arguments: Dict[str, Any]) -> str:
-        raise NotImplementedError
