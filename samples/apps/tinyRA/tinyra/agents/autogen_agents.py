@@ -1,4 +1,5 @@
-import asyncio
+import platform
+import logging
 from datetime import datetime
 from typing import Awaitable, Callable
 from autogen import config_list_from_json
@@ -18,6 +19,7 @@ class AutoGenAgentManager:
         self._llm_config = llm_config or {"config_list": config_list_from_json("OAI_CONFIG_LIST")}
         self.db_manager = db_manager
         self.file_manager = file_manager
+        self.logger = logging.getLogger(__name__)
 
     async def generate_response(
         self, in_message: ChatMessage, out_message: ChatMessage, update_callback: Callable[[str], Awaitable[None]]
@@ -62,7 +64,45 @@ class AutoGenAgentManager:
 
 class AGMPlusTools(AutoGenAgentManager):
 
-    name = "BasicTwoAgents + Tools"
+    NAME = "BasicTwoAgents + Tools"
+
+    async def get_system_message(self):
+        user = await self.db_manager.get_user()
+        user_name = user.name
+        user_bio = user.bio
+        user_preferences = user.preferences
+
+        operating_system = platform.uname().system
+
+        sys_message = f"""
+        You are a helpful researcher assistant named "TinyRA".
+        When introducing yourself do not forget your name!
+
+        You are running on operating system with the following config:
+        {operating_system}
+
+        You are here to help "{user_name}" with his research.
+        Their bio and preferences are below.
+
+        The following is the bio of {user_name}:
+        <bio>
+        {user_bio}
+        </bio>
+
+        The following are the preferences of {user_name}.
+        These preferences should always have the HIGHEST priority.
+        And should never be ignored.
+        Ignoring them will cause MAJOR annoyance.
+
+        <preferences>{user_preferences}</preferences>
+
+        Respond to {user_name}'s messages to be most helpful.
+
+        """
+
+        # append the autogen system message
+        sys_message += "\nAdditional instructions:\n" + AssistantAgent.DEFAULT_SYSTEM_MESSAGE
+        return sys_message
 
     async def generate_response(
         self, in_message: ChatMessage, out_message: ChatMessage, update_callback: Callable[[str], Awaitable[None]]
@@ -117,7 +157,7 @@ class AGMPlusTools(AutoGenAgentManager):
         assistant = AssistantAgent(
             "assistant",
             llm_config=self._llm_config,
-            system_message=AssistantAgent.DEFAULT_SYSTEM_MESSAGE + executor.format_functions_for_prompt(),
+            system_message=await self.get_system_message() + executor.format_functions_for_prompt(),
         )
         user = UserProxyAgent(
             "user",
@@ -125,15 +165,46 @@ class AGMPlusTools(AutoGenAgentManager):
             human_input_mode="NEVER",
             is_termination_msg=lambda x: x.get("content") and "TERMINATE" in x.get("content", ""),
         )
+
+        # populate the history before registering new reply functions
+        chat_history = await self.db_manager.get_chat_history(root_id=0)
+        for msg in chat_history.messages:
+            if msg.role == "user":
+                user.send(msg.content, assistant, request_reply=False, silent=True)
+            else:
+                assistant.send(msg.content, user, request_reply=False, silent=True)
+
         assistant.register_reply([Agent, None], terminate_on_consecutive_empty)
         assistant.register_hook("process_message_before_send", post_snippet_and_record_history)
         user.register_hook("process_message_before_send", post_snippet_and_record_history)
 
         update_callback("Starting agent conversation...")
 
-        result = await user.a_initiate_chat(assistant, message=task, summary_method="reflection_with_llm")
+        await user.a_initiate_chat(assistant, message=task, clear_history=False)
+
         update_callback("Finishing up...")
-        out_message.content = result.summary
+
+        user.send(
+            f"""Based on the results in above conversation, create a response for the user.
+While computing the response, remember that this conversation was your inner mono-logue.
+The user does not need to know every detail of the conversation.
+All they want to see is the appropriate result for their task (repeated below) in
+a manner that would be most useful.
+
+The task was: {task}
+
+There is no need to use the word TERMINATE in this response.
+                """,
+            assistant,
+            request_reply=False,
+            silent=True,
+        )
+        response = assistant.generate_reply(assistant.chat_messages[user], user)
+        assistant.send(response, user, request_reply=False, silent=True)
+
+        response = assistant.chat_messages[user][-1]["content"]
+
+        out_message.content = response
         out_message.role = "assistant"
         return out_message
 
