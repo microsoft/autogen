@@ -26,7 +26,14 @@ class Cache(AbstractCache):
         cache: The cache instance created based on the provided configuration.
     """
 
-    ALLOWED_CONFIG_KEYS = ["cache_seed", "redis_url", "cache_path_root", "connection_string", "database_id", "container_id"]
+    ALLOWED_CONFIG_KEYS = [
+        "cache_seed",
+        "redis_url",
+        "cache_path_root",
+        "connection_string",
+        "database_id",
+        "container_id",
+    ]
 
     @staticmethod
     def redis(cache_seed: Union[str, int] = 42, redis_url: str = "redis://localhost:6379/0") -> "Cache":
