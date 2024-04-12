@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional, Union
 
 import autogen
 from autogen.code_utils import execute_code
@@ -172,16 +172,16 @@ class AgentOptimizer:
     def __init__(
         self,
         max_actions_per_step: int,
-        config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
-        config_file_location: Optional[str] = "",
+        llm_config: dict,
         optimizer_model: Optional[str] = "gpt-4-1106-preview",
     ):
         """
         (These APIs are experimental and may change in the future.)
         Args:
             max_actions_per_step (int): the maximum number of actions that the optimizer can take in one step.
-            config_file_or_env: path or environment of the OpenAI api configs.
-            config_file_location: the location of the OpenAI config file.
+            llm_config (dict): llm inference configuration.
+                Please refer to [OpenAIWrapper.create](/docs/reference/oai/client#create) for available options.
+                When using OpenAI or Azure OpenAI endpoints, please specify a non-empty 'model' either in `llm_config` or in each config of 'config_list' in `llm_config`.
             optimizer_model: the model used for the optimizer.
         """
         self.max_actions_per_step = max_actions_per_step
@@ -199,14 +199,17 @@ class AgentOptimizer:
         self._failure_functions_performance = []
         self._best_performance = -1
 
-        config_list = autogen.config_list_from_json(
-            config_file_or_env,
-            file_location=config_file_location,
-            filter_dict={"model": [self.optimizer_model]},
+        assert isinstance(llm_config, dict), "llm_config must be a dict"
+        llm_config = copy.deepcopy(llm_config)
+        self.llm_config = llm_config
+        if self.llm_config in [{}, {"config_list": []}, {"config_list": [{"model": ""}]}]:
+            raise ValueError(
+                "When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'."
+            )
+        self.llm_config["config_list"] = autogen.filter_config(
+            llm_config["config_list"], {"model": [self.optimizer_model]}
         )
-        if len(config_list) == 0:
-            raise RuntimeError("No valid openai config found in the config file or environment variable.")
-        self._client = autogen.OpenAIWrapper(config_list=config_list)
+        self._client = autogen.OpenAIWrapper(**self.llm_config)
 
     def record_one_conversation(self, conversation_history: List[Dict], is_satisfied: bool = None):
         """
@@ -266,7 +269,7 @@ class AgentOptimizer:
                 actions_num=action_index,
                 best_functions=best_functions,
                 incumbent_functions=incumbent_functions,
-                accumerated_experience=failure_experience_prompt,
+                accumulated_experience=failure_experience_prompt,
                 statistic_informations=statistic_prompt,
             )
             messages = [{"role": "user", "content": prompt}]
