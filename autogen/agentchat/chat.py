@@ -169,6 +169,9 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
             - `"carryover"` - It can be used to specify the carryover information to be passed
                to this chat. If provided, we will combine this carryover with the "message" content when
                generating the initial chat message in `generate_init_message`.
+            - `"carryover_indexes"` - It can be used specifying a list of indexes of the finished_chats list
+               from which to take the summaries for carryover. If 'carryover_indexes' is not provided or an empty list,
+               then summary from all the finished chats will be taken
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
@@ -180,9 +183,17 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     while current_chat_queue:
         chat_info = current_chat_queue.pop(0)
         _chat_carryover = chat_info.get("carryover", [])
+        carryover_indexes = chat_info.get("carryover_indexes", [])
         if isinstance(_chat_carryover, str):
             _chat_carryover = [_chat_carryover]
-        chat_info["carryover"] = _chat_carryover + [r.summary for r in finished_chats]
+        chat_info["carryover"] = _chat_carryover
+        if not carryover_indexes:
+            chat_info["carryover"] = chat_info["carryover"] + [r.summary for r in finished_chats]
+        else:
+            for index in carryover_indexes:
+                if not (0 <= index < len(finished_chats)):
+                    raise IndexError(f"Invalid carryover_index: {index}. Index out of range for finished_chats")
+                chat_info["carryover"].append(finished_chats[index].summary)
         __post_carryover_processing(chat_info)
         sender = chat_info["sender"]
         chat_res = sender.initiate_chat(**chat_info)
