@@ -1,15 +1,15 @@
+import logging
 from typing import Callable, Dict, List, Optional
 
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
-from autogen.retrieve_utils import get_files_from_dir, split_files_to_chunks, TEXT_FORMATS
-import logging
+from autogen.retrieve_utils import TEXT_FORMATS, get_files_from_dir, split_files_to_chunks
 
 logger = logging.getLogger(__name__)
 
 try:
+    import fastembed
     from qdrant_client import QdrantClient, models
     from qdrant_client.fastembed_common import QueryResponse
-    import fastembed
 except ImportError as e:
     logging.fatal("Failed to import qdrant_client with fastembed. Try running 'pip install qdrant_client[fastembed]'")
     raise e
@@ -29,12 +29,12 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
             name (str): name of the agent.
             human_input_mode (str): whether to ask for human inputs every time a message is received.
                 Possible values are "ALWAYS", "TERMINATE", "NEVER".
-                (1) When "ALWAYS", the agent prompts for human input every time a message is received.
+                1. When "ALWAYS", the agent prompts for human input every time a message is received.
                     Under this mode, the conversation stops when the human input is "exit",
                     or when is_termination_msg is True and there is no human input.
-                (2) When "TERMINATE", the agent only prompts for human input only when a termination message is received or
+                2. When "TERMINATE", the agent only prompts for human input only when a termination message is received or
                     the number of auto reply reaches the max_consecutive_auto_reply.
-                (3) When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
+                3. When "NEVER", the agent will never prompt for human input. Under this mode, the conversation stops
                     when the number of auto reply reaches the max_consecutive_auto_reply or when is_termination_msg is True.
             is_termination_msg (function): a function that takes a message in the form of a dictionary
                 and returns a boolean value indicating if this received message is a termination message.
@@ -190,12 +190,12 @@ def create_qdrant_from_dir(
         client.set_model(embedding_model)
 
     if custom_text_split_function is not None:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive),
             custom_text_split_function=custom_text_split_function,
         )
     else:
-        chunks = split_files_to_chunks(
+        chunks, sources = split_files_to_chunks(
             get_files_from_dir(dir_path, custom_text_types, recursive), max_tokens, chunk_mode, must_break_at_empty_line
         )
     logger.info(f"Found {len(chunks)} chunks.")
@@ -281,20 +281,23 @@ def query_qdrant(
         collection_name,
         query_texts,
         limit=n_results,
-        query_filter=models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="document",
-                    match=models.MatchText(text=search_string),
-                )
-            ]
-        )
-        if search_string
-        else None,
+        query_filter=(
+            models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="document",
+                        match=models.MatchText(text=search_string),
+                    )
+                ]
+            )
+            if search_string
+            else None
+        ),
     )
 
     data = {
         "ids": [[result.id for result in sublist] for sublist in results],
         "documents": [[result.document for result in sublist] for sublist in results],
+        "metadatas": [[result.metadata for result in sublist] for sublist in results],
     }
     return data

@@ -1,28 +1,30 @@
-from time import sleep
 import logging
-import time
-from typing import List, Optional, Dict, Callable, Union
-import sys
 import shutil
-import numpy as np
-from flaml import tune, BlendSearch
-from flaml.tune.space import is_constant
-from flaml.automl.logger import logger_formatter
-from .openai_utils import get_key
+import sys
+import time
 from collections import defaultdict
+from time import sleep
+from typing import Callable, Dict, List, Optional, Union
+
+import numpy as np
+from flaml import BlendSearch, tune
+from flaml.automl.logger import logger_formatter
+from flaml.tune.space import is_constant
+
+from .openai_utils import get_key
 
 try:
+    import diskcache
     import openai
     from openai import (
-        RateLimitError,
-        APIError,
-        BadRequestError,
         APIConnectionError,
-        Timeout,
+        APIError,
         AuthenticationError,
+        BadRequestError,
+        RateLimitError,
+        Timeout,
     )
     from openai import Completion as openai_Completion
-    import diskcache
 
     ERROR = None
     assert openai.__version__ < "1"
@@ -132,7 +134,7 @@ class Completion(openai_Completion):
             seed (int, Optional): The integer identifier for the pseudo seed.
                 Results corresponding to different seeds will be cached in different places.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{seed}.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         cls.cache_seed = seed
         cls.cache_path = f"{cache_path_root}/{seed}"
@@ -145,7 +147,7 @@ class Completion(openai_Completion):
             seed (int, Optional): The integer identifier for the pseudo seed.
                 If omitted, all caches under cache_path_root will be cleared.
             cache_path (str, Optional): The root path for the cache.
-                The complete cache path will be {cache_path}/{cache_seed}.
+                The complete cache path will be {cache_path_root}/{seed}.
         """
         if seed is None:
             shutil.rmtree(cache_path_root, ignore_errors=True)
@@ -739,18 +741,18 @@ class Completion(openai_Completion):
                     "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
                     "api_type": "azure",
                     "base_url": os.environ.get("AZURE_OPENAI_API_BASE"),
-                    "api_version": "2023-03-15-preview",
+                    "api_version": "2024-02-15-preview",
                 },
                 {
                     "model": "gpt-3.5-turbo",
                     "api_key": os.environ.get("OPENAI_API_KEY"),
-                    "api_type": "open_ai",
+                    "api_type": "openai",
                     "base_url": "https://api.openai.com/v1",
                 },
                 {
                     "model": "llama-7B",
                     "base_url": "http://127.0.0.1:8080",
-                    "api_type": "open_ai",
+                    "api_type": "openai",
                 }
             ],
             prompt="Hi",
@@ -792,7 +794,7 @@ class Completion(openai_Completion):
             raise ERROR
 
         # Warn if a config list was provided but was empty
-        if type(config_list) is list and len(config_list) == 0:
+        if isinstance(config_list, list) and len(config_list) == 0:
             logger.warning(
                 "Completion was provided with a config_list, but the list was empty. Adopting default OpenAI behavior, which reads from the 'model' parameter instead."
             )
@@ -866,12 +868,14 @@ class Completion(openai_Completion):
         if prompt is None:
             params["messages"] = (
                 [
-                    {
-                        **m,
-                        "content": cls.instantiate(m["content"], context, allow_format_str_template),
-                    }
-                    if m.get("content")
-                    else m
+                    (
+                        {
+                            **m,
+                            "content": cls.instantiate(m["content"], context, allow_format_str_template),
+                        }
+                        if m.get("content")
+                        else m
+                    )
                     for m in messages
                 ]
                 if context

@@ -27,8 +27,8 @@ const SideBarView = () => {
     >
       <div className=" transition overflow-hidden duration-300  flex flex-col   h-full p-2 overflow-y-scroll scroll rounded ">
         <div className={`${isOpen ? "" : "hidden"}  `}>
-          <AgentsView />
-          {workflowConfig && <SessionsView />}
+          {/* <AgentsView /> */}
+          {<SessionsView />}
         </div>
       </div>
       <div

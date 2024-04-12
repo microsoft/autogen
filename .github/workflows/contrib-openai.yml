@@ -4,14 +4,18 @@
 name: OpenAI4ContribTests
 
 on:
-  pull_request_target:
+  pull_request:
     branches: ['main']
     paths:
       - 'autogen/**'
       - 'test/agentchat/contrib/**'
       - '.github/workflows/contrib-openai.yml'
       - 'setup.py'
-
+permissions: {}
+    # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 jobs:
   RetrieveChatTest:
     strategy:
@@ -23,11 +27,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -49,7 +53,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -66,11 +70,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -107,11 +111,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -148,11 +152,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -169,7 +173,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_teachable_agent.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -186,11 +190,11 @@ jobs:
     steps:
       # checkout to pr branch
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -217,3 +221,116 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+  WebSurfer:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    environment: openai1
+    steps:
+      # checkout to pr branch
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies
+        run: |
+          docker --version
+          python -m pip install --upgrade pip wheel
+          pip install -e .[websurfer]
+          python -c "import autogen"
+          pip install coverage pytest
+      - name: Coverage
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+          BING_API_KEY: ${{ secrets.BING_API_KEY }}
+        run: |
+          coverage run -a -m pytest test/agentchat/contrib/test_web_surfer.py
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+  ContextHandling:
+      strategy:
+        matrix:
+          os: [ubuntu-latest]
+          python-version: ["3.11"]
+      runs-on: ${{ matrix.os }}
+      environment: openai1
+      steps:
+        # checkout to pr branch
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Install packages and dependencies
+          run: |
+            docker --version
+            python -m pip install --upgrade pip wheel
+            pip install -e .
+            python -c "import autogen"
+            pip install coverage pytest
+        - name: Coverage
+          env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+            AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+            AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+            OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+            BING_API_KEY: ${{ secrets.BING_API_KEY }}
+          run: |
+            coverage run -a -m pytest test/agentchat/contrib/capabilities/test_context_handling.py
+            coverage xml
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v3
+          with:
+            file: ./coverage.xml
+            flags: unittests
+  ImageGen:
+      strategy:
+        matrix:
+          os: [ubuntu-latest]
+          python-version: ["3.12"]
+      runs-on: ${{ matrix.os }}
+      environment: openai1
+      steps:
+        # checkout to pr branch
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Install packages and dependencies
+          run: |
+            docker --version
+            python -m pip install --upgrade pip wheel
+            pip install -e .[lmm]
+            python -c "import autogen"
+            pip install coverage pytest
+        - name: Coverage
+          env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          run: |
+            coverage run -a -m pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py
+            coverage xml
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v3
+          with:
+            file: ./coverage.xml
+            flags: unittests

@@ -1,26 +1,16 @@
 import json
 import logging
-import os
-import pdb
-import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import replicate
 import requests
-from regex import R
 
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.contrib.img_utils import get_image_data, llava_formatter
 from autogen.agentchat.contrib.multimodal_conversable_agent import MultimodalConversableAgent
 from autogen.code_utils import content_str
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
-
+from ...formatting_utils import colored
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +67,9 @@ class LLaVAAgent(MultimodalConversableAgent):
             content_prompt = content_str(msg["content"])
             prompt += f"{SEP}{role}: {content_prompt}\n"
         prompt += "\n" + SEP + "Assistant: "
-        images = [re.sub("data:image/.+;base64,", "", im, count=1) for im in images]
+
+        # TODO: PIL to base64
+        images = [get_image_data(im) for im in images]
         print(colored(prompt, "blue"))
 
         out = ""

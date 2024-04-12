@@ -1,3 +1,5 @@
+#!/usr/bin/env python3 -m pytest
+
 import json
 import logging
 import os
@@ -6,9 +8,10 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
-from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION
+from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config, is_valid_api_key
 
 # Example environment variables
 ENV_VARS = {
@@ -48,10 +51,11 @@ JSON_SAMPLE = """
     },
     {
         "model": "gpt-35-turbo-v0301",
+        "tags": ["gpt-3.5-turbo", "gpt35_turbo"],
         "api_key": "111113fc7e8a46419bfac511bb301111",
         "base_url": "https://1111.openai.azure.com",
         "api_type": "azure",
-        "api_version": "2023-07-01-preview"
+        "api_version": "2024-02-15-preview"
     },
     {
         "model": "gpt",
@@ -340,6 +344,45 @@ def test_get_config_list():
     api_keys_with_empty = ["key1", "", "key3"]
     config_list_with_empty_key = autogen.get_config_list(api_keys_with_empty, base_urls, api_type, api_version)
     assert len(config_list_with_empty_key) == 2, "The config_list should exclude configurations with empty api_keys."
+
+
+def test_tags():
+    config_list = json.loads(JSON_SAMPLE)
+
+    target_list = filter_config(config_list, {"model": ["gpt-35-turbo-v0301"]})
+    assert len(target_list) == 1
+
+    list_1 = filter_config(config_list, {"tags": ["gpt35_turbo"]})
+    assert len(list_1) == 1
+    assert list_1[0] == target_list[0]
+
+    list_2 = filter_config(config_list, {"tags": ["gpt-3.5-turbo"]})
+    assert len(list_2) == 1
+    assert list_2[0] == target_list[0]
+
+    list_3 = filter_config(config_list, {"tags": ["gpt-3.5-turbo", "gpt35_turbo"]})
+    assert len(list_3) == 1
+    assert list_3[0] == target_list[0]
+
+    # Will still match because there's a non-empty intersection
+    list_4 = filter_config(config_list, {"tags": ["gpt-3.5-turbo", "does_not_exist"]})
+    assert len(list_4) == 1
+    assert list_4[0] == target_list[0]
+
+    list_5 = filter_config(config_list, {"tags": ["does_not_exist"]})
+    assert len(list_5) == 0
+
+
+def test_is_valid_api_key():
+    assert not is_valid_api_key("")
+    assert not is_valid_api_key("sk-")
+    assert not is_valid_api_key("SK-")
+    assert not is_valid_api_key("sk-asajsdjsd2")
+    assert not is_valid_api_key("FooBar")
+    assert not is_valid_api_key("sk-asajsdjsd22372%23kjdfdfdf2329ffUUDSDS")
+    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
+    assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
+    assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 
 if __name__ == "__main__":

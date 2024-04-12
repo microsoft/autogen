@@ -1,4 +1,0 @@
-git+https://github.com/microsoft/autogen.git
-sympy
-matplotlib
-numpy

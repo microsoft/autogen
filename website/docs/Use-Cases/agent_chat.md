@@ -3,7 +3,7 @@
 AutoGen offers a unified multi-agent conversation framework as a high-level abstraction of using foundation models. It features capable, customizable and conversable agents which integrate LLMs, tools, and humans via automated agent chat.
 By automating chat among multiple capable agents, one can easily make them collectively perform tasks autonomously or with human feedback, including tasks that require using tools via code.
 
-This framework simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcome their weaknesses. It enables building next-gen LLM applications based on multi-agent conversations with minimal effort.
+This framework simplifies the orchestration, automation and optimization of a complex LLM workflow. It maximizes the performance of LLM models and overcomes their weaknesses. It enables building next-gen LLM applications based on multi-agent conversations with minimal effort.
 
 ### Agents
 
@@ -31,218 +31,19 @@ One can also easily extend it by registering reply functions with the [`register
 In the following code, we create an [`AssistantAgent`](../reference/agentchat/assistant_agent.md#assistantagent-objects)  named "assistant" to serve as the assistant and a [`UserProxyAgent`](../reference/agentchat/user_proxy_agent.md#userproxyagent-objects) named "user_proxy" to serve as a proxy for the human user. We will later employ these two agents to solve a task.
 
 ```python
+import os
 from autogen import AssistantAgent, UserProxyAgent
+from autogen.coding import DockerCommandLineCodeExecutor
 
-# create an AssistantAgent instance named "assistant"
-assistant = AssistantAgent(name="assistant")
+config_list = [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}]
 
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = UserProxyAgent(name="user_proxy")
+# create an AssistantAgent instance named "assistant" with the LLM configuration.
+assistant = AssistantAgent(name="assistant", llm_config={"config_list": config_list})
+
+# create a UserProxyAgent instance named "user_proxy" with code execution on docker.
+code_executor = DockerCommandLineCodeExecutor()
+user_proxy = UserProxyAgent(name="user_proxy", code_execution_config={"executor": code_executor})
 ```
-#### Tool calling
-
-Tool calling enables agents to interact with external tools and APIs more efficiently.
-This feature allows the AI model to intelligently choose to output a JSON object containing
-arguments to call specific tools based on the user's input. A tool to be called is
-specified with a JSON schema describing its parameters and their types. Writing such JSON schema
-is complex and error-prone and that is why AutoGen framework provides two high level function decorators for automatically generating such schema using type hints on standard Python datatypes
-or Pydantic models:
-
-1. [`ConversableAgent.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) is used to register the function as a Tool in the `llm_config` of a ConversableAgent. The ConversableAgent agent can propose execution of a registered Tool, but the actual execution will be performed by a UserProxy agent.
-
-2. [`ConversableAgent.register_for_execution`](../reference/agentchat/conversable_agent#register_for_execution) is used to register the function in the `function_map` of a UserProxy agent.
-
-The following examples illustrates the process of registering a custom function for currency exchange calculation that uses type hints and standard Python datatypes:
-
-1. First, we import necessary libraries and configure models using [`autogen.config_list_from_json`](../FAQ#set-your-api-endpoints) function:
-
-``` python
-from typing import Literal
-
-from pydantic import BaseModel, Field
-from typing_extensions import Annotated
-
-import autogen
-
-config_list = autogen.config_list_from_json(
-    "OAI_CONFIG_LIST",
-    filter_dict={
-        "model": ["gpt-4", "gpt-3.5-turbo", "gpt-3.5-turbo-16k"],
-    },
-)
-```
-
-2. We create an assistant agent and user proxy. The assistant will be responsible for suggesting which functions to call and the user proxy for the actual execution of a proposed function:
-
-``` python
-llm_config = {
-    "config_list": config_list,
-    "timeout": 120,
-}
-
-chatbot = autogen.AssistantAgent(
-    name="chatbot",
-    system_message="For currency exchange tasks, only use the functions you have been provided with. Reply TERMINATE when the task is done.",
-    llm_config=llm_config,
-)
-
-# create a UserProxyAgent instance named "user_proxy"
-user_proxy = autogen.UserProxyAgent(
-    name="user_proxy",
-    is_termination_msg=lambda x: x.get("content", "") and x.get("content", "").rstrip().endswith("TERMINATE"),
-    human_input_mode="NEVER",
-    max_consecutive_auto_reply=10,
-)
-```
-
-3. We define the function `currency_calculator` below as follows and decorate it with two decorators:
-   - [`@user_proxy.register_for_execution()`](../reference/agentchat/conversable_agent#register_for_execution) adding the function `currency_calculator` to `user_proxy.function_map`, and
-   - [`@chatbot.register_for_llm`](../reference/agentchat/conversable_agent#register_for_llm) adding a generated JSON schema of the function to `llm_config` of `chatbot`.
-
-``` python
-CurrencySymbol = Literal["USD", "EUR"]
-
-
-def exchange_rate(base_currency: CurrencySymbol, quote_currency: CurrencySymbol) -> float:
-    if base_currency == quote_currency:
-        return 1.0
-    elif base_currency == "USD" and quote_currency == "EUR":
-        return 1 / 1.1
-    elif base_currency == "EUR" and quote_currency == "USD":
-        return 1.1
-    else:
-        raise ValueError(f"Unknown currencies {base_currency}, {quote_currency}")
-
-
-@user_proxy.register_for_execution()
-@chatbot.register_for_llm(description="Currency exchange calculator.")
-def currency_calculator(
-    base_amount: Annotated[float, "Amount of currency in base_currency"],
-    base_currency: Annotated[CurrencySymbol, "Base currency"] = "USD",
-    quote_currency: Annotated[CurrencySymbol, "Quote currency"] = "EUR",
-) -> str:
-    quote_amount = exchange_rate(base_currency, quote_currency) * base_amount
-    return f"{quote_amount} {quote_currency}"
-```
-
-Notice the use of [Annotated](https://docs.python.org/3/library/typing.html?highlight=annotated#typing.Annotated) to specify the type and the description of each parameter. The return value of the function must be either string or serializable to string using the [`json.dumps()`](https://docs.python.org/3/library/json.html#json.dumps) or [`Pydantic` model dump to JSON](https://docs.pydantic.dev/latest/concepts/serialization/#modelmodel_dump_json) (both version 1.x and 2.x are supported).
-
-You can check the JSON schema generated by the decorator `chatbot.llm_config["tools"]`:
-```python
-[{'type': 'function', 'function':
- {'description': 'Currency exchange calculator.',
-  'name': 'currency_calculator',
-  'parameters': {'type': 'object',
-   'properties': {'base_amount': {'type': 'number',
-     'description': 'Amount of currency in base_currency'},
-    'base_currency': {'enum': ['USD', 'EUR'],
-     'type': 'string',
-     'default': 'USD',
-     'description': 'Base currency'},
-    'quote_currency': {'enum': ['USD', 'EUR'],
-     'type': 'string',
-     'default': 'EUR',
-     'description': 'Quote currency'}},
-   'required': ['base_amount']}}}]
-```
-4. Agents can now use the function as follows:
-```python
-user_proxy.initiate_chat(
-    chatbot,
-    message="How much is 123.45 USD in EUR?",
-)
-```
-Output:
-```
-user_proxy (to chatbot):
-
-How much is 123.45 USD in EUR?
-
---------------------------------------------------------------------------------
-chatbot (to user_proxy):
-
-***** Suggested tool Call: currency_calculator *****
-Arguments:
-{"base_amount":123.45,"base_currency":"USD","quote_currency":"EUR"}
-********************************************************
-
---------------------------------------------------------------------------------
-
->>>>>>>> EXECUTING FUNCTION currency_calculator...
-user_proxy (to chatbot):
-
-***** Response from calling function "currency_calculator" *****
-112.22727272727272 EUR
-****************************************************************
-
---------------------------------------------------------------------------------
-chatbot (to user_proxy):
-
-123.45 USD is equivalent to approximately 112.23 EUR.
-...
-
-TERMINATE
-```
-
-Use of Pydantic models further simplifies writing of such functions. Pydantic models can be used
-for both the parameters of a function and for its return type. Parameters of such functions will
-be constructed from JSON provided by an AI model, while the output will be serialized as JSON
-encoded string automatically.
-
-The following example shows how we could rewrite our currency exchange calculator example:
-
-``` python
-# defines a Pydantic model
-class Currency(BaseModel):
-  # parameter of type CurrencySymbol
-  currency: Annotated[CurrencySymbol, Field(..., description="Currency symbol")]
-  # parameter of type float, must be greater or equal to 0 with default value 0
-  amount: Annotated[float, Field(0, description="Amount of currency", ge=0)]
-
-@user_proxy.register_for_execution()
-@chatbot.register_for_llm(description="Currency exchange calculator.")
-def currency_calculator(
-  base: Annotated[Currency, "Base currency: amount and currency symbol"],
-  quote_currency: Annotated[CurrencySymbol, "Quote currency symbol"] = "USD",
-) -> Currency:
-  quote_amount = exchange_rate(base.currency, quote_currency) * base.amount
-  return Currency(amount=quote_amount, currency=quote_currency)
-```
-
-The generated JSON schema has additional properties such as minimum value encoded:
-```python
-[{'type': 'function', 'function':
- {'description': 'Currency exchange calculator.',
-  'name': 'currency_calculator',
-  'parameters': {'type': 'object',
-   'properties': {'base': {'properties': {'currency': {'description': 'Currency symbol',
-       'enum': ['USD', 'EUR'],
-       'title': 'Currency',
-       'type': 'string'},
-      'amount': {'default': 0,
-       'description': 'Amount of currency',
-       'minimum': 0.0,
-       'title': 'Amount',
-       'type': 'number'}},
-     'required': ['currency'],
-     'title': 'Currency',
-     'type': 'object',
-     'description': 'Base currency: amount and currency symbol'},
-    'quote_currency': {'enum': ['USD', 'EUR'],
-     'type': 'string',
-     'default': 'USD',
-     'description': 'Quote currency symbol'}},
-   'required': ['base']}}}]
-```
-
-For more in-depth examples, please check the following:
-
-- Currency calculator examples - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_currency_calculator.ipynb)
-
-- Use Provided Tools as Functions - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call.ipynb)
-
-- Use Tools via Sync and Async Function Calling - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_function_call_async.ipynb)
-
 
 ## Multi-agent Conversations
 
@@ -274,13 +75,19 @@ On the one hand, one can achieve fully autonomous conversations after an initial
 
 #### Static and dynamic conversations
 
-By adopting the conversation-driven control with both programming language and natural language, AutoGen inherently allows dynamic conversation. Dynamic conversation allows the agent topology to change depending on the actual flow of conversation under different input problem instances, while the flow of a static conversation always follows a pre-defined topology. The dynamic conversation pattern is useful in complex applications where the patterns of interaction cannot be predetermined in advance. AutoGen provides two general approaches to achieving dynamic conversation:
+AutoGen, by integrating conversation-driven control utilizing both programming and natural language, inherently supports dynamic conversations. This dynamic nature allows the agent topology to adapt based on the actual conversation flow under varying input problem scenarios. Conversely, static conversations adhere to a predefined topology. Dynamic conversations are particularly beneficial in complex settings where interaction patterns cannot be predetermined.
 
-- Registered auto-reply. With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. A working system demonstrating this type of dynamic conversation can be found in this code example, demonstrating a [dynamic group chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb). In the system, we register an auto-reply function in the group chat manager, which lets LLM decide who the next speaker will be in a group chat setting.
+1. Registered auto-reply
 
-- LLM-based function call. In this approach, LLM decides whether or not to call a particular function depending on the conversation status in each inference call.
-  By messaging additional agents in the called functions, the LLM can drive dynamic multi-agent conversation. A working system showcasing this type of dynamic conversation can be found in the [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant would automatically resort to an expert using function calls.
+With the pluggable auto-reply function, one can choose to invoke conversations with other agents depending on the content of the current message and context. For example:
+- Hierarchical chat like in [OptiGuide](https://github.com/microsoft/optiguide).
+- [Dynamic Group Chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_groupchat.ipynb) which is a special form of hierarchical chat. In the system, we register a reply function in the group chat manager, which broadcasts messages and decides who the next speaker will be in a group chat setting.
+- [Finite state machine (FSM) based group chat](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_graph_modelling_language_using_select_speaker.ipynb) which is a special form of dynamic group chat. In this approach, a directed transition matrix is fed into group chat. Users can specify legal transitions or specify disallowed transitions.
+- Nested chat like in [conversational chess](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_chess.ipynb).
 
+2. LLM-Based Function Call
+
+Another approach involves LLM-based function calls, where LLM decides if a specific function should be invoked based on the conversation's status during each inference. This approach enables dynamic multi-agent conversations, as seen in scenarios like [multi-user math problem solving scenario](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_two_users.ipynb), where a student assistant automatically seeks expertise via function calls.
 
 ### Diverse Applications Implemented with AutoGen
 

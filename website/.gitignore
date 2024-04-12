@@ -9,6 +9,18 @@ package-lock.json
 .docusaurus
 .cache-loader
 docs/reference
+/docs/notebooks
+
+docs/tutorial/*.mdx
+docs/tutorial/**/*.png
+!docs/tutorial/assets/*.png
+docs/topics/llm_configuration.mdx
+docs/topics/code-execution/*.mdx
+docs/topics/task_decomposition.mdx
+docs/topics/prompting-and-reasoning/*.mdx
+docs/topics/non-openai-models/*.mdx
+docs/topics/non-openai-models/**/*.py
+docs/topics/non-openai-models/**/*.svg
 
 # Misc
 .DS_Store
@@ -20,3 +32,5 @@ docs/reference
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+/.quarto/

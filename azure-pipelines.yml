@@ -1,0 +1,24 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-policheck.PoliCheck@2
+  displayName: 'Run PoliCheck'
+  inputs:
+    targetType: F
+    optionsPE: '1|2|3|4'
+
+- task: securedevelopmentteam.vss-secure-development-tools.build-task-postanalysis.PostAnalysis@2
+  displayName: 'Policheck Break Build'
+  inputs:
+    GdnBreakAllTools: false
+    GdnBreakGdnToolPoliCheck: true
+    GdnBreakGdnToolPoliCheckSeverity: Warning

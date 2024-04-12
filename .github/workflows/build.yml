@@ -5,34 +5,35 @@ name: Build
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/**'
-      - '.github/workflows/build.yml'
-      - 'setup.py'
+      - "autogen/**"
+      - "test/**"
+      - ".github/workflows/build.yml"
+      - "setup.py"
   pull_request:
-    branches: ['main']
+    branches: ["main"]
   merge_group:
     types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
+permissions: {}
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
+    env:
+      AUTOGEN_USE_DOCKER: ${{ matrix.os != 'ubuntu-latest'  && 'False' }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies
@@ -40,16 +41,32 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install -e. pytest mock
-      - name: Test with pytest
-        if: matrix.python-version != '3.10'
+          pip install pytest mock
+      - name: Install optional dependencies for code executors
+        # code executors and udfs auto skip without deps, so only run for python 3.11
+        if: matrix.python-version == '3.11'
         run: |
-          pytest test --skip-openai
+          pip install -e ".[jupyter-executor,test]"
+          python -m ipykernel install --user --name python3
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Test with pytest skipping openai tests
+        if: matrix.python-version != '3.10' && matrix.os == 'ubuntu-latest'
+        run: |
+          pytest test --skip-openai --durations=10 --durations-min=1.0
+      - name: Test with pytest skipping openai and docker tests
+        if: matrix.python-version != '3.10' && matrix.os != 'ubuntu-latest'
+        run: |
+          pytest test --skip-openai --skip-docker --durations=10 --durations-min=1.0
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test]
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai
+          pip install -e .[test,redis,websockets]
+          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
           coverage xml
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'

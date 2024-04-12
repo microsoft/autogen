@@ -1,18 +1,15 @@
 import os
+import pickle
+from typing import Dict, Optional, Union
+
+import chromadb
+from chromadb.config import Settings
+
 from autogen.agentchat.assistant_agent import ConversableAgent
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
-import chromadb
-from chromadb.config import Settings
-import pickle
 
-try:
-    from termcolor import colored
-except ImportError:
-
-    def colored(x, *args, **kwargs):
-        return x
+from ....formatting_utils import colored
 
 
 class Teachability(AgentCapability):
@@ -23,6 +20,13 @@ class Teachability(AgentCapability):
     To make any conversable agent teachable, instantiate both the agent and the Teachability class,
     then pass the agent to teachability.add_to_agent(agent).
     Note that teachable agents in a group chat must be given unique path_to_db_dir values.
+
+    When adding Teachability to an agent, the following are modified:
+    - The agent's system message is appended with a note about the agent's new ability.
+    - A hook is added to the agent's `process_last_received_message` hookable method,
+    and the hook potentially modifies the last of the received messages to include earlier teachings related to the message.
+    Added teachings do not propagate into the stored message history.
+    If new user teachings are detected, they are added to new memos in the vector database.
     """
 
     def __init__(
@@ -61,7 +65,7 @@ class Teachability(AgentCapability):
         self.teachable_agent = agent
 
         # Register a hook for processing the last message.
-        agent.register_hook(hookable_method=agent.process_last_message, hook=self.process_last_message)
+        agent.register_hook(hookable_method="process_last_received_message", hook=self.process_last_received_message)
 
         # Was an llm_config passed to the constructor?
         if self.llm_config is None:
@@ -82,7 +86,7 @@ class Teachability(AgentCapability):
         """Adds a few arbitrary memos to the DB."""
         self.memo_store.prepopulate()
 
-    def process_last_message(self, text):
+    def process_last_received_message(self, text):
         """
         Appends any relevant memos to the message text, and stores any apparent teachings in new memos.
         Uses TextAnalyzerAgent to make decisions about memo storage and retrieval.

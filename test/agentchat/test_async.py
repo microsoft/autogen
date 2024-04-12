@@ -1,9 +1,13 @@
-import pytest
+#!/usr/bin/env python3 -m pytest
+
 import asyncio
-import autogen
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-import sys
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
+import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -153,14 +157,18 @@ async def test_stream():
 
     user_proxy.register_reply(autogen.AssistantAgent, add_data_reply, position=2, config={"news_stream": data})
 
-    await user_proxy.a_initiate_chat(
-        assistant,
-        message="""Give me investment suggestion in 3 bullet points.""",
+    chat_res = await user_proxy.a_initiate_chat(
+        assistant, message="""Give me investment suggestion in 3 bullet points.""", summary_method="reflection_with_llm"
     )
+
+    print("Chat summary:", chat_res.summary)
+    print("Chat cost:", chat_res.cost)
+
     while not data_task.done() and not data_task.cancelled():
         reply = await user_proxy.a_generate_reply(sender=assistant)
         if reply is not None:
-            await user_proxy.a_send(reply, assistant)
+            res = await user_proxy.a_send(reply, assistant)
+            print("Chat summary and cost:", res.summary, res.cost)
 
 
 if __name__ == "__main__":
