@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 from flaml.automl.logger import logger_formatter
 from pydantic import BaseModel
 
-from autogen.cache.cache import Cache
+from autogen.cache import Cache
 from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
 from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
@@ -415,7 +415,6 @@ class OpenAIWrapper:
         from the name and create a client that connects to "gpt-35-turbo" Azure deployment.
         """
         openai_config = {**openai_config, **{k: v for k, v in config.items() if k in self.openai_kwargs}}
-
         api_type = config.get("api_type")
         model_client_cls_name = config.get("model_client_cls")
         if model_client_cls_name is not None:
