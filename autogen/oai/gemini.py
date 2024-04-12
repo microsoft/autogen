@@ -14,6 +14,7 @@ import os
 import random
 import re
 import time
+import warnings
 from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
@@ -43,12 +44,12 @@ class GeminiClient:
 
     def __init__(self, **kwargs):
         self.api_key = kwargs.get("api_key", None)
-        if self.api_key is None:
+        if not self.api_key:
             self.api_key = os.getenv("GOOGLE_API_KEY")
 
-        assert self.api_key is not None, (
-            "Please provide api_key in OAI_CONFIG_LIST " "or set the GOOGLE_API_KEY env variable."
-        )
+        assert (
+            self.api_key
+        ), "Please provide api_key in your config list entry for Gemini or set the GOOGLE_API_KEY env variable."
 
         self.model = kwargs.get("model", "gemini-pro")
 
@@ -90,10 +91,13 @@ class GeminiClient:
         if stream:
             # TODO: support streaming
             # warn user that streaming is not supported
-            print("Streaming is not supported for Gemini yet. Please set stream=False.")
+            warnings.warn(
+                "Streaming is not supported for Gemini yet, and it will have no effect. Please set stream=False.",
+                UserWarning,
+            )
 
         if n_response > 1:
-            print("Gemini only supports `n=1` for now. We only generate one response.")
+            warnings.warn("Gemini only supports `n=1` for now. We only generate one response.", UserWarning)
 
         if "vision" not in model_name:
             # A. create and call the chat model.
@@ -107,14 +111,16 @@ class GeminiClient:
                 response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
             except InternalServerError as e:
                 print(e)
-                print("InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...")
+                warnings.warn(
+                    "InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...",
+                    UserWarning,
+                )
                 time.sleep(5)
                 return self.create(params)
             except Exception as e:
-                print("Exception occurred while calling Gemini API:", e)
-                ans = "TERMINATE"
+                raise RuntimeError(f"Google GenAI exception occurred while calling Gemini API: {e}")
             else:
-                # ans = response.text # failed. Not sure why.
+                # `ans = response.text` is unstable. Use the following code instead.
                 ans: str = chat.history[-1].parts[0].text
         elif model_name == "gemini-pro-vision":
             # B. handle the vision model
@@ -125,9 +131,10 @@ class GeminiClient:
             # response = chat.send_message(gemini_messages[-1])
             user_message = oai_content_to_gemini_content(messages[-1]["content"])
             if len(messages) > 2:
-                print(
+                warnings.warn(
                     "Warning: Gemini's vision model does not support chat history yet.",
                     "We only use the last message as the prompt.",
+                    UserWarning,
                 )
 
             response = model.generate_content(user_message, stream=stream)
