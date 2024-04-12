@@ -1,9 +1,9 @@
-#Install Azure Cosmos DB SDK if not already
-#pip install azure-cosmos
+# Install Azure Cosmos DB SDK if not already
+# pip install azure-cosmos
 
 import pickle
 from typing import Any, Optional, Union
-from azure.cosmos import PartitionKey, CosmosClient, exceptions
+from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from autogen.cache.abstract_cache_base import AbstractCache
 
 class CosmosDBCache(AbstractCache):
@@ -33,9 +33,8 @@ class CosmosDBCache(AbstractCache):
         self.client = client
         self.database = self.client.get_database_client(database_id)
         self.container = self.database.get_container_client(container_id)
-        
         if not self.container.exists():
-            self.database.create_container(id=container_id, partition_key=PartitionKey(path='/partitionKey'))
+            self.database.create_container(id=container_id, partition_key=PartitionKey(path="/partitionKey"))
             
     @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
@@ -59,7 +58,7 @@ class CosmosDBCache(AbstractCache):
         """
         try:
             response = self.container.read_item(item=key, partition_key=str(self.seed))
-            return pickle.loads(response['data'])
+            return pickle.loads(response["data"])
         except CosmosResourceNotFoundError:
             return default
         except Exception as e:
@@ -79,7 +78,7 @@ class CosmosDBCache(AbstractCache):
             The value is serialized using pickle before being stored.
         """
         serialized_value = pickle.dumps(value)
-        item = {'id': key, 'partitionKey': str(self.seed), 'data': serialized_value}
+        item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
         self.container.upsert_item(item)
         
     def close(self) -> None:
