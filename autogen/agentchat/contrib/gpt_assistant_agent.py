@@ -1,16 +1,16 @@
-from collections import defaultdict
-import openai
-import json
-import time
-import logging
 import copy
+import json
+import logging
+import time
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import openai
 
 from autogen import OpenAIWrapper
-from autogen.oai.openai_utils import retrieve_assistants_by_name
 from autogen.agentchat.agent import Agent
-from autogen.agentchat.assistant_agent import ConversableAgent
-from autogen.agentchat.assistant_agent import AssistantAgent
-from typing import Dict, Optional, Union, List, Tuple, Any
+from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
+from autogen.oai.openai_utils import retrieve_assistants_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -165,9 +165,7 @@ class GPTAssistantAgent(ConversableAgent):
         # lazily create threads
         self._openai_threads = {}
         self._unread_index = defaultdict(int)
-        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant)
-        self.register_reply(Agent, GPTAssistantAgent.check_termination_and_human_reply)
-        self.register_reply(Agent, GPTAssistantAgent.a_check_termination_and_human_reply)
+        self.register_reply(Agent, GPTAssistantAgent._invoke_assistant, position=2)
 
     def _invoke_assistant(
         self,

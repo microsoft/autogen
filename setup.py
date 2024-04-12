@@ -27,6 +27,14 @@ install_requires = [
     "docker",
 ]
 
+jupyter_executor = [
+    "jupyter-kernel-gateway",
+    "websocket-client",
+    "requests",
+    "jupyter-client>=8.6.0",
+    "ipykernel>=6.29.0",
+]
+
 setuptools.setup(
     name="pyautogen",
     version=__version__,
@@ -47,23 +55,21 @@ setuptools.setup(
             "pre-commit",
             "pytest-asyncio",
             "pytest>=6.1.1,<8",
+            "pandas",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
+        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
-        "jupyter-executor": [
-            "jupyter-kernel-gateway",
-            "websocket-client",
-            "requests",
-            "jupyter-client>=8.6.0",
-            "ipykernel>=6.29.0",
-        ],
+        "cosmosdb": ["azure-cosmos>=4.2.0"],
+        "websockets": ["websockets>=12.0,<13"],
+        "jupyter-executor": jupyter_executor,
+        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     },
     classifiers=[
         "Programming Language :: Python :: 3",

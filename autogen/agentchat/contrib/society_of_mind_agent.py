@@ -1,10 +1,11 @@
 # ruff: noqa: E722
+import copy
 import json
 import traceback
-import copy
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
-from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+
+from autogen import Agent, ConversableAgent, GroupChat, GroupChatManager, OpenAIWrapper
 
 
 class SocietyOfMindAgent(ConversableAgent):

@@ -2,7 +2,9 @@
 
 import os
 import sys
+
 import pytest
+
 import autogen
 from autogen.agentchat import AssistantAgent, UserProxyAgent
 
