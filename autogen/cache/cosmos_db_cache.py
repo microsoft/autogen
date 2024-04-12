@@ -46,7 +46,7 @@ class CosmosDBCache(AbstractCache):
     def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
         return cls(seed, client, database_id, container_id)
     
-    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:    
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
         Retrieve an item from the Cosmos DB cache.
 
