@@ -8,13 +8,27 @@ from autogen.cache.cache import Cache
 
 class TestCache(unittest.TestCase):
     def setUp(self):
-        self.config = {"cache_seed": "test_seed", "redis_url": "redis://test", "cache_path_root": ".test_cache"}
+        self.config = {
+            "cache_seed": "test_seed",
+            "redis_url": "redis://test",
+            "cache_path_root": ".test_cache",
+            "connection_string": None,
+            "database_id": None,
+            "container_id": None,
+        }
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
     def test_init(self, mock_cache_factory):
         cache = Cache(self.config)
         self.assertIsInstance(cache.cache, MagicMock)
-        mock_cache_factory.assert_called_with("test_seed", "redis://test", ".test_cache")
+        mock_cache_factory.assert_called_with(
+            "test_seed",
+            "redis://test",
+            ".test_cache",
+            None,  # connection_string
+            None,  # database_id
+            None,   # container_id
+        )
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
     def test_context_manager(self, mock_cache_factory):
