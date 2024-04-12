@@ -70,14 +70,16 @@ class TransformMessages:
             post_transform_messages.pop(0)
 
         for transform in self._transforms:
+            # deepcopy in case pre_transform_messages will late be used for stats
+            pre_transform_messages = (
+                copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
+            )
+            post_transform_messages = transform.apply_transform(pre_transform_messages)
+
             if self._verbose:
-                pre_transform_messages = copy.deepcopy(post_transform_messages)
-                post_transform_messages = transform.apply_transform(post_transform_messages)
                 stats_str, had_effect = transform.get_stats(pre_transform_messages, post_transform_messages)
                 if had_effect:
                     print(colored(stats_str, "yellow"))
-            else:
-                post_transform_messages = transform.apply_transform(post_transform_messages)
 
         if system_message:
             post_transform_messages.insert(0, system_message)
