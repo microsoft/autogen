@@ -197,6 +197,7 @@ output after executing the code) and provide a corrected answer or code.
         description: Optional[str] = autogen.AssistantAgent.DEFAULT_DESCRIPTION,
         use_oai_assistant: Optional[bool] = False,
         world_size: Optional[int] = 1,
+        mapped_functions: Optional[Dict] = None,
     ) -> autogen.AssistantAgent:
         """
         Create a group chat participant agent.
@@ -212,6 +213,7 @@ output after executing the code) and provide a corrected answer or code.
             description: a brief description of the agent. This will improve the group chat performance.
             use_oai_assistant: use OpenAI assistant api instead of self-constructed agent.
             world_size: the max size of parallel tensors (in most of the cases, this is identical to the amount of GPUs).
+            mapped_functions: a list of functions that the OpenAI assistant can execute.
 
         Returns:
             agent: a set-up agent.
@@ -302,12 +304,40 @@ output after executing the code) and provide a corrected answer or code.
         if use_oai_assistant:
             from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 
-            agent = GPTAssistantAgent(
-                name=agent_name,
-                llm_config={**current_config, "assistant_id": None},
-                instructions=system_message,
-                overwrite_instructions=False,
-            )
+            if mapped_functions is None:
+                agent = GPTAssistantAgent(
+                    name=agent_name,
+                    llm_config={**current_config, "assistant_id": None},
+                    instructions=system_message,
+                    overwrite_instructions=False,
+                )
+            else:
+                if mapped_functions[agent_name]:
+                    assistant_config = {"tools": []}
+
+                    function_map = {}
+
+                    for func in mapped_functions[agent_name]:
+                        assistant_config["tools"].append({"type": "function", "function": func["function_schema"]})
+                        function_map[func["function_schema"]["name"]] = func["function"]
+
+                    agent = GPTAssistantAgent(
+                        name=agent_name,
+                        llm_config={**current_config, "assistant_id": None},
+                        instructions=system_message,
+                        assistant_config=assistant_config,
+                        overwrite_instructions=False,
+                    )
+
+                    agent.register_function(function_map=function_map)
+
+                else:
+                    agent = GPTAssistantAgent(
+                        name=agent_name,
+                        llm_config={**current_config, "assistant_id": None},
+                        instructions=system_message,
+                        overwrite_instructions=False,
+                    )
         else:
             agent = autogen.AssistantAgent(
                 name=agent_name,
@@ -656,12 +686,57 @@ output after executing the code) and provide a corrected answer or code.
 
         Returns:
             agent_list: a list of agents.
+            list_of_functions: List of functions to be registered with agents.
             cached_configs: cached configs.
         """
         agent_configs = self.cached_configs["agent_configs"]
         default_llm_config = self.cached_configs["default_llm_config"]
         coding = self.cached_configs["coding"]
         code_execution_config = self.cached_configs["code_execution_config"]
+
+        mapped_functions = None
+
+        if use_oai_assistant and list_of_functions is not None:
+            agent_details = []
+            mapped_functions = {}
+
+            for agent in agent_configs:
+                agent_details.append({"name": agent["name"], "description": agent["description"]})
+                mapped_functions[agent["name"]] = []
+
+            config_list = autogen.config_list_from_json(
+                self.config_file_or_env,
+                file_location=self.config_file_location,
+                filter_dict={"model": [self.builder_model]},
+            )
+
+            build_manager = autogen.OpenAIWrapper(config_list=config_list)
+
+            print("==> Mapping functions with Agents")
+
+            for func in list_of_functions:
+                resp = (
+                    build_manager.create(
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
+                                    function_name=func["function_schema"]["name"],
+                                    function_description=func["function_schema"]["description"],
+                                    format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
+                                    agent_details=str(json.dumps(agent_details)),
+                                ),
+                            }
+                        ]
+                    )
+                    .choices[0]
+                    .message.content
+                )
+
+                print(f'function {func["function_schema"]["name"]} is mapped to {resp} agent.')
+                mapped_functions[resp].append(
+                    {"function_schema": func["function_schema"], "function": func["function"]}
+                )
 
         print("==> Creating agents...")
         for config in agent_configs:
@@ -672,12 +747,13 @@ output after executing the code) and provide a corrected answer or code.
                 default_llm_config,
                 system_message=config["system_message"],
                 description=config["description"],
+                mapped_functions=mapped_functions,
                 use_oai_assistant=use_oai_assistant,
                 **kwargs,
             )
         agent_list = [agent_config[0] for agent_config in self.agent_procs_assign.values()]
 
-        if coding is True:
+        if coding is True or list_of_functions:
             print("Adding user console proxy...")
             agent_list = (
                 [
@@ -695,47 +771,50 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                 + agent_list
             )
 
-            agent_details = []
+            if not use_oai_assistant:
+                agent_details = []
 
-            for agent in agent_list[1:]:
-                agent_details.append({"name": agent.name, "description": agent.description})
+                for agent in agent_list[1:]:
+                    agent_details.append({"name": agent.name, "description": agent.description})
 
-            config_list = autogen.config_list_from_json(
-                self.config_file_or_env,
-                file_location=self.config_file_location,
-                filter_dict={"model": [self.builder_model]},
-            )
+                config_list = autogen.config_list_from_json(
+                    self.config_file_or_env,
+                    file_location=self.config_file_location,
+                    filter_dict={"model": [self.builder_model]},
+                )
 
-            build_manager = autogen.OpenAIWrapper(config_list=config_list)
+                build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
-            for func in list_of_functions:
-                resp = (
-                    build_manager.create(
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
-                                    function_name=func["name"],
-                                    function_description=func["description"],
-                                    format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
-                                    agent_details=str(json.dumps(agent_details)),
-                                ),
-                            }
-                        ]
+                print("==> Mapping functions with Agents")
+
+                for func in list_of_functions:
+                    resp = (
+                        build_manager.create(
+                            messages=[
+                                {
+                                    "role": "user",
+                                    "content": self.AGENT_FUNCTION_MAP_PROMPT.format(
+                                        function_name=func["name"],
+                                        function_description=func["description"],
+                                        format_agent_details='[{"name": "agent_name", "description": "agent description"}, ...]',
+                                        agent_details=str(json.dumps(agent_details)),
+                                    ),
+                                }
+                            ]
+                        )
+                        .choices[0]
+                        .message.content
                     )
-                    .choices[0]
-                    .message.content
-                )
 
-                autogen.agentchat.register_function(
-                    func["function"],
-                    caller=self.agent_procs_assign[resp][0],
-                    executor=agent_list[0],
-                    name=func["name"],
-                    description=func["description"],
-                )
+                    autogen.agentchat.register_function(
+                        func["function"],
+                        caller=self.agent_procs_assign[resp][0],
+                        executor=agent_list[0],
+                        name=func["name"],
+                        description=func["description"],
+                    )
 
-                print(f"Function {func['name']} is registered to agent {resp}.")
+                    print(f"Function {func['name']} is mapped to {resp} agent.")
 
         return agent_list, self.cached_configs.copy()
 
