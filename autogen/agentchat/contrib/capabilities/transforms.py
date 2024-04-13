@@ -179,8 +179,12 @@ class MessageTokenLimiter:
         return processed_messages
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
-        pre_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in pre_transform_messages)
-        post_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in post_transform_messages)
+        pre_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
+        )
+        post_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
+        )
 
         if post_transform_messages_tokens < pre_transform_messages_tokens:
             logs_str = (
