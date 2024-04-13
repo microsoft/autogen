@@ -1,4 +1,15 @@
-# Chat flow
+# What is Promptflow
+
+Promptflow is a comprehensive suite of tools that simplifies the development, testing, evaluation, and deployment of LLM based AI applications. It also supports integration with Azure AI for cloud-based operations and is designed to streamline end-to-end development.
+
+Refer to [Promptflow docs](https://microsoft.github.io/promptflow/) for more information.
+
+Quick links:
+
+- Why use Promptflow - [Link](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow)
+- Quick start guide - [Link](https://microsoft.github.io/promptflow/how-to-guides/quick-start.html)
+
+## Chat flow
 
 Chat flow is designed for conversational application development, building upon the capabilities of standard flow and providing enhanced support for chat inputs/outputs and chat history management. With chat flow, you can easily create a chatbot that handles chat input and output.
 
@@ -36,13 +47,15 @@ The most important elements that differentiate a chat flow from a standard flow 
 
 - **Chat History**: Chat history is the record of all interactions between the user and the chatbot, including both user inputs and AI-generated outputs. Maintaining chat history is essential for keeping track of the conversation context and ensuring the AI can generate contextually relevant responses. Chat History is a special type of chat flow input, that stores chat messages in a structured format.
 
+  - NOTE: Currently the sample flows do not send chat history messages to agent workflow.
+
 - **Chat Output**: Chat output refers to the AI-generated messages that are sent to the user in response to their inputs. Generating contextually appropriate and engaging chat outputs is vital for a positive user experience.
 
 A chat flow can have multiple inputs, but Chat History and Chat Input are required inputs in chat flow.
 
 ## Interact with chat flow
 
-Promptflow CLI provides a way to start an interactive chat session for chat flow. Customer can use below command to start an interactive chat session:
+Promptflow supports interacting via vscode or via Promptflow CLI provides a way to start an interactive chat session for chat flow. Customer can use below command to start an interactive chat session:
 
 ```bash
 pf flow test --flow <flow_folder> --interactive
@@ -50,8 +63,12 @@ pf flow test --flow <flow_folder> --interactive
 
 ## Autogen State Flow
 
-This flow contains stateflow example shared at [StateFlow](https://microsoft.github.io/autogen/blog/2024/02/29/StateFlow/) with Promptflow. All the interim messages are stored in Redis. You can use these to stream to frontend or take further actions
+[Autogen State Flow](./autogen_stateflow.py) contains stateflow example shared at [StateFlow](https://microsoft.github.io/autogen/blog/2024/02/29/StateFlow/) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
 
-## Autogen Nested Chat
+## Agent Nested Chat
 
-This flow contains Scenario 1 of nested chat example shared at [Nested Chats](https://microsoft.github.io/autogen/docs/notebooks/agentchat_nestedchat) with Promptflow. All the interim messages are stored in Redis. You can use these to stream to frontend or take further actions
+[Autogen Nested Chat](./agentchat_nestedchat.py) contains Scenario 1 of nested chat example shared at [Nested Chats](https://microsoft.github.io/autogen/docs/notebooks/agentchat_nestedchat) with Promptflow. All the interim messages are sent to Redis channel. You can use these to stream to frontend or take further actions. Output of Prompflow is `summary` message from group chat.
+
+## Redis for Data cache and Interim Messages
+
+Autogen supports Redis for [data caching](https://microsoft.github.io/autogen/docs/reference/cache/redis_cache/) and since redis supports a pub-subs model as well, this Promptflow example is configured for all agent callbacks to send messages to a Redis channel. This is optional feature but is essential for long running workflows and provides access to interim messages for your frontend. NOTE: Currently Promtpflow only support [SSE](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) for streaming data and does not support websockets. NOTE: In multi user chat bot environment please make necessary changes to send messages to corresponding channel.

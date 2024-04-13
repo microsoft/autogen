@@ -26,6 +26,6 @@ nodes:
     path: autogen_task.py
   inputs:
     redisConnection: redis_connection_url
-    azureOpenAiConnection: ssattiraju-tech-excel
+    azureOpenAiConnection: aoai-connection
     question: ${inputs.question}
     autogen_workflow_id: ${inputs.autogen_workflow_id}
