@@ -46,7 +46,7 @@ class TransformMessages:
         """
         Args:
             transforms: A list of message transformations to apply.
-            verbose: Whether to print stats of each transformation or not.
+            verbose: Whether to print logs of each transformation or not.
         """
         self._transforms = transforms
         self._verbose = verbose
@@ -70,16 +70,16 @@ class TransformMessages:
             post_transform_messages.pop(0)
 
         for transform in self._transforms:
-            # deepcopy in case pre_transform_messages will late be used for stats
+            # deepcopy in case pre_transform_messages will later be used for logs printing
             pre_transform_messages = (
                 copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
             )
             post_transform_messages = transform.apply_transform(pre_transform_messages)
 
             if self._verbose:
-                stats_str, had_effect = transform.get_stats(pre_transform_messages, post_transform_messages)
+                logs_str, had_effect = transform.get_logs(pre_transform_messages, post_transform_messages)
                 if had_effect:
-                    print(colored(stats_str, "yellow"))
+                    print(colored(logs_str, "yellow"))
 
         if system_message:
             post_transform_messages.insert(0, system_message)

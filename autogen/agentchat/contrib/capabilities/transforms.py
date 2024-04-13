@@ -26,8 +26,8 @@ class MessageTransform(Protocol):
         """
         ...
 
-    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
-        """Creates the string including the stats of the transformation
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        """Creates the string including the logs of the transformation
 
         Alongside the string, it returns a boolean indicating whether the transformation had an effect or not.
 
@@ -36,7 +36,7 @@ class MessageTransform(Protocol):
             post_transform_messages: A list of dictionaries representig messages after the transformation.
 
         Returns:
-            A tuple with a string with the stats and a flag indicating whether the transformation had an effect or not.
+            A tuple with a string with the logs and a flag indicating whether the transformation had an effect or not.
         """
         ...
 
@@ -75,16 +75,16 @@ class MessageHistoryLimiter:
 
         return messages[-self._max_messages :]
 
-    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_len = len(pre_transform_messages)
         post_transform_messages_len = len(post_transform_messages)
 
         if post_transform_messages_len < pre_transform_messages_len:
-            stats_str = (
+            logs_str = (
                 f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
                 f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}."
             )
-            return stats_str, True
+            return logs_str, True
         return "No messages were removed.", False
 
     def _validate_max_messages(self, max_messages: Optional[int]):
@@ -178,16 +178,16 @@ class MessageTokenLimiter:
 
         return processed_messages
 
-    def get_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
         pre_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in pre_transform_messages)
         post_transform_messages_tokens = sum(_count_tokens(msg["content"]) for msg in post_transform_messages)
 
         if post_transform_messages_tokens < pre_transform_messages_tokens:
-            stats_str = (
+            logs_str = (
                 f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
                 f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
             )
-            return stats_str, True
+            return logs_str, True
         return "No tokens were truncated.", False
 
     def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:

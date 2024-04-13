@@ -44,18 +44,18 @@ def test_message_history_limiter_apply_transform(message_history_limiter, messag
 
 
 @pytest.mark.parametrize(
-    "messages, expected_stats, expected_effect",
+    "messages, expected_logs, expected_effect",
     [
         (get_long_messages(), "Removed 2 messages. Number of messages reduced from 5 to 3.", True),
         (get_short_messages(), "No messages were removed.", False),
     ],
 )
-def test_message_history_limiter_get_stats(message_history_limiter, messages, expected_stats, expected_effect):
+def test_message_history_limiter_get_logs(message_history_limiter, messages, expected_logs, expected_effect):
     pre_transform_messages = copy.deepcopy(messages)
     transformed_messages = message_history_limiter.apply_transform(messages)
-    stats_str, had_effect = message_history_limiter.get_stats(pre_transform_messages, transformed_messages)
+    logs_str, had_effect = message_history_limiter.get_logs(pre_transform_messages, transformed_messages)
     assert had_effect == expected_effect
-    assert stats_str == expected_stats
+    assert logs_str == expected_logs
 
 
 # MessageTokenLimiter tests
@@ -68,18 +68,18 @@ def test_message_token_limiter_apply_transform(message_token_limiter, messages, 
 
 
 @pytest.mark.parametrize(
-    "messages, expected_stats, expected_effect",
+    "messages, expected_logs, expected_effect",
     [
         (get_long_messages(), "Truncated 6 tokens. Number of tokens reduced from 15 to 9", True),
         (get_short_messages(), "No tokens were truncated.", False),
     ],
 )
-def test_message_token_limiter_get_stats(message_token_limiter, messages, expected_stats, expected_effect):
+def test_message_token_limiter_get_logs(message_token_limiter, messages, expected_logs, expected_effect):
     pre_transform_messages = copy.deepcopy(messages)
     transformed_messages = message_token_limiter.apply_transform(messages)
-    stats_str, had_effect = message_token_limiter.get_stats(pre_transform_messages, transformed_messages)
+    logs_str, had_effect = message_token_limiter.get_logs(pre_transform_messages, transformed_messages)
     assert had_effect == expected_effect
-    assert stats_str == expected_stats
+    assert logs_str == expected_logs
 
 
 if __name__ == "__main__":
@@ -91,15 +91,15 @@ if __name__ == "__main__":
     # Call the MessageHistoryLimiter tests
     test_message_history_limiter_apply_transform(message_history_limiter, long_messages, 3)
     test_message_history_limiter_apply_transform(message_history_limiter, short_messages, 3)
-    test_message_history_limiter_get_stats(
+    test_message_history_limiter_get_logs(
         message_history_limiter, long_messages, "Removed 2 messages. Number of messages reduced from 5 to 3.", True
     )
-    test_message_history_limiter_get_stats(message_history_limiter, short_messages, "No messages were removed.", False)
+    test_message_history_limiter_get_logs(message_history_limiter, short_messages, "No messages were removed.", False)
 
     # Call the MessageTokenLimiter tests
     test_message_token_limiter_apply_transform(message_token_limiter, long_messages, 9)
     test_message_token_limiter_apply_transform(message_token_limiter, short_messages, 3)
-    test_message_token_limiter_get_stats(
+    test_message_token_limiter_get_logs(
         message_token_limiter, long_messages, "Truncated 6 tokens. Number of tokens reduced from 15 to 9", True
     )
-    test_message_token_limiter_get_stats(message_token_limiter, short_messages, "No tokens were truncated.", False)
+    test_message_token_limiter_get_logs(message_token_limiter, short_messages, "No tokens were truncated.", False)
