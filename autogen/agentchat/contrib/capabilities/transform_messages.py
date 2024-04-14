@@ -74,7 +74,13 @@ class TransformMessages:
             pre_transform_messages = (
                 copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
             )
-            post_transform_messages = transform.apply_transform(pre_transform_messages)
+
+            if transform.condition.check_condition(
+                pre_transform_messages
+            ):  # check if the transformation should be applied
+                post_transform_messages = transform.apply_transform(pre_transform_messages)
+            else:
+                post_transform_messages = pre_transform_messages
 
             if self._verbose:
                 logs_str, had_effect = transform.get_logs(pre_transform_messages, post_transform_messages)
