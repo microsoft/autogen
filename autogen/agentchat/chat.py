@@ -169,9 +169,9 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
             - `"carryover"` - It can be used to specify the carryover information to be passed
                to this chat. If provided, we will combine this carryover with the "message" content when
                generating the initial chat message in `generate_init_message`.
-            - `"carryover_indexes"` - It can be used specifying a list of indexes of the finished_chats list
+            - `"carryover_indexes"` - It can be used by specifying a list of indexes of the finished_chats list,
                from which to take the summaries for carryover. If 'carryover_indexes' is not provided or an empty list,
-               then summary from all the finished chats will be taken
+               then summary from all the finished chats will be taken.
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
