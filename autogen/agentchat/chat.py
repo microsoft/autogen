@@ -165,12 +165,11 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
                Default is {}.
             - `"message"` (str, callable or None) - if None, input() will be called to get the
                initial message.
-            - `**context` - additional context information to be passed to the chat.
-            - `"carryover"` - It can be used to specify the carryover information to be passed
+            - `"carryover"` (list) - It can be used to specify the carryover information to be passed
                to this chat. If provided, we will combine this carryover with the "message" content when
                generating the initial chat message in `generate_init_message`.
-            - `"finished_chat_summary"` - It can be used to specify if past chat summary needs to be passed or not.
-            - `"carryover_indexes"` - It can be used by specifying a list of indexes of the finished_chats list,
+            - `"finished_chat_summary"` (bool) - It can be used to specify if past chat summary needs to be passed or not.
+            - `"carryover_indexes"` (list) - It can be used by specifying a list of indexes of the finished_chats list,
                from which to take the summaries for carryover. If 'carryover_indexes' is not provided or an empty list,
                then summary from all the finished chats will be taken.
     Returns:
