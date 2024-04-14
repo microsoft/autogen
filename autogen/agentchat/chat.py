@@ -25,7 +25,7 @@ class ChatResult:
     """The chat history."""
     summary: str = None
     """A summary obtained from the chat."""
-    cost: Dict[dict,dict] = None  # {dict, dict} - {usage_including_cached_inference, usage_excluding_cached_inference}
+    cost: Dict[dict, dict] = None  # {dict, dict} - {usage_including_cached_inference, usage_excluding_cached_inference}
     """The cost of the chat. a dictionary of (usage_including_cached_inference, usage_excluding_cached_inference), where usage_including_cached_inference is a
        dictionary of cost information, and usage_excluding_cached_inference is a dictionary of information on
        the actual incurred cost with cache."""
