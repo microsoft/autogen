@@ -34,8 +34,8 @@ def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str,
 
     Returns:
         dictionary: A dictionary containing two keys:
-          - "usage_including_cached_inference": Usage summary including cached inference.
-          - "usage_excluding_cached_inference": Usage summary excluding cached inference.
+          - "usage_including_cached_inference": Cost information on the total usage, including the tokens in cached inference.
+          - "usage_excluding_cached_inference": Cost information on the usage of tokens, excluding the tokens in cache. No larger than "usage_including_cached_inference".
 
     Example:
 
