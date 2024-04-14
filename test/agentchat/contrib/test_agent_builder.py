@@ -4,9 +4,10 @@ import json
 import os
 import sys
 from unittest.mock import MagicMock, patch
-import autogen
+
 import pytest
 
+import autogen
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -36,16 +37,14 @@ def start_task(execution_task: str, agent_list: list):
     group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
     manager = autogen.GroupChatManager(
         groupchat=group_chat,
-        llm_config={
-            "config_list": autogen.config_list_from_json(f"{KEY_LOC}/{OAI_CONFIG_LIST}"), 
-            **llm_config
-        }
+        llm_config={"config_list": autogen.config_list_from_json(f"{KEY_LOC}/{OAI_CONFIG_LIST}"), **llm_config},
     )
 
     agent_list[0].initiate_chat(manager, message=execution_task)
 
 
 ask_ossinsight_mock = MagicMock()
+
 
 # Function to test function calling
 def ask_ossinsight(question: str) -> str:
@@ -116,9 +115,9 @@ def test_build_assistant_with_function_calling():
 
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
-    
+
     # Mock the 'ask_ossinsight' function in the '__main__' module using a context manager.
-    with patch('__main__.ask_ossinsight') as mocked_function:
+    with patch("__main__.ask_ossinsight") as mocked_function:
 
         # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
         start_task(
@@ -177,7 +176,7 @@ def test_build_gpt_assistant_with_function_calling():
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
     # Mock the 'ask_ossinsight' function in the '__main__' module using a context manager.
-    with patch('__main__.ask_ossinsight') as mocked_function:
+    with patch("__main__.ask_ossinsight") as mocked_function:
 
         # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
         start_task(
