@@ -3,8 +3,8 @@
 import json
 import os
 import sys
-from unittest.mock import MagicMock
-
+from unittest.mock import MagicMock, patch
+import autogen
 import pytest
 
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
@@ -15,6 +15,7 @@ from conftest import skip_openai as skip  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
+llm_config = {"temperature": 0}
 
 
 def _config_check(config):
@@ -28,6 +29,28 @@ def _config_check(config):
         assert agent_config.get("model", None) is not None
         assert agent_config.get("description", None) is not None
         assert agent_config.get("system_message", None) is not None
+
+
+# Function initializes a group chat with agents and starts a execution_task.
+def start_task(execution_task: str, agent_list: list):
+    group_chat = autogen.GroupChat(agents=agent_list, messages=[], max_round=12)
+    manager = autogen.GroupChatManager(
+        groupchat=group_chat,
+        llm_config={
+            "config_list": autogen.config_list_from_json(f"{KEY_LOC}/{OAI_CONFIG_LIST}"), 
+            **llm_config
+        }
+    )
+
+    agent_list[0].initiate_chat(manager, message=execution_task)
+
+
+ask_ossinsight_mock = MagicMock()
+
+# Function to test function calling
+def ask_ossinsight(question: str) -> str:
+    ask_ossinsight_mock(question)
+    return "The repository microsoft/autogen has 123,456 stars on GitHub."
 
 
 @pytest.mark.skipif(
@@ -64,12 +87,6 @@ def test_build():
     reason="requested to skip",
 )
 def test_build_assistant_with_function_calling():
-    ask_ossinsight_mock = MagicMock()
-
-    def ask_ossinsight(question: str) -> str:
-        ask_ossinsight_mock(question)
-        return "The repository microsoft/autogen has 123,456 stars on GitHub."
-
     list_of_functions = [
         {
             "name": "ossinsight_data_api",
@@ -99,6 +116,18 @@ def test_build_assistant_with_function_calling():
 
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
+    
+    # Mock the 'ask_ossinsight' function in the '__main__' module using a context manager.
+    with patch('__main__.ask_ossinsight') as mocked_function:
+
+        # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
+        start_task(
+            execution_task="How many stars microsoft/autogen has on GitHub?",
+            agent_list=agent_list,
+        )
+
+        # Verify that 'ask_ossinsight' was called exactly once during the task execution.
+        mocked_function.assert_called()
 
 
 @pytest.mark.skipif(
@@ -120,18 +149,14 @@ def test_build_gpt_assistant_with_function_calling():
         },
         "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
     }
-    ask_ossinsight_mock = MagicMock()
-
-    def ask_ossinsight(question: str) -> str:
-        ask_ossinsight_mock(question)
-        return "The repository microsoft/autogen has 123,456 stars on GitHub."
 
     list_of_functions = [{"function_schema": ossinsight_api_schema, "function": ask_ossinsight}]
 
     builder = AgentBuilder(
         config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
     )
-    building_task = "How many stars microsoft/autogen has on GitHub?"
+
+    building_task = "Determine number of stars of GitHub repositories"
 
     agent_list, agent_config = builder.build(
         building_task=building_task,
@@ -150,6 +175,18 @@ def test_build_gpt_assistant_with_function_calling():
 
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
+
+    # Mock the 'ask_ossinsight' function in the '__main__' module using a context manager.
+    with patch('__main__.ask_ossinsight') as mocked_function:
+
+        # Execute 'start_task' which should trigger 'ask_ossinsight' due to the given execution task.
+        start_task(
+            execution_task="How many stars microsoft/autogen has on GitHub?",
+            agent_list=agent_list,
+        )
+
+        # Verify that 'ask_ossinsight' was called exactly once during the task execution.
+        mocked_function.assert_called()
 
 
 @pytest.mark.skipif(
