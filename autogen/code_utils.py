@@ -35,6 +35,7 @@ TIMEOUT_MSG = "Timeout"
 DEFAULT_TIMEOUT = 600
 WIN32 = sys.platform == "win32"
 PATH_SEPARATOR = WIN32 and "\\" or "/"
+PYTHON_VARIANTS = ["python", "Python", "py"]
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +245,8 @@ def get_powershell_command():
 
 
 def _cmd(lang: str) -> str:
+    if lang in PYTHON_VARIANTS:
+        return "python"
     if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
     if lang in ["shell"]:
