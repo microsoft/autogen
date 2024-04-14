@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Union
 
 from .agent import Agent
 
@@ -87,8 +87,8 @@ def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str,
 
     for agent in agents:
         if getattr(agent, "client", None):
-            aggregate_summary(usage_excluding_cached_inference, agent.client.total_usage_summary)
-            aggregate_summary(usage_including_cached_inference, agent.client.actual_usage_summary)
+            aggregate_summary(usage_including_cached_inference, agent.client.total_usage_summary)
+            aggregate_summary(usage_excluding_cached_inference, agent.client.actual_usage_summary)
 
     return {
         "usage_including_cached_inference": usage_including_cached_inference,

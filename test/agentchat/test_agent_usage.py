@@ -1,21 +1,18 @@
 #!/usr/bin/env python3 -m pytest
 
 import io
+import os
+import sys
 from contextlib import redirect_stdout
 
 import pytest
-from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 from autogen import AssistantAgent, UserProxyAgent, gather_usage_summary
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import skip_openai as skip  # noqa: E402
 
 
 @pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
