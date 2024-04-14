@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -52,6 +53,99 @@ def test_build():
             "use_docker": "python:3",
         },
     )
+    _config_check(agent_config)
+
+    # check number of agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
+
+
+@pytest.mark.skipif(
+    skip,
+    reason="requested to skip",
+)
+def test_build_assistant_with_function_calling():
+    ask_ossinsight_mock = MagicMock()
+
+    def ask_ossinsight(question: str) -> str:
+        ask_ossinsight_mock(question)
+        return "The repository microsoft/autogen has 123,456 stars on GitHub."
+
+    list_of_functions = [
+        {
+            "name": "ossinsight_data_api",
+            "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
+            "function": ask_ossinsight,
+        }
+    ]
+
+    builder = AgentBuilder(
+        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
+    building_task = "How many stars microsoft/autogen has on GitHub?"
+
+    agent_list, agent_config = builder.build(
+        building_task=building_task,
+        default_llm_config={"temperature": 0},
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "timeout": 60,
+            "use_docker": "python:3",
+        },
+        list_of_functions=list_of_functions,
+    )
+
+    _config_check(agent_config)
+
+    # check number of agents
+    assert len(agent_config["agent_configs"]) <= builder.max_agents
+
+
+@pytest.mark.skipif(
+    skip,
+    reason="requested to skip",
+)
+def test_build_gpt_assistant_with_function_calling():
+    ossinsight_api_schema = {
+        "name": "ossinsight_data_api",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "description": "Enter your GitHub data question in the form of a clear and specific question to ensure the returned data is accurate and valuable. For optimal results, specify the desired format for the data table in your request.",
+                }
+            },
+            "required": ["question"],
+        },
+        "description": "This is an API endpoint allowing users (analysts) to input question about GitHub in text format to retrieve the related and structured data.",
+    }
+    ask_ossinsight_mock = MagicMock()
+
+    def ask_ossinsight(question: str) -> str:
+        ask_ossinsight_mock(question)
+        return "The repository microsoft/autogen has 123,456 stars on GitHub."
+
+    list_of_functions = [{"function_schema": ossinsight_api_schema, "function": ask_ossinsight}]
+
+    builder = AgentBuilder(
+        config_file_or_env=OAI_CONFIG_LIST, config_file_location=KEY_LOC, builder_model="gpt-4", agent_model="gpt-4"
+    )
+    building_task = "How many stars microsoft/autogen has on GitHub?"
+
+    agent_list, agent_config = builder.build(
+        building_task=building_task,
+        default_llm_config={"temperature": 0},
+        code_execution_config={
+            "last_n_messages": 2,
+            "work_dir": f"{here}/test_agent_scripts",
+            "timeout": 60,
+            "use_docker": "python:3",
+        },
+        list_of_functions=list_of_functions,
+        use_oai_assistant=True,
+    )
+
     _config_check(agent_config)
 
     # check number of agents
@@ -195,6 +289,8 @@ def test_clear_agent():
 
 if __name__ == "__main__":
     test_build()
+    test_build_assistant_with_function_calling()
+    test_build_gpt_assistant_with_function_calling()
     test_build_from_library()
     test_save()
     test_load()

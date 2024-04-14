@@ -771,7 +771,7 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                 + agent_list
             )
 
-            if not use_oai_assistant:
+            if not use_oai_assistant and list_of_functions:
                 agent_details = []
 
                 for agent in agent_list[1:]:
