@@ -26,20 +26,22 @@ def consolidate_chat_info(chat_info, uniform_sender=None) -> None:
             ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
 
 
-def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, any], Dict[str, any]]:
+def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str, Dict]]:
     r"""Gather usage summary from all agents.
 
     Args:
         agents: (list): List of agents.
 
     Returns:
-        dictionary: {usage_including_cached_inference, usage_excluding_cached_inference}
+        dictionary: A dictionary containing two keys:
+          - "usage_including_cached_inference": Usage summary including cached inference.
+          - "usage_excluding_cached_inference": Usage summary excluding cached inference.
 
     Example:
 
     ```python
     {
-        usage_including_cached_inference : {
+        "usage_including_cached_inference" : {
             "total_cost": 0.0006090000000000001,
             "gpt-35-turbo": {
                     "cost": 0.0006090000000000001,
@@ -47,14 +49,16 @@ def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, any], Dict[str, 
                     "completion_tokens": 123,
                     "total_tokens": 365
             },
+        },
 
-        usage_excluding_cached_inference : {
+        "usage_excluding_cached_inference" : {
             "total_cost": 0.0006090000000000001,
             "gpt-35-turbo": {
                     "cost": 0.0006090000000000001,
                     "prompt_tokens": 242,
                     "completion_tokens": 123,
                     "total_tokens": 365
+            },
         }
     }
     ```
