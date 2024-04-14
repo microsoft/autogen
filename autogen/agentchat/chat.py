@@ -189,8 +189,7 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
 
         if isinstance(_chat_carryover, str):
             _chat_carryover = [_chat_carryover]
-        chat_info["carryover"] = _chat_carryover
-        chat_info["carryover"] = chat_info["carryover"] + [
+        chat_info["carryover"] = _chat_carryover + [
             r.summary for i, r in enumerate(finished_chats) if i not in finished_chat_indexes_to_exclude_from_carryover
         ]
 
