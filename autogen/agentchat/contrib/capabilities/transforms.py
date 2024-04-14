@@ -1,5 +1,6 @@
+import copy
 import sys
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
@@ -22,6 +23,20 @@ class MessageTransform(Protocol):
 
         Returns:
             A new list of dictionaries containing the transformed messages.
+        """
+        ...
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        """Creates the string including the logs of the transformation
+
+        Alongside the string, it returns a boolean indicating whether the transformation had an effect or not.
+
+        Args:
+            pre_transform_messages: A list of dictionaries representing messages before the transformation.
+            post_transform_messages: A list of dictionaries representig messages after the transformation.
+
+        Returns:
+            A tuple with a string with the logs and a flag indicating whether the transformation had an effect or not.
         """
         ...
 
@@ -59,6 +74,18 @@ class MessageHistoryLimiter:
             return messages
 
         return messages[-self._max_messages :]
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        pre_transform_messages_len = len(pre_transform_messages)
+        post_transform_messages_len = len(post_transform_messages)
+
+        if post_transform_messages_len < pre_transform_messages_len:
+            logs_str = (
+                f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
+                f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}."
+            )
+            return logs_str, True
+        return "No messages were removed.", False
 
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
@@ -121,14 +148,9 @@ class MessageTokenLimiter:
         assert self._max_tokens_per_message is not None
         assert self._max_tokens is not None
 
-        temp_messages = messages.copy()
+        temp_messages = copy.deepcopy(messages)
         processed_messages = []
         processed_messages_tokens = 0
-
-        # calculate tokens for all messages
-        total_tokens = sum(
-            _count_tokens(msg["content"]) for msg in temp_messages if isinstance(msg.get("content"), (str, list))
-        )
 
         for msg in reversed(temp_messages):
             # Some messages may not have content.
@@ -154,15 +176,23 @@ class MessageTokenLimiter:
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
-        if total_tokens > processed_messages_tokens:
-            print(
-                colored(
-                    f"Truncated {total_tokens - processed_messages_tokens} tokens. Tokens reduced from {total_tokens} to {processed_messages_tokens}",
-                    "yellow",
-                )
-            )
-
         return processed_messages
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        pre_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
+        )
+        post_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
+        )
+
+        if post_transform_messages_tokens < pre_transform_messages_tokens:
+            logs_str = (
+                f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
+                f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
+            )
+            return logs_str, True
+        return "No tokens were truncated.", False
 
     def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:
         if isinstance(contents, str):
