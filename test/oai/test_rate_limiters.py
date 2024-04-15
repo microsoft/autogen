@@ -1,11 +1,12 @@
 import time
+
 import pytest
 
-from autogen.oai.rate_limiter import TimeRateLimiter
+from autogen.oai.rate_limiters import TimeRateLimiter
 
 
-@pytest.mark.parametrize("execution_number", range(5))
-def test_time_rate_limiter(execution_number):
+@pytest.mark.parametrize("execute_n_times", range(5))
+def test_time_rate_limiter(execute_n_times):
     current_time_seconds = time.time()
 
     rate = 1

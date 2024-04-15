@@ -12,7 +12,7 @@ from autogen.cache.cache import Cache
 from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 TOOL_ENABLED = False
 try:
@@ -299,7 +299,7 @@ def test_cache():
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
-@pytest.mark.skipif(skip_openai, reason="Requested to skip openai tests.")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_throttled_api_calls():
     # config_list = config_list_from_json(
     #     env_or_file=OAI_CONFIG_LIST,
