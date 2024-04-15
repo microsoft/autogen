@@ -29,7 +29,6 @@ def mock_response():
 
 
 @pytest.fixture
-@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def gemini_client():
     return GeminiClient(api_key="fake_api_key")
 
