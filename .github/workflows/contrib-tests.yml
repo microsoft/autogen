@@ -262,7 +262,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.12"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -286,7 +286,6 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pip install coverage>=5.3
           coverage run -a -m pytest test/oai/test_gemini.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov

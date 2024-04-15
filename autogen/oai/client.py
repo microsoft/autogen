@@ -45,7 +45,7 @@ else:
 try:
     from autogen.oai.gemini import GeminiClient
 except ImportError:
-    GeminiClient = object
+    GeminiClient = None
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -431,7 +431,7 @@ class OpenAIWrapper:
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
             elif api_type is not None and api_type.startswith("google"):
-                if GeminiClient is object:
+                if not GeminiClient:
                     raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
                 self._clients.append(GeminiClient(**openai_config))
             else:

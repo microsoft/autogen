@@ -118,21 +118,29 @@ class GeminiClient:
             model = genai.GenerativeModel(model_name)
             genai.configure(api_key=self.api_key)
             chat = model.start_chat(history=gemini_messages[:-1])
-            try:
-                response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
-            except InternalServerError as e:
-                print(e)
-                warnings.warn(
-                    "InternalServerError `500` occurs when calling Gemini's chat model. Retry in 5 seconds...",
-                    UserWarning,
-                )
-                time.sleep(5)
-                return self.create(params)
-            except Exception as e:
-                raise RuntimeError(f"Google GenAI exception occurred while calling Gemini API: {e}")
-            else:
-                # `ans = response.text` is unstable. Use the following code instead.
-                ans: str = chat.history[-1].parts[0].text
+            max_retries = 5
+            for attempt in range(max_retries):
+                ans = None
+                try:
+                    response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
+                except InternalServerError as e:
+                    delay = 5 * (2**attempt)
+                    print(e)
+                    warnings.warn(
+                        f"InternalServerError `500` occurs when calling Gemini's chat model. Retry in {delay} seconds...",
+                        UserWarning,
+                    )
+                    time.sleep(delay)
+                except Exception as e:
+                    raise RuntimeError(f"Google GenAI exception occurred while calling Gemini API: {e}")
+                else:
+                    # `ans = response.text` is unstable. Use the following code instead.
+                    ans: str = chat.history[-1].parts[0].text
+                    break
+
+            if ans is None:
+                raise RuntimeError(f"Fail to get response from Google AI after retrying {attempt + 1} times.")
+
         elif model_name == "gemini-pro-vision":
             # B. handle the vision model
             # Gemini's vision model does not support chat history yet
