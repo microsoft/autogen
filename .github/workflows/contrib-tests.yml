@@ -48,7 +48,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
-          pip install unstructured[all-docs]
+          pip install unstructured[all-docs]==0.13.0
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
@@ -58,13 +58,10 @@ jobs:
           if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
-      - name: Test RetrieveChat
-        run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
       - name: Coverage
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -229,6 +226,8 @@ jobs:
         python-version: ["3.12"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:

@@ -1,24 +1,25 @@
 #!/usr/bin/env python3 -m pytest
 
-from unittest.mock import MagicMock
-import uuid
-import pytest
 import os
 import sys
+import uuid
+from unittest.mock import MagicMock
+
 import openai
+import pytest
+
 import autogen
-from autogen import OpenAIWrapper
-from autogen import UserProxyAgent
+from autogen import OpenAIWrapper, UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
 from autogen.oai.openai_utils import retrieve_assistants_by_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai as skip  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
-if not skip:
+if not skip_openai:
     openai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
@@ -39,13 +40,13 @@ if not skip:
     aoai_config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"api_type": ["azure"], "api_version": ["2024-02-15-preview"]},
+        filter_dict={"api_type": ["azure"], "tags": ["assistant"]},
     )
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_config_list() -> None:
     assert len(openai_config_list) > 0
@@ -53,8 +54,8 @@ def test_config_list() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_chat() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -127,8 +128,8 @@ def _test_gpt_assistant_chat(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_get_assistant_instructions() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -156,8 +157,8 @@ def _test_get_assistant_instructions(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_instructions_overwrite() -> None:
     for gpt_config in [openai_config_list, aoai_config_list]:
@@ -210,8 +211,8 @@ def _test_gpt_assistant_instructions_overwrite(gpt_config) -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_existing_no_instructions() -> None:
     """
@@ -250,8 +251,8 @@ def test_gpt_assistant_existing_no_instructions() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_get_assistant_files() -> None:
     """
@@ -287,8 +288,8 @@ def test_get_assistant_files() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_assistant_retrieval() -> None:
     """
@@ -364,8 +365,8 @@ def test_assistant_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_assistant_mismatch_retrieval() -> None:
     """Test function to check if the GPTAssistantAgent can filter out the mismatch assistant"""
@@ -486,8 +487,8 @@ def test_assistant_mismatch_retrieval() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_assistant_tools_overwrite() -> None:
     """
@@ -608,8 +609,8 @@ def test_gpt_assistant_tools_overwrite() -> None:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_gpt_reflection_with_llm() -> None:
     gpt_assistant = GPTAssistantAgent(

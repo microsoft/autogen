@@ -1,19 +1,16 @@
 #!/usr/bin/env python3 -m pytest
 
-import autogen
-import pytest
 import asyncio
-import sys
 import os
+import sys
+
+import pytest
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
-try:
-    from openai import OpenAI
-except ImportError:
-    skip = True
-else:
-    sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-    from conftest import skip_openai as skip
+import autogen
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import reason, skip_openai
 
 func_def = {
     "name": "get_random_number",
@@ -26,8 +23,8 @@ func_def = {
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run if openai is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 @pytest.mark.parametrize(
     "key, value, sync",

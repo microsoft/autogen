@@ -2,22 +2,23 @@
 
 import asyncio
 import copy
+import inspect
+import os
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
 import unittest
-import inspect
+from typing import Any, Callable, Dict, Literal
 from unittest.mock import MagicMock
 
 import pytest
 from pydantic import BaseModel, Field
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
+
 import autogen
-import os
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402

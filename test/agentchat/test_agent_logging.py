@@ -1,14 +1,18 @@
-import pytest
-import autogen
-import autogen.runtime_logging
 import json
+import os
+import sqlite3
 import sys
 import uuid
-import sqlite3
 
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import skip_openai
+import pytest
 
+import autogen
+import autogen.runtime_logging
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -103,10 +107,13 @@ def test_two_agents_logging(db_connection):
         first_request_message = request["messages"][0]["content"]
         first_request_role = request["messages"][0]["role"]
 
-        if idx == 0 or idx == 2:
+        # some config may fail
+        if idx == 0 or idx == len(rows) - 1:
             assert first_request_message == TEACHER_MESSAGE
-        elif idx == 1:
+        elif idx == 1 and len(rows) == 3:
             assert first_request_message == STUDENT_MESSAGE
+        else:
+            assert first_request_message in (TEACHER_MESSAGE, STUDENT_MESSAGE)
         assert first_request_role == "system"
 
         response = json.loads(row["response"])

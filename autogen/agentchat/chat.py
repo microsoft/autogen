@@ -1,15 +1,15 @@
 import asyncio
-from functools import partial
-import logging
-from collections import defaultdict, abc
-from typing import Dict, List, Any, Set, Tuple
-from dataclasses import dataclass
-from .utils import consolidate_chat_info
 import datetime
+import logging
 import warnings
-from ..io.base import IOStream
-from ..formatting_utils import colored
+from collections import abc, defaultdict
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Dict, List, Set, Tuple
 
+from ..formatting_utils import colored
+from ..io.base import IOStream
+from .utils import consolidate_chat_info
 
 logger = logging.getLogger(__name__)
 Prerequisite = Tuple[int, int]
@@ -25,10 +25,12 @@ class ChatResult:
     """The chat history."""
     summary: str = None
     """A summary obtained from the chat."""
-    cost: tuple = None  # (dict, dict) - (total_cost, actual_cost_with_cache)
-    """The cost of the chat. a tuple of (total_cost, total_actual_cost), where total_cost is a
-       dictionary of cost information, and total_actual_cost is a dictionary of information on
-       the actual incurred cost with cache."""
+    cost: Dict[str, dict] = None  # keys: "usage_including_cached_inference", "usage_excluding_cached_inference"
+    """The cost of the chat.
+       The value for each usage type is a dictionary containing cost information for that specific type.
+           - "usage_including_cached_inference": Cost information on the total usage, including the tokens in cached inference.
+           - "usage_excluding_cached_inference": Cost information on the usage of tokens, excluding the tokens in cache. No larger than "usage_including_cached_inference".
+    """
     human_input: List[str] = None
     """A list of human input solicited during the chat."""
 
