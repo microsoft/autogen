@@ -1,17 +1,18 @@
+from __future__ import annotations
+
 import logging
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
 
 from azure.cosmos import CosmosClient
+from openai import AzureOpenAI, OpenAI
+from openai.types.chat import ChatCompletion
 
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
 if TYPE_CHECKING:
-    from autogen.agent.conversable_agent import ConversableAgent
-    from autogen.wrapper.openai_wrapper import OpenAIWrapper
-
-logger = logging.getLogger(__name__)
+    from autogen import ConversableAgent, OpenAIWrapper
 
 
 class CosmosDBConfig(TypedDict):
