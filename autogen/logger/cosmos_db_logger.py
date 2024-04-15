@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 
 class CosmosDBConfig(TypedDict):
     connection_string: str
-    database_name: str  # Optional key, hence not enforcing it as mandatory
-    container_name: str  # Optional key, hence not enforcing it as mandatory
+    database_id: str  # Optional key, hence not enforcing it as mandatory
+    container_id: str  # Optional key, hence not enforcing it as mandatory
 
 
 class CosmosDBLogger(BaseLogger):
