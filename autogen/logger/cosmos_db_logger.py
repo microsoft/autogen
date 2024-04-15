@@ -14,6 +14,8 @@ from autogen.logger.logger_utils import get_current_ts, to_dict
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
 
+logger = logging.getLogger(__name__)
+
 
 class CosmosDBConfig(TypedDict):
     connection_string: str
