@@ -1,10 +1,9 @@
 import copy
 from typing import Dict, List
 
-from termcolor import colored
-
 from autogen import ConversableAgent
 
+from ....formatting_utils import colored
 from .transforms import MessageTransform
 
 
@@ -43,12 +42,14 @@ class TransformMessages:
         ```
     """
 
-    def __init__(self, *, transforms: List[MessageTransform] = []):
+    def __init__(self, *, transforms: List[MessageTransform] = [], verbose: bool = True):
         """
         Args:
             transforms: A list of message transformations to apply.
+            verbose: Whether to print logs of each transformation or not.
         """
         self._transforms = transforms
+        self._verbose = verbose
 
     def add_to_agent(self, agent: ConversableAgent):
         """Adds the message transformations capability to the specified ConversableAgent.
@@ -61,31 +62,26 @@ class TransformMessages:
         agent.register_hook(hookable_method="process_all_messages_before_reply", hook=self._transform_messages)
 
     def _transform_messages(self, messages: List[Dict]) -> List[Dict]:
-        temp_messages = copy.deepcopy(messages)
+        post_transform_messages = copy.deepcopy(messages)
         system_message = None
 
         if messages[0]["role"] == "system":
             system_message = copy.deepcopy(messages[0])
-            temp_messages.pop(0)
+            post_transform_messages.pop(0)
 
         for transform in self._transforms:
-            temp_messages = transform.apply_transform(temp_messages)
+            # deepcopy in case pre_transform_messages will later be used for logs printing
+            pre_transform_messages = (
+                copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
+            )
+            post_transform_messages = transform.apply_transform(pre_transform_messages)
+
+            if self._verbose:
+                logs_str, had_effect = transform.get_logs(pre_transform_messages, post_transform_messages)
+                if had_effect:
+                    print(colored(logs_str, "yellow"))
 
         if system_message:
-            temp_messages.insert(0, system_message)
+            post_transform_messages.insert(0, system_message)
 
-        self._print_stats(messages, temp_messages)
-
-        return temp_messages
-
-    def _print_stats(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]):
-        pre_transform_messages_len = len(pre_transform_messages)
-        post_transform_messages_len = len(post_transform_messages)
-
-        if pre_transform_messages_len < post_transform_messages_len:
-            print(
-                colored(
-                    f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}.",
-                    "yellow",
-                )
-            )
+        return post_transform_messages
