@@ -9,7 +9,7 @@ from autogen.agentchat.contrib.agent_optimizer import AgentOptimizer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai as skip
+from conftest import reason, skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 here = os.path.abspath(os.path.dirname(__file__))
