@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 def content_str(content: Union[str, List[Union[UserMessageTextContentPart, UserMessageImageContentPart]], None]) -> str:
-    """Converts the `content` field of an OpenAI merssage into a string format.
+    """Converts the `content` field of an OpenAI message into a string format.
 
     This function processes content that may be a string, a list of mixed text and image URLs, or None,
     and converts it into a string. Text is directly appended to the result string, while image URLs are

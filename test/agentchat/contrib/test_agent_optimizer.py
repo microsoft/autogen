@@ -1,19 +1,22 @@
 import os
+import sys
 
 import pytest
-from conftest import skip_openai as skip
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
+from autogen import AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.agent_optimizer import AgentOptimizer
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import reason, skip_openai
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_record_conversation():
     problem = "Simplify $\\sqrt[3]{1+8} \\cdot \\sqrt[3]{1+\\sqrt[3]{8}}"
@@ -54,8 +57,8 @@ def test_record_conversation():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_step():
     problem = "Simplify $\\sqrt[3]{1+8} \\cdot \\sqrt[3]{1+\\sqrt[3]{8}}"
