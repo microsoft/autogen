@@ -25,10 +25,12 @@ class ChatResult:
     """The chat history."""
     summary: str = None
     """A summary obtained from the chat."""
-    cost: tuple = None  # (dict, dict) - (total_cost, actual_cost_with_cache)
-    """The cost of the chat. a tuple of (total_cost, total_actual_cost), where total_cost is a
-       dictionary of cost information, and total_actual_cost is a dictionary of information on
-       the actual incurred cost with cache."""
+    cost: Dict[str, dict] = None  # keys: "usage_including_cached_inference", "usage_excluding_cached_inference"
+    """The cost of the chat.
+       The value for each usage type is a dictionary containing cost information for that specific type.
+           - "usage_including_cached_inference": Cost information on the total usage, including the tokens in cached inference.
+           - "usage_excluding_cached_inference": Cost information on the usage of tokens, excluding the tokens in cache. No larger than "usage_including_cached_inference".
+    """
     human_input: List[str] = None
     """A list of human input solicited during the chat."""
 
@@ -169,6 +171,9 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
             - `"carryover"` - It can be used to specify the carryover information to be passed
                to this chat. If provided, we will combine this carryover with the "message" content when
                generating the initial chat message in `generate_init_message`.
+            - `"finished_chat_indexes_to_exclude_from_carryover"` - It can be used by specifying a list of indexes of the finished_chats list,
+               from which to exclude the summaries for carryover. If 'finished_chat_indexes_to_exclude_from_carryover' is not provided or an empty list,
+               then summary from all the finished chats will be taken.
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
@@ -180,9 +185,16 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     while current_chat_queue:
         chat_info = current_chat_queue.pop(0)
         _chat_carryover = chat_info.get("carryover", [])
+        finished_chat_indexes_to_exclude_from_carryover = chat_info.get(
+            "finished_chat_indexes_to_exclude_from_carryover", []
+        )
+
         if isinstance(_chat_carryover, str):
             _chat_carryover = [_chat_carryover]
-        chat_info["carryover"] = _chat_carryover + [r.summary for r in finished_chats]
+        chat_info["carryover"] = _chat_carryover + [
+            r.summary for i, r in enumerate(finished_chats) if i not in finished_chat_indexes_to_exclude_from_carryover
+        ]
+
         __post_carryover_processing(chat_info)
         sender = chat_info["sender"]
         chat_res = sender.initiate_chat(**chat_info)
