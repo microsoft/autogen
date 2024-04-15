@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import logging
-import time
-import threading
 import queue
+import threading
+import time
 import uuid
-
-
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
 
 from azure.cosmos import CosmosClient, exceptions
@@ -41,9 +39,6 @@ class CosmosDBLogger(BaseLogger):
         self.session_id = str(uuid.uuid4())
         self.log_queue = queue.Queue()
         self.logger_thread = threading.Thread(target=self._process_log_queue)
-        
-        self.logger_thread.daemon = True
-        
         self.logger_thread.start()
 
     def start(self) -> str:
