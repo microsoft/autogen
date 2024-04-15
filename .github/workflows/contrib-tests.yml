@@ -277,7 +277,7 @@ jobs:
           pip install pytest
       - name: Install packages and dependencies for Gemini
         run: |
-          pip install -e .[gemini]
+          pip install -e .[gemini,test]
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
