@@ -3,7 +3,7 @@ import json
 import socket
 import subprocess as sp
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import autogen
 
@@ -114,12 +114,29 @@ output after executing the code) and provide a corrected answer or code.
     # Only return the list of agent names.
     """
 
+    AGENT_MODEL_SEARCHING_PROMPT = """Considering the following task and position:
+
+    TASK: {task}
+    POSITION: {position}
+
+    Which following models should be used to support the position in the task?
+
+    MODEL LIST:
+    {model_list}
+
+    Hint:
+    # You should consider if the model has the potential to support the postion to complete the task based on the model's name and profile.
+    # You should select the most suitable model for the position.
+    # You should select only one model for the position.
+    # Only return the selected model's name.
+    """
+
     def __init__(
         self,
         config_file_or_env: Optional[str] = "OAI_CONFIG_LIST",
         config_file_location: Optional[str] = "",
         builder_model: Optional[str] = "gpt-4",
-        agent_model: Optional[str] = "gpt-4",
+        agent_model: Optional[Union[str, List[str]]] = "gpt-4",
         host: Optional[str] = "localhost",
         endpoint_building_timeout: Optional[int] = 600,
         max_tokens: Optional[int] = 945,
@@ -131,6 +148,7 @@ output after executing the code) and provide a corrected answer or code.
             config_file_or_env: path or environment of the OpenAI api configs.
             builder_model: specify a model as the backbone of build manager.
             agent_model: specify a model as the backbone of participant agents.
+                If a list of models is provided, the builder will select the model based on the agent role.
             host: endpoint host.
             endpoint_building_timeout: timeout for building up an endpoint server.
             max_tokens: max tokens for each agent.
@@ -138,7 +156,7 @@ output after executing the code) and provide a corrected answer or code.
         """
         self.host = host
         self.builder_model = builder_model
-        self.agent_model = agent_model
+        self.agent_model = [agent_model] if isinstance(agent_model, str) else agent_model
         self.config_file_or_env = config_file_or_env
         self.config_file_location = config_file_location
         self.endpoint_building_timeout = endpoint_building_timeout
@@ -160,8 +178,8 @@ output after executing the code) and provide a corrected answer or code.
     def set_builder_model(self, model: str):
         self.builder_model = model
 
-    def set_agent_model(self, model: str):
-        self.agent_model = model
+    def set_agent_model(self, model: Union[str, List[str]]):
+        self.agent_model = [model] if isinstance(model, str) else model
 
     @staticmethod
     def _is_port_open(host, port):
@@ -381,6 +399,17 @@ output after executing the code) and provide a corrected answer or code.
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
+        agent_model_config_list = autogen.config_list_from_json(
+            self.config_file_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": self.agent_model},
+        )
+        if len(agent_model_config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize agent model: {self.agent_model} does not exist in {self.config_file_or_env}. "
+                f'If you want to change this model list, please specify the "agent_model" in the constructor.'
+            )
+
         print("==> Generating agents...")
         resp_agent_name = (
             build_manager.create(
@@ -437,9 +466,21 @@ output after executing the code) and provide a corrected answer or code.
             )
             agent_description_list.append(resp_agent_description)
 
-        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_description_list)):
+        if len(agent_model_config_list) == 1:
+            agent_model_list = [agent_model_config_list[0]["model"] for _ in agent_name_list]
+        else:
+            print("==> Looking for suitable models...")
+            agent_model_list = []
+            for agent_name, agent_description in list(zip(agent_name_list, agent_description_list)):
+                resp_agent_model = self._search_agent_model(
+                    agent_name, agent_description, agent_model_config_list, build_manager
+                )
+                agent_model_list.append(resp_agent_model)
+                print(f"Model {resp_agent_model} is selected for {agent_name}.")
+
+        for name, model, sys_msg, description in list(zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_description_list)):
             agent_configs.append(
-                {"name": name, "model": self.agent_model, "system_message": sys_msg, "description": description}
+                {"name": name, "model": model, "system_message": sys_msg, "description": description}
             )
 
         if coding is None:
@@ -520,6 +561,17 @@ output after executing the code) and provide a corrected answer or code.
             )
         build_manager = autogen.OpenAIWrapper(config_list=config_list)
 
+        agent_model_config_list = autogen.config_list_from_json(
+            self.config_file_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": self.agent_model},
+        )
+        if len(agent_model_config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize agent model: {self.agent_model} does not exist in {self.config_file_or_env}. "
+                f'If you want to change this model list, please specify the "agent_model" in the constructor.'
+            )
+
         try:
             agent_library = json.loads(library_path_or_json)
         except json.decoder.JSONDecodeError:
@@ -581,6 +633,18 @@ output after executing the code) and provide a corrected answer or code.
                         break
             print(f"{agent_name_list} are selected.")
 
+        if len(agent_model_config_list) == 1:
+            agent_model_list = [agent_model_config_list[0]["model"] for _ in agent_name_list]
+        else:
+            print("==> Looking for suitable models...")
+            agent_model_list = []
+            for agent_name, agent_profile in list(zip(agent_name_list, agent_profile_list)):
+                resp_agent_model = self._search_agent_model(
+                    agent_name, agent_profile, agent_model_config_list, build_manager
+                )
+                agent_model_list.append(resp_agent_model)
+                print(f"Model {resp_agent_model} is selected for {agent_name}.")
+
         print("==> Generating system message...")
         # generate system message from profile
         agent_sys_msg_list = []
@@ -604,9 +668,9 @@ output after executing the code) and provide a corrected answer or code.
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        for name, sys_msg, description in list(zip(agent_name_list, agent_sys_msg_list, agent_profile_list)):
+        for name, model, sys_msg, description in list(zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_profile_list)):
             agent_configs.append(
-                {"name": name, "model": self.agent_model, "system_message": sys_msg, "description": description}
+                {"name": name, "model": model, "system_message": sys_msg, "description": description}
             )
 
         if coding is None:
@@ -682,6 +746,53 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
             )
 
         return agent_list, self.cached_configs.copy()
+
+    def _search_agent_model(
+        self,
+        agent_name: str,
+        agent_profile: str,
+        model_config_list: List[Dict],
+        search_manager: autogen.OpenAIWrapper,
+    ) -> str:
+        """
+        Search the most suitable model from the model_config_list based on the agent's name and profile.
+
+        Args:
+            agent_name: the name of agent.
+            agent_profile: the profile of agent.
+            model_config_list: a list of model configs. A sample model config should be like:
+                {
+                    "model": "model_name",
+                    "profile": "model_profile",
+                }
+            search_manager: an OpenAIWrapper instance for model searching.
+
+        Returns:
+            model_name: the selected model name.
+        """
+        model_profiles = [
+            f"No.{i + 1} MODEL's NAME: {model['model']}\nNo.{i + 1} MODEL's PROFILE: {model.get('profile', '')}\n\n"
+            for i, model in enumerate(model_config_list)
+        ]
+
+        resp_agent_model = (
+            search_manager.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": self.AGENT_MODEL_SEARCHING_PROMPT.format(
+                            task=self.building_task,
+                            position=f"{agent_name}\nPOSITION PROFILE: {agent_profile}",
+                            model_list="".join(model_profiles)
+                        )
+                    }
+                ]
+            )
+            .choices[0]
+            .message.content
+        )
+
+        return resp_agent_model
 
     def save(self, filepath: Optional[str] = None) -> str:
         """
