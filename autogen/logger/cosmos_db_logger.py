@@ -43,7 +43,7 @@ class CosmosDBLogger(BaseLogger):
         client_id: int,
         wrapper_id: int,
         request: Dict[str, Any],
-        response: Union[str, Dict[str, Any], None],
+        response: Union[str, ChatCompletion],
         is_cached: int,
         cost: float,
         start_time: str,
