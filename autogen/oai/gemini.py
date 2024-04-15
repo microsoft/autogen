@@ -1,5 +1,17 @@
 """Create a OpenAI-compatible client for Gemini features.
 
+
+Example:
+    llm_config={
+        "config_list": [{
+            "api_type": "google",
+            "model": "models/gemini-pro",
+            "api_key": os.environ.get("GOOGLE_API_KEY")
+            }
+    ]}
+
+    agent = autogen.AssistantAgent("my_agent", llm_config=llm_config)
+
 Resources:
 - https://ai.google.dev/docs
 - https://cloud.google.com/vertex-ai/docs/generative-ai/migrate-from-azure
@@ -34,12 +46,8 @@ from autogen.token_count_utils import count_token
 class GeminiClient:
     """Client for Google's Gemini API.
 
-    TODO: this Gemini implementation does not support the following features yet:
-    - function_call (OpenAI)
-    - tool_calls (OpenAI)
-    - safety_setting (Gemini)
-    - Multi-turn chat for vision model (Gemini)
-    - multiple responses at the same time (Gemini)
+    Please visit this [page](https://github.com/microsoft/autogen/issues/2387) for the roadmap of Gemini integration
+    of AutoGen.
     """
 
     def __init__(self, **kwargs):
@@ -61,7 +69,7 @@ class GeminiClient:
         return [choice.message for choice in response.choices]
 
     def cost(self, response) -> float:
-        return 0.0  # the current cost of Gemini api is zero.
+        return 0.0
 
     @staticmethod
     def get_usage(response) -> Dict:
@@ -91,10 +99,8 @@ class GeminiClient:
         params.get("temperature", 0.5)
         params.get("top_p", 1.0)
         params.get("max_tokens", 1024)
-        # TODO: handle these parameters in GenerationConfig
 
         if stream:
-            # TODO: support streaming
             # warn user that streaming is not supported
             warnings.warn(
                 "Streaming is not supported for Gemini yet, and it will have no effect. Please set stream=False.",
@@ -164,7 +170,7 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
-            cost=0,  # Gemini's cost is zero
+            cost=0,
         )
 
         return response_oai
@@ -216,8 +222,6 @@ def concat_parts(parts: List[Part]) -> List:
         previous_part.text = "empty"  # Empty content is not allowed.
     concatenated_parts.append(previous_part)
 
-    # TODO: handle inline_data, function_call, function_response
-
     return concatenated_parts
 
 
@@ -249,10 +253,6 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
     # We add a dummy message "continue" if the last role is not the user.
     if rst[-1].role != "user":
         rst.append(Content(parts=oai_content_to_gemini_content("continue"), role="user"))
-
-    # TODO: as many LLM/LMM models are not as smart as OpenAI models, we need
-    # to discuss how to design GroupChat and API protocol to make sure different
-    # models can be used together with consistent behaviors.
 
     return rst
 
@@ -312,5 +312,4 @@ def get_image_data(image_file: str, use_b64=True) -> bytes:
     if use_b64:
         return base64.b64encode(content).decode("utf-8")
     else:
-        return content
         return content
