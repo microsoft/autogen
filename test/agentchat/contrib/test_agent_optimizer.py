@@ -1,13 +1,14 @@
 import os
-
+import sys
 import pytest
-from conftest import skip_openai as skip
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-
 import autogen
 from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 from autogen.agentchat.contrib.agent_optimizer import AgentOptimizer
 
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai as skip
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 here = os.path.abspath(os.path.dirname(__file__))
 
 
