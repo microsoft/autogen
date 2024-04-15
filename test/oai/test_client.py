@@ -301,12 +301,11 @@ def test_cache():
 
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_throttled_api_calls():
-    # config_list = config_list_from_json(
-    #     env_or_file=OAI_CONFIG_LIST,
-    #     file_location=KEY_LOC,
-    #     filter_dict={"model": ["gpt-3.5-turbo"]},
-    # )
-    config_list = [{"model": "gpt-3.5-turbo", "api_key": os.environ.get("OPENAI_API_KEY")}]
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"model": ["gpt-3.5-turbo"]},
+    )
 
     # Api calling limited at 0.2 request per second, or 1 request per 5 seconds
     rate = 1 / 5.0
