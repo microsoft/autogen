@@ -18,6 +18,8 @@ try:
     import huggingface_hub
 except ImportError:
     skip = True
+else:
+    skip = False
 
 here = os.path.abspath(os.path.dirname(__file__))
 
