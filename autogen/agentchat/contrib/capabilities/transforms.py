@@ -1,13 +1,11 @@
 import copy
 import sys
-from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
 
 from autogen import token_count_utils
-
-from .transforms_conditions import NewMessageCondition, TransformCondition
 
 
 class MessageTransform(Protocol):
@@ -19,17 +17,19 @@ class MessageTransform(Protocol):
     * a `get_logs` method that takes the pre-transform and post-transform messages and returns a string with the logs.
     """
 
-    condition: TransformCondition  # Condition indicating whether to apply the transformation.
+    apply_condition: Optional[
+        Callable
+    ]  # takes a list of messages as input and returns a boolean indicating whether to apply
 
-    def __init__(self, condition: TransformCondition = NewMessageCondition(), *args, **kwargs):
+    def __init__(self, apply_condition: Optional[Callable] = None, *args, **kwargs):
         """Initializes the transformation.
 
         Args:
-            condition: condition indicating whether to apply the transformation.
+            apply_condition: a callable that takes a list of messages as input and returns a boolean indicating whether to apply
             args: additional arguments for the transformation.
             kwargs: additional keyword arguments for the transformation.
         """
-        self.condition = condition
+        self.apply_condition = apply_condition
         ...
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
@@ -65,16 +65,13 @@ class MessageHistoryLimiter:
     It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
-    def __init__(
-        self, max_messages: Optional[int] = None, condition: TransformCondition = NewMessageCondition()
-    ) -> None:
+    def __init__(self, max_messages: Optional[int] = None, apply_condition: Optional[Callable] = None) -> None:
         """
         Args:
-            condition (Union[str, TransformCondition]): Condition indicating whether to apply the transformation or not.
-            max_messages (None or int): Maximum number of messages to keep in the context.
-            Must be greater than 0 if not None.
+            apply_condition (Optional[Callable]): a callable that takes a list of messages as input and returns a boolean indicating whether to apply
+            max_messages (Optional[int]): Maximum number of messages to keep in the context. Must be greater than 0 if not None.
         """
-        self.condition = condition
+        self.apply_condition = apply_condition
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages
 
@@ -144,7 +141,7 @@ class MessageTokenLimiter:
         max_tokens_per_message: Optional[int] = None,
         max_tokens: Optional[int] = None,
         model: str = "gpt-3.5-turbo-0613",
-        condition: TransformCondition = NewMessageCondition(),
+        apply_condition: Optional[Callable] = None,
     ):
         """
         Args:
@@ -153,8 +150,10 @@ class MessageTokenLimiter:
             max_tokens (Optional[int]): Maximum number of tokens to keep in the chat history.
                 Must be greater than or equal to 0 if not None.
             model (str): The target OpenAI model for tokenization alignment.
+            apply_condition (Optional[Callable]): a callable that takes a list of messages as input and
+                                                  returns a boolean indicating whether to apply
         """
-        self.condition = condition
+        self.apply_condition = apply_condition
         self._model = model
         self._max_tokens_per_message = self._validate_max_tokens(max_tokens_per_message)
         self._max_tokens = self._validate_max_tokens(max_tokens)

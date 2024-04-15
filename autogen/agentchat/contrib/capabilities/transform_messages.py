@@ -75,9 +75,8 @@ class TransformMessages:
                 copy.deepcopy(post_transform_messages) if self._verbose else post_transform_messages
             )
 
-            if transform.condition.check_condition(
-                pre_transform_messages
-            ):  # check if the transformation should be applied
+            # apply the transformation if no condition is set or the condition is met
+            if (not transform.apply_condition) or transform.apply_condition(messages):
                 post_transform_messages = transform.apply_transform(pre_transform_messages)
             else:
                 post_transform_messages = pre_transform_messages
