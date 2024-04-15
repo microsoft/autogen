@@ -3,8 +3,8 @@ import logging
 from typing import Awaitable, Callable, List, Optional, Union, cast
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent, GenerateReplyResult
-from ..types import AssistantMessage, Message, MessageAndSender, UserMessage
+from ..agent import Agent
+from ..types import AssistantMessage, Message, MessageAndSender, UserMessage, GenerateReplyResult
 
 __all__ = ("UserProxyAgent",)
 

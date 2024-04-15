@@ -4,7 +4,7 @@ from typing_extensions import NotRequired, Required, TypedDict
 
 from ...cache import AbstractCache
 from ...function_utils import get_function_schema
-from ..agent import AgentStream, GenerateReplyResult
+from ..agent import AgentStream
 from ..model_client import ModelClient
 from ..types import (
     AssistantMessage,
@@ -14,6 +14,7 @@ from ..types import (
     MessageAndSender,
     PartialContent,
     SystemMessage,
+    GenerateReplyResult,
 )
 
 

@@ -1,8 +1,9 @@
-from typing import AsyncGenerator, List, Protocol, Tuple, Union, runtime_checkable
+from __future__ import annotations
 
-from .types import IntermediateResponse, Message, MessageAndSender, MessageContext
+from typing import AsyncGenerator, List, Protocol, Union, runtime_checkable, TYPE_CHECKING
 
-GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]
+if TYPE_CHECKING:
+    from .types import IntermediateResponse, MessageAndSender, GenerateReplyResult
 
 
 @runtime_checkable

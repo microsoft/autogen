@@ -1,9 +1,15 @@
 from typing import Callable, List, Optional
 
 from autogen.experimental.chat import ChatOrchestrator
-from autogen.experimental.types import AssistantMessage, MessageAndSender, MessageContext, SystemMessage
+from autogen.experimental.types import (
+    AssistantMessage,
+    MessageAndSender,
+    MessageContext,
+    SystemMessage,
+    GenerateReplyResult,
+)
 
-from ..agent import Agent, GenerateReplyResult
+from ..agent import Agent
 
 TransformInput = Callable[[List[MessageAndSender]], List[MessageAndSender]]
 

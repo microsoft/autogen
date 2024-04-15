@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from typing_extensions import Literal
 
@@ -116,3 +116,6 @@ class StatusUpdate:
 @dataclass
 class IntermediateResponse:
     item: Union[PartialContent, StatusUpdate]
+
+
+GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]

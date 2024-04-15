@@ -1,13 +1,21 @@
-from typing import AsyncGenerator, List, Optional, Union
+from typing import AsyncGenerator, Callable, List, Optional, Union
 
-from ..agent import Agent, AgentStream, GenerateReplyResult
+from ..agent import Agent, AgentStream
 from ..chat import ChatOrchestratorStream
 from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection import SpeakerSelectionStrategy
 from ..summarizer import ChatSummarizer
 from ..termination import TerminationManager, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
-from ..types import ChatResult, IntermediateResponse, Message, MessageAndSender, MessageContext, UserMessage
+from ..types import (
+    ChatResult,
+    IntermediateResponse,
+    Message,
+    MessageAndSender,
+    MessageContext,
+    UserMessage,
+    GenerateReplyResult,
+)
 
 DEFAULT_INTRO_MSG = (
     "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"

@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Protocol
+from typing import List, Optional, Protocol, TYPE_CHECKING
 
 from autogen.experimental.agent import Agent
 
-from .types import MessageAndSender
+if TYPE_CHECKING:
+    from .types import MessageAndSender
 
 
 class TerminationReason(Enum):

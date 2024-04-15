@@ -8,7 +8,7 @@ from typing_extensions import Literal
 from autogen.experimental.function_executor import FunctionExecutor
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent, GenerateReplyResult
+from ..agent import Agent
 from ..types import (
     AssistantMessage,
     FunctionCall,
@@ -16,6 +16,7 @@ from ..types import (
     FunctionCallResult,
     MessageAndSender,
     UserMessage,
+    GenerateReplyResult,
 )
 
 logger = logging.getLogger(__name__)
