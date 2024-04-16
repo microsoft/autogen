@@ -7,7 +7,7 @@ from autogen.experimental.termination import Termination, TerminationReason, Ter
 from ..types import AssistantMessage, UserMessage
 
 
-class DefaultTerminationManager(Termination):
+class DefaultTermination(Termination):
     def __init__(self, *, termination_message: str = "TERMINATE", max_turns: int = 10) -> None:
         self._termination_message = termination_message
         self._max_turns = max_turns

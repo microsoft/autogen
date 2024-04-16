@@ -23,7 +23,7 @@ def _into_function_definition(
     if isinstance(func_info, FunctionDefinition):
         return func_info
     elif isinstance(func_info, dict):
-        name = func_info.get("name", func_info.get("func").__name__)
+        name = func_info.get("name", func_info["func"].__name__)
         description = func_info.get("description", "")
         parameters = get_function_schema(func_info["func"], description="", name="")["function"]["parameters"]
         return FunctionDefinition(name=name, description=description, parameters=parameters)

@@ -1,7 +1,7 @@
-from .default_termination_manager import DefaultTerminationManager
+from .default_termination import DefaultTermination
 from .reflection import ReflectionTerminationManager
 
 __all__ = [
-    "DefaultTerminationManager",
+    "DefaultTermination",
     "ReflectionTerminationManager",
 ]

@@ -12,7 +12,7 @@ class InProcessFunctionExecutor(FunctionExecutor):
     ) -> None:
         def _name(func: Union[Callable[..., Any], FunctionInfo]) -> str:
             if isinstance(func, dict):
-                return func.get("name", func.get("func").__name__)
+                return func.get("name", func["func"].__name__)
             else:
                 return func.__name__
 

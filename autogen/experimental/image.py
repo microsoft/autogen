@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import re
 from io import BytesIO
@@ -14,11 +16,11 @@ class Image:
         self.image: PILImage.Image = image.convert("RGB")
 
     @classmethod
-    def from_pil(cls, pil_image: PILImage.Image):
+    def from_pil(cls, pil_image: PILImage.Image) -> Image:
         return cls(pil_image)
 
     @classmethod
-    def from_uri(cls, uri: str):
+    def from_uri(cls, uri: str) -> Image:
         if not re.match(r"data:image/(?:png|jpeg);base64,", uri):
             raise ValueError("Invalid URI format. It should be a base64 encoded image URI.")
 
@@ -27,18 +29,18 @@ class Image:
         return cls.from_base64(base64_data)
 
     @classmethod
-    async def from_url(cls, url: str):
+    async def from_url(cls, url: str) -> Image:
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 content = await response.read()
                 return cls(PILImage.open(content))
 
     @classmethod
-    def from_base64(cls, base64_str: str):
+    def from_base64(cls, base64_str: str) -> Image:
         return cls(PILImage.open(BytesIO(base64.b64decode(base64_str))))
 
     @classmethod
-    def from_file(cls, file_path: Path):
+    def from_file(cls, file_path: Path) -> Image:
         return cls(PILImage.open(file_path))
 
     def _repr_html_(self) -> str:
@@ -57,7 +59,7 @@ class Image:
 
 
 def _convert_base64_to_data_uri(base64_image: str) -> str:
-    def _get_mime_type_from_data_uri(base64_image: str):
+    def _get_mime_type_from_data_uri(base64_image: str) -> str:
         # Decode the base64 string
         image_data = base64.b64decode(base64_image)
         # Check the first few bytes for known signatures

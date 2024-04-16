@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Sequence
+from typing import List, Optional
 
 from autogen.experimental import TwoAgentChat
 from autogen.experimental.agent import Agent, GenerateReplyResult
@@ -9,7 +9,7 @@ from autogen.experimental.chats.group_chat import GroupChat
 from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
 from autogen.experimental.drivers import run_in_terminal
-from autogen.experimental.speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
+from autogen.experimental.speaker_selections.round_robin_speaker_selection import RoundRobin
 from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
 from autogen.experimental.types import AssistantMessage, UserMessage, Message
 
@@ -17,7 +17,7 @@ import aioconsole
 import pprint
 
 
-class FibTerminationManager(Termination):
+class FibTermination(Termination):
     def record_turn_taken(self, agent: Agent) -> None:
         pass
 
@@ -49,19 +49,18 @@ class FibbonacciAgent(Agent):
         self,
         chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
+        messages_to_use: List[Message] = []
         if len(chat_history) > 1:
-            messages_to_use = chat_history.messages[1:]
-        else:
-            messages_to_use: Sequence[Message] = []
+            messages_to_use = list(chat_history.messages[1:])
 
         if len(messages_to_use) == 0:
             num1 = AssistantMessage(content="1")
             num2 = AssistantMessage(content="0")
         elif len(messages_to_use) == 1:
             num1 = AssistantMessage(content="0")
-            num2 = messages_to_use[-1]
+            num2 = messages_to_use[-1]  # type: ignore
         else:
-            num1, num2 = messages_to_use[-2], messages_to_use[-1]
+            num1, num2 = messages_to_use[-2], messages_to_use[-1]  # type: ignore
 
         assert isinstance(num1, AssistantMessage)
         assert isinstance(num1.content, str)
@@ -98,7 +97,7 @@ async def main() -> None:
         agents=[FibbonacciAgent()],
         send_introduction=False,
         speaker_selection=RoundRobin(),
-        termination_manager=FibTerminationManager(),
+        termination_manager=FibTermination(),
     )
 
     nested_chat = ChatAgent(name="nested_chat", chat=fib_chat, input_transform=prime_nested_chat)

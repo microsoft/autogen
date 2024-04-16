@@ -6,7 +6,7 @@ import aioconsole
 from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat, UserProxyAgent
 from autogen.experimental.drivers import run_in_terminal
-from autogen.experimental.termination_managers import ReflectionTerminationManager
+from autogen.experimental.terminations import ReflectionTerminationManager
 from autogen.experimental.types import UserMessage
 
 

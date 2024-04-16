@@ -223,8 +223,8 @@ def _cost(response: Union[ChatCompletion, Tuple[str, int, int]]) -> float:
     tmp_price1K = OAI_PRICE1K[model]
     # First value is input token rate, second value is output token rate
     if isinstance(tmp_price1K, tuple):
-        return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000
-    return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000
+        return (tmp_price1K[0] * n_input_tokens + tmp_price1K[1] * n_output_tokens) / 1000  # type: ignore
+    return tmp_price1K * (n_input_tokens + n_output_tokens) / 1000  # type: ignore
 
 
 class ResponseFormat(TypedDict):
@@ -395,7 +395,7 @@ class BaseOpenAI(ModelClient):
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
 
-        response = CreateResult(finish_reason=finish_reason, content=content, usage=usage, cached=False)
+        response = CreateResult(finish_reason=finish_reason, content=content, usage=usage, cached=False)  # type: ignore
 
         if cache is not None:
             assert cache_key is not None

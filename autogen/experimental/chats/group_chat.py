@@ -2,6 +2,7 @@ from typing import AsyncGenerator, List, Optional, Union
 
 from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
+from autogen.experimental.chat_result import ChatResult
 
 from ..agent import Agent, AgentStream, GenerateReplyResult
 from ..chat import ChatOrchestratorStream
@@ -9,9 +10,8 @@ from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection import SpeakerSelection
 from ..summarizer import ChatSummarizer
 from ..termination import Termination, TerminationResult
-from ..termination_managers.default_termination_manager import DefaultTerminationManager
+from ..terminations.default_termination import DefaultTermination
 from ..types import (
-    ChatResult,
     IntermediateResponse,
     Message,
     MessageContext,
@@ -42,7 +42,7 @@ class GroupChat(ChatOrchestratorStream):
         agents: List[Union[Agent, AgentStream]],
         *,
         speaker_selection: SpeakerSelection,
-        termination_manager: Termination = DefaultTerminationManager(),
+        termination_manager: Termination = DefaultTermination(),
         summarizer: ChatSummarizer = LastMessageSummarizer(),
         send_introduction: bool = True,
         intro_message: str = DEFAULT_INTRO_MSG,
