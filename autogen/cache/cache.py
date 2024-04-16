@@ -82,7 +82,14 @@ class Cache(AbstractCache):
         Returns:
             Cache: A Cache instance configured for Cosmos DB.
         """
-        return Cache({"cache_seed": cache_seed, "connection_string": connection_string, "database_id": database_id, "container_id": container_id})
+        return Cache(
+            {
+                "cache_seed": cache_seed,
+                "connection_string": connection_string,
+                "database_id": database_id,
+                "container_id": container_id,
+            }
+        )
 
     def __init__(self, config: Dict[str, Any]):
         """
