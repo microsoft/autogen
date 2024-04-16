@@ -23,14 +23,13 @@ class CosmosDBCache(AbstractCache):
         container: The container instance used for caching.
     """
 
-    def __init__(self, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
+    def __init__(self, seed: Union[str, int], client: CosmosClient, database_id: str = "autogen_cache", container_id: str):
         """
         Initialize the CosmosDBCache instance.
 
         Args:
             seed (Union[str, int]): A seed or namespace for the cache, used as a partition key.
             connection_string (str): The connection string for the Cosmos DB account.
-            database_id (str): The database ID to be used.
             container_id (str): The container ID to be used for caching.
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
