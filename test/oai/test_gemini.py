@@ -16,7 +16,6 @@ except ImportError:
 
 # Fixtures for mock data
 @pytest.fixture
-@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def mock_response():
     class MockResponse:
         def __init__(self, text, choices, usage, cost, model):
@@ -30,7 +29,6 @@ def mock_response():
 
 
 @pytest.fixture
-@pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
 def gemini_client():
     return GeminiClient(api_key="fake_api_key")
 
