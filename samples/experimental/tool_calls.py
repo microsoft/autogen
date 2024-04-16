@@ -25,20 +25,6 @@ async def main() -> None:
     )
     chat = TwoAgentChat(assistant, executor, initial_message="What is the weather in Seattle?")
 
-    assistant = AssistantAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
-    user_proxy = UserProxyAgent(
-        name="user", human_input_callback=user_input, code_executor=LocalCommandLineCodeExecutor()
-    )
-    chat = TwoAgentChat(
-        assistant,
-        user_proxy,
-        termination_manager=ReflectionTerminationManager(
-            model_client=json_model_client, goal="The code has run and the plot was shown."
-        ),
-        initial_message="Plot the graph of NVDA vs AAPL ytd.",
-    )
-    await run_in_terminal(chat)
-
     await run_in_terminal(chat)
     print(chat.termination_result)
 

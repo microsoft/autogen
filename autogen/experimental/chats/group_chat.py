@@ -1,4 +1,4 @@
-from typing import AsyncGenerator, Callable, List, Optional, Union
+from typing import AsyncGenerator, List, Optional, Union
 
 from ..agent import Agent, AgentStream
 from ..chat import ChatOrchestratorStream

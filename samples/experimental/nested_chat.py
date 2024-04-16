@@ -9,7 +9,7 @@ from autogen.experimental.chats.group_chat import GroupChat
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
-from autogen.experimental.types import AssistantMessage, MessageAndSender, GenerateReplyResult
+from autogen.experimental.types import AssistantMessage, MessageAndSender, GenerateReplyResult, UserMessage
 
 import aioconsole
 import pprint
@@ -20,7 +20,10 @@ class FibTerminationManager(TerminationManager):
         pass
 
     async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]:
-        desired_fib_number = int(chat_history[0].message.content)
+        assert len(chat_history) > 0
+        message = chat_history[0].message
+        assert isinstance(message, UserMessage) and isinstance(message.content, str)
+        desired_fib_number = int(message.content)
         if len(chat_history) == 1 + desired_fib_number:
             return TerminationResult(reason=TerminationReason.GOAL_REACHED, explanation="Fib number reached")
         return None
@@ -100,7 +103,7 @@ async def main() -> None:
 
     await run_in_terminal(chat)
     output = pprint.pformat(chat.message_contexts)
-    await aioconsole.aprint(output)
+    await aioconsole.aprint(output) # type: ignore
 
 
 if __name__ == "__main__":
