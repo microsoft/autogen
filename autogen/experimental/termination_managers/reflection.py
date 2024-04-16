@@ -4,12 +4,12 @@ from typing import ClassVar, Optional
 from autogen.experimental.agent import Agent
 from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.model_client import ModelClient
-from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
+from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
 
 from ..types import SystemMessage, UserMessage
 
 
-class ReflectionTerminationManager(TerminationManager):
+class ReflectionTerminationManager(Termination):
     SYSTEM_MESSAGE: ClassVar[
         str
     ] = """You are a helpful agent that can look at a conversation and decide if a given goal has been reached by that conversation.

@@ -2,12 +2,12 @@ from typing import Optional
 
 from autogen.experimental.agent import Agent
 from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
+from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
 
 from ..types import AssistantMessage, UserMessage
 
 
-class DefaultTerminationManager(TerminationManager):
+class DefaultTerminationManager(Termination):
     def __init__(self, *, termination_message: str = "TERMINATE", max_turns: int = 10) -> None:
         self._termination_message = termination_message
         self._max_turns = max_turns

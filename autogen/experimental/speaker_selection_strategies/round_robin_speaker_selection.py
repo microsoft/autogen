@@ -3,10 +3,10 @@ from typing import List
 from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 from ..agent import Agent
-from ..speaker_selection import SpeakerSelectionStrategy
+from ..speaker_selection import SpeakerSelection
 
 
-class RoundRobin(SpeakerSelectionStrategy):
+class RoundRobin(SpeakerSelection):
     def __init__(self) -> None:
         self._current_speaker_index = 0
 

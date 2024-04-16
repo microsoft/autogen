@@ -7,17 +7,17 @@ from autogen.experimental.agents.chat_agent import ChatAgent
 from autogen.experimental.agents.user_input_agent import UserInputAgent
 from autogen.experimental.chats.group_chat import GroupChat
 from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.chat_history_list import ConversationList
+from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
-from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
+from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
 from autogen.experimental.types import AssistantMessage, UserMessage, Message
 
 import aioconsole
 import pprint
 
 
-class FibTerminationManager(TerminationManager):
+class FibTerminationManager(Termination):
     def record_turn_taken(self, agent: Agent) -> None:
         pass
 
@@ -86,7 +86,7 @@ async def user_input(prompt: str) -> str:
 
 
 def prime_nested_chat(input: ChatHistoryReadOnly) -> ChatHistoryReadOnly:
-    conversation = ConversationList()
+    conversation = ChatHistoryList()
     conversation.append_message(input.messages[-1], input.contexts[-1])
     return conversation
 

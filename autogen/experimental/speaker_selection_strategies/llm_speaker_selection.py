@@ -2,10 +2,10 @@
 
 # from ..agent import Agent
 # from ..model_client import ModelClient
-# from ..speaker_selection import SpeakerSelectionStrategy
+# from ..speaker_selection import SpeakerSelection
 # from ..types import ChatMessage
 
-# class RoundRobin(SpeakerSelectionStrategy):
+# class RoundRobin(SpeakerSelection):
 #     def __init__(self, client: ModelClient,
 
 

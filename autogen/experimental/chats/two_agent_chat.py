@@ -4,7 +4,7 @@ from ..agent import Agent, AgentStream
 from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
 from ..summarizer import ChatSummarizer
-from ..termination import TerminationManager
+from ..termination import Termination
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
 from .group_chat import GroupChat
 
@@ -15,7 +15,7 @@ class TwoAgentChat(GroupChat):
         first: Union[Agent, AgentStream],
         second: Union[Agent, AgentStream],
         *,
-        termination_manager: TerminationManager = DefaultTerminationManager(),
+        termination_manager: Termination = DefaultTerminationManager(),
         summarizer: ChatSummarizer = LastMessageSummarizer()
     ):
         super().__init__(

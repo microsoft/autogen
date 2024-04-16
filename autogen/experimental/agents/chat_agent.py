@@ -2,7 +2,7 @@ from typing import Callable, Optional
 
 from autogen.experimental.chat import ChatOrchestrator
 from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.chat_history_list import ConversationList
+from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
 from autogen.experimental.types import AssistantMessage, MessageContext, SystemMessage
 
 from ..agent import Agent, GenerateReplyResult
@@ -13,7 +13,7 @@ TransformInput = Callable[[ChatHistoryReadOnly], ChatHistoryReadOnly]
 def default_transform_input(before_message: Optional[str], after_message: Optional[str]) -> TransformInput:
 
     def transform_input(messages: ChatHistoryReadOnly) -> ChatHistoryReadOnly:
-        output = ConversationList()
+        output = ChatHistoryList()
         if before_message is not None:
             output.append_message(SystemMessage(content=before_message), context=None)
 

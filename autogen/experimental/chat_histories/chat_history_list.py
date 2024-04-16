@@ -1,10 +1,10 @@
 from typing import List, Optional, Sequence
 
 from autogen.experimental.types import Message, MessageContext
-from .chat_history import ChatHistory
+from ..chat_history import ChatHistory
 
 
-class ConversationList(ChatHistory):
+class ChatHistoryList(ChatHistory):
     def __init__(self) -> None:
         self._messages: List[Message] = []
         self._message_contexts: List[MessageContext] = []
@@ -25,7 +25,7 @@ class ConversationList(ChatHistory):
         self._message_contexts.append(context or MessageContext())
 
     def __copy__(self) -> ChatHistory:
-        new_conversation = ConversationList()
+        new_conversation = ChatHistoryList()
         new_conversation._messages = self._messages.copy()
         new_conversation._message_contexts = self._message_contexts.copy()
         return new_conversation

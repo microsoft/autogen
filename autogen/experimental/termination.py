@@ -22,8 +22,8 @@ class TerminationResult:
     explanation: Optional[str]
 
 
-# TODO allow termination manager to have an understanding of cose
-class TerminationManager(Protocol):
+# TODO allow termination to have an understanding of cost
+class Termination(Protocol):
     def record_turn_taken(self, agent: Agent) -> None: ...
 
     async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]: ...

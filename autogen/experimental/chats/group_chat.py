@@ -1,14 +1,14 @@
 from typing import AsyncGenerator, List, Optional, Union
 
 from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.chat_history_list import ConversationList
+from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
 
 from ..agent import Agent, AgentStream, GenerateReplyResult
 from ..chat import ChatOrchestratorStream
 from ..chat_summarizers.last_message import LastMessageSummarizer
-from ..speaker_selection import SpeakerSelectionStrategy
+from ..speaker_selection import SpeakerSelection
 from ..summarizer import ChatSummarizer
-from ..termination import TerminationManager, TerminationResult
+from ..termination import Termination, TerminationResult
 from ..termination_managers.default_termination_manager import DefaultTerminationManager
 from ..types import (
     ChatResult,
@@ -34,15 +34,15 @@ def _introduction_message(agents: List[Agent], intro_message: str) -> str:
 class GroupChat(ChatOrchestratorStream):
     """(Experimental) This is a work in progress new interface for two person chats."""
 
-    _termination_manager: TerminationManager
+    _termination_manager: Termination
     _summarizer: ChatSummarizer
 
     def __init__(
         self,
         agents: List[Union[Agent, AgentStream]],
         *,
-        speaker_selection: SpeakerSelectionStrategy,
-        termination_manager: TerminationManager = DefaultTerminationManager(),
+        speaker_selection: SpeakerSelection,
+        termination_manager: Termination = DefaultTerminationManager(),
         summarizer: ChatSummarizer = LastMessageSummarizer(),
         send_introduction: bool = True,
         intro_message: str = DEFAULT_INTRO_MSG,
@@ -53,7 +53,7 @@ class GroupChat(ChatOrchestratorStream):
         self._termination_result: Optional[TerminationResult] = None
         self._summarizer = summarizer
         self._summary: Optional[str] = None
-        self._conversation = ConversationList()
+        self._conversation = ChatHistoryList()
 
         self._finalize_done = False
 
