@@ -1,14 +1,18 @@
 import json
+import os
 import sqlite3
 import sys
 import uuid
 
 import pytest
-from conftest import skip_openai
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 import autogen.runtime_logging
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
