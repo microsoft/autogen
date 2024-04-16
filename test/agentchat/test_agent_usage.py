@@ -12,10 +12,10 @@ import autogen
 from autogen import AssistantAgent, UserProxyAgent, gather_usage_summary
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai as skip  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_gathering():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -80,7 +80,7 @@ def test_gathering():
     print("Total usage summary:", total_usage_summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_agent_usage():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
