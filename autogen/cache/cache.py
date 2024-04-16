@@ -64,7 +64,12 @@ class Cache(AbstractCache):
         return Cache({"cache_seed": cache_seed, "cache_path_root": cache_path_root})
 
     @staticmethod
-    def cosmos_db(connection_string: Optional[str] = None, database_id: Optional[str] = None, container_id: Optional[str] = None, cache_seed: Union[str, int] = 42) -> "Cache":
+    def cosmos_db(
+        connection_string: Optional[str] = None,
+        database_id: Optional[str] = None,
+        container_id: Optional[str] = None,
+        cache_seed: Union[str, int] = 42,
+    ) -> "Cache":
         """
         Create a Cosmos DB cache instance.
 
