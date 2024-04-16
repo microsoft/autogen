@@ -17,7 +17,7 @@ def main():
     )
     
     # Wrap AutoGen Agent in CAP
-    cap_user_proxy = Agent(user_proxy, counter_party_name="assistant")
+    cap_user_proxy = Agent(user_proxy, counter_party_name="assistant", init_chat=True)
     # Create the message bus
     network = LocalActorNetwork()
     # Add the user_proxy to the message bus
