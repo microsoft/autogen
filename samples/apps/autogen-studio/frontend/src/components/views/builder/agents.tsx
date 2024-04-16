@@ -1,16 +1,28 @@
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { Modal, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IAgentFlowSpec, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
-import { fetchJSON, getServerUrl, timeAgo, truncateText } from "../../utils";
+import {
+  fetchJSON,
+  getServerUrl,
+  sampleAgentConfig,
+  sanitizeConfig,
+  timeAgo,
+  truncateText,
+} from "../../utils";
 import {
   AgentFlowSpecView,
+  BounceLoader,
   Card,
+  CardHoverBar,
   LaunchButton,
   LoadingOverlay,
 } from "../../atoms";
@@ -36,27 +48,7 @@ const AgentsView = ({}: any) => {
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
-  const sampleAgent: IAgentFlowSpec = {
-    type: "assistant",
-    description: "Sample assistant",
-    user_id: user?.email,
-    config: {
-      name: "sample_assistant",
-      llm_config: {
-        config_list: [
-          {
-            model: "gpt-4-1106-preview",
-          },
-        ],
-        temperature: 0.1,
-        timeout: 600,
-        cache_seed: null,
-      },
-      human_input_mode: "NEVER",
-      max_consecutive_auto_reply: 8,
-      system_message: " ..",
-    },
-  };
+  const sampleAgent = sampleAgentConfig(user?.email || "");
   const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
     sampleAgent
   );
@@ -94,10 +86,9 @@ const AgentsView = ({}: any) => {
     fetchJSON(deleteAgentUrl, payLoad, onSuccess, onError);
   };
 
-  const fetchAgent = () => {
+  const fetchAgents = () => {
     setError(null);
     setLoading(true);
-    // const fetch;
     const payLoad = {
       method: "GET",
       headers: {
@@ -107,8 +98,8 @@ const AgentsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        message.success(data.message);
-        console.log("agents", data.data);
+        // message.success(data.message);
+
         setAgents(data.data);
       } else {
         message.error(data.message);
@@ -127,6 +118,7 @@ const AgentsView = ({}: any) => {
     setError(null);
     setLoading(true);
     // const fetch;
+
     const payLoad = {
       method: "POST",
       headers: {
@@ -161,52 +153,78 @@ const AgentsView = ({}: any) => {
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
-      fetchAgent();
+      fetchAgents();
     }
   }, []);
 
-  React.useEffect(() => {
-    if (selectedAgent) {
-      console.log("selected agent", selectedAgent);
-    }
-  }, [selectedAgent]);
-
-  React.useEffect(() => {
-    if (newAgent) {
-      console.log("new agent", newAgent);
-    }
-  }, [newAgent]);
-
   const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
+    const cardItems = [
+      {
+        title: "Download",
+        icon: ArrowDownTrayIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          // download workflow as workflow.name.json
+          const element = document.createElement("a");
+          const sanitizedAgent = sanitizeConfig(agent);
+          const file = new Blob([JSON.stringify(sanitizedAgent)], {
+            type: "application/json",
+          });
+          element.href = URL.createObjectURL(file);
+          element.download = `agent_${agent.config.name}.json`;
+          document.body.appendChild(element); // Required for this to work in FireFox
+          element.click();
+        },
+        hoverText: "Download",
+      },
+      {
+        title: "Make a Copy",
+        icon: DocumentDuplicateIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          let newAgent = { ...agent };
+          newAgent.config.name = `${agent.config.name}_copy`;
+          newAgent.user_id = user?.email;
+          newAgent.timestamp = new Date().toISOString();
+          if (newAgent.id) {
+            delete newAgent.id;
+          }
+
+          setNewAgent(newAgent);
+          setShowNewAgentModal(true);
+        },
+        hoverText: "Make a Copy",
+      },
+      {
+        title: "Delete",
+        icon: TrashIcon,
+        onClick: (e: any) => {
+          e.stopPropagation();
+          deleteAgent(agent);
+        },
+        hoverText: "Delete",
+      },
+    ];
     return (
       <div key={"agentrow" + i} className=" " style={{ width: "200px" }}>
-        <div className="h-full">
+        <div className="">
           <Card
             className="h-full p-2 cursor-pointer"
-            title={agent.config.name}
+            title={
+              <div className="  ">{truncateText(agent.config.name, 25)}</div>
+            }
             onClick={() => {
               setSelectedAgent(agent);
               setShowAgentModal(true);
             }}
           >
-            <div className="my-2">
+            <div style={{ minHeight: "65px" }} className="my-2   break-words">
               {" "}
-              {truncateText(agent.description || "", 70)}
+              {truncateText(agent.config.description || "", 70)}
             </div>
             <div className="text-xs">{timeAgo(agent.timestamp || "")}</div>
+            <CardHoverBar items={cardItems} />
           </Card>
-          <div className="text-right mt-2">
-            <div
-              role="button"
-              className="text-accent text-xs inline-block"
-              onClick={() => {
-                deleteAgent(agent);
-              }}
-            >
-              <TrashIcon className=" w-5, h-5 cursor-pointer inline-block" />
-              <span className="text-xs"> delete</span>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -235,7 +253,7 @@ const AgentsView = ({}: any) => {
           <>
             Agent Specification{" "}
             <span className="text-accent font-normal">
-              {agent?.config.name}
+              {agent?.config?.name || ""}
             </span>{" "}
           </>
         }
@@ -265,8 +283,62 @@ const AgentsView = ({}: any) => {
     );
   };
 
+  const uploadAgent = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const contents = e.target.result;
+        if (contents) {
+          try {
+            const agent = JSON.parse(contents);
+            // TBD validate that it is a valid agent
+            if (!agent.config) {
+              throw new Error(
+                "Invalid agent file. An agent must have a config"
+              );
+            }
+            setNewAgent(agent);
+            setShowNewAgentModal(true);
+          } catch (err) {
+            message.error(
+              "Invalid agent file. Please upload a valid agent file."
+            );
+          }
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
+  const agentsMenuItems: MenuProps["items"] = [
+    // {
+    //   type: "divider",
+    // },
+    {
+      key: "uploadagent",
+      label: (
+        <div>
+          <ArrowUpTrayIcon className="w-5 h-5 inline-block mr-2" />
+          Upload Agent
+        </div>
+      ),
+    },
+  ];
+
+  const agentsMenuItemOnClick: MenuProps["onClick"] = ({ key }) => {
+    if (key === "uploadagent") {
+      uploadAgent();
+      return;
+    }
+  };
+
   return (
-    <div className="  ">
+    <div className="text-primary  ">
       <AgentModal
         agent={selectedAgent}
         setAgent={setSelectedAgent}
@@ -298,16 +370,23 @@ const AgentsView = ({}: any) => {
               {" "}
               Agents ({agentRows.length}){" "}
             </div>
-            <LaunchButton
-              className="text-sm p-2 px-3"
-              onClick={() => {
-                setShowNewAgentModal(true);
-              }}
-            >
-              {" "}
-              <PlusIcon className="w-5 h-5 inline-block mr-1" />
-              New Agent
-            </LaunchButton>
+            <div>
+              <Dropdown.Button
+                type="primary"
+                menu={{
+                  items: agentsMenuItems,
+                  onClick: agentsMenuItemOnClick,
+                }}
+                placement="bottomRight"
+                trigger={["click"]}
+                onClick={() => {
+                  setShowNewAgentModal(true);
+                }}
+              >
+                <PlusIcon className="w-5 h-5 inline-block mr-1" />
+                New Agent
+              </Dropdown.Button>
+            </div>
           </div>
 
           <div className="text-xs mb-2 pb-1  ">
@@ -322,10 +401,18 @@ const AgentsView = ({}: any) => {
             </div>
           )}
 
-          {agents && agents.length === 0 && (
+          {agents && agents.length === 0 && !loading && (
             <div className="text-sm border mt-4 rounded text-secondary p-2">
               <InformationCircleIcon className="h-4 w-4 inline mr-1" />
               No agents found. Please create a new agent.
+            </div>
+          )}
+
+          {loading && (
+            <div className="  w-full text-center">
+              {" "}
+              <BounceLoader />{" "}
+              <span className="inline-block"> loading .. </span>
             </div>
           )}
         </div>

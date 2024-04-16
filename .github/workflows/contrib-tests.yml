@@ -5,17 +5,22 @@ name: ContribTests
 
 on:
   pull_request:
-    branches: ['main', 'dev/v0.2']
+    branches: ["main"]
     paths:
-      - 'autogen/**'
-      - 'test/agentchat/contrib/**'
-      - '.github/workflows/contrib-tests.yml'
-      - 'setup.py'
+      - "autogen/**"
+      - "test/agentchat/contrib/**"
+      - ".github/workflows/contrib-tests.yml"
+      - "setup.py"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-
+permissions:
+  {}
+  # actions: read
+  # checks: read
+  # contents: read
+  # deployments: read
 jobs:
   RetrieveChatTest:
     runs-on: ${{ matrix.os }}
@@ -23,39 +28,42 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install qdrant_client when python-version is 3.8 and 3.10
-        if: matrix.python-version == '3.8' || matrix.python-version == '3.10'
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10'
         run: |
           pip install qdrant_client[fastembed]
-      - name: Install unstructured when python-version is 3.9 and 3.11 and not windows
-        if: (matrix.python-version == '3.9' || matrix.python-version == '3.11') && matrix.os != 'windows-2019'
+      - name: Install unstructured when python-version is 3.9 and on linux
+        if: matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'
         run: |
-          pip install unstructured[all-docs]
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr poppler-utils
+          pip install unstructured[all-docs]==0.13.0
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
-      - name: Test RetrieveChat
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
         run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Coverage
-        if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py --skip-openai
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -67,11 +75,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
@@ -81,18 +89,18 @@ jobs:
       - name: Install packages and dependencies for Compression
         run: |
           pip install -e .
-      - name: Test Compression
-        if: matrix.python-version != '3.10'   # diversify the python versions
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
         run: |
-          pytest test/agentchat/contrib/test_compressible_agent.py  --skip-openai
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Coverage
-        if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
           coverage run -a -m pytest test/agentchat/contrib/test_compressible_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -104,11 +112,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.10"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
@@ -118,18 +126,18 @@ jobs:
       - name: Install packages and dependencies for GPTAssistantAgent
         run: |
           pip install -e .
-      - name: Test GPTAssistantAgent
-        if: matrix.python-version != '3.11'  # diversify the python versions
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
         run: |
-          pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Coverage
-        if: matrix.python-version == '3.11'
         run: |
           pip install coverage>=5.3
           coverage run -a -m pytest test/agentchat/contrib/test_gpt_assistant.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.11'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -141,11 +149,11 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.11"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install packages and dependencies for all tests
@@ -155,18 +163,55 @@ jobs:
       - name: Install packages and dependencies for Teachability
         run: |
           pip install -e .[teachable]
-      - name: Test TeachableAgent
-        if: matrix.python-version != '3.9'  # diversify the python versions
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
         run: |
-          pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Coverage
-        if: matrix.python-version == '3.9'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_teachable_agent.py --skip-openai
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_teachable_agent.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.9'
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  WebSurfer:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for WebSurfer
+        run: |
+          pip install -e .[websurfer]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_browser_utils.py test/agentchat/contrib/test_web_surfer.py --skip-openai
+          coverage xml
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
@@ -178,7 +223,83 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for LMM
+        run: |
+          pip install -e .[lmm]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_image_generation_capability.py test/agentchat/contrib/capabilities/test_vision_capability.py --skip-openai
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  ContextHandling:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.11"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install packages and dependencies for Context Handling
+        run: |
+          pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
+      - name: Coverage
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_context_handling.py --skip-openai
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  TransformMessages:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-2019]
+        python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -189,21 +310,22 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest
-      - name: Install packages and dependencies for LMM
+      - name: Install packages and dependencies for Transform Messages
         run: |
-          pip install -e .[lmm]
-      - name: Test LMM and LLaVA
+          pip install -e .
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
         run: |
-          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
+          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
+            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+          fi
       - name: Coverage
-        if: matrix.python-version == '3.10'
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py --skip-openai
+          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_transform_messages.py --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10'
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
-          flags: unittests
+          flags: unittest

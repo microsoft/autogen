@@ -4,34 +4,139 @@
 name: dotnet-ci
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dotnet" ]
     paths:
       - 'dotnet/**'
+  push:
+    branches: [ "dotnet" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' || github.ref != 'refs/heads/dotnet' }}
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build:
-    name: CI
+    name: Build
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: dotnet
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
+        global-json-file: dotnet/global.json
     - name: Restore dependencies
-      run: dotnet restore
+      run: |
+        # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        dotnet restore -bl
     - name: Build
-      run: dotnet build --no-restore
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build -bl --configuration Release
+  openai-test:
+    name: Run openai test
+    runs-on: ubuntu-latest
+    environment: dotnet
+    defaults:
+      run:
+        working-directory: dotnet
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
+    needs: build
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: dotnet/global.json
+    - name: Restore dependencies
+      run: |
+        dotnet restore -bl
+    - name: Build
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: OpenAI Test
+      run: dotnet test --no-build -bl --configuration Release
+      env:
+        AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+        AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+        AZURE_GPT_35_MODEL_ID: ${{ secrets.AZURE_GPT_35_MODEL_ID }}
+        OEPNAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    - name: Pack
+      run: |
+        echo "Create nightly build package"
+        dotnet pack --no-build --configuration Release --output './output/nightly' -p:VersionSuffix=nightly-${{github.run_id}} -bl
+
+        echo "Create release build package"
+        dotnet pack --no-build --configuration Release --output './output/release' -bl
+
+        echo "ls output directory"
+        ls -R ./output
+    - name: Upload package
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly
+        path: ./dotnet/output/nightly
+    - name: Upload package
+      uses: actions/upload-artifact@v4
+      with:
+        name: release
+        path: ./dotnet/output/release
+  publish:
+    environment: dotnet-internal-feed
+    name: Publish to nightly feeds
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dotnet
+    needs: openai-test
+    steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '6.0.x'
+        source-url: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: nightly
+        path: ./dotnet/output/nightly
+    - uses: actions/download-artifact@v4
+      with:
+        name: release
+        path: ./dotnet/output/release
+    - name: Publish nightly package to Azure Devops
+      run: |
+        echo "Publish nightly package to Azure Devops"
+        echo "ls output directory"
+        ls -R ./output/nightly
+        dotnet nuget push --api-key AzureArtifacts ./output/nightly/*.nupkg --skip-duplicate
+      env:
+        AZURE_ARTIFACTS_FEED_URL: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
+        NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
+    - name: Publish nightly package to github package
+      run: |
+        echo "Publish nightly package to github package"
+        echo "ls output directory"
+        ls -R ./output/nightly
+        dotnet nuget push --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/microsoft/index.json" ./output/nightly/*.nupkg --skip-duplicate
+    - name: Publish nightly package to agentchat myget feed
+      run: |
+        echo "Publish nightly package to agentchat myget feed"
+        echo "ls output directory"
+        ls -R ./output/nightly
+        dotnet nuget push --api-key ${{ secrets.MYGET_TOKEN }} --source "https://www.myget.org/F/agentchat/api/v3/index.json" ./output/nightly/*.nupkg --skip-duplicate
+      env:
+        MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
+

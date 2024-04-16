@@ -1,12 +1,18 @@
-import ast
 import base64
 import hashlib
-from typing import List, Dict, Tuple, Union
 import os
-import shutil
 import re
+import shutil
+from pathlib import Path
+from typing import Dict, List, Tuple, Union
+
+from dotenv import load_dotenv
+
 import autogen
-from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Skill
+from autogen.oai.client import OpenAIWrapper
+
+from ..datamodel import AgentConfig, AgentFlowSpec, AgentWorkFlowConfig, LLMConfig, Model, Skill
+from ..version import APP_NAME
 
 
 def md5_hash(text: str) -> str:
@@ -25,6 +31,12 @@ def clear_folder(folder_path: str) -> None:
 
     :param folder_path: The path to the folder to clear.
     """
+    # exit if the folder does not exist
+    if not os.path.exists(folder_path):
+        return
+    # exit if the folder does not exist
+    if not os.path.exists(folder_path):
+        return
     for file in os.listdir(folder_path):
         file_path = os.path.join(folder_path, file)
         if os.path.isfile(file_path):
@@ -82,6 +94,9 @@ def get_file_type(file_path: str) -> str:
         ".config",
     }
 
+    # Supported spreadsheet extensions
+    CSV_EXTENSIONS = {".csv", ".xlsx"}
+
     # Supported image extensions
     IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tiff", ".svg", ".webp"}
     # Supported (web) video extensions
@@ -96,6 +111,8 @@ def get_file_type(file_path: str) -> str:
     # Determine the file type based on the extension
     if file_extension in CODE_EXTENSIONS:
         file_type = "code"
+    elif file_extension in CSV_EXTENSIONS:
+        file_type = "csv"
     elif file_extension in IMAGE_EXTENSIONS:
         file_type = "image"
     elif file_extension == PDF_EXTENSION:
@@ -133,21 +150,17 @@ def serialize_file(file_path: str) -> Tuple[str, str]:
     return base64_encoded_content, file_type
 
 
-def get_modified_files(
-    start_timestamp: float, end_timestamp: float, source_dir: str, dest_dir: str
-) -> List[Dict[str, str]]:
+def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir: str) -> List[Dict[str, str]]:
     """
-    Copy files from source_dir that were modified within a specified timestamp range
-    to dest_dir, renaming files if they already exist there. The function excludes
-    files with certain file extensions and names.
+    Identify files from source_dir that were modified within a specified timestamp range.
+    The function excludes files with certain file extensions and names.
 
-    :param start_timestamp: The start timestamp to filter modified files.
-    :param end_timestamp: The end timestamp to filter modified files.
+    :param start_timestamp: The floating-point number representing the start timestamp to filter modified files.
+    :param end_timestamp: The floating-point number representing the end timestamp to filter modified files.
     :param source_dir: The directory to search for modified files.
-    :param dest_dir: The destination directory to copy modified files to.
 
-    :return: A list of dictionaries with details of file paths in dest_dir that were modified and copied over.
-             Dictionary format: {path: "", name: "", extension: ""}
+    :return: A list of dictionaries with details of relative file paths that were modified.
+             Dictionary format: {path: "", name: "", extension: "", type: ""}
              Files with extensions "__pycache__", "*.pyc", "__init__.py", and "*.cache"
              are ignored.
     """
@@ -155,69 +168,73 @@ def get_modified_files(
     ignore_extensions = {".pyc", ".cache"}
     ignore_files = {"__pycache__", "__init__.py"}
 
+    # Walk through the directory tree
     for root, dirs, files in os.walk(source_dir):
-        # Excluding the directory "__pycache__" if present
+        # Update directories and files to exclude those to be ignored
         dirs[:] = [d for d in dirs if d not in ignore_files]
+        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[1] not in ignore_extensions]
 
         for file in files:
             file_path = os.path.join(root, file)
-            file_ext = os.path.splitext(file)[1]
-            file_name = os.path.basename(file)
-
-            if file_ext in ignore_extensions or file_name in ignore_files:
-                continue
-
             file_mtime = os.path.getmtime(file_path)
-            if start_timestamp < file_mtime < end_timestamp:
-                dest_file_path = os.path.join(dest_dir, file)
-                copy_idx = 1
-                while os.path.exists(dest_file_path):
-                    base, extension = os.path.splitext(file)
-                    # Handling potential name conflicts by appending a number
-                    dest_file_path = os.path.join(dest_dir, f"{base}_{copy_idx}{extension}")
-                    copy_idx += 1
 
-                # Copying the modified file to the destination directory
-                shutil.copy2(file_path, dest_file_path)
+            # Verify if the file was modified within the given timestamp range
+            if start_timestamp <= file_mtime <= end_timestamp:
+                file_relative_path = (
+                    "files/user" + file_path.split("files/user", 1)[1] if "files/user" in file_path else ""
+                )
+                file_type = get_file_type(file_path)
 
-                # Extract user id from the dest_dir and file path
-                uid = dest_dir.split("/")[-1]
-                relative_file_path = os.path.relpath(dest_file_path, start=dest_dir)
-                file_type = get_file_type(dest_file_path)
                 file_dict = {
-                    "path": f"files/user/{uid}/{relative_file_path}",
-                    "name": file_name,
-                    "extension": file_ext.replace(".", ""),
+                    "path": file_relative_path,
+                    "name": os.path.basename(file),
+                    # Remove the dot
+                    "extension": os.path.splitext(file)[1].lstrip("."),
                     "type": file_type,
                 }
                 modified_files.append(file_dict)
-    # sort by extension
+
+    # Sort the modified files by extension
     modified_files.sort(key=lambda x: x["extension"])
     return modified_files
 
 
-def init_webserver_folders(root_file_path: str) -> Dict[str, str]:
+def init_app_folders(app_file_path: str) -> Dict[str, str]:
     """
     Initialize folders needed for a web server, such as static file directories
-    and user-specific data directories.
+    and user-specific data directories. Also load any .env file if it exists.
 
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
-    files_static_root = os.path.join(root_file_path, "files/")
-    static_folder_root = os.path.join(root_file_path, "ui")
-    workdir_root = os.path.join(root_file_path, "workdir")
+
+    app_name = f".{APP_NAME}"
+    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
+    if not os.path.exists(default_app_root):
+        os.makedirs(default_app_root, exist_ok=True)
+    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+
+    if not os.path.exists(app_root):
+        os.makedirs(app_root, exist_ok=True)
+
+    # load .env file if it exists
+    env_file = os.path.join(app_root, ".env")
+    if os.path.exists(env_file):
+        print(f"Loading environment variables from {env_file}")
+        load_dotenv(env_file)
+
+    files_static_root = os.path.join(app_root, "files/")
+    static_folder_root = os.path.join(app_file_path, "ui")
 
     os.makedirs(files_static_root, exist_ok=True)
     os.makedirs(os.path.join(files_static_root, "user"), exist_ok=True)
     os.makedirs(static_folder_root, exist_ok=True)
-    os.makedirs(workdir_root, exist_ok=True)
-
     folders = {
         "files_static_root": files_static_root,
         "static_folder_root": static_folder_root,
-        "workdir_root": workdir_root,
+        "app_root": app_root,
     }
+    print(f"Initialized application data folder: {app_root}")
     return folders
 
 
@@ -253,14 +270,9 @@ install via pip and use --quiet option.
     if not os.path.exists(work_dir):
         os.makedirs(work_dir)
 
-    # check if skills.py exist. if exists, append to the file, else create a new file and write to it
-
-    if os.path.exists(os.path.join(work_dir, "skills.py")):
-        with open(os.path.join(work_dir, "skills.py"), "a", encoding="utf-8") as f:
-            f.write(prompt)
-    else:
-        with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
-            f.write(prompt)
+    # overwrite skills.py in work_dir
+    with open(os.path.join(work_dir, "skills.py"), "w", encoding="utf-8") as f:
+        f.write(prompt)
 
     return instruction + prompt
 
@@ -373,3 +385,59 @@ def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
                 successful_code_blocks.extend(code_blocks)
 
     return successful_code_blocks
+
+
+def sanitize_model(model: Model):
+    """
+    Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
+    """
+    if isinstance(model, Model):
+        model = model.dict()
+    valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
+    # only add key if value is not None
+    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
+    return sanitized_model
+
+
+def test_model(model: Model):
+    """
+    Test the model endpoint by sending a simple message to the model and returning the response.
+    """
+
+    sanitized_model = sanitize_model(model)
+    client = OpenAIWrapper(config_list=[sanitized_model])
+    response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
+    return response.choices[0].message.content
+
+
+# summarize_chat_history (messages, model) .. returns a summary of the chat history
+
+
+def summarize_chat_history(task: str, messages: List[Dict[str, str]], model: Model):
+    """
+    Summarize the chat history using the model endpoint and returning the response.
+    """
+
+    sanitized_model = sanitize_model(model)
+    client = OpenAIWrapper(config_list=[sanitized_model])
+    summarization_system_prompt = f"""
+    You are a helpful assistant that is able to review the chat history between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive enough to allow others (who cannot see the chat history) understand and recreate the solution.
+
+    The task requested by the user is:
+    ===
+    {task}
+    ===
+    The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..' ).
+    """
+    summarization_prompt = [
+        {
+            "role": "system",
+            "content": summarization_system_prompt,
+        },
+        {
+            "role": "user",
+            "content": f"Summarize the following chat history. {str(messages)}",
+        },
+    ]
+    response = client.create(messages=summarization_prompt, cache_seed=None)
+    return response.choices[0].message.content

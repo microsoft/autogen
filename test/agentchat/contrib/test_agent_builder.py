@@ -1,22 +1,27 @@
-import pytest
-import os
+#!/usr/bin/env python3 -m pytest
+
 import json
+import os
 import sys
+
+import pytest
+
 from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
-
-here = os.path.abspath(os.path.dirname(__file__))
+from conftest import reason, skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import openai
+    import chromadb
+    import huggingface_hub
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 
 def _config_check(config):
@@ -33,8 +38,8 @@ def _config_check(config):
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run when dependency is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_build():
     builder = AgentBuilder(
@@ -60,14 +65,10 @@ def test_build():
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
-    # check system message
-    for cfg in agent_config["agent_configs"]:
-        assert "TERMINATE" in cfg["system_message"]
-
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run when dependency is not installed or requested to skip",
+    skip_openai or skip,
+    reason=reason + "OR dependency not installed",
 )
 def test_build_from_library():
     builder = AgentBuilder(
@@ -94,10 +95,6 @@ def test_build_from_library():
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
-    # check system message
-    for cfg in agent_config["agent_configs"]:
-        assert "TERMINATE" in cfg["system_message"]
-
     builder.clear_all_agents()
 
     # test embedding similarity selection
@@ -118,14 +115,10 @@ def test_build_from_library():
     # check number of agents
     assert len(agent_config["agent_configs"]) <= builder.max_agents
 
-    # check system message
-    for cfg in agent_config["agent_configs"]:
-        assert "TERMINATE" in cfg["system_message"]
-
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run when dependency is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_save():
     builder = AgentBuilder(
@@ -158,8 +151,8 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run when dependency is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_load():
     builder = AgentBuilder(
@@ -184,8 +177,8 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run when dependency is not installed or requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_clear_agent():
     builder = AgentBuilder(

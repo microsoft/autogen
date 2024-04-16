@@ -1,0 +1,69 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: dotnet-release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dotnet/release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build and release
+    runs-on: ubuntu-latest
+    environment: dotnet
+    defaults:
+      run:
+        working-directory: dotnet
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: dotnet/global.json
+    - name: Restore dependencies
+      run: |
+        dotnet restore -bl
+    - name: Build
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: Unit Test
+      run: dotnet test --no-build -bl --configuration Release
+      env:
+        AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+        AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+        AZURE_GPT_35_MODEL_ID: ${{ secrets.AZURE_GPT_35_MODEL_ID }}
+        OEPNAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    - name: Pack
+      run: |
+        echo "Create release build package"
+        dotnet pack --no-build --configuration Release --output './output/release' -bl
+
+        echo "ls output directory"
+        ls -R ./output
+    - name: Publish package to Nuget
+      run: |
+        echo "Publish package to Nuget"
+        echo "ls output directory"
+        ls -R ./output/release
+        dotnet nuget push --api-key AzureArtifacts ./output/release/*.nupkg --skip-duplicate --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }}
+    - name: Tag commit
+      run: |
+        Write-Host "Tag commit"
+        # version = eng/MetaInfo.props.Project.PropertyGroup.VersionPrefix
+        $metaInfoContent = cat ./eng/MetaInfo.props
+        $version = $metaInfoContent | Select-String -Pattern "<VersionPrefix>(.*)</VersionPrefix>" | ForEach-Object { $_.Matches.Groups[1].Value }
+        git tag -a "$version" -m "AutoGen.Net release $version"
+        git push origin --tags
+      shell: pwsh
