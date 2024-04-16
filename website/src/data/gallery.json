@@ -4,7 +4,7 @@
     "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
     "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
     "image": "autotx.png",
-    "tags": ["tools", "blockchain"]
+    "tags": ["tools", "groupchat", "app", "blockchain"]
   },
   {
     "title": "Function Generator & Validator",
