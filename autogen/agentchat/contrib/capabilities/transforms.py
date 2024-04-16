@@ -48,14 +48,15 @@ class MessageHistoryLimiter:
     It trims the conversation history by removing older messages, retaining only the most recent messages.
     """
 
-    def __init__(self, max_messages: Optional[int] = None):
+    def __init__(self, max_messages: Optional[int] = None, min_tokens_threshold: Optional[int] = None):
         """
         Args:
-            max_messages (None or int): Maximum number of messages to keep in the context.
-            Must be greater than 0 if not None.
+            max_messages Optional[int]: Maximum number of messages to keep in the context. Must be greater than 0 if not None.
+            min_tokens_threshold Optional[int]: Minimum number of tokens in messages to apply the transformation. Must be greater than 0 if not None.
         """
         self._validate_max_messages(max_messages)
         self._max_messages = max_messages
+        self.min_tokens_threshold = min_tokens_threshold
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Truncates the conversation history to the specified maximum number of messages.
@@ -70,7 +71,8 @@ class MessageHistoryLimiter:
         Returns:
             List[Dict]: A new list containing the most recent messages up to the specified maximum.
         """
-        if self._max_messages is None:
+        # if no `max_messages` is set or the tokens of messages are below the threshold (if given)
+        if self._max_messages is None or not self._check_tokens_threshold(messages):
             return messages
 
         return messages[-self._max_messages :]
@@ -90,6 +92,13 @@ class MessageHistoryLimiter:
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
             raise ValueError("max_messages must be None or greater than 1")
+
+    def _check_tokens_threshold(self, messages: List[Dict]) -> bool:
+        """Returns True if a `min_tokens_threshold` is set and the total number of tokens in the messages is greater than or equal to it."""
+        if self.min_tokens_threshold is None:
+            return True
+        messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
+        return messages_tokens >= self.min_tokens_threshold
 
 
 class MessageTokenLimiter:
