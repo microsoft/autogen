@@ -123,9 +123,8 @@ class GeminiClient:
                 ans = None
                 try:
                     response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
-                except InternalServerError as e:
+                except InternalServerError:
                     delay = 5 * (2**attempt)
-                    print(e)
                     warnings.warn(
                         f"InternalServerError `500` occurs when calling Gemini's chat model. Retry in {delay} seconds...",
                         UserWarning,
