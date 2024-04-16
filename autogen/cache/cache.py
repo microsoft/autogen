@@ -63,6 +63,13 @@ class Cache(AbstractCache):
         """
         return Cache({"cache_seed": cache_seed, "cache_path_root": cache_path_root})
 
+    @staticmethod
+    def cosmos_db(cache_seed: Union[str, int] = 42, connection_string: str, database_id: str, container_id: str) -> "Cache":
+        """
+        Create a Cosmos DB cache instance.
+        """
+        return Cache({"cache_seed": cache_seed, "connection_string": connection_string, "database_id": database_id, "container_id": container_id})
+
     def __init__(self, config: Dict[str, Any]):
         """
         Initialize the Cache with the given configuration.
