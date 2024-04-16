@@ -10,8 +10,16 @@ from autogen.agentchat.contrib.agent_builder import AgentBuilder
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai as skip  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
+
+try:
+    import chromadb
+    import huggingface_hub
+except ImportError:
+    skip = True
+else:
+    skip = False
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -30,8 +38,8 @@ def _config_check(config):
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_build():
     builder = AgentBuilder(
@@ -59,8 +67,8 @@ def test_build():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai or skip,
+    reason=reason + "OR dependency not installed",
 )
 def test_build_from_library():
     builder = AgentBuilder(
@@ -109,8 +117,8 @@ def test_build_from_library():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_save():
     builder = AgentBuilder(
@@ -143,8 +151,8 @@ def test_save():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_load():
     builder = AgentBuilder(
@@ -169,8 +177,8 @@ def test_load():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="requested to skip",
+    skip_openai,
+    reason=reason,
 )
 def test_clear_agent():
     builder = AgentBuilder(
