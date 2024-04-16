@@ -1,15 +1,17 @@
 import inspect
 import logging
-from typing import Awaitable, Callable, List, Optional, Union, cast
+from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
+
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent
-from ..types import AssistantMessage, Message, MessageAndSender, UserMessage, GenerateReplyResult
+from ..agent import Agent, GenerateReplyResult
+from ..types import AssistantMessage, Message, UserMessage
 
 __all__ = ("UserProxyAgent",)
 
-ReplyFunctionAsync = Callable[["UserProxyAgent", List[MessageAndSender]], Awaitable[Optional[Message]]]
-ReplyFunctionSync = Callable[["UserProxyAgent", List[MessageAndSender]], Optional[Message]]
+ReplyFunctionAsync = Callable[["UserProxyAgent", Sequence[Message]], Awaitable[Optional[Message]]]
+ReplyFunctionSync = Callable[["UserProxyAgent", Sequence[Message]], Optional[Message]]
 ReplyFunction = Union[ReplyFunctionAsync, ReplyFunctionSync]
 HumanInputCallback = Callable[[str], Awaitable[str]]
 
@@ -61,7 +63,7 @@ class UserProxyAgent(Agent):
 
     def _generate_code_execution_reply_using_executor(
         self,
-        messages: List[MessageAndSender],
+        messages: Sequence[Message],
     ) -> Optional[UserMessage]:
         """Generate a reply using code executor."""
         # Only added to generate reply if this is not none
@@ -110,7 +112,7 @@ class UserProxyAgent(Agent):
 
     async def get_human_reply(
         self,
-        messages: List[MessageAndSender],
+        messages: Sequence[Message],
     ) -> Optional[UserMessage]:
 
         assert self._human_input_callback is not None, "Human input callback is not provided."
@@ -129,9 +131,9 @@ class UserProxyAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
-
+        messages = chat_history.messages
         for reply_func in self._reply_func_list:
             if inspect.iscoroutinefunction(reply_func):
                 reply_func = cast(ReplyFunctionAsync, reply_func)

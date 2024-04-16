@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from typing_extensions import Literal
 
+from autogen.experimental.chat_result import ChatResult
+
 from .agent import Agent
 from .image import Image
-from .termination import TerminationResult
 
 
 @dataclass
@@ -70,26 +71,15 @@ Message = Union[SystemMessage, UserMessage, AssistantMessage, FunctionCallMessag
 
 
 @dataclass
-class ChatResult:
-    chat_history: List[MessageAndSender]
-    message_contexts: List[Optional[MessageContext]]
-    summary: str
-    termination_result: TerminationResult
-
-
-@dataclass
-class MessageAndSender:
-    message: Message
-    sender: Optional[Agent] = None
-
-
-@dataclass
 class MessageContext:
     # If this agent modified the input, this should be set
     input: Optional[List[Message]] = None
 
     # If this agent initiated a nested conversation, this should be set
     nested_chat_result: Optional[ChatResult] = None
+
+    # Who sent this messsage?
+    sender: Optional[Agent] = None
 
 
 FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
@@ -116,6 +106,3 @@ class StatusUpdate:
 @dataclass
 class IntermediateResponse:
     item: Union[PartialContent, StatusUpdate]
-
-
-GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]

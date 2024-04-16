@@ -1,11 +1,12 @@
 import json
-from typing import ClassVar, List, Optional
+from typing import ClassVar, Optional
 
 from autogen.experimental.agent import Agent
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.model_client import ModelClient
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
 
-from ..types import MessageAndSender, SystemMessage, UserMessage
+from ..types import SystemMessage, UserMessage
 
 
 class ReflectionTerminationManager(TerminationManager):
@@ -47,21 +48,21 @@ class ReflectionTerminationManager(TerminationManager):
     def record_turn_taken(self, agent: Agent) -> None:
         self._turns += 1
 
-    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]:
         if self._max_turns is not None and self._turns >= self._max_turns:
             return TerminationResult(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
 
         if self._turns <= self._min_turns:
             return None
 
-        if len(chat_history) == 0:
+        if len(chat_history.messages) == 0:
             return None
 
         reminder_message = UserMessage(
             content=f"Please provide your response as JSON, with two properties: `is_done` (bool) and `reason` (str). Goal: {self._goal}",
         )
         system_message = SystemMessage(content=self._system_message.format(goal=self._goal))
-        entire_conversation = [system_message] + [x.message for x in chat_history] + [reminder_message]
+        entire_conversation = [system_message] + list(chat_history.messages) + [reminder_message]
         response = await self._model_client.create(entire_conversation)
         try:
             assert isinstance(response.content, str), "tool calls not supported now"

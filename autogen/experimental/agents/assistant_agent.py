@@ -2,20 +2,13 @@ from typing import Any, AsyncGenerator, Callable, List, Optional, Union
 
 from typing_extensions import NotRequired, Required, TypedDict
 
+from autogen.experimental.chat_history import ChatHistoryReadOnly
+
 from ...cache import AbstractCache
 from ...function_utils import get_function_schema
-from ..agent import AgentStream
+from ..agent import AgentStream, GenerateReplyResult
 from ..model_client import ModelClient
-from ..types import (
-    AssistantMessage,
-    FunctionDefinition,
-    IntermediateResponse,
-    Message,
-    MessageAndSender,
-    PartialContent,
-    SystemMessage,
-    GenerateReplyResult,
-)
+from ..types import AssistantMessage, FunctionDefinition, IntermediateResponse, Message, PartialContent, SystemMessage
 
 
 class FunctionInfo(TypedDict):
@@ -75,13 +68,13 @@ class AssistantAgent(AgentStream):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
         # TODO support tools
         all_messages: List[Message] = []
         if self._system_message is not None:
             all_messages.append(self._system_message)
-        all_messages.extend([x.message for x in messages])
+        all_messages.extend(chat_history.messages)
         response = await self._model_client.create(all_messages, self._cache, functions=self._functions)
         if isinstance(response.content, str):
             return AssistantMessage(content=response.content)
@@ -90,12 +83,12 @@ class AssistantAgent(AgentStream):
 
     async def stream_generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> AsyncGenerator[Union[IntermediateResponse, GenerateReplyResult], None]:
         all_messages: List[Message] = []
         if self._system_message is not None:
             all_messages.append(self._system_message)
-        all_messages.extend([x.message for x in messages])
+        all_messages.extend(chat_history.messages)
 
         final_message = None
         async for response in self._model_client.create_stream(all_messages, self._cache, functions=self._functions):

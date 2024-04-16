@@ -1,26 +1,28 @@
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 from autogen.experimental.chat import ChatOrchestrator
-from autogen.experimental.types import (
-    AssistantMessage,
-    MessageAndSender,
-    MessageContext,
-    SystemMessage,
-    GenerateReplyResult,
-)
+from autogen.experimental.chat_history import ChatHistoryReadOnly
+from autogen.experimental.chat_history_list import ConversationList
+from autogen.experimental.types import AssistantMessage, MessageContext, SystemMessage
 
-from ..agent import Agent
+from ..agent import Agent, GenerateReplyResult
 
-TransformInput = Callable[[List[MessageAndSender]], List[MessageAndSender]]
+TransformInput = Callable[[ChatHistoryReadOnly], ChatHistoryReadOnly]
 
 
 def default_transform_input(before_message: Optional[str], after_message: Optional[str]) -> TransformInput:
-    def transform_input(messages: List[MessageAndSender]) -> List[MessageAndSender]:
+
+    def transform_input(messages: ChatHistoryReadOnly) -> ChatHistoryReadOnly:
+        output = ConversationList()
         if before_message is not None:
-            messages.insert(0, MessageAndSender(SystemMessage(content=before_message)))
+            output.append_message(SystemMessage(content=before_message), context=None)
+
+        for m, c in zip(messages.messages, messages.contexts):
+            output.append_message(m, context=c)
+
         if after_message is not None:
-            messages.append(MessageAndSender(SystemMessage(content=after_message)))
-        return messages
+            output.append_message(SystemMessage(content=after_message), context=None)
+        return output
 
     return transform_input
 
@@ -51,18 +53,18 @@ class ChatAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
         self._chat.reset()
 
-        messages = self._input_transform(messages.copy())
+        transformed_messages = self._input_transform(chat_history)
 
-        for message in messages:
-            self._chat.append_message(message)
+        for message, context in zip(transformed_messages.messages, transformed_messages.contexts):
+            self._chat.append_message(message, context)
 
         while not self._chat.done:
             _ = await self._chat.step()
 
         return AssistantMessage(content=self._chat.result.summary), MessageContext(
-            input=[x.message for x in messages], nested_chat_result=self._chat.result
+            input=list(transformed_messages.messages), nested_chat_result=self._chat.result
         )

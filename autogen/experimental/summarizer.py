@@ -1,10 +1,9 @@
-from typing import Protocol, Sequence
+from typing import Protocol
+
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 from .termination import TerminationResult
-from .types import MessageAndSender
 
 
 class ChatSummarizer(Protocol):
-    async def summarize_chat(
-        self, messages: Sequence[MessageAndSender], termination_result: TerminationResult
-    ) -> str: ...
+    async def summarize_chat(self, chat_history: ChatHistoryReadOnly, termination_result: TerminationResult) -> str: ...

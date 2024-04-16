@@ -5,18 +5,17 @@ from typing import Awaitable, List, Optional
 
 from typing_extensions import Literal
 
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.function_executor import FunctionExecutor
 
 from ...coding.base import CodeExecutor
-from ..agent import Agent
+from ..agent import Agent, GenerateReplyResult
 from ..types import (
     AssistantMessage,
     FunctionCall,
     FunctionCallMessage,
     FunctionCallResult,
-    MessageAndSender,
     UserMessage,
-    GenerateReplyResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,13 +91,12 @@ class ExecutionAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
         # Find the last message that contains either code, or unexecuted tool calls up to max lookback
+        messages_to_scan = chat_history.messages
         if self._max_lookback is not None:
-            messages_to_scan = messages[-self._max_lookback :]
-        else:
-            messages_to_scan = messages
+            messages_to_scan = messages_to_scan[-self._max_lookback :]
 
         called_ids: List[str] = []
         for message in reversed(messages_to_scan):

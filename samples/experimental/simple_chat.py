@@ -7,6 +7,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat, UserProxyAgent
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.termination_managers import ReflectionTerminationManager
+from autogen.experimental.types import UserMessage
 
 
 async def user_input(prompt: str) -> str:
@@ -45,8 +46,8 @@ If it looks like the task is done and the code has already been executed you can
         termination_manager=ReflectionTerminationManager(
             model_client=json_model_client, goal="The code has run and the plot was shown."
         ),
-        initial_message="Plot the graph of NVDA vs AAPL ytd.",
     )
+    chat.append_message(UserMessage("Plot the graph of NVDA vs AAPL ytd."))
     await run_in_terminal(chat)
     print(chat.termination_result)
 

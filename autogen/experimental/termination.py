@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Protocol, TYPE_CHECKING
+from typing import Optional, Protocol
 
 from autogen.experimental.agent import Agent
-
-if TYPE_CHECKING:
-    from .types import MessageAndSender
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 
 class TerminationReason(Enum):
@@ -28,6 +26,6 @@ class TerminationResult:
 class TerminationManager(Protocol):
     def record_turn_taken(self, agent: Agent) -> None: ...
 
-    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]: ...
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]: ...
 
     def reset(self) -> None: ...

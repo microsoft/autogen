@@ -1,8 +1,10 @@
 import logging
-from typing import Awaitable, Callable, List, Optional
+from typing import Awaitable, Callable, Optional
 
-from ..agent import Agent
-from ..types import MessageAndSender, UserMessage, GenerateReplyResult
+from autogen.experimental.chat_history import ChatHistoryReadOnly
+
+from ..agent import Agent, GenerateReplyResult
+from ..types import UserMessage
 
 HumanInputCallback = Callable[[str], Awaitable[str]]
 
@@ -41,7 +43,6 @@ class UserInputAgent(Agent):
 
     async def get_human_reply(
         self,
-        messages: List[MessageAndSender],
     ) -> Optional[UserMessage]:
 
         assert self._human_input_callback is not None, "Human input callback is not provided."
@@ -60,11 +61,11 @@ class UserInputAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
 
         response = None
         while response is None:
-            response = await self.get_human_reply(messages)
+            response = await self.get_human_reply()
 
         return response

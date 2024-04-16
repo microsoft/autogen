@@ -1,15 +1,17 @@
 import asyncio
-from typing import List, Optional
+from typing import Optional, Sequence
 
 from autogen.experimental import TwoAgentChat
-from autogen.experimental.agent import Agent
+from autogen.experimental.agent import Agent, GenerateReplyResult
 from autogen.experimental.agents.chat_agent import ChatAgent
 from autogen.experimental.agents.user_input_agent import UserInputAgent
 from autogen.experimental.chats.group_chat import GroupChat
+from autogen.experimental.chat_history import ChatHistoryReadOnly
+from autogen.experimental.chat_history_list import ConversationList
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.speaker_selection_strategies.round_robin_speaker_selection import RoundRobin
 from autogen.experimental.termination import TerminationManager, TerminationReason, TerminationResult
-from autogen.experimental.types import AssistantMessage, MessageAndSender, GenerateReplyResult, UserMessage
+from autogen.experimental.types import AssistantMessage, UserMessage, Message
 
 import aioconsole
 import pprint
@@ -19,9 +21,9 @@ class FibTerminationManager(TerminationManager):
     def record_turn_taken(self, agent: Agent) -> None:
         pass
 
-    async def check_termination(self, chat_history: List[MessageAndSender]) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]:
         assert len(chat_history) > 0
-        message = chat_history[0].message
+        message = chat_history.messages[0]
         assert isinstance(message, UserMessage) and isinstance(message.content, str)
         desired_fib_number = int(message.content)
         if len(chat_history) == 1 + desired_fib_number:
@@ -45,21 +47,21 @@ class FibbonacciAgent(Agent):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult:
-        if len(messages) > 1:
-            messages_to_use = messages[1:]
+        if len(chat_history) > 1:
+            messages_to_use = chat_history.messages[1:]
         else:
-            messages_to_use = []
+            messages_to_use: Sequence[Message] = []
 
         if len(messages_to_use) == 0:
             num1 = AssistantMessage(content="1")
             num2 = AssistantMessage(content="0")
         elif len(messages_to_use) == 1:
             num1 = AssistantMessage(content="0")
-            num2 = messages_to_use[-1].message
+            num2 = messages_to_use[-1]
         else:
-            num1, num2 = messages_to_use[-2].message, messages_to_use[-1].message
+            num1, num2 = messages_to_use[-2], messages_to_use[-1]
 
         assert isinstance(num1, AssistantMessage)
         assert isinstance(num1.content, str)
@@ -83,8 +85,10 @@ async def user_input(prompt: str) -> str:
     return res
 
 
-def prime_nested_chat(input: List[MessageAndSender]) -> List[MessageAndSender]:
-    return [input[-1]]
+def prime_nested_chat(input: ChatHistoryReadOnly) -> ChatHistoryReadOnly:
+    conversation = ConversationList()
+    conversation.append_message(input.messages[-1], input.contexts[-1])
+    return conversation
 
 
 async def main() -> None:
@@ -102,8 +106,8 @@ async def main() -> None:
     chat = TwoAgentChat(human, nested_chat)
 
     await run_in_terminal(chat)
-    output = pprint.pformat(chat.message_contexts)
-    await aioconsole.aprint(output) # type: ignore
+    output = pprint.pformat(chat.chat_history.contexts)
+    await aioconsole.aprint(output)  # type: ignore
 
 
 if __name__ == "__main__":

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-from typing import AsyncGenerator, List, Protocol, Union, runtime_checkable, TYPE_CHECKING
+from typing import AsyncGenerator, Protocol, Tuple, Union, runtime_checkable, TYPE_CHECKING
+
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 if TYPE_CHECKING:
-    from .types import IntermediateResponse, MessageAndSender, GenerateReplyResult
+    from .types import IntermediateResponse, Message, MessageContext
+
+
+GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]
 
 
 @runtime_checkable
@@ -27,7 +32,7 @@ class Agent(Protocol):
 
     async def generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> GenerateReplyResult: ...
 
 
@@ -35,5 +40,5 @@ class Agent(Protocol):
 class AgentStream(Agent, Protocol):
     def stream_generate_reply(
         self,
-        messages: List[MessageAndSender],
+        chat_history: ChatHistoryReadOnly,
     ) -> AsyncGenerator[Union[IntermediateResponse, GenerateReplyResult], None]: ...

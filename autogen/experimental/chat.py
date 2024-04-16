@@ -1,12 +1,15 @@
-from typing import AsyncGenerator, List, Optional, Protocol, Union, runtime_checkable
+from typing import AsyncGenerator, Optional, Protocol, Union, runtime_checkable
+
+from autogen.experimental.chat_history import ChatHistoryReadOnly
 
 from .agent import Agent
-from .types import ChatResult, IntermediateResponse, MessageAndSender, MessageContext
+from .types import IntermediateResponse, Message, MessageContext
+from .chat_result import ChatResult
 
 
 @runtime_checkable
 class ChatOrchestrator(Protocol):
-    async def step(self) -> MessageAndSender: ...
+    async def step(self) -> Message: ...
 
     @property
     def done(self) -> bool: ...
@@ -14,13 +17,10 @@ class ChatOrchestrator(Protocol):
     @property
     def result(self) -> ChatResult: ...
 
-    def append_message(self, message: MessageAndSender) -> None: ...
+    def append_message(self, message: Message, context: Optional[MessageContext] = None) -> None: ...
 
     @property
-    def chat_history(self) -> List[MessageAndSender]: ...
-
-    @property
-    def message_contexts(self) -> List[Optional[MessageContext]]: ...
+    def chat_history(self) -> ChatHistoryReadOnly: ...
 
     @property
     def next_speaker(self) -> Agent: ...
@@ -30,7 +30,7 @@ class ChatOrchestrator(Protocol):
 
 @runtime_checkable
 class ChatOrchestratorStream(ChatOrchestrator, Protocol):
-    def stream_step(self) -> AsyncGenerator[Union[IntermediateResponse, MessageAndSender], None]: ...
+    def stream_step(self) -> AsyncGenerator[Union[IntermediateResponse, Message], None]: ...
 
 
 # Example of driving:
