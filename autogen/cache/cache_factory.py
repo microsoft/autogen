@@ -12,7 +12,7 @@ class CacheFactory:
         redis_url: Optional[str] = None,
         cache_path_root: str = ".cache",
         connection_string: Optional[str] = None,
-        database_id: Optional[str] = None,
+        database_id: str = "autogen_cache",
         container_id: Optional[str] = None,
     ) -> AbstractCache:
         """
