@@ -66,12 +66,11 @@ class Cache(AbstractCache):
     @staticmethod
     def cosmos_db(
         connection_string: Optional[str] = None,
-        database_id: Optional[str] = None,
         container_id: Optional[str] = None,
         cache_seed: Union[str, int] = 42,
     ) -> "Cache":
         """
-        Create a Cosmos DB cache instance.
+        Create a Cosmos DB cache instance with 'autogen_cache' as database ID.
 
         Args:
             connection_string (str, optional): Connection string to the Cosmos DB account. Defaults to None.
@@ -86,7 +85,7 @@ class Cache(AbstractCache):
             {
                 "cache_seed": cache_seed,
                 "connection_string": connection_string,
-                "database_id": database_id,
+                "database_id": "autogen_cache",
                 "container_id": container_id,
             }
         )
