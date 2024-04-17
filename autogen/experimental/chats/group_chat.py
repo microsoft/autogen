@@ -1,5 +1,6 @@
+import asyncio
 import copy
-from typing import AsyncGenerator, List, Optional, Union
+from typing import AsyncGenerator, List, Optional, Union, cast
 
 from ..agent import Agent, AgentStream
 from ..chat import ChatOrchestratorStream
@@ -50,14 +51,14 @@ class GroupChat(ChatOrchestratorStream):
 
         self._finalize_done = False
 
+        self._speaker: Optional[Agent] = None
+
         if send_introduction:
             self._conversation.append_message(
                 message=UserMessage(content=_introduction_message(agents, intro_message)), context=None
             )
 
         self._initial_conversation = copy.copy(self._conversation)
-
-        self._speaker: Agent = speaker_selection.select_speaker(self._agents, self._conversation)
 
     async def _finalize(self, termination_result: TerminationResult) -> None:
         self._termination_result = termination_result
@@ -85,10 +86,6 @@ class GroupChat(ChatOrchestratorStream):
     def termination_result(self) -> Optional[TerminationResult]:
         return self._termination_result
 
-    @property
-    def next_speaker(self) -> Agent:
-        return self._speaker
-
     async def _handle_reply(self, reply: GenerateReplyResult) -> Message:
         if isinstance(reply, tuple):
             message, context = reply
@@ -99,8 +96,8 @@ class GroupChat(ChatOrchestratorStream):
             context = None
 
         self._conversation.append_message(message, context=context)
+        assert self._speaker is not None, "Speaker should only ever be None at initialization."
         self._termination_manager.record_turn_taken(self._speaker)
-        self._speaker = self._speaker_selection.select_speaker(self._agents, self._conversation)
 
         maybe_termination = await self._termination_manager.check_termination(self._conversation)
         if maybe_termination is not None:
@@ -108,11 +105,23 @@ class GroupChat(ChatOrchestratorStream):
 
         return message
 
+    async def _select_next_speaker(self) -> Agent:
+        next_agent: Optional[Agent] = None
+        if asyncio.iscoroutinefunction(self._speaker_selection.select_speaker):
+            next_agent = await self._speaker_selection.select_speaker(self._agents, self._conversation)
+        else:
+            next_agent = cast(Agent, self._speaker_selection.select_speaker(self._agents, self._conversation))
+        assert next_agent is not None, "Speaker selection should always return an agent."
+
+        return next_agent
+
     async def step(self) -> Message:
+        self._speaker = await self._select_next_speaker()
         reply = await self._speaker.generate_reply(self._conversation)
         return await self._handle_reply(reply)
 
     async def stream_step(self) -> AsyncGenerator[Union[IntermediateResponse, Message], None]:
+        self._speaker = await self._select_next_speaker()
         final_response = None
         if isinstance(self._speaker, AgentStream):
             async for response in self._speaker.stream_generate_reply(self._conversation):
@@ -141,6 +150,6 @@ class GroupChat(ChatOrchestratorStream):
         self._conversation = copy.copy(self._initial_conversation)
         self._termination_result = None
         self._finalize_done = False
-        self._speaker = self._speaker_selection.select_speaker(self._agents, self._conversation)
+        self._speaker = None
         self._termination_manager.reset()
         self._summary = None

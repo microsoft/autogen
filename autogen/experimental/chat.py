@@ -1,6 +1,5 @@
 from typing import AsyncGenerator, Optional, Protocol, Union, runtime_checkable
 
-from .agent import Agent
 from .chat_history import ChatHistoryReadOnly
 from .chat_result import ChatResult
 from .types import IntermediateResponse, Message, MessageContext
@@ -20,9 +19,6 @@ class ChatOrchestrator(Protocol):
 
     @property
     def chat_history(self) -> ChatHistoryReadOnly: ...
-
-    @property
-    def next_speaker(self) -> Agent: ...
 
     def reset(self) -> None: ...
 
