@@ -57,21 +57,12 @@ def get_market_news(ind, ind_upper):
 @pytest.mark.skipif(skip_openai, reason=reason)
 @pytest.mark.asyncio
 async def test_async_groupchat():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
-
-    llm_config = {
-        "timeout": 600,
-        "cache_seed": 41,
-        "config_list": config_list,
-        "temperature": 0,
-    }
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         llm_config={
-            "timeout": 600,
-            "cache_seed": 41,
             "config_list": config_list,
             "temperature": 0,
         },
@@ -86,13 +77,14 @@ async def test_async_groupchat():
         default_auto_reply=None,
     )
 
-    groupchat = autogen.GroupChat(agents=[user_proxy, assistant], messages=[], max_round=12)
+    groupchat = autogen.GroupChat(
+        agents=[user_proxy, assistant], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
     manager = autogen.GroupChatManager(
         groupchat=groupchat,
-        llm_config=llm_config,
         is_termination_msg=lambda x: "TERMINATE" in x.get("content", ""),
     )
-    await user_proxy.a_initiate_chat(manager, message="""Have a short conversation with the assistant.""")
+    await user_proxy.a_initiate_chat(manager, message="""223434*3422=?.""")
     assert len(user_proxy.chat_messages) > 0
 
 
@@ -165,4 +157,5 @@ async def test_stream():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_stream())
+    # asyncio.run(test_stream())
+    asyncio.run(test_async_groupchat())

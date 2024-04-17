@@ -45,25 +45,18 @@ async def test_function_call_groupchat(key, value, sync):
             self.call_count += 1
             return random.randint(0, 100)
 
-    config_list_gpt = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        filter_dict={
-            "tags": ["tool"],
-        },
-        file_location=KEY_LOC,
-    )
-    llm_config = {
-        "config_list": config_list_gpt,
-        "cache_seed": 42,
-        key: value,
-    }
     # llm_config without functions
     config_list_35 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
-        filter_dict={"tags": ["gpt-3.5-turbo"]},
+        filter_dict={"tags": ["gpt-3.5-turbo", "gpt-3.5-turbo-16k"]},
     )
     llm_config_no_function = {"config_list": config_list_35}
+    config_list_tool = autogen.filter_config(config_list_35, {"tags": ["tool"]})
+    llm_config = {
+        "config_list": config_list_tool,
+        key: value,
+    }
 
     func = Function()
     user_proxy = autogen.UserProxyAgent(

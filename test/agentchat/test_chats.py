@@ -194,17 +194,17 @@ def test_chats():
     func = Function()
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         function_map={"get_random_number": func.get_random_number},
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         function_map={"get_random_number": func.get_random_number},
     )
     writer = AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a professional writer, known for
@@ -621,10 +621,10 @@ def test_udf_message_in_chats():
 
 
 if __name__ == "__main__":
-    # test_chats()
+    test_chats()
     # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
-    test_chats_w_func()
+    # test_chats_w_func()
     # test_chat_messages_for_summary()
     # test_udf_message_in_chats()
