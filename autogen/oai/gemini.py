@@ -39,9 +39,6 @@ from openai.types.chat.chat_completion import ChatCompletionMessage, Choice
 from openai.types.completion_usage import CompletionUsage
 from PIL import Image
 
-# from autogen.agentchat.contrib.img_utils import _to_pil, get_image_data
-from autogen.token_count_utils import count_token
-
 
 class GeminiClient:
     """Client for Google's Gemini API.
@@ -69,7 +66,7 @@ class GeminiClient:
         return [choice.message for choice in response.choices]
 
     def cost(self, response) -> float:
-        return 0.0
+        return response.cost
 
     @staticmethod
     def get_usage(response) -> Dict:
@@ -98,7 +95,7 @@ class GeminiClient:
         n_response = params.get("n", 1)
         params.get("temperature", 0.5)
         params.get("top_p", 1.0)
-        params.get("max_tokens", 1024)
+        params.get("max_tokens", 4096)
 
         if stream:
             # warn user that streaming is not supported
@@ -140,6 +137,8 @@ class GeminiClient:
             if ans is None:
                 raise RuntimeError(f"Fail to get response from Google AI after retrying {attempt + 1} times.")
 
+            prompt_tokens = model.count_tokens(chat.history[:-1]).total_tokens
+            completion_tokens = model.count_tokens(ans).total_tokens
         elif model_name == "gemini-pro-vision":
             # B. handle the vision model
             # Gemini's vision model does not support chat history yet
@@ -159,12 +158,12 @@ class GeminiClient:
             # ans = response.text
             ans: str = response._result.candidates[0].content.parts[0].text
 
+            prompt_tokens = model.count_tokens(user_message).total_tokens
+            completion_tokens = model.count_tokens(ans).total_tokens
+
         # 3. convert output
         message = ChatCompletionMessage(role="assistant", content=ans, function_call=None, tool_calls=None)
         choices = [Choice(finish_reason="stop", index=0, message=message)]
-
-        prompt_tokens = count_token(params["messages"], model_name)
-        completion_tokens = count_token(ans, model_name)
 
         response_oai = ChatCompletion(
             id=str(random.randint(0, 1000)),
@@ -177,10 +176,23 @@ class GeminiClient:
                 completion_tokens=completion_tokens,
                 total_tokens=prompt_tokens + completion_tokens,
             ),
-            cost=0,
+            cost=calculate_gemini_cost(prompt_tokens, completion_tokens, model_name),
         )
 
         return response_oai
+
+
+def calculate_gemini_cost(input_tokens: int, output_tokens: int, model_name: str) -> float:
+    if "1.5" in model_name or "gemini-experimental" in model_name:
+        # "gemini-1.5-pro-preview-0409"
+        # Cost is $7 per million input tokens and $21 per million output tokens
+        return 7.0 * input_tokens / 1e6 + 21.0 * output_tokens / 1e6
+
+    if "gemini-pro" not in model_name and "gemini-1.0-pro" not in model_name:
+        warnings.warn(f"Cost calculation is not implemented for model {model_name}. Using Gemini-1.0-Pro.", UserWarning)
+
+    # Cost is $0.5 per million input tokens and $1.5 per million output tokens
+    return 0.5 * input_tokens / 1e6 + 1.5 * output_tokens / 1e6
 
 
 def oai_content_to_gemini_content(content: Union[str, List]) -> List:
@@ -262,30 +274,6 @@ def oai_messages_to_gemini_messages(messages: list[Dict[str, Any]]) -> list[dict
         rst.append(Content(parts=oai_content_to_gemini_content("continue"), role="user"))
 
     return rst
-
-
-def count_gemini_tokens(ans: Union[str, Dict, List], model_name: str) -> int:
-    # ans is OAI format in oai_messages
-    raise NotImplementedError(
-        "Gemini's count_tokens function is not implemented yet in Google's genai. Please revisit!"
-    )
-
-    if isinstance(ans, str):
-        model = genai.GenerativeModel(model_name)
-        return model.count_tokens(ans)  # Error occurs here!
-    elif isinstance(ans, dict):
-        if "content" in ans:
-            # Content dict
-            return count_gemini_tokens(ans["content"], model_name)
-        if "text" in ans:
-            # Part dict
-            return count_gemini_tokens(ans["text"], model_name)
-        else:
-            raise ValueError(f"Unsupported message type: {type(ans)}")
-    elif isinstance(ans, list):
-        return sum([count_gemini_tokens(msg, model_name) for msg in ans])
-    else:
-        raise ValueError(f"Unsupported message type: {type(ans)}")
 
 
 def _to_pil(data: str) -> Image.Image:

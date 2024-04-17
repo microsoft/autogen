@@ -67,10 +67,10 @@ def test_cost_calculation(gemini_client, mock_response):
         text="Example response",
         choices=[{"message": "Test message 1"}],
         usage={"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
-        cost=0,
+        cost=0.01,
         model="gemini-pro",
     )
-    assert gemini_client.cost(response) == 0, "Cost should be correctly calculated as zero"
+    assert gemini_client.cost(response) > 0, "Cost should be correctly calculated as zero"
 
 
 @pytest.mark.skipif(skip, reason="Google GenAI dependency is not installed")
