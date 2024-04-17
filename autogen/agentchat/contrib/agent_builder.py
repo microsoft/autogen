@@ -125,7 +125,7 @@ output after executing the code) and provide a corrected answer or code.
     {model_list}
 
     Hint:
-    # You should consider if the model has the potential to support the postion to complete the task based on the model's name and profile.
+    # You should consider if the model has the potential to support the position to complete the task based on the model's name and profile.
     # You should select the most suitable model for the position.
     # You should select only one model for the position.
     # Only return the selected model's name.
@@ -259,9 +259,7 @@ output after executing the code) and provide a corrected answer or code.
                 try:
                     import vllm  # noqa: F401
                 except ImportError:
-                    raise ImportError(
-                        "vLLM is not installed. Please install vLLM by running 'pip install vllm'."
-                    )
+                    raise ImportError("vLLM is not installed. Please install vLLM by running 'pip install vllm'.")
 
                 # Use vLLM to set up a server with OpenAI API support.
                 agent_proc = sp.Popen(
@@ -277,6 +275,8 @@ output after executing the code) and provide a corrected answer or code.
                         f"{model_name_or_hf_repo}",
                         "--tensor-parallel-size",
                         f"{world_size}",
+                        "--dtype",
+                        "half",
                     ],
                     stdout=sp.PIPE,
                     stderr=sp.STDOUT,
@@ -488,10 +488,10 @@ output after executing the code) and provide a corrected answer or code.
                 agent_model_list.append(resp_agent_model)
                 print(f"Model {resp_agent_model} is selected for {agent_name}.")
 
-        for name, model, sys_msg, description in list(zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_description_list)):
-            agent_configs.append(
-                {"name": name, "model": model, "system_message": sys_msg, "description": description}
-            )
+        for name, model, sys_msg, description in list(
+            zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_description_list)
+        ):
+            agent_configs.append({"name": name, "model": model, "system_message": sys_msg, "description": description})
 
         if coding is None:
             resp = (
@@ -678,10 +678,10 @@ output after executing the code) and provide a corrected answer or code.
             )
             agent_sys_msg_list.append(resp_agent_sys_msg)
 
-        for name, model, sys_msg, description in list(zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_profile_list)):
-            agent_configs.append(
-                {"name": name, "model": model, "system_message": sys_msg, "description": description}
-            )
+        for name, model, sys_msg, description in list(
+            zip(agent_name_list, agent_model_list, agent_sys_msg_list, agent_profile_list)
+        ):
+            agent_configs.append({"name": name, "model": model, "system_message": sys_msg, "description": description})
 
         if coding is None:
             resp = (
@@ -793,8 +793,8 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                         "content": self.AGENT_MODEL_SEARCHING_PROMPT.format(
                             task=self.building_task,
                             position=f"{agent_name}\nPOSITION PROFILE: {agent_profile}",
-                            model_list="".join(model_profiles)
-                        )
+                            model_list="".join(model_profiles),
+                        ),
                     }
                 ]
             )
