@@ -39,9 +39,8 @@ class CosmosDBCache(AbstractCache):
         self.client = client
         self.database = self.client.get_database_client(database_id)
         self.container = self.database.create_container_if_not_exists(
-            id=container_id, 
-            partition_key=PartitionKey(path="/partitionKey")
-)
+            id=container_id, partition_key=PartitionKey(path="/partitionKey")
+        )
 
     @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
