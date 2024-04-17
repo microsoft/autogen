@@ -9,6 +9,17 @@ Quick links:
 - Why use Promptflow - [Link](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow)
 - Quick start guide - [Link](https://microsoft.github.io/promptflow/how-to-guides/quick-start.html)
 
+## Getting Started
+
+- Install required python packages
+
+  ```bash
+  cd samples/apps/promptflow-autogen
+  pip install -r requirements.txt
+  ```
+
+- This example assumes a working Redis cache service to be available. You can get started locally using this [guide](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/) or use your favorite managed service
+
 ## Chat flow
 
 Chat flow is designed for conversational application development, building upon the capabilities of standard flow and providing enhanced support for chat inputs/outputs and chat history management. With chat flow, you can easily create a chatbot that handles chat input and output.
