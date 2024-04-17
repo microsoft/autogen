@@ -2,7 +2,8 @@ import autogen
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
 
-from orchestrator import Orchestrator
+from autogen.agentchat.contrib.orchestrator import Orchestrator
+
 from config_manager import ConfigManager
 from misc_utils import response_preparer
 
