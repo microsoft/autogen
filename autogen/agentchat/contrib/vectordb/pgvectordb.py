@@ -42,7 +42,7 @@ class Collection:
         collection_name: str = "autogen-docs",
         embedding_function: Callable = None,
         metadata=None,
-        get_or_create=None
+        get_or_create=None,
     ):
         """
         Initialize the Collection object.
@@ -282,7 +282,7 @@ class Collection:
         collection_name: str = None,
         n_results: int = 10,
         distance_type: str = "euclidean",
-        distance_threshold: float = -1
+        distance_threshold: float = -1,
     ) -> QueryResults:
         """
         Query documents in the collection.
@@ -442,7 +442,7 @@ class PGVectorDB(VectorDB):
         dbname: str = None,
         connect_timeout: int = 10,
         embedding_function: Callable = None,
-        metadata: dict = None
+        metadata: dict = None,
     ) -> None:
         """
         Initialize the vector database.
