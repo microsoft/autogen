@@ -98,11 +98,14 @@ class GroupChat(ChatOrchestratorStream):
 
         assert self._speaker is not None, "Speaker should only ever be None at initialization."
         self._termination_manager.record_turn_taken(self._speaker)
-
-        maybe_termination = await self._termination_manager.check_termination(self._conversation)
-        context.termination_result = maybe_termination
         context.speaker_selection_reason = speaker_selection_reason
         self._conversation.append_message(message, context=context)
+
+        maybe_termination = await self._termination_manager.check_termination(self._conversation)
+
+        # TODO: work out a way to fix this post append update
+        self._conversation.contexts[-1].termination_result = maybe_termination
+
         if isinstance(maybe_termination, Terminated):
             await self._finalize(maybe_termination)
 

@@ -20,6 +20,9 @@ class DefaultTermination(Termination):
         # TODO handle tool message
         for message in chat_history.messages:
             if isinstance(message, UserMessage):
+                # TODO handle multimodal list of str/image type
+                if isinstance(message.content, str) and self._termination_message in message.content:
+                    return Terminated(TerminationReason.TERMINATION_MESSAGE, "Termination message received.")
                 if message.is_termination:
                     return Terminated(TerminationReason.USER_REQUESTED, "User requested termination.")
                 elif self._termination_message in message.content:
