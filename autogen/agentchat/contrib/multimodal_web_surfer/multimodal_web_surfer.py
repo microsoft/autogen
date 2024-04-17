@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
+from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
@@ -454,6 +455,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         )
 
     def _log_to_console(self, action, target="", arg=""):
+        if logging_enabled():
+            log_event(self, action=action, target=target, arg=arg)
+
         if len(target) > 50:
             target = target[0:47] + "..."
         if len(arg) > 50:

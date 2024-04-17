@@ -12,7 +12,7 @@ from openai import OpenAI, AzureOpenAI
 from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +61,19 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
 
     autogen_logger.log_new_agent(agent, init_args)
 
-def log_received_msg(agent: ConversableAgent, message: Union[Dict, str], sender: Any, valid: bool) -> None:
+def log_received_msg(agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
     if autogen_logger is None:
         logger.error("[runtime logging] log_received_msg: autogen logger is None")
         return
 
     autogen_logger.log_received_msg(agent, message, sender, valid)
 
+def log_event(agent: Agent, **kwargs: Dict[str, Any]) -> None:
+    if autogen_logger is None:
+        logger.error("[runtime logging] log_event: autogen logger is None")
+        return
+
+    autogen_logger.log_event(agent, **kwargs)
 
 def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
     if autogen_logger is None:

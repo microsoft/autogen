@@ -17,8 +17,7 @@ from .base_logger import LLMConfig
 
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
-    from autogen import Agent
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
@@ -112,6 +111,17 @@ class SqliteLogger(BaseLogger):
                 message TEXT,
                 sender TEXT,
                 valid INTEGER,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+            self._run_query(query=query)
+
+            query = """
+            CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY,
+                agent_id INTEGER,
+                agent_name TEXT,
+                json_state TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             """
@@ -261,8 +271,6 @@ class SqliteLogger(BaseLogger):
         self._run_query(query=query, args=args)
     
     def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
-        from autogen import Agent
-
         if self.con is None:
             return
 
@@ -275,6 +283,21 @@ class SqliteLogger(BaseLogger):
             json.dumps(message),
             sender.name,
             valid,
+            get_current_ts(),
+        )
+        self._run_query(query=query, args=args)
+    
+    def log_event(self, agent: Agent, **kwargs: Dict[str, Any]) -> None:
+        if self.con is None:
+            return
+        
+        query = """
+        INSERT INTO events (agent_id, agent_name, json_state, timestamp) VALUES (?, ?, ?, ?)
+        """
+        args = (
+            id(agent),
+            agent.name,
+            json.dumps(kwargs),
             get_current_ts(),
         )
         self._run_query(query=query, args=args)
