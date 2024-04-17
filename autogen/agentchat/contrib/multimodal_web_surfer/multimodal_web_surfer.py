@@ -13,6 +13,7 @@ from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
+from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
@@ -294,9 +295,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 self._log_to_console("scroll_down", target=target_name if target_name else target)
                 self._scroll_id(target, "down")
             else:
+                self._log_to_console("no_action", target=target_name if target_name else target)
                 # No action
                 return True, text_response
         except ValueError as e:
+            if logging_enabled():
+                log_event(self, "ValueError", error=str(e))
             return True, str(e)
 
         self._page.wait_for_load_state()
@@ -318,6 +322,8 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
                 png.write(new_screenshot)
 
+        if logging_enabled():
+            log_event(self, "viewport_state", page_title=self._page.title(), page_url=self._page.url, percent_visible=percent_visible, percent_scrolled=percent_scrolled)
         # Return the complete observation
         return True, self._make_mm_message(
             f"Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
@@ -454,6 +460,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         )
 
     def _log_to_console(self, action, target="", arg=""):
+        if logging_enabled():
+            log_event(self, "browser_action", action=action, target=target, arg=arg)
+
         if len(target) > 50:
             target = target[0:47] + "..."
         if len(arg) > 50:
