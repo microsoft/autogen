@@ -2,13 +2,20 @@ from typing import Any, AsyncGenerator, Callable, List, Optional, Union
 
 from typing_extensions import NotRequired, Required, TypedDict
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
 from ...cache import AbstractCache
 from ...function_utils import get_function_schema
-from ..agent import AgentStream, GenerateReplyResult
+from ..agent import AgentStream
+from ..chat_history import ChatHistoryReadOnly
 from ..model_client import ModelClient
-from ..types import AssistantMessage, FunctionDefinition, IntermediateResponse, Message, PartialContent, SystemMessage
+from ..types import (
+    AssistantMessage,
+    FunctionDefinition,
+    GenerateReplyResult,
+    IntermediateResponse,
+    Message,
+    PartialContent,
+    SystemMessage,
+)
 
 
 class FunctionInfo(TypedDict):

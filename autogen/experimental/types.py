@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from typing_extensions import Literal
 
-from autogen.experimental.chat_result import ChatResult
+if TYPE_CHECKING:
+    from .chat_result import ChatResult
 
 from .agent import Agent
 from .image import Image
@@ -78,7 +79,7 @@ class MessageContext:
     # If this agent initiated a nested conversation, this should be set
     nested_chat_result: Optional[ChatResult] = None
 
-    # Who sent this messsage?
+    # Who sent this message?
     sender: Optional[Agent] = None
 
 
@@ -106,3 +107,6 @@ class StatusUpdate:
 @dataclass
 class IntermediateResponse:
     item: Union[PartialContent, StatusUpdate]
+
+
+GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]

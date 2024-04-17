@@ -33,11 +33,10 @@ from openai.types.chat import (
 )
 from typing_extensions import Required, TypedDict, Unpack
 
-from autogen.experimental.image import Image
-
 from ..._pydantic import type2schema
 from ...cache import AbstractCache
 from ...oai.openai_utils import OAI_PRICE1K, get_key  # type: ignore
+from ..image import Image
 from ..model_client import ModelCapabilities, ModelClient
 from ..types import (
     AssistantMessage,

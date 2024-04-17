@@ -1,20 +1,20 @@
 import asyncio
+import pprint
 from typing import List, Optional
 
+import aioconsole
+
 from autogen.experimental import TwoAgentChat
-from autogen.experimental.agent import Agent, GenerateReplyResult
+from autogen.experimental.agent import Agent
 from autogen.experimental.agents.chat_agent import ChatAgent
 from autogen.experimental.agents.user_input_agent import UserInputAgent
-from autogen.experimental.chats.group_chat import GroupChat
-from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
+from autogen.experimental.chat_history import ChatHistoryReadOnly
+from autogen.experimental.chats.group_chat import GroupChat
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.speaker_selections.round_robin_speaker_selection import RoundRobin
 from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
-from autogen.experimental.types import AssistantMessage, UserMessage, Message
-
-import aioconsole
-import pprint
+from autogen.experimental.types import AssistantMessage, GenerateReplyResult, Message, UserMessage
 
 
 class FibTermination(Termination):

@@ -1,10 +1,9 @@
 import logging
 from typing import Awaitable, Callable, Optional
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
-from ..agent import Agent, GenerateReplyResult
-from ..types import UserMessage
+from ..agent import Agent
+from ..chat_history import ChatHistoryReadOnly
+from ..types import GenerateReplyResult, UserMessage
 
 HumanInputCallback = Callable[[str], Awaitable[str]]
 

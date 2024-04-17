@@ -2,11 +2,10 @@ import inspect
 import logging
 from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
 from ...coding.base import CodeExecutor
-from ..agent import Agent, GenerateReplyResult
-from ..types import AssistantMessage, Message, UserMessage
+from ..agent import Agent
+from ..chat_history import ChatHistoryReadOnly
+from ..types import AssistantMessage, GenerateReplyResult, Message, UserMessage
 
 __all__ = ("UserProxyAgent",)
 

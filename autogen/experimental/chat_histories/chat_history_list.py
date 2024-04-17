@@ -1,7 +1,7 @@
 from typing import List, Optional, Sequence
 
-from autogen.experimental.types import Message, MessageContext
 from ..chat_history import ChatHistory
+from ..types import Message, MessageContext
 
 
 class ChatHistoryList(ChatHistory):

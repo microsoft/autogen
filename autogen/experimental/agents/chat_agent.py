@@ -1,11 +1,10 @@
 from typing import Callable, Optional
 
-from autogen.experimental.chat import ChatOrchestrator
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.chat_histories.chat_history_list import ChatHistoryList
-from autogen.experimental.types import AssistantMessage, MessageContext, SystemMessage
-
-from ..agent import Agent, GenerateReplyResult
+from ..agent import Agent
+from ..chat import ChatOrchestrator
+from ..chat_histories.chat_history_list import ChatHistoryList
+from ..chat_history import ChatHistoryReadOnly
+from ..types import AssistantMessage, GenerateReplyResult, MessageContext, SystemMessage
 
 TransformInput = Callable[[ChatHistoryReadOnly], ChatHistoryReadOnly]
 

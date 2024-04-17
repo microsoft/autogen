@@ -1,8 +1,7 @@
 from typing import List, Protocol
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
 from .agent import Agent
+from .chat_history import ChatHistoryReadOnly
 
 
 class SpeakerSelection(Protocol):

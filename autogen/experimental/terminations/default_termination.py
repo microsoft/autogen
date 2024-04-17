@@ -1,9 +1,8 @@
 from typing import Optional
 
-from autogen.experimental.agent import Agent
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
-
+from ..agent import Agent
+from ..chat_history import ChatHistoryReadOnly
+from ..termination import Termination, TerminationReason, TerminationResult
 from ..types import AssistantMessage, UserMessage
 
 

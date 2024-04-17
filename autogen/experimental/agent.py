@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-from typing import AsyncGenerator, Protocol, Tuple, Union, runtime_checkable, TYPE_CHECKING
-
-from autogen.experimental.chat_history import ChatHistoryReadOnly
+from typing import TYPE_CHECKING, AsyncGenerator, Protocol, Union, runtime_checkable
 
 if TYPE_CHECKING:
-    from .types import IntermediateResponse, Message, MessageContext
-
-
-GenerateReplyResult = Union[Message, Tuple[Message, MessageContext]]
+    from .chat_history import ChatHistoryReadOnly
+    from .types import GenerateReplyResult, IntermediateResponse
 
 
 @runtime_checkable

@@ -5,16 +5,16 @@ from typing import Awaitable, List, Optional
 
 from typing_extensions import Literal
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.function_executor import FunctionExecutor
-
 from ...coding.base import CodeExecutor
-from ..agent import Agent, GenerateReplyResult
+from ..agent import Agent
+from ..chat_history import ChatHistoryReadOnly
+from ..function_executor import FunctionExecutor
 from ..types import (
     AssistantMessage,
     FunctionCall,
     FunctionCallMessage,
     FunctionCallResult,
+    GenerateReplyResult,
     UserMessage,
 )
 

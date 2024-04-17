@@ -1,8 +1,7 @@
 from typing import List
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
 from ..agent import Agent
+from ..chat_history import ChatHistoryReadOnly
 from ..speaker_selection import SpeakerSelection
 
 

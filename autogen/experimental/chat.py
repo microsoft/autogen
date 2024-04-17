@@ -1,10 +1,9 @@
 from typing import AsyncGenerator, Optional, Protocol, Union, runtime_checkable
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
 from .agent import Agent
-from .types import IntermediateResponse, Message, MessageContext
+from .chat_history import ChatHistoryReadOnly
 from .chat_result import ChatResult
+from .types import IntermediateResponse, Message, MessageContext
 
 
 @runtime_checkable

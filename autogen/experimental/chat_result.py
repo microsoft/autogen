@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.termination import TerminationResult
+from .chat_history import ChatHistoryReadOnly
+from .termination import TerminationResult
 
 
 @dataclass

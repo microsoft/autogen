@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Protocol
 
-from autogen.experimental.agent import Agent
-from autogen.experimental.chat_history import ChatHistoryReadOnly
+from .agent import Agent
+from .chat_history import ChatHistoryReadOnly
 
 
 class TerminationReason(Enum):

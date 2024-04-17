@@ -1,8 +1,8 @@
 from __future__ import annotations
+
 from typing import Optional, Protocol, Sequence
 
-from .types import MessageContext
-from .types import Message
+from .types import Message, MessageContext
 
 
 class ChatHistoryReadOnly(Protocol):

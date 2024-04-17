@@ -1,7 +1,6 @@
 from typing import Protocol
 
-from autogen.experimental.chat_history import ChatHistoryReadOnly
-
+from .chat_history import ChatHistoryReadOnly
 from .termination import TerminationResult
 
 

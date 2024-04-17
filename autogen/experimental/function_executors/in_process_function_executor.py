@@ -1,8 +1,9 @@
 import asyncio
 import functools
 from typing import Any, Callable, Dict, List, Union
-from autogen.experimental.agents.assistant_agent import FunctionInfo
-from autogen.experimental.function_executor import FunctionExecutor
+
+from ..agents.assistant_agent import FunctionInfo
+from ..function_executor import FunctionExecutor
 
 
 class InProcessFunctionExecutor(FunctionExecutor):
