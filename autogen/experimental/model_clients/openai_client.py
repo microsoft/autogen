@@ -602,4 +602,14 @@ class AzureOpenAI(BaseOpenAI):
 
         client = _openai_client_from_config(kwargs)
         create_args = _create_args_from_config(kwargs)
+        self._raw_config = kwargs
         super().__init__(client, create_args)
+
+    def __getstate__(self) -> Dict[str, Any]:
+        state = self.__dict__.copy()
+        state["_client"] = None
+        return state
+
+    def __setstate__(self, state: Dict[str, Any]) -> None:
+        self.__dict__.update(state)
+        self._client = _openai_client_from_config(state["_raw_config"])
