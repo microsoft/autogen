@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 from autogen.experimental.types import SystemMessage
 
@@ -37,7 +37,7 @@ class LLMSpeakerSelection(SpeakerSelection):
     ) -> None:
         self._model_client = client
 
-    async def _select_text(self, agents: List[Agent], chat_history: ChatHistoryReadOnly) -> Agent:
+    async def _select_text(self, agents: List[Agent], chat_history: ChatHistoryReadOnly) -> Tuple[Agent, None]:
         select_speaker_message_template = """You are in a role play game. The following roles are available:
                 {roles}.
                 Read the following conversation.
@@ -62,16 +62,16 @@ class LLMSpeakerSelection(SpeakerSelection):
         agent_name = next(iter(mentions))
         for agent in agents:
             if agent.name == agent_name:
-                return agent
+                return agent, None
         else:
             raise ValueError(f"Agent {agent_name} not found in list of agents")
 
-    async def _select_json(self, agents: List[Agent], chat_history: ChatHistoryReadOnly) -> Agent:
+    async def _select_json(self, agents: List[Agent], chat_history: ChatHistoryReadOnly) -> Tuple[Agent, Optional[str]]:
         select_speaker_message_template = """You are in a role play game. The following roles are available:
                 {roles}.
                 Read the following conversation.
-                Then select the next role from {agent_list} to play. Return a JSON object with one property, 'role' set to the role you want to play."""
-        select_speaker_prompt_template = "Read the above conversation. Then select the next role from {agent_list} to play. Return a JSON object with one property, 'role' set to the role you want to play."
+                Then select the next role from {agent_list} to play. Return a JSON object with two properties, 'role' set to the role you want to play and 'reason' explaining your choice`."""
+        select_speaker_prompt_template = "Read the above conversation. Then select the next role from {agent_list} to play. Return a JSON object with two properties, 'role' set to the role you want to play and 'reason' explaining your choice."
 
         roles = "\n".join([f"{x.name}: {x.description}" for x in agents])
         agent_list = [x.name for x in agents]
@@ -87,13 +87,17 @@ class LLMSpeakerSelection(SpeakerSelection):
         if "role" not in json_obj:
             raise ValueError("Expected 'role' property in JSON response")
         agent_name = json_obj["role"]
+        reason = json_obj.get("reason", None)
+        assert isinstance(reason, str)
         for agent in agents:
             if agent.name == agent_name:
-                return agent
+                return agent, reason
         else:
             raise ValueError(f"Agent {agent_name} not found in list of agents")
 
-    async def select_speaker(self, agents: List[Agent], chat_history: ChatHistoryReadOnly) -> Agent:
+    async def select_speaker(
+        self, agents: List[Agent], chat_history: ChatHistoryReadOnly
+    ) -> Tuple[Agent, Optional[str]]:
         if self._model_client.capabilities["json_output"]:
             return await self._select_json(agents, chat_history)
         else:

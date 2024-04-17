@@ -1,10 +1,10 @@
-from typing import Awaitable, List, Protocol, Tuple, Union
+from typing import Awaitable, List, Optional, Protocol, Tuple, Union
 
 from .agent import Agent
 from .chat_history import ChatHistoryReadOnly
 
 # Can optionally return a string to indicate the reason for selecting the speaker
-SpeakerSelectionResult = Union[Awaitable[Agent], Awaitable[Tuple[Agent, str]], Agent, Tuple[Agent, str]]
+SpeakerSelectionResult = Union[Awaitable[Tuple[Agent, Optional[str]]], Tuple[Agent, Optional[str]]]
 
 
 class SpeakerSelection(Protocol):

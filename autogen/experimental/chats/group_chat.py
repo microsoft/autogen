@@ -109,24 +109,18 @@ class GroupChat(ChatOrchestratorStream):
         return message
 
     async def _select_next_speaker(self) -> Tuple[Agent, Optional[str]]:
-        next_agent: Union[Agent, Tuple[Agent, str]]
         if asyncio.iscoroutinefunction(self._speaker_selection.select_speaker):
-            next_agent = await self._speaker_selection.select_speaker(self._agents, self._conversation)
-            if isinstance(next_agent, tuple):
-                next_agent, reason = next_agent
-                return next_agent, reason
-            else:
-                return next_agent, None
+            next_agent, reason = cast(
+                Tuple[Agent, Optional[str]],
+                await self._speaker_selection.select_speaker(self._agents, self._conversation),
+            )
+            return next_agent, reason
         else:
-            next_agent = cast(
-                Union[Agent, Tuple[Agent, str]],
+            next_agent, reason = cast(
+                Tuple[Agent, Optional[str]],
                 self._speaker_selection.select_speaker(self._agents, self._conversation),
             )
-            if isinstance(next_agent, tuple):
-                next_agent, reason = next_agent
-                return next_agent, reason
-            else:
-                return next_agent, None
+            return next_agent, reason
 
     async def step(self) -> Message:
         self._speaker, reason = await self._select_next_speaker()
