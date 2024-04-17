@@ -85,15 +85,14 @@ def test_agent_usage():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "timeout": 600,
             "cache_seed": None,
             "config_list": config_list,
-            "model": "gpt-3.5-turbo-0613",
         },
     )
 
@@ -104,7 +103,6 @@ def test_agent_usage():
         code_execution_config=False,
         llm_config={
             "config_list": config_list,
-            "model": "gpt-3.5-turbo-0613",
         },
         # In the system message the "user" always refers to the other agent.
         system_message="You ask a user for help. You check the answer from the user and provide feedback.",
@@ -140,5 +138,5 @@ def test_agent_usage():
 
 
 if __name__ == "__main__":
-    test_gathering()
+    # test_gathering()
     test_agent_usage()
