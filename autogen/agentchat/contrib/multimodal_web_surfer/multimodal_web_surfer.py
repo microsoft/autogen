@@ -295,9 +295,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 self._log_to_console("scroll_down", target=target_name if target_name else target)
                 self._scroll_id(target, "down")
             else:
+                self._log_to_console("no_action", target=target_name if target_name else target)
                 # No action
                 return True, text_response
         except ValueError as e:
+            if logging_enabled():
+                log_event(self, "ValueError", error=str(e))
             return True, str(e)
 
         self._page.wait_for_load_state()
@@ -319,6 +322,8 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             with open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as png:
                 png.write(new_screenshot)
 
+        if logging_enabled():
+            log_event(self, "viewport_state", page_title=self._page.title(), page_url=self._page.url, percent_visible=percent_visible, percent_scrolled=percent_scrolled)
         # Return the complete observation
         return True, self._make_mm_message(
             f"Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
