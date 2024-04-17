@@ -20,7 +20,7 @@ def get_short_messages() -> List[Dict]:
     return [
         {"role": "user", "content": "hello"},
         {"role": "assistant", "content": [{"type": "text", "text": "there"}]},
-        {"role": "user", "content": "how"},
+        {"role": "user", "content": "how are you"},
     ]
 
 
@@ -34,13 +34,13 @@ def message_history_limiter() -> MessageHistoryLimiter:
 
 
 @pytest.fixture
-def message_history_limiter_with_threshold() -> MessageHistoryLimiter:
-    return MessageHistoryLimiter(max_messages=2, min_tokens_threshold=10)
+def message_token_limiter() -> MessageTokenLimiter:
+    return MessageTokenLimiter(max_message_tokens=3)
 
 
 @pytest.fixture
-def message_token_limiter() -> MessageTokenLimiter:
-    return MessageTokenLimiter(max_tokens_per_message=3)
+def message_token_limiter_with_threshold() -> MessageTokenLimiter:
+    return MessageTokenLimiter(max_message_tokens=1, min_threshold_tokens=10)
 
 
 # MessageHistoryLimiter
@@ -52,17 +52,6 @@ def message_token_limiter() -> MessageTokenLimiter:
 )
 def test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_messages_len):
     transformed_messages = message_history_limiter.apply_transform(messages)
-    assert len(transformed_messages) == expected_messages_len
-
-
-@pytest.mark.parametrize(
-    "messages, expected_messages_len",
-    [(get_long_messages(), 2), (get_short_messages(), 3), (get_no_content_messages(), 2)],
-)
-def test_message_history_limiter_with_threshold_apply_transform(
-    message_history_limiter_with_threshold, messages, expected_messages_len
-):
-    transformed_messages = message_history_limiter_with_threshold.apply_transform(messages)
     assert len(transformed_messages) == expected_messages_len
 
 
@@ -87,12 +76,26 @@ def test_message_history_limiter_get_logs(message_history_limiter, messages, exp
 
 @pytest.mark.parametrize(
     "messages, expected_token_count, expected_messages_len",
-    [(get_long_messages(), 9, 5), (get_short_messages(), 3, 3), (get_no_content_messages(), 0, 2)],
+    [(get_long_messages(), 9, 5), (get_short_messages(), 5, 3), (get_no_content_messages(), 0, 2)],
 )
 def test_message_token_limiter_apply_transform(
     message_token_limiter, messages, expected_token_count, expected_messages_len
 ):
     transformed_messages = message_token_limiter.apply_transform(messages)
+    assert (
+        sum(_count_tokens(msg["content"]) for msg in transformed_messages if "content" in msg) == expected_token_count
+    )
+    assert len(transformed_messages) == expected_messages_len
+
+
+@pytest.mark.parametrize(
+    "messages, expected_token_count, expected_messages_len",
+    [(get_long_messages(), 5, 5), (get_short_messages(), 5, 3), (get_no_content_messages(), 0, 2)],
+)
+def test_message_token_limiter_with_threshold_apply_transform(
+    message_token_limiter_with_threshold, messages, expected_token_count, expected_messages_len
+):
+    transformed_messages = message_token_limiter_with_threshold.apply_transform(messages)
     assert (
         sum(_count_tokens(msg["content"]) for msg in transformed_messages if "content" in msg) == expected_token_count
     )
@@ -120,18 +123,13 @@ if __name__ == "__main__":
     short_messages = get_short_messages()
     no_content_messages = get_no_content_messages()
     message_history_limiter = MessageHistoryLimiter(max_messages=3)
-    message_history_limiter_with_threshold = MessageHistoryLimiter(max_messages=2, min_tokens_threshold=10)
-    message_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
+    message_token_limiter = MessageTokenLimiter(max_message_tokens=3)
+    message_token_limiter_with_threshold = MessageTokenLimiter(max_message_tokens=1, min_threshold_tokens=10)
 
     # Test Parameters
     message_history_limiter_apply_transform_parameters = {
         "messages": [long_messages, short_messages, no_content_messages],
         "expected_messages_len": [3, 3, 2],
-    }
-
-    message_history_limiter_with_threshold_apply_transform_parameters = {
-        "messages": [long_messages, short_messages, no_content_messages],
-        "expected_messages_len": [2, 3, 2],
     }
 
     message_history_limiter_get_logs_parameters = {
@@ -146,7 +144,13 @@ if __name__ == "__main__":
 
     message_token_limiter_apply_transform_parameters = {
         "messages": [long_messages, short_messages, no_content_messages],
-        "expected_token_count": [9, 3, 0],
+        "expected_token_count": [9, 5, 0],
+        "expected_messages_len": [5, 3, 2],
+    }
+
+    message_token_limiter_with_threshold_apply_transform_parameters = {
+        "messages": [long_messages, short_messages, no_content_messages],
+        "expected_token_count": [5, 5, 0],
         "expected_messages_len": [5, 3, 2],
     }
 
@@ -168,14 +172,6 @@ if __name__ == "__main__":
     ):
         test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_messages_len)
 
-    for messages, expected_messages_len in zip(
-        message_history_limiter_with_threshold_apply_transform_parameters["messages"],
-        message_history_limiter_with_threshold_apply_transform_parameters["expected_messages_len"],
-    ):
-        test_message_history_limiter_with_threshold_apply_transform(
-            message_history_limiter_with_threshold, messages, expected_messages_len
-        )
-
     for messages, expected_logs, expected_effect in zip(
         message_history_limiter_get_logs_parameters["messages"],
         message_history_limiter_get_logs_parameters["expected_logs"],
@@ -192,6 +188,15 @@ if __name__ == "__main__":
     ):
         test_message_token_limiter_apply_transform(
             message_token_limiter, messages, expected_token_count, expected_messages_len
+        )
+
+    for messages, expected_token_count, expected_messages_len in zip(
+        message_token_limiter_with_threshold_apply_transform_parameters["messages"],
+        message_token_limiter_with_threshold_apply_transform_parameters["expected_token_count"],
+        message_token_limiter_with_threshold_apply_transform_parameters["expected_messages_len"],
+    ):
+        test_message_token_limiter_with_threshold_apply_transform(
+            message_token_limiter_with_threshold, messages, expected_token_count, expected_messages_len
         )
 
     for messages, expected_logs, expected_effect in zip(
