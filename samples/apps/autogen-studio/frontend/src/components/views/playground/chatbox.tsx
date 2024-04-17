@@ -12,16 +12,11 @@ import {
   MenuProps,
   message as ToastMessage,
   Tooltip,
+  message,
 } from "antd";
 import * as React from "react";
-import {
-  IChatMessage,
-  IChatSession,
-  IFlowConfig,
-  IMessage,
-  IStatus,
-} from "../../types";
-import { examplePrompts, getServerUrl, guid } from "../../utils";
+import { IChatMessage, IChatSession, IMessage, IStatus } from "../../types";
+import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
 import {
@@ -34,14 +29,17 @@ import {
 import { useConfigStore } from "../../../hooks/store";
 
 let socketMsgs: any[] = [];
+
 const ChatBox = ({
   initMessages,
   editable = true,
   connectionId,
+  fetchMessages,
 }: {
   initMessages: IMessage[] | null;
   editable?: boolean;
   connectionId: string;
+  fetchMessages?: () => void;
 }) => {
   const session: IChatSession | null = useConfigStore((state) => state.session);
   const textAreaInputRef = React.useRef<HTMLTextAreaElement>(null);
@@ -86,9 +84,6 @@ const ChatBox = ({
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
-  const workflowConfig: IFlowConfig | null = useConfigStore(
-    (state) => state.workflowConfig
-  );
 
   let pageHeight, chatMaxHeight;
   if (typeof window !== "undefined") {
@@ -96,22 +91,24 @@ const ChatBox = ({
     chatMaxHeight = pageHeight - 310 + "px";
   }
 
+  const parseMessage = (message: any) => {
+    let meta;
+    try {
+      meta = JSON.parse(message.meta);
+    } catch (e) {
+      meta = message.meta;
+    }
+    const msg: IChatMessage = {
+      text: message.content,
+      sender: message.role === "user" ? "user" : "bot",
+      meta: meta,
+      msg_id: message.msg_id,
+    };
+    return msg;
+  };
+
   const parseMessages = (messages: any) => {
-    return messages?.map((message: any) => {
-      let meta;
-      try {
-        meta = JSON.parse(message.metadata);
-      } catch (e) {
-        meta = message.metadata;
-      }
-      const msg: IChatMessage = {
-        text: message.content,
-        sender: message.role === "user" ? "user" : "bot",
-        metadata: meta,
-        msg_id: message.msg_id,
-      };
-      return msg;
-    });
+    return messages?.map(parseMessage);
   };
 
   React.useEffect(() => {
@@ -142,12 +139,12 @@ const ChatBox = ({
     const css = isUser ? "bg-accent text-white  " : "bg-light";
     // console.log("message", message);
     let hasMeta = false;
-    if (message.metadata) {
+    if (message.meta) {
       hasMeta =
-        message.metadata.code !== null ||
-        message.metadata.images?.length > 0 ||
-        message.metadata.files?.length > 0 ||
-        message.metadata.scripts?.length > 0;
+        message.meta.code !== null ||
+        message.meta.images?.length > 0 ||
+        message.meta.files?.length > 0 ||
+        message.meta.scripts?.length > 0;
     }
 
     let items: MenuProps["items"] = [];
@@ -237,9 +234,9 @@ const ChatBox = ({
                 />
               </div>
             )}
-            {message.metadata && (
+            {message.meta && (
               <div className="">
-                <MetaDataView metadata={message.metadata} />
+                <MetaDataView metadata={message.meta} />
               </div>
             )}
           </div>
@@ -357,14 +354,6 @@ const ChatBox = ({
     }
   }, [waitingToReconnect]);
 
-  const chatHistory = (messages: IChatMessage[] | null) => {
-    let history = "";
-    messages?.forEach((message) => {
-      history += message.text + "\n"; // message.sender + ": " + message.text + "\n";
-    });
-    return history;
-  };
-
   const scrollChatBox = (element: any) => {
     element.current?.scroll({
       top: element.current.scrollHeight,
@@ -374,11 +363,29 @@ const ChatBox = ({
 
   const processAgentResponse = (data: any) => {
     if (data && data.status) {
-      const updatedMessages = parseMessages(data.data);
-      setTimeout(() => {
+      console.log("received proc data", data);
+      const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${data.data.session_id}`;
+      const payLoad = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+      const onSuccess = (data: any) => {
+        if (data && data.status) {
+          const updatedMessages = parseMessages(data.data);
+          setMessages(updatedMessages);
+        } else {
+          message.error(data.message);
+        }
         setLoading(false);
-        setMessages(updatedMessages);
-      }, 2000);
+      };
+      const onError = (err: any) => {
+        setError(err);
+        message.error(err.message);
+        setLoading(false);
+      };
+      fetchJSON(fetchMessagesUrl, payLoad, onSuccess, onError);
     } else {
       console.log("error", data);
       // setError(data);
@@ -403,27 +410,22 @@ const ChatBox = ({
     const messagePayload: IMessage = {
       role: "user",
       content: query,
-      msg_id: userMessage.msg_id,
       user_id: user?.email || "",
-      root_msg_id: "0",
-      session_id: session?.id || "",
-    };
-
-    const textUrl = `${serverUrl}/messages`;
-    const postBody = {
-      message: messagePayload,
-      workflow: workflowConfig,
-      session: session,
-      user_id: user?.email,
+      session_id: session?.id,
+      workflow_id: session?.workflow_id,
       connection_id: connectionId,
     };
+    console.log("messagePayload", messagePayload);
+
+    const textUrl = `${serverUrl}/messages`;
+
     const postData = {
       method: "POST",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(postBody),
+      body: JSON.stringify(messagePayload),
     };
     setLoading(true);
 
@@ -433,7 +435,7 @@ const ChatBox = ({
       wsClient.current.send(
         JSON.stringify({
           connection_id: connectionId,
-          data: postBody,
+          data: messagePayload,
           type: "user_message",
         })
       );
@@ -508,7 +510,7 @@ const ChatBox = ({
         className=" absolute right-0  text-secondary -top-8 rounded p-2"
       >
         {" "}
-        <div className="text-xs"> {session?.flow_config.name}</div>
+        <div className="text-xs"> {session?.name}</div>
       </div>
 
       <div
