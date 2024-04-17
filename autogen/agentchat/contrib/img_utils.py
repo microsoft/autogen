@@ -3,6 +3,7 @@ import copy
 import os
 import re
 from io import BytesIO
+from math import ceil
 from typing import Dict, List, Tuple, Union
 
 import requests
@@ -298,3 +299,53 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         new_messages.append(message)
 
     return new_messages
+
+
+def num_tokens_from_gpt_image(image_data: Union[str, Image.Image]) -> int:
+    """
+    Calculate the number of tokens required to process an image based on its dimensions after scaling.
+
+    This function scales the image so that its longest edge is at most 2048 pixels and its shortest edge
+    is at most 768 pixels. It then calculates the number of 512x512 tiles needed to cover the scaled
+    image and computes the total tokens based on the number of these tiles.
+
+    See more official details at:
+    - https://openai.com/pricing
+    - https://platform.openai.com/docs/guides/vision
+    See community discussion of OpenAI at:
+    - https://community.openai.com/t/how-do-i-calculate-image-tokens-in-gpt4-vision/
+
+
+    Args:
+        image_data : Union[str, Image.Image]: The image data which can either be a base64
+           encoded string, a URL, a file path, or a PIL Image object.
+
+    Returns:
+        int: The total number of tokens required for processing the image.
+
+    Examples
+    --------
+    >>> from PIL import Image
+    >>> img = Image.new('RGB', (2500, 2500), color = 'red')
+    >>> num_tokens_from_gpt_image(img)
+    765
+    """
+    image = get_pil_image(image_data)  # PIL Image
+    width, height = image.size
+
+    # 1. Constrain the longest edge to 2048 pixels
+    if max(width, height) > 2048:
+        scale_factor = 2048.0 / max(width, height)
+        width, height = int(width * scale_factor), int(height * scale_factor)
+
+    # 2. Further constrain the shortest edge to 768 pixels
+    if min(width, height) > 768:
+        scale_factor = 768.0 / min(width, height)
+        width, height = int(width * scale_factor), int(height * scale_factor)
+
+    # 3. Count how many tiles are needed to cover the image
+    tiles_width = ceil(width / 512)
+    tiles_height = ceil(height / 512)
+    total_tokens = 85 + 170 * (tiles_width * tiles_height)
+
+    return total_tokens

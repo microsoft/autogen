@@ -20,6 +20,7 @@ try:
         gpt4v_formatter,
         llava_formatter,
         message_formatter_pil_to_b64,
+        num_tokens_from_gpt_image,
     )
 except ImportError:
     skip = True
@@ -288,6 +289,25 @@ class MessageFormatterPILtoB64Test(unittest.TestCase):
         ]
         result = message_formatter_pil_to_b64(messages)
         self.assertEqual(result, expected_output)
+
+
+@pytest.mark.skipif(skip, reason="dependency is not installed")
+class ImageTokenCountTest(unittest.TestCase):
+    def test_tokens(self):
+        small_image = Image.new("RGB", (10, 10), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(small_image), 85 + 170)
+
+        med_image = Image.new("RGB", (512, 1025), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(med_image), 85 + 170 * 1 * 3)
+
+        tall_image = Image.new("RGB", (10, 1025), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(tall_image), 85 + 170 * 1 * 3)
+
+        huge_image = Image.new("RGB", (10000, 10000), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(huge_image), 85 + 170 * 2 * 2)
+
+        huge_wide_image = Image.new("RGB", (10000, 5000), color="red")
+        self.assertEqual(num_tokens_from_gpt_image(huge_wide_image), 85 + 170 * 3 * 2)
 
 
 if __name__ == "__main__":
