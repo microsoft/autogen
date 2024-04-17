@@ -10,10 +10,10 @@ class CriticAgent(ConversableAgent):
     """
 
     DEFAULT_SYSTEM_MESSAGE = """You are a helpful assistant. You suggest criteria for evaluating different tasks. They should be distinguishable, quantifiable and not redundant.
-    Convert the evaluation criteria into a dictionary where the keys are the criteria.
-    The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
-    Make sure the keys are criteria for assessing the given task.  "accepted_values" include the acceptable inputs for each key that are fine-grained and preferably multi-graded levels. "description" includes the criterion description.
-    Return the dictionary."""
+    Convert the evaluation criteria into a dictionary where the keys are the criteria and the value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
+    Make sure "accepted_values" include the acceptable inputs for each key that are fine-grained and preferably multi-graded levels and "description" includes the criterion description.
+    Output just the criteria string you have created, no code.
+    """
 
     DEFAULT_DESCRIPTION = "An AI agent for creating list criteria for evaluating the utility of a given task."
 
@@ -22,8 +22,6 @@ class CriticAgent(ConversableAgent):
         name="critic",
         system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
         llm_config: Optional[Union[Dict, bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "NEVER",
         description: Optional[str] = DEFAULT_DESCRIPTION,
         **kwargs,
     ):
@@ -51,5 +49,6 @@ class CriticAgent(ConversableAgent):
             system_message=system_message,
             human_input_mode="NEVER",
             llm_config=llm_config,
+            description=description,
             **kwargs,
         )

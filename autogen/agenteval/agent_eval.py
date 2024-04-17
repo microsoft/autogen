@@ -1,12 +1,12 @@
 import os
 import sys
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
-from criterion import Criterion
-from critic_agent import CriticAgent
-from quantifier_agent import QuantifierAgent
-from subcritic_agent import SubCriticAgent
-from task import Task
+from autogen.agenteval.criterion import Criterion
+from autogen.agentchat.contrib.critic_agent import CriticAgent
+from autogen.agentchat.contrib.quantifier_agent import QuantifierAgent
+from autogen.agentchat.contrib.subcritic_agent import SubCriticAgent
+from autogen.agenteval.task import Task
 
 import autogen
 
@@ -56,14 +56,13 @@ def generate_criteria(
 
     critic_user.initiate_chat(critic_manager, message=task.sys_msg)
     criteria = critic_user.last_message()
-    print(criteria["content"])
     criteria = Criterion.parse_json_str(criteria["content"])
     return criteria
 
 
 def quantify_criteria(
     llm_config: Optional[Union[Dict, bool]] = None,
-    criteria: [Criterion] = None,
+    criteria: List[Criterion] = None,
     task: Task = None,
     test_case: Dict = None,
     ground_truth: str = "",

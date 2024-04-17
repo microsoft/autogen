@@ -1,4 +1,5 @@
 import json
+from typing import List
 
 
 class Criterion:
@@ -6,12 +7,13 @@ class Criterion:
     A class that represents a criterion for agent evaluation.
     """
 
-    def __init__(self, name: str, description: str, accepted_values: [str], sub_criteria=None):
+    def __init__(self, name: str, description: str, accepted_values: List[str], sub_criteria=None):
         """
         args:
         - name (str): The name of the criterion.
         - description (str): The description of the criterion.
         - accepted_values ([str]): The list of accepted values for the criterion.
+        - sub_criteria ([Criterion]): The list of sub-criteria for the criterion.
         """
         self.name = name
         self.description = description
@@ -22,7 +24,13 @@ class Criterion:
         """
         Create a json object from the criterion.
         """
-        return {self.name: {"description": self.description, "accepted_values": self.accepted_values}}
+        return {
+            self.name: {
+                "description": self.description,
+                "accepted_values": self.accepted_values,
+                "sub_criteria": [x.to_json() for x in self.sub_criteria],
+            }
+        }
 
     @staticmethod
     def parse_json_str(criteria: str):
