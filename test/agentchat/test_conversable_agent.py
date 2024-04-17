@@ -1073,13 +1073,13 @@ async def test_function_registration_e2e_async() -> None:
 
 @pytest.mark.skipif(skip_openai, reason=REASON)
 def test_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         max_consecutive_auto_reply=10,
-        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+        llm_config={"config_list": config_list},
     )
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
@@ -1320,7 +1320,7 @@ if __name__ == "__main__":
     # test_generate_code_execution_reply()
     # test_conversable_agent()
     # test_no_llm_config()
-    # test_max_turn()
+    test_max_turn()
     # test_process_before_send()
-    test_message_func()
-    test_summary()
+    # test_message_func()
+    # test_summary()

@@ -38,14 +38,13 @@ def test_math_user_proxy_agent():
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
         filter_dict={
-            "tags": ["gpt-4", "gpt-4-32k"],
+            "tags": ["gpt-3.5-turbo"],
         },
     )
     assistant = AssistantAgent(
         "assistant",
         system_message="You are a helpful assistant.",
         llm_config={
-            "timeout": 600,
             "cache_seed": 42,
             "config_list": config_list,
         },
@@ -127,5 +126,5 @@ def test_generate_prompt():
 if __name__ == "__main__":
     # test_add_remove_print()
     # test_execute_one_python_code()
-    test_generate_prompt()
+    # test_generate_prompt()
     test_math_user_proxy_agent()

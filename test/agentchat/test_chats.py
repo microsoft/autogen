@@ -9,10 +9,10 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
 
 import autogen
-from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent, initiate_chats
+from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent, filter_config, initiate_chats
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 config_list = (
     []
@@ -32,6 +32,8 @@ config_list_35 = (
         filter_dict={"tags": ["gpt-3.5-turbo"]},
     )
 )
+
+config_list_tool = filter_config(config_list_35, {"tags": ["tool"]})
 
 
 def test_chat_messages_for_summary():
@@ -55,7 +57,7 @@ def test_chat_messages_for_summary():
     assert len(messages) == 2
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_chats_group():
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
@@ -78,7 +80,7 @@ def test_chats_group():
 
     financial_assistant = AssistantAgent(
         name="Financial_assistant",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
 
     writer = AssistantAgent(
@@ -107,7 +109,7 @@ def test_chats_group():
     manager_1 = GroupChatManager(
         groupchat=groupchat_1,
         name="Research_manager",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         code_execution_config={
             "last_n_messages": 1,
             "work_dir": "groupchat",
@@ -164,7 +166,7 @@ def test_chats_group():
     print(all_res[1].summary)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_chats():
     import random
 
@@ -294,7 +296,7 @@ def test_chats():
     # print(blogpost.summary, insights_and_blogpost)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_chats_general():
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
@@ -398,7 +400,7 @@ def test_chats_general():
     # print(blogpost.summary, insights_and_blogpost)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_chats_exceptions():
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
@@ -482,10 +484,10 @@ def test_chats_exceptions():
         )
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_chats_w_func():
     llm_config = {
-        "config_list": config_list,
+        "config_list": config_list_tool,
         "timeout": 120,
     }
 
@@ -538,7 +540,7 @@ def test_chats_w_func():
     print(res.summary, res.cost, res.chat_history)
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_udf_message_in_chats():
     llm_config_35 = {"config_list": config_list_35}
 
@@ -623,6 +625,6 @@ if __name__ == "__main__":
     # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
-    # test_chats_w_func()
+    test_chats_w_func()
     # test_chat_messages_for_summary()
-    test_udf_message_in_chats()
+    # test_udf_message_in_chats()

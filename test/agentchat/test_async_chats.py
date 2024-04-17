@@ -17,11 +17,6 @@ from conftest import skip_openai  # noqa: E402
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 @pytest.mark.asyncio
 async def test_async_chats():
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-    )
-
     config_list_35 = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         file_location=KEY_LOC,
@@ -43,7 +38,7 @@ async def test_async_chats():
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
     writer = AssistantAgent(
         name="Writer",
