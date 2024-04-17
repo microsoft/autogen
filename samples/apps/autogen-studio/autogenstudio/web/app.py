@@ -4,7 +4,6 @@ import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
-from datetime import datetime
 from typing import Any
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -13,9 +12,9 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
-from ..models.db import Agent, Message, Model, Response, Session, Skill, Workflow
-from ..models.dbmanager import DBManager
-from ..utils import init_app_folders, md5_hash, test_model, workflow_from_id
+from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
+from ..dbmanager import DBManager
+from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model, workflow_from_id
 from ..version import VERSION
 
 managers = {"chat": None}  # manage calls to autogen
@@ -98,23 +97,6 @@ api.mount(
 
 
 # manage websocket connections
-
-
-def check_and_cast_datetime_fields(obj: Any) -> Any:
-    if hasattr(obj, "created_at") and isinstance(obj.created_at, str):
-        obj.created_at = str_to_datetime(obj.created_at)
-
-    if hasattr(obj, "updated_at") and isinstance(obj.updated_at, str):
-        obj.updated_at = str_to_datetime(obj.updated_at)
-
-    return obj
-
-
-def str_to_datetime(dt_str: str) -> datetime:
-    if dt_str[-1] == "Z":
-        # Replace 'Z' with '+00:00' for UTC timezone
-        dt_str = dt_str[:-1] + "+00:00"
-    return datetime.fromisoformat(dt_str)
 
 
 def create_entity(model: Any, model_class: Any, filters: dict = None):

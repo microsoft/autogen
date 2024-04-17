@@ -3,13 +3,14 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 import autogen
-from autogenstudio.models.db import (
+
+from .datamodel import (
     Agent,
     AgentType,
     Message,
     SocketMessage,
 )
-from autogenstudio.utils import clear_folder, get_skills_from_prompt, sanitize_model
+from .utils import clear_folder, get_skills_from_prompt, sanitize_model
 
 
 class WorkflowManager:
@@ -180,7 +181,6 @@ class WorkflowManager:
                 # only add key if value is not None
                 sanitized_llm = sanitize_model(llm)
                 config_list.append(sanitized_llm)
-                print("llm config >> ", sanitized_llm)
             agent.config.llm_config.config_list = config_list
         if agent.config.code_execution_config is not False:
             code_execution_config = agent.config.code_execution_config or {}

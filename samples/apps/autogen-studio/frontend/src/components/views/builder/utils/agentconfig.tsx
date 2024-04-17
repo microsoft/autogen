@@ -1,5 +1,5 @@
 import React from "react";
-import { GroupView, ControlRowView } from "../../../atoms";
+import { ControlRowView } from "../../../atoms";
 import { checkAndSanitizeInput, fetchJSON, getServerUrl } from "../../../utils";
 import {
   Button,
@@ -14,7 +14,6 @@ import {
 import {
   BugAntIcon,
   CpuChipIcon,
-  InformationCircleIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
 import { appContext } from "../../../../hooks/provider";
@@ -25,7 +24,6 @@ import {
   SkillSelector,
 } from "./selectors";
 import { IAgent, ILLMConfig } from "../../../types";
-import { useConfigStore } from "../../../../hooks/store";
 import TextArea from "antd/es/input/TextArea";
 
 const { useToken } = theme;

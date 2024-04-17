@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from .db import (
+from .datamodel import (
     Agent,
     AgentLink,
     AgentModelLink,

@@ -1,19 +1,17 @@
 import base64
 import hashlib
-import json
 import os
 import re
 import shutil
-from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from datetime import datetime
+from typing import Any, Dict, List, Tuple, Union
 
 from dotenv import load_dotenv
 
-import autogen
 from autogen.oai.client import ModelClient, OpenAIWrapper
 
-from ..models.db import Agent, AgentType, Model, Skill, Workflow, WorkflowAgentLink
-from ..models.dbmanager import DBManager
+from ..datamodel import Agent, AgentType, Model, Skill, Workflow, WorkflowAgentLink
+from ..dbmanager import DBManager
 from ..version import APP_NAME
 
 
@@ -25,6 +23,23 @@ def md5_hash(text: str) -> str:
     :return: The MD5 hash of the text
     """
     return hashlib.md5(text.encode()).hexdigest()
+
+
+def check_and_cast_datetime_fields(obj: Any) -> Any:
+    if hasattr(obj, "created_at") and isinstance(obj.created_at, str):
+        obj.created_at = str_to_datetime(obj.created_at)
+
+    if hasattr(obj, "updated_at") and isinstance(obj.updated_at, str):
+        obj.updated_at = str_to_datetime(obj.updated_at)
+
+    return obj
+
+
+def str_to_datetime(dt_str: str) -> datetime:
+    if dt_str[-1] == "Z":
+        # Replace 'Z' with '+00:00' for UTC timezone
+        dt_str = dt_str[:-1] + "+00:00"
+    return datetime.fromisoformat(dt_str)
 
 
 def clear_folder(folder_path: str) -> None:

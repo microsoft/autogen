@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
-from .models.db import Message, SocketMessage, Workflow
+from .datamodel import Message, SocketMessage, Workflow
 from .utils import (
     extract_successful_code_blocks,
     get_modified_files,
@@ -138,7 +138,7 @@ class AutoGenChatManager:
                 type="agent_status",
                 data={
                     "status": "summarizing",
-                    "message": "Generating summary of agent dialogue",
+                    "message": "Summarizing agent dialogue",
                 },
                 connection_id=workflow_manager.connection_id,
             )

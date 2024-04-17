@@ -5,7 +5,6 @@ import typer
 import uvicorn
 from typing_extensions import Annotated
 
-from .utils.dbutils import DBManager
 from .version import VERSION
 
 app = typer.Typer()
