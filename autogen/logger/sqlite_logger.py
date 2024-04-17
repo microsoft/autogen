@@ -18,6 +18,7 @@ from .base_logger import LLMConfig
 
 if TYPE_CHECKING:
     from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent
 
 logger = logging.getLogger(__name__)
 lock = threading.Lock()
@@ -259,12 +260,12 @@ class SqliteLogger(BaseLogger):
         )
         self._run_query(query=query, args=args)
     
-    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Any, valid: bool) -> None:
+    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
         from autogen import Agent
 
         if self.con is None:
             return
-        
+
         query = """
         INSERT INTO received_messages (agent_id, session_id, message, sender, valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)
         """
@@ -272,7 +273,7 @@ class SqliteLogger(BaseLogger):
             id(agent),
             self.session_id,
             json.dumps(message),
-            sender.name(),
+            sender.name,
             valid,
             get_current_ts(),
         )
