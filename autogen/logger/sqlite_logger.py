@@ -105,10 +105,12 @@ class SqliteLogger(BaseLogger):
 
             query = """
             CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY,
+                event_name TEXT,
                 source_id INTEGER,
                 source_name TEXT,
-                event_name TEXT,
+                agent_module TEXT DEFAULT NULL,
+                agent_class_name TEXT DEFAULT NULL,
+                id INTEGER PRIMARY KEY,
                 json_state TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -259,19 +261,33 @@ class SqliteLogger(BaseLogger):
         self._run_query(query=query, args=args)
     
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
+        from autogen import Agent
         if self.con is None:
             return
-        
-        query = """
-        INSERT INTO events (source_id, source_name, event_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?)
-        """
-        args = (
-            id(source),
-            source.name if hasattr(source, "name") else source,
-            name,
-            json.dumps(kwargs),
-            get_current_ts(),
-        )
+        if isinstance(source, Agent): 
+            query = """
+            INSERT INTO events (source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """
+            args = (
+                id(source),
+                source.name if hasattr(source, "name") else source,
+                name,
+                source.__module__,
+                source.__class__.__name__,
+                json.dumps(kwargs),
+                get_current_ts(),
+            )
+        else:
+            query = """
+            INSERT INTO events (source_id, source_name, event_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?)
+            """
+            args = (
+                id(source),
+                source.name if hasattr(source, "name") else source,
+                name,
+                json.dumps(kwargs),
+                get_current_ts(),
+            )
         self._run_query(query=query, args=args)
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
