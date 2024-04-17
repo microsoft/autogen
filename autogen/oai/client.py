@@ -320,6 +320,7 @@ class OpenAIWrapper:
         "api_version",
         "api_type",
         "tags",
+        "profile",
     }
 
     openai_kwargs = set(inspect.getfullargspec(OpenAI.__init__).kwonlyargs)
