@@ -1,0 +1,12 @@
+mammoth
+markdownify
+arxiv
+pymupdf
+wikipedia-api
+easyocr
+python-pptx
+textract==1.6.5
+openai-whisper
+pandas
+scipy
+sentence-transformers
