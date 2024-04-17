@@ -7,8 +7,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 try:
     import pgvector
-    from autogen.agentchat.contrib.vectordb.pgvector import PGVector
     import sentence_transformers
+
+    from autogen.agentchat.contrib.vectordb.pgvector import PGVector
 except ImportError:
     skip = True
 else:

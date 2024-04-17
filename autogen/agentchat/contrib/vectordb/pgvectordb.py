@@ -1,12 +1,12 @@
 import os
 import re
-import numpy as np
 from typing import Callable, List
+
+import numpy as np
+from sentence_transformers import SentenceTransformer
 
 from .base import Document, ItemID, QueryResults, VectorDB
 from .utils import get_logger
-
-from sentence_transformers import SentenceTransformer
 
 try:
     import pgvector
@@ -36,8 +36,12 @@ class Collection:
 
     """
 
-    def __init__(self, client=None, collection_name: str = "autogen-docs", embedding_function: Callable = None,
-                 metadata=None, get_or_create=None):
+    def __init__(self,
+                 client=None,
+                 collection_name: str = "autogen-docs",
+                 embedding_function: Callable = None,
+                 metadata=None,
+                 get_or_create=None):
         """
         Initialize the Collection object.
 
@@ -84,8 +88,7 @@ class Collection:
         sql_values = []
         for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
             sql_values.append((doc_id, embedding, metadata, document))
-        sql_string = (f'INSERT INTO {self.name} (id, embedding, metadata, document) '
-                      f'VALUES (%s, %s, %s, %s);')
+        sql_string = f"INSERT INTO {self.name} (id, embedding, metadata, document) " f"VALUES (%s, %s, %s, %s);"
         cursor.executemany(sql_string, sql_values)
         cursor.close()
 
@@ -107,36 +110,43 @@ class Collection:
         if embeddings is not None and metadatas is not None:
             for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
-                sql_values.append((doc_id, embedding, metadata, document, embedding,
-                                   metadata, document))
-            sql_string = (f"INSERT INTO {self.name} (id, embedding, metadatas, documents)\n"
-                          f"VALUES (%s, %s, %s, %s)\n"
-                          f"ON CONFLICT (id)\n"
-                          f"DO UPDATE SET embedding = %s,\n"
-                          f"metadatas = %s, documents = %s;\n")
+                sql_values.append((doc_id, embedding, metadata, document, embedding, metadata, document))
+            sql_string = (
+                f"INSERT INTO {self.name} (id, embedding, metadatas, documents)\n"
+                f"VALUES (%s, %s, %s, %s)\n"
+                f"ON CONFLICT (id)\n"
+                f"DO UPDATE SET embedding = %s,\n"
+                f"metadatas = %s, documents = %s;\n"
+            )
         elif embeddings is not None:
             for doc_id, embedding, document in zip(ids, embeddings, documents):
                 sql_values.append((doc_id, embedding, document, embedding, document))
-            sql_string = (f"INSERT INTO {self.name} (id, embedding, documents) "
-                          f"VALUES (%s, %s, %s) ON CONFLICT (id)\n"
-                          f"DO UPDATE SET embedding = %s, documents = %s;\n")
+            sql_string = (
+                f"INSERT INTO {self.name} (id, embedding, documents) "
+                f"VALUES (%s, %s, %s) ON CONFLICT (id)\n"
+                f"DO UPDATE SET embedding = %s, documents = %s;\n"
+            )
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
                 embedding = self.embedding_function.encode(document)
                 sql_values.append((doc_id, metadata, embedding, document, metadata, document, embedding))
-            sql_string = (f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
-                          f"VALUES (%s, %s, %s, %s)\n"
-                          f"ON CONFLICT (id)\n"
-                          f"DO UPDATE SET metadatas = %s, documents = %s, embedding = %s;\n")
+            sql_string = (
+                f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
+                f"VALUES (%s, %s, %s, %s)\n"
+                f"ON CONFLICT (id)\n"
+                f"DO UPDATE SET metadatas = %s, documents = %s, embedding = %s;\n"
+            )
         else:
             for doc_id, document in zip(ids, documents):
                 embedding = self.embedding_function.encode(document)
                 sql_values.append((doc_id, document, embedding, document))
-            sql_string = (f"INSERT INTO {self.name} (id, documents, embedding)\n"
-                          f"VALUES (%s, %s, %s)\n"
-                          f"ON CONFLICT (id)\n"
-                          f"DO UPDATE SET documents = %s;\n")
+            sql_string = (
+                f"INSERT INTO {self.name} (id, documents, embedding)\n"
+                f"VALUES (%s, %s, %s)\n"
+                f"ON CONFLICT (id)\n"
+                f"DO UPDATE SET documents = %s;\n"
+            )
         logger.debug(f"Upsert SQL String:\n{sql_string}\n{sql_values}")
         cursor.executemany(sql_string, sql_values)
         cursor.close()
@@ -177,25 +187,30 @@ class Collection:
         if include:
             query = f'SELECT (id, {", ".join(map(str, include))}, embedding) FROM {self.name}'
         else:
-            query = f'SELECT * FROM {self.name}'
+            query = f"SELECT * FROM {self.name}"
         if ids:
-            query = f'{query} WHERE id IN {ids}'
+            query = f"{query} WHERE id IN {ids}"
         elif where:
-            query = f'{query} WHERE {where}'
+            query = f"{query} WHERE {where}"
         if offset:
-            query = f'{query} OFFSET {offset}'
+            query = f"{query} OFFSET {offset}"
         if limit:
-            query = f'{query} LIMIT {limit}'
+            query = f"{query} LIMIT {limit}"
         retreived_documents = []
         try:
             cursor.execute(query)
             retrieval = cursor.fetchall()
             for retrieved_document in retrieval:
-                retreived_documents.append(Document(id=retrieved_document[0][0], metadata=retrieved_document[0][1],
-                                                    content=retrieved_document[0][2],
-                                                    embedding=retrieved_document[0][3]))
+                retreived_documents.append(
+                    Document(
+                        id=retrieved_document[0][0],
+                        metadata=retrieved_document[0][1],
+                        content=retrieved_document[0][2],
+                        embedding=retrieved_document[0][3]
+                    )
+                )
         except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn):
-            logger.info(f"Error executing select on non-existant table: {self.name}. Creating it instead.")
+            logger.info(f"Error executing select on non-existent table: {self.name}. Creating it instead.")
             self.create_collection(collection_name=self.name)
             logger.info(f"Created table {self.name}")
         cursor.close()
@@ -218,17 +233,19 @@ class Collection:
         sql_values = []
         for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
             sql_values.append((doc_id, embedding, metadata, document, doc_id, embedding, metadata, document))
-        sql_string = (f'INSERT INTO {self.name} (id, embedding, metadata, document) '
-                      f'VALUES (%s, %s, %s, %s) '
-                      f'ON CONFLICT (id) '
-                      f'DO UPDATE SET id = %s, embedding = %s, '
-                      f'metadata = %s, document = %s;\n')
+        sql_string = (
+            f'INSERT INTO {self.name} (id, embedding, metadata, document) '
+            f'VALUES (%s, %s, %s, %s) '
+            f'ON CONFLICT (id) '
+            f'DO UPDATE SET id = %s, embedding = %s, '
+            f'metadata = %s, document = %s;\n'
+        )
         logger.debug(f"Upsert SQL String:\n{sql_string}\n")
         cursor.executemany(sql_string, sql_values)
         cursor.close()
 
     @staticmethod
-    def euclidian_distance(arr1: List[float], arr2: List[float]) -> float:
+    def euclidean_distance(arr1: List[float], arr2: List[float]) -> float:
         """
         Calculate the Euclidean distance between two vectors.
 
@@ -257,8 +274,14 @@ class Collection:
         dist = np.dot(arr1, arr2) / (np.linalg.norm(arr1) * np.linalg.norm(arr2))
         return dist
 
-    def query(self, query_texts: List[str], collection_name: str = None, n_results: int = 10,
-              distance_type: str = "euclidian", distance_threshold: float = -1) -> QueryResults:
+    def query(
+            self,
+            query_texts: List[str],
+            collection_name: str = None,
+            n_results: int = 10,
+            distance_type: str = "euclidean",
+            distance_threshold: float = -1
+    ) -> QueryResults:
         """
         Query documents in the collection.
 
@@ -266,7 +289,7 @@ class Collection:
             query_texts (List[str]): A list of query texts.
             collection_name (Optional[str]): The name of the collection.
             n_results (int): The maximum number of results to return.
-            distance_type (Optional[str]): Distance search type - euclidian or cosine
+            distance_type (Optional[str]): Distance search type - euclidean or cosine
             distance_threshold (Optional[float]): Distance threshold to limit searches
         Returns:
             QueryResults: The query results.
@@ -284,21 +307,25 @@ class Collection:
         for query in query_texts:
             vector = self.embedding_function.encode(query, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
-                query = (f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
-                         f"ORDER BY embedding  <=> '{str(vector)}'::vector {distance_threshold}\n"
-                         f"LIMIT {n_results}")
+                query = (
+                    f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
+                    f"ORDER BY embedding  <=> '{str(vector)}'::vector {distance_threshold}\n"
+                    f"LIMIT {n_results}"
+                )
             else:
-                query = (f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
-                         f"ORDER BY embedding  <-> '{str(vector)}'::vector {distance_threshold}\n"
-                         f"LIMIT {n_results}")
+                query = (
+                    f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
+                    f"ORDER BY embedding  <-> '{str(vector)}'::vector {distance_threshold}\n"
+                    f"LIMIT {n_results}"
+                )
             cursor.execute(query)
             for row in cursor.fetchall():
                 fetched_document = Document(id=row[0], content=row[1], embedding=row[2], metadata=row[3])
-                fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get('embedding'))
+                fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get("embedding"))
                 if distance_type.lower() == "cosine":
                     distance = self.cosine_distance(fetched_document_array, vector)
                 else:
-                    distance = self.euclidian_distance(fetched_document_array, vector)
+                    distance = self.euclidean_distance(fetched_document_array, vector)
                 results.append((fetched_document, distance))
         cursor.close()
         results = [results]
@@ -319,7 +346,7 @@ class Collection:
         """
         if not isinstance(array_string, str):
             return array_string
-        array_string = array_string.strip('[]')
+        array_string = array_string.strip("[]")
         array = [float(num) for num in array_string.split()]
         return array
 
@@ -337,9 +364,11 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f"UPDATE collections"
-                       f"SET metadata = '%s'"
-                       f"WHERE collection_name = '%s';", (metadata, self.name))
+        cursor.execute(
+            f"UPDATE collections"
+            f"SET metadata = '%s'"
+            f"WHERE collection_name = '%s';", (metadata, self.name)
+        )
         cursor.close()
 
     def delete(self, ids: List[ItemID], collection_name: str = None):
@@ -356,7 +385,7 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f'DELETE FROM {self.name} WHERE id IN ({ids});')
+        cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({ids});")
         cursor.close()
 
     def delete_collection(self, collection_name: str = None):
@@ -372,7 +401,7 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f'DROP TABLE IF EXISTS {self.name}')
+        cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.close()
 
     def create_collection(self, collection_name: str = None):
@@ -389,11 +418,13 @@ class Collection:
             self.name = collection_name
         cursor = self.client.cursor()
         cursor.execute(f'DROP TABLE IF EXISTS {self.name}')
-        cursor.execute(f'CREATE TABLE {self.name} ('
-                       f'documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));'
-                       f'CREATE INDEX '
-                       f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
-                       f'ef_construction = {self.metadata["hnsw:construction_ef"]});')
+        cursor.execute(
+            f'CREATE TABLE {self.name} ('
+            f'documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));'
+            f'CREATE INDEX '
+            f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
+            f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
+        )
         cursor.close()
 
 
@@ -403,8 +434,15 @@ class PGVectorDB(VectorDB):
     """
 
     def __init__(
-            self, *, connection_string: str = None, host: str = None, port: int = None, dbname: str = None,
-            connect_timeout: int = 10, embedding_function: Callable = None, metadata: dict = None
+            self,
+            *,
+            connection_string: str = None,
+            host: str = None,
+            port: int = None,
+            dbname: str = None,
+            connect_timeout: int = 10,
+            embedding_function: Callable = None,
+            metadata: dict = None
     ) -> None:
         """
         Initialize the vector database.
@@ -432,20 +470,19 @@ class PGVectorDB(VectorDB):
         if connection_string:
             self.client = psycopg.connect(conninfo=connection_string, autocommit=True)
         elif host and port and dbname:
-            self.client = psycopg.connect(host=host, port=port, dbname=dbname, connect_timeout=connect_timeout,
-                                          autocommit=True)
+            self.client = psycopg.connect(
+                host=host, port=port, dbname=dbname, connect_timeout=connect_timeout, autocommit=True
+            )
         self.embedding_function = (
-            SentenceTransformer('all-MiniLM-L6-v2')
-            if embedding_function is None
-            else embedding_function
+            SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
         )
         self.metadata = metadata
-        self.client.execute(f'CREATE EXTENSION IF NOT EXISTS vector')
+        self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(self.client)
         self.active_collection = None
 
     def create_collection(
-            self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
+        self, collection_name: str, overwrite: bool = False, get_or_create: bool = True
     ) -> Collection:
         """
         Create a collection in the vector database.
@@ -514,8 +551,9 @@ class PGVectorDB(VectorDB):
                     f"No collection is specified. Using current active collection {self.active_collection.name}."
                 )
         else:
-            self.active_collection = Collection(client=self.client, collection_name=collection_name,
-                                                embedding_function=self.embedding_function)
+            self.active_collection = Collection(
+                client=self.client, collection_name=collection_name, embedding_function=self.embedding_function
+            )
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:
@@ -533,14 +571,10 @@ class PGVectorDB(VectorDB):
             self.active_collection = None
 
     def _batch_insert(
-            self, collection: Collection, embeddings=None, ids=None, metadatas=None, documents=None, upsert=False
+        self, collection: Collection, embeddings=None, ids=None, metadatas=None, documents=None, upsert=False
     ):
         batch_size = int(PGVECTOR_MAX_BATCH_SIZE)
-        default_metadata = {
-            "hnsw:space": "ip",
-            "hnsw:construction_ef": 32,
-            "hnsw:M": 16
-        }
+        default_metadata = {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         default_metadatas = [default_metadata]
         for i in range(0, len(documents), min(batch_size, len(documents))):
             end_idx = i + min(batch_size, len(documents) - i)
@@ -622,12 +656,12 @@ class PGVectorDB(VectorDB):
         collection.delete(ids=ids, collection_name=collection_name)
 
     def retrieve_docs(
-            self,
-            queries: List[str],
-            collection_name: str = None,
-            n_results: int = 10,
-            distance_threshold: float = -1,
-            **kwargs,
+        self,
+        queries: List[str],
+        collection_name: str = None,
+        n_results: int = 10,
+        distance_threshold: float = -1,
+        **kwargs,
     ) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
