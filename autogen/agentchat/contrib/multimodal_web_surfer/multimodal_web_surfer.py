@@ -63,13 +63,13 @@ class MultimodalWebSurferAgent(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        mlm_config: Optional[Union[Dict, Literal[False]]] = None, # TODO: Remove this
+        mlm_config: Optional[Union[Dict, Literal[False]]] = None,  # TODO: Remove this
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        headless: bool=True,
+        headless: bool = True,
         chromium_channel=DEFAULT_CHANNEL,
-        chromium_data_dir: Optional[str]=None,
-        start_page: Optional[str]=None,
-        debug_dir: Optional[str]=None,
+        chromium_data_dir: Optional[str] = None,
+        start_page: Optional[str] = None,
+        debug_dir: Optional[str] = None,
     ):
         """
         Create a new MultimodalWebSurferAgent.
