@@ -38,9 +38,10 @@ class CosmosDBCache(AbstractCache):
         self.seed = seed
         self.client = client
         self.database = self.client.get_database_client(database_id)
-        self.container = self.database.get_container_client(container_id)
-        if not self.container.exists():
-            self.database.create_container(id=container_id, partition_key=PartitionKey(path="/partitionKey"))
+        self.container = self.database.create_container_if_not_exists(
+            id=container_id, 
+            partition_key=PartitionKey(path="/partitionKey")
+)
 
     @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
@@ -97,7 +98,7 @@ class CosmosDBCache(AbstractCache):
         # If you created the client inside this class, you should close it if necessary
         pass
 
-    async def __enter__(self):
+    def __enter__(self):
         """
         Context management entry.
 
