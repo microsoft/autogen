@@ -69,6 +69,19 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
+    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Any, valid: bool) -> None:
+        """
+        Log a received msg to an agent from sender.
+
+        Args:
+            agent (ConversableAgent):   The agent to log.
+            message (dict or str):      The message received by the agent
+            sender (Agent):             The sender of the message
+            valid (bool):               Whether the message was valid or not
+        """
+        ...
+
+    @abstractmethod
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         """
         Log the birth of a new OpenAIWrapper.

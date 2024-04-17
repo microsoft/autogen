@@ -30,7 +30,7 @@ from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_new_agent, logging_enabled
+from ..runtime_logging import log_new_agent, log_received_msg, logging_enabled
 from .agent import Agent, LLMAgent
 from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
@@ -745,6 +745,9 @@ class ConversableAgent(LLMAgent):
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
+        if logging_enabled():
+            log_received_msg(self, message, sender, valid)
+
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."

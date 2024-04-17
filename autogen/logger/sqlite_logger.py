@@ -103,6 +103,19 @@ class SqliteLogger(BaseLogger):
             """
             self._run_query(query=query)
 
+            query = """
+            CREATE TABLE IF NOT EXISTS received_messages (
+                id INTEGER PRIMARY KEY,
+                agent_id INTEGER,
+                session_id TEXT,
+                message TEXT,
+                sender TEXT,
+                valid INTEGER,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+            self._run_query(query=query)
+
             current_verion = self._get_current_db_version()
             if current_verion is None:
                 self._run_query(
@@ -242,6 +255,25 @@ class SqliteLogger(BaseLogger):
             agent.name if hasattr(agent, "name") and agent.name is not None else "",
             type(agent).__name__,
             json.dumps(args),
+            get_current_ts(),
+        )
+        self._run_query(query=query, args=args)
+    
+    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Any, valid: bool) -> None:
+        from autogen import Agent
+
+        if self.con is None:
+            return
+        
+        query = """
+        INSERT INTO received_messages (agent_id, session_id, message, sender, valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)
+        """
+        args = (
+            id(agent),
+            self.session_id,
+            json.dumps(message),
+            sender.name(),
+            valid,
             get_current_ts(),
         )
         self._run_query(query=query, args=args)
