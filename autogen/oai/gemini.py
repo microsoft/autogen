@@ -31,6 +31,7 @@ from io import BytesIO
 from typing import Any, Dict, List, Mapping, Union
 
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import requests
 from google.ai.generativelanguage import Content, Part
 from google.api_core.exceptions import InternalServerError
@@ -116,10 +117,16 @@ class GeminiClient:
             genai.configure(api_key=self.api_key)
             chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE
+            }
             for attempt in range(max_retries):
                 ans = None
                 try:
-                    response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream)
+                    response = chat.send_message(gemini_messages[-1].parts[0].text, stream=stream, safety_settings=safety_settings)
                 except InternalServerError:
                     delay = 5 * (2**attempt)
                     warnings.warn(
