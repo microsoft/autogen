@@ -3,7 +3,7 @@ import json
 
 class Task:
     """
-    Task class represents a task that the agent should be able to perform.
+    Class representing a task for agent completion, includes example agent execution for criteria generation.
     """
 
     def __init__(self, name: str, description: str, successful_response: str, failed_response: str):
