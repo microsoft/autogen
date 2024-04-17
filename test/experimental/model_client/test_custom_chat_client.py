@@ -22,6 +22,7 @@ async def test_create() -> None:
             messages: List[Message],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
+            json_output: Optional[bool] = None,
             extra_create_args: Dict[str, Any] = {},
         ) -> CreateResult:
             return CreateResult(
@@ -36,6 +37,7 @@ async def test_create() -> None:
             messages: List[Message],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
+            json_output: Optional[bool] = None,
             extra_create_args: Dict[str, Any] = {},
         ) -> AsyncGenerator[Union[str, CreateResult], None]:
             raise NotImplementedError

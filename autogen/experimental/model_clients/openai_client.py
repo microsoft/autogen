@@ -305,6 +305,13 @@ class BaseOpenAI(ModelClient):
         if "model" in create_args:
             self._resolved_model = model_info.resolve_model(create_args["model"])
 
+        if (
+            "response_format" in create_args
+            and create_args["response_format"]["type"] == "json_object"
+            and not self._model_capabilities["json_output"]
+        ):
+            raise ValueError("Model does not support JSON output")
+
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0, cost=0.0)
@@ -318,6 +325,7 @@ class BaseOpenAI(ModelClient):
         messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
+        json_output: Optional[bool] = None,
         extra_create_args: Dict[str, Any] = {},
     ) -> CreateResult:
         # Make sure all extra_create_args are valid
@@ -336,6 +344,18 @@ class BaseOpenAI(ModelClient):
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
+
+        if json_output is not None:
+            if self.capabilities["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output")
+
+            if json_output is True:
+                create_args["response_format"] = {"type": "json_object"}
+            else:
+                create_args["response_format"] = {"type": "text"}
+
+        if self.capabilities["json_output"] is False and json_output is True:
+            raise ValueError("Model does not support JSON output")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
@@ -411,6 +431,7 @@ class BaseOpenAI(ModelClient):
         messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
+        json_output: Optional[bool] = None,
         extra_create_args: Dict[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         # Make sure all extra_create_args are valid
@@ -434,6 +455,23 @@ class BaseOpenAI(ModelClient):
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
+
+        # TODO: allow custom handling.
+        # For now we raise an error if images are present and vision is not supported
+        if self.capabilities["vision"] is False:
+            for message in messages:
+                if isinstance(message, UserMessage):
+                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
+                        raise ValueError("Model does not support vision and image was provided")
+
+        if json_output is not None:
+            if self.capabilities["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output")
+
+            if json_output is True:
+                create_args["response_format"] = {"type": "json_object"}
+            else:
+                create_args["response_format"] = {"type": "text"}
 
         if len(functions) > 0:
             tools = convert_functions(functions)

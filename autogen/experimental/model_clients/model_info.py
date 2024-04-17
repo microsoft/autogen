@@ -17,46 +17,57 @@ _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
     "gpt-4-turbo-2024-04-09": {
         "vision": True,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-4-0125-preview": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-4-1106-preview": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-4-1106-vision-preview": {
         "vision": True,
         "function_calling": False,
+        "json_output": False,
     },
     "gpt-4-0613": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-4-32k-0613": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-3.5-turbo-0125": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-3.5-turbo-1106": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-3.5-turbo-instruct": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-3.5-turbo-0613": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
     "gpt-3.5-turbo-16k-0613": {
         "vision": False,
         "function_calling": True,
+        "json_output": True,
     },
 }
 

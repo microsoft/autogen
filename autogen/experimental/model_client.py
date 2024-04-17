@@ -11,6 +11,7 @@ from .types import CreateResult, FunctionDefinition, Message, RequestUsage
 class ModelCapabilities(TypedDict, total=False):
     vision: Required[bool]
     function_calling: Required[bool]
+    json_output: Required[bool]
 
 
 @runtime_checkable
@@ -21,6 +22,9 @@ class ModelClient(Protocol):
         messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
+        # None means do not override the default
+        # A value means to override the client default - often specified in the constructor
+        json_output: Optional[bool] = None,
         extra_create_args: Dict[str, Any] = {},
     ) -> CreateResult: ...
 
@@ -29,6 +33,9 @@ class ModelClient(Protocol):
         messages: List[Message],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
+        # None means do not override the default
+        # A value means to override the client default - often specified in the constructor
+        json_output: Optional[bool] = None,
         extra_create_args: Dict[str, Any] = {},
     ) -> AsyncGenerator[Union[str, CreateResult], None]: ...
 
