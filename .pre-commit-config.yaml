@@ -44,6 +44,7 @@ repos:
               website/yarn.lock |
               website/docs/tutorial/code-executors.ipynb |
               website/docs/topics/code-execution/custom-executor.ipynb |
+              website/docs/topics/non-openai-models/cloud-gemini.ipynb |
               notebook/.*
             )$
   # See https://jaredkhan.com/blog/mypy-pre-commit

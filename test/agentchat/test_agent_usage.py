@@ -1,24 +1,21 @@
 #!/usr/bin/env python3 -m pytest
 
 import io
+import os
+import sys
 from contextlib import redirect_stdout
 
 import pytest
-from conftest import skip_openai
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 from autogen import AssistantAgent, UserProxyAgent, gather_usage_summary
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import reason, skip_openai  # noqa: E402
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_gathering():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
@@ -62,11 +59,11 @@ def test_gathering():
         "gpt-4": {"cost": 0.3, "prompt_tokens": 100, "completion_tokens": 200, "total_tokens": 300},
     }
 
-    total_usage, _ = gather_usage_summary([assistant1, assistant2, assistant3])
+    total_usage = gather_usage_summary([assistant1, assistant2, assistant3])
 
-    assert round(total_usage["total_cost"], 8) == 0.6
-    assert round(total_usage["gpt-35-turbo"]["cost"], 8) == 0.3
-    assert round(total_usage["gpt-4"]["cost"], 8) == 0.3
+    assert round(total_usage["usage_including_cached_inference"]["total_cost"], 8) == 0.6
+    assert round(total_usage["usage_including_cached_inference"]["gpt-35-turbo"]["cost"], 8) == 0.3
+    assert round(total_usage["usage_including_cached_inference"]["gpt-4"]["cost"], 8) == 0.3
 
     # test when agent doesn't have client
     user_proxy = UserProxyAgent(
@@ -77,10 +74,13 @@ def test_gathering():
         default_auto_reply="That's all. Thank you.",
     )
 
-    total_usage, acutal_usage = gather_usage_summary([user_proxy])
+    total_usage = gather_usage_summary([user_proxy])
+    total_usage_summary = total_usage["usage_including_cached_inference"]
+
+    print("Total usage summary:", total_usage_summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_agent_usage():
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
