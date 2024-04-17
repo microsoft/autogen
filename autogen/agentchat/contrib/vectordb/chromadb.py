@@ -24,7 +24,7 @@ class ChromaVectorDB(VectorDB):
     """
 
     def __init__(
-        self, *, client=None, path: str = None, embedding_function: Callable = None, metadata: dict = None, **kwargs
+        self, *, client=None, path: str = "tmp/db", embedding_function: Callable = None, metadata: dict = None, **kwargs
     ) -> None:
         """
         Initialize the vector database.
@@ -32,7 +32,7 @@ class ChromaVectorDB(VectorDB):
         Args:
             client: chromadb.Client | The client object of the vector database. Default is None.
                 If provided, it will use the client object directly and ignore other arguments.
-            path: str | The path to the vector database. Default is None.
+            path: str | The path to the vector database. Default is `tmp/db`. The default was `None` for version <=0.2.24.
             embedding_function: Callable | The embedding function used to generate the vector representation
                 of the documents. Default is None, SentenceTransformerEmbeddingFunction("all-MiniLM-L6-v2") will be used.
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
