@@ -23,6 +23,16 @@ config_list = (
     )
 )
 
+config_list_35 = (
+    []
+    if skip_openai
+    else autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
+    )
+)
+
 
 def test_chat_messages_for_summary():
     assistant = UserProxyAgent(name="assistant", human_input_mode="NEVER", code_execution_config={"use_docker": False})
@@ -73,7 +83,7 @@ def test_chats_group():
 
     writer = AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="""
         You are a professional writer, known for
         your insightful and engaging articles.
@@ -87,7 +97,7 @@ def test_chats_group():
         system_message="""Critic. Double check plan, claims, code from other agents and provide feedback. Check whether the plan includes adding verifiable info such as source URL.
         Reply "TERMINATE" in the end when everything is done.
         """,
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
 
     groupchat_1 = GroupChat(agents=[user_proxy, financial_assistant, critic], messages=[], max_round=3)
@@ -108,7 +118,7 @@ def test_chats_group():
     manager_2 = GroupChatManager(
         groupchat=groupchat_2,
         name="Writing_manager",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         code_execution_config={
             "last_n_messages": 1,
             "work_dir": "groupchat",
@@ -296,15 +306,15 @@ def test_chats_general():
 
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
     financial_assistant_2 = AssistantAgent(
         name="Financial_assistant_2",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
     )
     writer = AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a professional writer, known for
@@ -530,7 +540,7 @@ def test_chats_w_func():
 
 @pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
 def test_udf_message_in_chats():
-    llm_config = {"config_list": config_list}
+    llm_config_35 = {"config_list": config_list_35}
 
     research_task = """
     ## NVDA (NVIDIA Corporation)
@@ -560,11 +570,11 @@ def test_udf_message_in_chats():
 
     researcher = autogen.AssistantAgent(
         name="Financial_researcher",
-        llm_config=llm_config,
+        llm_config=llm_config_35,
     )
     writer = autogen.AssistantAgent(
         name="Writer",
-        llm_config=llm_config,
+        llm_config=llm_config_35,
         system_message="""
             You are a professional writer, known for
             your insightful and engaging articles.
@@ -610,9 +620,9 @@ def test_udf_message_in_chats():
 
 if __name__ == "__main__":
     # test_chats()
-    test_chats_general()
+    # test_chats_general()
     # test_chats_exceptions()
     # test_chats_group()
     # test_chats_w_func()
     # test_chat_messages_for_summary()
-    # test_udf_message_in_chats()
+    test_udf_message_in_chats()

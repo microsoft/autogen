@@ -22,6 +22,12 @@ async def test_async_chats():
         file_location=KEY_LOC,
     )
 
+    config_list_35 = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
+    )
+
     financial_tasks = [
         """What are the full names of NVDA and TESLA.""",
         """Get their stock price.""",
@@ -32,7 +38,7 @@ async def test_async_chats():
 
     financial_assistant_1 = AssistantAgent(
         name="Financial_assistant_1",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="You are a knowledgeable AI Assistant. Reply TERMINATE when everything is done.",
     )
     financial_assistant_2 = AssistantAgent(
@@ -41,7 +47,7 @@ async def test_async_chats():
     )
     writer = AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
         system_message="""
             You are a professional writer, known for
