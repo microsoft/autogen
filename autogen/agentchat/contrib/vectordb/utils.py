@@ -25,6 +25,9 @@ class ColoredLogger(logging.Logger):
     def critical(self, msg, *args, color="red", **kwargs):
         super().critical(colored(msg, color), *args, **kwargs)
 
+    def fatal(self, msg, *args, color="red", **kwargs):
+        super().fatal(colored(msg, color), *args, **kwargs)
+
 
 def get_logger(name: str, level: int = logging.INFO) -> ColoredLogger:
     logger = ColoredLogger(name, level)
