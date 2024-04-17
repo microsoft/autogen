@@ -1,8 +1,6 @@
-from typing import Optional
-
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
-from ..termination import Termination, TerminationReason, TerminationResult
+from ..termination import NotTerminated, Terminated, Termination, TerminationReason, TerminationResult
 from ..types import AssistantMessage, UserMessage
 
 
@@ -15,22 +13,22 @@ class DefaultTermination(Termination):
     def record_turn_taken(self, agent: Agent) -> None:
         self._turns += 1
 
-    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> TerminationResult:
         if self._turns >= self._max_turns:
-            return TerminationResult(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
+            return Terminated(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
 
         # TODO handle tool message
         for message in chat_history.messages:
             if isinstance(message, UserMessage):
                 if message.is_termination:
-                    return TerminationResult(TerminationReason.USER_REQUESTED, "User requested termination.")
+                    return Terminated(TerminationReason.USER_REQUESTED, "User requested termination.")
                 elif self._termination_message in message.content:
-                    return TerminationResult(TerminationReason.TERMINATION_MESSAGE, "Termination message received.")
+                    return Terminated(TerminationReason.TERMINATION_MESSAGE, "Termination message received.")
             if isinstance(message, AssistantMessage):
                 if message.content is not None and self._termination_message in message.content:
-                    return TerminationResult(TerminationReason.TERMINATION_MESSAGE, "Termination message received.")
+                    return Terminated(TerminationReason.TERMINATION_MESSAGE, "Termination message received.")
 
-        return None
+        return NotTerminated()
 
     def reset(self) -> None:
         self._turns = 0

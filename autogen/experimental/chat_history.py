@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, Optional, Protocol, Sequence
 
-from .types import Message, MessageContext
+if TYPE_CHECKING:
+    from .types import Message, MessageContext
 
 
 class ChatHistoryReadOnly(Protocol):

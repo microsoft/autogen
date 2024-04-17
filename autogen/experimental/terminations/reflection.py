@@ -4,7 +4,7 @@ from typing import ClassVar, Optional
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
 from ..model_client import ModelClient
-from ..termination import Termination, TerminationReason, TerminationResult
+from ..termination import NotTerminated, Terminated, Termination, TerminationReason, TerminationResult
 from ..types import SystemMessage, UserMessage
 
 
@@ -47,15 +47,15 @@ class ReflectionTerminationManager(Termination):
     def record_turn_taken(self, agent: Agent) -> None:
         self._turns += 1
 
-    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> TerminationResult:
         if self._max_turns is not None and self._turns >= self._max_turns:
-            return TerminationResult(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
+            return Terminated(TerminationReason.MAX_TURNS_REACHED, "Max turns reached.")
 
         if self._turns <= self._min_turns:
-            return None
+            return NotTerminated()
 
         if len(chat_history.messages) == 0:
-            return None
+            return NotTerminated()
 
         reminder_message = UserMessage(
             content=f"Please provide your response as JSON, with two properties: `is_done` (bool) and `reason` (str). Goal: {self._goal}",
@@ -70,13 +70,13 @@ class ReflectionTerminationManager(Termination):
             reason = response_json.get("reason", None)
             if is_done is not None and isinstance(is_done, bool) and reason is not None and isinstance(reason, str):
                 if is_done:
-                    return TerminationResult(TerminationReason.GOAL_REACHED, reason)
-                return None
+                    return Terminated(TerminationReason.GOAL_REACHED, reason)
+                return NotTerminated(reason)
             else:
-                return None
+                return NotTerminated(reason)
         except json.JSONDecodeError:
             # TODO: decide what to do in this case
-            return None
+            return NotTerminated("Failed to parse response")
 
     def reset(self) -> None:
         self._turns = 0

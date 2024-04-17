@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from typing_extensions import Literal
 
+from autogen.experimental.termination import TerminationResult
+
 if TYPE_CHECKING:
     from .chat_result import ChatResult
 
@@ -81,6 +83,11 @@ class MessageContext:
 
     # Who sent this message?
     sender: Optional[Agent] = None
+
+    # Why was this speaker chosen?
+    speaker_selection_reason: Optional[str] = None
+
+    termination_result: Optional[TerminationResult] = None
 
 
 FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]

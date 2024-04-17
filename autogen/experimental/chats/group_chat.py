@@ -1,6 +1,6 @@
 import asyncio
 import copy
-from typing import AsyncGenerator, List, Optional, Union, cast
+from typing import AsyncGenerator, List, Optional, Tuple, Union, cast
 
 from ..agent import Agent, AgentStream
 from ..chat import ChatOrchestratorStream
@@ -10,7 +10,7 @@ from ..chat_result import ChatResult
 from ..chat_summarizers.last_message import LastMessageSummarizer
 from ..speaker_selection import SpeakerSelection
 from ..summarizer import ChatSummarizer
-from ..termination import Termination, TerminationResult
+from ..termination import Terminated, Termination
 from ..terminations.default_termination import DefaultTermination
 from ..types import GenerateReplyResult, IntermediateResponse, Message, MessageContext, UserMessage
 
@@ -44,7 +44,7 @@ class GroupChat(ChatOrchestratorStream):
         self._agents = agents
         self._speaker_selection = speaker_selection
         self._termination_manager = termination_manager
-        self._termination_result: Optional[TerminationResult] = None
+        self._termination_result: Optional[Terminated] = None
         self._summarizer = summarizer
         self._summary: Optional[str] = None
         self._conversation = ChatHistoryList()
@@ -60,7 +60,7 @@ class GroupChat(ChatOrchestratorStream):
 
         self._initial_conversation = copy.copy(self._conversation)
 
-    async def _finalize(self, termination_result: TerminationResult) -> None:
+    async def _finalize(self, termination_result: Terminated) -> None:
         self._termination_result = termination_result
         self._summary = await self._summarizer.summarize_chat(self._conversation, termination_result)
         self._finalize_done = True
@@ -83,56 +83,69 @@ class GroupChat(ChatOrchestratorStream):
         )
 
     @property
-    def termination_result(self) -> Optional[TerminationResult]:
+    def termination_result(self) -> Optional[Terminated]:
         return self._termination_result
 
-    async def _handle_reply(self, reply: GenerateReplyResult) -> Message:
+    async def _handle_reply(self, reply: GenerateReplyResult, speaker_selection_reason: Optional[str]) -> Message:
         if isinstance(reply, tuple):
             message, context = reply
             # We overwrite the context sender to be the current speaker
             context.sender = self._speaker
         else:
             message = reply
-            context = None
+            # TODO add input etc
+            context = MessageContext(sender=self._speaker)
 
-        self._conversation.append_message(message, context=context)
         assert self._speaker is not None, "Speaker should only ever be None at initialization."
         self._termination_manager.record_turn_taken(self._speaker)
 
         maybe_termination = await self._termination_manager.check_termination(self._conversation)
-        if maybe_termination is not None:
+        context.termination_result = maybe_termination
+        context.speaker_selection_reason = speaker_selection_reason
+        self._conversation.append_message(message, context=context)
+        if isinstance(maybe_termination, Terminated):
             await self._finalize(maybe_termination)
 
         return message
 
-    async def _select_next_speaker(self) -> Agent:
-        next_agent: Optional[Agent] = None
+    async def _select_next_speaker(self) -> Tuple[Agent, Optional[str]]:
+        next_agent: Union[Agent, Tuple[Agent, str]]
         if asyncio.iscoroutinefunction(self._speaker_selection.select_speaker):
             next_agent = await self._speaker_selection.select_speaker(self._agents, self._conversation)
+            if isinstance(next_agent, tuple):
+                next_agent, reason = next_agent
+                return next_agent, reason
+            else:
+                return next_agent, None
         else:
-            next_agent = cast(Agent, self._speaker_selection.select_speaker(self._agents, self._conversation))
-        assert next_agent is not None, "Speaker selection should always return an agent."
-
-        return next_agent
+            next_agent = cast(
+                Union[Agent, Tuple[Agent, str]],
+                self._speaker_selection.select_speaker(self._agents, self._conversation),
+            )
+            if isinstance(next_agent, tuple):
+                next_agent, reason = next_agent
+                return next_agent, reason
+            else:
+                return next_agent, None
 
     async def step(self) -> Message:
-        self._speaker = await self._select_next_speaker()
+        self._speaker, reason = await self._select_next_speaker()
         reply = await self._speaker.generate_reply(self._conversation)
-        return await self._handle_reply(reply)
+        return await self._handle_reply(reply, reason)
 
     async def stream_step(self) -> AsyncGenerator[Union[IntermediateResponse, Message], None]:
-        self._speaker = await self._select_next_speaker()
+        self._speaker, reason = await self._select_next_speaker()
         final_response = None
         if isinstance(self._speaker, AgentStream):
             async for response in self._speaker.stream_generate_reply(self._conversation):
                 if not isinstance(response, IntermediateResponse):
-                    final_response = await self._handle_reply(response)
+                    final_response = await self._handle_reply(response, reason)
                     break
                 else:
                     yield response
         else:
             response = await self._speaker.generate_reply(self._conversation)
-            final_response = await self._handle_reply(response)
+            final_response = await self._handle_reply(response, reason)
 
         if final_response is None:
             raise ValueError("Final streamed response was not the final message.")

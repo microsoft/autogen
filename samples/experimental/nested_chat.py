@@ -1,6 +1,6 @@
 import asyncio
 import pprint
-from typing import List, Optional
+from typing import List
 
 import aioconsole
 
@@ -13,7 +13,13 @@ from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.chats.group_chat import GroupChat
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.speaker_selections.round_robin_speaker_selection import RoundRobin
-from autogen.experimental.termination import Termination, TerminationReason, TerminationResult
+from autogen.experimental.termination import (
+    NotTerminated,
+    Terminated,
+    Termination,
+    TerminationReason,
+    TerminationResult,
+)
 from autogen.experimental.types import AssistantMessage, GenerateReplyResult, Message, UserMessage
 
 
@@ -21,14 +27,14 @@ class FibTermination(Termination):
     def record_turn_taken(self, agent: Agent) -> None:
         pass
 
-    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]:
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> TerminationResult:
         assert len(chat_history) > 0
         message = chat_history.messages[0]
         assert isinstance(message, UserMessage) and isinstance(message.content, str)
         desired_fib_number = int(message.content)
         if len(chat_history) == 1 + desired_fib_number:
-            return TerminationResult(reason=TerminationReason.GOAL_REACHED, explanation="Fib number reached")
-        return None
+            return Terminated(reason=TerminationReason.GOAL_REACHED, explanation="Fib number reached")
+        return NotTerminated()
 
     def reset(self) -> None:
         pass

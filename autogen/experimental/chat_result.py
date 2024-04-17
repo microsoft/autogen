@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
 from .chat_history import ChatHistoryReadOnly
-from .termination import TerminationResult
+from .termination import Terminated
 
 
 @dataclass
 class ChatResult:
     conversation: ChatHistoryReadOnly
     summary: str
-    termination_result: TerminationResult
+    termination_result: Terminated

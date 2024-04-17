@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Protocol
+from typing import Optional, Protocol, Union
 
 from .agent import Agent
 from .chat_history import ChatHistoryReadOnly
@@ -17,15 +17,23 @@ class TerminationReason(Enum):
 
 
 @dataclass
-class TerminationResult:
+class Terminated:
     reason: TerminationReason
     explanation: Optional[str]
+
+
+@dataclass
+class NotTerminated:
+    explanation: Optional[str] = None
+
+
+TerminationResult = Union[Terminated, NotTerminated]
 
 
 # TODO allow termination to have an understanding of cost
 class Termination(Protocol):
     def record_turn_taken(self, agent: Agent) -> None: ...
 
-    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> Optional[TerminationResult]: ...
+    async def check_termination(self, chat_history: ChatHistoryReadOnly) -> TerminationResult: ...
 
     def reset(self) -> None: ...

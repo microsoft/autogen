@@ -1,12 +1,12 @@
 from autogen.experimental.chat_history import ChatHistoryReadOnly
-from autogen.experimental.termination import TerminationResult
+from autogen.experimental.termination import Terminated
 
 from ..summarizer import ChatSummarizer
 from ..types import AssistantMessage, FunctionCallMessage, SystemMessage, UserMessage
 
 
 class LastMessageSummarizer(ChatSummarizer):
-    async def summarize_chat(self, chat_history: ChatHistoryReadOnly, termination_result: TerminationResult) -> str:
+    async def summarize_chat(self, chat_history: ChatHistoryReadOnly, termination_result: Terminated) -> str:
         messages = chat_history.messages
         if len(messages) == 0:
             raise ValueError("Cannot summarize an empty chat.")
