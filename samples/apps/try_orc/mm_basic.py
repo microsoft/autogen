@@ -1,6 +1,6 @@
 import os
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
-from mmagent import MultimodalAgent
+from autogen.agentchat.contrib.mmagent import MultimodalAgent
 
 from config_manager import ConfigManager
 
