@@ -180,6 +180,9 @@ m = re.search("FINAL ANSWER:(.*)$", final_answer, re.DOTALL)
 if m:
     final_answer = m.group(1).strip()
 
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="final_answer", final_answer=final_answer)
+
 print('page.stop("' + final_answer + '")')
 print("MAIN TASK COMPLETE !#!#")
 
@@ -199,6 +202,8 @@ score = evaluator(
     client=cdp_session,
 )
 
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="final_score", final_score=str(score))
 print("FINAL SCORE: " + str(score))
 
 ################################
