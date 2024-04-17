@@ -5,6 +5,7 @@ import autogen
 import evaluation_harness
 import re
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
+from autogen.runtime_logging import logging_enabled, log_event
 from mmagent import MultimodalAgent
 
 from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
@@ -45,6 +46,9 @@ with open("full_task.json", "wt") as fh:
 config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="LoadedConfigLists")
+
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
@@ -70,18 +74,33 @@ Once the user has taken the final necessary action to complete the task, and you
 
 # Login to the necessary websites
 if "reddit" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_reddit_task")
     login_url = REDDIT
     username = ACCOUNTS["reddit"]["username"]
     password = ACCOUNTS["reddit"]["password"]
-    user_proxy.initiate_chat(
-        web_surfer,
-        message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
-        clear_history=True,
-    )
+    try:
+        user_proxy.initiate_chat(
+            web_surfer,
+            message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
+            clear_history=True,
+        )
+    except Exception as e:
+        import traceback
+        if logging_enabled():
+            exc_type = type(e).__name__
+            exc_message = str(e)
+            exc_traceback = traceback.format_exc().splitlines()
+            log_event(os.path.basename(__file__), name="exception_thrown", exc_type=exc_type, exc_message=exc_message, exc_traceback=exc_traceback)
+
+        raise e
     user_proxy.reset()
     web_surfer.reset()
 
+
 if "gitlab" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_gitlab_task")
     login_url = GITLAB
     username = ACCOUNTS["gitlab"]["username"]
     password = ACCOUNTS["gitlab"]["password"]
@@ -97,6 +116,8 @@ if "gitlab" in TASK["sites"]:
 
 
 # Navigate to the starting url
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="navigate_start_url")
 start_url = TASK["start_url"]
 if start_url == REDDIT:
     start_url = start_url + "/forums"
@@ -114,18 +135,33 @@ if start_url.startswith(REDDIT):
 elif start_url.startswith(GITLAB):
     site_description_prompt = ", which is a Gitlab site populated with various programming projects. Gitlab is similar to GitHub, though the UIs are slightly different"
 
-web_surfer.initiate_chat(
-    user_proxy,
-    message=f"""
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="main_task_initiate_chat")
+
+try:
+    web_surfer.initiate_chat(
+        user_proxy,
+        message=f"""
 We are visiting the website {start_url}{site_description_prompt}. On this website, please complete the following task:
 
-{TASK['intent']}
+    {TASK['intent']}
 """.strip(),
-    clear_history=True,
-)
+        clear_history=True,
+    )
+except Exception as e:
+    import traceback
+    if logging_enabled():
+        exc_type = type(e).__name__
+        exc_message = str(e)
+        exc_traceback = traceback.format_exc().splitlines()
+        log_event(os.path.basename(__file__), name="exception_thrown", exc_type=exc_type, exc_message=exc_message, exc_traceback=exc_traceback)
+
+    raise e
 
 # Extract a final answer
 #########################
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="extract_final_answer")
 web_surfer.send(
     f"""Read the above conversation and output a FINAL ANSWER to the original request. The original request is repeated here for convenience:
 

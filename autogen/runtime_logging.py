@@ -68,7 +68,7 @@ def log_received_msg(agent: ConversableAgent, message: Union[Dict, str], sender:
 
     autogen_logger.log_received_msg(agent, message, sender, valid)
 
-def log_event(agent: Agent, **kwargs: Dict[str, Any]) -> None:
+def log_event(agent: Union[str, Agent], **kwargs: Dict[str, Any]) -> None:
     if autogen_logger is None:
         logger.error("[runtime logging] log_event: autogen logger is None")
         return

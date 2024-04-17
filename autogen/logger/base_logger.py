@@ -9,7 +9,7 @@ from openai import OpenAI, AzureOpenAI
 from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 ConfigItem = Dict[str, Union[str, List[str]]]
 LLMConfig = Dict[str, Union[None, float, int, ConfigItem, List[ConfigItem]]]
@@ -69,7 +69,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Any, valid: bool) -> None:
+    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
         """
         Log a received msg to an agent from sender.
 
@@ -78,6 +78,17 @@ class BaseLogger(ABC):
             message (dict or str):      The message received by the agent
             sender (Agent):             The sender of the message
             valid (bool):               Whether the message was valid or not
+        """
+        ...
+    
+    @abstractmethod
+    def log_event(self, agent: Union[str, Agent], **kwargs: Dict[str, Any]) -> None:
+        """
+        Log an event for an agent.
+
+        Args:
+            agent (str or ConversableAgent): The agent to log.
+            kwargs (dict):                  The event information to log
         """
         ...
 

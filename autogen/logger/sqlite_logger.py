@@ -289,7 +289,7 @@ class SqliteLogger(BaseLogger):
         )
         self._run_query(query=query, args=args)
     
-    def log_event(self, agent: Agent, **kwargs: Dict[str, Any]) -> None:
+    def log_event(self, agent: Union[str, Agent], **kwargs: Dict[str, Any]) -> None:
         if self.con is None:
             return
         
@@ -298,7 +298,7 @@ class SqliteLogger(BaseLogger):
         """
         args = (
             id(agent),
-            agent.name,
+            agent.name if hasattr(agent, "name") else agent,
             json.dumps(kwargs),
             get_current_ts(),
         )
