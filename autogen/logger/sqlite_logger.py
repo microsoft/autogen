@@ -277,18 +277,19 @@ class SqliteLogger(BaseLogger):
                 json.dumps(kwargs),
                 get_current_ts(),
             )
+            self._run_query(query=query, args=args)
         else:
             query = """
             INSERT INTO events (source_id, source_name, event_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?)
             """
-            args = (
+            args_str_based = (
                 id(source),
                 source.name if hasattr(source, "name") else source,
                 name,
                 json.dumps(kwargs),
                 get_current_ts(),
             )
-        self._run_query(query=query, args=args)
+            self._run_query(query=query, args=args_str_based)
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         if self.con is None:
