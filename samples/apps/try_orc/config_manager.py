@@ -46,18 +46,25 @@ class ConfigManager:
         
         config_list = self._get_config_list(config_path_or_env)
 
+        llm_config_list = autogen.filter_config(config_list, {"tags": ["llm"]})
+        assert len(llm_config_list) > 0, "No API key with 'llm' tag found in config list."
+
+        mlm_config_list = autogen.filter_config(config_list, {"tags": ["mlm"]})
+        assert len(mlm_config_list) > 0, "No API key with 'mlm' tag found in config list."
+
+
         self.llm_config = {
-            "config_list": autogen.filter_config(config_list, {"tags": ["llm"]}),
+            "config_list": llm_config_list,
             "timeout": self.DEFAULT_TIMEOUT,
             "temperature": 0.1
         }
 
         self.mlm_config = {
-            "config_list": autogen.filter_config(config_list, {"tags": ["mlm"]}),
+            "config_list": mlm_config_list,
             "timeout": self.DEFAULT_TIMEOUT,
             "temperature": 0.1                                  
         }
-
+           
         self.client = autogen.OpenAIWrapper(**self.llm_config)
         self.mlm_client = autogen.OpenAIWrapper(**self.mlm_config)
 
