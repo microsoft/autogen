@@ -19,8 +19,7 @@ class ConfigManager:
 
         self.bing_api_key = None
 
-    def _get_config_list(self,
-                         config_path_or_env: Optional[str] = None) -> List[Dict[str, str]]:
+    def _get_config_list(self, config_path_or_env: Optional[str] = None) -> List[Dict[str, str]]:
         config_list = None
 
         try:
@@ -29,21 +28,21 @@ class ConfigManager:
             api_key = os.environ.get("OPENAI_API_KEY", None)
             if api_key is None:
                 raise Exception("No config list or OPENAI_API_KEY found", e)
-            
+
             config_list = [
-                    {"model": self.DEFAULT_LLM_MODEL, "api_key": api_key, "tags": ["llm"]},
-                    {"model": self.DEFAULT_MLM_MODEL, "api_key": api_key, "tags": ["mlm"]},
-                ]
+                {"model": self.DEFAULT_LLM_MODEL, "api_key": api_key, "tags": ["llm"]},
+                {"model": self.DEFAULT_MLM_MODEL, "api_key": api_key, "tags": ["mlm"]},
+            ]
         return config_list
-    
+
     def _get_bing_api_key(self) -> str:
         bing_api_key = os.environ.get("BING_API_KEY", None)
         if bing_api_key is None:
             raise Exception("Please set BING_API_KEY environment variable.")
         return bing_api_key
-        
-    def initialize(self, config_path_or_env: Optional[str]="OAI_CONFIG_LIST") -> None:
-        
+
+    def initialize(self, config_path_or_env: Optional[str] = "OAI_CONFIG_LIST") -> None:
+
         config_list = self._get_config_list(config_path_or_env)
 
         llm_config_list = autogen.filter_config(config_list, {"tags": ["llm"]})
@@ -52,19 +51,10 @@ class ConfigManager:
         mlm_config_list = autogen.filter_config(config_list, {"tags": ["mlm"]})
         assert len(mlm_config_list) > 0, "No API key with 'mlm' tag found in config list."
 
+        self.llm_config = {"config_list": llm_config_list, "timeout": self.DEFAULT_TIMEOUT, "temperature": 0.1}
 
-        self.llm_config = {
-            "config_list": llm_config_list,
-            "timeout": self.DEFAULT_TIMEOUT,
-            "temperature": 0.1
-        }
+        self.mlm_config = {"config_list": mlm_config_list, "timeout": self.DEFAULT_TIMEOUT, "temperature": 0.1}
 
-        self.mlm_config = {
-            "config_list": mlm_config_list,
-            "timeout": self.DEFAULT_TIMEOUT,
-            "temperature": 0.1                                  
-        }
-           
         self.client = autogen.OpenAIWrapper(**self.llm_config)
         self.mlm_client = autogen.OpenAIWrapper(**self.mlm_config)
 

@@ -27,16 +27,15 @@ user_proxy = autogen.UserProxyAgent(
         "work_dir": "coding",
         "use_docker": False,
     },
-    default_auto_reply=f"Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning \"```python\" or \"```sh\" respectively.",
+    default_auto_reply=f'Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning "```python" or "```sh" respectively.',
     max_consecutive_auto_reply=15,
 )
 
 browser = RequestsMarkdownBrowser(
-        viewport_size = 1024 * 5,
-        downloads_folder = "coding",
-        search_engine = BingMarkdownSearch(
-            bing_api_key=config_manager.bing_api_key, interleave_results=False)
-    )
+    viewport_size=1024 * 5,
+    downloads_folder="coding",
+    search_engine=BingMarkdownSearch(bing_api_key=config_manager.bing_api_key, interleave_results=False),
+)
 
 web_surfer = WebSurferAgent(
     "web_surfer",
@@ -44,7 +43,7 @@ web_surfer = WebSurferAgent(
     summarizer_llm_config=config_manager.llm_config,
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
     code_execution_config=False,
-    browser = browser,
+    browser=browser,
 )
 
 maestro = Orchestrator(
@@ -57,9 +56,7 @@ maestro = Orchestrator(
 task = input("Enter the task: ")
 # task = "Find 10 highest cited publications written by Gagan Bansal"
 
-user_proxy.initiate_chat(maestro,
-                        message=task,
-                        clear_history=True)
+user_proxy.initiate_chat(maestro, message=task, clear_history=True)
 
 
 final_response = response_preparer(

@@ -76,12 +76,12 @@ class Orchestrator(ConversableAgent):
 
         # Work with a copy of the messages
         _messages = copy.deepcopy(messages)
-        
+
         ##### Memory ####
 
         # Pop the last message, which is the task
         task = _messages.pop()["content"]
-   
+
         # A reusable description of the team
         team = "\n".join([a.name + ": " + a.description for a in self._agents])
         names = ", ".join([a.name for a in self._agents])
@@ -155,7 +155,10 @@ Based on the team composition, and known and unknown facts, please devise a shor
             for a in self._agents:
                 a.reset()
 
-            self.orchestrated_messages.append({"role": "assistant", "content": f"""
+            self.orchestrated_messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"""
 We are working to address the following user request:
 
 {task}
@@ -170,7 +173,10 @@ Some additional points to consider:
 {facts}
 
 {plan}
-""".strip(), "name": self.name})
+""".strip(),
+                    "name": self.name,
+                }
+            )
             self._broadcast(self.orchestrated_messages[-1])
             self._print_thought(self.orchestrated_messages[-1]["content"])
 
@@ -226,7 +232,7 @@ Please output an answer in pure JSON format according to the following schema. T
                         }
                         data["instruction_or_question"] = {
                             "reason": "Assigning to an agent that can execute the script.",
-                            "answer": "Please execute the above script."
+                            "answer": "Please execute the above script.",
                         }
                     except json.decoder.JSONDecodeError as e:
                         # Something went wrong. Restart this loop.
@@ -298,20 +304,21 @@ Please output an answer in pure JSON format according to the following schema. T
                 else:
                     stalled_count += 1
 
-                if stalled_count >= 3: 
+                if stalled_count >= 3:
                     self._print_thought("We aren't making progress. Let's reset.")
-                    new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning). 
+                    new_facts_prompt = f"""It's clear we aren't making as much progress as we would like, but we may have learned something new. Please rewrite the following fact sheet, updating it to include anything new we have learned. This is also a good time to update educated guesses (please add or update at least one educated guess or hunch, and explain your reasoning).
 
 {facts}
 """.strip()
-                    self.orchestrated_messages.append({"role": "user", "content": new_facts_prompt, "name": sender.name})
+                    self.orchestrated_messages.append(
+                        {"role": "user", "content": new_facts_prompt, "name": sender.name}
+                    )
                     response = self.client.create(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                     )
                     facts = self.client.extract_text_or_completion_object(response)[0]
                     self.orchestrated_messages.append({"role": "assistant", "content": facts, "name": self.name})
-
 
                     new_plan_prompt = f"""Please come up with a new plan expressed in bullet points. Keep in mind the following team composition, and do not involve any other outside people in the plan -- we cannot contact anyone else.
 
