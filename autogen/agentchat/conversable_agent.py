@@ -1911,7 +1911,7 @@ class ConversableAgent(LLMAgent):
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
                 if logging_enabled() and reply:
-                    log_event(self, "reply_func_executed", reply_func=reply_func.__module__+reply_func.__name__, final=final, reply=reply)
+                    log_event(self, "reply_func_executed", reply_func=reply_func.__module__+"."+reply_func.__name__, final=final, reply=reply)
                 if final:
                     return reply
         return self._default_auto_reply
