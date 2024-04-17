@@ -47,7 +47,7 @@ config_list = autogen.config_list_from_json("OAI_CONFIG_LIST")
 llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 
 if logging_enabled():
-    log_event(os.path.basename(__file__), name="LoadedConfigLists")
+    log_event(os.path.basename(__file__), name="loaded_config_lists")
 
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
