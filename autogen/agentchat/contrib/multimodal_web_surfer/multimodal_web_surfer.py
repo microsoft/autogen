@@ -51,6 +51,8 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
     DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.)"
 
+    DEFAULT_START_PAGE = "https://www.bing.com/"
+
     def __init__(
         self,
         name: str,
@@ -62,14 +64,34 @@ class MultimodalWebSurferAgent(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        mlm_config: Optional[Union[Dict, Literal[False]]] = None,
+        mlm_config: Optional[Union[Dict, Literal[False]]] = None,  # TODO: Remove this
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        headless=True,
+        headless: bool = True,
         chromium_channel=DEFAULT_CHANNEL,
-        chromium_data_dir=None,
-        start_page="https://www.bing.com/",
-        debug_dir=os.getcwd(),
+        chromium_data_dir: Optional[str] = None,
+        start_page: Optional[str] = None,
+        debug_dir: Optional[str] = None,
     ):
+        """
+        Create a new MultimodalWebSurferAgent.
+
+        Args:
+            name: The name of the agent.
+            system_message: system message prompt.
+            description: The description of the agent.
+            is_termination_msg: A function that determines if a received message is a termination message.
+            max_consecutive_auto_reply: The maximum number of consecutive auto-replies the agent can make.
+            human_input_mode: The mode for human input.
+            function_map: A dictionary of functions to register.
+            code_execution_config: The configuration for code execution.
+            llm_config: The configuration for the LLM.
+            default_auto_reply: The default auto-reply.
+            headless: Whether to run the browser in headless mode.
+            chromium_channel: The Chromium channel to use.
+            chromium_data_dir: The Chromium data directory. If None, a new context is created.
+            start_page: The start page for the browser.
+            debug_dir: The directory to store debug information. TODO: Clarify behavior on None.
+        """
         super().__init__(
             name=name,
             system_message=system_message,
@@ -84,8 +106,8 @@ class MultimodalWebSurferAgent(ConversableAgent):
         )
         # self._mlm_config = mlm_config
         # self._mlm_client = OpenAIWrapper(**self._mlm_config)
-        self.start_page = start_page
-        self.debug_dir = debug_dir
+        self.start_page = start_page or self.DEFAULT_START_PAGE
+        self.debug_dir = debug_dir or os.getcwd()
 
         # Create the playwright instance
         launch_args = {"headless": headless}

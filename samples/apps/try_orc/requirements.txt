@@ -1,0 +1,10 @@
+../../../../autogen
+pathvalidate
+markdownify
+puremagic
+binaryornot
+mammoth
+python-pptx
+pandas
+pdfminer.six
+playwright
