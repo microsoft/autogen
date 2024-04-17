@@ -255,6 +255,14 @@ output after executing the code) and provide a corrected answer or code.
                     if self._is_port_open(self.host, port):
                         break
 
+                # Check if vLLM is installed.
+                try:
+                    import vllm  # noqa: F401
+                except ImportError:
+                    raise ImportError(
+                        "vLLM is not installed. Please install vLLM by running 'pip install vllm'."
+                    )
+
                 # Use vLLM to set up a server with OpenAI API support.
                 agent_proc = sp.Popen(
                     [
