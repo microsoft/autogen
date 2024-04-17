@@ -355,7 +355,7 @@ def create_vector_db_from_dir(
         dir_path (Union[str, List[str]]): the path to the directory, file, url or a list of them.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
         client (Optional, API): the chromadb client. Default is None.
-        db_path (Optional, str): the path to the chromadb. Default is "tmp/chromadb.db".
+        db_path (Optional, str): the path to the chromadb. Default is "tmp/chromadb.db". The default was `/tmp/chromadb.db` for version <=0.2.24.
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
             will be returned if it already exists. Will raise ValueError if the collection already exists and get_or_create is False.
