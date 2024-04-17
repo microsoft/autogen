@@ -144,7 +144,7 @@ try:
         message=f"""
 We are visiting the website {start_url}{site_description_prompt}. On this website, please complete the following task:
 
-    {TASK['intent']}
+{TASK['intent']}
 """.strip(),
         clear_history=True,
     )
