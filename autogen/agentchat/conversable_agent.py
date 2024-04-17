@@ -1121,7 +1121,15 @@ class ConversableAgent(LLMAgent):
     def _last_msg_as_summary(sender, recipient, summary_args) -> str:
         """Get a chat summary from the last message of the recipient."""
         try:
-            summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
+            content = recipient.last_message(sender)["content"]
+            if isinstance(content, str):
+                summary = content.replace("TERMINATE", "")
+            elif isinstance(content, list):
+                # Remove the `TERMINATE` word in the content list.
+                summary = [
+                    {**x, "text": x["text"].replace("TERMINATE", "")} if isinstance(x, dict) and "text" in x else x
+                    for x in content
+                ]
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
             summary = ""
