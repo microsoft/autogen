@@ -53,7 +53,9 @@ maestro = Orchestrator(
     llm_config=config_manager.llm_config,
 )
 
-task = "Find 10 highest cited publications written by Gagan Bansal"
+# read the task from standard input
+task = input("Enter the task: ")
+# task = "Find 10 highest cited publications written by Gagan Bansal"
 
 user_proxy.initiate_chat(maestro,
                         message=task,
