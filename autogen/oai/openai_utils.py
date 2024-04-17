@@ -15,9 +15,7 @@ DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
     # https://openai.com/pricing
     # gpt-4-turbo
-    "gpt-4-0125-preview": (0.01, 0.03),
-    "gpt-4-1106-preview": (0.01, 0.03),
-    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
+    "gpt-4-turbo-2024-04-09": (0.01, 0.03),
     # gpt-4
     "gpt-4": (0.03, 0.06),
     "gpt-4-32k": (0.06, 0.12),
@@ -29,6 +27,9 @@ OAI_PRICE1K = {
     "davinci-002": 0.002,
     "babbage-002": 0.0004,
     # old model
+    "gpt-4-0125-preview": (0.01, 0.03),
+    "gpt-4-1106-preview": (0.01, 0.03),
+    "gpt-4-1106-vision-preview": (0.01, 0.03),  # TODO: support vision pricing of images
     "gpt-3.5-turbo-1106": (0.001, 0.002),
     "gpt-3.5-turbo-0613": (0.0015, 0.002),
     # "gpt-3.5-turbo-16k": (0.003, 0.004),
