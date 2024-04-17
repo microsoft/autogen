@@ -36,12 +36,14 @@ class Collection:
 
     """
 
-    def __init__(self,
-                 client=None,
-                 collection_name: str = "autogen-docs",
-                 embedding_function: Callable = None,
-                 metadata=None,
-                 get_or_create=None):
+    def __init__(
+        self,
+        client=None,
+        collection_name: str = "autogen-docs",
+        embedding_function: Callable = None,
+        metadata=None,
+        get_or_create=None
+    ):
         """
         Initialize the Collection object.
 
@@ -206,7 +208,7 @@ class Collection:
                         id=retrieved_document[0][0],
                         metadata=retrieved_document[0][1],
                         content=retrieved_document[0][2],
-                        embedding=retrieved_document[0][3]
+                        embedding=retrieved_document[0][3],
                     )
                 )
         except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn):
@@ -234,11 +236,11 @@ class Collection:
         for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
             sql_values.append((doc_id, embedding, metadata, document, doc_id, embedding, metadata, document))
         sql_string = (
-            f'INSERT INTO {self.name} (id, embedding, metadata, document) '
-            f'VALUES (%s, %s, %s, %s) '
-            f'ON CONFLICT (id) '
-            f'DO UPDATE SET id = %s, embedding = %s, '
-            f'metadata = %s, document = %s;\n'
+            f"INSERT INTO {self.name} (id, embedding, metadata, document) "
+            f"VALUES (%s, %s, %s, %s) "
+            f"ON CONFLICT (id) "
+            f"DO UPDATE SET id = %s, embedding = %s, "
+            f"metadata = %s, document = %s;\n"
         )
         logger.debug(f"Upsert SQL String:\n{sql_string}\n")
         cursor.executemany(sql_string, sql_values)
@@ -275,12 +277,12 @@ class Collection:
         return dist
 
     def query(
-            self,
-            query_texts: List[str],
-            collection_name: str = None,
-            n_results: int = 10,
-            distance_type: str = "euclidean",
-            distance_threshold: float = -1
+        self,
+        query_texts: List[str],
+        collection_name: str = None,
+        n_results: int = 10,
+        distance_type: str = "euclidean",
+        distance_threshold: float = -1
     ) -> QueryResults:
         """
         Query documents in the collection.
@@ -365,9 +367,7 @@ class Collection:
             self.name = collection_name
         cursor = self.client.cursor()
         cursor.execute(
-            f"UPDATE collections"
-            f"SET metadata = '%s'"
-            f"WHERE collection_name = '%s';", (metadata, self.name)
+            "UPDATE collections" "SET metadata = '%s'" "WHERE collection_name = '%s';", (metadata, self.name)
         )
         cursor.close()
 
@@ -417,11 +417,11 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f'DROP TABLE IF EXISTS {self.name}')
+        cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.execute(
-            f'CREATE TABLE {self.name} ('
-            f'documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));'
-            f'CREATE INDEX '
+            f"CREATE TABLE {self.name} ("
+            f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));"
+            f"CREATE INDEX "
             f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
             f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
         )
@@ -434,15 +434,15 @@ class PGVectorDB(VectorDB):
     """
 
     def __init__(
-            self,
-            *,
-            connection_string: str = None,
-            host: str = None,
-            port: int = None,
-            dbname: str = None,
-            connect_timeout: int = 10,
-            embedding_function: Callable = None,
-            metadata: dict = None
+        self,
+        *,
+        connection_string: str = None,
+        host: str = None,
+        port: int = None,
+        dbname: str = None,
+        connect_timeout: int = 10,
+        embedding_function: Callable = None,
+        metadata: dict = None
     ) -> None:
         """
         Initialize the vector database.
