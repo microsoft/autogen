@@ -107,6 +107,7 @@ class SqliteLogger(BaseLogger):
             CREATE TABLE IF NOT EXISTS received_messages (
                 id INTEGER PRIMARY KEY,
                 agent_id INTEGER,
+                agent_name TEXT,
                 session_id TEXT,
                 message TEXT,
                 sender TEXT,
@@ -275,10 +276,11 @@ class SqliteLogger(BaseLogger):
             return
 
         query = """
-        INSERT INTO received_messages (agent_id, session_id, message, sender, valid, timestamp) VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO received_messages (agent_id, agent_name, session_id, message, sender, valid, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
         """
         args = (
             id(agent),
+            agent.name,
             self.session_id,
             json.dumps(message),
             sender.name,
