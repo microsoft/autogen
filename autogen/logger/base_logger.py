@@ -74,8 +74,9 @@ class BaseLogger(ABC):
         Log an event for an agent.
 
         Args:
-            agent (str or ConversableAgent): The agent to log.
-            kwargs (dict):                  The event information to log
+            source (str or Agent):      The source/creator of the event as a string name or an Agent instance
+            name (str):                 The name of the event
+            kwargs (dict):              The event information to log
         """
         ...
 
