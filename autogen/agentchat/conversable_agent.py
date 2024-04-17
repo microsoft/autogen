@@ -30,7 +30,7 @@ from ..coding.factory import CodeExecutorFactory
 from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_new_agent, log_received_msg, logging_enabled
+from ..runtime_logging import log_new_agent, log_event, logging_enabled
 from .agent import Agent, LLMAgent
 from ..io.base import IOStream
 from .chat import ChatResult, a_initiate_chats, initiate_chats
@@ -746,7 +746,7 @@ class ConversableAgent(LLMAgent):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if logging_enabled():
-            log_received_msg(self, message, sender, valid)
+            log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
 
         if not valid:
             raise ValueError(

@@ -271,25 +271,7 @@ class SqliteLogger(BaseLogger):
         )
         self._run_query(query=query, args=args)
     
-    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
-        if self.con is None:
-            return
-
-        query = """
-        INSERT INTO received_messages (agent_id, agent_name, session_id, message, sender, valid, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
-        """
-        args = (
-            id(agent),
-            agent.name,
-            self.session_id,
-            json.dumps(message),
-            sender.name,
-            valid,
-            get_current_ts(),
-        )
-        self._run_query(query=query, args=args)
-    
-    def log_event(self, agent: Union[str, Agent], **kwargs: Dict[str, Any]) -> None:
+    def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         if self.con is None:
             return
         
@@ -298,7 +280,7 @@ class SqliteLogger(BaseLogger):
         """
         args = (
             id(agent),
-            agent.name if hasattr(agent, "name") else agent,
+            name,
             json.dumps(kwargs),
             get_current_ts(),
         )

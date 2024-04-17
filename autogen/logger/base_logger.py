@@ -69,20 +69,7 @@ class BaseLogger(ABC):
         ...
 
     @abstractmethod
-    def log_received_msg(self, agent: ConversableAgent, message: Union[Dict, str], sender: Agent, valid: bool) -> None:
-        """
-        Log a received msg to an agent from sender.
-
-        Args:
-            agent (ConversableAgent):   The agent to log.
-            message (dict or str):      The message received by the agent
-            sender (Agent):             The sender of the message
-            valid (bool):               Whether the message was valid or not
-        """
-        ...
-    
-    @abstractmethod
-    def log_event(self, agent: Union[str, Agent], **kwargs: Dict[str, Any]) -> None:
+    def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         """
         Log an event for an agent.
 
