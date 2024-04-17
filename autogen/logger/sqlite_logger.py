@@ -104,24 +104,11 @@ class SqliteLogger(BaseLogger):
             self._run_query(query=query)
 
             query = """
-            CREATE TABLE IF NOT EXISTS received_messages (
-                id INTEGER PRIMARY KEY,
-                agent_id INTEGER,
-                agent_name TEXT,
-                session_id TEXT,
-                message TEXT,
-                sender TEXT,
-                valid INTEGER,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-            """
-            self._run_query(query=query)
-
-            query = """
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY,
-                agent_id INTEGER,
-                agent_name TEXT,
+                source_id INTEGER,
+                source_name TEXT,
+                event_name TEXT,
                 json_state TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             );
@@ -276,10 +263,11 @@ class SqliteLogger(BaseLogger):
             return
         
         query = """
-        INSERT INTO events (agent_id, agent_name, json_state, timestamp) VALUES (?, ?, ?, ?)
+        INSERT INTO events (source_id, source_name, event_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?)
         """
         args = (
-            id(agent),
+            id(source),
+            source.name if hasattr(source, "name") else source,
             name,
             json.dumps(kwargs),
             get_current_ts(),
