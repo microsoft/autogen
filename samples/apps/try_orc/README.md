@@ -1,10 +1,8 @@
 # GAIA Orchestrator Agent Demo
 
-This repository contains a sample application designed to demonstrate the capabilities of the orchestrator developed for the GAIA benchmark.
+This directory contains a sample application designed to demonstrate the capabilities of the orchestrator developed for the GAIA benchmark.
 
 ## Getting Started
-
-These instructions will guide you through the process of setting up and running the application.
 
 ### Prerequisites
 
@@ -30,5 +28,14 @@ The application should be run in a virtual environment to ensure that its depend
 Once you've installed the required packages, you can run the application with the following command:
 
 ```bash
-python main.py
+python <demo file>
 ```
+
+There are several demos available:
+
+| Demo File | Orchestrator | Agents |
+| -------- | -------- | -------- |
+| `demo_orc_twoagents.py`   | text   | coder, computer terminal   |
+| `demo_orc_mdwebsurfer.py`   | text   | \+ web surfer (md)  |
+| `demo_orc_mmwebsurfer.py`   | text   | web surfer (md) &rarr; web surfer (mm) |
+| `demo_mmorc_mmwebsurfer.py`   | text &rarr; mm   | (same as above) |
