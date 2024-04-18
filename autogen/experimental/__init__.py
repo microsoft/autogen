@@ -3,7 +3,7 @@ from .agents import AssistantAgent, ChatAgent, UserProxyAgent
 from .chat import ChatOrchestrator
 from .chats import GroupChat, TwoAgentChat
 from .model_client import ModelClient
-from .model_clients import OpenAI
+from .model_clients import OpenAI, AzureOpenAI
 
 __all__ = [
     "UserProxyAgent",
@@ -15,4 +15,5 @@ __all__ = [
     "ChatOrchestrator",
     "ModelClient",
     "OpenAI",
+    "AzureOpenAI",
 ]
