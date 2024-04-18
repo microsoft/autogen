@@ -39,6 +39,8 @@ public class GPTAgent : IStreamingAgent
         ILLMConfig config,
         float temperature = 0.7f,
         int maxTokens = 1024,
+        int? seed = null,
+        ChatCompletionsResponseFormat? responseFormat = null,
         IEnumerable<FunctionDefinition>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
@@ -56,7 +58,7 @@ public class GPTAgent : IStreamingAgent
             _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
         };
 
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions);
         Name = name;
         this.functionMap = functionMap;
     }
@@ -68,6 +70,8 @@ public class GPTAgent : IStreamingAgent
         string modelName,
         float temperature = 0.7f,
         int maxTokens = 1024,
+        int? seed = null,
+        ChatCompletionsResponseFormat? responseFormat = null,
         IEnumerable<FunctionDefinition>? functions = null,
         IDictionary<string, Func<string, Task<string>>>? functionMap = null)
     {
@@ -75,7 +79,7 @@ public class GPTAgent : IStreamingAgent
         this.modelName = modelName;
         Name = name;
         this.functionMap = functionMap;
-        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, functions);
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions);
     }
 
     public string Name { get; }
