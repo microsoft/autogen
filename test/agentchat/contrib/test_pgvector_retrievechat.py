@@ -10,13 +10,11 @@ from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import openai
     import pgvector
 
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
@@ -28,7 +26,7 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
@@ -98,5 +96,34 @@ def test_retrievechat():
     print(conversations)
 
 
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    )
+def test_retrieve_config(caplog):
+    # test warning message when no docs_path is provided
+    ragproxyagent = RetrieveUserProxyAgent(
+        name="ragproxyagent",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=2,
+        retrieve_config={
+            "chunk_token_size": 2000,
+            "get_or_create": True,
+        },
+    )
+
+    # Capture the printed content
+    captured_logs = caplog.records[0]
+    print(captured_logs)
+
+    # Assert on the printed content
+    assert (
+            f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
+            in captured_logs.message
+    )
+    assert captured_logs.levelname == "WARNING"
+
+
 if __name__ == "__main__":
     test_retrievechat()
+    test_retrieve_config()
