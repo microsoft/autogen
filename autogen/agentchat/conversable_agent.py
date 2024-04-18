@@ -122,7 +122,7 @@ class ConversableAgent(LLMAgent):
                 When set to None, will use self.DEFAULT_CONFIG, which defaults to False.
             default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
-                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_mess
+                (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
             messages (dict): the previous chat messages that this agent had in the past with other agens. Can be used to
                 give the agent a memory by providing the chat history. This will allow the agent to resume previous had
                 conversations. Defaults to an empty chat history.
