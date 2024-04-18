@@ -4,10 +4,10 @@ import os
 import sys
 
 import pytest
+from sentence_transformers import SentenceTransformer
 
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
-from sentence_transformers import SentenceTransformer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import skip_openai  # noqa: E402
