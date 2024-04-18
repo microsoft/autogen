@@ -43,6 +43,7 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
                     TextMessage textMessage => ProcessTextMessage(textMessage, agent),
                     ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(toolCallMessage, agent),
                     ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage, agent),
+                    AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessFunctionCallMiddlewareMessage(aggregateMessage, agent), // message type support for functioncall middleware
                     _ => [m],
                 };
             }
@@ -149,6 +150,33 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         }
 
         return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: toolCallResultMessage.From));
+    }
+
+    /// <summary>
+    /// Process the aggregate message from function call middleware. If the message is from another agent, this message will be interpreted as an ordinary plain <see cref="TextMessage"/>.
+    /// If the message is from the same agent or the from field is empty, this message will be expanded to the tool call message and tool call result message.
+    /// </summary>
+    /// <param name="aggregateMessage"></param>
+    /// <param name="agent"></param>
+    /// <returns></returns>
+    /// <exception cref="NotSupportedException"></exception>
+    private IEnumerable<IMessage<ChatMessage>> ProcessFunctionCallMiddlewareMessage(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage, IAgent agent)
+    {
+        if (aggregateMessage.From is string from && from != agent.Name)
+        {
+            // if the message is from another agent, then interpret it as a plain text message
+            // where the content of the plain text message is the content of the tool call result message
+            var contents = aggregateMessage.Message2.ToolCalls.Select(t => t.Result);
+            var messages = contents.Select(c => new ChatMessage(ChatMessage.RoleEnum.Assistant, c));
+
+            return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: from));
+        }
+
+        // if the message is from the same agent or the from field is empty, then expand the message to tool call message and tool call result message
+        var toolCallMessage = aggregateMessage.Message1;
+        var toolCallResultMessage = aggregateMessage.Message2;
+
+        return this.ProcessToolCallMessage(toolCallMessage, agent).Concat(this.ProcessToolCallResultMessage(toolCallResultMessage, agent));
     }
 
     private IEnumerable<IMessage<ChatMessage>> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent agent)
