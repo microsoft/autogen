@@ -15,9 +15,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import pgvector
     import chromadb
     import openai
+    import pgvector
     from chromadb.utils import embedding_functions as ef
 
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
@@ -128,8 +128,8 @@ def test_retrieve_config(caplog):
 
     # Assert on the printed content
     assert (
-            f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
-            in captured_logs.message
+        f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
+        in captured_logs.message
     )
     assert captured_logs.levelname == "WARNING"
 
