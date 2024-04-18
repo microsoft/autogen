@@ -21,10 +21,9 @@ from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
-REASON = "requested to skip openai tests"
 
 
 @pytest.fixture
@@ -918,13 +917,13 @@ def test_register_functions():
 
 @pytest.mark.skipif(
     skip_openai,
-    reason=REASON,
+    reason=reason,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["tool"],
         },
         file_location=KEY_LOC,
     )
@@ -995,7 +994,7 @@ def test_function_registration_e2e_sync() -> None:
 
 @pytest.mark.skipif(
     skip_openai,
-    reason=REASON,
+    reason=reason,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
@@ -1071,15 +1070,15 @@ async def test_function_registration_e2e_async() -> None:
     stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         max_consecutive_auto_reply=10,
-        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+        llm_config={"config_list": config_list},
     )
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
@@ -1093,7 +1092,7 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_message_func():
     import random
 
@@ -1149,7 +1148,7 @@ def test_message_func():
     print(chat_res_play.summary)
 
 
-@pytest.mark.skipif(skip_openai, reason=REASON)
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_summary():
     import random
 
@@ -1161,8 +1160,7 @@ def test_summary():
             return random.randint(0, 100)
 
     config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]}
     )
 
     def my_message_play(sender, recipient, context):
@@ -1322,5 +1320,6 @@ if __name__ == "__main__":
     # test_no_llm_config()
     # test_max_turn()
     # test_process_before_send()
-    test_message_func()
+    # test_message_func()
     test_summary()
+    # test_function_registration_e2e_sync()

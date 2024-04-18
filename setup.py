@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai>=1.3",
+    "openai>=1.3,<1.21",
     "diskcache",
     "termcolor",
     "flaml",
@@ -60,10 +60,28 @@ setuptools.setup(
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"],
+        "retrievechat-pgvector": [
+            "pgvector>=0.2.5",
+            "psycopg>=3.1.18",
+            "sentence_transformers",
+            "pypdf",
+            "ipython",
+            "beautifulsoup4",
+            "markdownify",
+        ],
+        "retrievechat-qdrant": [
+            "qdrant_client[fastembed]",
+            "sentence_transformers",
+            "pypdf",
+            "ipython",
+            "beautifulsoup4",
+            "markdownify",
+        ],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
+        "gemini": ["google-generativeai>=0.5,<1", "pillow", "pydantic"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
         "cosmosdb": ["azure-cosmos>=4.2.0"],
