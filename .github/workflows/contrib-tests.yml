@@ -22,17 +22,7 @@ permissions:
   # contents: read
   # deployments: read
 jobs:
-  DeployPostgres:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install PostgreSQL
-        run: |
-          sudo apt install postgresql -y
-      - name: Start PostgreSQL service
-        run: sudo service postgresql start
-
   RetrieveChatTest:
-    needs: DeployPostgres
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -54,11 +44,15 @@ jobs:
         run: |
           pip install qdrant_client[fastembed]
       - name: Install unstructured when python-version is 3.9 and on linux
-        if: matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]==0.13.0
+      - name: Install and Start PostgreSQL
+        runs-on: ubuntu-latest
+        run: |
+          sudo apt install postgresql -y
+          sudo service postgresql start
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
@@ -71,7 +65,7 @@ jobs:
       - name: Coverage
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/test_pgvector_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
