@@ -70,7 +70,6 @@ setuptools.setup(
             "markdownify",
         ],
         "retrievechat-qdrant": [
-            "flaml[automl]",
             "qdrant_client[fastembed]",
             "sentence_transformers",
             "pypdf",
