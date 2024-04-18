@@ -32,6 +32,6 @@ class QuantifierAgent(ConversableAgent):
                 Please override this attribute if you want to reprogram the agent.
             - description (str): The description of the agent.
             **kwargs (dict): Please refer to other kwargs in
-                [ConversableAgent](../conversable_agent#__init__).
+                [ConversableAgent](../../conversable_agent#__init__).
         """
         super().__init__(name=name, system_message=system_message, description=description, **kwargs)
