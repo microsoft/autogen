@@ -98,7 +98,7 @@ ragproxyagent = RetrieveUserProxyAgent(
         "model": config_list[0]["model"],
         "get_or_create": True,
     },
-    code_execution_config=False, 
+    code_execution_config=False,
 )
 ```
 
