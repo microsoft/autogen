@@ -8,6 +8,7 @@ Quick links:
 
 - Why use Promptflow - [Link](https://learn.microsoft.com/en-us/azure/machine-learning/prompt-flow/overview-what-is-prompt-flow)
 - Quick start guide - [Link](https://microsoft.github.io/promptflow/how-to-guides/quick-start.html)
+- Sample application for Promptflow + AutoGen integration - [Link](https://github.com/microsoft/autogen/tree/main/samples/apps/promptflow-autogen)
 
 ## Sample Flow
 
