@@ -50,7 +50,7 @@ jobs:
         run: |
           pip install docker
           pip install qdrant_client[fastembed]
-          pip install -e .[retrievechat]
+          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
