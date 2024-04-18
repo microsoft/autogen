@@ -22,17 +22,7 @@ permissions:
   # contents: read
   # deployments: read
 jobs:
-  DeployPostgres:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install PostgreSQL
-        run: |
-          sudo apt install postgresql -y
-      - name: Start PostgreSQL service
-        run: sudo service postgresql start
-
   RetrieveChatTest:
-    needs: DeployPostgres
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -62,6 +52,11 @@ jobs:
       - name: Install packages and dependencies for RetrieveChat
         run: |
           pip install -e .[retrievechat]
+      - name: Install PostgreSQL
+        run: |
+          sudo apt install postgresql -y
+      - name: Start PostgreSQL service
+        run: sudo service postgresql start
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
