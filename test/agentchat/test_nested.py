@@ -16,6 +16,11 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_nested():
     config_list = autogen.config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
+    config_list_35 = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
+    )
     llm_config = {"config_list": config_list}
 
     tasks = [
@@ -60,13 +65,13 @@ def test_nested():
 
     assistant = autogen.AssistantAgent(
         name="Assistant",
-        llm_config={"config_list": config_list},
+        llm_config=False,
         # is_termination_msg=lambda x: x.get("content", "") == "",
     )
 
     assistant_2 = autogen.AssistantAgent(
         name="Assistant",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         # is_termination_msg=lambda x: x.get("content", "") == "",
     )
 
@@ -94,7 +99,7 @@ def test_nested():
 
     writer = autogen.AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="""
         You are a professional writer, known for
         your insightful and engaging articles.
@@ -105,7 +110,7 @@ def test_nested():
 
     autogen.AssistantAgent(
         name="Reviewer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="""
         You are a compliance reviewer, known for your thoroughness and commitment to standards.
         Your task is to scrutinize content for any harmful elements or regulatory violations, ensuring
@@ -130,7 +135,10 @@ def test_nested():
         trigger=user,
     )
     user.initiate_chats(
-        [{"recipient": assistant, "message": tasks[0], "max_turns": 1}, {"recipient": assistant_2, "message": tasks[1]}]
+        [
+            {"recipient": assistant, "message": tasks[0], "max_turns": 1},
+            {"recipient": assistant_2, "message": tasks[1], "max_turns": 1},
+        ]
     )
 
 
