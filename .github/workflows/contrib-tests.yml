@@ -55,7 +55,7 @@ jobs:
           sudo service postgresql start
       - name: Install packages and dependencies for RetrieveChat
         run: |
-          pip install -e .[retrievechat]
+          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
