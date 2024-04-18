@@ -41,6 +41,11 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
+      - name: Install PostgreSQL
+        run: |
+          sudo apt install postgresql -y
+      - name: Start PostgreSQL service
+        run: sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
