@@ -62,7 +62,9 @@ class Collection:
         self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
-        self.embeddings = None
+        self.embedding_function = (
+            SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
+        )
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
@@ -417,7 +419,6 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.execute(
             f"CREATE TABLE {self.name} ("
             f"documents text, id CHAR(8) PRIMARY KEY, metadatas JSONB, embedding vector(384));"
@@ -640,7 +641,7 @@ class PGVectorDB(VectorDB):
         """
         self.insert_docs(docs, collection_name, upsert=True)
 
-    def delete_docs(self, ids: List[ItemID], collection_name: str = None, **kwargs) -> None:
+    def delete_docs(self, ids: List[ItemID], collection_name: str = None) -> None:
         """
         Delete documents from the collection of the vector database.
 
@@ -661,7 +662,6 @@ class PGVectorDB(VectorDB):
         collection_name: str = None,
         n_results: int = 10,
         distance_threshold: float = -1,
-        **kwargs,
     ) -> QueryResults:
         """
         Retrieve documents from the collection of the vector database based on the queries.
@@ -684,7 +684,7 @@ class PGVectorDB(VectorDB):
         results = collection.query(
             query_texts=queries,
             n_results=n_results,
-            **kwargs,
+            distance_threshold=distance_threshold,
         )
         logger.debug(f"Retrieve Docs Results:\n{results}")
         return results
