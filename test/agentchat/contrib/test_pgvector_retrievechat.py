@@ -7,6 +7,7 @@ import pytest
 
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
+from sentence_transformers import SentenceTransformer
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import skip_openai  # noqa: E402
@@ -15,10 +16,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
-    import chromadb
     import openai
     import pgvector
-    from chromadb.utils import embedding_functions as ef
 
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
@@ -31,13 +30,6 @@ except ImportError:
 else:
     skip = False or skip_openai
 
-
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
 
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
@@ -65,7 +57,7 @@ def test_retrievechat():
         },
     )
 
-    sentence_transformer_ef = ef.SentenceTransformerEmbeddingFunction()
+    sentence_transformer_ef = SentenceTransformer("all-MiniLM-L6-v2")
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
         human_input_mode="NEVER",
