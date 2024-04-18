@@ -56,6 +56,16 @@ class GeminiClient:
     Please visit this [page](https://github.com/microsoft/autogen/issues/2387) for the roadmap of Gemini integration
     of AutoGen.
     """
+    # Mapping, where Key is a term used by Autogen, and Value is a term used by Gemini
+    PARAMS_MAPPING = {
+        "max_tokens": "max_output_tokens", 
+        # "n": "candidate_count", # Gemini supports only `n=1`
+        "stop_sequences": "stop_sequences",
+        "temperature": "temperature",
+        "top_p": "top_p",
+        "top_k": "top_k",
+        "max_output_tokens": "max_output_tokens"
+    }
 
     def __init__(self, **kwargs):
         self.api_key = kwargs.get("api_key", None)
@@ -65,6 +75,7 @@ class GeminiClient:
         assert (
             self.api_key
         ), "Please provide api_key in your config list entry for Gemini or set the GOOGLE_API_KEY env variable."
+
 
     def message_retrieval(self, response) -> List:
         """
@@ -104,25 +115,12 @@ class GeminiClient:
         stream = params.get("stream", False)
         n_response = params.get("n", 1)
 
-
-        # Mapping, where Key is a term used by Autogen, and Value is a term used by Gemini
-        generation_config_params_mapping = {
-            # "n": "candidate_count", # Gemini supports only `n=1`
-            "stop_sequences": "stop_sequences",
-            "max_tokens": "max_output_tokens", 
-            "temperature": "temperature",
-            "top_p": "top_p",
-            "top_k": "top_k",
-
-            "max_output_tokens": "max_output_tokens"
-        }
         generation_config = {
             gemini_term: params[autogen_term]
-            for autogen_term, gemini_term in generation_config_params_mapping.items()
+            for autogen_term, gemini_term in self.PARAMS_MAPPING.items()
             if autogen_term in params
         }
         safety_settings = params.get("safety_settings", {})
-
 
         if stream:
             warnings.warn(
