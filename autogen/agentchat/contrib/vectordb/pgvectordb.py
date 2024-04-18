@@ -326,17 +326,19 @@ class Collection:
         for query in query_texts:
             vector = self.embedding_function.encode(query, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
-                query = (
-                    f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
-                    f"ORDER BY embedding  <=> '{str(vector)}'::vector {distance_threshold}\n"
-                    f"LIMIT {n_results}"
-                )
+                index_function = "<=>"
+            elif distance_type.lower() == "euclidean":
+                index_function = "<->"
+            elif distance_type.lower() == "inner-product":
+                index_function = "<#>"
             else:
-                query = (
-                    f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
-                    f"ORDER BY embedding  <-> '{str(vector)}'::vector {distance_threshold}\n"
-                    f"LIMIT {n_results}"
-                )
+                index_function = "<->"
+
+            query = (
+                f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
+                f"ORDER BY embedding  {index_function} '{str(vector)}'::vector {distance_threshold}\n"
+                f"LIMIT {n_results}"
+            )
             cursor.execute(query)
             for row in cursor.fetchall():
                 fetched_document = Document(id=row[0], content=row[1], embedding=row[2], metadata=row[3])
