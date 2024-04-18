@@ -10,6 +10,7 @@ from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -23,18 +24,21 @@ try:
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
+
+    PGVECTOR_INSTALLED = True
 except ImportError:
     skip = True
+    PGVECTOR_INSTALLED = False
 else:
-    skip = False
+    skip = False or skip_openai
 
 
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    not PGVECTOR_INSTALLED or skip,
+    reason="dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
     conversations = {}
@@ -97,8 +101,8 @@ def test_retrievechat():
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    skip,
+    reason="dependency is not installed",
 )
 def test_retrieve_config(caplog):
     # test warning message when no docs_path is provided
