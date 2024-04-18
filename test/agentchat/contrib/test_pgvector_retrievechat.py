@@ -24,11 +24,8 @@ try:
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
-
-    PGVECTOR_INSTALLED = True
 except ImportError:
     skip = True
-    PGVECTOR_INSTALLED = False
 else:
     skip = False or skip_openai
 
@@ -36,8 +33,7 @@ else:
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
-@pytest.mark.skipif(
-    not PGVECTOR_INSTALLED or skip,
+@pytest.mark.skipif(skip,
     reason="dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
