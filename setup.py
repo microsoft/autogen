@@ -59,8 +59,7 @@ setuptools.setup(
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4",
-                         "markdownify"],
+        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"],
         "retrievechat-pgvector": [
             "pgvector>=0.2.5",
             "psycopg>=3.1.18",
@@ -68,7 +67,7 @@ setuptools.setup(
             "pypdf",
             "ipython",
             "beautifulsoup4",
-            "markdownify"
+            "markdownify",
         ],
         "retrievechat-qdrant": [
             "flaml[automl]",
@@ -77,7 +76,7 @@ setuptools.setup(
             "pypdf",
             "ipython",
             "beautifulsoup4",
-            "markdownify"
+            "markdownify",
         ],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
