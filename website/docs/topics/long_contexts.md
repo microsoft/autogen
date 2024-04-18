@@ -62,11 +62,11 @@ By applying the `MessageHistoryLimiter`, we can see that we were able to limit t
 
 #### Example 2: Limiting the Number of Tokens
 
-To adhere to token limitations, use the `MessageTokenLimiter` transformation. This limits tokens per message and the total token count across all messages:
+To adhere to token limitations, use the `MessageTokenLimiter` transformation. This limits tokens per message and the total token count across all messages. Additionally, a min tokens threshold can be applied:
 
 ```python
 # Limit the token limit per message to 3 tokens
-token_limit_transform = transforms.MessageTokenLimiter(max_tokens_per_message=3)
+token_limit_transform = transforms.MessageTokenLimiter(max_tokens_per_message=3, min_tokens=10)
 
 processed_messages = token_limit_transform.apply_transform(copy.deepcopy(messages))
 
@@ -159,7 +159,7 @@ Now let's add the `TransformMessages` capability to the assistant and run the sa
 context_handling = transform_messages.TransformMessages(
     transforms=[
         transforms.MessageHistoryLimiter(max_messages=10),
-        transforms.MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=50),
+        transforms.MessageTokenLimiter(max_tokens=1000, max_tokens_per_message=50, min_tokens=500),
     ]
 )
 context_handling.add_to_agent(assistant)
