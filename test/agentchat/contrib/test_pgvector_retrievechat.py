@@ -33,7 +33,8 @@ else:
 test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
 
 
-@pytest.mark.skipif(skip,
+@pytest.mark.skipif(
+    skip,
     reason="dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
