@@ -2,7 +2,7 @@ import React from "react";
 import { IWorkflow, IStatus } from "../../../types";
 import { ControlRowView } from "../../../atoms";
 import { fetchJSON, getServerUrl } from "../../../utils";
-import { Button, Input, Select, Tabs, message, theme } from "antd";
+import { Button, Drawer, Input, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
 import { BugAntIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { WorkflowAgentSelector, WorkflowTypeSelector } from "./selectors";
@@ -210,6 +210,16 @@ export const WorflowViewer = ({
     }
   }
 
+  const [drawerOpen, setDrawerOpen] = React.useState<boolean>(false);
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+  };
+
   return (
     <div className="text-primary">
       {/* <RenderView viewIndex={currentViewIndex} /> */}
@@ -218,6 +228,28 @@ export const WorflowViewer = ({
         defaultActiveKey="1"
         items={items}
       />
+      {/* {workflow?.id && (
+        <div className="text-right mt-2">
+          <Button
+            type="primary"
+            onClick={() => {
+              setDrawerOpen(true);
+            }}
+          >
+            Test Workflow
+          </Button>
+        </div>
+      )} */}
+
+      <Drawer
+        title=<div>Test Workflow</div>
+        onClose={closeDrawer}
+        open={drawerOpen}
+      >
+        <p>Some contents...</p>
+        <p>Some contents...</p>
+        <p>Some contents...</p>
+      </Drawer>
     </div>
   );
 };

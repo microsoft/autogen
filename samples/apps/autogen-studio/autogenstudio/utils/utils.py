@@ -390,6 +390,14 @@ def test_model(model: Model):
 
 
 def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, work_dir: str):
+    """
+    Load the code execution configuration based on the code execution type.
+
+    :param code_execution_type: The code execution type.
+    :param work_dir: The working directory to store code execution files.
+    :return: The code execution configuration.
+
+    """
     work_dir = Path(work_dir)
     work_dir.mkdir(exist_ok=True)
     executor = None

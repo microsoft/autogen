@@ -36,6 +36,7 @@ class WorkflowManager:
             history: An optional list of previous messages to populate the agents' history.
 
         """
+        # TODO - improved typing for workflow
         self.send_message_function = send_message_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
