@@ -40,7 +40,9 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
             {
                 return m switch
                 {
-                    TextMessage textMessage => ProcessTextMessage(textMessage, agent).Select(c => MessageEnvelope.Create(c, from: textMessage.From)),
+                    TextMessage textMessage => ProcessTextMessage(textMessage, agent),
+                    ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(toolCallMessage, agent),
+                    ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage, agent),
                     _ => [m],
                 };
             }
@@ -88,29 +90,30 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         }
     }
 
-    private IEnumerable<ChatMessage> ProcessTextMessage(TextMessage textMessage, IAgent agent)
+    private IEnumerable<IMessage<ChatMessage>> ProcessTextMessage(TextMessage textMessage, IAgent agent)
     {
+        IEnumerable<ChatMessage> messages;
         // check if textMessage is system message
         if (textMessage.Role == Role.System)
         {
-            return [new ChatMessage(ChatMessage.RoleEnum.System, textMessage.Content)];
+            messages = [new ChatMessage(ChatMessage.RoleEnum.System, textMessage.Content)];
         }
 
         // if this message is from agent iteself, then its role should be assistant
         if (textMessage.From == agent.Name)
         {
-            return [new ChatMessage(ChatMessage.RoleEnum.Assistant, textMessage.Content)];
+            messages = [new ChatMessage(ChatMessage.RoleEnum.Assistant, textMessage.Content)];
         }
         else if (textMessage.From is null)
         {
             // if from is null, then process the message based on the role
             if (textMessage.Role == Role.User)
             {
-                return [new ChatMessage(ChatMessage.RoleEnum.User, textMessage.Content)];
+                messages = [new ChatMessage(ChatMessage.RoleEnum.User, textMessage.Content)];
             }
             else if (textMessage.Role == Role.Assistant)
             {
-                return [new ChatMessage(ChatMessage.RoleEnum.Assistant, textMessage.Content)];
+                messages = [new ChatMessage(ChatMessage.RoleEnum.Assistant, textMessage.Content)];
             }
             else
             {
@@ -120,7 +123,56 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         else
         {
             // if from is not null, then the message is from user
-            return [new ChatMessage(ChatMessage.RoleEnum.User, textMessage.Content)];
+            messages = [new ChatMessage(ChatMessage.RoleEnum.User, textMessage.Content)];
         }
+
+        return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: textMessage.From));
+    }
+
+    private IEnumerable<IMessage<ChatMessage>> ProcessToolCallResultMessage(ToolCallResultMessage toolCallResultMessage, IAgent agent)
+    {
+        var from = toolCallResultMessage.From;
+        var messages = new List<ChatMessage>();
+        foreach (var toolCall in toolCallResultMessage.ToolCalls)
+        {
+            if (toolCall.Result is null)
+            {
+                continue;
+            }
+
+            var message = new ChatMessage(ChatMessage.RoleEnum.Tool, content: toolCall.Result)
+            {
+                Name = toolCall.FunctionName,
+            };
+
+            messages.Add(message);
+        }
+
+        return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: toolCallResultMessage.From));
+    }
+
+    private IEnumerable<IMessage<ChatMessage>> ProcessToolCallMessage(ToolCallMessage toolCallMessage, IAgent agent)
+    {
+        IEnumerable<ChatMessage> messages;
+
+        // the scenario is not support when tool call message is from another agent
+        if (toolCallMessage.From is string from && from != agent.Name)
+        {
+            throw new NotSupportedException("Tool call message from another agent is not supported");
+        }
+
+        // convert tool call message to chat message
+        var chatMessage = new ChatMessage(ChatMessage.RoleEnum.Assistant);
+        chatMessage.ToolCalls = new List<FunctionContent>();
+        foreach (var toolCall in toolCallMessage.ToolCalls)
+        {
+            var functionCall = new FunctionContent.FunctionCall(toolCall.FunctionName, toolCall.FunctionArguments);
+            var functionContent = new FunctionContent(functionCall);
+            chatMessage.ToolCalls.Add(functionContent);
+        }
+
+        messages = [chatMessage];
+
+        return messages.Select(m => new MessageEnvelope<ChatMessage>(m, from: toolCallMessage.From));
     }
 }

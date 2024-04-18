@@ -64,6 +64,39 @@ public partial class MistralClientAgentTests
     }
 
     [ApiKeyFact("MISTRAL_API_KEY")]
+    public async Task MistralAgentFunctionCallMessageTest()
+    {
+        var apiKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new InvalidOperationException("MISTRAL_API_KEY is not set.");
+        var client = new MistralClient(apiKey: apiKey);
+        var functionCallMiddleware = new FunctionCallMiddleware(
+            functions: [this.GetWeatherFunctionContract]);
+        var agent = new MistralClientAgent(
+            client: client,
+            name: "MistralClientAgent",
+            model: "mistral-small-latest",
+            randomSeed: 0)
+            .RegisterMessageConnector();
+
+        var weatherFunctionArgumets = """
+            {
+                "city": "Seattle"
+            }
+            """;
+        var functionCallResult = await this.GetWeatherWrapper(weatherFunctionArgumets);
+
+        IMessage[] chatHistory = [
+            new TextMessage(Role.User, "what's the weather in Seattle?"),
+            new ToolCallMessage(this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets, from: agent.Name),
+            new ToolCallResultMessage(functionCallResult, this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets),
+            ];
+
+        var reply = await agent.SendAsync(chatHistory: chatHistory);
+
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetContent().Should().Be("The weather in Seattle is sunny.");
+    }
+
+    [ApiKeyFact("MISTRAL_API_KEY")]
     public async Task MistralAgentFunctionCallAutoInvokeTestAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new InvalidOperationException("MISTRAL_API_KEY is not set.");

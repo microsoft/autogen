@@ -59,6 +59,12 @@ public class ChatMessage
     [JsonPropertyName("content")]
     public string? Content { get; set; }
 
+    /// <summary>
+    /// Gets or Sets name for tool calls
+    /// </summary>
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
     [JsonPropertyName("tool_calls")]
     public List<FunctionContent>? ToolCalls { get; set; }
 }
