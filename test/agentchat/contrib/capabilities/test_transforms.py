@@ -35,12 +35,12 @@ def message_history_limiter() -> MessageHistoryLimiter:
 
 @pytest.fixture
 def message_token_limiter() -> MessageTokenLimiter:
-    return MessageTokenLimiter(max_message_tokens=3)
+    return MessageTokenLimiter(max_tokens_per_message=3)
 
 
 @pytest.fixture
 def message_token_limiter_with_threshold() -> MessageTokenLimiter:
-    return MessageTokenLimiter(max_message_tokens=1, min_threshold_tokens=10)
+    return MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
 
 
 # MessageHistoryLimiter
@@ -123,8 +123,8 @@ if __name__ == "__main__":
     short_messages = get_short_messages()
     no_content_messages = get_no_content_messages()
     message_history_limiter = MessageHistoryLimiter(max_messages=3)
-    message_token_limiter = MessageTokenLimiter(max_message_tokens=3)
-    message_token_limiter_with_threshold = MessageTokenLimiter(max_message_tokens=1, min_threshold_tokens=10)
+    message_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
+    message_token_limiter_with_threshold = MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
 
     # Test Parameters
     message_history_limiter_apply_transform_parameters = {

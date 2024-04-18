@@ -70,6 +70,9 @@ class MessageHistoryLimiter:
             List[Dict]: A new list containing the most recent messages up to the specified maximum.
         """
 
+        if self._max_messages is None:
+            return messages
+
         return messages[-self._max_messages :]
 
     def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
@@ -105,8 +108,8 @@ class MessageTokenLimiter:
 
     The truncation process follows these steps in order:
 
-    1. The minimum tokens threshold is checked (0 by default). If it is not reached, the messages are returned as is.
-        If it is reached, the following process is applied.
+    1. The minimum tokens threshold (`min_tokens`) is checked (0 by default). If the total number of tokens in messages
+        are less than this threshold, then the messages are returned as is. In other case, the following process is applied.
     2. Messages are processed in reverse order (newest to oldest).
     3. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
         and other types of content, only the text content is truncated.
@@ -119,25 +122,25 @@ class MessageTokenLimiter:
 
     def __init__(
         self,
-        max_message_tokens: Optional[int] = None,
-        max_history_tokens: Optional[int] = None,
-        min_threshold_tokens: Optional[int] = None,
+        max_tokens_per_message: Optional[int] = None,
+        max_tokens: Optional[int] = None,
+        min_tokens: Optional[int] = None,
         model: str = "gpt-3.5-turbo-0613",
     ):
         """
         Args:
-            max_message_tokens (None or int): Maximum number of tokens to keep in each message.
+            max_tokens_per_message (None or int): Maximum number of tokens to keep in each message.
                 Must be greater than or equal to 0 if not None.
-            max_history_tokens (Optional[int]): Maximum number of tokens to keep in the chat history.
+            max_tokens (Optional[int]): Maximum number of tokens to keep in the chat history.
                 Must be greater than or equal to 0 if not None.
-            min_threshold_tokens (Optional[int]): Minimum number of tokens in messages to apply the transformation.
+            min_tokens (Optional[int]): Minimum number of tokens in messages to apply the transformation.
                 Must be greater than or equal to 0 if not None.
             model (str): The target OpenAI model for tokenization alignment.
         """
         self._model = model
-        self._max_message_tokens = self._validate_max_tokens(max_message_tokens)
-        self._max_history_tokens = self._validate_max_tokens(max_history_tokens)
-        self._min_threshold_tokens = self._validate_min_tokens(min_threshold_tokens)
+        self._max_tokens_per_message = self._validate_max_tokens(max_tokens_per_message)
+        self._max_tokens = self._validate_max_tokens(max_tokens)
+        self._min_tokens = self._validate_min_tokens(min_tokens, max_tokens)
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies token truncation to the conversation history.
@@ -148,11 +151,11 @@ class MessageTokenLimiter:
         Returns:
             List[Dict]: A new list containing the truncated messages up to the specified token limits.
         """
-        assert self._max_message_tokens is not None
-        assert self._max_history_tokens is not None
-        assert self._min_threshold_tokens is not None
+        assert self._max_tokens_per_message is not None
+        assert self._max_tokens is not None
+        assert self._min_tokens is not None
 
-        # if the total number of tokens in the messages is less than the min_threshold_tokens, return the messages as is
+        # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
         if not self._check_tokens_threshold(messages):
             return messages
 
@@ -166,18 +169,18 @@ class MessageTokenLimiter:
                 processed_messages.insert(0, msg)
                 continue
 
-            expected_tokens_remained = self._max_history_tokens - processed_messages_tokens - self._max_message_tokens
+            expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
 
             # If adding this message would exceed the token limit, truncate the last message to meet the total token
             # limit and discard all remaining messages
             if expected_tokens_remained < 0:
                 msg["content"] = self._truncate_str_to_tokens(
-                    msg["content"], self._max_history_tokens - processed_messages_tokens
+                    msg["content"], self._max_tokens - processed_messages_tokens
                 )
                 processed_messages.insert(0, msg)
                 break
 
-            msg["content"] = self._truncate_str_to_tokens(msg["content"], self._max_message_tokens)
+            msg["content"] = self._truncate_str_to_tokens(msg["content"], self._max_tokens_per_message)
             msg_tokens = _count_tokens(msg["content"])
 
             # prepend the message to the list to preserve order
@@ -205,7 +208,7 @@ class MessageTokenLimiter:
     def _check_tokens_threshold(self, messages: List[Dict]) -> bool:
         """Returns True if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`."""
         messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
-        return messages_tokens >= self._min_threshold_tokens
+        return messages_tokens >= self._min_tokens
 
     def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:
         if isinstance(contents, str):
@@ -237,7 +240,7 @@ class MessageTokenLimiter:
 
     def _validate_max_tokens(self, max_tokens: Optional[int] = None) -> Optional[int]:
         if max_tokens is not None and max_tokens < 0:
-            raise ValueError("max_history_tokens and max_message_tokens must be None or greater than or equal to 0")
+            raise ValueError("max_tokens and max_tokens_per_message must be None or greater than or equal to 0")
 
         try:
             allowed_tokens = token_count_utils.get_max_token_limit(self._model)
@@ -257,11 +260,13 @@ class MessageTokenLimiter:
 
         return max_tokens if max_tokens is not None else sys.maxsize
 
-    def _validate_min_tokens(self, min_tokens: int):
-        if min_tokens is not None and min_tokens < 0:
-            raise ValueError("min_threshold_tokens must be None or greater than or equal to 0")
+    def _validate_min_tokens(self, min_tokens: int, max_tokens: int) -> int:
         if min_tokens is None:
             return 0
+        if min_tokens < 0:
+            raise ValueError("min_tokens must be None or greater than or equal to 0")
+        if max_tokens is not None and min_tokens >= max_tokens:
+            raise ValueError("min_tokens must be less than max_tokens")
         return min_tokens
 
 
