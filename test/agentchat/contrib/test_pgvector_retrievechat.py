@@ -109,7 +109,7 @@ def test_retrievechat():
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
-    )
+)
 def test_retrieve_config(caplog):
     # test warning message when no docs_path is provided
     ragproxyagent = RetrieveUserProxyAgent(
