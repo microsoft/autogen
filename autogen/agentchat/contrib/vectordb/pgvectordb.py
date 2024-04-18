@@ -278,6 +278,21 @@ class Collection:
         dist = np.dot(arr1, arr2) / (np.linalg.norm(arr1) * np.linalg.norm(arr2))
         return dist
 
+    @staticmethod
+    def inner_product_distance(arr1: List[float], arr2: List[float]) -> float:
+        """
+        Calculate the Euclidean distance between two vectors.
+
+        Parameters:
+        - arr1 (List[float]): The first vector.
+        - arr2 (List[float]): The second vector.
+
+        Returns:
+        - float: The Euclidean distance between arr1 and arr2.
+        """
+        dist = np.linalg.norm(arr1 - arr2)
+        return dist
+
     def query(
         self,
         query_texts: List[str],
@@ -328,6 +343,10 @@ class Collection:
                 fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get("embedding"))
                 if distance_type.lower() == "cosine":
                     distance = self.cosine_distance(fetched_document_array, vector)
+                elif distance_type.lower() == "euclidean":
+                    distance = self.euclidean_distance(fetched_document_array, vector)
+                elif distance_type.lower() == "inner-product":
+                    distance = self.inner_product_distance(fetched_document_array, vector)
                 else:
                     distance = self.euclidean_distance(fetched_document_array, vector)
                 results.append((fetched_document, distance))
@@ -425,6 +444,12 @@ class Collection:
             f"CREATE INDEX "
             f'ON {self.name} USING hnsw (embedding vector_l2_ops) WITH (m = {self.metadata["hnsw:M"]}, '
             f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
+            f"CREATE INDEX "
+            f'ON {self.name} USING hnsw (embedding vector_cosine_ops) WITH (m = {self.metadata["hnsw:M"]}, '
+            f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
+            f"CREATE INDEX "
+            f'ON {self.name} USING hnsw (embedding vector_ip_ops) WITH (m = {self.metadata["hnsw:M"]}, '
+            f'ef_construction = {self.metadata["hnsw:construction_ef"]});'
         )
         cursor.close()
 
@@ -459,10 +484,9 @@ class PGVectorDB(VectorDB):
             embedding_function: Callable | The embedding function used to generate the vector representation
                 of the documents. Default is None.
             metadata: dict | The metadata of the vector database. Default is None. If None, it will use this
-                setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 32}. For more details of
-                the metadata, please refer to [distances](https://github.com/nmslib/hnswlib#supported-distances),
-                [hnsw](https://github.com/chroma-core/chroma/blob/566bc80f6c8ee29f7d99b6322654f32183c368c4/chromadb/segment/impl/vector/local_hnsw.py#L184),
-                and [ALGO_PARAMS](https://github.com/nmslib/hnswlib/blob/master/ALGO_PARAMS.md).
+                setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 16}. Creates Index on table
+                using hnsw (embedding vector_l2_ops) WITH (m = hnsw:M) ef_construction = "hnsw:construction_ef".
+                For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
             kwargs: dict | Additional keyword arguments.
 
         Returns:
