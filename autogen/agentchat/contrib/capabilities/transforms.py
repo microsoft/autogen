@@ -207,6 +207,9 @@ class MessageTokenLimiter:
 
     def _check_tokens_threshold(self, messages: List[Dict]) -> bool:
         """Returns True if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`."""
+        if not self._min_tokens:
+            return False
+            
         messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
         return messages_tokens >= self._min_tokens
 
