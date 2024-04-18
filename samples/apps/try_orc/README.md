@@ -37,5 +37,4 @@ There are several demos available:
 | -------- | -------- | -------- |
 | `demo_orc_twoagents.py`   | text   | coder, computer terminal   |
 | `demo_orc_mdwebsurfer.py`   | text   | \+ web surfer (md)  |
-| `demo_orc_mmwebsurfer.py`   | text   | web surfer (md) &rarr; web surfer (mm) |
-| `demo_mmorc_mmwebsurfer.py`   | text &rarr; mm   | (same as above) |
+| `demo_orc_mmwebsurfer.py`   | mm   | web surfer (md) &rarr; web surfer (mm) |
