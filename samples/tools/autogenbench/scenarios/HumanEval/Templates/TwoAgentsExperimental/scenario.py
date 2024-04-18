@@ -5,7 +5,7 @@ import aioconsole
 
 from autogen import config_list_from_json
 from autogen.coding import LocalCommandLineCodeExecutor
-from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat, UserProxyAgent, AzureOpenAI
+from autogen.experimental import AssistantAgent, AzureOpenAI, OpenAI, TwoAgentChat, UserProxyAgent
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.terminations import DefaultTermination
 from autogen.experimental.types import UserMessage
@@ -14,6 +14,7 @@ from autogen.experimental.types import UserMessage
 PROMPT = ""
 with open("prompt.txt", "rt") as fh:
     PROMPT = fh.read()
+
 
 async def main() -> None:
     code_writer_system_message = """
@@ -28,22 +29,17 @@ If you want the user to save the code in a file before executing it, put # filen
 If it looks like the task is done and the code has already been executed you can respond with 'TERMINATE' to end the conversation.
 """
 
+    model_config = config_list_from_json(env_or_file="OAI_CONFIG_LIST")[0]  # Just take the first for now
 
-    model_config = config_list_from_json(env_or_file="OAI_CONFIG_LIST")[0] # Just take the first for now
-
-    if True: #model_config.get("api_type") == "azure":
+    if True:  # model_config.get("api_type") == "azure":
         model_client = AzureOpenAI(
             model=model_config.get("model"),
             azure_endpoint=model_config.get("base_url"),
             api_key=model_config.get("api_key"),
             api_version=model_config.get("api_version"),
-            model_capabilities={
-                "function_calling": True,
-                "json_output": True,
-                "vision": False
-            }
+            model_capabilities={"function_calling": True, "json_output": True, "vision": False},
         )
-    #else:
+    # else:
     #    model_client = OpenAI(model=model_config.get("model"), api_key=model_config.get("api_key"))
 
     assistant = AssistantAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
@@ -56,8 +52,9 @@ If it looks like the task is done and the code has already been executed you can
         user_proxy,
         termination_manager=DefaultTermination(),
     )
-    
-    message = UserMessage("""The following python code imports the `run_tests(candidate)` function from my_tests.py, and runs
+
+    message = UserMessage(
+        """The following python code imports the `run_tests(candidate)` function from my_tests.py, and runs
 it on the function `__ENTRY_POINT__`. This will run a set of automated unit tests to verify the
 correct implementation of `__ENTRY_POINT__`. However, `__ENTRY_POINT__` is only partially
 implemented in the code below. Complete the implementation of `__ENTRY_POINT__` and output
@@ -69,13 +66,14 @@ such that this code block can be run directly in Python.
 from my_tests import run_tests
 
 """
-    + PROMPT
-    + """
+        + PROMPT
+        + """
 
 # Run the unit tests
 run_tests(__ENTRY_POINT__)
 ```
-""")
+"""
+    )
 
     chat.append_message(message)
     await run_in_terminal(chat)
