@@ -33,7 +33,7 @@ KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_aoai_chat_completion_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -46,7 +46,7 @@ def test_aoai_chat_completion_stream() -> None:
     print(client.extract_text_or_completion_object(response))
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_chat_completion_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -93,7 +93,7 @@ def test__update_dict_from_chunk() -> None:
     assert d["s"] == "beginning and end"
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test__update_function_call_from_chunk() -> None:
     function_call_chunks = [
         ChoiceDeltaFunctionCall(arguments=None, name="get_current_weather"),
@@ -125,7 +125,7 @@ def test__update_function_call_from_chunk() -> None:
     ChatCompletionMessage(role="assistant", function_call=full_function_call, content=None)
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test__update_tool_calls_from_chunk() -> None:
     tool_calls_chunks = [
         ChoiceDeltaToolCall(
@@ -198,7 +198,7 @@ def test__update_tool_calls_from_chunk() -> None:
 
 
 # todo: remove when OpenAI removes functions from the API
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_chat_functions_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -232,7 +232,7 @@ def test_chat_functions_stream() -> None:
 
 
 # test for tool support instead of the deprecated function calls
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_chat_tools_stream() -> None:
     config_list = config_list_from_json(
         env_or_file=OAI_CONFIG_LIST,
@@ -285,7 +285,7 @@ def test_chat_tools_stream() -> None:
     assert any(["New York" in location for location in locations])
 
 
-@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+@pytest.mark.skipif(skip, reason="openai>=1 not installed or requested to skip")
 def test_completion_stream() -> None:
     config_list = config_list_openai_aoai(KEY_LOC)
     client = OpenAIWrapper(config_list=config_list)
