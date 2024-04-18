@@ -20,7 +20,7 @@ else:
 def test_pgvector():
     # test create collection
     db_config = {
-        "connection_string": "postgresql://testuser:testpwd@localhost:5432/vectordb",
+        "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
     }
 
     db = PGVector(connection_string=db_config["connection_string"])
