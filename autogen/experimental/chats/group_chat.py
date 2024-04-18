@@ -91,6 +91,7 @@ class GroupChat(ChatOrchestratorStream):
             message, context = reply
             # We overwrite the context sender to be the current speaker
             context.sender = self._speaker
+            # TODO add input if not set
         else:
             message = reply
             # TODO add input etc

@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -59,27 +60,28 @@ create_kwargs = set(completion_create_params.CompletionCreateParamsBase.__annota
 )
 # Only single choice allowed
 disallowed_create_args = set(["stream", "messages", "function_call", "functions", "n"])
-required_create_args = set(["model"])
+required_create_args: Set[str] = set(["model"])
 
 
-def _openai_client_from_config(config: Mapping[str, Any]) -> Union[AsyncOpenAI, AsyncAzureOpenAI]:
-    if config.get("api_type", None) is not None and config["api_type"].startswith("azure"):
-        # Take a copy
-        copied_config = dict(config).copy()
+def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
+    # Take a copy
+    copied_config = dict(config).copy()
 
-        # Do some fixups
-        copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
-        if copied_config["azure_deployment"] is not None:
-            copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
-        copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
+    # Do some fixups
+    copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
+    if copied_config["azure_deployment"] is not None:
+        copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
+    copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
 
-        # Shave down the config to just the AzureOpenAI kwargs
-        azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
-        return AsyncAzureOpenAI(**azure_config)
-    else:
-        # Shave down the config to just the OpenAI kwargs
-        openai_config = {k: v for k, v in config.items() if k in openai_init_kwargs}
-        return AsyncOpenAI(**openai_config)
+    # Shave down the config to just the AzureOpenAI kwargs
+    azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
+    return AsyncAzureOpenAI(**azure_config)
+
+
+def _openai_client_from_config(config: Mapping[str, Any]) -> AsyncOpenAI:
+    # Shave down the config to just the OpenAI kwargs
+    openai_config = {k: v for k, v in config.items() if k in openai_init_kwargs}
+    return AsyncOpenAI(**openai_config)
 
 
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
@@ -258,15 +260,18 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
 class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     organization: str
     base_url: str
+    # Not required
+    model_capabilities: ModelCapabilities
 
 
 class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     # Azure specific
     azure_endpoint: Required[str]
     azure_deployment: str
-    api_version: str
+    api_version: Required[str]
     azure_ad_token: str
     azure_ad_token_provider: AsyncAzureADTokenProvider
+    # Must be provided
     model_capabilities: Required[ModelCapabilities]
 
 
@@ -576,10 +581,16 @@ class OpenAI(BaseOpenAI):
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAI")
 
-        client = _openai_client_from_config(kwargs)
-        create_args = _create_args_from_config(kwargs)
-        self._raw_config = kwargs
-        super().__init__(client, create_args)
+        model_capabilities: Optional[ModelCapabilities] = None
+        copied_args = dict(kwargs).copy()
+        if "model_capabilities" in kwargs:
+            model_capabilities = kwargs["model_capabilities"]
+            del copied_args["model_capabilities"]
+
+        client = _openai_client_from_config(copied_args)
+        create_args = _create_args_from_config(copied_args)
+        self._raw_config = copied_args
+        super().__init__(client, create_args, model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -593,17 +604,19 @@ class OpenAI(BaseOpenAI):
 
 class AzureOpenAI(BaseOpenAI):
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        if "model" in kwargs and "azure_deployment" in kwargs:
-            raise ValueError("Cannot specify both model and azure_deployment")
+        if "model" not in kwargs:
+            raise ValueError("model is required for OpenAI")
 
-        if "model" in kwargs:
-            kwargs["azure_deployment"] = kwargs["model"]
-            del kwargs["model"]
+        model_capabilities: Optional[ModelCapabilities] = None
+        copied_args = dict(kwargs).copy()
+        if "model_capabilities" in kwargs:
+            model_capabilities = kwargs["model_capabilities"]
+            del copied_args["model_capabilities"]
 
-        client = _openai_client_from_config(kwargs)
-        create_args = _create_args_from_config(kwargs)
-        self._raw_config = kwargs
-        super().__init__(client, create_args)
+        client = _azure_openai_client_from_config(copied_args)
+        create_args = _create_args_from_config(copied_args)
+        self._raw_config = copied_args
+        super().__init__(client, create_args, model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -612,4 +625,4 @@ class AzureOpenAI(BaseOpenAI):
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
-        self._client = _openai_client_from_config(state["_raw_config"])
+        self._client = _azure_openai_client_from_config(state["_raw_config"])

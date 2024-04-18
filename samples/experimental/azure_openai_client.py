@@ -31,28 +31,12 @@ If it looks like the task is done and the code has already been executed you can
 """
 
     model_client = AzureOpenAI(
-        model="gpt-4-0125-preview",
-        azure_endpoint="...",
+        model="gpt-4",
+        azure_endpoint=os.environ["AZURE_OAI_ENDPOINT"],
+        api_version="2023-03-15-preview",
         api_key=os.environ["AZURE_OAI_KEY"],
-        model_capabilities={
-            "function_calling": True,
-            "json_output": True,
-            "vision": False
-        },
+        model_capabilities={"function_calling": True, "json_output": True, "vision": False},
     )
-
-    # from json directly
-    # my_json: AzureOpenAIClientConfiguration = {
-    #     "model":"gpt-4-0125-preview",
-    #     "azure_endpoint":"...",
-    #     "api_key":"...",
-    #     "model_capabilities":{
-    #         "function_calling": True,
-    #         "json_output": True,
-    #         "vision": False
-    #     },
-    # }
-    # model_client = AzureOpenAI(**my_json)
 
     assistant = AssistantAgent(name="agent", system_message=code_writer_system_message, model_client=model_client)
     user_proxy = UserProxyAgent(
