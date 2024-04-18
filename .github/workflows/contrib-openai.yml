@@ -17,7 +17,17 @@ permissions: {}
   # contents: read
   # deployments: read
 jobs:
+  DeployPostgres:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL
+        run: |
+          sudo apt install postgresql -y
+      - name: Start PostgreSQL service
+        run: sudo service postgresql start
+
   RetrieveChatTest:
+    needs: DeployPostgres
     strategy:
       matrix:
         os: [ubuntu-latest]
