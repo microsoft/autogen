@@ -99,7 +99,7 @@ def test_retrievechat():
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
-    )
+)
 def test_retrieve_config(caplog):
     # test warning message when no docs_path is provided
     ragproxyagent = RetrieveUserProxyAgent(
@@ -118,8 +118,8 @@ def test_retrieve_config(caplog):
 
     # Assert on the printed content
     assert (
-            f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
-            in captured_logs.message
+        f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
+        in captured_logs.message
     )
     assert captured_logs.levelname == "WARNING"
 

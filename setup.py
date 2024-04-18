@@ -61,10 +61,24 @@ setuptools.setup(
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
         "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4",
                          "markdownify"],
-        "retrievechat-pgvector": ["pgvector>=0.2.5", "psycopg>=3.1.18", "sentence_transformers", "pypdf", "ipython",
-                                  "beautifulsoup4", "markdownify"],
-        "retrievechat-qdrant": ["flaml[automl]", "qdrant_client[fastembed]", "sentence_transformers", "pypdf",
-                                "ipython", "beautifulsoup4", "markdownify"],
+        "retrievechat-pgvector": [
+            "pgvector>=0.2.5",
+            "psycopg>=3.1.18",
+            "sentence_transformers",
+            "pypdf",
+            "ipython",
+            "beautifulsoup4",
+            "markdownify"
+        ],
+        "retrievechat-qdrant": [
+            "flaml[automl]",
+            "qdrant_client[fastembed]",
+            "sentence_transformers",
+            "pypdf",
+            "ipython",
+            "beautifulsoup4",
+            "markdownify"
+        ],
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
