@@ -49,7 +49,6 @@ jobs:
       - name: Install packages for test when needed
         run: |
           pip install docker
-          pip install qdrant_client[fastembed]
           pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:

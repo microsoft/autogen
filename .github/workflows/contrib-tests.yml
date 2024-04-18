@@ -42,7 +42,7 @@ jobs:
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10'
         run: |
-          pip install qdrant_client[fastembed]
+          pip install .[retrievechat-qdrant]
       - name: Install unstructured when python-version is 3.9 and on linux
         run: |
           sudo apt-get update
@@ -53,9 +53,9 @@ jobs:
         run: |
           sudo apt install postgresql -y
           sudo service postgresql start
-      - name: Install packages and dependencies for RetrieveChat
+      - name: Install packages and dependencies for PGVector
         run: |
-          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
+          pip install -e .[retrievechat-pgvector]
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
