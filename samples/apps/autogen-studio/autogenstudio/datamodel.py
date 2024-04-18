@@ -121,13 +121,21 @@ class Model(SQLModel, table=True):
     agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)
 
 
+class CodeExecutionConfigTypes(str, Enum):
+    local = "local"
+    docker = "docker"
+    none = "none"
+
+
 class AgentConfig(SQLModel, table=False):
     name: Optional[str] = None
     human_input_mode: str = "NEVER"
     max_consecutive_auto_reply: int = 10
     system_message: Optional[str] = None
     is_termination_msg: Optional[Union[bool, str, Callable]] = None
-    code_execution_config: Optional[Union[bool, Dict]] = Field(default=False, sa_column=Column(JSON))
+    code_execution_config: CodeExecutionConfigTypes = Field(
+        default=CodeExecutionConfigTypes.local, sa_column=Column(SqlEnum(CodeExecutionConfigTypes))
+    )
     default_auto_reply: Optional[str] = ""
     description: Optional[str] = None
     llm_config: Optional[Union[LLMConfig, bool]] = Field(default=False, sa_column=Column(JSON))

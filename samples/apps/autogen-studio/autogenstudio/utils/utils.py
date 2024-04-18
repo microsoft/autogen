@@ -4,13 +4,15 @@ import os
 import re
 import shutil
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 from dotenv import load_dotenv
 
+from autogen.coding import DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
 from autogen.oai.client import ModelClient, OpenAIWrapper
 
-from ..datamodel import Agent, AgentType, Model, Skill, Workflow, WorkflowAgentLink
+from ..datamodel import Agent, AgentType, CodeExecutionConfigTypes, Model, Skill, Workflow, WorkflowAgentLink
 from ..dbmanager import DBManager
 from ..version import APP_NAME
 
@@ -385,6 +387,24 @@ def test_model(model: Model):
     client = OpenAIWrapper(config_list=[sanitized_model])
     response = client.create(messages=[{"role": "user", "content": "2+2="}], cache_seed=None)
     return response.choices[0].message.content
+
+
+def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, work_dir: str):
+    work_dir = Path(work_dir)
+    work_dir.mkdir(exist_ok=True)
+    executor = None
+    if code_execution_type == CodeExecutionConfigTypes.local:
+        executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
+    elif code_execution_type == CodeExecutionConfigTypes.docker:
+        executor = DockerCommandLineCodeExecutor(work_dir=work_dir)
+    elif code_execution_type == CodeExecutionConfigTypes.none:
+        return False
+    else:
+        raise ValueError(f"Invalid code execution type: {code_execution_type}")
+    code_execution_config = {
+        "executor": executor,
+    }
+    return code_execution_config
 
 
 def workflow_from_id(workflow_id: int, dbmanager: DBManager):

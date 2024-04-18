@@ -133,7 +133,7 @@ export const Card = ({
       role={"button"}
       className={`${border} border-2 bg-secondary  group ${className} w-full text-left rounded ${cursor} transition duration-300`}
     >
-      <div className="mt- text-sm text-secondary  break-words">
+      <div className="mt- text-sm text-secondary  h-full break-words">
         {title && (
           <div className="text-accent rounded font-semibold  text-xs pb-1">
             {title}

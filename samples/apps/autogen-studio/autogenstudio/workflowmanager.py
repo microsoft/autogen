@@ -10,7 +10,7 @@ from .datamodel import (
     Message,
     SocketMessage,
 )
-from .utils import clear_folder, get_skills_from_prompt, sanitize_model
+from .utils import clear_folder, get_skills_from_prompt, load_code_execution_config, sanitize_model
 
 
 class WorkflowManager:
@@ -182,12 +182,10 @@ class WorkflowManager:
                 sanitized_llm = sanitize_model(llm)
                 config_list.append(sanitized_llm)
             agent.config.llm_config.config_list = config_list
-        if agent.config.code_execution_config is not False:
-            code_execution_config = agent.config.code_execution_config or {}
-            code_execution_config["work_dir"] = self.work_dir
-            # tbd check if docker is installed
-            code_execution_config["use_docker"] = False
-            agent.config.code_execution_config = code_execution_config
+
+        agent.config.code_execution_config = load_code_execution_config(
+            agent.config.code_execution_config, work_dir=self.work_dir
+        )
 
         if skills:
             skills_prompt = ""

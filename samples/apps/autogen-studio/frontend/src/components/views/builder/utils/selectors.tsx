@@ -339,7 +339,7 @@ export const AgentTypeSelector = ({
             }
           }}
         >
-          <div style={{ minHeight: "35px" }} className="my-2   break-words">
+          <div style={{ minHeight: "35px" }} className="my-2   break-words ">
             {" "}
             <div className="mb-2">{agentType.icon}</div>
             <span className="text-secondary  tex-sm">

@@ -40,7 +40,7 @@ export interface IAgentConfig {
   system_message: string | "";
   is_termination_msg?: boolean | string;
   default_auto_reply?: string | null;
-  code_execution_config?: boolean | string | { [key: string]: any } | null;
+  code_execution_config?: "none" | "local" | "docker";
   description?: string;
 
   admin_name?: string;
