@@ -31,12 +31,21 @@ public class FunctionTool : ToolBase
 [JsonConverter(typeof(JsonPropertyNameEnumConverter<ToolChoiceEnum>))]
 public enum ToolChoiceEnum
 {
+    /// <summary>
+    /// Auto-detect whether to call a function.
+    /// </summary>
     [JsonPropertyName("auto")]
     Auto = 0,
 
+    /// <summary>
+    /// Won't call a function.
+    /// </summary>
     [JsonPropertyName("none")]
     None,
 
+    /// <summary>
+    /// Force to call a function.
+    /// </summary>
     [JsonPropertyName("any")]
     Any,
 }

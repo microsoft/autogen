@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -16,7 +17,90 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
 
     public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return Task.FromResult(StreamingInvoke(context, agent, cancellationToken));
+    }
+
+    private async IAsyncEnumerable<IStreamingMessage> StreamingInvoke(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var messages = context.Messages;
+        var chatMessages = ProcessMessage(messages, agent);
+        var chunks = new List<ChatCompletionResponse>();
+        await foreach (var reply in await agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken))
+        {
+            if (reply is IStreamingMessage<ChatCompletionResponse> chatMessage)
+            {
+                chunks.Add(chatMessage.Content);
+                var response = ProcessChatCompletionResponse(chatMessage, agent);
+                if (response is not null)
+                {
+                    yield return response;
+                }
+            }
+            else
+            {
+                yield return reply;
+            }
+        }
+
+        // if chunks is not empty, then return the aggregate message as the last message
+        // this is to meet the requirement of streaming call api
+        // where the last message should be the same result of non-streaming call api
+        if (chunks.Count == 0)
+        {
+            yield break;
+        }
+
+        var lastResponse = chunks.Last() ?? throw new ArgumentNullException("chunks.Last()");
+        var finalResponse = chunks.First() ?? throw new ArgumentNullException("chunks.First()");
+        if (lastResponse.Choices!.First().FinishReason == Choice.FinishReasonEnum.ToolCalls)
+        {
+            // process as tool call message
+            foreach (var response in chunks)
+            {
+                if (finalResponse.Choices!.First().Message is null)
+                {
+                    finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
+                    if (finalResponse.Choices!.First().Message!.ToolCalls is null)
+                    {
+                        finalResponse.Choices!.First().Message!.ToolCalls = new List<FunctionContent>();
+                    }
+                }
+
+                if (response.Choices!.First().Delta!.ToolCalls is not null)
+                {
+                    finalResponse.Choices!.First().Message!.ToolCalls!.AddRange(response.Choices!.First().Delta!.ToolCalls!);
+                }
+
+                finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
+
+                // the usage information will be included in the last message
+                if (response.Usage is not null)
+                {
+                    finalResponse.Usage = response.Usage;
+                }
+            }
+        }
+        else
+        {
+            // process as plain text message
+            foreach (var response in chunks)
+            {
+                if (finalResponse.Choices!.First().Message is null)
+                {
+                    finalResponse.Choices!.First().Message = response.Choices!.First().Delta;
+                }
+
+                finalResponse.Choices!.First().Message!.Content += response.Choices!.First().Delta!.Content;
+                finalResponse.Choices!.First().FinishReason = response.Choices!.First().FinishReason;
+                // the usage information will be included in the last message
+                if (response.Usage is not null)
+                {
+                    finalResponse.Usage = response.Usage;
+                }
+            }
+        }
+
+        yield return PostProcessMessage(finalResponse, agent);
     }
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
@@ -25,7 +109,14 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         var chatMessages = ProcessMessage(messages, agent);
         var response = await agent.GenerateReplyAsync(chatMessages, context.Options, cancellationToken);
 
-        return PostProcessMessage(response);
+        if (response is IMessage<ChatCompletionResponse> chatMessage)
+        {
+            return PostProcessMessage(chatMessage.Content, agent);
+        }
+        else
+        {
+            return response;
+        }
     }
 
     private IEnumerable<IMessage> ProcessMessage(IEnumerable<IMessage> messages, IAgent agent)
@@ -50,18 +141,8 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         });
     }
 
-    private IMessage PostProcessMessage(IMessage input)
+    private IMessage PostProcessMessage(ChatCompletionResponse response, IAgent from)
     {
-        return input switch
-        {
-            IMessage<ChatCompletionResponse> messageEnvelope => PostProcessMessage(messageEnvelope),
-            _ => input,
-        };
-    }
-
-    private IMessage PostProcessMessage(IMessage<ChatCompletionResponse> message)
-    {
-        var response = message.Content;
         if (response.Choices is null)
         {
             throw new ArgumentNullException("response.Choices");
@@ -77,17 +158,55 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
 
         if (finishReason == Choice.FinishReasonEnum.Stop || finishReason == Choice.FinishReasonEnum.Length)
         {
-            return new TextMessage(Role.Assistant, choice.Message?.Content ?? throw new ArgumentNullException("choice.Message.Content"), from: message.From);
+            return new TextMessage(Role.Assistant, choice.Message?.Content ?? throw new ArgumentNullException("choice.Message.Content"), from: from.Name);
         }
         else if (finishReason == Choice.FinishReasonEnum.ToolCalls)
         {
             var functionContents = choice.Message?.ToolCalls ?? throw new ArgumentNullException("choice.Message.ToolCalls");
             var toolCalls = functionContents.Select(f => new ToolCall(f.Function.Name, f.Function.Arguments)).ToList();
-            return new ToolCallMessage(toolCalls, from: message.From);
+            return new ToolCallMessage(toolCalls, from: from.Name);
         }
         else
         {
             throw new NotSupportedException($"FinishReason {finishReason} is not supported");
+        }
+    }
+
+    private IStreamingMessage? ProcessChatCompletionResponse(IStreamingMessage<ChatCompletionResponse> message, IAgent agent)
+    {
+        var response = message.Content;
+        if (response.VarObject != "chat.completion.chunk")
+        {
+            throw new NotSupportedException($"VarObject {response.VarObject} is not supported");
+        }
+        if (response.Choices is null)
+        {
+            throw new ArgumentNullException("response.Choices");
+        }
+
+        if (response.Choices?.Count != 1)
+        {
+            throw new NotSupportedException("response.Choices.Count != 1");
+        }
+
+        var choice = response.Choices[0];
+        var delta = choice.Delta;
+
+        // process text message if delta.content is not null
+        if (delta?.Content is string content)
+        {
+            return new TextMessageUpdate(role: Role.Assistant, content, from: agent.Name);
+        }
+        else if (delta?.ToolCalls is var toolCalls && toolCalls is { Count: 1 })
+        {
+            var toolCall = toolCalls[0];
+            var functionContent = toolCall.Function;
+
+            return new ToolCallMessageUpdate(functionContent.Name, functionContent.Arguments, from: agent.Name);
+        }
+        else
+        {
+            return null;
         }
     }
 
@@ -99,10 +218,9 @@ public class MistralChatMessageConnector : IStreamingMiddleware, IMiddleware
         {
             messages = [new ChatMessage(ChatMessage.RoleEnum.System, textMessage.Content)];
         }
-
-        // if this message is from agent iteself, then its role should be assistant
-        if (textMessage.From == agent.Name)
+        else if (textMessage.From == agent.Name)
         {
+            // if this message is from agent iteself, then its role should be assistant
             messages = [new ChatMessage(ChatMessage.RoleEnum.Assistant, textMessage.Content)];
         }
         else if (textMessage.From is null)

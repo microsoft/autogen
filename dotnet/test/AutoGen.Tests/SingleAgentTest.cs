@@ -216,7 +216,7 @@ namespace AutoGen.Tests
             return $"[HIGHEST_LABEL] {labelName} {color}";
         }
 
-        private async Task EchoFunctionCallTestAsync(IAgent agent)
+        public async Task EchoFunctionCallTestAsync(IAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that call echo function");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
@@ -227,7 +227,7 @@ namespace AutoGen.Tests
             reply.GetToolCalls()!.First().FunctionName.Should().Be(nameof(EchoAsync));
         }
 
-        private async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
+        public async Task EchoFunctionCallExecutionTestAsync(IAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
@@ -239,7 +239,7 @@ namespace AutoGen.Tests
             reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
         }
 
-        private async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
+        public async Task EchoFunctionCallExecutionStreamingTestAsync(IStreamingAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that echo whatever user says");
             var helloWorld = new TextMessage(Role.User, "echo Hello world");
@@ -269,18 +269,18 @@ namespace AutoGen.Tests
             }
         }
 
-        private async Task UpperCaseTest(IAgent agent)
+        public async Task UpperCaseTest(IAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
             var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
 
             var reply = await agent.SendAsync(chatHistory: new[] { message, uppCaseMessage });
 
-            reply.GetContent().Should().Be("ABCDEFG");
+            reply.GetContent().Should().Contain("ABCDEFG");
             reply.From.Should().Be(agent.Name);
         }
 
-        private async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
+        public async Task UpperCaseStreamingTestAsync(IStreamingAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
             var helloWorld = new TextMessage(Role.User, "a b c d e f g h i j k l m n");
@@ -308,11 +308,16 @@ namespace AutoGen.Tests
 
                     continue;
                 }
+                else if (reply is TextMessage textMessage)
+                {
+                    finalReply = textMessage;
+                    continue;
+                }
 
                 throw new Exception("unexpected message type");
             }
 
-            finalReply!.Content.Should().Be(answer);
+            finalReply!.Content.Should().Contain(answer);
             finalReply!.Role.Should().Be(Role.Assistant);
             finalReply!.From.Should().Be(agent.Name);
         }

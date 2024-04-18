@@ -1,6 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // TwoAgentTest.cs
-
+#pragma warning disable xUnit1013
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -90,5 +90,17 @@ public partial class TwoAgentTest
 
         // the # of messages should be 5
         chatHistory.Length.Should().Be(5);
+    }
+
+    public async Task TwoAgentGetWeatherFunctionCallTestAsync(IAgent user, IAgent assistant)
+    {
+        var question = new TextMessage(Role.Assistant, "what's the weather in Seattle", from: user.Name);
+        var assistantReply = await assistant.SendAsync(question);
+        assistantReply.Should().BeOfType<ToolCallMessage>();
+        var toolCallResult = await user.SendAsync(chatHistory: [question, assistantReply]);
+        toolCallResult.Should().BeOfType<ToolCallResultMessage>();
+        var finalReply = await assistant.SendAsync(chatHistory: [question, assistantReply, toolCallResult]);
+        finalReply.Should().BeOfType<TextMessage>();
+        finalReply.GetContent()!.ToLower().Should().Contain("sunny");
     }
 }

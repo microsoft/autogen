@@ -6,11 +6,19 @@ using AutoGen.Core;
 using AutoGen.Mistral.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit.Abstractions;
 
 namespace AutoGen.Mistral.Tests;
 
 public partial class MistralClientAgentTests
 {
+    private ITestOutputHelper _output;
+
+    public MistralClientAgentTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [Function]
     public async Task<string> GetWeather(string city)
     {
@@ -28,11 +36,9 @@ public partial class MistralClientAgentTests
             name: "MistralClientAgent",
             model: "open-mistral-7b")
             .RegisterMessageConnector();
-
-        var reply = await agent.SendAsync("What's the weather like today?");
-        reply.Should().BeOfType<TextMessage>();
-        reply.GetContent().Should().NotBeNullOrEmpty();
-        reply.From.Should().Be(agent.Name);
+        var singleAgentTest = new SingleAgentTest(_output);
+        await singleAgentTest.UpperCaseTest(agent);
+        await singleAgentTest.UpperCaseStreamingTestAsync(agent);
     }
 
     [ApiKeyFact("MISTRAL_API_KEY")]
@@ -99,8 +105,9 @@ public partial class MistralClientAgentTests
     {
         var apiKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new InvalidOperationException("MISTRAL_API_KEY is not set.");
         var client = new MistralClient(apiKey: apiKey);
+        var twoAgentTest = new TwoAgentTest(_output);
         var functionCallMiddleware = new FunctionCallMiddleware(
-            functions: [this.GetWeatherFunctionContract]);
+            functions: [twoAgentTest.GetWeatherFunctionContract]);
         var functionCallAgent = new MistralClientAgent(
             client: client,
             name: "MistralClientAgent",
@@ -112,7 +119,7 @@ public partial class MistralClientAgentTests
         var functionCallMiddlewareExecutorMiddleware = new FunctionCallMiddleware(
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.GetWeatherFunctionContract.Name!, this.GetWeatherWrapper }
+                { twoAgentTest.GetWeatherFunctionContract.Name!, twoAgentTest.GetWeatherWrapper }
             });
         var executorAgent = new MistralClientAgent(
             client: client,
@@ -121,15 +128,7 @@ public partial class MistralClientAgentTests
             randomSeed: 0)
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddlewareExecutorMiddleware);
-
-        var question = new TextMessage(Role.Assistant, "what's the weather in Seattle?", from: executorAgent.Name);
-        var reply = await functionCallAgent.SendAsync(question);
-        reply.Should().BeOfType<ToolCallMessage>();
-        var toolCallResult = await executorAgent.SendAsync(chatHistory: [question, reply]);
-        toolCallResult.Should().BeOfType<ToolCallResultMessage>();
-        var finalReply = await functionCallAgent.SendAsync(chatHistory: [question, reply, toolCallResult]);
-        finalReply.Should().BeOfType<TextMessage>();
-        finalReply.GetContent().Should().Be("The weather in Seattle is sunny.");
+        await twoAgentTest.TwoAgentGetWeatherFunctionCallTestAsync(executorAgent, functionCallAgent);
     }
 
     [ApiKeyFact("MISTRAL_API_KEY")]
@@ -180,44 +179,59 @@ public partial class MistralClientAgentTests
     {
         var apiKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new InvalidOperationException("MISTRAL_API_KEY is not set.");
         var client = new MistralClient(apiKey: apiKey);
+        var singleAgentTest = new SingleAgentTest(_output);
         var functionCallMiddleware = new FunctionCallMiddleware(
-            functions: [this.GetWeatherFunctionContract],
+            functions: [singleAgentTest.EchoAsyncFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>>
             {
-                { this.GetWeatherFunctionContract.Name!, this.GetWeatherWrapper }
+                { singleAgentTest.EchoAsyncFunctionContract.Name!, singleAgentTest.EchoAsyncWrapper }
             });
         var agent = new MistralClientAgent(
             client: client,
             name: "MistralClientAgent",
             model: "mistral-small-latest",
+            toolChoice: ToolChoiceEnum.Any,
             randomSeed: 0)
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddleware);
-
-        var reply = await agent.SendAsync("what's the weather in Seattle?");
-        reply.Should().BeOfType<AggregateMessage<ToolCallMessage, ToolCallResultMessage>>();
-        reply.GetContent().Should().Be("The weather in Seattle is sunny.");
-        reply.From.Should().Be(agent.Name);
+        await singleAgentTest.EchoFunctionCallExecutionTestAsync(agent);
+        await singleAgentTest.EchoFunctionCallExecutionStreamingTestAsync(agent);
     }
 
     [ApiKeyFact("MISTRAL_API_KEY")]
-    public async Task MistralAgentFunctionCalTestAsync()
+    public async Task MistralAgentFunctionCallTestAsync()
     {
         var apiKey = Environment.GetEnvironmentVariable("MISTRAL_API_KEY") ?? throw new InvalidOperationException("MISTRAL_API_KEY is not set.");
         var client = new MistralClient(apiKey: apiKey);
+        var singleAgentTest = new SingleAgentTest(_output);
         var functionCallMiddleware = new FunctionCallMiddleware(
-            functions: [this.GetWeatherFunctionContract]);
+            functions: [singleAgentTest.EchoAsyncFunctionContract, this.GetWeatherFunctionContract]);
         var agent = new MistralClientAgent(
             client: client,
             name: "MistralClientAgent",
             model: "mistral-small-latest",
+            toolChoice: ToolChoiceEnum.Any,
+            systemMessage: "You are a helpful assistant that can call functions",
             randomSeed: 0)
             .RegisterMessageConnector()
             .RegisterMiddleware(functionCallMiddleware);
+        await singleAgentTest.EchoFunctionCallTestAsync(agent);
 
-        var reply = await agent.SendAsync("what's the weather in Seattle?");
-        reply.Should().BeOfType<ToolCallMessage>();
-        reply.GetToolCalls()!.Count().Should().Be(1);
-        reply.From.Should().Be(agent.Name);
+
+        // streaming test
+        var question = new TextMessage(Role.User, "what's the weather in Seattle?");
+        IMessage? finalReply = null;
+
+        await foreach (var reply in await agent.GenerateStreamingReplyAsync([question]))
+        {
+            reply.From.Should().Be(agent.Name);
+            if (reply is IMessage message)
+            {
+                finalReply = message;
+            }
+        }
+
+        finalReply.Should().NotBeNull();
+        finalReply.Should().BeOfType<ToolCallMessage>();
     }
 }

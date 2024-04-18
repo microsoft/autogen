@@ -94,6 +94,10 @@ public static class StreamingMiddlewareExtension
     {
         var copyAgent = new MiddlewareStreamingAgent<TStreamingAgent>(streamingAgent);
         copyAgent.Use(middleware);
+        if (middleware is IStreamingMiddleware streamingMiddleware)
+        {
+            copyAgent.UseStreaming(streamingMiddleware);
+        }
 
         return copyAgent;
     }

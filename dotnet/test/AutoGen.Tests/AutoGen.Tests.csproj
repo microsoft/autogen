@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(TestTargetFramework)</TargetFramework>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);xUnit1013</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
