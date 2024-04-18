@@ -15,7 +15,7 @@ from conftest import reason, skip_openai  # noqa: E402
 
 @pytest.mark.skipif(skip_openai, reason=reason)
 def test_get_human_input():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(

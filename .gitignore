@@ -183,6 +183,7 @@ test/agentchat/test_agent_scripts/*
 # test cache
 .cache_test
 .db
+local_cache
 
 
 notebook/result.png
