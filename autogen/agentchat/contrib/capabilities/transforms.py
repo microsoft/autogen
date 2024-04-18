@@ -1,5 +1,6 @@
+import copy
 import sys
-from typing import Any, Dict, List, Optional, Protocol, Union
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
@@ -22,6 +23,20 @@ class MessageTransform(Protocol):
 
         Returns:
             A new list of dictionaries containing the transformed messages.
+        """
+        ...
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        """Creates the string including the logs of the transformation
+
+        Alongside the string, it returns a boolean indicating whether the transformation had an effect or not.
+
+        Args:
+            pre_transform_messages: A list of dictionaries representing messages before the transformation.
+            post_transform_messages: A list of dictionaries representig messages after the transformation.
+
+        Returns:
+            A tuple with a string with the logs and a flag indicating whether the transformation had an effect or not.
         """
         ...
 
@@ -60,6 +75,18 @@ class MessageHistoryLimiter:
 
         return messages[-self._max_messages :]
 
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        pre_transform_messages_len = len(pre_transform_messages)
+        post_transform_messages_len = len(post_transform_messages)
+
+        if post_transform_messages_len < pre_transform_messages_len:
+            logs_str = (
+                f"Removed {pre_transform_messages_len - post_transform_messages_len} messages. "
+                f"Number of messages reduced from {pre_transform_messages_len} to {post_transform_messages_len}."
+            )
+            return logs_str, True
+        return "No messages were removed.", False
+
     def _validate_max_messages(self, max_messages: Optional[int]):
         if max_messages is not None and max_messages < 1:
             raise ValueError("max_messages must be None or greater than 1")
@@ -85,7 +112,8 @@ class MessageTokenLimiter:
     2. Individual messages are truncated based on max_tokens_per_message. For multimodal messages containing both text
         and other types of content, only the text content is truncated.
     3. The overall conversation history is truncated based on the max_tokens limit. Once the accumulated token count
-        exceeds this limit, the current message being processed as well as any remaining messages are discarded.
+        exceeds this limit, the current message being processed get truncated to meet the total token count and any
+        remaining messages get discarded.
     4. The truncated conversation history is reconstructed by prepending the messages to a new list to preserve the
         original message order.
     """
@@ -120,59 +148,76 @@ class MessageTokenLimiter:
         assert self._max_tokens_per_message is not None
         assert self._max_tokens is not None
 
-        temp_messages = messages.copy()
+        temp_messages = copy.deepcopy(messages)
         processed_messages = []
         processed_messages_tokens = 0
 
-        # calculate tokens for all messages
-        total_tokens = sum(_count_tokens(msg["content"]) for msg in temp_messages)
-
         for msg in reversed(temp_messages):
-            msg["content"] = self._truncate_str_to_tokens(msg["content"])
-            msg_tokens = _count_tokens(msg["content"])
+            # Some messages may not have content.
+            if not isinstance(msg.get("content"), (str, list)):
+                processed_messages.insert(0, msg)
+                continue
 
-            # If adding this message would exceed the token limit, discard it and all remaining messages
-            if processed_messages_tokens + msg_tokens > self._max_tokens:
+            expected_tokens_remained = self._max_tokens - processed_messages_tokens - self._max_tokens_per_message
+
+            # If adding this message would exceed the token limit, truncate the last message to meet the total token
+            # limit and discard all remaining messages
+            if expected_tokens_remained < 0:
+                msg["content"] = self._truncate_str_to_tokens(
+                    msg["content"], self._max_tokens - processed_messages_tokens
+                )
+                processed_messages.insert(0, msg)
                 break
+
+            msg["content"] = self._truncate_str_to_tokens(msg["content"], self._max_tokens_per_message)
+            msg_tokens = _count_tokens(msg["content"])
 
             # prepend the message to the list to preserve order
             processed_messages_tokens += msg_tokens
             processed_messages.insert(0, msg)
 
-        if total_tokens > processed_messages_tokens:
-            print(
-                colored(
-                    f"Truncated {total_tokens - processed_messages_tokens} tokens. Tokens reduced from {total_tokens} to {processed_messages_tokens}",
-                    "yellow",
-                )
-            )
-
         return processed_messages
 
-    def _truncate_str_to_tokens(self, contents: Union[str, List]) -> Union[str, List]:
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        pre_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in pre_transform_messages if "content" in msg
+        )
+        post_transform_messages_tokens = sum(
+            _count_tokens(msg["content"]) for msg in post_transform_messages if "content" in msg
+        )
+
+        if post_transform_messages_tokens < pre_transform_messages_tokens:
+            logs_str = (
+                f"Truncated {pre_transform_messages_tokens - post_transform_messages_tokens} tokens. "
+                f"Number of tokens reduced from {pre_transform_messages_tokens} to {post_transform_messages_tokens}"
+            )
+            return logs_str, True
+        return "No tokens were truncated.", False
+
+    def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:
         if isinstance(contents, str):
-            return self._truncate_tokens(contents)
+            return self._truncate_tokens(contents, n_tokens)
         elif isinstance(contents, list):
-            return self._truncate_multimodal_text(contents)
+            return self._truncate_multimodal_text(contents, n_tokens)
         else:
             raise ValueError(f"Contents must be a string or a list of dictionaries. Received type: {type(contents)}")
 
-    def _truncate_multimodal_text(self, contents: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _truncate_multimodal_text(self, contents: List[Dict[str, Any]], n_tokens: int) -> List[Dict[str, Any]]:
         """Truncates text content within a list of multimodal elements, preserving the overall structure."""
         tmp_contents = []
         for content in contents:
             if content["type"] == "text":
-                truncated_text = self._truncate_tokens(content["text"])
+                truncated_text = self._truncate_tokens(content["text"], n_tokens)
                 tmp_contents.append({"type": "text", "text": truncated_text})
             else:
                 tmp_contents.append(content)
         return tmp_contents
 
-    def _truncate_tokens(self, text: str) -> str:
+    def _truncate_tokens(self, text: str, n_tokens: int) -> str:
         encoding = tiktoken.encoding_for_model(self._model)  # Get the appropriate tokenizer
 
         encoded_tokens = encoding.encode(text)
-        truncated_tokens = encoded_tokens[: self._max_tokens_per_message]
+        truncated_tokens = encoded_tokens[:n_tokens]
         truncated_text = encoding.decode(truncated_tokens)  # Decode back to text
 
         return truncated_text

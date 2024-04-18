@@ -17,6 +17,7 @@ from autogen.exception_utils import InvalidCarryOverType, SenderRequired
 from .._pydantic import model_dump
 from ..cache.cache import AbstractCache
 from ..code_utils import (
+    PYTHON_VARIANTS,
     UNKNOWN,
     check_can_use_docker_or_throw,
     content_str,
@@ -1120,7 +1121,15 @@ class ConversableAgent(LLMAgent):
     def _last_msg_as_summary(sender, recipient, summary_args) -> str:
         """Get a chat summary from the last message of the recipient."""
         try:
-            summary = recipient.last_message(sender)["content"].replace("TERMINATE", "")
+            content = recipient.last_message(sender)["content"]
+            if isinstance(content, str):
+                summary = content.replace("TERMINATE", "")
+            elif isinstance(content, list):
+                # Remove the `TERMINATE` word in the content list.
+                summary = [
+                    {**x, "text": x["text"].replace("TERMINATE", "")} if isinstance(x, dict) and "text" in x else x
+                    for x in content
+                ]
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
             summary = ""
@@ -1171,6 +1180,23 @@ class ConversableAgent(LLMAgent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
+    def _check_chat_queue_for_sender(self, chat_queue: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Check the chat queue and add the "sender" key if it's missing.
+
+        Args:
+            chat_queue (List[Dict[str, Any]]): A list of dictionaries containing chat information.
+
+        Returns:
+            List[Dict[str, Any]]: A new list of dictionaries with the "sender" key added if it was missing.
+        """
+        chat_queue_with_sender = []
+        for chat_info in chat_queue:
+            if chat_info.get("sender") is None:
+                chat_info["sender"] = self
+            chat_queue_with_sender.append(chat_info)
+        return chat_queue_with_sender
+
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
 
@@ -1180,16 +1206,13 @@ class ConversableAgent(LLMAgent):
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
-        _chat_queue = chat_queue.copy()
-        for chat_info in _chat_queue:
-            chat_info["sender"] = self
+        _chat_queue = self._check_chat_queue_for_sender(chat_queue)
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
     async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
-        _chat_queue = chat_queue.copy()
-        for chat_info in _chat_queue:
-            chat_info["sender"] = self
+
+        _chat_queue = self._check_chat_queue_for_sender(chat_queue)
         self._finished_chats = await a_initiate_chats(_chat_queue)
         return self._finished_chats
 
@@ -2079,7 +2102,7 @@ class ConversableAgent(LLMAgent):
             )
             if lang in ["bash", "shell", "sh"]:
                 exitcode, logs, image = self.run_code(code, lang=lang, **self._code_execution_config)
-            elif lang in ["python", "Python"]:
+            elif lang in PYTHON_VARIANTS:
                 if code.startswith("# filename: "):
                     filename = code[11 : code.find("\n")].strip()
                 else:

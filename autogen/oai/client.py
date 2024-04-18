@@ -43,6 +43,13 @@ else:
         TOOL_ENABLED = True
     ERROR = None
 
+try:
+    from autogen.oai.gemini import GeminiClient
+
+    gemini_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    gemini_import_exception = e
+
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     # Add the console handler.
@@ -438,6 +445,10 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("google"):
+                if gemini_import_exception:
+                    raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
+                self._clients.append(GeminiClient(**openai_config))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
