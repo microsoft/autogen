@@ -14,7 +14,7 @@ Example:
                     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"}
                     ],
             "top_p":0.5,
-            "max_tokens": 2048, 
+            "max_tokens": 2048,
             "temperature": 1.0,
             "top_k": 5
             }
@@ -56,15 +56,16 @@ class GeminiClient:
     Please visit this [page](https://github.com/microsoft/autogen/issues/2387) for the roadmap of Gemini integration
     of AutoGen.
     """
+
     # Mapping, where Key is a term used by Autogen, and Value is a term used by Gemini
     PARAMS_MAPPING = {
-        "max_tokens": "max_output_tokens", 
+        "max_tokens": "max_output_tokens",
         # "n": "candidate_count", # Gemini supports only `n=1`
         "stop_sequences": "stop_sequences",
         "temperature": "temperature",
         "top_p": "top_p",
         "top_k": "top_k",
-        "max_output_tokens": "max_output_tokens"
+        "max_output_tokens": "max_output_tokens",
     }
 
     def __init__(self, **kwargs):
@@ -75,7 +76,6 @@ class GeminiClient:
         assert (
             self.api_key
         ), "Please provide api_key in your config list entry for Gemini or set the GOOGLE_API_KEY env variable."
-
 
     def message_retrieval(self, response) -> List:
         """
@@ -136,7 +136,9 @@ class GeminiClient:
             gemini_messages = oai_messages_to_gemini_messages(messages)
 
             # we use chat model by default
-            model = genai.GenerativeModel(model_name, generation_config=generation_config, safety_settings=safety_settings)
+            model = genai.GenerativeModel(
+                model_name, generation_config=generation_config, safety_settings=safety_settings
+            )
             genai.configure(api_key=self.api_key)
             chat = model.start_chat(history=gemini_messages[:-1])
             max_retries = 5
@@ -166,7 +168,9 @@ class GeminiClient:
         elif model_name == "gemini-pro-vision":
             # B. handle the vision model
             # Gemini's vision model does not support chat history yet
-            model = genai.GenerativeModel(model_name, generation_config=generation_config, safety_settings=safety_settings)
+            model = genai.GenerativeModel(
+                model_name, generation_config=generation_config, safety_settings=safety_settings
+            )
             genai.configure(api_key=self.api_key)
             # chat = model.start_chat(history=gemini_messages[:-1])
             # response = chat.send_message(gemini_messages[-1])
