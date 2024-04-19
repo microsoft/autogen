@@ -2,7 +2,7 @@ import glob
 import hashlib
 import os
 import re
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple, Union, Optional
 from urllib.parse import urlparse
 
 import chromadb
@@ -195,7 +195,7 @@ def split_files_to_chunks(
     return chunks, sources
 
 
-def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
+def get_files_from_dir(dir_path: Union[str, List[str]], types: Optional[list] = TEXT_FORMATS, recursive: Optional[bool] = True):
     """Return a list of all the files in a given directory, a url, a file path or a list of them."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
@@ -245,7 +245,7 @@ def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMA
     return files
 
 
-def parse_html_to_markdown(html: str, url: str = None) -> str:
+def parse_html_to_markdown(html: str, url: Optional[str] = None) -> str:
     """Parse HTML to markdown."""
     soup = BeautifulSoup(html, "html.parser")
     title = soup.title.string
@@ -278,14 +278,14 @@ def parse_html_to_markdown(html: str, url: str = None) -> str:
 
 def _generate_file_name_from_url(url: str, max_length=255) -> str:
     url_bytes = url.encode("utf-8")
-    hash = hashlib.blake2b(url_bytes).hexdigest()
+    url_hash = hashlib.blake2b(url_bytes).hexdigest()
     parsed_url = urlparse(url)
     file_name = os.path.basename(url)
-    file_name = f"{parsed_url.netloc}_{file_name}_{hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
+    file_name = f"{parsed_url.netloc}_{file_name}_{url_hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
     return file_name
 
 
-def get_file_from_url(url: str, save_path: str = None) -> Tuple[str, str]:
+def get_file_from_url(url: str, save_path: str = None) -> Union[Tuple[str, str], None]:
     """Download a file from a URL."""
     if save_path is None:
         save_path = "tmp/chromadb"
@@ -333,19 +333,19 @@ def is_url(string: str):
 
 def create_vector_db_from_dir(
     dir_path: Union[str, List[str]],
-    max_tokens: int = 4000,
-    client: API = None,
-    db_path: str = "tmp/chromadb.db",
-    collection_name: str = "all-my-documents",
-    get_or_create: bool = False,
-    chunk_mode: str = "multi_lines",
-    must_break_at_empty_line: bool = True,
-    embedding_model: str = "all-MiniLM-L6-v2",
-    embedding_function: Callable = None,
-    custom_text_split_function: Callable = None,
-    custom_text_types: List[str] = TEXT_FORMATS,
-    recursive: bool = True,
-    extra_docs: bool = False,
+    max_tokens: Optional[int] = 4000,
+    client: Optional[API] = None,
+    db_path: Optional[str] = "tmp/chromadb.db",
+    collection_name: Optional[str] = "all-my-documents",
+    get_or_create: Optional[bool] = False,
+    chunk_mode: Optional[str] = "multi_lines",
+    must_break_at_empty_line: Optional[bool] = True,
+    embedding_model: Optional[str] = "all-MiniLM-L6-v2",
+    embedding_function: Optional[Callable] = None,
+    custom_text_split_function: Optional[Callable] = None,
+    custom_text_types: Optional[List[str]] = TEXT_FORMATS,
+    recursive: Optional[bool] = True,
+    extra_docs: Optional[bool] = False,
 ) -> API:
     """Create a vector db from all the files in a given directory, the directory can also be a single file or a url to
         a single file. We support chromadb compatible APIs to create the vector db, this function is not required if
@@ -426,13 +426,13 @@ def create_vector_db_from_dir(
 
 def query_vector_db(
     query_texts: List[str],
-    n_results: int = 10,
-    client: API = None,
-    db_path: str = "tmp/chromadb.db",
-    collection_name: str = "all-my-documents",
-    search_string: str = "",
-    embedding_model: str = "all-MiniLM-L6-v2",
-    embedding_function: Callable = None,
+    n_results: Optional[int] = 10,
+    client: Optional[API] = None,
+    db_path: Optional[str] = "tmp/chromadb.db",
+    collection_name: Optional[str] = "all-my-documents",
+    search_string: Optional[str] = "",
+    embedding_model: Optional[str] = "all-MiniLM-L6-v2",
+    embedding_function: Optional[Callable] = None,
 ) -> QueryResult:
     """Query a vector db. We support chromadb compatible APIs, it's not required if you prepared your own vector db
         and query function.

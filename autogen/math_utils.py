@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union, Dict, Tuple
 
 from autogen import DEFAULT_MODEL, oai
 
@@ -9,7 +9,7 @@ _MATH_CONFIG = {
 }
 
 
-def solve_problem(problem: str, **config) -> str:
+def solve_problem(problem: str, **config) -> Tuple[Optional[str], int]:
     """(openai<1) Solve the math problem.
 
     Args:
@@ -25,7 +25,7 @@ def solve_problem(problem: str, **config) -> str:
     return results.get("voted_answer"), response["cost"]
 
 
-def remove_boxed(string: str) -> Optional[str]:
+def remove_boxed(string: str) -> Union[str, None]:
     """Source: https://github.com/hendrycks/math
     Extract the text within a \\boxed{...} environment.
     Example:
@@ -36,7 +36,7 @@ def remove_boxed(string: str) -> Optional[str]:
     """
     left = "\\boxed{"
     try:
-        if not all((string[: len(left)] == left, string[-1] == "}")):
+        if not ((string.startswith(left) and string[-1] == "}")):
             raise AssertionError
 
         return string[len(left) : -1]
@@ -44,7 +44,7 @@ def remove_boxed(string: str) -> Optional[str]:
         return None
 
 
-def last_boxed_only_string(string: str) -> Optional[str]:
+def last_boxed_only_string(string: str) -> Union[str, None]:
     """Source: https://github.com/hendrycks/math
     Extract the last \\boxed{...} or \\fbox{...} element from a string.
     """
@@ -96,7 +96,7 @@ def _fix_fracs(string: str) -> str:
                 new_str += substr
             else:
                 try:
-                    if not len(substr) >= 2:
+                    if len(substr) < 2:
                         raise AssertionError
                 except Exception:
                     return string
@@ -132,7 +132,7 @@ def _fix_a_slash_b(string: str) -> str:
     try:
         a = int(a_str)
         b = int(b_str)
-        if not string == "{}/{}".format(a, b):
+        if string != "{}/{}".format(a, b):
             raise AssertionError
         new_string = "\\frac{" + str(a) + "}{" + str(b) + "}"
         return new_string
@@ -147,7 +147,7 @@ def _remove_right_units(string: str) -> str:
     """
     if "\\text{ " in string:
         splits = string.split("\\text{ ")
-        if not len(splits) == 2:
+        if len(splits) != 2:
             raise AssertionError
         return splits[0]
     else:
@@ -161,16 +161,17 @@ def _fix_sqrt(string: str) -> str:
     >>> _fix_sqrt("\\sqrt3")
     \\sqrt{3}
     """
-    if "\\sqrt" not in string:
+    SQRT_LITERAL = "\\sqrt"  # Define a constant for the repeated literal
+    if SQRT_LITERAL not in string:
         return string
-    splits = string.split("\\sqrt")
+    splits = string.split(SQRT_LITERAL)
     new_string = splits[0]
     for split in splits[1:]:
         if split[0] != "{":
             a = split[0]
-            new_substr = "\\sqrt{" + a + "}" + split[1:]
+            new_substr = SQRT_LITERAL + "{" + a + "}" + split[1:]
         else:
-            new_substr = "\\sqrt" + split
+            new_substr = SQRT_LITERAL + split
         new_string += new_substr
     return new_string
 
@@ -310,7 +311,7 @@ def voting_counts(responses):
     return answers
 
 
-def eval_math_responses(responses, solution=None, **args):
+def eval_math_responses(responses, solution=None, **args) -> Dict:
     """Select a response for a math problem using voting, and check if the response is correct if the solution is provided.
 
     Args:

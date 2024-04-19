@@ -31,8 +31,7 @@ def start(logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None) 
         is_logging = True
     except Exception as e:
         logger.error(f"[runtime logging] Failed to start logging: {e}")
-    finally:
-        return session_id
+    return session_id
 
 
 def log_chat_completion(
