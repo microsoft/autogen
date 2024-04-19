@@ -1,13 +1,15 @@
 import logging
-from typing import TypedDict, Optional, Union
+from typing import Optional, TypedDict, Union
 
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
+
 
 class CosmosDBConfig(TypedDict):
     connection_string: str
     database_id: str
     container_id: str
+
 
 class CacheFactory:
     @staticmethod
@@ -15,7 +17,7 @@ class CacheFactory:
         seed: Union[str, int],
         redis_url: Optional[str] = None,
         cache_path_root: str = ".cache",
-        cosmosdb_config: Optional[CosmosDBConfig] = None
+        cosmosdb_config: Optional[CosmosDBConfig] = None,
     ) -> AbstractCache:
         """
         Factory function for creating cache instances.
@@ -68,7 +70,9 @@ class CacheFactory:
                     "RedisCache is not available. Checking other cache options. The last fallback is DiskCache."
                 )
 
-        if cosmosdb_config and all(key in cosmosdb_config for key in ['connection_string', 'database_id', 'container_id']):
+        if cosmosdb_config and all(
+            key in cosmosdb_config for key in ["connection_string", "database_id", "container_id"]
+        ):
             try:
                 from .cosmos_db_cache import CosmosDBCache
 
