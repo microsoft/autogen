@@ -33,7 +33,6 @@ computer_terminal = autogen.UserProxyAgent(
     max_consecutive_auto_reply=15,
 )
 
-
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
     llm_config=config.llm_config,
@@ -45,20 +44,6 @@ web_surfer = MultimodalWebSurferAgent(
     start_page="https://bing.com",
     debug_dir=os.path.join(os.path.dirname(__file__), "debug"),
 )
-
-
-mm_user_proxy = MultimodalAgent(
-    "mm_user_proxy",
-    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
-
-Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
-    description="A multimodal agent that can handle many questions but does not have access to a web browser. It can see the screen of the user it is talking to and can provide short direct instructions to the user to take them where they need to go to answer the initial question posed to them. Once the user has taken the final necessary action to complete the task, and the initial request has been fully addressed, the agent replies with the word TERMINATE.",
-    llm_config=config.llm_config,
-    human_input_mode="NEVER",
-    is_termination_msg=lambda x: False,
-    max_consecutive_auto_reply=20,
-)
-
 
 maestro = Orchestrator(
     "orchestrator",
