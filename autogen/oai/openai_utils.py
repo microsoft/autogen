@@ -1,3 +1,4 @@
+import importlib.metadata
 import json
 import logging
 import os
@@ -6,12 +7,11 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
-from packaging.version import parse
-import importlib.metadata
 
 from dotenv import find_dotenv, load_dotenv
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
+from packaging.version import parse
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
@@ -680,7 +680,7 @@ def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
     return candidate_assistants
 
 
-def detect_gpt_assistant_api_version():
+def detect_gpt_assistant_api_version() -> str:
     """Detect the openai assistant API version"""
     oai_version = importlib.metadata.version("openai")
     if parse(oai_version) < parse("1.21"):
@@ -689,17 +689,19 @@ def detect_gpt_assistant_api_version():
         return "v2"
 
 
-def create_gpt_vector_store(client: OpenAI, name: str, fild_ids):
+def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
     """Create a openai vector store for gpt assistant"""
 
-    vector_store = client.beta.vector_stores.create(name=name)
+    vector_store = client.beta.vector_stores.create(name=name)  # type: ignore
     # poll the status of the file batch for completion.
-    batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
+    batch = client.beta.vector_stores.file_batches.create_and_poll(  # type: ignore
+        vector_store_id=vector_store.id, file_ids=fild_ids
+    )
 
     if batch.status == "in_progress":
         time.sleep(1)
         logging.debug(f"file batch status: {batch.File_counts}")
-        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)
+        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)  # type: ignore
 
     if batch.status == "completed":
         return vector_store
@@ -707,14 +709,12 @@ def create_gpt_vector_store(client: OpenAI, name: str, fild_ids):
     raise ValueError(f"Failed to upload files to vector store {vector_store.id}:{batch.status}")
 
 
-def create_gpt_assistant(client: OpenAI, name: str, instructions: str, model: str, assistant_config: Dict[str, Any]):
+def create_gpt_assistant(
+    client: OpenAI, name: str, instructions: str, model: str, assistant_config: Dict[str, Any]
+) -> Assistant:
     """Create a openai gpt assistant"""
 
-    assistant_create_kwargs = {
-        "name": name,
-        "instructions": instructions,
-        "model": model,
-    }
+    assistant_create_kwargs = {}
     gpt_assistant_api_version = detect_gpt_assistant_api_version()
     tools = assistant_config.get("tools", [])
 
@@ -757,16 +757,14 @@ def create_gpt_assistant(client: OpenAI, name: str, instructions: str, model: st
         assistant_create_kwargs["file_ids"] = assistant_config.get("file_ids", [])
 
     logging.info(f"Creating assistant with config: {assistant_create_kwargs}")
-    return client.beta.assistants.create(**assistant_create_kwargs)
+    return client.beta.assistants.create(name=name, instructions=instructions, model=model, **assistant_create_kwargs)
 
 
-def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Dict[str, Any]):
+def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Dict[str, Any]) -> Assistant:
     """Update openai gpt assistant"""
 
     gpt_assistant_api_version = detect_gpt_assistant_api_version()
-    assistant_update_kwargs = {
-        "assistant_id": assistant_id,
-    }
+    assistant_update_kwargs = {}
 
     if assistant_config.get("tools") is not None:
         assistant_update_kwargs["tools"] = assistant_config["tools"]
@@ -781,4 +779,4 @@ def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Di
         if assistant_config.get("file_ids") is not None:
             assistant_update_kwargs["file_ids"] = assistant_config["file_ids"]
 
-    return client.beta.assistants.update(**assistant_update_kwargs)
+    return client.beta.assistants.update(assistant_id=assistant_id, **assistant_update_kwargs)

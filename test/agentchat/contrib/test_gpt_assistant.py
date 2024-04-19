@@ -11,8 +11,7 @@ import pytest
 import autogen
 from autogen import OpenAIWrapper, UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-from autogen.oai.openai_utils import detect_gpt_assistant_api_version
-from autogen.oai.openai_utils import retrieve_assistants_by_name
+from autogen.oai.openai_utils import detect_gpt_assistant_api_version, retrieve_assistants_by_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import reason, skip_openai  # noqa: E402
@@ -420,7 +419,6 @@ def test_assistant_mismatch_retrieval() -> None:
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
         assistant_first, assistant_instructions_mistaching = None, None
-        assistant_file_ids_mismatch, assistant_tools_mistaching = None, None
         try:
             assistant_first = GPTAssistantAgent(
                 name,

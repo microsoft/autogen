@@ -10,7 +10,7 @@ import openai
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
-from autogen.oai.openai_utils import retrieve_assistants_by_name, create_gpt_assistant, update_gpt_assistant
+from autogen.oai.openai_utils import create_gpt_assistant, retrieve_assistants_by_name, update_gpt_assistant
 
 logger = logging.getLogger(__name__)
 
