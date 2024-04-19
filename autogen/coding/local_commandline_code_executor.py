@@ -28,7 +28,18 @@ A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-    SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
+    SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
+        "bash",
+        "shell",
+        "sh",
+        "pwsh",
+        "powershell",
+        "ps1",
+        "python",
+        "javascript",
+        "html",
+        "css",
+    ]
     FUNCTION_PROMPT_TEMPLATE: ClassVar[
         str
     ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
@@ -43,6 +54,7 @@ $functions"""
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
         functions_module: str = "functions",
+        save_code_only: bool = False,
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -55,10 +67,15 @@ $functions"""
         The code blocks are executed in the order they are received.
         Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
         commands from being executed which may potentially affect the users environment.
-        Currently the only supported languages is Python and shell scripts.
+        Currently the supported languages are Python, shell scripts, HTML, CSS and Javascript.
         For Python code, use the language "python" for the code block.
         For shell scripts, use the language "bash", "shell", or "sh" for the code
         block.
+        For HTML use the language "html".
+        For CSS use the language "css".
+        For JavaScript use the language "javascript".
+        Only Python and shell scripts are executed by default, other languages
+        are saved to file but not executed.
 
         Args:
             timeout (int): The timeout for code execution. Default is 60.
@@ -66,6 +83,7 @@ $functions"""
                 a default working directory will be used. The default working
                 directory is the current directory ".".
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+            save_code_only (bool): If True, each code block will be saved to a file but not executed. Default is False.
         """
 
         if timeout < 1:
@@ -90,6 +108,8 @@ $functions"""
             self._setup_functions_complete = False
         else:
             self._setup_functions_complete = True
+
+        self._save_code_only = save_code_only
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
@@ -245,7 +265,22 @@ $functions"""
                 f.write(code)
             file_names.append(written_file)
 
-            program = sys.executable if lang.startswith("python") else _cmd(lang)
+            # Check if the code will be executed.
+            program = None
+            if lang.startswith("python"):
+                program = sys.executable
+            else:
+                try:
+                    program = _cmd(lang)
+                except NotImplementedError:
+                    pass
+
+            if program is None or self._save_code_only:
+                # Just return a message that the file is saved.
+                logs_all += f"Code saved to {str(written_file)}\n"
+                exitcode = 0
+                continue
+
             cmd = [program, str(written_file.absolute())]
 
             try:
