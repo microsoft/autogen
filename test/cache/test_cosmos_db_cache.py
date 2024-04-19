@@ -23,7 +23,6 @@ class TestCosmosDBCache(unittest.TestCase):
         self.container_client_mock = MagicMock()
         self.client.get_database_client().get_container_client.return_value = self.container_client_mock
 
-
     @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     @patch("autogen.cache.cosmos_db_cache.CosmosClient.from_connection_string", return_value=MagicMock())
     def test_init(self, mock_cosmos_from_connection_string):
