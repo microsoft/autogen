@@ -2,7 +2,7 @@ import glob
 import hashlib
 import os
 import re
-from typing import Callable, List, Tuple, Union, Optional
+from typing import Callable, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
 import chromadb
@@ -195,7 +195,9 @@ def split_files_to_chunks(
     return chunks, sources
 
 
-def get_files_from_dir(dir_path: Union[str, List[str]], types: Optional[list] = TEXT_FORMATS, recursive: Optional[bool] = True):
+def get_files_from_dir(
+    dir_path: Union[str, List[str]], types: Optional[list] = TEXT_FORMATS, recursive: Optional[bool] = True
+):
     """Return a list of all the files in a given directory, a url, a file path or a list of them."""
     if len(types) == 0:
         raise ValueError("types cannot be empty.")
@@ -281,7 +283,9 @@ def _generate_file_name_from_url(url: str, max_length=255) -> str:
     url_hash = hashlib.blake2b(url_bytes).hexdigest()
     parsed_url = urlparse(url)
     file_name = os.path.basename(url)
-    file_name = f"{parsed_url.netloc}_{file_name}_{url_hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
+    file_name = (
+        f"{parsed_url.netloc}_{file_name}_{url_hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
+    )
     return file_name
 
 

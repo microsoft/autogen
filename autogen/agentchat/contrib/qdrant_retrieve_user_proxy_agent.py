@@ -103,7 +103,7 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
         self._hnsw_config = self._retrieve_config.get("hnsw_config", None)
         self._payload_indexing = self._retrieve_config.get("payload_indexing", False)
 
-    def retrieve_docs(self, problem: str, n_results: int = 20, search_string: str = ""):
+    def retrieve_docs(self, problem: str, n_results: Optional[int] = 20, search_string: Optional[str] = ""):
         """
         Args:
             problem (str): the problem to be solved.
@@ -150,21 +150,21 @@ class QdrantRetrieveUserProxyAgent(RetrieveUserProxyAgent):
 
 def create_qdrant_from_dir(
     dir_path: str,
-    max_tokens: int = 4000,
-    client: QdrantClient = None,
-    collection_name: str = "all-my-documents",
-    chunk_mode: str = "multi_lines",
-    must_break_at_empty_line: bool = True,
-    embedding_model: str = "BAAI/bge-small-en-v1.5",
-    custom_text_split_function: Callable = None,
-    custom_text_types: List[str] = TEXT_FORMATS,
-    recursive: bool = True,
-    extra_docs: bool = False,
-    parallel: int = 0,
-    on_disk: bool = False,
+    max_tokens: Optional[int] = 4000,
+    client: Optional[QdrantClient] = None,
+    collection_name: Optional[str] = "all-my-documents",
+    chunk_mode: Optional[str] = "multi_lines",
+    must_break_at_empty_line: Optional[bool] = True,
+    embedding_model: Optional[str] = "BAAI/bge-small-en-v1.5",
+    custom_text_split_function: Optional[Callable] = None,
+    custom_text_types: Optional[List[str]] = TEXT_FORMATS,
+    recursive: Optional[bool] = True,
+    extra_docs: Optional[bool] = False,
+    parallel: Optional[int] = 0,
+    on_disk: Optional[bool] = False,
     quantization_config: Optional[models.QuantizationConfig] = None,
     hnsw_config: Optional[models.HnswConfigDiff] = None,
-    payload_indexing: bool = False,
+    payload_indexing: Optional[bool] = False,
     qdrant_client_options: Optional[Dict] = {},
 ):
     """Create a Qdrant collection from all the files in a given directory, the directory can also be a single file or a
@@ -255,11 +255,11 @@ def create_qdrant_from_dir(
 
 def query_qdrant(
     query_texts: List[str],
-    n_results: int = 10,
-    client: QdrantClient = None,
-    collection_name: str = "all-my-documents",
-    search_string: str = "",
-    embedding_model: str = "BAAI/bge-small-en-v1.5",
+    n_results: Optional[int] = 10,
+    client: Optional[QdrantClient] = None,
+    collection_name: Optional[str] = "all-my-documents",
+    search_string: Optional[str] = "",
+    embedding_model: Optional[str] = "BAAI/bge-small-en-v1.5",
     qdrant_client_options: Optional[Dict] = {},
 ) -> List[List[QueryResponse]]:
     """Perform a similarity search with filters on a Qdrant collection
@@ -304,10 +304,18 @@ def query_qdrant(
         ),
     )
 
-    data = {
-        "ids": [[result.id for result in sublist] for sublist in results],
-        "documents": [[result.document for result in sublist] for sublist in results],
-        "distances": [[result.score for result in sublist] for sublist in results],
-        "metadatas": [[result.metadata for result in sublist] for sublist in results],
-    }
+    data = [
+        [
+            QueryResponse(
+                id=result.id,
+                embedding=result.embedding,
+                metadata=result.metadata,
+                document=result.document,
+                score=result.score,
+            )
+            for result in sublist
+        ]
+        for sublist in results
+    ]
+
     return data
