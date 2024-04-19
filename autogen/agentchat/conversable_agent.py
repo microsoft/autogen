@@ -1120,19 +1120,18 @@ class ConversableAgent(LLMAgent):
     @staticmethod
     def _last_msg_as_summary(sender, recipient, summary_args) -> str:
         """Get a chat summary from the last message of the recipient."""
+        summary = ""
         try:
             content = recipient.last_message(sender)["content"]
             if isinstance(content, str):
                 summary = content.replace("TERMINATE", "")
             elif isinstance(content, list):
                 # Remove the `TERMINATE` word in the content list.
-                summary = [
-                    {**x, "text": x["text"].replace("TERMINATE", "")} if isinstance(x, dict) and "text" in x else x
-                    for x in content
-                ]
+                summary = "\n".join(
+                    x["text"].replace("TERMINATE", "") for x in content if isinstance(x, dict) and "text" in x
+                )
         except (IndexError, AttributeError) as e:
             warnings.warn(f"Cannot extract summary using last_msg: {e}. Using an empty str as summary.", UserWarning)
-            summary = ""
         return summary
 
     @staticmethod
@@ -1180,6 +1179,23 @@ class ConversableAgent(LLMAgent):
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
         return response
 
+    def _check_chat_queue_for_sender(self, chat_queue: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Check the chat queue and add the "sender" key if it's missing.
+
+        Args:
+            chat_queue (List[Dict[str, Any]]): A list of dictionaries containing chat information.
+
+        Returns:
+            List[Dict[str, Any]]: A new list of dictionaries with the "sender" key added if it was missing.
+        """
+        chat_queue_with_sender = []
+        for chat_info in chat_queue:
+            if chat_info.get("sender") is None:
+                chat_info["sender"] = self
+            chat_queue_with_sender.append(chat_info)
+        return chat_queue_with_sender
+
     def initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
         """(Experimental) Initiate chats with multiple agents.
 
@@ -1189,16 +1205,13 @@ class ConversableAgent(LLMAgent):
 
         Returns: a list of ChatResult objects corresponding to the finished chats in the chat_queue.
         """
-        _chat_queue = chat_queue.copy()
-        for chat_info in _chat_queue:
-            chat_info["sender"] = self
+        _chat_queue = self._check_chat_queue_for_sender(chat_queue)
         self._finished_chats = initiate_chats(_chat_queue)
         return self._finished_chats
 
     async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
-        _chat_queue = chat_queue.copy()
-        for chat_info in _chat_queue:
-            chat_info["sender"] = self
+
+        _chat_queue = self._check_chat_queue_for_sender(chat_queue)
         self._finished_chats = await a_initiate_chats(_chat_queue)
         return self._finished_chats
 
@@ -1311,7 +1324,7 @@ class ConversableAgent(LLMAgent):
         extracted_response = llm_client.extract_text_or_completion_object(response)[0]
 
         if extracted_response is None:
-            warnings.warn("Extracted_response from {response} is None.", UserWarning)
+            warnings.warn(f"Extracted_response from {response} is None.", UserWarning)
             return None
         # ensure function and tool calls will be accepted when sent back to the LLM
         if not isinstance(extracted_response, str) and hasattr(extracted_response, "model_dump"):

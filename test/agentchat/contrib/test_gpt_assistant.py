@@ -28,6 +28,7 @@ if not skip_openai:
         filter_dict={
             "api_type": ["openai"],
             "model": [
+                "gpt-4-turbo",
                 "gpt-4-turbo-preview",
                 "gpt-4-0125-preview",
                 "gpt-4-1106-preview",
@@ -640,10 +641,10 @@ def test_gpt_reflection_with_llm() -> None:
 
 
 if __name__ == "__main__":
-    test_gpt_assistant_chat()
-    test_get_assistant_instructions()
-    test_gpt_assistant_instructions_overwrite()
-    test_gpt_assistant_existing_no_instructions()
+    # test_gpt_assistant_chat()
+    # test_get_assistant_instructions()
+    # test_gpt_assistant_instructions_overwrite()
+    # test_gpt_assistant_existing_no_instructions()
     test_get_assistant_files()
-    test_assistant_mismatch_retrieval()
-    test_gpt_assistant_tools_overwrite()
+    # test_assistant_mismatch_retrieval()
+    # test_gpt_assistant_tools_overwrite()
