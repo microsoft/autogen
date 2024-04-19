@@ -34,7 +34,9 @@ OAI_CLIENTS_QUERY = "SELECT id, client_id, wrapper_id, session_id, class, init_a
 
 OAI_WRAPPERS_QUERY = "SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers"
 
-EVENTS_QUERY = "SELECT source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp FROM events"
+EVENTS_QUERY = (
+    "SELECT source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp FROM events"
+)
 
 if not skip_openai:
     config_list = autogen.config_list_from_json(
