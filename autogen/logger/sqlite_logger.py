@@ -266,8 +266,7 @@ class SqliteLogger(BaseLogger):
         if self.con is None:
             return
 
-        default_serialize = lambda o: f"<<non-serializable: {type(o).__qualname__}>>"
-        json_args = json.dumps(kwargs, default=default_serialize)
+        json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
 
         if isinstance(source, Agent):
             query = """
