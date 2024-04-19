@@ -156,7 +156,7 @@ class MessageTokenLimiter:
         assert self._min_tokens is not None
 
         # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
-        if not self._check_tokens_threshold(messages):
+        if not self._are_min_tokens_reached(messages):
             return messages
 
         temp_messages = copy.deepcopy(messages)
@@ -205,7 +205,7 @@ class MessageTokenLimiter:
             return logs_str, True
         return "No tokens were truncated.", False
 
-    def _check_tokens_threshold(self, messages: List[Dict]) -> bool:
+    def _are_min_tokens_reached(self, messages: List[Dict]) -> bool:
         """
         Returns True if no minimum tokens restrictions are applied.
 
@@ -272,9 +272,9 @@ class MessageTokenLimiter:
         if min_tokens is None:
             return 0
         if min_tokens < 0:
-            raise ValueError("min_tokens must be None or greater than or equal to 0")
-        if max_tokens is not None and min_tokens >= max_tokens:
-            raise ValueError("min_tokens must be less than max_tokens")
+            raise ValueError("min_tokens must be None or greater than or equal to 0.")
+        if max_tokens is not None and min_tokens > max_tokens:
+            raise ValueError("min_tokens must not be more than max_tokens.")
         return min_tokens
 
 
