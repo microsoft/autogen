@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, AsyncGenerator, Callable, List, Optional, Union
 
 from typing_extensions import NotRequired, Required, TypedDict
@@ -56,9 +57,12 @@ class AssistantAgent(AgentStream):
         if description is not None:
             self._description = description
         elif system_message is not None:
+            # If no description is provided, use the system message as the description
             self._description = system_message
         else:
-            """"""
+            # raise a warning if no description is set
+            warnings.warn(f"Description of {self.__class__.__name__} is not set.")
+
         self._functions = [_into_function_definition(func) for func in functions]
         self._cache = cache
         self._model_client = model_client
