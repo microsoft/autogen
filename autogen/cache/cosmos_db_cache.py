@@ -2,7 +2,7 @@
 # pip install azure-cosmos
 
 import pickle
-from typing import Any, Optional, Union, TypedDict
+from typing import Any, Optional, TypedDict, Union
 
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
@@ -15,6 +15,7 @@ class CosmosDBConfig(TypedDict, total=False):
     database_id: Optional[str]
     container_id: str
     client: Optional[CosmosClient]
+
 
 class CosmosDBCache(AbstractCache):
     """
@@ -40,8 +41,10 @@ class CosmosDBCache(AbstractCache):
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
         self.seed = seed
-        self.client = cosmosdb_config.get('client') or CosmosClient.from_connection_string(cosmosdb_config['connection_string'])
-        database_id = cosmosdb_config.get('database_id', 'autogen_cache')
+        self.client = cosmosdb_config.get("client") or CosmosClient.from_connection_string(
+            cosmosdb_config["connection_string"]
+        )
+        database_id = cosmosdb_config.get("database_id", "autogen_cache")
         self.database = self.client.get_database_client(database_id)
         self.container = self.database.create_container_if_not_exists(
             id=container_id, partition_key=PartitionKey(path="/partitionKey")
@@ -53,20 +56,12 @@ class CosmosDBCache(AbstractCache):
 
     @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
-        config = {
-            'connection_string': connection_string,
-            'database_id': database_id,
-            'container_id': container_id
-        }
+        config = {"connection_string": connection_string, "database_id": database_id, "container_id": container_id}
         return cls(seed, config)
 
     @classmethod
     def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
-        config = {
-            'client': client,
-            'database_id': database_id,
-            'container_id': container_id
-        }
+        config = {"client": client, "database_id": database_id, "container_id": container_id}
         return cls(seed, config)
 
     def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
