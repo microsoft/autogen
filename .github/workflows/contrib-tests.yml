@@ -45,11 +45,13 @@ jobs:
           pip install .[retrievechat-qdrant]
       - name: Install unstructured when python-version is 3.9 and on linux
         run: |
+          if [[ ${{matrix.os}} == ubuntu-latest ]]; then
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]==0.13.0
       - name: Install and Start PostgreSQL
         run: |
+          if [[ ${{matrix.os}} == ubuntu-latest ]]; then
           sudo apt install postgresql -y
           sudo service postgresql start
       - name: Install packages and dependencies for PGVector
