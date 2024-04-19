@@ -9,7 +9,7 @@ try:
     import pgvector
     import sentence_transformers
 
-    from autogen.agentchat.contrib.vectordb.pgvector import PGVector
+    from autogen.agentchat.contrib.vectordb.pgvectordb import PGVector
 except ImportError:
     skip = True
 else:
