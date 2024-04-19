@@ -37,7 +37,7 @@ class TestCosmosDBCache(unittest.TestCase):
         value = "value"
         serialized_value = pickle.dumps(value)
         self.container_client_mock.read_item.return_value = {"data": serialized_value}
-        #self.client.get_database_client().get_container_client().read_item.return_value = {"data": serialized_value}
+        # self.client.get_database_client().get_container_client().read_item.return_value = {"data": serialized_value}
         cache = CosmosDBCache(self.seed, self.client, self.database_id, self.container_id)
 
         self.assertEqual(cache.get(key), value)
@@ -58,9 +58,9 @@ class TestCosmosDBCache(unittest.TestCase):
         serialized_value = pickle.dumps(value)
         cache = CosmosDBCache(self.seed, self.client, self.database_id, self.container_id)
         cache.set(key, value)
-        self.container_client_mock.upsert_item.assert_called_with({
-            "id": key, "partitionKey": str(self.seed), "data": serialized_value
-        })
+        self.container_client_mock.upsert_item.assert_called_with(
+            {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
+        )
         """
         self.client.get_database_client().get_container_client().upsert_item.assert_called_with(
             {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
