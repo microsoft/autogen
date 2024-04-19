@@ -439,6 +439,7 @@ class Collection:
         """
         if collection_name:
             self.name = collection_name
+        print(f"CURSOR: {self.client}")
         cursor = self.client.cursor()
         cursor.execute(
             f"CREATE TABLE {self.name} ("
@@ -539,6 +540,7 @@ class PGVectorDB(VectorDB):
             collection = None
         if collection is None:
             collection = Collection(
+                client=self.client,
                 collection_name=collection_name,
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
@@ -550,6 +552,7 @@ class PGVectorDB(VectorDB):
         elif overwrite:
             self.delete_collection(collection_name)
             collection = Collection(
+                client=self.client,
                 collection_name=collection_name,
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
