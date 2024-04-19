@@ -1,9 +1,13 @@
 import logging
-from typing import Optional, Union
+from typing import TypedDict, Optional, Union
 
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
 
+class CosmosDBConfig(TypedDict):
+    connection_string: str
+    database_id: str
+    container_id: str
 
 class CacheFactory:
     @staticmethod
@@ -11,9 +15,7 @@ class CacheFactory:
         seed: Union[str, int],
         redis_url: Optional[str] = None,
         cache_path_root: str = ".cache",
-        connection_string: Optional[str] = None,
-        database_id: str = "autogen_cache",
-        container_id: Optional[str] = None,
+        cosmosdb_config: Optional[CosmosDBConfig] = None
     ) -> AbstractCache:
         """
         Factory function for creating cache instances.
@@ -24,19 +26,14 @@ class CacheFactory:
         are provided, a CosmosDBCache is created. Otherwise, a DiskCache instance is used.
 
         Args:
-            seed (Union[str, int]): A string or int used as a seed or namespace for the cache.
-                        This could be useful for creating distinct cache instances
-                        or for namespacing keys in the cache.
-            redis_url (Optional[str]): The URL for the Redis server. If this is provided and Redis is available,
-                                       a RedisCache instance is created.
-            cache_path_root (str): The root path for the disk cache. Defaults to ".cache".
-            connection_string (Optional[str]): The connection string for the Cosmos DB account. Required for creating a CosmosDBCache.
-            database_id (Optional[str]): The database ID for the Cosmos DB account. Required for creating a CosmosDBCache.
-            container_id (Optional[str]): The container ID for the Cosmos DB account. Required for creating a CosmosDBCache.
+            seed (Union[str, int]): Used as a seed or namespace for the cache.
+            redis_url (Optional[str]): URL for the Redis server.
+            cache_path_root (str): Root path for the disk cache.
+            cosmosdb_config (Optional[Dict[str, str]]): Dictionary containing 'connection_string',
+                                                       'database_id', and 'container_id' for Cosmos DB cache.
 
         Returns:
-            An instance of either RedisCache or DiskCache, depending on the availability of RedisCache
-            and the provided redis_url.
+            An instance of RedisCache, DiskCache, or CosmosDBCache.
 
         Examples:
 
@@ -53,7 +50,11 @@ class CacheFactory:
 
         Creating a Cosmos DB cache:
         ```python
-        cosmos_cache = cache_factory("myseed", connection_string="your_connection_string", database_id="your_database_id", container_id="your_container_id")
+        cosmos_cache = cache_factory("myseed", cosmosdb_config={
+                "connection_string": "your_connection_string",
+                "database_id": "your_database_id",
+                "container_id": "your_container_id"}
+            )
         ```
 
         """
@@ -63,13 +64,15 @@ class CacheFactory:
 
                 return RedisCache(seed, redis_url)
             except ImportError:
-                logging.warning("RedisCache is not available. Checking other cache options. The last fallback is DiskCache.")
+                logging.warning(
+                    "RedisCache is not available. Checking other cache options. The last fallback is DiskCache."
+                )
 
-        if connection_string and database_id and container_id:
+        if cosmosdb_config and all(key in cosmosdb_config for key in ['connection_string', 'database_id', 'container_id']):
             try:
                 from .cosmos_db_cache import CosmosDBCache
 
-                return CosmosDBCache(seed, connection_string, database_id, container_id)
+                return CosmosDBCache(seed, **cosmosdb_config)
             except ImportError:
                 logging.warning("CosmosDBCache is not available. Fallback to DiskCache.")
 
