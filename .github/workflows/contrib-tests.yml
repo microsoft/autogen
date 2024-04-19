@@ -49,7 +49,6 @@ jobs:
           sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]==0.13.0
       - name: Install and Start PostgreSQL
-        runs-on: ubuntu-latest
         run: |
           sudo apt install postgresql -y
           sudo service postgresql start
