@@ -249,6 +249,7 @@ def test_groupchat_logging(db_connection):
     cur.execute(EVENTS_QUERY)
     rows = cur.fetchall()
     json_state = json.loads(rows[0]["json_state"])
+    assert rows[0]["event_name"] == "received_message"
     assert json_state["message"] == "Can you explain the difference between eigenvalues and singular values again?"
     assert len(rows) == 15
 
