@@ -63,7 +63,7 @@ class CacheFactory:
 
                 return RedisCache(seed, redis_url)
             except ImportError:
-                logging.warning("RedisCache is not available. Fallback to DiskCache.")
+                logging.warning("RedisCache is not available. Checking other cache options. The last fallback is DiskCache.")
 
         if connection_string and database_id and container_id:
             try:
