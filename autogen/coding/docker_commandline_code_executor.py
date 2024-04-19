@@ -95,20 +95,32 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             # Let the docker exception escape if this fails.
             client.images.pull(image)
 
-        if container_name is None:
+        self._container = None
+        # Try to start the container if it exists
+        if container_name:
+            try:
+                self._container = client.containers.get(container_name)
+                if self._container.status == "running":
+                    self._container.start()
+                    _wait_for_ready(self._container)
+            except docker.errors.NotFound:
+                self._container = None
+        # Else create a new container
+        else:
             container_name = f"autogen-code-exec-{uuid.uuid4()}"
-
-        # Start a container from the image, read to exec commands later
-        self._container = client.containers.create(
-            image,
-            name=container_name,
-            entrypoint="/bin/sh",
-            tty=True,
-            auto_remove=auto_remove,
-            volumes={str(work_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
-            working_dir="/workspace",
-        )
-        self._container.start()
+        
+        if self._container is None:
+            # Start a container from the image, read to exec commands later
+            self._container = client.containers.run(
+                image,
+                name=container_name,
+                entrypoint="/bin/sh",
+                tty=True,
+                auto_remove=auto_remove,
+                volumes={str(work_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+                working_dir="/workspace",
+                detach=True,
+            )
 
         _wait_for_ready(self._container)
 
