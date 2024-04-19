@@ -51,7 +51,8 @@ jobs:
       - name: Install and Start PostgreSQL
         runs-on: ubuntu-latest
         run: |
-          sudo apt install postgresql -y
+          sudo apt-get update
+          sudo apt-get install postgresql -y
           sudo service postgresql start
       - name: Install packages and dependencies for PGVector
         run: |
