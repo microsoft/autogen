@@ -12,6 +12,11 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+class CosmosDBConfig(TypedDict, total=False):
+    connection_string: Optional[str]
+    database_id: Optional[str]
+    container_id: Optional[str]
+    cache_seed: Union[str, int]
 
 class Cache(AbstractCache):
     """
@@ -81,14 +86,13 @@ class Cache(AbstractCache):
         Returns:
             Cache: A Cache instance configured for Cosmos DB.
         """
-        return Cache(
-            {
-                "cache_seed": cache_seed,
-                "connection_string": connection_string,
-                "database_id": "autogen_cache",
-                "container_id": container_id,
-            }
-        )
+        config = CosmosDBConfig(
+            cache_seed=cache_seed,
+            connection_string=connection_string,
+            database_id="autogen_cache",  # Default value set here
+            container_id=container_id,
+    )
+    return Cache(config)
 
     def __init__(self, config: Dict[str, Any]):
         """
