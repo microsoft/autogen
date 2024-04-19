@@ -50,6 +50,7 @@ class GPTAssistantAgent(ConversableAgent):
                 - check_every_ms: check thread run status interval
                 - tools: Give Assistants access to OpenAI-hosted tools like Code Interpreter and Knowledge Retrieval,
                         or build your own tools using Function calling. ref https://platform.openai.com/docs/assistants/tools
+                - file_ids: files used by retrieval in run. It is Deprecated, use tool_resources instead. https://platform.openai.com/docs/assistants/migration/what-has-changed.
                 - tool_resources: A set of resources that are used by the assistant's tools. The resources are specific to the type of tool.
             overwrite_instructions (bool): whether to overwrite the instructions of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
             overwrite_tools (bool): whether to overwrite the tools of an existing assistant. This parameter is in effect only when assistant_id is specified in llm_config.
