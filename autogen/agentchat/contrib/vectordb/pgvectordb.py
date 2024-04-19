@@ -439,7 +439,6 @@ class Collection:
         """
         if collection_name:
             self.name = collection_name
-        print(f"CURSOR: {self.client}")
         cursor = self.client.cursor()
         cursor.execute(
             f"CREATE TABLE {self.name} ("
@@ -503,7 +502,7 @@ class PGVectorDB(VectorDB):
                     host=host, port=port, dbname=dbname, connect_timeout=connect_timeout, autocommit=True
                 )
         except psycopg.Error as e:
-            print("Error connecting to the database: ", e)
+            logger.error("Error connecting to the database: ", e)
             raise e
         self.embedding_function = (
             SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
