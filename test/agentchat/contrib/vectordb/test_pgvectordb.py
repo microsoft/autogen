@@ -9,7 +9,7 @@ try:
     import pgvector
     import sentence_transformers
 
-    from autogen.agentchat.contrib.vectordb.pgvectordb import PGVector
+    from autogen.agentchat.contrib.vectordb.pgvectordb import PGVectorDB
 except ImportError:
     skip = True
 else:
@@ -23,9 +23,9 @@ def test_pgvector():
         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
     }
 
-    db = PGVector(connection_string=db_config["connection_string"])
+    db = PGVectorDB(connection_string=db_config["connection_string"])
     collection_name = "test_collection"
-    collection = db.create_collection(collection_name, overwrite=True, get_or_create=True)
+    collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
     assert collection.name == collection_name
 
     # test_delete_collection
