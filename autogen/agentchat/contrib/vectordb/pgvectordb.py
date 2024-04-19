@@ -494,12 +494,16 @@ class PGVectorDB(VectorDB):
         Returns:
             None
         """
-        if connection_string:
-            self.client = psycopg.connect(conninfo=connection_string, autocommit=True)
-        elif host and port and dbname:
-            self.client = psycopg.connect(
-                host=host, port=port, dbname=dbname, connect_timeout=connect_timeout, autocommit=True
-            )
+        try:
+            if connection_string:
+                self.client = psycopg.connect(conninfo=connection_string, autocommit=True)
+            elif host and port and dbname:
+                self.client = psycopg.connect(
+                    host=host, port=port, dbname=dbname, connect_timeout=connect_timeout, autocommit=True
+                )
+        except psycopg.Error as e:
+            print("Error connecting to the database: ", e)
+            raise e
         self.embedding_function = (
             SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
         )
