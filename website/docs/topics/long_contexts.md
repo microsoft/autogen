@@ -62,7 +62,7 @@ By applying the `MessageHistoryLimiter`, we can see that we were able to limit t
 
 #### Example 2: Limiting the Number of Tokens
 
-To adhere to token limitations, use the `MessageTokenLimiter` transformation. This limits tokens per message and the total token count across all messages. Additionally, a min tokens threshold can be applied:
+To adhere to token limitations, use the `MessageTokenLimiter` transformation. This limits tokens per message and the total token count across all messages. Additionally, a `min_tokens` threshold can be applied:
 
 ```python
 # Limit the token limit per message to 3 tokens
@@ -82,6 +82,26 @@ pprint.pprint(processed_messages)
 ```
 
 We can see that we were able to limit the number of tokens to 3, which is equivalent to 3 words for this instance.
+
+In the following example we will explore the effect of the `min_tokens` threshold.
+
+```python
+short_messages = [
+    {"role": "user", "content": "hello there, how are you?"},
+    {"role": "assistant", "content": [{"type": "text", "text": "hello"}]},
+]
+
+processed_short_messages = token_limit_transform.apply_transform(copy.deepcopy(short_messages))
+
+pprint.pprint(processed_short_messages)
+```
+
+```console
+[{'content': 'hello there, how are you?', 'role': 'user'},
+ {'content': [{'text': 'hello', 'type': 'text'}], 'role': 'assistant'}]
+ ```
+
+ We can see that no transformation was applied, because the threshold of 10 total tokens was not reached.
 
 ### Apply Transformations Using Agents
 
