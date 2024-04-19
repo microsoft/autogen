@@ -47,8 +47,10 @@ class TestCosmosDBCache(unittest.TestCase):
         )
         """
 
-        self.client.get_database_client().get_container_client().read_item.side_effect = Exception("not found")
-        self.assertIsNone(cache.get(key))
+        # self.client.get_database_client().get_container_client().read_item.side_effect = Exception("not found")
+        # self.assertIsNone(cache.get(key))
+        self.container_client_mock.read_item.side_effect = Exception("not found")
+        self.assertIsNone(cache.get(key, default=None))
 
     @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_set(self):
