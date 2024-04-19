@@ -41,11 +41,15 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
+      - name: Install PostgreSQL
+        run: |
+          sudo apt install postgresql -y
+      - name: Start PostgreSQL service
+        run: sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
-          pip install qdrant_client[fastembed]
-          pip install -e .[retrievechat]
+          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -53,7 +57,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat
+          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat test/agentchat/contrib/test_pgvector_retrievechat.py::test_retrievechat
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
