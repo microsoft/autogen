@@ -259,12 +259,13 @@ class SqliteLogger(BaseLogger):
             get_current_ts(),
         )
         self._run_query(query=query, args=args)
-    
+
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         from autogen import Agent
+
         if self.con is None:
             return
-        if isinstance(source, Agent): 
+        if isinstance(source, Agent):
             query = """
             INSERT INTO events (source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
             """

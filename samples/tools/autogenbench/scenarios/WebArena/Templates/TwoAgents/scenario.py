@@ -87,11 +87,18 @@ if "reddit" in TASK["sites"]:
         )
     except Exception as e:
         import traceback
+
         if logging_enabled():
             exc_type = type(e).__name__
             exc_message = str(e)
             exc_traceback = traceback.format_exc().splitlines()
-            log_event(os.path.basename(__file__), name="exception_thrown", exc_type=exc_type, exc_message=exc_message, exc_traceback=exc_traceback)
+            log_event(
+                os.path.basename(__file__),
+                name="exception_thrown",
+                exc_type=exc_type,
+                exc_message=exc_message,
+                exc_traceback=exc_traceback,
+            )
 
         raise e
     user_proxy.reset()
@@ -150,11 +157,18 @@ We are visiting the website {start_url}{site_description_prompt}. On this websit
     )
 except Exception as e:
     import traceback
+
     if logging_enabled():
         exc_type = type(e).__name__
         exc_message = str(e)
         exc_traceback = traceback.format_exc().splitlines()
-        log_event(os.path.basename(__file__), name="exception_thrown", exc_type=exc_type, exc_message=exc_message, exc_traceback=exc_traceback)
+        log_event(
+            os.path.basename(__file__),
+            name="exception_thrown",
+            exc_type=exc_type,
+            exc_message=exc_message,
+            exc_traceback=exc_traceback,
+        )
 
     raise e
 

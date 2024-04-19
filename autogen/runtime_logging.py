@@ -61,12 +61,14 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
 
     autogen_logger.log_new_agent(agent, init_args)
 
+
 def log_event(source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
     if autogen_logger is None:
         logger.error("[runtime logging] log_event: autogen logger is None")
         return
 
     autogen_logger.log_event(source, name, **kwargs)
+
 
 def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
     if autogen_logger is None:
