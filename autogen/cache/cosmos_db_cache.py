@@ -2,13 +2,19 @@
 # pip install azure-cosmos
 
 import pickle
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, TypedDict
 
 from azure.cosmos import CosmosClient, PartitionKey, exceptions
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
 from autogen.cache.abstract_cache_base import AbstractCache
 
+
+class CosmosDBConfig(TypedDict, total=False):
+    connection_string: str
+    database_id: Optional[str]
+    container_id: str
+    client: Optional[CosmosClient]
 
 class CosmosDBCache(AbstractCache):
     """
@@ -23,9 +29,7 @@ class CosmosDBCache(AbstractCache):
         container: The container instance used for caching.
     """
 
-    def __init__(
-        self, seed: Union[str, int], client: CosmosClient, container_id: str, database_id: str = "autogen_cache"
-    ):
+    def __init__(self, seed: Union[str, int], cosmosdb_config: CosmosDBConfig):
         """
         Initialize the CosmosDBCache instance.
 
@@ -36,20 +40,34 @@ class CosmosDBCache(AbstractCache):
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
         self.seed = seed
-        self.client = client
+        self.client = cosmosdb_config.get('client') or CosmosClient.from_connection_string(cosmosdb_config['connection_string'])
+        database_id = cosmosdb_config.get('database_id', 'autogen_cache')
         self.database = self.client.get_database_client(database_id)
         self.container = self.database.create_container_if_not_exists(
             id=container_id, partition_key=PartitionKey(path="/partitionKey")
         )
 
     @classmethod
+    def from_config(cls, seed: Union[str, int], cosmosdb_config: CosmosDBConfig):
+        return cls(seed, cosmosdb_config)
+
+    @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
-        client = CosmosClient.from_connection_string(connection_string)
-        return cls(seed, client, database_id, container_id)
+        config = {
+            'connection_string': connection_string,
+            'database_id': database_id,
+            'container_id': container_id
+        }
+        return cls(seed, config)
 
     @classmethod
     def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
-        return cls(seed, client, database_id, container_id)
+        config = {
+            'client': client,
+            'database_id': database_id,
+            'container_id': container_id
+        }
+        return cls(seed, config)
 
     def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
