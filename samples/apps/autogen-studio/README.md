@@ -14,6 +14,9 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 > [!WARNING]
 > AutoGen Studio is currently under active development and we are iterating quickly. Kindly consider that we may introduce breaking changes in the releases during the upcoming weeks, and also the `README` might be outdated. We'll update the `README` as soon as we stabilize the API.
 
+> [!NOTE] Updates
+> March 12: Default directory for AutoGen Studio is now /home/<user>/.autogenstudio. You can also specify this directory using the `--appdir` argument when running the application. For example, `autogenstudio ui --appdir /path/to/folder`. This will store the database and other files in the specified directory e.g. `/path/to/folder/database.sqlite`. `.env` files in that directory will be used to set environment variables for the app.
+
 ### Capabilities / Roadmap
 
 Some of the capabilities supported by the app frontend include the following:
@@ -143,7 +146,7 @@ A: To reset your conversation history, you can delete the `database.sqlite` file
 A: Yes, you can view the generated messages in the debug console of the web UI, providing insights into the agent interactions. Alternatively, you can inspect the `database.sqlite` file for a comprehensive record of messages.
 
 **Q: Can I use other models with AutoGen Studio?**
-Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model`, `api key`, `base url`, `model type` and `api version`. For Azure OpenAI models, you can find these details in the Azure portal. Note that for Azure OpenAI, the `model name` is the deployment id or engine, and the `model type` is "azure".
+Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `llm_config` field where you can input your model endpoint details including `model`, `api key`, `base url`, `model type` and `api version`. For Azure OpenAI models, you can find these details in the Azure portal. Note that for Azure OpenAI, the `model` is the deployment name or deployment id, and the `type` is "azure".
 For other OSS models, we recommend using a server such as vllm to instantiate an openai compliant endpoint.
 
 **Q: The server starts but I can't access the UI**

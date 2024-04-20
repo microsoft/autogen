@@ -1,13 +1,13 @@
-import autogen.runtime_logging
-import uuid
 import json
-import pytest
 import sqlite3
+import uuid
+from unittest.mock import Mock, patch
 
-from autogen.logger.logger_utils import get_current_ts, to_dict
+import pytest
 from openai import AzureOpenAI
-from unittest.mock import patch, Mock
 
+import autogen.runtime_logging
+from autogen.logger.logger_utils import get_current_ts, to_dict
 
 SAMPLE_CHAT_REQUEST = json.loads(
     """
@@ -265,4 +265,4 @@ def test_logging_exception_will_not_crash_only_print_error(mock_logger_error, db
 
     args, _ = mock_logger_error.call_args
     error_message = args[0]
-    assert error_message.startswith("[SqliteLogger] log_chat_completion error:")
+    assert error_message.startswith("[sqlite logger]Error running query with query")

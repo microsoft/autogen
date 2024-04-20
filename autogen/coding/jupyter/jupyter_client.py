@@ -1,31 +1,34 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from types import TracebackType
-from typing import Any, Dict, List, Optional, cast
-import sys
+from typing import Any, Dict, List, Optional, Type, cast
 
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
 
+import datetime
 import json
 import uuid
-import datetime
-import requests
-from requests.adapters import HTTPAdapter, Retry
 
+import requests
 import websocket
+from requests.adapters import HTTPAdapter, Retry
 from websocket import WebSocket
 
 from .base import JupyterConnectionInfo
 
 
 class JupyterClient:
-    """(Experimental) A client for communicating with a Jupyter gateway server."""
-
     def __init__(self, connection_info: JupyterConnectionInfo):
+        """(Experimental) A client for communicating with a Jupyter gateway server.
+
+        Args:
+            connection_info (JupyterConnectionInfo): Connection information
+        """
         self._connection_info = connection_info
         self._session = requests.Session()
         retries = Retry(total=5, backoff_factor=0.1)
@@ -108,7 +111,7 @@ class JupyterKernelClient:
         return self
 
     def __exit__(
-        self, exc_type: Optional[type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
+        self, exc_type: Optional[Type[BaseException]], exc_val: Optional[BaseException], exc_tb: Optional[TracebackType]
     ) -> None:
         self.stop()
 
