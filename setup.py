@@ -35,6 +35,8 @@ jupyter_executor = [
     "ipykernel>=6.29.0",
 ]
 
+rag = ["sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
+
 setuptools.setup(
     name="pyautogen",
     version=__version__,
@@ -59,24 +61,9 @@ setuptools.setup(
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"],
-        "retrievechat-pgvector": [
-            "pgvector>=0.2.5",
-            "psycopg>=3.1.18",
-            "sentence_transformers",
-            "pypdf",
-            "ipython",
-            "beautifulsoup4",
-            "markdownify",
-        ],
-        "retrievechat-qdrant": [
-            "qdrant_client[fastembed]",
-            "sentence_transformers",
-            "pypdf",
-            "ipython",
-            "beautifulsoup4",
-            "markdownify",
-        ],
+        "retrievechat": ["chromadb"] + rag,
+        "retrievechat-pgvector": ["pgvector>=0.2.5", "psycopg>=3.1.18"] + rag,
+        "retrievechat-qdrant": ["qdrant_client[fastembed]"] + rag,
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
