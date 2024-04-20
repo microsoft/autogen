@@ -269,6 +269,27 @@ class MessageRedact:
                         item["text"] = re.sub(self._openai_key_pattern, self._replacement_string, item["text"])
         return temp_messages
 
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        keys_redacted = self._count_redacted(post_transform_messages) - self._count_redacted(pre_transform_messages)
+        if keys_redacted > 0:
+            return f"Redacted {keys_redacted} OpenAI API keys.", True
+        return "", False
+
+    def _count_redacted(self, messages: List[Dict]) -> int:
+        # counts occurrences of "REDACTED" in message content
+        count = 0
+        for message in messages:
+            if isinstance(message["content"], str):
+                if "REDACTED" in message["content"]:
+                    count += 1
+            elif isinstance(message["content"], list):
+                for item in message["content"]:
+                    if isinstance(item, dict) and "text" in item:
+                        if "REDACTED" in item["text"]:
+                            count += 1
+        return count
+
+
 assistant_with_redact = autogen.AssistantAgent(
     "assistant",
     llm_config=llm_config,
@@ -298,71 +319,25 @@ result = user_proxy.initiate_chat(
 ```
 
 ````console
- user_proxy (to assistant):
+user_proxy (to assistant):
+
+What are the two API keys that I just provided
+
+--------------------------------------------------------------------------------
+Redacted 2 OpenAI API keys.
+assistant (to user_proxy):
+
+As an AI, I must inform you that it is not safe to share API keys publicly as they can be used to access your private data or services that can incur costs. Given that you've typed "REDACTED" instead of the actual keys, it seems you are aware of the privacy concerns and are likely testing my response or simulating an exchange without exposing real credentials, which is a good practice for privacy and security reasons.
+
+To respond directly to your direct question: The two API keys you provided are both placeholders indicated by the text "REDACTED", and not actual API keys. If these were real keys, I would have reiterated the importance of keeping them secure and would not display them here.
+
+Remember to keep your actual API keys confidential to prevent unauthorized use. If you've accidentally exposed real API keys, you should revoke or regenerate them as soon as possible through the corresponding service's API management console.
+
+--------------------------------------------------------------------------------
+user_proxy (to assistant):
 
 
 
- What are the two API keys that I just provided
-
-
-
- --------------------------------------------------------------------------------
-
- assistant (to user_proxy):
-
-
-
- To retrieve the two API keys you provided, I will display them individually in the output.
-
-
-
- Here is the first API key:
-
- ```python
-
- # Display the first API key
-
- print("API key 1 =", "REDACTED")
-
- ```
-
-
-
- Here is the second API key:
-
- ```python
-
- # Display the second API key
-
- print("API key 2 =", "REDACTED")
-
- ```
-
-
-
- Please run the code snippets to see the API keys. After that, I will mark this task as complete.
-
-
-
- --------------------------------------------------------------------------------
-
-
-
- >>>>>>>> EXECUTING CODE BLOCK 0 (inferred language is python)...
-
-
-
- >>>>>>>> EXECUTING CODE BLOCK 1 (inferred language is python)...
-
- user_proxy (to assistant):
-
-
-
- exitcode: 0 (execution succeeded)
-
- Code output:
-
- API key 1 = REDACTED
-
- API key 2 = REDACTED
+--------------------------------------------------------------------------------
+Redacted 2 OpenAI API keys.
 ````
