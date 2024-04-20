@@ -584,9 +584,10 @@ class PGVectorDB(VectorDB):
                     f"No collection is specified. Using current active collection {self.active_collection.name}."
                 )
         else:
-            self.active_collection = Collection(
-                client=self.client, collection_name=collection_name, embedding_function=self.embedding_function
-            )
+            if not (self.active_collection and self.active_collection.name == collection_name):
+                self.active_collection = Collection(
+                    client=self.client, collection_name=collection_name, embedding_function=self.embedding_function
+                )
         return self.active_collection
 
     def delete_collection(self, collection_name: str) -> None:
