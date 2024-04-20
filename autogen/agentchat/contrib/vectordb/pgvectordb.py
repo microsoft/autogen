@@ -600,7 +600,11 @@ class PGVectorDB(VectorDB):
         Returns:
             None
         """
-        self.active_collection.delete_collection(collection_name)
+        if self.active_collection:
+            self.active_collection.delete_collection(collection_name)
+        else:
+            collection = self.get_collection(collection_name)
+            collection.delete_collection(collection_name)
         if self.active_collection and self.active_collection.name == collection_name:
             self.active_collection = None
 
