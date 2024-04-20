@@ -178,23 +178,6 @@ export const AgentConfigView = ({
             />
 
             <ControlRowView
-              title="Agent Default Auto Reply"
-              className="mt-4"
-              description="Default auto reply when no code execution or llm-based reply is generated."
-              value={agent.config.default_auto_reply || ""}
-              control={
-                <Input
-                  className="mt-2"
-                  placeholder="Agent Description"
-                  value={agent.config.default_auto_reply || ""}
-                  onChange={(e) => {
-                    onControlChange(e.target.value, "default_auto_reply");
-                  }}
-                />
-              }
-            />
-
-            <ControlRowView
               title="Human Input Mode"
               description="Defines when to request human input"
               value={agent.config.human_input_mode}
@@ -257,6 +240,23 @@ export const AgentConfigView = ({
                           temperature: value,
                         };
                         onControlChange(llm_config, "llm_config");
+                      }}
+                    />
+                  }
+                />
+
+                <ControlRowView
+                  title="Agent Default Auto Reply"
+                  className="mt-4"
+                  description="Default auto reply when no code execution or llm-based reply is generated."
+                  value={agent.config.default_auto_reply || ""}
+                  control={
+                    <Input
+                      className="mt-2"
+                      placeholder="Agent Description"
+                      value={agent.config.default_auto_reply || ""}
+                      onChange={(e) => {
+                        onControlChange(e.target.value, "default_auto_reply");
                       }}
                     />
                   }

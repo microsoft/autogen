@@ -246,6 +246,38 @@ export const formatDuration = (seconds: number) => {
   return parts.length > 0 ? parts.join(" ") : "0 sec";
 };
 
+export const sampleModelConfig = (modelType: string = "open_ai") => {
+  const openaiConfig: IModelConfig = {
+    model: "gpt-4-1106-preview",
+    api_type: "open_ai",
+    description: "OpenAI GPT-4 model",
+  };
+  const azureConfig: IModelConfig = {
+    model: "gpt-4",
+    api_type: "azure",
+    api_version: "v1",
+    base_url: "https://youazureendpoint.azure.com/",
+    description: "Azure model",
+  };
+
+  const googleConfig: IModelConfig = {
+    model: "gemini-1.0-pro",
+    api_type: "google",
+    description: "Google Gemini Model model",
+  };
+
+  switch (modelType) {
+    case "open_ai":
+      return openaiConfig;
+    case "azure":
+      return azureConfig;
+    case "google":
+      return googleConfig;
+    default:
+      return openaiConfig;
+  }
+};
+
 export const sampleAgentConfig = (agent_type: string = "assistant") => {
   const llm_config: ILLMConfig = {
     config_list: [],

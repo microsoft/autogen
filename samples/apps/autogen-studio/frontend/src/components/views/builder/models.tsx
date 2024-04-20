@@ -25,6 +25,7 @@ import {
   LoadingOverlay,
 } from "../../atoms";
 import TextArea from "antd/es/input/TextArea";
+import { ModelConfigView } from "./utils/modelconfig";
 
 const ModelsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -55,12 +56,6 @@ const ModelsView = ({}: any) => {
 
   const [showNewModelModal, setShowNewModelModal] = React.useState(false);
   const [showModelModal, setShowModelModal] = React.useState(false);
-
-  const sampleModel: IModelConfig = {
-    model: "gpt-4-1106-preview",
-    description: "Sample OpenAI GPT-4 model",
-    user_id: user?.email,
-  };
 
   const deleteModel = (model: IModelConfig) => {
     setError(null);
@@ -242,46 +237,13 @@ const ModelsView = ({}: any) => {
     setShowModelModal,
     handler,
   }: {
-    model: IModelConfig | null;
+    model: IModelConfig;
     setModel: (model: IModelConfig | null) => void;
     showModelModal: boolean;
     setShowModelModal: (show: boolean) => void;
     handler?: (agent: IModelConfig) => void;
   }) => {
-    const [loadingModelTest, setLoadingModelTest] = React.useState(false);
-    const [modelStatus, setModelStatus] = React.useState<IStatus | null>(null);
-
-    const [localModel, setLocalModel] = React.useState<IModelConfig | null>(
-      model
-    );
-    const testModel = (model: IModelConfig) => {
-      setModelStatus(null);
-      setLoadingModelTest(true);
-      model.user_id = user?.email;
-      const payLoad = {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(model),
-      };
-
-      const onSuccess = (data: any) => {
-        if (data && data.status) {
-          message.success(data.message);
-          setModelStatus(data.data);
-        } else {
-          message.error(data.message);
-        }
-        setLoadingModelTest(false);
-        setModelStatus(data);
-      };
-      const onError = (err: any) => {
-        message.error(err.message);
-        setLoadingModelTest(false);
-      };
-      fetchJSON(testModelUrl, payLoad, onSuccess, onError);
-    };
+    const [localModel, setLocalModel] = React.useState<IModelConfig>(model);
 
     return (
       <Modal
@@ -293,207 +255,25 @@ const ModelsView = ({}: any) => {
         }
         width={800}
         open={showModelModal}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              setModel(null);
-              setShowModelModal(false);
-            }}
-          >
-            Close
-          </Button>,
-          <Button
-            key="test"
-            type="primary"
-            loading={loadingModelTest}
-            onClick={() => {
-              if (localModel) {
-                testModel(localModel);
-              }
-            }}
-          >
-            Test Model
-          </Button>,
-          <Button
-            key="save"
-            type="primary"
-            onClick={() => {
-              setModel(null);
-              setShowModelModal(false);
-              if (handler) {
-                if (localModel) {
-                  handler(localModel);
-                }
-              }
-            }}
-          >
-            Save
-          </Button>,
-        ]}
+        footer={[]}
         onOk={() => {
           setModel(null);
           setShowModelModal(false);
           if (handler) {
-            if (localModel) {
-              handler(localModel);
-            }
+            handler(model);
           }
         }}
         onCancel={() => {
           setModel(null);
           setShowModelModal(false);
+          if (handler) {
+            handler(model);
+          }
         }}
       >
-        <div className="relative ">
-          <div className="text-sm my-2">Enter parameters for your model.</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <ControlRowView
-                title="Model"
-                className=""
-                description="Model name"
-                value={localModel?.model || ""}
-                control={
-                  <Input
-                    className="mt-2 w-full"
-                    value={localModel?.model}
-                    onChange={(e) => {
-                      if (localModel) {
-                        setLocalModel({ ...localModel, model: e.target.value });
-                      }
-                    }}
-                  />
-                }
-              />
-
-              <ControlRowView
-                title="API Key"
-                className=""
-                description="API Key"
-                value={localModel?.api_key || ""}
-                control={
-                  <Input.Password
-                    className="mt-2 w-full"
-                    value={localModel?.api_key}
-                    onChange={(e) => {
-                      if (localModel) {
-                        setLocalModel({
-                          ...localModel,
-                          api_key: e.target.value,
-                        });
-                      }
-                    }}
-                  />
-                }
-              />
-
-              <ControlRowView
-                title="Base URL"
-                className=""
-                description="Base URL"
-                value={localModel?.base_url || ""}
-                control={
-                  <Input
-                    className="mt-2 w-full"
-                    value={localModel?.base_url}
-                    onChange={(e) => {
-                      if (localModel) {
-                        setLocalModel({
-                          ...localModel,
-                          base_url: e.target.value,
-                        });
-                      }
-                    }}
-                  />
-                }
-              />
-            </div>
-            <div>
-              <ControlRowView
-                title="API Type"
-                className=""
-                description="API Type e.g. azure"
-                value={localModel?.api_type || ""}
-                control={
-                  <Input
-                    className="mt-2 w-full"
-                    value={localModel?.api_type}
-                    onChange={(e) => {
-                      if (localModel) {
-                        setLocalModel({
-                          ...localModel,
-                          api_type: e.target.value,
-                        });
-                      }
-                    }}
-                  />
-                }
-              />
-
-              <ControlRowView
-                title="API Version"
-                className=" "
-                description="API Version, required by Azure Models"
-                value={localModel?.api_version || ""}
-                control={
-                  <Input
-                    className="mt-2 w-full"
-                    value={localModel?.api_version}
-                    onChange={(e) => {
-                      if (localModel) {
-                        setLocalModel({
-                          ...localModel,
-                          api_version: e.target.value,
-                        });
-                      }
-                    }}
-                  />
-                }
-              />
-            </div>
-          </div>
-
-          <ControlRowView
-            title="Description"
-            className="mt-4"
-            description="Description of the model"
-            value={localModel?.description || ""}
-            control={
-              <TextArea
-                className="mt-2 w-full"
-                value={localModel?.description}
-                onChange={(e) => {
-                  if (localModel) {
-                    setLocalModel({
-                      ...localModel,
-                      description: e.target.value,
-                    });
-                  }
-                }}
-              />
-            }
-          />
-
-          {localModel?.api_type === "azure" && (
-            <div className="mt-4 text-xs">
-              Note: For Azure OAI models, you will need to specify all fields.
-            </div>
-          )}
-
-          {modelStatus && (
-            <div
-              className={`text-sm border mt-4 rounded text-secondary p-2 ${
-                modelStatus.status ? "border-accent" : " border-red-500 "
-              }`}
-            >
-              <InformationCircleIcon className="h-4 w-4 inline mr-1" />
-              {modelStatus.message}
-
-              {/* <span className="block"> Note </span> */}
-            </div>
-          )}
-        </div>
+        {model && (
+          <ModelConfigView model={localModel} setModel={setLocalModel} />
+        )}
       </Modal>
     );
   };
@@ -548,27 +328,24 @@ const ModelsView = ({}: any) => {
 
   return (
     <div className="text-primary  ">
-      <ModelModal
-        model={selectedModel}
-        setModel={setSelectedModel}
-        setShowModelModal={setShowModelModal}
-        showModelModal={showModelModal}
-        handler={(model: IModelConfig | null) => {
-          if (model) {
-            createModel(model);
-          }
-        }}
-      />
-
+      {selectedModel && (
+        <ModelModal
+          model={selectedModel}
+          setModel={setSelectedModel}
+          setShowModelModal={setShowModelModal}
+          showModelModal={showModelModal}
+          handler={(model: IModelConfig | null) => {
+            fetchModels();
+          }}
+        />
+      )}
       <ModelModal
         model={newModel || defaultModel}
         setModel={setNewModel}
         setShowModelModal={setShowNewModelModal}
         showModelModal={showNewModelModal}
         handler={(model: IModelConfig | null) => {
-          if (model) {
-            createModel(model);
-          }
+          fetchModels();
         }}
       />
 
