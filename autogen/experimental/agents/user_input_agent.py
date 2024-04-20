@@ -1,4 +1,5 @@
 import logging
+import warnings
 from typing import Awaitable, Callable, Optional
 
 from ..agent import Agent
@@ -26,7 +27,8 @@ class UserInputAgent(Agent):
         if description is not None:
             self._description = description
         else:
-            """"""
+            # raise a warning if no description is set
+            warnings.warn(f"Description of {self.__class__.__name__} is not set.")
 
         self._human_input_callback = human_input_callback
 

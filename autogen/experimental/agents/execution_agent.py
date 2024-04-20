@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import warnings
 from typing import Awaitable, List, Optional
 
 from typing_extensions import Literal
@@ -39,6 +40,9 @@ class ExecutionAgent(Agent):
         self._description = ""
         if description is not None:
             self._description = description
+        else:
+            # raise a warning if no description is set
+            warnings.warn(f"Description of {self.__class__.__name__} is not set.")
 
         self._code_executor = code_executor
         self._function_executor = function_executor
