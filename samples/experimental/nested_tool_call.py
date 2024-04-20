@@ -1,20 +1,19 @@
 import asyncio
-from dataclasses import asdict
 import os
+from dataclasses import asdict
+
+import aioconsole
+from termcolor import cprint
 
 from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat
 from autogen.experimental.agents.chat_agent import ChatAgent
 from autogen.experimental.agents.execution_agent import ExecutionAgent
 from autogen.experimental.agents.user_input_agent import UserInputAgent
-from autogen.experimental.types import Message, UserMessage, AssistantMessage, SystemMessage, FunctionCallMessage
-
 from autogen.experimental.chat_result import ChatResult
-from autogen.experimental.terminations import DefaultTermination
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.function_executors.in_process_function_executor import InProcessFunctionExecutor
-
-import aioconsole
-from termcolor import cprint
+from autogen.experimental.terminations import DefaultTermination
+from autogen.experimental.types import AssistantMessage, FunctionCallMessage, Message, SystemMessage, UserMessage
 
 
 def get_weather(city: str) -> str:
