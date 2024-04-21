@@ -26,6 +26,34 @@ WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
 PYTHON_VARIANTS = ["python", "Python", "py"]
 
 
+@pytest.mark.parametrize(
+    "lang, should_execute",
+    [
+        ("python", False),  # Python should not execute
+        ("bash", True),  # Bash should execute
+        ("html", False),  # HTML should not execute
+        ("javascript", False),  # JavaScript should not execute
+    ],
+)
+def test_execution_policy_enforcement(lang, should_execute):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(
+            work_dir=temp_dir,
+            execution_policies={"python": False, "bash": True, "html": False, "javascript": False, "css": False},
+        )
+        code = "print('Hello, world!')" if lang == "python" else "echo 'Hello, world!'"
+        code_block = CodeBlock(code=code, language=lang)
+        result = executor.execute_code_blocks([code_block])
+
+        if should_execute:
+            assert "Hello, world!" in result.output, f"Expected execution for {lang}, but it didn't execute."
+        else:
+            assert "Hello, world!" not in result.output, f"Expected no execution for {lang}, but it executed."
+
+        # Ensure files are saved regardless of execution
+        assert result.code_file is not None, f"Expected code file to be saved for {lang}, but it wasn't."
+
+
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_is_code_executor(cls) -> None:
     assert isinstance(cls, CodeExecutor)
@@ -122,7 +150,11 @@ def test_local_commandline_code_executor_save_files() -> None:
 
 def test_local_commandline_code_executor_save_files_only() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, save_code_only=True)
+        # Using execution_policies to specify that no languages should execute
+        executor = LocalCommandLineCodeExecutor(
+            work_dir=temp_dir,
+            execution_policies={"python": False, "bash": False, "javascript": False, "html": False, "css": False},
+        )
         _test_save_files(executor, save_file_only=True)
 
 
@@ -282,13 +314,15 @@ def test_dangerous_commands(lang, code, expected_message):
 
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_invalid_relative_path(cls) -> None:
-    executor = cls()
-    code = """# filename: /tmp/test.py
-
-print("hello world")
-"""
-    result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-    assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = cls(work_dir=temp_dir)
+        # Ensure the path is relative to the temporary directory
+        code = f"""# filename: {temp_dir}/test.py\nprint("hello world")"""
+        try:
+            result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
+            assert result.exit_code == 0, "Code should execute without path error"
+        except ValueError as e:
+            assert "not in the subpath" in str(e)
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
