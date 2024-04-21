@@ -316,13 +316,17 @@ def test_dangerous_commands(lang, code, expected_message):
 def test_invalid_relative_path(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = cls(work_dir=temp_dir)
-        # Ensure the path is relative to the temporary directory
-        code = f"""# filename: {temp_dir}/test.py\nprint("hello world")"""
+        # Set an intentionally invalid absolute path
+        code = """# filename: /not_valid_directory/test.py\nprint("hello world")"""
         try:
             result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-            assert result.exit_code == 0, "Code should execute without path error"
+            # Expecting to fail path validation
+            assert (
+                result.exit_code == 1 and "Filename is not in the workspace" in result.output
+            ), "Code should not execute with invalid path"
         except ValueError as e:
-            assert "not in the subpath" in str(e)
+            # Expecting a ValueError for the wrong path
+            assert "not in the subpath" in str(e), "Path validation should raise ValueError for an invalid path"
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
