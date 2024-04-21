@@ -1,29 +1,30 @@
 #!/usr/bin/env python3 -m pytest
 
 import os
+import sys
 import tempfile
 import unittest
-from unittest.mock import patch
-import sys
-import pytest
 from io import StringIO
+from unittest.mock import patch
+
+import pytest
+from conftest import skip_docker
 
 import autogen
 from autogen.code_utils import (
     UNKNOWN,
+    check_can_use_docker_or_throw,
     content_str,
+    decide_use_docker,
     execute_code,
     extract_code,
-    improve_code,
     get_powershell_command,
+    improve_code,
     improve_function,
+    in_docker_container,
     infer_lang,
     is_docker_running,
-    in_docker_container,
-    decide_use_docker,
-    check_can_use_docker_or_throw,
 )
-from conftest import skip_docker
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
@@ -577,24 +578,16 @@ class TestGetPowerShellCommand(unittest.TestCase):
         self.assertEqual(get_powershell_command(), "pwsh")
 
     @patch("subprocess.run")
-    @patch("logging.warning")
-    def test_get_powershell_command_windows_no_shell(self, mock_logging_warning, mock_subprocess_run):
-        # Set up the mock to simulate 'powershell' and 'pwsh' not found
+    def test_get_powershell_command_not_found(self, mock_subprocess_run):
         mock_subprocess_run.side_effect = [FileNotFoundError, FileNotFoundError]
-
-        with patch("autogen.code_utils.WIN32", True):
-            self.assertIsNone(get_powershell_command())
-            mock_logging_warning.assert_called_once_with(
-                "Neither powershell nor pwsh is installed but it is a Windows OS"
-            )
+        with self.assertRaises(FileNotFoundError):
+            get_powershell_command()
 
     @patch("subprocess.run")
-    def test_get_powershell_command_no_windows_no_shell(self, mock_subprocess_run):
-        # Set up the mock to simulate 'powershell' and 'pwsh' not found
-        mock_subprocess_run.side_effect = FileNotFoundError
-        # Mock WIN32 to False
-        with patch("autogen.code_utils.WIN32", False):
-            self.assertIsNone(get_powershell_command())
+    def test_get_powershell_command_no_permission(self, mock_subprocess_run):
+        mock_subprocess_run.side_effect = [PermissionError, FileNotFoundError]
+        with self.assertRaises(PermissionError):
+            get_powershell_command()
 
 
 if __name__ == "__main__":

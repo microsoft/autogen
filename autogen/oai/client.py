@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-import sys
-from typing import Any, List, Optional, Dict, Callable, Tuple, Union
-import logging
 import inspect
+import logging
+import sys
 import uuid
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple, Union
+
 from flaml.automl.logger import logger_formatter
-
 from pydantic import BaseModel
-from typing import Protocol
 
-from autogen.cache.cache import Cache
-from autogen.oai.openai_utils import get_key, is_valid_api_key, OAI_PRICE1K
-from autogen.token_count_utils import count_token
-
-from autogen.runtime_logging import logging_enabled, log_chat_completion, log_new_client, log_new_wrapper
+from autogen.cache import Cache
+from autogen.io.base import IOStream
 from autogen.logger.logger_utils import get_current_ts
+from autogen.oai.openai_utils import OAI_PRICE1K, get_key, is_valid_api_key
+from autogen.runtime_logging import log_chat_completion, log_new_client, log_new_wrapper, logging_enabled
+from autogen.token_count_utils import count_token
 
 TOOL_ENABLED = False
 try:
@@ -26,14 +25,15 @@ except ImportError:
     AzureOpenAI = object
 else:
     # raises exception if openai>=1 is installed and something is wrong with imports
-    from openai import OpenAI, AzureOpenAI, APIError, APITimeoutError, __version__ as OPENAIVERSION
+    from openai import APIError, APITimeoutError, AzureOpenAI, OpenAI
+    from openai import __version__ as OPENAIVERSION
     from openai.resources import Completions
     from openai.types.chat import ChatCompletion
     from openai.types.chat.chat_completion import ChatCompletionMessage, Choice  # type: ignore [attr-defined]
     from openai.types.chat.chat_completion_chunk import (
+        ChoiceDeltaFunctionCall,
         ChoiceDeltaToolCall,
         ChoiceDeltaToolCallFunction,
-        ChoiceDeltaFunctionCall,
     )
     from openai.types.completion import Completion
     from openai.types.completion_usage import CompletionUsage
@@ -41,6 +41,13 @@ else:
     if openai.__version__ >= "1.1.0":
         TOOL_ENABLED = True
     ERROR = None
+
+try:
+    from autogen.oai.gemini import GeminiClient
+
+    gemini_import_exception: Optional[ImportError] = None
+except ImportError as e:
+    gemini_import_exception = e
 
 logger = logging.getLogger(__name__)
 if not logger.handlers:
@@ -83,8 +90,7 @@ class ModelClient(Protocol):
         choices: List[Choice]
         model: str
 
-    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol:
-        ...  # pragma: no cover
+    def create(self, params: Dict[str, Any]) -> ModelClientResponseProtocol: ...  # pragma: no cover
 
     def message_retrieval(
         self, response: ModelClientResponseProtocol
@@ -97,8 +103,7 @@ class ModelClient(Protocol):
         """
         ...  # pragma: no cover
 
-    def cost(self, response: ModelClientResponseProtocol) -> float:
-        ...  # pragma: no cover
+    def cost(self, response: ModelClientResponseProtocol) -> float: ...  # pragma: no cover
 
     @staticmethod
     def get_usage(response: ModelClientResponseProtocol) -> Dict:
@@ -158,6 +163,8 @@ class OpenAIClient:
         Returns:
             The completion.
         """
+        iostream = IOStream.get_default()
+
         completions: Completions = self._oai_client.chat.completions if "messages" in params else self._oai_client.completions  # type: ignore [attr-defined]
         # If streaming is enabled and has messages, then iterate over the chunks of the response.
         if params.get("stream", False) and "messages" in params:
@@ -166,7 +173,7 @@ class OpenAIClient:
             completion_tokens = 0
 
             # Set the terminal text color to green
-            print("\033[32m", end="")
+            iostream.print("\033[32m", end="")
 
             # Prepare for potential function call
             full_function_call: Optional[Dict[str, Any]] = None
@@ -218,15 +225,15 @@ class OpenAIClient:
 
                         # If content is present, print it to the terminal and update response variables
                         if content is not None:
-                            print(content, end="", flush=True)
+                            iostream.print(content, end="", flush=True)
                             response_contents[choice.index] += content
                             completion_tokens += 1
                         else:
-                            # print()
+                            # iostream.print()
                             pass
 
             # Reset the terminal text color
-            print("\033[0m\n")
+            iostream.print("\033[0m\n")
 
             # Prepare the final ChatCompletion object based on the accumulated data
             model = chunk.model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
@@ -289,6 +296,8 @@ class OpenAIClient:
 
         n_input_tokens = response.usage.prompt_tokens if response.usage is not None else 0  # type: ignore [union-attr]
         n_output_tokens = response.usage.completion_tokens if response.usage is not None else 0  # type: ignore [union-attr]
+        if n_output_tokens is None:
+            n_output_tokens = 0
         tmp_price1K = OAI_PRICE1K[model]
         # First value is input token rate, second value is output token rate
         if isinstance(tmp_price1K, tuple):
@@ -423,6 +432,10 @@ class OpenAIWrapper:
                 self._configure_azure_openai(config, openai_config)
                 client = AzureOpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
+            elif api_type is not None and api_type.startswith("google"):
+                if gemini_import_exception:
+                    raise ImportError("Please install `google-generativeai` to use Google OpenAI API.")
+                self._clients.append(GeminiClient(**openai_config))
             else:
                 client = OpenAI(**openai_config)
                 self._clients.append(OpenAIClient(client))
@@ -516,7 +529,7 @@ class OpenAIWrapper:
                 The actual prompt will be:
                 "Complete the following sentence: Today I feel".
                 More examples can be found at [templating](/docs/Use-Cases/enhanced_inference#templating).
-            - cache (Cache | None): A Cache object to use for response cache. Default to None.
+            - cache (AbstractCache | None): A Cache object to use for response cache. Default to None.
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
@@ -805,6 +818,8 @@ class OpenAIWrapper:
             cost = response_usage["cost"]
             prompt_tokens = response_usage["prompt_tokens"]
             completion_tokens = response_usage["completion_tokens"]
+            if completion_tokens is None:
+                completion_tokens = 0
             total_tokens = response_usage["total_tokens"]
 
             if usage_summary is None:
@@ -827,25 +842,26 @@ class OpenAIWrapper:
 
     def print_usage_summary(self, mode: Union[str, List[str]] = ["actual", "total"]) -> None:
         """Print the usage summary."""
+        iostream = IOStream.get_default()
 
         def print_usage(usage_summary: Optional[Dict[str, Any]], usage_type: str = "total") -> None:
             word_from_type = "including" if usage_type == "total" else "excluding"
             if usage_summary is None:
-                print("No actual cost incurred (all completions are using cache).", flush=True)
+                iostream.print("No actual cost incurred (all completions are using cache).", flush=True)
                 return
 
-            print(f"Usage summary {word_from_type} cached usage: ", flush=True)
-            print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
+            iostream.print(f"Usage summary {word_from_type} cached usage: ", flush=True)
+            iostream.print(f"Total cost: {round(usage_summary['total_cost'], 5)}", flush=True)
             for model, counts in usage_summary.items():
                 if model == "total_cost":
                     continue  #
-                print(
+                iostream.print(
                     f"* Model '{model}': cost: {round(counts['cost'], 5)}, prompt_tokens: {counts['prompt_tokens']}, completion_tokens: {counts['completion_tokens']}, total_tokens: {counts['total_tokens']}",
                     flush=True,
                 )
 
         if self.total_usage_summary is None:
-            print('No usage summary. Please call "create" first.', flush=True)
+            iostream.print('No usage summary. Please call "create" first.', flush=True)
             return
 
         if isinstance(mode, list):
@@ -858,14 +874,14 @@ class OpenAIWrapper:
             elif "total" in mode:
                 mode = "total"
 
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
         if mode == "both":
             print_usage(self.actual_usage_summary, "actual")
-            print()
+            iostream.print()
             if self.total_usage_summary != self.actual_usage_summary:
                 print_usage(self.total_usage_summary, "total")
             else:
-                print(
+                iostream.print(
                     "All completions are non-cached: the total cost with cached completions is the same as actual cost.",
                     flush=True,
                 )
@@ -875,7 +891,7 @@ class OpenAIWrapper:
             print_usage(self.actual_usage_summary, "actual")
         else:
             raise ValueError(f'Invalid mode: {mode}, choose from "actual", "total", ["actual", "total"]')
-        print("-" * 100, flush=True)
+        iostream.print("-" * 100, flush=True)
 
     def clear_usage_summary(self) -> None:
         """Clear the usage summary."""

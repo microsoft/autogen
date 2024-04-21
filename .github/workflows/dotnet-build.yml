@@ -28,9 +28,9 @@ jobs:
       run:
         working-directory: dotnet
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: dotnet/global.json
     - name: Restore dependencies
@@ -53,9 +53,9 @@ jobs:
     if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
     needs: build
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         global-json-file: dotnet/global.json
     - name: Restore dependencies
@@ -83,12 +83,12 @@ jobs:
         echo "ls output directory"
         ls -R ./output
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: nightly
         path: ./dotnet/output/nightly
     - name: Upload package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: release
         path: ./dotnet/output/release
@@ -102,17 +102,17 @@ jobs:
     needs: openai-test
     steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '6.0.x'
         source-url: https://devdiv.pkgs.visualstudio.com/DevDiv/_packaging/AutoGen/nuget/v3/index.json
       env:
         NUGET_AUTH_TOKEN: ${{ secrets.AZURE_DEVOPS_TOKEN }}
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: nightly
         path: ./dotnet/output/nightly
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v4
       with:
         name: release
         path: ./dotnet/output/release

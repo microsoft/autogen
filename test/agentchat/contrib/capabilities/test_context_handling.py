@@ -1,12 +1,13 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import os
 import sys
+
+import pytest
+
 import autogen
-from autogen import token_count_utils
+from autogen import AssistantAgent, UserProxyAgent, token_count_utils
 from autogen.agentchat.contrib.capabilities.context_handling import TransformChatHistory
-from autogen import AssistantAgent, UserProxyAgent
 
 # from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
@@ -14,7 +15,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
-from test_assistant_agent import OAI_CONFIG_LIST, KEY_LOC  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
     from openai import OpenAI

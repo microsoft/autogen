@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai>=1.3",
+    "openai>=1.3,<1.21",
     "diskcache",
     "termcolor",
     "flaml",
@@ -26,6 +26,16 @@ install_requires = [
     "pydantic>=1.10,<3,!=2.6.0",  # could be both V1 and V2
     "docker",
 ]
+
+jupyter_executor = [
+    "jupyter-kernel-gateway",
+    "websocket-client",
+    "requests",
+    "jupyter-client>=8.6.0",
+    "ipykernel>=6.29.0",
+]
+
+rag = ["sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
 
 setuptools.setup(
     name="pyautogen",
@@ -47,23 +57,24 @@ setuptools.setup(
             "pre-commit",
             "pytest-asyncio",
             "pytest>=6.1.1,<8",
+            "pandas",
         ],
         "blendsearch": ["flaml[blendsearch]"],
         "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb", "sentence_transformers", "pypdf", "ipython"],
+        "retrievechat": ["chromadb"] + rag,
+        "retrievechat-pgvector": ["pgvector>=0.2.5", "psycopg>=3.1.18"] + rag,
+        "retrievechat-qdrant": ["qdrant_client[fastembed]"] + rag,
         "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
         "teachable": ["chromadb"],
         "lmm": ["replicate", "pillow"],
         "graph": ["networkx", "matplotlib"],
+        "gemini": ["google-generativeai>=0.5,<1", "pillow", "pydantic"],
         "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
         "redis": ["redis"],
-        "jupyter-executor": [
-            "jupyter-kernel-gateway",
-            "websocket-client",
-            "requests",
-            "jupyter-client>=8.6.0",
-            "ipykernel>=6.29.0",
-        ],
+        "cosmosdb": ["azure-cosmos>=4.2.0"],
+        "websockets": ["websockets>=12.0,<13"],
+        "jupyter-executor": jupyter_executor,
+        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
     },
     classifiers=[
         "Programming Language :: Python :: 3",

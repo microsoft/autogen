@@ -33,6 +33,11 @@ module.exports = {
     format: 'detect', // Support for MD files with .md extension
   },
   themeConfig: {
+    docs: {
+      sidebar: {
+        autoCollapseCategories: true,
+      },
+    },
     navbar: {
       title: "AutoGen",
       logo: {
@@ -41,60 +46,111 @@ module.exports = {
       },
       items: [
         {
-          type: "doc",
-          docId: "Getting-Started",
+          type: "dropdown",
           position: "left",
           label: "Docs",
+          items: [
+            {
+              type: "doc",
+              label: "Getting Started",
+              docId: "Getting-Started",
+            },
+            {
+              type: "doc",
+              label: "Installation",
+              docId: "installation/Installation",
+            },
+            {
+              type: "doc",
+              label: "Tutorial",
+              docId: "tutorial/introduction",
+            },
+            {
+              type: "doc",
+              label: "User Guide",
+              docId: "topics",
+            },
+            {
+              type: "doc",
+              docId: "reference/agentchat/conversable_agent",
+              label: "API Reference",
+            },
+            {
+              type: "doc",
+              docId: "FAQ",
+              label: "FAQs",
+            },
+            {
+              type: "doc",
+              docId: "ecosystem",
+              label: "Ecosystem",
+            },
+            {
+              type: "doc",
+              label: "Contributor Guide",
+              docId: "contributor-guide/contributing",
+            },
+            {
+              type: "doc",
+              label: "Research",
+              docId: "Research",
+            },
+          ],
         },
         {
-          type: "doc",
-          docId: "reference/agentchat/conversable_agent",
-          position: "left",
-          label: "API",
-        },
-        { to: "blog", label: "Blog", position: "left" },
-        {
-          type: "doc",
-          docId: "FAQ",
-          position: "left",
-          label: "FAQ",
-        },
-        // {
-        //   to: 'examples',
-        //   label: 'Examples',
-        // },
-        {
-          type: "doc",
-          docId: "Examples",
+          type: "dropdown",
           position: "left",
           label: "Examples",
-        },
-        {
-          to: "docs/notebooks",
-          position: "left",
-          label: "Notebooks",
-        },
-        {
-          type: "doc",
-          position: "left",
-          docId: "Gallery",
+          items: [
+            {
+              type: "doc",
+              label: "Examples by Category",
+              docId: "Examples",
+            },
+            {
+              type: "doc",
+              label: "Examples by Notebook",
+              docId: "notebooks",
+            },
+            {
+              type: "doc",
+              label: "Application Gallery",
+              docId: "Gallery",
+            },
+          ],
         },
         {
           label: "Other Languages",
           type: "dropdown",
-          position: "right",
+          position: "left",
           items: [
             {
               label: "Dotnet",
               href: "https://microsoft.github.io/autogen-for-net/",
             }
           ],
+
+        },
+        {
+          to: "blog",
+          label: "Blog",
+          position: "left",
         },
         {
           href: "https://github.com/microsoft/autogen",
           label: "GitHub",
           position: "right",
-        }
+        },
+        {
+          href: "https://aka.ms/autogen-dc",
+          label: "Discord",
+          position: "right",
+        },
+        {
+          href: "https://twitter.com/pyautogen",
+          label: "Twitter",
+          position: "right",
+        },
       ],
     },
     footer: {
@@ -118,7 +174,8 @@ module.exports = {
             //     // },
             {
               label: "Discord",
-              href: "https://discord.gg/pAbnFJrkgZ",
+              href: "https://aka.ms/autogen-dc",
+
             },
             {
               label: "Twitter",
@@ -137,6 +194,10 @@ module.exports = {
       textColor: '#091E42',
       isCloseable: true,
     },
+    /* Clarity Config */
+    clarity: {
+      ID: "lnxpe6skj1", // The Tracking ID provided by Clarity
+    }
   },
   presets: [
     [
@@ -194,10 +255,6 @@ module.exports = {
             from: ["/docs/llm_endpoint_configuration/"],
           },
           {
-            to: "/docs/ecosystem/memgpt/",
-            from: ["/docs/Ecosystem"],
-          },
-          {
             to: "/docs/Getting-Started",
             from: ["/docs/"],
           },
@@ -212,9 +269,26 @@ module.exports = {
           {
             to: "/docs/tutorial/what-next",
             from: ["/docs/tutorial/what-is-next"],
+          },
+          {
+            to: "/docs/topics/non-openai-models/local-lm-studio",
+            from: ["/docs/topics/non-openai-models/lm-studio"],
+          },
+          {
+            to: "/docs/notebooks/agentchat_nested_chats_chess",
+            from: ["/docs/notebooks/agentchat_chess"],
+          },
+          {
+            to: "/docs/contributor-guide/contributing",
+            from: ["/docs/Contribute"],
           }
         ],
       },
-    ]
+    ],
+    [
+      'docusaurus-plugin-clarity',
+      {
+      }
+    ],
   ],
 };

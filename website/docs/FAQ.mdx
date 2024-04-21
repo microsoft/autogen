@@ -1,4 +1,4 @@
-import TOCInline from '@theme/TOCInline';
+import TOCInline from "@theme/TOCInline";
 
 # Frequently Asked Questions
 
@@ -7,6 +7,7 @@ import TOCInline from '@theme/TOCInline';
 ## Install the correct package - `pyautogen`
 
 The name of Autogen package at PyPI is `pyautogen`:
+
 ```
 pip install pyautogen
 ```
@@ -50,6 +51,7 @@ Please refer to the [documentation](/docs/Use-Cases/enhanced_inference#runtime-e
 When you call `initiate_chat` the conversation restarts by default. You can use `send` or `initiate_chat(clear_history=False)` to continue the conversation.
 
 ## `max_consecutive_auto_reply` vs `max_turn` vs `max_round`
+
 - [`max_consecutive_auto_reply`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#max_consecutive_auto_reply) the maximum number of consecutive auto replie (a reply from an agent without human input is considered an auto reply). It plays a role when `human_input_mode` is not "ALWAYS".
 - [`max_turns` in `ConversableAgent.initiate_chat`](https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent#initiate_chat) limits the number of conversation turns between two conversable agents (without differentiating auto-reply and reply/input from human)
 - [`max_round` in GroupChat](https://microsoft.github.io/autogen/docs/reference/agentchat/groupchat#groupchat-objects) specifies the maximum number of rounds in a group chat session.
@@ -71,31 +73,46 @@ in the system message. This line is in the default system message of the `Assist
 If the `# filename` doesn't appear in the suggested code still, consider adding explicit instructions such as "save the code to disk" in the initial user message in `initiate_chat`.
 The `AssistantAgent` doesn't save all the code by default, because there are cases in which one would just like to finish a task without saving the code.
 
-## Code execution
+## Legacy code executor
 
-We strongly recommend using docker to execute code. There are two ways to use docker:
+:::note
+The new code executors offers more choices of execution backend.
+Read more about [code executors](/docs/tutorial/code-executors).
+:::
 
-1. Run AutoGen in a docker container. For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1), AutoGen runs in a docker container. If you are not developing in Github codespace, follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker) to install and run AutoGen in docker.
-2. Run AutoGen outside of a docker, while performing code execution with a docker container. For this option, make sure docker is up and running. If you want to run the code locally (not recommended) then `use_docker` can be set to `False` in `code_execution_config` for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an environment variable.
+The legacy code executor is used by specifying the `code_execution_config` in the agent's constructor.
 
-### Enable Python 3 docker image
-
-You might want to override the default docker image used for code execution. To do that set `use_docker` key of `code_execution_config` property to the name of the image. E.g.:
 ```python
-user_proxy = autogen.UserProxyAgent(
-    name="agent",
-    human_input_mode="TERMINATE",
-    max_consecutive_auto_reply=10,
+from autogen import UserProxyAgent
+
+user_proxy = UserProxyAgent(
+    name="user_proxy",
     code_execution_config={"work_dir":"_output", "use_docker":"python:3"},
-    llm_config=llm_config,
-    system_message=""""Reply TERMINATE if the task has been solved at full satisfaction.
-Otherwise, reply CONTINUE, or the reason why the task is not solved yet."""
 )
 ```
 
-If you have problems with agents running `pip install` or get errors similar to `Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`, you can choose **'python:3'** as image as shown in the code example above and that should solve the problem.
+In this example, the `code_execution_config` specifies that the code will be
+executed in a docker container with the image `python:3`.
+By default, the image name is `python:3-slim` if not specified.
+The `work_dir` specifies the directory where the code will be executed.
+If you have problems with agents running `pip install` or get errors similar to
+`Error while fetching server API version: ('Connection aborted.', FileNotFoundError(2, 'No such file or directory')`,
+you can choose **'python:3'** as image as shown in the code example above and
+that should solve the problem.
 
-### Agents keep thanking each other when using `gpt-3.5-turbo`
+By default it runs code in a docker container. If you want to run code locally
+(not recommended) then `use_docker` can be set to `False` in `code_execution_config`
+for each code-execution agent, or set `AUTOGEN_USE_DOCKER` to `False` as an
+environment variable.
+
+You can also develop your AutoGen application in a docker container.
+For example, when developing in [GitHub codespace](https://codespaces.new/microsoft/autogen?quickstart=1),
+AutoGen runs in a docker container.
+If you are not developing in GitHub Codespaces,
+follow instructions [here](installation/Docker.md#option-1-install-and-run-autogen-in-docker)
+to install and run AutoGen in docker.
+
+## Agents keep thanking each other when using `gpt-3.5-turbo`
 
 When using `gpt-3.5-turbo` you may often encounter agents going into a "gratitude loop", meaning when they complete a task they will begin congratulating and thanking each other in a continuous loop. This is a limitation in the performance of `gpt-3.5-turbo`, in contrast to `gpt-4` which has no problem remembering instructions. This can hinder the experimentation experience when trying to test out your own use case with cheaper models.
 
@@ -120,6 +137,7 @@ prompt += termination_notice
 (from [issue #251](https://github.com/microsoft/autogen/issues/251))
 
 Code examples that use chromadb (like retrieval) fail in codespaces due to a sqlite3 requirement.
+
 ```
 >>> import chromadb
 Traceback (most recent call last):
@@ -131,6 +149,7 @@ Please visit https://docs.trychroma.com/troubleshooting#sqlite to learn how to u
 ```
 
 Workaround:
+
 1. `pip install pysqlite3-binary`
 2. `mkdir /home/vscode/.local/lib/python3.10/site-packages/google/colab`
 
@@ -142,7 +161,8 @@ Explanation: Per [this gist](https://gist.github.com/defulmere/8b9695e415a442710
 
 See here https://microsoft.github.io/autogen/docs/reference/agentchat/conversable_agent/#register_reply
 
- For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
+For example, you can register a reply function that gets called when `generate_reply` is called for an agent.
+
 ```python
 def print_messages(recipient, messages, sender, config):
     if "callback" in config and  config["callback"] is not None:
@@ -163,6 +183,7 @@ assistant.register_reply(
     config={"callback": None},
 )
 ```
+
 In the above, we register a `print_messages` function that is called each time the agent's `generate_reply` is triggered after receiving a message.
 
 ## How to get last message ?
@@ -237,3 +258,13 @@ user_proxy = autogen.UserProxyAgent(
     name="agent", llm_config=llm_config,
     code_execution_config={"work_dir":"coding", "use_docker":False})
 ```
+
+## Migrating from `CompressibleAgent` and `TransformChatHistory` to `TransformMessages`
+
+### Why migrate to `TransformMessages`?
+
+Migrating enhances flexibility, modularity, and customization in handling chat message transformations. `TransformMessages` introduces an improved, extensible approach for pre-processing messages for conversational agents.
+
+### How to migrate?
+
+To ensure a smooth migration process, simply follow the detailed guide provided in [Handling Long Context Conversations with Transform Messages](/docs/topics/long_contexts.md).

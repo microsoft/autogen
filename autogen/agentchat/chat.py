@@ -1,12 +1,15 @@
 import asyncio
+import datetime
 import logging
-from collections import defaultdict
-from typing import Dict, List, Any, Set, Tuple
-from dataclasses import dataclass
 import warnings
-from termcolor import colored
-from .utils import consolidate_chat_info
+from collections import abc, defaultdict
+from dataclasses import dataclass
+from functools import partial
+from typing import Any, Dict, List, Set, Tuple
 
+from ..formatting_utils import colored
+from ..io.base import IOStream
+from .utils import consolidate_chat_info
 
 logger = logging.getLogger(__name__)
 Prerequisite = Tuple[int, int]
@@ -22,8 +25,12 @@ class ChatResult:
     """The chat history."""
     summary: str = None
     """A summary obtained from the chat."""
-    cost: tuple = None  # (dict, dict) - (total_cost, actual_cost_with_cache)
-    """The cost of the chat. a tuple of (total_cost, total_actual_cost), where total_cost is a dictionary of cost information, and total_actual_cost is a dictionary of information on the actual incurred cost with cache."""
+    cost: Dict[str, dict] = None  # keys: "usage_including_cached_inference", "usage_excluding_cached_inference"
+    """The cost of the chat.
+       The value for each usage type is a dictionary containing cost information for that specific type.
+           - "usage_including_cached_inference": Cost information on the total usage, including the tokens in cached inference.
+           - "usage_excluding_cached_inference": Cost information on the usage of tokens, excluding the tokens in cache. No larger than "usage_including_cached_inference".
+    """
     human_input: List[str] = None
     """A list of human input solicited during the chat."""
 
@@ -100,7 +107,9 @@ def __find_async_chat_order(chat_ids: Set[int], prerequisites: List[Prerequisite
     return chat_order
 
 
-def __post_carryover_processing(chat_info: Dict[str, Any]):
+def __post_carryover_processing(chat_info: Dict[str, Any]) -> None:
+    iostream = IOStream.get_default()
+
     if "message" not in chat_info:
         warnings.warn(
             "message is not provided in a chat_queue entry. input() will be called to get the initial message.",
@@ -120,38 +129,51 @@ def __post_carryover_processing(chat_info: Dict[str, Any]):
         print_message = "Dict: " + str(message)
     elif message is None:
         print_message = "None"
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
-    print(
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    iostream.print(
         colored(
-            "Starting a new chat....\n\nMessage:\n" + print_message + "\n\nCarryover: \n" + print_carryover,
+            "Starting a new chat....",
             "blue",
         ),
         flush=True,
     )
-    print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
+    if chat_info.get("verbose", False):
+        iostream.print(colored("Message:\n" + print_message, "blue"), flush=True)
+        iostream.print(colored("Carryover:\n" + print_carryover, "blue"), flush=True)
+    iostream.print(colored("\n" + "*" * 80, "blue"), flush=True, sep="")
 
 
 def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     """Initiate a list of chats.
-
     Args:
-        chat_queue (List[Dict]): a list of dictionaries containing the information of the chats.
-                Each dictionary should contain the input arguments for `ConversableAgent.initiate_chat`.
-                More specifically, each dictionary could include the following fields:
-                - "sender": the sender agent.
-                - "recipient": the recipient agent.
-                - "clear_history" (bool): whether to clear the chat history with the agent. Default is True.
-                - "silent" (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
-                - "cache" (Cache or None): the cache client to be used for this conversation. Default is None.
-                - "max_turns" (int or None): the maximum number of turns for the chat. If None, the chat will continue until a termination condition is met. Default is None.
-                - "summary_method" (str or callable): a string or callable specifying the method to get a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
-                - "summary_args" (dict): a dictionary of arguments to be passed to the summary_method. Default is {}.
-                - "message" (str, callable or None): if None, input() will be called to get the initial message.
-                - **context: additional context information to be passed to the chat.
-                        - "carryover": It can be used to specify the carryover information to be passed to this chat.
-                        If provided, we will combine this carryover with the "message" content when generating the initial chat
-                            message in `generate_init_message`.
+        chat_queue (List[Dict]): A list of dictionaries containing the information about the chats.
 
+        Each dictionary should contain the input arguments for
+        [`ConversableAgent.initiate_chat`](/docs/reference/agentchat/conversable_agent#initiate_chat).
+        For example:
+            - `"sender"` - the sender agent.
+            - `"recipient"` - the recipient agent.
+            - `"clear_history"  (bool) - whether to clear the chat history with the agent.
+               Default is True.
+            - `"silent"` (bool or None) - (Experimental) whether to print the messages in this
+               conversation. Default is False.
+            - `"cache"` (Cache or None) - the cache client to use for this conversation.
+               Default is None.
+            - `"max_turns"` (int or None) - maximum number of turns for the chat. If None, the chat
+               will continue until a termination condition is met. Default is None.
+            - `"summary_method"` (str or callable) - a string or callable specifying the method to get
+               a summary from the chat. Default is DEFAULT_summary_method, i.e., "last_msg".
+            - `"summary_args"` (dict) - a dictionary of arguments to be passed to the summary_method.
+               Default is {}.
+            - `"message"` (str, callable or None) - if None, input() will be called to get the
+               initial message.
+            - `**context` - additional context information to be passed to the chat.
+            - `"carryover"` - It can be used to specify the carryover information to be passed
+               to this chat. If provided, we will combine this carryover with the "message" content when
+               generating the initial chat message in `generate_init_message`.
+            - `"finished_chat_indexes_to_exclude_from_carryover"` - It can be used by specifying a list of indexes of the finished_chats list,
+               from which to exclude the summaries for carryover. If 'finished_chat_indexes_to_exclude_from_carryover' is not provided or an empty list,
+               then summary from all the finished chats will be taken.
     Returns:
         (list): a list of ChatResult objects corresponding to the finished chats in the chat_queue.
     """
@@ -163,9 +185,16 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     while current_chat_queue:
         chat_info = current_chat_queue.pop(0)
         _chat_carryover = chat_info.get("carryover", [])
+        finished_chat_indexes_to_exclude_from_carryover = chat_info.get(
+            "finished_chat_indexes_to_exclude_from_carryover", []
+        )
+
         if isinstance(_chat_carryover, str):
             _chat_carryover = [_chat_carryover]
-        chat_info["carryover"] = _chat_carryover + [r.summary for r in finished_chats]
+        chat_info["carryover"] = _chat_carryover + [
+            r.summary for i, r in enumerate(finished_chats) if i not in finished_chat_indexes_to_exclude_from_carryover
+        ]
+
         __post_carryover_processing(chat_info)
         sender = chat_info["sender"]
         chat_res = sender.initiate_chat(**chat_info)
@@ -173,41 +202,78 @@ def initiate_chats(chat_queue: List[Dict[str, Any]]) -> List[ChatResult]:
     return finished_chats
 
 
+def __system_now_str():
+    ct = datetime.datetime.now()
+    return f" System time at {ct}. "
+
+
+def _on_chat_future_done(chat_future: asyncio.Future, chat_id: int):
+    """
+    Update ChatResult when async Task for Chat is completed.
+    """
+    logger.debug(f"Update chat {chat_id} result on task completion." + __system_now_str())
+    chat_result = chat_future.result()
+    chat_result.chat_id = chat_id
+
+
+async def _dependent_chat_future(
+    chat_id: int, chat_info: Dict[str, Any], prerequisite_chat_futures: Dict[int, asyncio.Future]
+) -> asyncio.Task:
+    """
+    Create an async Task for each chat.
+    """
+    logger.debug(f"Create Task for chat {chat_id}." + __system_now_str())
+    _chat_carryover = chat_info.get("carryover", [])
+    finished_chats = dict()
+    for chat in prerequisite_chat_futures:
+        chat_future = prerequisite_chat_futures[chat]
+        if chat_future.cancelled():
+            raise RuntimeError(f"Chat {chat} is cancelled.")
+
+        # wait for prerequisite chat results for the new chat carryover
+        finished_chats[chat] = await chat_future
+
+    if isinstance(_chat_carryover, str):
+        _chat_carryover = [_chat_carryover]
+    chat_info["carryover"] = _chat_carryover + [finished_chats[pre_id].summary for pre_id in finished_chats]
+    __post_carryover_processing(chat_info)
+    sender = chat_info["sender"]
+    chat_res_future = asyncio.create_task(sender.a_initiate_chat(**chat_info))
+    call_back_with_args = partial(_on_chat_future_done, chat_id=chat_id)
+    chat_res_future.add_done_callback(call_back_with_args)
+    logger.debug(f"Task for chat {chat_id} created." + __system_now_str())
+    return chat_res_future
+
+
 async def a_initiate_chats(chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
     """(async) Initiate a list of chats.
 
     args:
-        Please refer to `initiate_chats`.
+        - Please refer to `initiate_chats`.
 
 
     returns:
-        (Dict): a dict of ChatId: ChatResult corresponding to the finished chats in the chat_queue.
+        - (Dict): a dict of ChatId: ChatResult corresponding to the finished chats in the chat_queue.
     """
-
     consolidate_chat_info(chat_queue)
     _validate_recipients(chat_queue)
     chat_book = {chat_info["chat_id"]: chat_info for chat_info in chat_queue}
     num_chats = chat_book.keys()
     prerequisites = __create_async_prerequisites(chat_queue)
     chat_order_by_id = __find_async_chat_order(num_chats, prerequisites)
-    finished_chats = dict()
+    finished_chat_futures = dict()
     for chat_id in chat_order_by_id:
         chat_info = chat_book[chat_id]
-        condition = asyncio.Condition()
         prerequisite_chat_ids = chat_info.get("prerequisites", [])
-        async with condition:
-            await condition.wait_for(lambda: all([id in finished_chats for id in prerequisite_chat_ids]))
-            # Do the actual work here.
-            _chat_carryover = chat_info.get("carryover", [])
-            if isinstance(_chat_carryover, str):
-                _chat_carryover = [_chat_carryover]
-            chat_info["carryover"] = _chat_carryover + [
-                finished_chats[pre_id].summary for pre_id in prerequisite_chat_ids
-            ]
-            __post_carryover_processing(chat_info)
-            sender = chat_info["sender"]
-            chat_res = await sender.a_initiate_chat(**chat_info)
-            chat_res.chat_id = chat_id
-            finished_chats[chat_id] = chat_res
-
+        pre_chat_futures = dict()
+        for pre_chat_id in prerequisite_chat_ids:
+            pre_chat_future = finished_chat_futures[pre_chat_id]
+            pre_chat_futures[pre_chat_id] = pre_chat_future
+        current_chat_future = await _dependent_chat_future(chat_id, chat_info, pre_chat_futures)
+        finished_chat_futures[chat_id] = current_chat_future
+    await asyncio.gather(*list(finished_chat_futures.values()))
+    finished_chats = dict()
+    for chat in finished_chat_futures:
+        chat_result = finished_chat_futures[chat].result()
+        finished_chats[chat] = chat_result
     return finished_chats

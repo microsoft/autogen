@@ -2,31 +2,26 @@
 
 import asyncio
 import copy
+import inspect
+import os
 import sys
 import time
-from typing import Any, Callable, Dict, Literal
 import unittest
-import inspect
+from typing import Any, Callable, Dict, Literal
 from unittest.mock import MagicMock
 
 import pytest
-from unittest.mock import patch
 from pydantic import BaseModel, Field
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from typing_extensions import Annotated
+
 import autogen
-import os
 from autogen.agentchat import ConversableAgent, UserProxyAgent
 from autogen.agentchat.conversable_agent import register_function
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai
 
-try:
-    import openai
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -921,14 +916,14 @@ def test_register_functions():
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=reason,
 )
 def test_function_registration_e2e_sync() -> None:
     config_list = autogen.config_list_from_json(
         OAI_CONFIG_LIST,
         filter_dict={
-            "model": ["gpt-4", "gpt-4-0314", "gpt4", "gpt-4-32k", "gpt-4-32k-0314", "gpt-4-32k-v0314"],
+            "tags": ["tool"],
         },
         file_location=KEY_LOC,
     )
@@ -990,16 +985,16 @@ def test_function_registration_e2e_sync() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     user_proxy.initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 2 seconds and then a stopwatch for 3 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="2")
-    stopwatch_mock.assert_called_once_with(num_seconds="3")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
 @pytest.mark.skipif(
-    skip or not sys.version.startswith("3.10"),
-    reason="do not run if openai is not installed or py!=3.10",
+    skip_openai,
+    reason=reason,
 )
 @pytest.mark.asyncio()
 async def test_function_registration_e2e_async() -> None:
@@ -1068,22 +1063,22 @@ async def test_function_registration_e2e_async() -> None:
     # With 'await', the async function is executed and the current function is paused until the awaited function returns a result.
     await user_proxy.a_initiate_chat(  # noqa: F704
         coder,
-        message="Create a timer for 4 seconds and then a stopwatch for 5 seconds.",
+        message="Create a timer for 1 second and then a stopwatch for 2 seconds.",
     )
 
-    timer_mock.assert_called_once_with(num_seconds="4")
-    stopwatch_mock.assert_called_once_with(num_seconds="5")
+    timer_mock.assert_called_once_with(num_seconds="1")
+    stopwatch_mock.assert_called_once_with(num_seconds="2")
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"model": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         max_consecutive_auto_reply=10,
-        llm_config={"timeout": 600, "cache_seed": 41, "config_list": config_list},
+        llm_config={"config_list": config_list},
     )
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
@@ -1097,7 +1092,7 @@ def test_max_turn():
     assert len(res.chat_history) <= 6
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_message_func():
     import random
 
@@ -1153,7 +1148,7 @@ def test_message_func():
     print(chat_res_play.summary)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_summary():
     import random
 
@@ -1165,8 +1160,7 @@ def test_summary():
             return random.randint(0, 100)
 
     config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
+        OAI_CONFIG_LIST, file_location=KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]}
     )
 
     def my_message_play(sender, recipient, context):
@@ -1268,6 +1262,54 @@ def test_messages_with_carryover():
     with pytest.raises(InvalidCarryOverType):
         agent1.generate_init_message(**context)
 
+    # Test multimodal messages
+    mm_content = [
+        {"type": "text", "text": "hello"},
+        {"type": "text", "text": "goodbye"},
+        {
+            "type": "image_url",
+            "image_url": {"url": "https://example.com/image.png"},
+        },
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(
+        message=mm_message,
+        carryover="Testing carryover.",
+    )
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=["Testing carryover.", "This should pass"])
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 4
+
+    context = dict(message=mm_message, carryover=3)
+    with pytest.raises(InvalidCarryOverType):
+        agent1.generate_init_message(**context)
+
+    # Test without carryover
+    print(mm_message)
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 3
+
+    # Test without text in multimodal message
+    mm_content = [
+        {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}},
+    ]
+    mm_message = {"content": mm_content}
+    context = dict(message=mm_message)
+    generated_message = agent1.generate_init_message(**context)
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 1
+
+    generated_message = agent1.generate_init_message(**context, carryover="Testing carryover.")
+    assert isinstance(generated_message, dict)
+    assert len(generated_message["content"]) == 2
+
 
 if __name__ == "__main__":
     # test_trigger()
@@ -1278,5 +1320,6 @@ if __name__ == "__main__":
     # test_no_llm_config()
     # test_max_turn()
     # test_process_before_send()
-    test_message_func()
+    # test_message_func()
     test_summary()
+    # test_function_registration_e2e_sync()

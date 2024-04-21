@@ -1,8 +1,10 @@
 import time
-from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
-from autogencap.DebugLog import Info
+
 from autogencap.ag_adapter.CAPPair import CAPPair
+from autogencap.DebugLog import Info
 from autogencap.LocalActorNetwork import LocalActorNetwork
+
+from autogen import AssistantAgent, UserProxyAgent, config_list_from_json
 
 
 def cap_ag_pair_demo():
@@ -23,6 +25,8 @@ def cap_ag_pair_demo():
     # Wait for the pair to finish
     try:
         while pair.running():
+            # Hang out for a while and print out
+            # status every now and then
             time.sleep(0.5)
     except KeyboardInterrupt:
         print("Interrupted by user, shutting down.")

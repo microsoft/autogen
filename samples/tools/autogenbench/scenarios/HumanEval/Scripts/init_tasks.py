@@ -3,13 +3,14 @@
 # (default: ../scenarios/human_eval_two_agents_gpt4.jsonl and ./scenarios/human_eval_two_agents_gpt35.jsonl)
 #
 
-import requests
+import base64
 import gzip
 import io
 import json
 import os
 import re
-import base64
+
+import requests
 
 URL = "https://github.com/openai/human-eval/raw/master/data/HumanEval.jsonl.gz"
 

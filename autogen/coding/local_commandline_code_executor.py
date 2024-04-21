@@ -1,31 +1,48 @@
-from hashlib import md5
-import os
-from pathlib import Path
+import logging
 import re
+import subprocess
 import sys
-import uuid
 import warnings
-from typing import ClassVar, List, Union
+from hashlib import md5
+from pathlib import Path
+from string import Template
+from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
 
-from ..agentchat.agent import LLMAgent
-from ..code_utils import TIMEOUT_MSG, WIN32, _cmd, execute_code
+from typing_extensions import ParamSpec
+
+from autogen.coding.func_with_reqs import (
+    FunctionWithRequirements,
+    FunctionWithRequirementsStr,
+    _build_python_functions_file,
+    to_stub,
+)
+
+from ..code_utils import PYTHON_VARIANTS, TIMEOUT_MSG, WIN32, _cmd
 from .base import CodeBlock, CodeExecutor, CodeExtractor, CommandLineCodeResult
 from .markdown_code_extractor import MarkdownCodeExtractor
-
-from .utils import _get_file_name_from_content
-
-import subprocess
+from .utils import _get_file_name_from_content, silence_pip
 
 __all__ = ("LocalCommandLineCodeExecutor",)
+
+A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
+    FUNCTION_PROMPT_TEMPLATE: ClassVar[
+        str
+    ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
+
+For example, if there was a function called `foo` you could import it by writing `from $module_name import foo`
+
+$functions"""
 
     def __init__(
         self,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
+        functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
+        functions_module: str = "functions",
     ):
         """(Experimental) A code executor class that executes code through a local command line
         environment.
@@ -48,6 +65,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             work_dir (str): The working directory for the code execution. If None,
                 a default working directory will be used. The default working
                 directory is the current directory ".".
+            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         """
 
         if timeout < 1:
@@ -56,11 +74,54 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if not work_dir.exists():
-            raise ValueError(f"Working directory {work_dir} does not exist.")
+        if not functions_module.isidentifier():
+            raise ValueError("Module name must be a valid Python identifier")
+
+        self._functions_module = functions_module
+
+        work_dir.mkdir(exist_ok=True)
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+
+        self._functions = functions
+        # Setup could take some time so we intentionally wait for the first code block to do it.
+        if len(functions) > 0:
+            self._setup_functions_complete = False
+        else:
+            self._setup_functions_complete = True
+
+    def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
+        """(Experimental) Format the functions for a prompt.
+
+        The template includes two variables:
+        - `$module_name`: The module name.
+        - `$functions`: The functions formatted as stubs with two newlines between each function.
+
+        Args:
+            prompt_template (str): The prompt template. Default is the class default.
+
+        Returns:
+            str: The formatted prompt.
+        """
+
+        template = Template(prompt_template)
+        return template.substitute(
+            module_name=self._functions_module,
+            functions="\n\n".join([to_stub(func) for func in self._functions]),
+        )
+
+    @property
+    def functions_module(self) -> str:
+        """(Experimental) The module name for the functions."""
+        return self._functions_module
+
+    @property
+    def functions(
+        self,
+    ) -> List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]:
+        """(Experimental) The functions that are available to the code executor."""
+        return self._functions
 
     @property
     def timeout(self) -> int:
@@ -99,6 +160,39 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 if re.search(pattern, code):
                     raise ValueError(f"Potentially dangerous command detected: {message}")
 
+    def _setup_functions(self) -> None:
+        func_file_content = _build_python_functions_file(self._functions)
+        func_file = self._work_dir / f"{self._functions_module}.py"
+        func_file.write_text(func_file_content)
+
+        # Collect requirements
+        lists_of_packages = [x.python_packages for x in self._functions if isinstance(x, FunctionWithRequirements)]
+        flattened_packages = [item for sublist in lists_of_packages for item in sublist]
+        required_packages = list(set(flattened_packages))
+        if len(required_packages) > 0:
+            logging.info("Ensuring packages are installed in executor.")
+
+            cmd = [sys.executable, "-m", "pip", "install"]
+            cmd.extend(required_packages)
+
+            try:
+                result = subprocess.run(
+                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                )
+            except subprocess.TimeoutExpired as e:
+                raise ValueError("Pip install timed out") from e
+
+            if result.returncode != 0:
+                raise ValueError(f"Pip install failed. {result.stdout}, {result.stderr}")
+
+        # Attempt to load the function file to check for syntax errors, imports etc.
+        exec_result = self._execute_code_dont_check_setup([CodeBlock(code=func_file_content, language="python")])
+
+        if exec_result.exit_code != 0:
+            raise ValueError(f"Functions failed to load: {exec_result.output}")
+
+        self._setup_functions_complete = True
+
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
@@ -107,6 +201,13 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
+
+        if not self._setup_functions_complete:
+            self._setup_functions()
+
+        return self._execute_code_dont_check_setup(code_blocks)
+
+    def _execute_code_dont_check_setup(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
         logs_all = ""
         file_names = []
         for code_block in code_blocks:
@@ -114,6 +215,10 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             lang = lang.lower()
 
             LocalCommandLineCodeExecutor.sanitize_command(lang, code)
+            code = silence_pip(code, lang)
+
+            if lang in PYTHON_VARIANTS:
+                lang = "python"
 
             if WIN32 and lang in ["sh", "shell"]:
                 lang = "ps1"
@@ -136,7 +241,8 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
 
             written_file = (self._work_dir / filename).resolve()
-            written_file.open("w", encoding="utf-8").write(code)
+            with written_file.open("w", encoding="utf-8") as f:
+                f.write(code)
             file_names.append(written_file)
 
             program = sys.executable if lang.startswith("python") else _cmd(lang)
@@ -169,12 +275,12 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
 # From stack overflow: https://stackoverflow.com/a/52087847/2214524
 class _DeprecatedClassMeta(type):
-    def __new__(cls, name, bases, classdict, *args, **kwargs):
+    def __new__(cls, name, bases, classdict, *args, **kwargs):  # type: ignore[no-untyped-def]
         alias = classdict.get("_DeprecatedClassMeta__alias")
 
         if alias is not None:
 
-            def new(cls, *args, **kwargs):
+            def new(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
                 alias = getattr(cls, "_DeprecatedClassMeta__alias")
 
                 if alias is not None:
@@ -208,14 +314,14 @@ class _DeprecatedClassMeta(type):
             if b not in fixed_bases:
                 fixed_bases.append(b)
 
-        fixed_bases = tuple(fixed_bases)
+        fixed_bases = tuple(fixed_bases)  # type: ignore[assignment]
 
-        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)
+        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)  # type: ignore[call-overload]
 
-    def __instancecheck__(cls, instance):
-        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})
+    def __instancecheck__(cls, instance):  # type: ignore[no-untyped-def]
+        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})  # type: ignore[no-untyped-call]
 
-    def __subclasscheck__(cls, subclass):
+    def __subclasscheck__(cls, subclass):  # type: ignore[no-untyped-def]
         if subclass is cls:
             return True
         else:

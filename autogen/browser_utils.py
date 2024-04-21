@@ -1,14 +1,15 @@
-import json
-import os
-import requests
-import re
-import markdownify
 import io
-import uuid
+import json
 import mimetypes
+import os
+import re
+import uuid
+from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin, urlparse
+
+import markdownify
+import requests
 from bs4 import BeautifulSoup
-from typing import Any, Dict, List, Optional, Union, Tuple
 
 # Optional PDF support
 IS_PDF_CAPABLE = False
@@ -35,6 +36,7 @@ class SimpleTextBrowser:
         start_page: Optional[str] = None,
         viewport_size: Optional[int] = 1024 * 8,
         downloads_folder: Optional[Union[str, None]] = None,
+        bing_base_url: str = "https://api.bing.microsoft.com/v7.0/search",
         bing_api_key: Optional[Union[str, None]] = None,
         request_kwargs: Optional[Union[Dict[str, Any], None]] = None,
     ):
@@ -46,6 +48,7 @@ class SimpleTextBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self.set_address(self.start_page)
+        self.bing_base_url = bing_base_url
         self.bing_api_key = bing_api_key
         self.request_kwargs = request_kwargs
 
@@ -144,7 +147,7 @@ class SimpleTextBrowser:
         request_kwargs["stream"] = False
 
         # Make the request
-        response = requests.get("https://api.bing.microsoft.com/v7.0/search", **request_kwargs)
+        response = requests.get(self.bing_base_url, **request_kwargs)
         response.raise_for_status()
         results = response.json()
 
