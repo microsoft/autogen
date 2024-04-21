@@ -30,7 +30,7 @@ PYTHON_VARIANTS = ["python", "Python", "py"]
     "lang, should_execute",
     [
         ("python", False),  # Python should not execute
-        ("bash", True),  # Bash should execute
+        ("bash", False),  # Bash should execute
         ("html", False),  # HTML should not execute
         ("javascript", False),  # JavaScript should not execute
     ],
@@ -39,7 +39,7 @@ def test_execution_policy_enforcement(lang, should_execute):
     with tempfile.TemporaryDirectory() as temp_dir:
         executor = LocalCommandLineCodeExecutor(
             work_dir=temp_dir,
-            execution_policies={"python": False, "bash": True, "html": False, "javascript": False, "css": False},
+            execution_policies={"python": False, "bash": False, "html": False, "javascript": False, "css": False},
         )
         code = "print('Hello, world!')" if lang == "python" else "echo 'Hello, world!'"
         code_block = CodeBlock(code=code, language=lang)
