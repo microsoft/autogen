@@ -5,18 +5,18 @@ from autogen.experimental.types import AssistantMessage, FunctionCallMessage, Us
 async def legacy_run_in_terminal(chat: ChatOrchestratorStream) -> str:
     print("\n")
     while not chat.done:
-        step = await chat.step()
-        print(f"{step.__class__.__name__}:\n")
+        message = await chat.step()
+        print(f"{message.__class__.__name__}:\n")
 
         content = None
 
-        if isinstance(step, UserMessage) or isinstance(step, AssistantMessage):
-            if isinstance(step.content, str):
-                content = step.content
+        if isinstance(message, UserMessage) or isinstance(message, AssistantMessage):
+            if isinstance(message.content, str):
+                content = message.content
 
-        elif isinstance(step, FunctionCallMessage):
+        elif isinstance(message, FunctionCallMessage):
             content = ""
-            call_results = step.call_results
+            call_results = message.call_results
             for call_result in call_results:
                 content += call_result.content + "\n"
 
