@@ -55,9 +55,13 @@ If it looks like the task is done and the code has already been executed you can
     # print(chat.termination_result)
 
     termination_result = chat.termination_result
+
     print("--Chat Terminated--")
-    print(termination_result.reason)
-    print(termination_result.explanation)
+    if termination_result is not None:
+        print(termination_result.reason)
+        print(termination_result.explanation)
+    else:
+        print("No termination result")
 
 
 if __name__ == "__main__":
