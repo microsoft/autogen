@@ -239,8 +239,12 @@ $functions"""
                 break
 
             execute_code = self.execution_policies.get(lang, False)
-            # Check if there is a filename comment
-            filename = _get_file_name_from_content(code, self._work_dir)
+            try:
+                # Check if there is a filename comment
+                filename = _get_file_name_from_content(code, self._work_dir)
+            except ValueError:
+                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
+
             if filename is None:
                 # create a file with an automatically generated name
                 code_hash = md5(code.encode()).hexdigest()
