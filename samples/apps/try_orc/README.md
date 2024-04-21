@@ -38,3 +38,11 @@ There are several demos available:
 | `demo_orc_twoagents.py`   | text   | coder, computer terminal   |
 | `demo_orc_mdwebsurfer.py`   | text   | \+ web surfer (md)  |
 | `demo_orc_mmwebsurfer.py`   | mm   | web surfer (md) &rarr; web surfer (mm) |
+
+
+*Note*: Multi-modal webbrowser requires playwright. You can install it using the following instructions:
+
+```
+pip install playwright
+playwright install --with-deps chromium
+```
