@@ -43,6 +43,12 @@ namespace AutoGen.Tests
             await Example13_OpenAIAgent_JsonMode.RunAsync();
         }
 
+        [ApiKeyFact("MISTRAL_API_KEY")]
+        public async Task MistralClientAgent_TokenCount()
+        {
+            await Example14_MistralClientAgent_TokenCount.RunAsync();
+        }
+
         [ApiKeyFact("OPENAI_API_KEY")]
         public async Task DynamicGroupChatGetMLNetPRTestAsync()
         {
