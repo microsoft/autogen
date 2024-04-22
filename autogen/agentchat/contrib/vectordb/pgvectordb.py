@@ -575,17 +575,24 @@ class PGVectorDB(VectorDB):
         try:
             if connection_string:
                 parsed_connection = urllib.parse.urlparse(connection_string)
-                encoded_username = urllib.parse.quote(parsed_connection.username, safe='')
-                encoded_password = urllib.parse.quote(parsed_connection.password, safe='')
-                encoded_host = urllib.parse.quote(parsed_connection.hostname, safe='')
-                encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe='')
-                connection_string_encoded = (f"{parsed_connection.scheme}://{encoded_username}:{encoded_password}"
-                                             f"@{encoded_host}:{parsed_connection.port}/{encoded_database}")
+                encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
+                encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
+                encoded_host = urllib.parse.quote(parsed_connection.hostname, safe="")
+                encoded_database = urllib.parse.quote(parsed_connection.path[1:], safe="")
+                connection_string_encoded = (
+                    f"{parsed_connection.scheme}://{encoded_username}:{encoded_password}"
+                    f"@{encoded_host}:{parsed_connection.port}/{encoded_database}"
+                )
                 self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
             elif host and port and dbname:
                 self.client = psycopg.connect(
-                    host=host, port=port, dbname=dbname, username=username, password=password,
-                    connect_timeout=connect_timeout, autocommit=True
+                    host=host,
+                    port=port,
+                    dbname=dbname,
+                    username=username,
+                    password=password,
+                    connect_timeout=connect_timeout,
+                    autocommit=True,
                 )
         except psycopg.Error as e:
             logger.error("Error connecting to the database: ", e)
