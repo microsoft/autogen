@@ -2,8 +2,9 @@
 # pip install azure-cosmos
 
 import logging
-from azure.cosmos import CosmosClient
 from typing import Optional, TypedDict, Union
+
+from azure.cosmos import CosmosClient
 
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
