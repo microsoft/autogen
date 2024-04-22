@@ -89,10 +89,7 @@ class Cache(AbstractCache):
             "database_id": "autogen_cache",
             "container_id": container_id,
         }
-        return Cache({
-            "cache_seed": cache_seed,
-            "cosmos_db_config": cosmos_db_config
-        })
+        return Cache({"cache_seed": cache_seed, "cosmos_db_config": cosmos_db_config})
 
     def __init__(self, config: Dict[str, Any]):
         """
