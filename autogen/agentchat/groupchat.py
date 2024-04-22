@@ -267,9 +267,8 @@ class GroupChat:
                 agents = last_agent_transitions
 
         roles = self._participant_roles(agents)
-        agent_names = [agent.name for agent in agents]
 
-        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agent_names)
+        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agents)
         return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
