@@ -11,10 +11,10 @@ from autogen.cache.abstract_cache_base import AbstractCache
 
 
 class CosmosDBConfig(TypedDict, total=False):
-    connection_string: Optional[str]
-    database_id: Optional[str]
-    container_id: Optional[str]
-    cache_seed: Union[str, int]
+    connection_string: str
+    database_id: str
+    container_id: str
+    cache_seed: Optional[Union[str, int]]
     client: Optional[CosmosClient]
 
 
