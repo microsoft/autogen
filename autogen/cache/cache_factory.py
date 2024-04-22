@@ -1,4 +1,8 @@
+# Install Azure Cosmos DB SDK if not already
+# pip install azure-cosmos
+
 import logging
+from azure.cosmos import CosmosClient
 from typing import Optional, TypedDict, Union
 
 from .abstract_cache_base import AbstractCache
