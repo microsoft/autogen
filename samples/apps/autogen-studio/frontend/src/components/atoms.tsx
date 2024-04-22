@@ -556,19 +556,21 @@ export const ControlRowView = ({
   value,
   control,
   className,
+  truncateLength = 20,
 }: {
   title: string;
   description: string;
   value: string | number | boolean;
   control: any;
   className?: string;
+  truncateLength?: number;
 }) => {
   return (
     <div className={`${className}`}>
       <div>
         <span className="text-primary inline-block">{title} </span>
         <span className="text-xs ml-1 text-accent -mt-2 inline-block">
-          {truncateText(value + "", 20)}
+          {truncateText(value + "", truncateLength)}
         </span>{" "}
         <Tooltip title={description}>
           <InformationCircleIcon className="text-gray-400 inline-block w-4 h-4" />

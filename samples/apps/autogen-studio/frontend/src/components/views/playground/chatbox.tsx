@@ -32,20 +32,21 @@ let socketMsgs: any[] = [];
 
 const ChatBox = ({
   initMessages,
+  session,
   editable = true,
-  connectionId,
-  fetchMessages,
+  heightOffset = 160,
 }: {
   initMessages: IMessage[] | null;
+  session: IChatSession | null;
   editable?: boolean;
-  connectionId: string;
-  fetchMessages?: () => void;
+  heightOffset?: number;
 }) => {
-  const session: IChatSession | null = useConfigStore((state) => state.session);
+  // const session: IChatSession | null = useConfigStore((state) => state.session);
   const textAreaInputRef = React.useRef<HTMLTextAreaElement>(null);
   const messageBoxInputRef = React.useRef<HTMLDivElement>(null);
   const { user } = React.useContext(appContext);
   const wsClient = React.useRef<WebSocket | null>(null);
+  const wsMessages = React.useRef<IChatMessage[]>([]);
   const [wsConnectionStatus, setWsConnectionStatus] =
     React.useState<string>("disconnected");
 
@@ -81,15 +82,10 @@ const ChatBox = ({
   });
 
   const socketDivRef = React.useRef<HTMLDivElement>(null);
+  const connectionId = useConfigStore((state) => state.connectionId);
 
   const messages = useConfigStore((state) => state.messages);
   const setMessages = useConfigStore((state) => state.setMessages);
-
-  let pageHeight, chatMaxHeight;
-  if (typeof window !== "undefined") {
-    pageHeight = window.innerHeight;
-    chatMaxHeight = pageHeight - 310 + "px";
-  }
 
   const parseMessage = (message: any) => {
     let meta;
@@ -115,6 +111,7 @@ const ChatBox = ({
     // console.log("initMessages changed", initMessages);
     const initMsgs: IChatMessage[] = parseMessages(initMessages);
     setMessages(initMsgs);
+    wsMessages.current = initMsgs;
     socketMsgs = [];
   }, [initMessages]);
 
@@ -361,31 +358,42 @@ const ChatBox = ({
     });
   };
 
+  const mainDivRef = React.useRef<HTMLDivElement>(null);
+
   const processAgentResponse = (data: any) => {
     if (data && data.status) {
-      console.log("received proc data", data);
-      const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${data.data.session_id}`;
-      const payLoad = {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-      const onSuccess = (data: any) => {
-        if (data && data.status) {
-          const updatedMessages = parseMessages(data.data);
-          setMessages(updatedMessages);
-        } else {
-          message.error(data.message);
-        }
-        setLoading(false);
-      };
-      const onError = (err: any) => {
-        setError(err);
-        message.error(err.message);
-        setLoading(false);
-      };
-      fetchJSON(fetchMessagesUrl, payLoad, onSuccess, onError);
+      const msg = parseMessage(data.data);
+      wsMessages.current.push(msg);
+      console.log("wsLenght", wsMessages.current);
+      setMessages(wsMessages.current);
+      setLoading(false);
+      //   const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${data.data.session_id}`;
+      //   const payLoad = {
+      //     method: "GET",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //   };
+      //   const onSuccess = (data: any) => {
+      //     if (data && data.status) {
+      //       const updatedMessages = parseMessages(data.data);
+      //       setMessages(updatedMessages);
+      //     } else {
+      //       message.error(data.message);
+      //     }
+      //     setLoading(false);
+      //   };
+      //   const onError = (err: any) => {
+      //     setError(err);
+      //     message.error(err.message);
+      //     setLoading(false);
+      //   };
+      //   fetchJSON(fetchMessagesUrl, payLoad, onSuccess, onError);
+      // } else {
+      //   console.log("error", data);
+      //   // setError(data);
+      //   ToastMessage.error(data.message);
+      //   setLoading(false);
     } else {
       console.log("error", data);
       // setError(data);
@@ -406,6 +414,7 @@ const ChatBox = ({
     };
     messageHolder.push(userMessage);
     setMessages(messageHolder);
+    wsMessages.current.push(userMessage);
 
     const messagePayload: IMessage = {
       role: "user",
@@ -500,10 +509,18 @@ const ChatBox = ({
     }
   };
 
+  React.useEffect(() => {
+    console.log("page loaded");
+    const mainDivHeight =
+      mainDivRef.current?.getBoundingClientRect().height || 0;
+    console.log("mainDivHeight", mainDivHeight);
+  }, []);
+
   return (
     <div
-      style={{ height: "calc(100vh - 160px)" }}
-      className="text-primary    relative  h-full rounded  "
+      style={{ height: "calc(100vh - " + heightOffset + "px)" }}
+      className="text-primary    relative   rounded  "
+      ref={mainDivRef}
     >
       <div
         style={{ zIndex: 100 }}
@@ -622,7 +639,11 @@ const ChatBox = ({
                 placeholder="Write message here..."
                 ref={textAreaInputRef}
                 className="flex items-center w-full resize-none text-gray-600 bg-white p-2 ring-2 rounded-sm pl-5 pr-16"
-                style={{ maxHeight: "120px", overflowY: "auto" }}
+                style={{
+                  maxHeight: "120px",
+                  overflowY: "auto",
+                  minHeight: "50px",
+                }}
               />
               <div
                 role={"button"}

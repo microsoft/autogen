@@ -194,10 +194,28 @@ const ModelConfigMainView = ({
           />
 
           <ControlRowView
+            title="Base URL"
+            className=""
+            description="Base URL for Model Endpoint"
+            value={model?.base_url || ""}
+            control={
+              <Input
+                className="mt-2 w-full"
+                value={model?.base_url}
+                onChange={(e) => {
+                  updateModelConfig("base_url", e.target.value);
+                }}
+              />
+            }
+          />
+        </div>
+        <div>
+          <ControlRowView
             title="API Key"
             className=""
             description="API Key"
             value={model?.api_key || ""}
+            truncateLength={5}
             control={
               <Input.Password
                 className="mt-2 w-full"
@@ -208,8 +226,6 @@ const ModelConfigMainView = ({
               />
             }
           />
-        </div>
-        <div>
           {model?.api_type == "azure" && (
             <ControlRowView
               title="API Version"

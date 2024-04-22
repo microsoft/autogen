@@ -1,13 +1,12 @@
 import React from "react";
-import { IWorkflow, IStatus } from "../../../types";
+import { IWorkflow, IStatus, IChatSession } from "../../../types";
 import { ControlRowView } from "../../../atoms";
 import { fetchJSON, getServerUrl } from "../../../utils";
 import { Button, Drawer, Input, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
 import { BugAntIcon, UserGroupIcon } from "@heroicons/react/24/outline";
 import { WorkflowAgentSelector, WorkflowTypeSelector } from "./selectors";
-
-const { useToken } = theme;
+import ChatBox from "../../playground/chatbox";
 
 export const WorkflowViewConfig = ({
   workflow,
@@ -220,15 +219,20 @@ export const WorflowViewer = ({
     setDrawerOpen(false);
   };
 
+  const { user } = React.useContext(appContext);
+  const dummySession: IChatSession = {
+    user_id: user?.email || "test_session_user_id",
+    workflow_id: workflow?.id,
+    name: "test_session",
+  };
   return (
     <div className="text-primary">
-      {/* <RenderView viewIndex={currentViewIndex} /> */}
       <Tabs
         tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
         defaultActiveKey="1"
         items={items}
       />
-      {/* {workflow?.id && (
+      {workflow?.id && (
         <div className="text-right mt-2">
           <Button
             type="primary"
@@ -239,16 +243,23 @@ export const WorflowViewer = ({
             Test Workflow
           </Button>
         </div>
-      )} */}
+      )}
 
       <Drawer
         title=<div>Test Workflow</div>
+        size="large"
         onClose={closeDrawer}
         open={drawerOpen}
       >
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <p>Some contents...</p>
+        <div className="h-full ">
+          {drawerOpen && (
+            <ChatBox
+              initMessages={[]}
+              session={dummySession}
+              heightOffset={100}
+            />
+          )}
+        </div>
       </Drawer>
     </div>
   );

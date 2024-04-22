@@ -14,7 +14,6 @@ const RAView = () => {
   const [messages, setMessages] = React.useState<IMessage[] | null>(null);
 
   const [config, setConfig] = React.useState(null);
-  const connectionId = useConfigStore((state) => state.connectionId);
 
   React.useEffect(() => {
     setLocalStorage("ara_config", config);
@@ -85,11 +84,7 @@ const RAView = () => {
           )}
 
           {session !== null && (
-            <ChatBox
-              initMessages={messages}
-              connectionId={connectionId}
-              fetchMessages={fetchMessages}
-            />
+            <ChatBox initMessages={messages} session={session} />
           )}
         </div>
       </div>

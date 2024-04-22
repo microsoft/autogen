@@ -418,7 +418,7 @@ def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, wo
 def workflow_from_id(workflow_id: int, dbmanager: DBManager):
     workflow = dbmanager.get(Workflow, filters={"id": workflow_id})
     if not workflow or len(workflow) == 0:
-        return {}
+        raise ValueError("The specified workflow does not exist.")
     workflow = workflow[0].model_dump(mode="json")
     workflow_agent_links = dbmanager.get(WorkflowAgentLink, filters={"workflow_id": workflow_id})
 

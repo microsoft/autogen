@@ -367,19 +367,18 @@ async def list_messages(user_id: str, session_id: str):
 @api.post("/messages")
 async def create_message(message: Message):
     """Create a new message"""
-
-    user_message_history = dbmanager.get(
-        Message,
-        filters={"user_id": message.user_id, "session_id": message.session_id},
-        return_json=True,
-    )
-
-    # save incoming message
-    dbmanager.upsert(message)
-    user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
-    os.makedirs(user_dir, exist_ok=True)
-    workflow = workflow_from_id(message.workflow_id, dbmanager=dbmanager)
     try:
+        user_message_history = dbmanager.get(
+            Message,
+            filters={"user_id": message.user_id, "session_id": message.session_id},
+            return_json=True,
+        )
+
+        # save incoming message
+        dbmanager.upsert(message)
+        user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
+        os.makedirs(user_dir, exist_ok=True)
+        workflow = workflow_from_id(message.workflow_id, dbmanager=dbmanager)
         agent_response: Message = managers["chat"].chat(
             message=message,
             history=user_message_history,
