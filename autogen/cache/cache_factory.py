@@ -5,10 +5,11 @@ from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
 
 
-class CosmosDBConfig(TypedDict):
-    connection_string: str
-    database_id: str
-    container_id: str
+class CosmosDBConfig(TypedDict, total=False):
+    connection_string: Optional[str]
+    database_id: Optional[str]
+    container_id: Optional[str]
+    cache_seed: Union[str, int]
 
 
 class CacheFactory:
