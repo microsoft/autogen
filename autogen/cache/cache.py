@@ -6,7 +6,7 @@ from __future__ import annotations
 import sys
 import subprocess
 # implement pip as a subprocess:
-subprocess.check_call([sys.executable, '-m', 'pip', 'install', '<packagename>'])
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '<azure-cosmos>'])
 
 from types import TracebackType
 from typing import Any, Dict, Optional, Type, TypedDict, Union
