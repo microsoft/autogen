@@ -541,6 +541,8 @@ class PGVectorDB(VectorDB):
         host: str = None,
         port: int = None,
         dbname: str = None,
+        username: str = None,
+        password: str = None,
         connect_timeout: int = 10,
         embedding_function: Callable = None,
         metadata: dict = None,
@@ -555,6 +557,8 @@ class PGVectorDB(VectorDB):
             host: str | The host to connect to. Default is None.
             port: int | The port to connect to. Default is None.
             dbname: str | The database name to connect to. Default is None.
+            username: str | The database username to use. Default is None.
+            password: str | The database user password to use. Default is None.
             connect_timeout: int | The timeout to set for the connection. Default is 10.
             embedding_function: Callable | The embedding function used to generate the vector representation
                 of the documents. Default is None.
@@ -572,7 +576,8 @@ class PGVectorDB(VectorDB):
                 self.client = psycopg.connect(conninfo=connection_string, autocommit=True)
             elif host and port and dbname:
                 self.client = psycopg.connect(
-                    host=host, port=port, dbname=dbname, connect_timeout=connect_timeout, autocommit=True
+                    host=host, port=port, dbname=dbname, username=username, password=password,
+                    connect_timeout=connect_timeout, autocommit=True
                 )
         except psycopg.Error as e:
             logger.error("Error connecting to the database: ", e)
