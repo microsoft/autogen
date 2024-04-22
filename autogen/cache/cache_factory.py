@@ -7,7 +7,7 @@ from .disk_cache import DiskCache
 
 class CosmosDBConfig(TypedDict, total=False):
     connection_string: str
-    database_id: Optional[str]
+    database_id: str
     container_id: str
     cache_seed: Optional[Union[str, int]]
     client: Optional[CosmosClient]
