@@ -42,11 +42,15 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
+      - name: Install PostgreSQL
+        run: |
+          sudo apt install postgresql -y
+      - name: Start PostgreSQL service
+        run: sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
-          pip install qdrant_client[fastembed]
-          pip install -e .[retrievechat]
+          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -54,7 +58,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py
+          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat test/agentchat/contrib/test_pgvector_retrievechat.py::test_retrievechat
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -301,10 +305,46 @@ jobs:
           file: ./coverage.xml
           flags: unittests
   ImageGen:
+      strategy:
+        matrix:
+          os: [ubuntu-latest]
+          python-version: ["3.12"]
+      runs-on: ${{ matrix.os }}
+      environment: openai1
+      steps:
+        # checkout to pr branch
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+            ref: ${{ github.event.pull_request.head.sha }}
+        - name: Set up Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v5
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Install packages and dependencies
+          run: |
+            docker --version
+            python -m pip install --upgrade pip wheel
+            pip install -e .[lmm]
+            python -c "import autogen"
+            pip install coverage pytest
+        - name: Coverage
+          env:
+            OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          run: |
+            coverage run -a -m pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py
+            coverage xml
+        - name: Upload coverage to Codecov
+          uses: codecov/codecov-action@v3
+          with:
+            file: ./coverage.xml
+            flags: unittests
+
+  AgentOptimizer:
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.12"]
+        os: [ ubuntu-latest ]
+        python-version: [ "3.11" ]
     runs-on: ${{ matrix.os }}
     environment: openai1
     steps:
@@ -321,53 +361,20 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[lmm]
+          pip install -e .
           python -c "import autogen"
           pip install coverage pytest
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py
+          coverage run -a -m pytest test/agentchat/contrib/test_agent_optimizer.py
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: unittests
-  TransformMessages:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.11"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install packages and dependencies for all tests
-        run: |
-          python -m pip install --upgrade pip wheel
-          pip install pytest
-      - name: Install packages and dependencies for Transform Messages
-        run: |
-          pip install -e '.[long-context]'
-      - name: Set AUTOGEN_USE_DOCKER based on OS
-        shell: bash
-        run: |
-          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
-            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
-          fi
-      - name: Coverage
-        run: |
-          pip install coverage>=5.3
-          coverage run -a -m pytest test/agentchat/contrib/capabilities/test_transform_messages.py
-          coverage xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittest
