@@ -94,33 +94,25 @@ class Collection:
                 metadata = re.sub("'", '"', str(metadata))
                 sql_values.append((doc_id, embedding, metadata, document))
             sql_string = (
-                f"INSERT INTO {self.name} (id, embedding, metadatas, documents)\n"
-                f"VALUES (%s, %s, %s, %s);\n"
+                f"INSERT INTO {self.name} (id, embedding, metadatas, documents)\n" f"VALUES (%s, %s, %s, %s);\n"
             )
         elif embeddings is not None:
             for doc_id, embedding, document in zip(ids, embeddings, documents):
                 sql_values.append((doc_id, embedding, document))
-            sql_string = (
-                f"INSERT INTO {self.name} (id, embedding, documents) "
-                f"VALUES (%s, %s, %s);\n"
-            )
+            sql_string = f"INSERT INTO {self.name} (id, embedding, documents) " f"VALUES (%s, %s, %s);\n"
         elif metadatas is not None:
             for doc_id, metadata, document in zip(ids, metadatas, documents):
                 metadata = re.sub("'", '"', str(metadata))
                 embedding = self.embedding_function.encode(document)
                 sql_values.append((doc_id, metadata, embedding, document))
             sql_string = (
-                f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
-                f"VALUES (%s, %s, %s, %s);\n"
+                f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n" f"VALUES (%s, %s, %s, %s);\n"
             )
         else:
             for doc_id, document in zip(ids, documents):
                 embedding = self.embedding_function.encode(document)
                 sql_values.append((doc_id, document, embedding))
-            sql_string = (
-                f"INSERT INTO {self.name} (id, documents, embedding)\n"
-                f"VALUES (%s, %s, %s);\n"
-            )
+            sql_string = f"INSERT INTO {self.name} (id, documents, embedding)\n" f"VALUES (%s, %s, %s);\n"
         logger.debug(f"Add SQL String:\n{sql_string}\n{sql_values}")
         cursor.executemany(sql_string, sql_values)
         cursor.close()
@@ -222,7 +214,7 @@ class Collection:
                 WHERE table_name = %s
             )
             """,
-            (table_name,)
+            (table_name,),
         )
         exists = cursor.fetchone()[0]
         return exists
@@ -262,9 +254,9 @@ class Collection:
 
         # Handle limit and offset clauses
         if limit:
-            limit_clause = f"LIMIT %s"
+            limit_clause = "LIMIT %s"
         if offset:
-            offset_clause = f"OFFSET %s"
+            offset_clause = "OFFSET %s"
 
         # Construct the full query
         query = f"{select_clause} {from_clause} {where_clause} {limit_clause} {offset_clause}"
@@ -488,7 +480,7 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        id_placeholders = ', '.join(['%s' for _ in ids])
+        id_placeholders = ", ".join(["%s" for _ in ids])
         cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({id_placeholders});", ids)
         cursor.close()
 

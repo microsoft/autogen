@@ -87,7 +87,7 @@ def test_pgvector():
     final_results = []
     for result, dtype in res[0]:
         final_results.append(result.get("id").strip())
-    assert final_results == ['3', '2', '2', '3']
+    assert final_results == ["3", "2", "2", "3"]
 
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
