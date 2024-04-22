@@ -259,10 +259,17 @@ class GroupChat:
         if agents is None:
             agents = self.agents
 
-        roles = self._participant_roles(agents)
-        agentlist = f"{[agent.name for agent in agents]}"
+        last_agent_name = self.messages[-1].get("name") if self.messages else None
 
-        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agentlist)
+        if self.speaker_transitions_type == "allowed" and last_agent_name:
+            last_agent_transitions = self.allowed_speaker_transitions_dict.get(last_agent_name, [])
+            if last_agent_transitions:
+                agents = last_agent_transitions
+
+        roles = self._participant_roles(agents)
+        agent_names = [agent.name for agent in agents]
+
+        return_msg = self.select_speaker_message_template.format(roles=roles, agentlist=agent_names)
         return return_msg
 
     def select_speaker_prompt(self, agents: Optional[List[Agent]] = None) -> str:
