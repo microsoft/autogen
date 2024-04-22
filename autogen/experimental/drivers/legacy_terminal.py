@@ -6,7 +6,10 @@ async def legacy_run_in_terminal(chat: ChatOrchestratorStream) -> str:
     print("\n")
     while not chat.done:
         message = await chat.step()
-        print(f"{message.__class__.__name__}:\n")
+
+        # BUG: sender name should come from the step result
+        sender_name = message.__class__.__name__
+        print(f"{sender_name}:\n")
 
         content = None
 
