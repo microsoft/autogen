@@ -1,5 +1,5 @@
 # Install Azure Cosmos DB SDK if not already
-# pip install azure-cosmos
+ pip install azure-cosmos
 
 from __future__ import annotations
 
