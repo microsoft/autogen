@@ -20,7 +20,7 @@ from autogen.experimental.termination import (
     TerminationReason,
     TerminationResult,
 )
-from autogen.experimental.types import AssistantMessage, GenerateReplyResult, Message, UserMessage
+from autogen.experimental.types import AssistantMessage, GenerateReplyResult, Message, TextMessage
 
 
 class FibTermination(Termination):
@@ -30,7 +30,7 @@ class FibTermination(Termination):
     async def check_termination(self, chat_history: ChatHistoryReadOnly) -> TerminationResult:
         assert len(chat_history) > 0
         message = chat_history.messages[0]
-        assert isinstance(message, UserMessage) and isinstance(message.content, str)
+        assert isinstance(message, TextMessage) and isinstance(message.content, str)
         desired_fib_number = int(message.content)
         if len(chat_history) == 1 + desired_fib_number:
             return Terminated(reason=TerminationReason.GOAL_REACHED, explanation="Fib number reached")
@@ -60,21 +60,21 @@ class FibbonacciAgent(Agent):
             messages_to_use = list(chat_history.messages[1:])
 
         if len(messages_to_use) == 0:
-            num1 = AssistantMessage(content="1")
-            num2 = AssistantMessage(content="0")
+            num1 = TextMessage(content="1", source="fib")
+            num2 = TextMessage(content="0", source="fib")
         elif len(messages_to_use) == 1:
-            num1 = AssistantMessage(content="0")
+            num1 = TextMessage(content="0", source="fib")
             num2 = messages_to_use[-1]  # type: ignore
         else:
             num1, num2 = messages_to_use[-2], messages_to_use[-1]  # type: ignore
 
-        assert isinstance(num1, AssistantMessage)
+        assert isinstance(num1, TextMessage)
         assert isinstance(num1.content, str)
         assert isinstance(num2, AssistantMessage)
         assert isinstance(num2.content, str)
         num1_int = int(num1.content)
         num2_int = int(num2.content)
-        return AssistantMessage(content=str(num1_int + num2_int))
+        return TextMessage(content=str(num1_int + num2_int), source="fib")
 
 
 async def user_input(prompt: str) -> str:

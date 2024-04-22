@@ -1,11 +1,13 @@
 import json
 from typing import ClassVar, Optional
 
+from autogen.experimental.utils import convert_messages_to_llm_messages
+
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
 from ..model_client import ModelClient
 from ..termination import NotTerminated, Terminated, Termination, TerminationReason, TerminationResult
-from ..types import SystemMessage, UserMessage
+from ..types import AssistantMessage, SystemMessage
 
 
 class ReflectionTerminationManager(Termination):
@@ -57,11 +59,16 @@ class ReflectionTerminationManager(Termination):
         if len(chat_history.messages) == 0:
             return NotTerminated()
 
-        reminder_message = UserMessage(
+        reminder_message = AssistantMessage(
             content=f"Please provide your response as JSON, with two properties: `is_done` (bool) and `reason` (str). Goal: {self._goal}",
+            source="system",
         )
         system_message = SystemMessage(content=self._system_message.format(goal=self._goal))
-        entire_conversation = [system_message] + list(chat_history.messages) + [reminder_message]
+        entire_conversation = (
+            [system_message]
+            + convert_messages_to_llm_messages(list(chat_history.messages), "reflection")
+            + [reminder_message]
+        )
         response = await self._model_client.create(entire_conversation)
         try:
             assert isinstance(response.content, str), "tool calls not supported now"

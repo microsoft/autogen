@@ -8,7 +8,7 @@ import pytest
 
 from autogen.cache.abstract_cache_base import AbstractCache
 from autogen.experimental.model_client import ModelCapabilities, ModelClient
-from autogen.experimental.types import CreateResult, FunctionDefinition, Message, RequestUsage
+from autogen.experimental.types import CreateResult, FunctionDefinition, LLMMessage, RequestUsage
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -19,7 +19,7 @@ async def test_create() -> None:
         # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
         async def create(
             self,
-            messages: List[Message],
+            messages: List[LLMMessage],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
             json_output: Optional[bool] = None,
@@ -34,7 +34,7 @@ async def test_create() -> None:
 
         def create_stream(
             self,
-            messages: List[Message],
+            messages: List[LLMMessage],
             cache: Optional[AbstractCache] = None,
             functions: List[FunctionDefinition] = [],
             json_output: Optional[bool] = None,

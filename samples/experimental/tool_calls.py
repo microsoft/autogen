@@ -5,7 +5,7 @@ from autogen.experimental import AssistantAgent, OpenAI, TwoAgentChat
 from autogen.experimental.agents.execution_agent import ExecutionAgent
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.function_executors.in_process_function_executor import InProcessFunctionExecutor
-from autogen.experimental.types import UserMessage
+from autogen.experimental.types import TextMessage
 
 
 def get_weather(city: str) -> str:
@@ -25,7 +25,7 @@ async def main() -> None:
         name="executor", code_executor=None, function_executor=InProcessFunctionExecutor([get_weather])
     )
     chat = TwoAgentChat(assistant, executor)
-    chat.append_message(UserMessage("What is the weather in Seattle?"))
+    chat.append_message(TextMessage("What is the weather in Seattle?", source="external"))
 
     await run_in_terminal(chat)
     print(chat.termination_result)

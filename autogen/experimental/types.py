@@ -38,11 +38,6 @@ class RequestUsage:
 
 
 @dataclass
-class UserMessageContentPartText:
-    text: str
-
-
-@dataclass
 class SystemMessage:
     content: str
 
@@ -50,27 +45,57 @@ class SystemMessage:
 @dataclass
 class UserMessage:
     content: Union[str, List[Union[str, Image]]]
-    is_termination: bool = False
+
+    # Name of the agent that sent this message
+    source: str
 
 
 @dataclass
 class AssistantMessage:
-    content: Optional[str] = None
-    function_calls: Optional[List[FunctionCall]] = None
+    content: Union[str, List[FunctionCall]]
+
+    # Name of the agent that sent this message
+    source: str
 
 
 @dataclass
-class FunctionCallResult:
+class TextMessage:
+    content: str
+
+    # Name of the agent that sent this message
+    source: str
+
+
+@dataclass
+class MultiModalMessage:
+    content: List[Union[str, Image]]
+
+    # Name of the agent that sent this message
+    source: str
+
+
+@dataclass
+class FunctionCallMessage:
+    content: List[FunctionCall]
+
+    # Name of the agent that sent this message
+    source: str
+
+
+@dataclass
+class FunctionExecutionResult:
     content: str
     call_id: str
 
 
 @dataclass
-class FunctionCallMessage:
-    call_results: List[FunctionCallResult]
+class FunctionExecutionResultMessage:
+    content: List[FunctionExecutionResult]
+    source: str
 
 
-Message = Union[SystemMessage, UserMessage, AssistantMessage, FunctionCallMessage]
+Message = Union[SystemMessage, TextMessage, MultiModalMessage, FunctionCallMessage, FunctionExecutionResultMessage]
+LLMMessage = Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]
 
 
 @dataclass

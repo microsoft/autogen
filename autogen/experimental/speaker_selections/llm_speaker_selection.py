@@ -3,6 +3,7 @@ import re
 from typing import Dict, List, Optional, Tuple
 
 from autogen.experimental.types import SystemMessage
+from autogen.experimental.utils import convert_messages_to_llm_messages
 
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
@@ -51,7 +52,8 @@ class LLMSpeakerSelection(SpeakerSelection):
 
         messages = (
             [SystemMessage(select_speaker_message_template.format(roles=roles, agent_list=agent_list))]
-            + list(chat_history.messages)
+            # Note: name isn't used here so they will all be user messages - is that right?
+            + convert_messages_to_llm_messages(list(chat_history.messages), "speaker_selection")
             + [SystemMessage(select_speaker_prompt_template.format(agent_list=agent_list))]
         )
         response = await self._model_client.create(messages, json_output=False)
@@ -78,7 +80,8 @@ class LLMSpeakerSelection(SpeakerSelection):
 
         messages = (
             [SystemMessage(select_speaker_message_template.format(roles=roles, agent_list=agent_list))]
-            + list(chat_history.messages)
+            # Note: name isn't used here so they will all be user messages - is that right?
+            + convert_messages_to_llm_messages(list(chat_history.messages), "speaker_selection")
             + [SystemMessage(select_speaker_prompt_template.format(agent_list=agent_list))]
         )
         response = await self._model_client.create(messages, json_output=False)

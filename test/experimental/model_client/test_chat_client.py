@@ -18,7 +18,7 @@ from autogen.experimental.types import CreateResult, FunctionDefinition, UserMes
 @pytest.mark.asyncio
 async def test_create() -> None:
     client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
-    response = await client.create(messages=[UserMessage("2+2=")])
+    response = await client.create(messages=[UserMessage("2+2=", source="test")])
     assert response.cached is False
     assert response.finish_reason == "stop"
     assert isinstance(response.content, str)
@@ -42,7 +42,7 @@ async def test_tool_calling_extraction() -> None:
     )
 
     response = await client.create(
-        messages=[UserMessage("What is the weather in San Francisco?")],
+        messages=[UserMessage("What is the weather in San Francisco?", source="test")],
         functions=[getWeatherFunction],
     )
     assert response.cached is False
@@ -58,7 +58,7 @@ async def test_tool_calling_extraction() -> None:
 async def test_cache() -> None:
     client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
     with InMemoryCache(seed="") as cache:
-        response = await client.create(messages=[UserMessage("2+2=")], cache=cache)
+        response = await client.create(messages=[UserMessage("2+2=", source="test")], cache=cache)
         assert response.cached is False
         assert response.finish_reason == "stop"
         assert isinstance(response.content, str)
@@ -66,7 +66,7 @@ async def test_cache() -> None:
         actual_usage = client.actual_usage()
         total_usage = client.total_usage()
 
-        response = await client.create(messages=[UserMessage("2+2=")], cache=cache)
+        response = await client.create(messages=[UserMessage("2+2=", source="test")], cache=cache)
         assert response.cached is True
         assert response.finish_reason == "stop"
         assert isinstance(response.content, str)
@@ -80,7 +80,7 @@ async def test_cache() -> None:
 @pytest.mark.asyncio
 async def test_create_stream() -> None:
     client = OpenAI(model="gpt-3.5-turbo", api_key=os.environ["OPENAI_API_KEY"])
-    stream = client.create_stream(messages=[UserMessage("2+2=")])
+    stream = client.create_stream(messages=[UserMessage("2+2=", source="test")])
     content = ""
     result = None
     async for chunk in stream:

@@ -3,7 +3,7 @@ from typing import Awaitable, Callable, Optional
 
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
-from ..types import GenerateReplyResult, UserMessage
+from ..types import GenerateReplyResult, TextMessage
 
 HumanInputCallback = Callable[[str], Awaitable[str]]
 
@@ -42,7 +42,7 @@ class UserInputAgent(Agent):
 
     async def get_human_reply(
         self,
-    ) -> Optional[UserMessage]:
+    ) -> Optional[TextMessage]:
 
         assert self._human_input_callback is not None, "Human input callback is not provided."
 
@@ -53,10 +53,7 @@ class UserInputAgent(Agent):
         if reply == "":
             return None
 
-        if reply.lower() == "exit":
-            return UserMessage(content=reply, is_termination=True)
-
-        return UserMessage(content=reply)
+        return TextMessage(reply, source=self.name)
 
     async def generate_reply(
         self,

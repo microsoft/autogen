@@ -2,7 +2,7 @@ from autogen.experimental.chat_history import ChatHistoryReadOnly
 from autogen.experimental.termination import Terminated
 
 from ..summarizer import ChatSummarizer
-from ..types import AssistantMessage, FunctionCallMessage, SystemMessage, UserMessage
+from ..types import FunctionCallMessage, FunctionExecutionResultMessage, MultiModalMessage, SystemMessage, TextMessage
 
 
 class LastMessageSummarizer(ChatSummarizer):
@@ -11,17 +11,14 @@ class LastMessageSummarizer(ChatSummarizer):
         if len(messages) == 0:
             raise ValueError("Cannot summarize an empty chat.")
         last_message = messages[-1]
-        if isinstance(last_message, SystemMessage):
-            raise ValueError("Cannot summarize a chat that ends with a system message.")
-        elif isinstance(last_message, UserMessage):
-            if not isinstance(last_message.content, str):
+        match last_message:
+            case SystemMessage():
+                raise ValueError("Cannot summarize a chat that ends with a system message.")
+            case TextMessage(content):
+                return content
+            case MultiModalMessage():
                 raise ValueError("Cannot summarize a multimodal message yet.")
-            return last_message.content
-        elif isinstance(last_message, AssistantMessage):
-            if last_message.content is None:
+            case FunctionCallMessage():
                 raise ValueError("Cannot summarize a chat that ends with an assistant message with tool calls.")
-            return last_message.content
-        elif isinstance(last_message, FunctionCallMessage):
-            return "\n".join((tool_message.content for tool_message in last_message.call_results))
-        else:
-            raise ValueError("Unknown message type encountered.")
+            case FunctionExecutionResultMessage(content):
+                return "\n".join((tool_message.content for tool_message in content))
