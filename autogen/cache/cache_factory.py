@@ -80,7 +80,7 @@ class CacheFactory:
         if cosmosdb_config:
             try:
                 from .cosmos_db_cache import CosmosDBCache
-                
+
                 if "client" in cosmosdb_config and isinstance(cosmosdb_config["client"], CosmosClient):
                     # Use existing CosmosClient instance
                     return CosmosDBCache(seed, cosmosdb_config)
