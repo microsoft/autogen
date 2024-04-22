@@ -4,6 +4,8 @@ import os
 import shutil
 import sys
 import time
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -29,6 +31,40 @@ else:
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
+
+
+class _MockClient:
+    def __init__(self, config, **kwargs):
+        pass
+
+    def create(self, params):
+        # can create my own data response class
+        # here using SimpleNamespace for simplicity
+        # as long as it adheres to the ModelClientResponseProtocol
+
+        response = SimpleNamespace()
+        response.choices = []
+        response.model = "mock_model"
+
+        text = "this is a dummy text response"
+        choice = SimpleNamespace()
+        choice.message = SimpleNamespace()
+        choice.message.content = text
+        choice.message.function_call = None
+        response.choices.append(choice)
+        return response
+
+    def message_retrieval(self, response):
+        choices = response.choices
+        return [choice.message.content for choice in choices]
+
+    def cost(self, response) -> float:
+        response.cost = 0
+        return 0
+
+    @staticmethod
+    def get_usage(response):
+        return {}
 
 
 @pytest.mark.skipif(skip, reason="openai>=1 not installed")
@@ -299,22 +335,22 @@ def test_cache():
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
 
 
-@pytest.mark.skipif(skip_openai, reason=reason)
 def test_throttled_api_calls():
-    config_list = config_list_from_json(
-        env_or_file=OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-        filter_dict={"model": ["gpt-3.5-turbo"]},
-    )
-
     # Api calling limited at 0.2 request per second, or 1 request per 5 seconds
     rate = 1 / 5.0
 
-    # Adding a timeout to catch false positives
-    config_list[0]["timeout"] = 1 / rate
-    config_list[0]["api_rate_limit"] = rate
+    config_list = [
+        {
+            "model": "mock_model",
+            "model_client_cls": "_MockClient",
+            # Adding a timeout to catch false positives
+            "timeout": 1 / rate,
+            "api_rate_limit": rate,
+        }
+    ]
 
     client = OpenAIWrapper(config_list=config_list, cache_seed=None)
+    client.register_model_client(_MockClient)
 
     n_loops = 2
     current_time = time.perf_counter()
