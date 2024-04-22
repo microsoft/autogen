@@ -79,6 +79,7 @@ class Cache(AbstractCache):
         connection_string: Optional[str] = None,
         container_id: Optional[str] = None,
         cache_seed: Union[str, int] = 42,
+        client: Optional[CosmosClient] = None,
     ) -> "Cache":
         """
         Create a Cosmos DB cache instance with 'autogen_cache' as database ID.
@@ -87,7 +88,7 @@ class Cache(AbstractCache):
             connection_string (str, optional): Connection string to the Cosmos DB account.
             container_id (str, optional): The container ID for the Cosmos DB account.
             cache_seed (Union[str, int], optional): A seed for the cache.
-
+            client: Optional[CosmosClient]: Pass an existing Cosmos DB client.
         Returns:
             Cache: A Cache instance configured for Cosmos DB.
         """
@@ -95,6 +96,7 @@ class Cache(AbstractCache):
             "connection_string": connection_string,
             "database_id": "autogen_cache",
             "container_id": container_id,
+            "client": client,
         }
         return Cache({"cache_seed": cache_seed, "cosmos_db_config": cosmos_db_config})
 
