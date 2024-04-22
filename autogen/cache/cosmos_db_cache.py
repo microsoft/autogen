@@ -47,6 +47,7 @@ class CosmosDBCache(AbstractCache):
         )
         database_id = cosmosdb_config.get("database_id", "autogen_cache")
         self.database = self.client.get_database_client(database_id)
+        container_id = cosmosdb_config.get("container_id")
         self.container = self.database.create_container_if_not_exists(
             id=container_id, partition_key=PartitionKey(path="/partitionKey")
         )
