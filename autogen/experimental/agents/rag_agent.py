@@ -1,7 +1,8 @@
 import os
-from typing import List
+from typing import List, Optional
 
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.response import Response
 
 from ..chat_history import ChatHistoryReadOnly
@@ -23,7 +24,7 @@ class RAGAgent:
         self._name = name
         self._description = description
         self._data_dir = data_dir
-        self._query_engine = None
+        self._query_engine: Optional[BaseQueryEngine] = None
         self._model_client = model_client
 
     @property
@@ -37,7 +38,7 @@ class RAGAgent:
         a group chat setting."""
         return self._description
 
-    async def _create_query_engine(self):
+    async def _create_query_engine(self) -> BaseQueryEngine:
 
         # check if OPENAI_API_KEY is set
         if "OPENAI_API_KEY" not in os.environ:
@@ -51,9 +52,7 @@ class RAGAgent:
 
         documents = SimpleDirectoryReader(self._data_dir).load_data()
         index = VectorStoreIndex.from_documents(documents)
-        query_engine = index.as_query_engine()
-        if query_engine is None:
-            raise ValueError("Failed to create query engine")
+        query_engine = index.as_query_engine()  # type: ignore
         return query_engine
 
     async def generate_reply(
@@ -103,7 +102,7 @@ the content."""
 
     system_message = "Reformulate the query based on the chat history."
 
-    messages = [SystemMessage(content=system_message), UserMessage(content=query)]
+    messages: List[Message] = [SystemMessage(content=system_message), UserMessage(content=query)]
     response = await model_client.create(messages)
     reformulated_query = response.content
 
