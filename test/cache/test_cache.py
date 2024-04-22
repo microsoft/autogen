@@ -1,8 +1,8 @@
 #!/usr/bin/env python3 -m pytest
 
 import unittest
-from unittest.mock import MagicMock, patch
 from typing import Optional, Union
+from unittest.mock import MagicMock, patch
 
 try:
     from azure.cosmos import CosmosClient
@@ -11,12 +11,14 @@ except ImportError:
 
 from autogen.cache.cache import Cache
 
+
 class CosmosDBConfig(TypedDict, total=False):
     connection_string: str
     database_id: str
     container_id: str
     cache_seed: Optional[Union[str, int]]
     client: Optional[CosmosClient]
+
 
 class TestCache(unittest.TestCase):
     def setUp(self):
@@ -30,7 +32,7 @@ class TestCache(unittest.TestCase):
             "database_id": "autogen_cache",
             "container_id": "TestContainer",
             "cache_seed": "cosmos_test_seed",
-            "client": MagicMock(spec=CosmosClient)  # Using MagicMock to simulate CosmosClient
+            "client": MagicMock(spec=CosmosClient),  # Using MagicMock to simulate CosmosClient
         }
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
@@ -49,7 +51,7 @@ class TestCache(unittest.TestCase):
             None,  # Cache path not required for CosmosDB
             "AccountEndpoint=https://example.documents.azure.com:443/;",
             "autogen_cache",
-            "TestContainer"
+            "TestContainer",
         )
 
     def context_manager_common(self, config):
@@ -97,6 +99,7 @@ class TestCache(unittest.TestCase):
 
     def test_cosmos_close(self):
         self.close_common(self.cosmos_config)
+
 
 if __name__ == "__main__":
     unittest.main()
