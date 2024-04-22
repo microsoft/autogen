@@ -86,7 +86,7 @@ class CacheFactory:
                 elif all(key in cosmosdb_config for key in ["connection_string", "database_id", "container_id"]):
                     # Create new CosmosClient instance from connection parameters
 
-                return CosmosDBCache(seed, **cosmosdb_config)
+                    return CosmosDBCache(seed, **cosmosdb_config)
             except ImportError:
                 logging.warning("CosmosDBCache is not available. Fallback to DiskCache.")
 
