@@ -353,12 +353,12 @@ def test_throttled_api_calls():
     client.register_model_client(_MockClient)
 
     n_loops = 2
-    current_time = time.perf_counter()
+    current_time = time.time()
     for _ in range(n_loops):
         client.create(messages=[{"role": "user", "content": "hello"}])
 
     min_expected_time = (n_loops - 1) / rate
-    assert time.perf_counter() - current_time > min_expected_time
+    assert time.time() - current_time > min_expected_time
 
 
 if __name__ == "__main__":
