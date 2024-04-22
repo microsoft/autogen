@@ -1361,7 +1361,7 @@ def test_chat_history():
         human_input_mode="NEVER",
         llm_config=False,
         default_auto_reply="This is bob from the future speaking.",
-        messages=context,
+        chat_messages=context,
     )
 
     assert bool(bob.chat_messages)
