@@ -74,25 +74,54 @@ class Collection:
         self.name = name
         return self.name
 
-    def add(self, ids: List[ItemID], embeddings: List, metadatas: List, documents: List):
+    def add(self, ids: List[ItemID], documents: List, embeddings: List = None, metadatas: List = None) -> None:
         """
         Add documents to the collection.
 
         Args:
             ids (List[ItemID]): A list of document IDs.
-            embeddings (List): A list of document embeddings.
-            metadatas (List): A list of document metadatas.
+            embeddings (List): A list of document embeddings. Optional
+            metadatas (List): A list of document metadatas. Optional
             documents (List): A list of documents.
 
         Returns:
             None
         """
         cursor = self.client.cursor()
-
         sql_values = []
-        for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
-            sql_values.append((doc_id, embedding, metadata, document))
-        sql_string = f"INSERT INTO {self.name} (id, embedding, metadata, document) " f"VALUES (%s, %s, %s, %s);"
+        if embeddings is not None and metadatas is not None:
+            for doc_id, embedding, metadata, document in zip(ids, embeddings, metadatas, documents):
+                metadata = re.sub("'", '"', str(metadata))
+                sql_values.append((doc_id, embedding, metadata, document))
+            sql_string = (
+                f"INSERT INTO {self.name} (id, embedding, metadatas, documents)\n"
+                f"VALUES (%s, %s, %s, %s);\n"
+            )
+        elif embeddings is not None:
+            for doc_id, embedding, document in zip(ids, embeddings, documents):
+                sql_values.append((doc_id, embedding, document))
+            sql_string = (
+                f"INSERT INTO {self.name} (id, embedding, documents) "
+                f"VALUES (%s, %s, %s);\n"
+            )
+        elif metadatas is not None:
+            for doc_id, metadata, document in zip(ids, metadatas, documents):
+                metadata = re.sub("'", '"', str(metadata))
+                embedding = self.embedding_function.encode(document)
+                sql_values.append((doc_id, metadata, embedding, document))
+            sql_string = (
+                f"INSERT INTO {self.name} (id, metadatas, embedding, documents)\n"
+                f"VALUES (%s, %s, %s, %s);\n"
+            )
+        else:
+            for doc_id, document in zip(ids, documents):
+                embedding = self.embedding_function.encode(document)
+                sql_values.append((doc_id, document, embedding))
+            sql_string = (
+                f"INSERT INTO {self.name} (id, documents, embedding)\n"
+                f"VALUES (%s, %s, %s);\n"
+            )
+        logger.debug(f"Add SQL String:\n{sql_string}\n{sql_values}")
         cursor.executemany(sql_string, sql_values)
         cursor.close()
 
@@ -173,6 +202,31 @@ class Collection:
             total = None
         return total
 
+    def table_exists(self, table_name: str):
+        """
+        Check if a table exists in the PostgreSQL database.
+
+        Args:
+            table_name (str): The name of the table to check.
+
+        Returns:
+            bool: True if the table exists, False otherwise.
+        """
+
+        cursor = self.client.cursor()
+        cursor.execute(
+            """
+            SELECT EXISTS (
+                SELECT 1
+                FROM information_schema.tables
+                WHERE table_name = %s
+            )
+            """,
+            (table_name,)
+        )
+        exists = cursor.fetchone()[0]
+        return exists
+
     def get(self, ids=None, include=None, where=None, limit=None, offset=None):
         """
         Retrieve documents from the collection.
@@ -188,37 +242,63 @@ class Collection:
             List: The retrieved documents.
         """
         cursor = self.client.cursor()
+
+        # Initialize variables for query components
+        select_clause = "SELECT id, metadatas, documents, embedding"
+        from_clause = f"FROM {self.name}"
+        where_clause = ""
+        limit_clause = ""
+        offset_clause = ""
+
+        # Handle include clause
         if include:
-            query = f'SELECT (id, {", ".join(map(str, include))}, embedding) FROM {self.name}'
-        else:
-            query = f"SELECT * FROM {self.name}"
+            select_clause = f"SELECT id, {', '.join(include)}, embedding"
+
+        # Handle where clause
         if ids:
-            query = f"{query} WHERE id IN {ids}"
+            where_clause = f"WHERE id IN ({', '.join(['%s' for _ in ids])})"
         elif where:
-            query = f"{query} WHERE {where}"
-        if offset:
-            query = f"{query} OFFSET {offset}"
+            where_clause = f"WHERE {where}"
+
+        # Handle limit and offset clauses
         if limit:
-            query = f"{query} LIMIT {limit}"
-        retreived_documents = []
+            limit_clause = f"LIMIT %s"
+        if offset:
+            offset_clause = f"OFFSET %s"
+
+        # Construct the full query
+        query = f"{select_clause} {from_clause} {where_clause} {limit_clause} {offset_clause}"
+
+        retrieved_documents = []
         try:
-            cursor.execute(query)
+            # Execute the query with the appropriate values
+            if ids is not None:
+                cursor.execute(query, ids)
+            else:
+                query_params = []
+                if limit:
+                    query_params.append(limit)
+                if offset:
+                    query_params.append(offset)
+                cursor.execute(query, query_params)
+
             retrieval = cursor.fetchall()
             for retrieved_document in retrieval:
-                retreived_documents.append(
+                retrieved_documents.append(
                     Document(
-                        id=retrieved_document[0][0],
-                        metadata=retrieved_document[0][1],
-                        content=retrieved_document[0][2],
-                        embedding=retrieved_document[0][3],
+                        id=retrieved_document[0],
+                        metadata=retrieved_document[1],
+                        content=retrieved_document[2],
+                        embedding=retrieved_document[3],
                     )
                 )
-        except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn):
-            logger.info(f"Error executing select on non-existent table: {self.name}. Creating it instead.")
+        except (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn) as e:
+            logger.info(f"Error executing select on non-existent table: {self.name}. Creating it instead. Error: {e}")
             self.create_collection(collection_name=self.name)
             logger.info(f"Created table {self.name}")
+
         cursor.close()
-        return retreived_documents
+        return retrieved_documents
 
     def update(self, ids: List, embeddings: List, metadatas: List, documents: List):
         """
@@ -408,7 +488,8 @@ class Collection:
         if collection_name:
             self.name = collection_name
         cursor = self.client.cursor()
-        cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({ids});")
+        id_placeholders = ', '.join(['%s' for _ in ids])
+        cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({id_placeholders});", ids)
         cursor.close()
 
     def delete_collection(self, collection_name: str = None):
@@ -562,6 +643,17 @@ class PGVectorDB(VectorDB):
             return collection
         elif get_or_create:
             return collection
+        elif not collection.table_exists(table_name=collection_name):
+            collection = Collection(
+                client=self.client,
+                collection_name=collection_name,
+                embedding_function=self.embedding_function,
+                get_or_create=get_or_create,
+                metadata=self.metadata,
+            )
+            collection.set_collection_name(collection_name=collection_name)
+            collection.create_collection(collection_name=collection_name)
+            return collection
         else:
             raise ValueError(f"Collection {collection_name} already exists.")
 
@@ -613,7 +705,7 @@ class PGVectorDB(VectorDB):
     ):
         batch_size = int(PGVECTOR_MAX_BATCH_SIZE)
         default_metadata = {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
-        default_metadatas = [default_metadata]
+        default_metadatas = [default_metadata] * min(batch_size, len(documents))
         for i in range(0, len(documents), min(batch_size, len(documents))):
             end_idx = i + min(batch_size, len(documents) - i)
             collection_kwargs = {
