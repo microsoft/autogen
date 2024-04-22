@@ -3,7 +3,7 @@ import os
 
 import aioconsole
 
-from autogen.experimental import TwoAgentChat
+from autogen.experimental import OpenAI, TwoAgentChat
 from autogen.experimental.agents.rag_agent import RAGAgent
 from autogen.experimental.agents.user_input_agent import UserInputAgent
 from autogen.experimental.drivers.legacy_terminal import legacy_run_in_terminal
@@ -18,10 +18,13 @@ async def user_input(prompt: str) -> str:
 
 async def main() -> None:
 
+    model_client = OpenAI(model="gpt-4-0125-preview", api_key=os.environ["OPENAI_API_KEY"])
+
     rag_agent = RAGAgent(
         name="RAGAgent",
         description="Simple RAG agent that can answer questions",
         data_dir=os.path.join(os.getcwd(), "data"),
+        model_client=model_client,
     )
     user = UserInputAgent(
         name="User", description="Simple user that can ask questions", human_input_callback=user_input

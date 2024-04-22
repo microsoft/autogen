@@ -5,12 +5,13 @@ from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.core.response import Response
 
 from ..chat_history import ChatHistoryReadOnly
-from ..types import AssistantMessage, GenerateReplyResult, Message, UserMessage
+from ..model_client import ModelClient
+from ..types import AssistantMessage, GenerateReplyResult, Message, SystemMessage, UserMessage
 
 
 class RAGAgent:
 
-    def __init__(self, *, name: str, description: str, data_dir: str):
+    def __init__(self, *, name: str, description: str, data_dir: str, model_client: ModelClient):
         """Create a RAGAgent.
 
         Args:
@@ -23,6 +24,7 @@ class RAGAgent:
         self._description = description
         self._data_dir = data_dir
         self._query_engine = None
+        self._model_client = model_client
 
     @property
     def name(self) -> str:
@@ -63,19 +65,7 @@ class RAGAgent:
         if self._query_engine is None:
             self._query_engine = await self._create_query_engine()
 
-        all_messages: List[Message] = []
-        all_messages.extend(chat_history.messages)
-
-        # create a query from the chat history
-        query = "Below is a history of messages exchanged between a user and you (assistant):"
-        for msg in all_messages[:-1]:
-            if isinstance(msg, UserMessage) and isinstance(msg.content, str):
-                query += "user " + msg.content + "\n"
-            elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
-                query += "assistant " + msg.content + "\n"
-
-        if isinstance(all_messages[-1], UserMessage):
-            query += f"Now the user asked: {all_messages[-1].content}"
+        query = await _rag_reformulate_query(chat_history, self._model_client)
 
         response = self._query_engine.query(query)
 
@@ -84,3 +74,42 @@ class RAGAgent:
             return AssistantMessage(content=str_response)
         else:
             raise ValueError("Failed to generate response")
+
+
+async def _rag_reformulate_query(chat_history: ChatHistoryReadOnly, model_client: ModelClient) -> str:
+    """Create a query from the chat history.
+
+    Args:
+        chat_history: The chat history.
+        model_client: The model client.
+    """
+
+    all_messages: List[Message] = []
+    all_messages.extend(chat_history.messages)
+
+    # create a query from the chat history
+    query = "Below is a history of messages exchanged between a user and you (the assistant):\n\n"
+    for msg in all_messages:
+        if isinstance(msg, UserMessage) and isinstance(msg.content, str):
+            query += "user: " + msg.content + "\n"
+        elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
+            query += "assistant: " + msg.content + "\n"
+
+    query += """\n\nConsider the above the conversation and especially the last user message.
+Generate 2-3 sentences that reformulate the user's intent and contain all information from
+the content."""
+
+    print(f"Query: {query}")
+
+    system_message = "Reformulate the query based on the chat history."
+
+    messages = [SystemMessage(content=system_message), UserMessage(content=query)]
+    response = await model_client.create(messages)
+    reformulated_query = response.content
+
+    if not isinstance(reformulated_query, str):
+        raise ValueError("Failed to create reformulated query")
+
+    print(f"Reformulated query: {reformulated_query}")
+
+    return reformulated_query
