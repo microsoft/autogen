@@ -1,5 +1,12 @@
 [
   {
+    "title": "AutoTx - Crypto Transactions Agent",
+    "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
+    "description": "Generates on-chain transactions, which are submitted to a smart account so users can easily approve & execute them.",
+    "image": "autotx.png",
+    "tags": ["tools", "groupchat", "app", "blockchain"]
+  },
+  {
     "title": "Function Generator & Validator",
     "link": "https://github.com/abhaymathur21/TensionCode",
     "description": "A platform where user-required code is generated and simultaneously validated against sample data by AutoGen.",
