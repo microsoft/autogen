@@ -1,6 +1,10 @@
+# Install Azure Cosmos DB SDK if not already
+# pip install azure-cosmos
+
 from __future__ import annotations
 
 import sys
+from azure.cosmos import CosmosClient
 from types import TracebackType
 from typing import Any, Dict, Optional, Type, TypedDict, Union
 
