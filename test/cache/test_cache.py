@@ -1,5 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '<azure-cosmos>'])
+
 import unittest
 from typing import Optional, TypedDict, Union
 from unittest.mock import MagicMock, patch
