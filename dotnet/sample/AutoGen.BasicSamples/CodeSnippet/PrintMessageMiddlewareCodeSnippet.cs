@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Azure;
 using Azure.AI.OpenAI;
 
@@ -32,12 +33,10 @@ internal class PrintMessageMiddlewareCodeSnippet
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var endpoint = new Uri(config.Endpoint);
         var openaiClient = new OpenAIClient(endpoint, new AzureKeyCredential(config.ApiKey));
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
 
         #region print_message_streaming
         var streamingAgent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
-            .RegisterStreamingMiddleware(openaiMessageConnector)
-            .RegisterMiddleware(openaiMessageConnector)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         await streamingAgent.SendAsync("write a long poem");

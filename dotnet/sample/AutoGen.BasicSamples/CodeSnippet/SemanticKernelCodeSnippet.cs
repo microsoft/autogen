@@ -3,6 +3,7 @@
 
 using AutoGen.Core;
 using AutoGen.SemanticKernel;
+using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -72,11 +73,10 @@ public class SemanticKernelCodeSnippet
             kernel: kernel,
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.");
-        var connector = new SemanticKernelChatMessageContentConnector();
 
         // Register the connector middleware to the kernel agent
         var semanticKernelAgentWithConnector = semanticKernelAgent
-            .RegisterMiddleware(connector); // middleware for non-streaming api
+            .RegisterMessageConnector();
 
         // now semanticKernelAgentWithConnector supports more message types
         IMessage[] messages = [
