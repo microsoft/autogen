@@ -112,12 +112,10 @@ class Cache(AbstractCache):
                 raise ValueError(f"Invalid config key: {key}")
         # create cache instance
         self.cache = CacheFactory.cache_factory(
-            self.config.get("cache_seed", "42"),
-            self.config.get("redis_url", None),
-            self.config.get("cache_path_root", None),
-            self.config.get("connection_string", None),
-            self.config.get("database_id", None),
-            self.config.get("container_id", None),
+            seed=self.config.get("cache_seed", 42),
+            redis_url=self.config.get("redis_url"),
+            cache_path_root=self.config.get("cache_path_root"),
+            cosmosdb_config=self.config.get("cosmos_db_config"),
         )
 
     def __enter__(self) -> "Cache":
