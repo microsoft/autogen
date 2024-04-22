@@ -1,7 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 import unittest
-from typing import Optional, Union
+from typing import Optional, TypedDict, Union
 from unittest.mock import MagicMock, patch
 
 try:
