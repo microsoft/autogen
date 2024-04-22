@@ -77,7 +77,7 @@ class CacheFactory:
                     "RedisCache is not available. Checking other cache options. The last fallback is DiskCache."
                 )
 
-        if cosmosdb_config and all(
+        if cosmosdb_config:
             try:
                 from .cosmos_db_cache import CosmosDBCache
                 if "client" in cosmosdb_config and isinstance(cosmosdb_config["client"], CosmosClient):
