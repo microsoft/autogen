@@ -15,6 +15,7 @@ class CosmosDBConfig(TypedDict, total=False):
     database_id: Optional[str]
     container_id: Optional[str]
     cache_seed: Union[str, int]
+    client: Optional[CosmosClient]
 
 
 class CosmosDBCache(AbstractCache):
