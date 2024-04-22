@@ -17,7 +17,7 @@ Firstly, you need to install the following packages:
 Firstly, import the required namespaces:
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=using_statement)]
 
-Then, create a `GetWeather` function and pass it to @AutoGen.OpenAI.OpenAIChatAgent:
+Then, define a public partial class: `Function` with `GetWeather` method
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/OpenAICodeSnippet.cs?name=weather_function)]
 
 Then, create an @AutoGen.OpenAI.OpenAIChatAgent and register it with @AutoGen.OpenAI.OpenAIChatRequestMessageConnector so it can support @AutoGen.Core.ToolCallMessage and @AutoGen.Core.ToolCallResultMessage. These message types are necessary to use @AutoGen.Core.FunctionCallMiddleware, which provides support for processing and invoking function calls.

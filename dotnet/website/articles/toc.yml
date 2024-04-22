@@ -79,12 +79,8 @@
       href: AutoGen-Mistral-Overview.md
     - name: Examples
       items:
-        - name: Simple chat and streaming chat
-          href: MistralChatAgent-simple-chat.md
         - name: Use function call in MistralChatAgent
           href: MistralChatAgent-use-function-call.md
-        - name: Use json mode in MistralChatAgent
-          href: MistralChatAgent-use-json-mode.md
         - name: Count token usage in MistralChatAgent
           href: MistralChatAgent-count-token-usage.md
 

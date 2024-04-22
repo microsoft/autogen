@@ -21,3 +21,6 @@ Import the required namespace
 
 Create a @AutoGen.Mistral.MistralClientAgent and start chatting!
 [!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MistralAICodeSnippet.cs?name=create_mistral_agent)]
+
+Use @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync* to stream the chat completion.
+[!code-csharp[](../../sample/AutoGen.BasicSamples/CodeSnippet/MistralAICodeSnippet.cs?name=streaming_chat)]
