@@ -34,6 +34,9 @@ OAI_CLIENTS_QUERY = "SELECT id, client_id, wrapper_id, session_id, class, init_a
 
 OAI_WRAPPERS_QUERY = "SELECT id, wrapper_id, session_id, init_args, timestamp FROM oai_wrappers"
 
+EVENTS_QUERY = (
+    "SELECT source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp FROM events"
+)
 
 if not skip_openai:
     config_list = autogen.config_list_from_json(
@@ -241,6 +244,14 @@ def test_groupchat_logging(db_connection):
     cur.execute(OAI_WRAPPERS_QUERY)
     rows = cur.fetchall()
     assert len(rows) == 3
+
+    # Verify events
+    cur.execute(EVENTS_QUERY)
+    rows = cur.fetchall()
+    json_state = json.loads(rows[0]["json_state"])
+    assert rows[0]["event_name"] == "received_message"
+    assert json_state["message"] == "Can you explain the difference between eigenvalues and singular values again?"
+    assert len(rows) == 15
 
     # Verify schema version
     version_query = "SELECT id, version_number from version"
