@@ -39,9 +39,9 @@ jobs:
       - name: Install packages and dependencies
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .
+          pip install -e .[test]
           python -c "import autogen"
-          pip install pytest mock
+          pip install mock
       - name: Install optional dependencies for code executors
         # code executors and udfs auto skip without deps, so only run for python 3.11
         if: matrix.python-version == '3.11'
@@ -65,7 +65,7 @@ jobs:
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test,redis,websockets]
+          pip install -e .[redis,websockets]
           pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
