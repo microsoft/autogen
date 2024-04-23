@@ -70,7 +70,7 @@ class Collection:
         self.documents = ""
         self.get_or_create = get_or_create
 
-    def set_collection_name(self, collection_name):
+    def set_collection_name(self, collection_name) -> str:
         name = re.sub("-", "_", collection_name)
         self.name = name
         return self.name
@@ -177,7 +177,7 @@ class Collection:
         cursor.executemany(sql_string, sql_values)
         cursor.close()
 
-    def count(self):
+    def count(self) -> int:
         """
         Get the total number of documents in the collection.
 
@@ -195,7 +195,7 @@ class Collection:
             total = None
         return total
 
-    def table_exists(self, table_name: str):
+    def table_exists(self, table_name: str) -> bool:
         """
         Check if a table exists in the PostgreSQL database.
 
@@ -220,7 +220,7 @@ class Collection:
         exists = cursor.fetchone()[0]
         return exists
 
-    def get(self, ids=None, include=None, where=None, limit=None, offset=None):
+    def get(self, ids=None, include=None, where=None, limit=None, offset=None) -> List[Document]:
         """
         Retrieve documents from the collection.
 
@@ -293,7 +293,7 @@ class Collection:
         cursor.close()
         return retrieved_documents
 
-    def update(self, ids: List, embeddings: List, metadatas: List, documents: List):
+    def update(self, ids: List, embeddings: List, metadatas: List, documents: List) -> None:
         """
         Update documents in the collection.
 
@@ -396,8 +396,8 @@ class Collection:
 
         cursor = self.client.cursor()
         results = []
-        for query in query_texts:
-            vector = self.embedding_function.encode(query, convert_to_tensor=False).tolist()
+        for query_text in query_texts:
+            vector = self.embedding_function.encode(query_text, convert_to_tensor=False).tolist()
             if distance_type.lower() == "cosine":
                 index_function = "<=>"
             elif distance_type.lower() == "euclidean":
@@ -448,7 +448,7 @@ class Collection:
         array = [float(num) for num in array_string.split()]
         return array
 
-    def modify(self, metadata, collection_name: str = None):
+    def modify(self, metadata, collection_name: str = None) -> None:
         """
         Modify metadata for the collection.
 
@@ -467,7 +467,7 @@ class Collection:
         )
         cursor.close()
 
-    def delete(self, ids: List[ItemID], collection_name: str = None):
+    def delete(self, ids: List[ItemID], collection_name: str = None) -> None:
         """
         Delete documents from the collection.
 
@@ -485,7 +485,7 @@ class Collection:
         cursor.execute(f"DELETE FROM {self.name} WHERE id IN ({id_placeholders});", ids)
         cursor.close()
 
-    def delete_collection(self, collection_name: str = None):
+    def delete_collection(self, collection_name: str = None) -> None:
         """
         Delete the entire collection.
 
@@ -501,7 +501,7 @@ class Collection:
         cursor.execute(f"DROP TABLE IF EXISTS {self.name}")
         cursor.close()
 
-    def create_collection(self, collection_name: str = None):
+    def create_collection(self, collection_name: str = None) -> None:
         """
         Create a new collection.
 
@@ -714,7 +714,7 @@ class PGVectorDB(VectorDB):
 
     def _batch_insert(
         self, collection: Collection, embeddings=None, ids=None, metadatas=None, documents=None, upsert=False
-    ):
+    ) -> None:
         batch_size = int(PGVECTOR_MAX_BATCH_SIZE)
         default_metadata = {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         default_metadatas = [default_metadata] * min(batch_size, len(documents))
