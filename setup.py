@@ -50,12 +50,12 @@ setuptools.setup(
     install_requires=install_requires,
     extras_require={
         "test": [
-            "coverage>=5.3",
             "ipykernel",
             "nbconvert",
             "nbformat",
             "pre-commit",
             "pytest-asyncio",
+            "pytest-cov>=5",
             "pytest>=6.1.1,<8",
             "pandas",
         ],
