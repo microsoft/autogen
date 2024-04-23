@@ -8,7 +8,7 @@ using System.Text.Json.Serialization;
 
 namespace AutoGen.Mistral;
 
-public class JsonPropertyNameEnumConverter<T> : JsonConverter<T> where T : struct, Enum
+internal class JsonPropertyNameEnumConverter<T> : JsonConverter<T> where T : struct, Enum
 {
     public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

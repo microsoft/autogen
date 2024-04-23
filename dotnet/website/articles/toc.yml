@@ -73,6 +73,16 @@
       href: SemanticKernelAgent-simple-chat.md
     - name: Use SemanticKernelChatMessageContentConnector to support more AutoGen built-in messages
       href: SemanticKernelAgent-support-more-messages.md
+- name: AutoGen.Mistral
+  items:
+    - name: Overview
+      href: AutoGen-Mistral-Overview.md
+    - name: Examples
+      items:
+        - name: Use function call in MistralChatAgent
+          href: MistralChatAgent-use-function-call.md
+        - name: Count token usage in MistralChatAgent
+          href: MistralChatAgent-count-token-usage.md
 
 - name: AutoGen.LMStudio
   items:

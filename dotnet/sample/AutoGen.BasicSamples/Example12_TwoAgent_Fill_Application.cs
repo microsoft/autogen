@@ -5,6 +5,7 @@ using System.Text;
 using AutoGen.OpenAI;
 using AutoGen.Core;
 using Azure.AI.OpenAI;
+using AutoGen.OpenAI.Extension;
 
 namespace AutoGen.BasicSample;
 
@@ -74,7 +75,6 @@ public partial class TwoAgent_Fill_Application
         var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
 
         var instance = new TwoAgent_Fill_Application();
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
         var functionCallConnector = new FunctionCallMiddleware(
             functions: [instance.SaveProgressFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>>
@@ -87,10 +87,8 @@ public partial class TwoAgent_Fill_Application
             name: "application",
             modelName: gpt3Config.DeploymentName,
             systemMessage: """You are a helpful application form assistant who saves progress while user fills application.""")
-            .RegisterStreamingMiddleware(openaiMessageConnector)
-            .RegisterMiddleware(openaiMessageConnector)
+            .RegisterMessageConnector()
             .RegisterMiddleware(functionCallConnector)
-            .RegisterStreamingMiddleware(functionCallConnector)
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
                 var lastUserMessage = msgs.Last() ?? throw new Exception("No user message found.");
@@ -116,15 +114,12 @@ public partial class TwoAgent_Fill_Application
         var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
 
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
-
         var chatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "assistant",
             modelName: gpt3Config.DeploymentName,
             systemMessage: """You create polite prompt to ask user provide missing information""")
-            .RegisterStreamingMiddleware(openaiMessageConnector)
-            .RegisterMiddleware(openaiMessageConnector)
+            .RegisterMessageConnector()
             .RegisterPrintMessage()
             .RegisterMiddleware(async (msgs, option, agent, ct) =>
             {
@@ -152,8 +147,6 @@ public partial class TwoAgent_Fill_Application
         var apiKey = gpt3Config.ApiKey ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
         var openaiClient = new OpenAIClient(new Uri(endPoint), new Azure.AzureKeyCredential(apiKey));
 
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
-
         var chatAgent = new OpenAIChatAgent(
             openAIClient: openaiClient,
             name: "user",
@@ -168,8 +161,7 @@ public partial class TwoAgent_Fill_Application
             - address: 1234 Main St, Redmond, WA 98052
             - want to receive update? true
             """)
-            .RegisterStreamingMiddleware(openaiMessageConnector)
-            .RegisterMiddleware(openaiMessageConnector)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         return chatAgent;

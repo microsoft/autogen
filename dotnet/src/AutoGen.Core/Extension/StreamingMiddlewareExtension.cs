@@ -21,6 +21,11 @@ public static class StreamingMiddlewareExtension
         var middlewareAgent = new MiddlewareStreamingAgent<TStreamingAgent>(agent);
         middlewareAgent.UseStreaming(middleware);
 
+        if (middleware is IMiddleware middlewareBase)
+        {
+            middlewareAgent.Use(middlewareBase);
+        }
+
         return middlewareAgent;
     }
 
@@ -34,6 +39,11 @@ public static class StreamingMiddlewareExtension
     {
         var copyAgent = new MiddlewareStreamingAgent<TAgent>(agent);
         copyAgent.UseStreaming(middleware);
+
+        if (middleware is IMiddleware middlewareBase)
+        {
+            copyAgent.Use(middlewareBase);
+        }
 
         return copyAgent;
     }

@@ -71,7 +71,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return input switch
         {
             IMessage<ChatMessageContent> messageEnvelope => PostProcessMessage(messageEnvelope),
-            _ => throw new System.NotImplementedException(),
+            _ => input,
         };
     }
 
@@ -81,7 +81,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         {
             IStreamingMessage<StreamingChatMessageContent> streamingMessage => PostProcessMessage(streamingMessage),
             IMessage msg => PostProcessMessage(msg),
-            _ => throw new System.NotImplementedException(),
+            _ => input,
         };
     }
 

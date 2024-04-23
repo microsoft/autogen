@@ -3,7 +3,6 @@
 
 using System.ComponentModel;
 using AutoGen.Core;
-using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
@@ -62,11 +61,8 @@ public class Example10_SemanticKernel
         reply.Should().BeOfType<MessageEnvelope<ChatMessageContent>>();
         Console.WriteLine((reply as IMessage<ChatMessageContent>).Content.Items[0].As<TextContent>().Text);
 
-        // To support more AutoGen built-in IMessage, register skAgent with ChatMessageContentConnector
-        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgentWithMiddleware = skAgent
-            .RegisterStreamingMiddleware(connector)
-            .RegisterMiddleware(connector)
+            .RegisterMessageConnector()
             .RegisterPrintMessage();
 
         // Now the skAgentWithMiddleware supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage

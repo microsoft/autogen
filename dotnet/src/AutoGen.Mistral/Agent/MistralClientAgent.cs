@@ -11,6 +11,22 @@ using AutoGen.Mistral.Extension;
 
 namespace AutoGen.Mistral;
 
+/// <summary>
+/// Mistral client agent.
+/// 
+/// <para>This agent supports the following input message types:</para>
+/// <list type="bullet">
+/// <para><see cref="MessageEnvelope{T}"/> where T is <see cref="ChatMessage"/></para>
+/// </list>
+/// 
+/// <para>This agent returns the following message types:</para>
+/// <list type="bullet">
+/// <para><see cref="MessageEnvelope{T}"/> where T is <see cref="ChatCompletionResponse"/></para>
+/// </list>
+/// 
+/// You can register this agent with <see cref="MistralAgentExtension.RegisterMessageConnector(AutoGen.Mistral.MistralClientAgent, AutoGen.Mistral.MistralChatMessageConnector?)"/>
+/// to support more AutoGen message types.
+/// </summary>
 public class MistralClientAgent : IStreamingAgent
 {
     private readonly MistralClient _client;
@@ -19,6 +35,17 @@ public class MistralClientAgent : IStreamingAgent
     private readonly int? _randomSeed;
     private readonly bool _jsonOutput = false;
     private ToolChoiceEnum? _toolChoice;
+
+    /// <summary>
+    /// Create a new instance of <see cref="MistralClientAgent"/>.
+    /// </summary>
+    /// <param name="client"><see cref="MistralClient"/></param>
+    /// <param name="name">the name of this agent</param>
+    /// <param name="model">the mistral model id.</param>
+    /// <param name="systemMessage">system message.</param>
+    /// <param name="randomSeed">the seed to generate output.</param>
+    /// <param name="toolChoice">tool choice strategy.</param>
+    /// <param name="jsonOutput">use json output.</param>
     public MistralClientAgent(
         MistralClient client,
         string name,

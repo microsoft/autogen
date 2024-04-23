@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 
@@ -65,10 +66,8 @@ public partial class OpenAIChatAgentTest
             name: "assistant",
             modelName: "gpt-35-turbo-16k");
 
-        var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
-            .RegisterStreamingMiddleware(openAIChatMessageConnector)
-            .RegisterMiddleware(openAIChatMessageConnector);
+            .RegisterMessageConnector();
 
         var messages = new IMessage[]
         {
@@ -114,16 +113,15 @@ public partial class OpenAIChatAgentTest
             name: "assistant",
             modelName: "gpt-35-turbo-16k");
 
-        var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract]);
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
-            .RegisterStreamingMiddleware(openAIChatMessageConnector)
-            .RegisterMiddleware(openAIChatMessageConnector);
+            .RegisterMessageConnector();
 
+        assistant.Middlewares.Count().Should().Be(1);
+        assistant.StreamingMiddlewares.Count().Should().Be(1);
         var functionCallAgent = assistant
-            .RegisterMiddleware(functionCallMiddleware)
-            .RegisterStreamingMiddleware(functionCallMiddleware);
+            .RegisterMiddleware(functionCallMiddleware);
 
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
@@ -185,17 +183,14 @@ public partial class OpenAIChatAgentTest
             name: "assistant",
             modelName: "gpt-35-turbo-16k");
 
-        var openAIChatMessageConnector = new OpenAIChatRequestMessageConnector();
         var functionCallMiddleware = new FunctionCallMiddleware(
             functions: [this.GetWeatherAsyncFunctionContract],
             functionMap: new Dictionary<string, Func<string, Task<string>>> { { this.GetWeatherAsyncFunctionContract.Name!, this.GetWeatherAsyncWrapper } });
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
-            .RegisterStreamingMiddleware(openAIChatMessageConnector)
-            .RegisterMiddleware(openAIChatMessageConnector);
+            .RegisterMessageConnector();
 
         var functionCallAgent = assistant
-            .RegisterMiddleware(functionCallMiddleware)
-            .RegisterStreamingMiddleware(functionCallMiddleware);
+            .RegisterMiddleware(functionCallMiddleware);
 
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
