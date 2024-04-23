@@ -5,6 +5,7 @@
 
 import requests
 import tarfile
+import hashlib
 import io
 import json
 import os
@@ -89,12 +90,19 @@ def main():
         if entry.is_dir():
             templates[re.sub(r"\s", "", entry.name)] = entry.path
 
-    # Divide the tasks by their websites
+    # Divide the tasks by their websites and if they are validation or test
     page_groups = dict()
     for task in tasks:
+
+        # We don't know how the intent id's are distributed, so hash them to get a uniform dist
+        template_hash = hashlib.md5(str(task["intent_template_id"]).encode("utf-8")).hexdigest()
+        task_set = "validation" if template_hash[0] in "01234567" else "test"
+
         key = task["sites"][0]
         if len(task["sites"]) > 1:
             key = "several_sites"
+        key = task_set + "_" + key
+
         # key = "__".join(sorted([s for s in task["sites"]]))
         if key not in page_groups:
             page_groups[key] = list()
