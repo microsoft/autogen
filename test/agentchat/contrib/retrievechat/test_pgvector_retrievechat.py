@@ -9,10 +9,10 @@ from sentence_transformers import SentenceTransformer
 from autogen import config_list_from_json
 from autogen.agentchat.contrib.retrieve_assistant_agent import RetrieveAssistantAgent
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
 from conftest import skip_openai  # noqa: E402
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
@@ -30,7 +30,7 @@ else:
     skip = False or skip_openai
 
 
-test_dir = os.path.join(os.path.dirname(__file__), "../..", "test_files")
+test_dir = os.path.join(os.path.dirname(__file__), "../../..", "test_files")
 
 
 @pytest.mark.skipif(

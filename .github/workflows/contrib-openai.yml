@@ -24,6 +24,21 @@ jobs:
         python-version: ["3.10"]
     runs-on: ${{ matrix.os }}
     environment: openai1
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+        - POSTGRES_DB=postgres
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres
+        - POSTGRES_HOST_AUTH_METHOD=trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       # checkout to pr branch
       - name: Checkout
@@ -41,19 +56,6 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-      - name: Install and Start PostgreSQL
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends build-essential curl postgresql-server-dev-all
-          export PGVECTOR_VERSION=0.6.2
-          curl -L -o pgvector.tar.gz "https://github.com/ankane/pgvector/archive/refs/tags/v${PGVECTOR_VERSION}.tar.gz"
-          tar -xzf pgvector.tar.gz
-          cd "pgvector-${PGVECTOR_VERSION}"
-          make
-          make install
-          systemctl enable postgresql
-          systemctl start postgresql
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -65,7 +67,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat test/agentchat/contrib/test_pgvector_retrievechat.py::test_retrievechat
+          coverage run -a -m pytest -k test_retrievechat test/agentchat/contrib/retrievechat
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
