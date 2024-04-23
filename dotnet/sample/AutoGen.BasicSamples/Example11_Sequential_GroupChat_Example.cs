@@ -4,7 +4,9 @@
 #region using_statement
 using AutoGen.Core;
 using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
 using AutoGen.SemanticKernel;
+using AutoGen.SemanticKernel.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Plugins.Web;
@@ -27,7 +29,6 @@ public partial class Sequential_GroupChat_Example
         var webSearchPlugin = new WebSearchEnginePlugin(bingSearch);
         kernelBuilder.Plugins.AddFromObject(webSearchPlugin);
 
-        var kernelMessageConnector = new SemanticKernelChatMessageContentConnector();
         var kernel = kernelBuilder.Build();
         var kernelAgent = new SemanticKernelAgent(
             kernel: kernel,
@@ -41,8 +42,7 @@ public partial class Sequential_GroupChat_Example
             xxx
             ```
             """)
-            .RegisterStreamingMiddleware(kernelMessageConnector) // support TextMessageUpdate
-            .RegisterMiddleware(kernelMessageConnector) // support TextMessage
+            .RegisterMessageConnector()
             .RegisterPrintMessage(); // pretty print the message
 
         return kernelAgent;
@@ -63,11 +63,8 @@ public partial class Sequential_GroupChat_Example
             modelName: config.DeploymentName,
             systemMessage: "You summarize search result from bing in a short and concise manner");
 
-        var messageConnector = new OpenAIChatRequestMessageConnector();
-
         return openAIClientAgent
-            .RegisterStreamingMiddleware(messageConnector) // support TextMessageUpdate
-            .RegisterMiddleware(messageConnector) // support TextMessage
+            .RegisterMessageConnector()
             .RegisterPrintMessage(); // pretty print the message
         #endregion CreateSummarizerAgent
     }

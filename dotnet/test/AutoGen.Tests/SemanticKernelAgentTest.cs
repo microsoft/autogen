@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.SemanticKernel;
+using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
@@ -118,10 +119,11 @@ public partial class SemanticKernelAgentTest
         builder.Plugins.AddFromFunctions("plugins", [function]);
         var kernel = builder.Build();
 
-        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgent = new SemanticKernelAgent(kernel, "assistant")
-            .RegisterStreamingMiddleware(connector)
-            .RegisterMiddleware(connector);
+            .RegisterMessageConnector();
+
+        skAgent.Middlewares.Count().Should().Be(1);
+        skAgent.StreamingMiddlewares.Count().Should().Be(1);
 
         var question = "What is the weather in Seattle?";
         var reply = await skAgent.SendAsync(question);

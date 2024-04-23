@@ -16,9 +16,8 @@ internal class PrintMessageMiddlewareCodeSnippet
         var config = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
         var endpoint = new Uri(config.Endpoint);
         var openaiClient = new OpenAIClient(endpoint, new AzureKeyCredential(config.ApiKey));
-        var openaiMessageConnector = new OpenAIChatRequestMessageConnector();
         var agent = new OpenAIChatAgent(openaiClient, "assistant", config.DeploymentName)
-            .RegisterMiddleware(openaiMessageConnector);
+            .RegisterMessageConnector();
 
         #region PrintMessageMiddleware
         var agentWithPrintMessageMiddleware = agent

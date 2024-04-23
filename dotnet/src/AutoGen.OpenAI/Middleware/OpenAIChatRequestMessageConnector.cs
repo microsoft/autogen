@@ -81,7 +81,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             }
             else
             {
-                throw new InvalidOperationException("The type of streaming reply is not supported. Must be one of StreamingChatCompletionsUpdate");
+                yield return reply;
             }
         }
     }
