@@ -1,14 +1,17 @@
+import importlib.metadata
 import json
 import logging
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Union
 
 from dotenv import find_dotenv, load_dotenv
 from openai import OpenAI
 from openai.types.beta.assistant import Assistant
+from packaging.version import parse
 
 NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
@@ -675,3 +678,103 @@ def retrieve_assistants_by_name(client: OpenAI, name: str) -> List[Assistant]:
         if assistant.name == name:
             candidate_assistants.append(assistant)
     return candidate_assistants
+
+
+def detect_gpt_assistant_api_version() -> str:
+    """Detect the openai assistant API version"""
+    oai_version = importlib.metadata.version("openai")
+    if parse(oai_version) < parse("1.21"):
+        return "v1"
+    else:
+        return "v2"
+
+
+def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
+    """Create a openai vector store for gpt assistant"""
+
+    vector_store = client.beta.vector_stores.create(name=name)
+    # poll the status of the file batch for completion.
+    batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
+
+    if batch.status == "in_progress":
+        time.sleep(1)
+        logging.debug(f"file batch status: {batch.file_counts}")
+        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)
+
+    if batch.status == "completed":
+        return vector_store
+
+    raise ValueError(f"Failed to upload files to vector store {vector_store.id}:{batch.status}")
+
+
+def create_gpt_assistant(
+    client: OpenAI, name: str, instructions: str, model: str, assistant_config: Dict[str, Any]
+) -> Assistant:
+    """Create a openai gpt assistant"""
+
+    assistant_create_kwargs = {}
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
+    tools = assistant_config.get("tools", [])
+
+    if gpt_assistant_api_version == "v2":
+        tool_resources = assistant_config.get("tool_resources", {})
+        file_ids = assistant_config.get("file_ids")
+        if tool_resources.get("file_search") is not None and file_ids is not None:
+            raise ValueError(
+                "Cannot specify both `tool_resources['file_search']` tool and `file_ids` in the assistant config."
+            )
+
+        # Designed for backwards compatibility for the V1 API
+        # Instead of V1 AssistantFile, files are attached to Assistants using the tool_resources object.
+        for tool in tools:
+            if tool["type"] == "retrieval":
+                tool["type"] = "file_search"
+                if file_ids is not None:
+                    # create a vector store for the file search tool
+                    vs = create_gpt_vector_store(client, f"{name}-vectorestore", file_ids)
+                    tool_resources["file_search"] = {
+                        "vector_store_ids": [vs.id],
+                    }
+            elif tool["type"] == "code_interpreter" and file_ids is not None:
+                tool_resources["code_interpreter"] = {
+                    "file_ids": file_ids,
+                }
+
+        assistant_create_kwargs["tools"] = tools
+        if len(tool_resources) > 0:
+            assistant_create_kwargs["tool_resources"] = tool_resources
+    else:
+        # not support forwards compatibility
+        if "tool_resources" in assistant_config:
+            raise ValueError("`tool_resources` argument are not supported in the openai assistant V1 API.")
+        if any(tool["type"] == "file_search" for tool in tools):
+            raise ValueError(
+                "`file_search` tool are not supported in the openai assistant V1 API, please use `retrieval`."
+            )
+        assistant_create_kwargs["tools"] = tools
+        assistant_create_kwargs["file_ids"] = assistant_config.get("file_ids", [])
+
+    logging.info(f"Creating assistant with config: {assistant_create_kwargs}")
+    return client.beta.assistants.create(name=name, instructions=instructions, model=model, **assistant_create_kwargs)
+
+
+def update_gpt_assistant(client: OpenAI, assistant_id: str, assistant_config: Dict[str, Any]) -> Assistant:
+    """Update openai gpt assistant"""
+
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
+    assistant_update_kwargs = {}
+
+    if assistant_config.get("tools") is not None:
+        assistant_update_kwargs["tools"] = assistant_config["tools"]
+
+    if assistant_config.get("instructions") is not None:
+        assistant_update_kwargs["instructions"] = assistant_config["instructions"]
+
+    if gpt_assistant_api_version == "v2":
+        if assistant_config.get("tool_resources") is not None:
+            assistant_update_kwargs["tool_resources"] = assistant_config["tool_resources"]
+    else:
+        if assistant_config.get("file_ids") is not None:
+            assistant_update_kwargs["file_ids"] = assistant_config["file_ids"]
+
+    return client.beta.assistants.update(assistant_id=assistant_id, **assistant_update_kwargs)
