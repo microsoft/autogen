@@ -17,8 +17,8 @@ else:
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="dependency is not installed",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_pgvector():
     # test create collection
