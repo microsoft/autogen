@@ -40,7 +40,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
         "html",
         "css",
     ]
-    EXECUTION_POLICIES: ClassVar[Dict[str, bool]] = {
+    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
         "bash": True,
         "shell": True,
         "sh": True,
@@ -69,20 +69,25 @@ $functions"""
         functions_module: str = "functions",
         execution_policies: Optional[Dict[str, bool]] = None,
     ):
-        """
-        Initializes a local command line code executor that executes or saves LLM generated code on the local machine.
+        """(Experimental) A code executor class that executes or saves LLM generated code a local command line
+        environment.
 
-        Each code block is saved as a file in the working directory. Depending on the execution policy, the code may be executed in a separate process.
-        Command line code is sanitized against a list of dangerous commands to prevent self-destructive commands from being executed, which could potentially affect the user's environment.
+        **This will execute or save LLM generated code on the local machine.**
 
-        Supported languages include Python, shell scripts (bash, shell, sh), PowerShell (pwsh, powershell, ps1), HTML, CSS, and JavaScript. Execution policies determine whether each language's code blocks are executed or saved only.
+        Each code block is saved as a file in the working directory. Depending on the execution policy,
+        the code may be executed in a separate process.
+        The code blocks are executed or save in the order they are received.
+        Command line code is sanitized against a list of dangerous commands to prevent self-destructive commands from being executed,
+        which could potentially affect the user's environment. Supported languages include Python, shell scripts (bash, shell, sh),
+        PowerShell (pwsh, powershell, ps1), HTML, CSS, and JavaScript.
+        Execution policies determine whether each language's code blocks are executed or saved only.
 
         Args:
             timeout (int): The timeout for code execution, default is 60 seconds.
             work_dir (Union[Path, str]): The working directory for code execution, defaults to the current directory.
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]): A list of callable functions available to the executor.
             functions_module (str): The module name under which functions are accessible.
-            execution_policies (Optional[Dict[str, bool]]): A dictionary mapping languages to execution policies (True for execution, False for saving only). Defaults to class-wide EXECUTION_POLICIES.
+            execution_policies (Optional[Dict[str, bool]]): A dictionary mapping languages to execution policies (True for execution, False for saving only). Defaults to class-wide DEFAULT_EXECUTION_POLICY.
         """
 
         if timeout < 1:
@@ -108,7 +113,9 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
-        self.execution_policies = execution_policies if execution_policies is not None else self.EXECUTION_POLICIES
+        self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
+        if execution_policies is not None:
+            self.execution_policies.update(execution_policies)
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
@@ -253,7 +260,6 @@ $functions"""
             with written_file.open("w", encoding="utf-8") as f:
                 f.write(code)
             file_names.append(written_file)
-            print(f"Language: {lang}, Execute: {execute_code}")
 
             if not execute_code:
                 # Just return a message that the file is saved.
@@ -272,8 +278,11 @@ $functions"""
                 # Same exit code as the timeout command on linux.
                 exitcode = 124
                 break
-            logs_all += result.stderr + result.stdout
+
+            logs_all += result.stderr
+            logs_all += result.stdout
             exitcode = result.returncode
+
             if exitcode != 0:
                 break
 
@@ -283,3 +292,70 @@ $functions"""
     def restart(self) -> None:
         """(Experimental) Restart the code executor."""
         warnings.warn("Restarting local command line code executor is not supported. No action is taken.")
+
+
+# From stack overflow: https://stackoverflow.com/a/52087847/2214524
+class _DeprecatedClassMeta(type):
+    def __new__(cls, name, bases, classdict, *args, **kwargs):  # type: ignore[no-untyped-def]
+        alias = classdict.get("_DeprecatedClassMeta__alias")
+
+        if alias is not None:
+
+            def new(cls, *args, **kwargs):  # type: ignore[no-untyped-def]
+                alias = getattr(cls, "_DeprecatedClassMeta__alias")
+
+                if alias is not None:
+                    warnings.warn(
+                        "{} has been renamed to {}, the alias will be "
+                        "removed in the future".format(cls.__name__, alias.__name__),
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+
+                return alias(*args, **kwargs)
+
+            classdict["__new__"] = new
+            classdict["_DeprecatedClassMeta__alias"] = alias
+
+        fixed_bases = []
+
+        for b in bases:
+            alias = getattr(b, "_DeprecatedClassMeta__alias", None)
+
+            if alias is not None:
+                warnings.warn(
+                    "{} has been renamed to {}, the alias will be "
+                    "removed in the future".format(b.__name__, alias.__name__),
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
+            # Avoid duplicate base classes.
+            b = alias or b
+            if b not in fixed_bases:
+                fixed_bases.append(b)
+
+        fixed_bases = tuple(fixed_bases)  # type: ignore[assignment]
+
+        return super().__new__(cls, name, fixed_bases, classdict, *args, **kwargs)  # type: ignore[call-overload]
+
+    def __instancecheck__(cls, instance):  # type: ignore[no-untyped-def]
+        return any(cls.__subclasscheck__(c) for c in {type(instance), instance.__class__})  # type: ignore[no-untyped-call]
+
+    def __subclasscheck__(cls, subclass):  # type: ignore[no-untyped-def]
+        if subclass is cls:
+            return True
+        else:
+            return issubclass(subclass, getattr(cls, "_DeprecatedClassMeta__alias"))
+
+
+class LocalCommandlineCodeExecutor(metaclass=_DeprecatedClassMeta):
+    """LocalCommandlineCodeExecutor renamed to LocalCommandLineCodeExecutor"""
+
+    _DeprecatedClassMeta__alias = LocalCommandLineCodeExecutor
+
+
+class CommandlineCodeResult(metaclass=_DeprecatedClassMeta):
+    """CommandlineCodeResult renamed to CommandLineCodeResult"""
+
+    _DeprecatedClassMeta__alias = CommandLineCodeResult
