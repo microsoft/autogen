@@ -10,7 +10,7 @@ from autogen import UserProxyAgent, config_list_from_json
 from autogen.oai.openai_utils import filter_config
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import MOCK_OPEN_AI_API_KEY, skip_openai  # noqa: E402
+from conftest import MOCK_OPEN_AI_API_KEY, reason, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -27,20 +27,13 @@ else:
     skip_all = False
 
 try:
-    from openai import OpenAI
-except ImportError:
-    skip_oai = True
-else:
-    skip_oai = False or skip_openai
-
-try:
     BING_API_KEY = os.environ["BING_API_KEY"]
 except KeyError:
     skip_bing = True
 else:
     skip_bing = False
 
-if not skip_oai:
+if not skip_openai:
     config_list = config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
 
 
@@ -104,8 +97,8 @@ def test_web_surfer() -> None:
 
 
 @pytest.mark.skipif(
-    skip_oai,
-    reason="do not run if oai is not installed",
+    skip_all or skip_openai,
+    reason="dependency is not installed OR" + reason,
 )
 def test_web_surfer_oai() -> None:
     llm_config = {"config_list": config_list, "timeout": 180, "cache_seed": 42}

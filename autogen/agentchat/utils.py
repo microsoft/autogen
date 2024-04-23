@@ -1,5 +1,5 @@
 import re
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Union
 
 from .agent import Agent
 
@@ -26,33 +26,46 @@ def consolidate_chat_info(chat_info, uniform_sender=None) -> None:
             ), "llm client must be set in either the recipient or sender when summary_method is reflection_with_llm."
 
 
-def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str, any]]:
+def gather_usage_summary(agents: List[Agent]) -> Dict[Dict[str, Dict], Dict[str, Dict]]:
     r"""Gather usage summary from all agents.
 
     Args:
         agents: (list): List of agents.
 
     Returns:
-        tuple: (total_usage_summary, actual_usage_summary)
+        dictionary: A dictionary containing two keys:
+          - "usage_including_cached_inference": Cost information on the total usage, including the tokens in cached inference.
+          - "usage_excluding_cached_inference": Cost information on the usage of tokens, excluding the tokens in cache. No larger than "usage_including_cached_inference".
 
     Example:
 
     ```python
-    total_usage_summary = {
-        "total_cost": 0.0006090000000000001,
-        "gpt-35-turbo": {
-                "cost": 0.0006090000000000001,
-                "prompt_tokens": 242,
-                "completion_tokens": 123,
-                "total_tokens": 365
+    {
+        "usage_including_cached_inference" : {
+            "total_cost": 0.0006090000000000001,
+            "gpt-35-turbo": {
+                    "cost": 0.0006090000000000001,
+                    "prompt_tokens": 242,
+                    "completion_tokens": 123,
+                    "total_tokens": 365
+            },
+        },
+
+        "usage_excluding_cached_inference" : {
+            "total_cost": 0.0006090000000000001,
+            "gpt-35-turbo": {
+                    "cost": 0.0006090000000000001,
+                    "prompt_tokens": 242,
+                    "completion_tokens": 123,
+                    "total_tokens": 365
+            },
         }
     }
     ```
 
     Note:
 
-    `actual_usage_summary` follows the same format.
-    If none of the agents incurred any cost (not having a client), then the total_usage_summary and actual_usage_summary will be `{'total_cost': 0}`.
+    If none of the agents incurred any cost (not having a client), then the usage_including_cached_inference and usage_excluding_cached_inference will be `{'total_cost': 0}`.
     """
 
     def aggregate_summary(usage_summary: Dict[str, Any], agent_summary: Dict[str, Any]) -> None:
@@ -69,15 +82,18 @@ def gather_usage_summary(agents: List[Agent]) -> Tuple[Dict[str, any], Dict[str,
                     usage_summary[model]["completion_tokens"] += data.get("completion_tokens", 0)
                     usage_summary[model]["total_tokens"] += data.get("total_tokens", 0)
 
-    total_usage_summary = {"total_cost": 0}
-    actual_usage_summary = {"total_cost": 0}
+    usage_including_cached_inference = {"total_cost": 0}
+    usage_excluding_cached_inference = {"total_cost": 0}
 
     for agent in agents:
         if getattr(agent, "client", None):
-            aggregate_summary(total_usage_summary, agent.client.total_usage_summary)
-            aggregate_summary(actual_usage_summary, agent.client.actual_usage_summary)
+            aggregate_summary(usage_including_cached_inference, agent.client.total_usage_summary)
+            aggregate_summary(usage_excluding_cached_inference, agent.client.actual_usage_summary)
 
-    return total_usage_summary, actual_usage_summary
+    return {
+        "usage_including_cached_inference": usage_including_cached_inference,
+        "usage_excluding_cached_inference": usage_excluding_cached_inference,
+    }
 
 
 def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Dict[str, str]]]:

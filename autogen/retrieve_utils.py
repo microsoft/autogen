@@ -1,7 +1,8 @@
 import glob
+import hashlib
 import os
 import re
-from typing import Callable, List, Union
+from typing import Callable, List, Tuple, Union
 from urllib.parse import urlparse
 
 import chromadb
@@ -156,12 +157,18 @@ def split_files_to_chunks(
     chunk_mode: str = "multi_lines",
     must_break_at_empty_line: bool = True,
     custom_text_split_function: Callable = None,
-):
+) -> Tuple[List[str], List[dict]]:
     """Split a list of files into chunks of max_tokens."""
 
     chunks = []
+    sources = []
 
     for file in files:
+        if isinstance(file, tuple):
+            url = file[1]
+            file = file[0]
+        else:
+            url = None
         _, file_extension = os.path.splitext(file)
         file_extension = file_extension.lower()
 
@@ -179,11 +186,13 @@ def split_files_to_chunks(
             continue  # Skip to the next file if no text is available
 
         if custom_text_split_function is not None:
-            chunks += custom_text_split_function(text)
+            tmp_chunks = custom_text_split_function(text)
         else:
-            chunks += split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+            tmp_chunks = split_text_to_chunks(text, max_tokens, chunk_mode, must_break_at_empty_line)
+        chunks += tmp_chunks
+        sources += [{"source": url if url else file}] * len(tmp_chunks)
 
-    return chunks
+    return chunks, sources
 
 
 def get_files_from_dir(dir_path: Union[str, List[str]], types: list = TEXT_FORMATS, recursive: bool = True):
@@ -267,15 +276,22 @@ def parse_html_to_markdown(html: str, url: str = None) -> str:
     return webpage_text
 
 
-def get_file_from_url(url: str, save_path: str = None):
+def _generate_file_name_from_url(url: str, max_length=255) -> str:
+    url_bytes = url.encode("utf-8")
+    hash = hashlib.blake2b(url_bytes).hexdigest()
+    parsed_url = urlparse(url)
+    file_name = os.path.basename(url)
+    file_name = f"{parsed_url.netloc}_{file_name}_{hash[:min(8, max_length-len(parsed_url.netloc)-len(file_name)-1)]}"
+    return file_name
+
+
+def get_file_from_url(url: str, save_path: str = None) -> Tuple[str, str]:
     """Download a file from a URL."""
     if save_path is None:
         save_path = "tmp/chromadb"
         os.makedirs(save_path, exist_ok=True)
     if os.path.isdir(save_path):
-        filename = os.path.basename(url)
-        if filename == "":  # "www.example.com/"
-            filename = url.split("/")[-2]
+        filename = _generate_file_name_from_url(url)
         save_path = os.path.join(save_path, filename)
     else:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -303,7 +319,7 @@ def get_file_from_url(url: str, save_path: str = None):
         with open(save_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-    return save_path
+    return save_path, url
 
 
 def is_url(string: str):
@@ -319,7 +335,7 @@ def create_vector_db_from_dir(
     dir_path: Union[str, List[str]],
     max_tokens: int = 4000,
     client: API = None,
-    db_path: str = "/tmp/chromadb.db",
+    db_path: str = "tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     get_or_create: bool = False,
     chunk_mode: str = "multi_lines",
@@ -339,7 +355,7 @@ def create_vector_db_from_dir(
         dir_path (Union[str, List[str]]): the path to the directory, file, url or a list of them.
         max_tokens (Optional, int): the maximum number of tokens per chunk. Default is 4000.
         client (Optional, API): the chromadb client. Default is None.
-        db_path (Optional, str): the path to the chromadb. Default is "/tmp/chromadb.db".
+        db_path (Optional, str): the path to the chromadb. Default is "tmp/chromadb.db". The default was `/tmp/chromadb.db` for version <=0.2.24.
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         get_or_create (Optional, bool): Whether to get or create the collection. Default is False. If True, the collection
             will be returned if it already exists. Will raise ValueError if the collection already exists and get_or_create is False.
@@ -383,12 +399,12 @@ def create_vector_db_from_dir(
             length = len(collection.get()["ids"])
 
         if custom_text_split_function is not None:
-            chunks = split_files_to_chunks(
+            chunks, sources = split_files_to_chunks(
                 get_files_from_dir(dir_path, custom_text_types, recursive),
                 custom_text_split_function=custom_text_split_function,
             )
         else:
-            chunks = split_files_to_chunks(
+            chunks, sources = split_files_to_chunks(
                 get_files_from_dir(dir_path, custom_text_types, recursive),
                 max_tokens,
                 chunk_mode,
@@ -401,6 +417,7 @@ def create_vector_db_from_dir(
             collection.upsert(
                 documents=chunks[i:end_idx],
                 ids=[f"doc_{j+length}" for j in range(i, end_idx)],  # unique for each doc
+                metadatas=sources[i:end_idx],
             )
     except ValueError as e:
         logger.warning(f"{e}")
@@ -411,7 +428,7 @@ def query_vector_db(
     query_texts: List[str],
     n_results: int = 10,
     client: API = None,
-    db_path: str = "/tmp/chromadb.db",
+    db_path: str = "tmp/chromadb.db",
     collection_name: str = "all-my-documents",
     search_string: str = "",
     embedding_model: str = "all-MiniLM-L6-v2",
@@ -424,7 +441,7 @@ def query_vector_db(
         query_texts (List[str]): the list of strings which will be used to query the vector db.
         n_results (Optional, int): the number of results to return. Default is 10.
         client (Optional, API): the chromadb compatible client. Default is None, a chromadb client will be used.
-        db_path (Optional, str): the path to the vector db. Default is "/tmp/chromadb.db".
+        db_path (Optional, str): the path to the vector db. Default is "tmp/chromadb.db". The default was `/tmp/chromadb.db` for version <=0.2.24.
         collection_name (Optional, str): the name of the collection. Default is "all-my-documents".
         search_string (Optional, str): the search string. Only docs that contain an exact match of this string will be retrieved. Default is "".
         embedding_model (Optional, str): the embedding model to use. Default is "all-MiniLM-L6-v2". Will be ignored if
