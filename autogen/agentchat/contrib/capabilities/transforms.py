@@ -255,20 +255,33 @@ class TextMessageCompressor:
     """
 
     def __init__(
-        self, text_compressor: Optional[TextCompressor] = None, compress_all_messages_on_first_apply: bool = False
+        self,
+        text_compressor: Optional[TextCompressor] = None,
+        max_tokens_per_message: Optional[int] = None,
+        max_tokens: Optional[int] = None,
     ):
         """
         Args:
-            text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor protocol. If None, it defaults to LLMLingua.
-            compress_all_messages_on_first_apply (bool): Whether to apply the text compression to all messages initially. Defaults to False.
+            text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor
+                protocol. If None, it defaults to LLMLingua.
+            max_tokens (int or None): The token threshold to initiate compression. If the token count of any message exceeds
+                this number, the message will be compressed to reduce its token count. If None, no threshold-based
+                compression is applied.
         """
 
         if text_compressor is None:
             text_compressor = LLMLingua()
 
+        self._validate_max_tokens(max_tokens)
+
         self._text_compressor = text_compressor
-        self._init_all_messages = compress_all_messages_on_first_apply
-        self._transform_applied_once = False
+        self._max_tokens = max_tokens
+        self._max_tokens_per_message = max_tokens_per_message
+
+        self._should_compress = False
+
+        # Optimizing savings calculations to optimize log generation
+        self._recent_tokens_savings = 0
 
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies compression to messages in a conversation history based on the specified configuration.
@@ -284,42 +297,33 @@ class TextMessageCompressor:
             List[Dict]: A list of dictionaries with the message content compressed according to the configured
                 method and scope.
         """
-        savings = 0
-
-        if self._init_all_messages and not self._transform_applied_once:
-            savings, processed_messages = self._compress_all(messages)
-        else:
-            savings, processed_messages = self._compress_last(messages)
-
-        self._transform_applied_once = True
-        self._print_stats(savings)
-        return processed_messages
-
-    def _compress_last(self, messages: List[Dict]) -> Tuple[int, List[Dict]]:
-        """Compresses the last message in the conversation history."""
-        if not messages or "content" not in messages[-1]:
-            return 0, messages
-
-        processed_messages = messages.copy()
-        savings, processed_messages[-1]["content"] = self._compress(messages[-1]["content"])
-        return savings, processed_messages
-
-    def _compress_all(self, messages: List[Dict]) -> Tuple[int, List[Dict]]:
-        """Compresses all messages in the conversation history."""
         # Make sure there is at least one message
         if not messages:
-            return 0, messages
+            return messages
 
+        total_tokens = 0
         total_savings = 0
         processed_messages = messages.copy()
         for message in processed_messages:
-            if "content" not in message:
+            # Some messages may not have content.
+            if not isinstance(message.get("content"), (str, list)):
                 continue
+
+            total_tokens += _count_tokens(message["content"])
+            if self._max_tokens is not None and total_tokens > self._max_tokens:
+                self._should_compress = True
 
             savings, message["content"] = self._compress(message["content"])
             total_savings += savings
 
-        return total_savings, processed_messages
+        self._recent_tokens_savings = total_savings
+        return processed_messages
+
+    def get_logs(self, pre_transform_messages: List[Dict], post_transform_messages: List[Dict]) -> Tuple[str, bool]:
+        if self._recent_tokens_savings > 0:
+            return f"{self._recent_tokens_savings} tokens saved with text compression.", True
+        else:
+            return "No tokens saved with text compression.", False
 
     def _compress(self, content: Union[str, List[Dict]]) -> Tuple[int, Union[str, List[Dict]]]:
         """Compresses the given text or multimodal content using the specified compression method."""
@@ -349,10 +353,9 @@ class TextMessageCompressor:
 
         return savings, compressed_text["compressed_prompt"]
 
-    def _print_stats(self, tokens_saved: int):
-        """Prints a message indicating the number of tokens saved through compression."""
-        if tokens_saved > 0:
-            print(colored(f"{tokens_saved} tokens saved with text compression.", "green"))
+    def _validate_max_tokens(self, min_tokens: Optional[int]):
+        if min_tokens is not None and min_tokens <= 0:
+            raise ValueError("min_tokens must be greater than 0 or None")
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:

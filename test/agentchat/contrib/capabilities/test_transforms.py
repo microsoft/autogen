@@ -117,7 +117,7 @@ def test_text_compression():
     assert len(transformed_messages[-1]["content"][0]["text"]) < len(messages[-1]["content"][0]["text"])
 
     # Test compressing all messages
-    text_compressor = TextMessageCompressor(messages_to_compress="all")
+    text_compressor = TextMessageCompressor()
     transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
     for message in transformed_messages:
         assert len(message["content"][0]["text"]) < len(messages[0]["content"][0]["text"])
