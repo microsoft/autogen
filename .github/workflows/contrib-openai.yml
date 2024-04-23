@@ -46,7 +46,7 @@ jobs:
       - name: Install packages for test when needed
         run: |
           pip install docker
-          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
+          pip install -e .[retrievechat,retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -61,6 +61,7 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+
   CompressionTest:
     strategy:
       matrix:
