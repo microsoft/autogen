@@ -44,8 +44,6 @@ jobs:
       - name: Install and Start PostgreSQL
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt update
-          sudo apt install postgresql -y
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends build-essential curl postgresql-server-dev-all
           export PGVECTOR_VERSION=0.6.2
