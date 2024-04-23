@@ -72,9 +72,14 @@ class LLMSpeakerSelection(SpeakerSelection):
         select_speaker_message_template = """You are in a role play game. The following roles are available:
                 {roles}.
                 Read the following conversation.
-                Then select the next role from {agent_list} to play. Return a JSON object with two properties, 'role' set to the role you want to play and 'reason' explaining your choice`."""
-        select_speaker_prompt_template = "Read the above conversation. Then select the next role from {agent_list} to play. Return a JSON object with two properties, 'role' set to the role you want to play and 'reason' explaining your choice."
+                Then select the next role from {agent_list} to play. Only return the role."""
+        select_speaker_prompt_template = """Read the above conversation. Then select the next role to speak. Your output must be limited to a JSON-formatted object with no other text so that it can be directly parsed by json.loads. Please use the following schema:
 
+    {{
+        "reason": <a string containing an explanation for why the specified role should speak next>,
+        "next_role": <a string naming the next player to speak, selected from: {agent_list}>
+    }}
+"""
         roles = "\n".join([f"{x.name}: {x.description}" for x in agents])
         agent_list = [x.name for x in agents]
 
@@ -84,12 +89,13 @@ class LLMSpeakerSelection(SpeakerSelection):
             + convert_messages_to_llm_messages(list(chat_history.messages), "speaker_selection")
             + [SystemMessage(select_speaker_prompt_template.format(agent_list=agent_list))]
         )
-        response = await self._model_client.create(messages, json_output=False)
+
+        response = await self._model_client.create(messages, json_output=True)
         assert isinstance(response.content, str)
         json_obj = json.loads(response.content)
-        if "role" not in json_obj:
-            raise ValueError("Expected 'role' property in JSON response")
-        agent_name = json_obj["role"]
+        if "next_role" not in json_obj:
+            raise ValueError("Expected 'next_role' property in JSON response")
+        agent_name = json_obj["next_role"]
         reason = json_obj.get("reason", None)
         assert isinstance(reason, str)
         for agent in agents:
