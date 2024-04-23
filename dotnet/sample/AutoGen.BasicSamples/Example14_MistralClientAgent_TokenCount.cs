@@ -11,7 +11,7 @@ namespace AutoGen.BasicSample;
 
 public class Example14_MistralClientAgent_TokenCount
 {
-    #region mistral_ai_token_counter_middleware
+    #region token_counter_middleware
     public class MistralAITokenCounterMiddleware : IMiddleware
     {
         private readonly List<ChatCompletionResponse> responses = new List<ChatCompletionResponse>();
@@ -34,7 +34,7 @@ public class Example14_MistralClientAgent_TokenCount
             return responses.Sum(r => r.Usage.CompletionTokens);
         }
     }
-    #endregion mistral_ai_token_counter_middleware
+    #endregion token_counter_middleware
 
     public static async Task RunAsync()
     {
@@ -45,7 +45,7 @@ public class Example14_MistralClientAgent_TokenCount
             client: mistralClient,
             name: "assistant",
             model: MistralAIModelID.OPEN_MISTRAL_7B);
-        #region create_mistral_client_agent
+        #endregion create_mistral_client_agent
 
         #region register_middleware
         var tokenCounterMiddleware = new MistralAITokenCounterMiddleware();
