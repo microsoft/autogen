@@ -33,9 +33,7 @@ def test_pgvector():
 
     # test_delete_collection
     db.delete_collection(collection_name)
-    # collection_name = None
-    pytest.raises(ValueError, db.get_collection, collection_name)
-    collection_name = "test_collection"
+    assert collection.table_exists(table_name=collection_name) is False
 
     # test more create collection
     collection = db.create_collection(collection_name, overwrite=False, get_or_create=False)
