@@ -93,7 +93,8 @@ def test_pgvector():
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
     assert [r["id"].strip() for r in res] == ["2"]  # "1" has been deleted
-    pytest.raises(ValueError, db.get_docs_by_ids, None, collection_name)
+    res = db.get_docs_by_ids(ids=[], collection_name=collection_name)
+    assert [r["id"].strip() for r in res] == ["2"]  # All Docs returned
 
 
 if __name__ == "__main__":
