@@ -1,5 +1,4 @@
 # Install Azure Cosmos DB SDK if not already
-# pip install azure-cosmos
 
 import logging
 from typing import Optional, TypedDict, Union
