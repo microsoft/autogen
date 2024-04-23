@@ -844,6 +844,8 @@ class PGVectorDB(VectorDB):
         Returns:
             List[Document] | The results.
         """
+        if not ids or len(ids) <= 0:
+            raise ValueError
         collection = self.get_collection(collection_name)
         include = include if include else ["metadatas", "documents"]
         results = collection.get(ids, include=include, **kwargs)
