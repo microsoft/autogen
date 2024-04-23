@@ -12,13 +12,6 @@ except ImportError:
 
 __all__ = ("LoggerFactory",)
 
-try:
-    from autogen.logger.cosmos_db_logger import CosmosDBLogger
-
-    cosmos_imported = True
-except ImportError:
-    cosmos_imported = False
-
 
 class LoggerFactory:
     @staticmethod
