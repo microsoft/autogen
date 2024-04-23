@@ -117,6 +117,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
         return ChatCompletionUserMessageParam(
             content=message.content,
             role="user",
+            name=message.source,
         )
     else:
         parts: List[ChatCompletionContentPartParam] = []
@@ -136,6 +137,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
         return ChatCompletionUserMessageParam(
             content=parts,
             role="user",
+            name=message.source,
         )
 
 
@@ -168,11 +170,13 @@ def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssista
         return ChatCompletionAssistantMessageParam(
             tool_calls=[func_call_to_oai(x) for x in message.content],
             role="assistant",
+            name=message.source,
         )
     else:
         return ChatCompletionAssistantMessageParam(
             content=message.content,
             role="assistant",
+            name=message.source,
         )
 
 
