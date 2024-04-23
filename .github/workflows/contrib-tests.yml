@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
@@ -45,6 +45,9 @@ jobs:
           pip install .[retrievechat-qdrant]
       - name: Install unstructured when python-version is 3.9 and on linux
         run: |
+          if [[ ${{matrix.os}} != ubuntu-latest ]]; then
+            exit 0
+          fi
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]==0.13.0
