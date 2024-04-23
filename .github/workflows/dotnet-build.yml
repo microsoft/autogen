@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   build:
-    name: Build
+    name: Dotnet Build
     runs-on: ubuntu-latest
     defaults:
       run:
