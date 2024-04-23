@@ -54,7 +54,16 @@ jobs:
         run: |
           sudo apt update
           sudo apt install postgresql -y
-          sudo service postgresql start
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential curl postgresql-server-dev-all
+          export PGVECTOR_VERSION=0.6.2
+          curl -L -o pgvector.tar.gz "https://github.com/ankane/pgvector/archive/refs/tags/v${PGVECTOR_VERSION}.tar.gz"
+          tar -xzf pgvector.tar.gz
+          cd "pgvector-${PGVECTOR_VERSION}"
+          make
+          make install
+          systemctl enable postgresql
+          systemctl start postgresql
       - name: Install packages and dependencies for PGVector
         run: |
           pip install -e .[retrievechat-pgvector]
