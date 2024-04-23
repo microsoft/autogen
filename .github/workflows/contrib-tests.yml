@@ -64,11 +64,10 @@ jobs:
           flags: unittests
 
   RetrieveChatTest-Ubuntu:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         python-version: ["3.9", "3.10", "3.11"]
     services:
       pgvector:
@@ -100,11 +99,10 @@ jobs:
         run: |
           pip install -e .[retrievechat-qdrant]
       - name: Install pgvector when on linux
-        if: matrix.os == 'ubuntu-latest'
         run: |
           pip install -e .[retrievechat-pgvector]
       - name: Install unstructured when python-version is 3.9 and on linux
-        if: matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest'
+        if: matrix.python-version == '3.9'
         run: |
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
@@ -115,9 +113,7 @@ jobs:
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
-          if [[ ${{ matrix.os }} != ubuntu-latest ]]; then
-            echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
-          fi
+          echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
       - name: Coverage
         run: |
           pip install coverage>=5.3

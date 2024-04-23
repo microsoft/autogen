@@ -27,11 +27,11 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
+    sys.platform in ["darwin", "win32"] or skip or skip_openai,
     reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_retrievechat():

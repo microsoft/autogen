@@ -27,14 +27,14 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
 
 
 test_dir = os.path.join(os.path.dirname(__file__), "../../..", "test_files")
 
 
 @pytest.mark.skipif(
-    skip,
+    skip or skip_openai,
     reason="dependency is not installed OR requested to skip",
 )
 def test_retrievechat():
