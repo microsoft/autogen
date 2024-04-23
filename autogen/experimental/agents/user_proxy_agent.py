@@ -6,7 +6,7 @@ from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 from ...coding.base import CodeExecutor
 from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
-from ..types import AssistantMessage, GenerateReplyResult, Message, UserMessage
+from ..types import AssistantMessage, GenerateReplyResult, Message, TextMessage
 
 __all__ = ("UserProxyAgent",)
 
@@ -65,7 +65,7 @@ class UserProxyAgent(Agent):
     def _generate_code_execution_reply_using_executor(
         self,
         messages: Sequence[Message],
-    ) -> Optional[UserMessage]:
+    ) -> Optional[TextMessage]:
         """Generate a reply using code executor."""
         # Only added to generate reply if this is not none
         assert self._code_executor is not None, "Code executor is not provided."
@@ -96,17 +96,16 @@ class UserProxyAgent(Agent):
         # if code blocks are found, execute the code blocks and return the output
         # if no code blocks are found, continue
         for message in reversed(messages_to_scan):
-            if isinstance(message, AssistantMessage):
-                if message.content is None:
-                    continue
+            if isinstance(message, TextMessage):
                 code_blocks = self._code_executor.code_extractor.extract_code_blocks(message.content)
                 if len(code_blocks) == 0:
                     continue
                 # found code blocks, execute code.
                 code_result = self._code_executor.execute_code_blocks(code_blocks)
                 exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
-                return UserMessage(
-                    content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+                return TextMessage(
+                    content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}",
+                    source=self.name,
                 )
 
         return None
@@ -114,7 +113,7 @@ class UserProxyAgent(Agent):
     async def get_human_reply(
         self,
         messages: Sequence[Message],
-    ) -> Optional[UserMessage]:
+    ) -> Optional[TextMessage]:
 
         assert self._human_input_callback is not None, "Human input callback is not provided."
 
@@ -125,10 +124,7 @@ class UserProxyAgent(Agent):
         if reply == "":
             return None
 
-        if reply.lower() == "exit":
-            return UserMessage(content=reply, is_termination=True)
-
-        return UserMessage(content=reply)
+        return TextMessage(content=reply, source=self.name)
 
     async def generate_reply(
         self,
@@ -147,4 +143,4 @@ class UserProxyAgent(Agent):
                 return reply
         else:
             # TODO add a default reply
-            return AssistantMessage(content="I am not sure how to respond to that.")
+            return TextMessage(content="I am not sure how to respond to that.", source=self.name)

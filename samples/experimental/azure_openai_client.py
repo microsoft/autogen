@@ -7,7 +7,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.experimental import AssistantAgent, TwoAgentChat, UserProxyAgent
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.model_clients.openai_client import AzureOpenAI
-from autogen.experimental.types import UserMessage
+from autogen.experimental.types import TextMessage
 
 
 async def user_input(prompt: str) -> str:
@@ -46,7 +46,7 @@ If it looks like the task is done and the code has already been executed you can
         assistant,
         user_proxy,
     )
-    chat.append_message(UserMessage("Plot the graph of NVDA vs AAPL ytd."))
+    chat.append_message(TextMessage("Plot the graph of NVDA vs AAPL ytd.", source="external"))
     await run_in_terminal(chat)
     print(chat.termination_result)
 

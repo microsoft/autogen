@@ -11,12 +11,13 @@ from ..agent import Agent
 from ..chat_history import ChatHistoryReadOnly
 from ..function_executor import FunctionExecutor
 from ..types import (
-    AssistantMessage,
     FunctionCall,
     FunctionCallMessage,
-    FunctionCallResult,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
     GenerateReplyResult,
-    UserMessage,
+    MultiModalMessage,
+    TextMessage,
 )
 
 logger = logging.getLogger(__name__)
@@ -72,7 +73,7 @@ class ExecutionAgent(Agent):
     async def handle_function_calls(
         self,
         function_calls: List[FunctionCall],
-    ) -> FunctionCallMessage:
+    ) -> FunctionExecutionResultMessage:
         assert self._function_executor is not None
         calls: List[Awaitable[str]] = []
         ids: List[str] = []
@@ -89,8 +90,8 @@ class ExecutionAgent(Agent):
 
         results = await asyncio.gather(*calls)
 
-        return FunctionCallMessage(
-            call_results=[FunctionCallResult(content=result, call_id=id) for result, id in zip(results, ids)]
+        return FunctionExecutionResultMessage(
+            [FunctionExecutionResult(content=result, call_id=id) for result, id in zip(results, ids)], source=self.name
         )
 
     async def generate_reply(
@@ -104,26 +105,27 @@ class ExecutionAgent(Agent):
 
         called_ids: List[str] = []
         for message in reversed(messages_to_scan):
-            if isinstance(message, FunctionCallMessage):
-                for result in message.call_results:
-                    called_ids.append(result.call_id)
-
-            if isinstance(message, AssistantMessage):
-                if message.content is None and message.function_calls is None:
-                    raise ValueError("AssistantMessage must have content or function_calls")
-
-                if self._function_executor is not None and message.function_calls is not None:
-                    return await self.handle_function_calls(message.function_calls)
-
-                if self._code_executor is not None and message.content is not None:
-                    code_blocks = self._code_executor.code_extractor.extract_code_blocks(message.content)
+            match message:
+                case FunctionExecutionResultMessage(results):
+                    for result in results:
+                        called_ids.append(result.call_id)
+                case TextMessage(content) if self._code_executor is not None:
+                    code_blocks = self._code_executor.code_extractor.extract_code_blocks(content)
                     if len(code_blocks) == 0:
                         continue
                     # found code blocks, execute code.
                     code_result = self._code_executor.execute_code_blocks(code_blocks)
                     exitcode2str = "execution succeeded" if code_result.exit_code == 0 else "execution failed"
-                    return UserMessage(
-                        content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}"
+                    return TextMessage(
+                        content=f"exitcode: {code_result.exit_code} ({exitcode2str})\nCode output: {code_result.output}",
+                        source=self.name,
                     )
+                case MultiModalMessage():
+                    # TODO support
+                    pass
+                case FunctionCallMessage(content) if self._function_executor is not None:
+                    return await self.handle_function_calls(content)
+                case _:
+                    pass
 
-        return UserMessage(content="No function or code block found to execute")
+        return TextMessage(content="No function or code block found to execute", source=self.name)

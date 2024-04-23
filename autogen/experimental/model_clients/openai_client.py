@@ -43,8 +43,9 @@ from ..types import (
     AssistantMessage,
     CreateResult,
     FunctionCall,
-    FunctionCallMessage,
     FunctionDefinition,
+    FunctionExecutionResultMessage,
+    LLMMessage,
     Message,
     RequestUsage,
     SystemMessage,
@@ -116,6 +117,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
         return ChatCompletionUserMessageParam(
             content=message.content,
             role="user",
+            name=message.source,
         )
     else:
         parts: List[ChatCompletionContentPartParam] = []
@@ -135,6 +137,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
         return ChatCompletionUserMessageParam(
             content=parts,
             role="user",
+            name=message.source,
         )
 
 
@@ -156,25 +159,28 @@ def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallPara
     )
 
 
-def tool_message_to_oai(message: FunctionCallMessage) -> Sequence[ChatCompletionToolMessageParam]:
+def tool_message_to_oai(message: FunctionExecutionResultMessage) -> Sequence[ChatCompletionToolMessageParam]:
     return [
-        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id)
-        for x in message.call_results
+        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
     ]
 
 
 def assistant_message_to_oai(message: AssistantMessage) -> ChatCompletionAssistantMessageParam:
-    msg = ChatCompletionAssistantMessageParam(
-        content=message.content,
-        role="assistant",
-    )
-    if message.function_calls is not None:
-        msg["tool_calls"] = [func_call_to_oai(x) for x in message.function_calls]
+    if isinstance(message.content, list):
+        return ChatCompletionAssistantMessageParam(
+            tool_calls=[func_call_to_oai(x) for x in message.content],
+            role="assistant",
+            name=message.source,
+        )
+    else:
+        return ChatCompletionAssistantMessageParam(
+            content=message.content,
+            role="assistant",
+            name=message.source,
+        )
 
-    return msg
 
-
-def to_oai_type(message: Message) -> Sequence[ChatCompletionMessageParam]:
+def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
     elif isinstance(message, UserMessage):
@@ -327,7 +333,7 @@ class BaseOpenAI(ModelClient):
 
     async def create(
         self,
-        messages: List[Message],
+        messages: List[LLMMessage],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         json_output: Optional[bool] = None,
@@ -433,7 +439,7 @@ class BaseOpenAI(ModelClient):
 
     async def create_stream(
         self,
-        messages: List[Message],
+        messages: List[LLMMessage],
         cache: Optional[AbstractCache] = None,
         functions: List[FunctionDefinition] = [],
         json_output: Optional[bool] = None,

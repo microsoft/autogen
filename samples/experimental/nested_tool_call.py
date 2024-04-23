@@ -13,7 +13,15 @@ from autogen.experimental.chat_result import ChatResult
 from autogen.experimental.drivers import run_in_terminal
 from autogen.experimental.function_executors.in_process_function_executor import InProcessFunctionExecutor
 from autogen.experimental.terminations import DefaultTermination
-from autogen.experimental.types import AssistantMessage, FunctionCallMessage, Message, SystemMessage, UserMessage
+from autogen.experimental.types import (
+    AssistantMessage,
+    FunctionCallMessage,
+    FunctionExecutionResultMessage,
+    Message,
+    SystemMessage,
+    TextMessage,
+    UserMessage,
+)
 
 
 def get_weather(city: str) -> str:
@@ -36,18 +44,11 @@ def message_type(message: Message) -> str:
 def message_content(message: Message) -> str:
     if isinstance(message, SystemMessage):
         return message.content
-    elif isinstance(message, UserMessage):
+    elif isinstance(message, TextMessage):
         assert isinstance(message.content, str)
         return message.content
-    elif isinstance(message, AssistantMessage):
-        if message.content is not None:
-            return message.content
-        elif message.function_calls is not None:
-            return "\n".join([str(asdict(x)) for x in message.function_calls])
-        else:
-            return "Unknown"
-    elif isinstance(message, FunctionCallMessage):
-        return "\n".join([call.content for call in message.call_results])
+    elif isinstance(message, FunctionExecutionResultMessage):
+        return "\n".join([str(asdict(x)) for x in message.content])
     else:
         return "Unknown"
 
