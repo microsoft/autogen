@@ -1,10 +1,10 @@
+import json
 from typing import Dict, Optional, Union
 
 from autogen import Agent
 
 from ..ActorConnector import ActorConnector
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
-
 
 class AutoGenConnector:
     """
@@ -55,7 +55,8 @@ class AutoGenConnector:
         msg = ReceiveReq()
         if isinstance(message, dict):
             for key, value in message.items():
-                msg.data_map.data[key] = value
+                json_serialized_value = json.dumps(value)
+                msg.data_map.data[key] = json_serialized_value
         elif isinstance(message, str):
             msg.data = message
         msg.sender = sender.name
