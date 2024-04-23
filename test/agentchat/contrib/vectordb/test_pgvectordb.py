@@ -95,5 +95,6 @@ def test_pgvector():
     assert [r["id"].strip() for r in res] == ["2"]  # "1" has been deleted
     pytest.raises(ValueError, db.get_docs_by_ids, None, collection_name)
 
+
 if __name__ == "__main__":
     test_pgvector()
