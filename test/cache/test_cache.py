@@ -34,9 +34,7 @@ class TestCache(unittest.TestCase):
             "cache_seed": "cosmos_test_seed",
             "client": MagicMock(spec=CosmosClient),
         }
-        self.cosmos_config = {
-            "cosmos_db_config": cosmos_db_config
-        }
+        self.cosmos_config = {"cosmos_db_config": cosmos_db_config}
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
     def test_redis_cache_initialization(self, mock_cache_factory):
