@@ -12,7 +12,7 @@ from ..speaker_selection import SpeakerSelection
 from ..summarizer import ChatSummarizer
 from ..termination import Terminated, Termination
 from ..terminations.default_termination import DefaultTermination
-from ..types import GenerateReplyResult, IntermediateResponse, Message, MessageContext, UserMessage
+from ..types import GenerateReplyResult, IntermediateResponse, Message, MessageContext, TextMessage
 
 DEFAULT_INTRO_MSG = (
     "Hello everyone. We have assembled a great team today to answer questions and solve tasks. In attendance are:"
@@ -55,7 +55,8 @@ class GroupChat(ChatOrchestratorStream):
 
         if send_introduction:
             self._conversation.append_message(
-                message=UserMessage(content=_introduction_message(agents, intro_message)), context=None
+                message=TextMessage(content=_introduction_message(agents, intro_message), source="external"),
+                context=None,
             )
 
         self._initial_conversation = copy.copy(self._conversation)

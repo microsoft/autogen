@@ -4,7 +4,7 @@ from ..agent import Agent
 from ..chat import ChatOrchestrator
 from ..chat_histories.chat_history_list import ChatHistoryList
 from ..chat_history import ChatHistoryReadOnly
-from ..types import AssistantMessage, GenerateReplyResult, MessageContext, SystemMessage
+from ..types import GenerateReplyResult, MessageContext, SystemMessage, TextMessage
 
 TransformInput = Callable[[ChatHistoryReadOnly], ChatHistoryReadOnly]
 
@@ -64,6 +64,6 @@ class ChatAgent(Agent):
         while not self._chat.done:
             _ = await self._chat.step()
 
-        return AssistantMessage(content=self._chat.result.summary), MessageContext(
+        return TextMessage(content=self._chat.result.summary, source=self.name), MessageContext(
             input=list(transformed_messages.messages), nested_chat_result=self._chat.result
         )

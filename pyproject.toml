@@ -88,7 +88,7 @@ exclude = [
 ]
 
 strict = true
-python_version = "3.8"
+python_version = "3.10"
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
