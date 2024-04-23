@@ -41,8 +41,12 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-      - name: Setup PostgreSQL for Linux/macOS/Windows
-        uses: ikalnytskyi/action-setup-postgres@v5
+      - name: Install and Start PostgreSQL
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install postgresql -y
+          sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
