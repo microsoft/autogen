@@ -48,12 +48,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y tesseract-ocr poppler-utils
           pip install unstructured[all-docs]==0.13.0
-      - name: Install and Start PostgreSQL
-        runs-on: ubuntu-latest
-        run: |
-          sudo apt-get update
-          sudo apt-get install postgresql -y
-          sudo service postgresql start
       - name: Install packages and dependencies for PGVector
         run: |
           pip install -e .[retrievechat-pgvector]
@@ -73,6 +67,21 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+        - POSTGRES_DB=postgres
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=postgres
+        - POSTGRES_HOST_AUTH_METHOD=trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
   CompressionTest:
     runs-on: ${{ matrix.os }}
