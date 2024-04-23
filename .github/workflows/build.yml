@@ -65,7 +65,7 @@ jobs:
       - name: Coverage
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[redis,websockets]
+          pip install -e .[test,redis,websockets]
           pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
