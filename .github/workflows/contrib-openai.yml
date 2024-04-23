@@ -41,11 +41,6 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-      - name: Install PostgreSQL
-        run: |
-          sudo apt install postgresql -y
-      - name: Start PostgreSQL service
-        run: sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -64,6 +59,15 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        if: ${{ matrix.os == 'ubuntu-latest' }}
   CompressionTest:
     strategy:
       matrix:

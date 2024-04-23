@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v4
@@ -78,6 +78,7 @@ jobs:
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
+        if: ${{ matrix.os == 'ubuntu-latest' }}
 
   CompressionTest:
     runs-on: ${{ matrix.os }}

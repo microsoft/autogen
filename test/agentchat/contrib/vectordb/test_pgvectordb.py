@@ -16,7 +16,10 @@ else:
     skip = False
 
 
-@pytest.mark.skipif(skip, reason="dependency is not installed OR requested to skip")
+@pytest.mark.skipif(
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+)
 def test_pgvector():
     # test create collection
     db_config = {
@@ -30,7 +33,7 @@ def test_pgvector():
 
     # test_delete_collection
     db.delete_collection(collection_name)
-    collection_name = None
+    # collection_name = None
     pytest.raises(ValueError, db.get_collection, collection_name)
     collection_name = "test_collection"
 
