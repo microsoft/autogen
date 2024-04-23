@@ -70,7 +70,7 @@ def init():
 
     # Start logging
     if LOGGING_ENABLED:
-        autogen.runtime_logging.start(config={"dbname": "telemetry.db"})
+        autogen.runtime_logging.start(config={"dbname": "telemetry.sqlite"})
 
 
 def finalize(agents):

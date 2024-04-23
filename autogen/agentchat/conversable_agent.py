@@ -32,7 +32,7 @@ from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_new_agent, logging_enabled
+from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
@@ -757,6 +757,9 @@ class ConversableAgent(LLMAgent):
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
+        if logging_enabled():
+            log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
+
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -1939,6 +1942,15 @@ class ConversableAgent(LLMAgent):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if logging_enabled():
+                    log_event(
+                        self,
+                        "reply_func_executed",
+                        reply_func_module=reply_func.__module__,
+                        reply_func_name=reply_func.__name__,
+                        final=final,
+                        reply=reply,
+                    )
                 if final:
                     return reply
         return self._default_auto_reply
