@@ -8,7 +8,8 @@ def docx_to_md(local_path):
     Returns:
         str: The converted Markdown content.
     """
-    # Code adapted from https://github.com/microsoft/autogen/blob/gaia_multiagent_v01_march_1st/autogen/mdconvert.py
+    # A simplified version of https://github.com/microsoft/autogen/blob/266cefc1737e0077667bce441c541a90865582b1/autogen/browser_utils/mdconvert.py
+    # Will import the MdConverter Class as soon as PR#1929 is merged.
     import mammoth
     import markdownify
     from bs4 import BeautifulSoup
