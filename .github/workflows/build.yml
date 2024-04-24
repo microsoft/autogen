@@ -42,8 +42,9 @@ jobs:
           pip install -e .[cosmosdb]
           python -c "import autogen"
           pip install pytest mock
-      - name: Explicitly Install Azure Cosmos
+      - name: Explicitly Install Azure packages
         run: |
+          pip install azure-core
           pip install azure-cosmos
       - name: Install optional dependencies for code executors
         # code executors and udfs auto skip without deps, so only run for python 3.11
