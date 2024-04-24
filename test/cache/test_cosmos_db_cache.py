@@ -43,6 +43,8 @@ class TestCosmosDBCache(unittest.TestCase):
     def test_get(self):
         key = "key"
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
+        # Verify what the mock is set to return just before calling the method
+        print(self.container_client_mock.read_item.return_value)
         result = cache.get(key)
         self.assertEqual(result, self.value)
         self.container_client_mock.read_item.assert_called_with(item=key, partition_key=str(self.seed))
