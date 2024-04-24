@@ -14,6 +14,7 @@ def spreadsheet_to_md(path):
     Returns:
         str: The Markdown content generated from the Excel file.
     """
+    # Code adapted from https://github.com/microsoft/autogen/blob/gaia_multiagent_v01_march_1st/autogen/mdconvert.py
     import pandas as pd
     from bs4 import BeautifulSoup
 
