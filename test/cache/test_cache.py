@@ -12,6 +12,7 @@ except ImportError:
 from autogen.cache.cache import Cache
 from autogen.cache.cosmos_db_cache import CosmosDBConfig
 
+
 class TestCache(unittest.TestCase):
     def setUp(self):
         self.redis_config = {
