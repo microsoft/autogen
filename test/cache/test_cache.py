@@ -27,14 +27,15 @@ class TestCache(unittest.TestCase):
             "redis_url": "redis://test",
             "cache_path_root": ".test_cache",
         }
-        cosmos_db_config: CosmosDBConfig = {
-            "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;",
-            "database_id": "autogen_cache",
-            "container_id": "TestContainer",
-            "cache_seed": "cosmos_test_seed",
-            "client": MagicMock(spec=CosmosClient),
+        self.cosmos_config = {
+            "cosmos_db_config": {
+                "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;",
+                "database_id": "autogen_cache",
+                "container_id": "TestContainer",
+                "cache_seed": "cosmos_test_seed",
+                "client": MagicMock(spec=CosmosClient),
+            }
         }
-        self.cosmos_config = {"cosmos_db_config": cosmos_db_config}
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
     def test_redis_cache_initialization(self, mock_cache_factory):
