@@ -406,10 +406,10 @@ class Collection:
                 index_function = "<#>"
             else:
                 index_function = "<->"
-
             query = (
-                f"SELECT id, documents, embedding, metadatas FROM {self.name}\n"
-                f"ORDER BY embedding  {index_function} '{str(vector)}'::vector {distance_threshold}\n"
+                f"SELECT id, documents, embedding, metadatas "
+                f"FROM {self.name}\n"
+                f"ORDER BY embedding {index_function} '{str(vector)}' {distance_threshold}\n"
                 f"LIMIT {n_results}"
             )
             cursor.execute(query)
