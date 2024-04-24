@@ -26,6 +26,34 @@ WINDOWS_SHELLS = ["ps1", "pwsh", "powershell"]
 PYTHON_VARIANTS = ["python", "Python", "py"]
 
 
+@pytest.mark.parametrize(
+    "lang, should_execute",
+    [
+        ("python", False),  # Python should not execute
+        ("bash", False),  # Bash should execute
+        ("html", False),  # HTML should not execute
+        ("javascript", False),  # JavaScript should not execute
+    ],
+)
+def test_execution_policy_enforcement(lang, should_execute):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(
+            work_dir=temp_dir,
+            execution_policies={"python": False, "bash": False, "html": False, "javascript": False, "css": False},
+        )
+        code = "print('Hello, world!')" if lang == "python" else "echo 'Hello, world!'"
+        code_block = CodeBlock(code=code, language=lang)
+        result = executor.execute_code_blocks([code_block])
+
+        if should_execute:
+            assert "Hello, world!" in result.output, f"Expected execution for {lang}, but it didn't execute."
+        else:
+            assert "Hello, world!" not in result.output, f"Expected no execution for {lang}, but it executed."
+
+        # Ensure files are saved regardless of execution
+        assert result.code_file is not None, f"Expected code file to be saved for {lang}, but it wasn't."
+
+
 @pytest.mark.parametrize("cls", classes_to_test)
 def test_is_code_executor(cls) -> None:
     assert isinstance(cls, CodeExecutor)
@@ -112,6 +140,87 @@ def _test_execute_code(py_variant, executor: CodeExecutor) -> None:
         code_lines = f.readlines()
         for file_line, code_line in zip(file_lines, code_lines):
             assert file_line.strip() == code_line.strip()
+
+
+def test_local_commandline_code_executor_save_files() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        _test_save_files(executor, save_file_only=False)
+
+
+def test_local_commandline_code_executor_save_files_only() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Using execution_policies to specify that no languages should execute
+        executor = LocalCommandLineCodeExecutor(
+            work_dir=temp_dir,
+            execution_policies={"python": False, "bash": False, "javascript": False, "html": False, "css": False},
+        )
+        _test_save_files(executor, save_file_only=True)
+
+
+def _test_save_files(executor: CodeExecutor, save_file_only: bool) -> None:
+
+    def _check_output(code_result: CodeBlock, expected_output: str) -> None:
+        if save_file_only:
+            return expected_output not in code_result.output
+        else:
+            return expected_output in code_result.output
+
+    # Test executable code block.
+
+    # Test saving to a given filename, Python.
+    code_blocks = [CodeBlock(code="# filename: test.py\nimport sys; print('hello world!')", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert (
+        code_result.exit_code == 0 and _check_output(code_result, "hello world!") and code_result.code_file is not None
+    )
+    assert os.path.basename(code_result.code_file) == "test.py"
+
+    # Test saving to a given filename without "filename" prefix, Python.
+    code_blocks = [CodeBlock(code="# test.py\nimport sys; print('hello world!')", language="python")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert (
+        code_result.exit_code == 0 and _check_output(code_result, "hello world!") and code_result.code_file is not None
+    )
+    assert os.path.basename(code_result.code_file) == "test.py"
+
+    # Test non-executable code block.
+
+    # Test saving to a given filename, Javascript.
+    code_blocks = [CodeBlock(code="// filename: test.js\nconsole.log('hello world!')", language="javascript")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.js"
+
+    # Test saving to a given filename without "filename" prefix, Javascript.
+    code_blocks = [CodeBlock(code="// test.js\nconsole.log('hello world!')", language="javascript")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.js"
+
+    # Test saving to a given filename, CSS.
+    code_blocks = [CodeBlock(code="/* filename: test.css */\nh1 { color: red; }", language="css")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.css"
+
+    # Test saving to a given filename without "filename" prefix, CSS.
+    code_blocks = [CodeBlock(code="/* test.css */\nh1 { color: red; }", language="css")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.css"
+
+    # Test saving to a given filename, HTML.
+    code_blocks = [CodeBlock(code="<!-- filename: test.html -->\n<h1>hello world!</h1>", language="html")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.html"
+
+    # Test saving to a given filename without "filename" prefix, HTML.
+    code_blocks = [CodeBlock(code="<!-- test.html -->\n<h1>hello world!</h1>", language="html")]
+    code_result = executor.execute_code_blocks(code_blocks)
+    assert code_result.exit_code == 0 and "hello world!" not in code_result.output and code_result.code_file is not None
+    assert os.path.basename(code_result.code_file) == "test.html"
 
 
 @pytest.mark.parametrize("cls", classes_to_test)

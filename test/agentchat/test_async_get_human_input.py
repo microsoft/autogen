@@ -11,26 +11,19 @@ from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
-
-try:
-    from openai import OpenAI
-except ImportError:
-    skip = True
-else:
-    skip = False or skip_openai
+from conftest import reason, skip_openai  # noqa: E402
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 @pytest.mark.asyncio
 async def test_async_get_human_input():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
         name="assistant",
         max_consecutive_auto_reply=2,
-        llm_config={"seed": 41, "config_list": config_list, "temperature": 0},
+        llm_config={"config_list": config_list, "temperature": 0},
     )
 
     user_proxy = autogen.UserProxyAgent(name="user", human_input_mode="ALWAYS", code_execution_config=False)
@@ -48,10 +41,10 @@ async def test_async_get_human_input():
     print("Human input:", res.human_input)
 
 
-@pytest.mark.skipif(skip, reason="openai not installed OR requested to skip")
+@pytest.mark.skipif(skip_openai, reason=reason)
 @pytest.mark.asyncio
 async def test_async_max_turn():
-    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC)
+    config_list = autogen.config_list_from_json(OAI_CONFIG_LIST, KEY_LOC, filter_dict={"tags": ["gpt-3.5-turbo"]})
 
     # create an AssistantAgent instance named "assistant"
     assistant = autogen.AssistantAgent(
@@ -79,5 +72,5 @@ async def test_async_max_turn():
 
 
 if __name__ == "__main__":
-    asyncio.run(test_async_get_human_input())
+    # asyncio.run(test_async_get_human_input())
     asyncio.run(test_async_max_turn())
