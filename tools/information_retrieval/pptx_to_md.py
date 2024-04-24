@@ -15,6 +15,8 @@ def pptx_to_md(local_path):
     Returns:
         str: The Markdown content generated from the PPTX file.
     """
+    # A simplified version of https://github.com/microsoft/autogen/blob/266cefc1737e0077667bce441c541a90865582b1/autogen/browser_utils/mdconvert.py
+    # Will change the code into importing the MdConverter Class as soon as PR#1929 is merged.
     import html
     import re
 
