@@ -50,8 +50,14 @@ class TestCache(unittest.TestCase):
             seed="cosmos_test_seed",
             redis_url=None,
             cache_path_root=None,
-            cosmosdb_config=self.cosmos_config["cosmos_db_config"]
-        )
+            cosmosdb_config={
+                "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;",
+                "database_id": "autogen_cache",
+                "container_id": "TestContainer",
+                "cache_seed": "cosmos_test_seed",
+                "client": MagicMock(spec=CosmosClient),
+        }
+    )
 
     def context_manager_common(self, config):
         mock_cache_instance = MagicMock()
