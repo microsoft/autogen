@@ -7,6 +7,9 @@ node_modules/
 # Log files
 *.log
 
+samples/tools/autogenbench/scenarios/GAIA/Results/*
+samples/tools/autogenbench/scenarios/WebArena/Results/*
+
 # Python virtualenv
 .venv*
 

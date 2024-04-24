@@ -25,6 +25,7 @@ RUN pip install selenium playwright
 
 # Chromium playwright
 RUN playwright install --with-deps chromium
+RUN playwright install --with-deps firefox
 
 # Chrome for Selenium (need to run dpkg twice to resolve dependencies)
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
