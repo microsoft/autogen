@@ -4,8 +4,6 @@ import sys
 from types import TracebackType
 from typing import Any, Dict, Optional, Type, TypedDict, Union
 
-from azure.cosmos import CosmosClient
-
 from .abstract_cache_base import AbstractCache
 from .cache_factory import CacheFactory
 
@@ -13,14 +11,6 @@ if sys.version_info >= (3, 11):
     from typing import Self
 else:
     from typing_extensions import Self
-
-
-class CosmosDBConfig(TypedDict, total=False):
-    connection_string: str
-    database_id: str
-    container_id: str
-    cache_seed: Optional[Union[str, int]]
-    client: Optional[CosmosClient]
 
 
 class Cache(AbstractCache):
@@ -76,7 +66,7 @@ class Cache(AbstractCache):
         connection_string: Optional[str] = None,
         container_id: Optional[str] = None,
         cache_seed: Union[str, int] = 42,
-        client: Optional[CosmosClient] = None,
+        client: Optional[any] = None,
     ) -> "Cache":
         """
         Create a Cosmos DB cache instance with 'autogen_cache' as database ID.
