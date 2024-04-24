@@ -32,7 +32,7 @@ class TestCache(unittest.TestCase):
                 "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;",
                 "database_id": "autogen_cache",
                 "container_id": "TestContainer",
-                "cache_seed": "42",
+                "cache_seed": 42,
                 "client": MagicMock(spec=CosmosClient),
             }
         }
@@ -48,14 +48,14 @@ class TestCache(unittest.TestCase):
         cache = Cache(self.cosmos_config)
         self.assertIsInstance(cache.cache, MagicMock)
         mock_cache_factory.assert_called_with(
-            seed="42",
+            seed=42,
             redis_url=None,
             cache_path_root=None,
             cosmosdb_config={
                 "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;",
                 "database_id": "autogen_cache",
                 "container_id": "TestContainer",
-                "cache_seed": "42",
+                "cache_seed": 42,
                 "client": MagicMock(spec=CosmosClient),
         }
     )
