@@ -1,5 +1,3 @@
-# Install Azure Cosmos DB SDK if not already
-
 from __future__ import annotations
 
 import sys
