@@ -7,6 +7,7 @@ from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 from ..code_utils import content_str
 from ..exception_utils import AgentNameConflict, NoEligibleSpeaker, UndefinedNextAgent
+from ..formatting_utils import colored
 from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 from ..io.base import IOStream
 from ..runtime_logging import log_new_agent, logging_enabled
@@ -51,11 +52,15 @@ class GroupChat:
                 last_speaker: Agent, groupchat: GroupChat
             ) -> Union[Agent, str, None]:
             ```
-    - requery_on_multiple_speaker_names: whether to requery the LLM if multiple speaker names are returned during speaker selection.
-        The response with multiple names will be fed back to the LLM with a prompt asking it to select the primary speaker's name.
+    - max_retries_for_selecting_speaker: the maximum number of times the speaker selection requery process will run.
+        If, during speaker selection, multiple agent names or no agent names are returned by the LLM as the next agent, it will be queried again up to the maximum number
+        of times until a single agent is returned or it exhausts the maximum attempts.
         Applies only to "auto" speaker selection method.
-        Default is False, in which case if the LLM returns multiple speaker names it will not requery the LLM.
-        If set to True and the LLM returns multiple speaker names, a message will be sent to the LLM with that response asking the LLM to return just one name based on it.
+        Default is 2.
+    - select_speaker_auto_verbose: whether to output the select speaker responses and selections
+        If set to True, the response from selecting an agent will be displayed if it is not just an agent name and
+        it will output the selected agent's name.
+        Applies only to "auto" speaker selection method.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
         If `allow_repeat_speaker` is a list of Agents, then only those listed agents are allowed to repeat.
@@ -82,7 +87,7 @@ class GroupChat:
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
     speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
-    requery_on_multiple_speaker_names: bool = False
+    max_retries_for_selecting_speaker: Optional[int] = 2
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
@@ -95,6 +100,7 @@ class GroupChat:
     select_speaker_prompt_template: str = (
         "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     )
+    select_speaker_auto_verbose: Optional[bool] = False
     role_for_select_speaker_messages: Optional[str] = "system"
 
     _VALID_SPEAKER_SELECTION_METHODS = ["auto", "manual", "random", "round_robin"]
@@ -465,28 +471,37 @@ class GroupChat:
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
-        """Select the next speaker."""
+        """Select the next speaker (with requery)."""
+
+        # Prepare the list of available agents and select an agent if selection method allows (non-auto)
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
-        # auto speaker selection
-        selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = selector.generate_oai_reply(messages)
-        return self._finalize_speaker(last_speaker, final, name, selector, agents)
+
+        if self.speaker_selection_method == "manual":
+            selector.update_system_message(self.select_speaker_msg(agents))
+            final, name = selector.generate_oai_reply(messages)
+            return self._finalize_speaker(last_speaker, final, name, agents)
+        else:
+            # auto speaker selection with 2-agent chat
+            return self._auto_select_speaker(last_speaker, selector, messages, agents)
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
-        """Select the next speaker."""
+        """Select the next speaker (with requery), asynchronously."""
+
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
-        # auto speaker selection
-        selector.update_system_message(self.select_speaker_msg(agents))
-        final, name = await selector.a_generate_oai_reply(messages)
-        return self._finalize_speaker(last_speaker, final, name, selector, agents)
 
-    def _finalize_speaker(
-        self, last_speaker: Agent, final: bool, name: str, selector: ConversableAgent, agents: Optional[List[Agent]]
-    ) -> Agent:
+        if self.speaker_selection_method == "manual":
+            selector.update_system_message(self.select_speaker_msg(agents))
+            final, name = await selector.a_generate_oai_reply(messages)
+            return self._finalize_speaker(last_speaker, final, name, agents)
+        else:
+            # auto speaker selection with 2-agent chat
+            return await self.a_auto_select_speaker(last_speaker, selector, messages, agents)
+
+    def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: Optional[List[Agent]]) -> Agent:
         if not final:
             # the LLM client is None, thus no reply is generated. Use round robin instead.
             return self.next_agent(last_speaker, agents)
@@ -495,41 +510,6 @@ class GroupChat:
         mentions = self._mentioned_agents(name, agents)
         if len(mentions) == 1:
             name = next(iter(mentions))
-        elif self.requery_on_multiple_speaker_names and len(mentions) > 1:
-            # We have more than one name mentioned in the response, requery and
-            # ask the LLM to choose one name from that response
-            select_name_message = [
-                {
-                    "content": f"""Your role is to identify the current or next speaker based on the provided context. The valid speaker names are {[agent.name for agent in agents]}. To determine the speaker use these prioritised rules:
-                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
-                    2. If it refers to the "next" speaker name, choose that name
-                    3. Otherwise, choose the first provided speaker's name in the context
-
-                    Respond with just the name of the speaker and do not provide a reason.\nContext:\n{name}""",
-                    "role": "system",
-                }
-            ]
-
-            # Send to LLM for a response
-            response = selector.client.create(
-                context=None,
-                messages=select_name_message,
-                cache=None,
-            )
-
-            # Returned name
-            name_single = selector.client.extract_text_or_completion_object(response)[0]
-
-            # Evaluate the response for agent names
-            mentions = self._mentioned_agents(name_single, agents)
-            if len(mentions) == 1:
-                # Successfully identified just the one agent name on the requery
-                name = next(iter(mentions))
-            else:
-                # Requery failed to identify just one agent name
-                logger.warning(
-                    f"GroupChat select_speaker failed to resolve the next speaker's name (including with requery). Requery speaker selection returned:\n{name_single}"
-                )
         else:
             logger.warning(
                 f"GroupChat select_speaker failed to resolve the next speaker's name. This is because the speaker selection OAI call returned:\n{name}"
@@ -538,6 +518,347 @@ class GroupChat:
         # Return the result
         agent = self.agent_by_name(name)
         return agent if agent else self.next_agent(last_speaker, agents)
+
+    def _auto_select_speaker(
+        self,
+        last_speaker: Agent,
+        selector: ConversableAgent,
+        messages: Optional[List[Dict]],
+        agents: Optional[List[Agent]],
+    ) -> Agent:
+        """Selects next speaker for the "auto" speaker selection method. Utilises its own two-agent chat to determine the next speaker and supports requerying.
+
+        Speaker selection for "auto" speaker selection method:
+        1. Create a two-agent chat with a speaker selector agent and a speaker validator agent, like a nested chat
+        2. Copy the current group messages and use the speaker selection message
+        3. Run the two-agent chat, evaluating the result of response from the speaker selector agent:
+            - If a single agent is provided then we return it and finish. If not, we add an additional message to this nested chat in an attempt to guide the LLM to a single agent response
+        4. Chat continues until a single agent is nominated or there are no more attempts left
+        5. If we run out of turns and no single agent can be determined, the next speaker in the list of agents is returned
+
+        Args:
+            last_speaker Agent: The previous speaker in the group chat
+            selector ConversableAgent:
+            messages Optional[List[Dict]]: Current chat messages
+            agents Optional[List[Agent]]: Valid list of agents for speaker selection
+
+        Returns:
+            Dict: a counter for mentioned agents.
+        """
+
+        # If no agents are passed in, assign all the group chat's agents
+        if agents is None:
+            agents = self.agents
+
+        # The maximum number of speaker selection attempts (including requeries)
+        # We track these and use them in the validation function as we can't
+        # access the max_turns from within validate_speaker_name
+        max_attempts = 1 + self.max_retries_for_selecting_speaker
+        attempts_left = max_attempts
+        attempt = 0
+
+        # Registered reply function for checking_agent, checks the result of the response for agent names
+        def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
+
+            # The number of retries left, starting at max_retries_for_selecting_speaker
+            nonlocal attempts_left
+            nonlocal attempt
+
+            attempt = attempt + 1
+            attempts_left = attempts_left - 1
+
+            return self._validate_speaker_name(recipient, messages, sender, config, attempts_left, attempt, agents)
+
+        # Two-agent chat for speaker selection
+
+        # Agent for selecting a single agent name from the response
+        speaker_selection_agent = ConversableAgent(
+            "speaker_selection_agent",
+            system_message=self.select_speaker_prompt_template.format(agentlist=f"{[agent.name for agent in agents]}"),
+            llm_config=selector.llm_config,
+            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+        )
+
+        # Agent for checking the response from the speaker_select_agent
+        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
+
+        # Register the speaker validation function with the checking agent
+        checking_agent.register_reply(
+            [ConversableAgent, None],
+            reply_func=validate_speaker_name,  # Validate each response
+            remove_other_reply_funcs=True,
+        )
+
+        # Copy the current group chat messages into this internal chat
+        # Exclude the last item which is the speaker selection prompt
+        for msg in messages[:-1]:
+            if (
+                "content" in msg
+                and "role" in msg
+                and msg["content"] is not None
+                and msg["role"] is not None
+                and len(msg["content"]) != 0
+                and len(msg["role"]) != 0
+            ):
+                # if msg["role"] == "user":
+                if msg["role"] == "user":
+                    msg_name = msg["name"] if "name" in msg else ""
+                    checking_agent.send(
+                        {"content": msg["content"], "role": msg["role"], "name": msg_name},
+                        speaker_selection_agent,
+                        request_reply=False,
+                        silent=True,
+                    )
+
+        result = checking_agent.initiate_chat(
+            speaker_selection_agent,
+            cache=None,  # don't use caching for the speaker selection chat
+            message="You are an expert at finding the next speaker.",
+            max_turns=2
+            * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
+            clear_history=False,
+            silent=True,  # suppress output, we're using terminal output
+        )
+
+        return self._process_speaker_selection_result(result, last_speaker, agents)
+
+    async def a_auto_select_speaker(
+        self,
+        last_speaker: Agent,
+        selector: ConversableAgent,
+        messages: Optional[List[Dict]],
+        agents: Optional[List[Agent]],
+    ) -> Agent:
+        """(Asynchronous) Selects next speaker for the "auto" speaker selection method. Utilises its own two-agent chat to determine the next speaker and supports requerying.
+
+        Speaker selection for "auto" speaker selection method:
+        1. Create a two-agent chat with a speaker selector agent and a speaker validator agent, like a nested chat
+        2. Copy the current group messages and use the speaker selection message
+        3. Run the two-agent chat, evaluating the result of response from the speaker selector agent:
+            - If a single agent is provided then we return it and finish. If not, we add an additional message to this nested chat in an attempt to guide the LLM to a single agent response
+        4. Chat continues until a single agent is nominated or there are no more attempts left
+        5. If we run out of turns and no single agent can be determined, the next speaker in the list of agents is returned
+
+        Args:
+            last_speaker Agent: The previous speaker in the group chat
+            selector ConversableAgent:
+            messages Optional[List[Dict]]: Current chat messages
+            agents Optional[List[Agent]]: Valid list of agents for speaker selection
+
+        Returns:
+            Dict: a counter for mentioned agents.
+        """
+
+        # If no agents are passed in, assign all the group chat's agents
+        if agents is None:
+            agents = self.agents
+
+        # The maximum number of speaker selection attempts (including requeries)
+        # We track these and use them in the validation function as we can't
+        # access the max_turns from within validate_speaker_name
+        max_attempts = 1 + self.max_retries_for_selecting_speaker
+        attempts_left = max_attempts
+        attempt = 0
+
+        # Registered reply function for checking_agent, checks the result of the response for agent names
+        def validate_speaker_name(recipient, messages, sender, config) -> Tuple[bool, Union[str, Dict, None]]:
+
+            # The number of retries left, starting at max_retries_for_selecting_speaker
+            nonlocal attempts_left
+            nonlocal attempt
+
+            attempt = attempt + 1
+            attempts_left = attempts_left - 1
+
+            return self._validate_speaker_name(recipient, messages, sender, config, attempts_left, attempt, agents)
+
+        # Two-agent chat for speaker selection
+
+        # Agent for selecting a single agent name from the response
+        speaker_selection_agent = ConversableAgent(
+            "speaker_selection_agent",
+            system_message=self.select_speaker_prompt_template.format(agentlist=f"{[agent.name for agent in agents]}"),
+            llm_config=selector.llm_config,
+            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+        )
+
+        # Agent for checking the response from the speaker_select_agent
+        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
+
+        # Register the speaker validation function with the checking agent
+        checking_agent.register_reply(
+            [ConversableAgent, None],
+            reply_func=validate_speaker_name,  # Validate each response
+            remove_other_reply_funcs=True,
+        )
+
+        # Copy the current group chat messages into this internal chat
+        # Exclude the last item which is the speaker selection prompt
+        for msg in messages[:-1]:
+            if (
+                "content" in msg
+                and "role" in msg
+                and msg["content"] is not None
+                and msg["role"] is not None
+                and len(msg["content"]) != 0
+                and len(msg["role"]) != 0
+            ):
+                # if msg["role"] == "user":
+                if msg["role"] == "user":
+                    msg_name = msg["name"] if "name" in msg else ""
+                    checking_agent.send(
+                        {"content": msg["content"], "role": msg["role"], "name": msg_name},
+                        speaker_selection_agent,
+                        request_reply=False,
+                        silent=True,
+                    )
+
+        result = await checking_agent.a_initiate_chat(
+            speaker_selection_agent,
+            cache=None,  # don't use caching for the speaker selection chat
+            message="You are an expert at finding the next speaker.",
+            max_turns=2
+            * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
+            clear_history=False,
+            silent=True,  # suppress output, we're using terminal output
+        )
+
+        return self._process_speaker_selection_result(result, last_speaker, agents)
+
+    def _validate_speaker_name(
+        self, recipient, messages, sender, config, attempts_left, attempt, agents
+    ) -> Tuple[bool, Union[str, Dict, None]]:
+        """Validates the speaker response for each round in the internal 2-agent
+        chat within the  auto select speaker method.
+
+        Used by auto_select_speaker and a_auto_select_speaker.
+        """
+
+        # Output the query and requery results
+        if self.select_speaker_auto_verbose:
+            iostream = IOStream.get_default()
+
+        # Validate the speaker name selected
+        select_name = messages[-1]["content"].strip()
+
+        mentions = self._mentioned_agents(select_name, agents)
+
+        # Display the response if it's not the exact speaker name
+        if self.select_speaker_auto_verbose and (len(mentions) != 1 or (select_name.strip() != next(iter(mentions)))):
+            iostream.print(
+                colored(
+                    f"\n>>>>>>>> Select speaker attempt {attempt} of {attempt + attempts_left} response:\n{'[BLANK]' if not select_name.strip() else select_name.strip()}",
+                    "magenta",
+                ),
+                flush=False,
+            )
+
+        if len(mentions) == 1:
+
+            # Success on retry, we have just one name mentioned
+            selected_agent_name = next(iter(mentions))
+
+            # Add the selected agent to the response so we can return it
+            messages.append({"role": "user", "content": f"[AGENT SELECTED]{selected_agent_name}"})
+
+            if self.select_speaker_auto_verbose:
+                iostream.print(
+                    colored(
+                        f">>>>>>>> Select speaker attempt {attempt} of {attempt + attempts_left} successfully selected: {selected_agent_name}",
+                        "green",
+                    ),
+                    flush=True,
+                )
+
+        elif len(mentions) > 1:
+            # More than one name on requery so add additional reminder prompt for next retry
+
+            if self.select_speaker_auto_verbose:
+                iostream.print(
+                    colored(
+                        f">>>>>>>> Select speaker attempt {attempt} of {attempt + attempts_left} failed as it included multiple agent names.",
+                        "red",
+                    ),
+                    flush=True,
+                )
+
+            if attempts_left:
+                # Message to return to the chat for the next attempt
+                return (
+                    True,
+                    """You provided more than one name in your text, please return just the name of the next speaker. To determine the speaker use these prioritised rules:
+                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+                    2. If it refers to the "next" speaker name, choose that name
+                    3. Otherwise, choose the first provided speaker's name in the context
+                    The names are case-sensitive and should not be abbreviated or changed.
+                    Respond with ONLY the name of the speaker and DO NOT provide a reason.""",
+                )
+            else:
+                # Final failure, no attempts left
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"[AGENT SELECTION FAILED]Select speaker attempt #{attempt} of {attempt + attempts_left} failed as it returned multiple names.",
+                    }
+                )
+
+        else:
+            # No names at all on requery so add additional reminder prompt for next retry
+
+            if self.select_speaker_auto_verbose:
+                iostream.print(
+                    colored(
+                        f">>>>>>>> Select speaker attempt #{attempt} failed as it did not include any agent names.",
+                        "red",
+                    ),
+                    flush=True,
+                )
+
+            if attempts_left:
+                # Message to return to the chat for the next attempt
+                return (
+                    True,
+                    f"""You didn't choose a speaker. As a reminder, to determine the speaker use these prioritised rules:
+                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+                    2. If it refers to the "next" speaker name, choose that name
+                    3. Otherwise, choose the first provided speaker's name in the context
+                    The names are case-sensitive and should not be abbreviated or changed.
+                    The only names that are accepted are {[agent.name for agent in agents]}.
+                    Respond with ONLY the name of the speaker and DO NOT provide a reason.""",
+                )
+            else:
+                # Final failure, no attempts left
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"[AGENT SELECTION FAILED]Select speaker attempt #{attempt} of {attempt + attempts_left} failed as it did not include any agent names.",
+                    }
+                )
+
+        return True, None
+
+    def _process_speaker_selection_result(self, result, last_speaker: ConversableAgent, agents: Optional[List[Agent]]):
+        """Checks the result of the auto_select_speaker function, returning the
+        agent to speak.
+
+        Used by auto_select_speaker and a_auto_select_speaker."""
+        if len(result.chat_history) > 0:
+
+            # Use the final message, which will have the selected agent or reason for failure
+            final_message = result.chat_history[-1]["content"]
+
+            if "[AGENT SELECTED]" in final_message:
+
+                # Have successfully selected an agent, return it
+                return self.agent_by_name(final_message.replace("[AGENT SELECTED]", ""))
+
+            else:  # "[AGENT SELECTION FAILED]"
+
+                # Failed to select an agent, so we'll select the next agent in the list
+                next_agent = self.next_agent(last_speaker, agents)
+
+                # No agent, return the failed reason
+                return next_agent
 
     def _participant_roles(self, agents: List[Agent] = None) -> str:
         # Default to all agents registered
