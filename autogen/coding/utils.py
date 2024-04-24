@@ -3,23 +3,31 @@ import re
 from pathlib import Path
 from typing import Optional
 
+filename_patterns = [
+    re.compile(r"^<!-- (filename:)?(.+?) -->", re.DOTALL),
+    re.compile(r"^/\* (filename:)?(.+?) \*/", re.DOTALL),
+    re.compile(r"^// (filename:)?(.+?)$", re.DOTALL),
+    re.compile(r"^# (filename:)?(.+?)$", re.DOTALL),
+]
+
 
 # Raises ValueError if the file is not in the workspace
 def _get_file_name_from_content(code: str, workspace_path: Path) -> Optional[str]:
-    first_line = code.split("\n")[0]
+    first_line = code.split("\n")[0].strip()
     # TODO - support other languages
-    if first_line.startswith("# filename:"):
-        filename = first_line.split(":")[1].strip()
+    for pattern in filename_patterns:
+        matches = pattern.match(first_line)
+        if matches is not None:
+            filename = matches.group(2).strip()
 
-        # Handle relative paths in the filename
-        path = Path(filename)
-        if not path.is_absolute():
-            path = workspace_path / path
-        path = path.resolve()
-        # Throws an error if the file is not in the workspace
-        relative = path.relative_to(workspace_path.resolve())
-        return str(relative)
-
+            # Handle relative paths in the filename
+            path = Path(filename)
+            if not path.is_absolute():
+                path = workspace_path / path
+            path = path.resolve()
+            # Throws an error if the file is not in the workspace
+            relative = path.relative_to(workspace_path.resolve())
+            return str(relative)
     return None
 
 
