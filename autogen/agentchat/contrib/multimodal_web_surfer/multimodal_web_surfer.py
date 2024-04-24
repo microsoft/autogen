@@ -295,6 +295,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 else:
                     argument = "https://" + argument
                     self._visit_page(argument)
+            elif target == str(MARK_ID_BACK):
+                self._log_to_console("back")
+                self._back()
             elif target == str(MARK_ID_SEARCH_BAR) and argument:
                 self._log_to_console("search", arg=argument)
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
@@ -428,6 +431,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             pass
 
         self._log_to_console("new_tab", arg=title if title else self._page.url)
+
+    def _back(self):
+        self._page.go_back()
 
     def _visit_page(self, url):
         self._page.goto(url)
