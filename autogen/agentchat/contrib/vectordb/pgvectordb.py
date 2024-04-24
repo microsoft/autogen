@@ -626,7 +626,7 @@ class PGVectorDB(VectorDB):
         except Exception as e:
             logger.error(
                 f"Validate the model name entered: {self.model_name} "
-                f"from https://www.sbert.net/docs/pretrained_models.html\nError: {e}"
+                f"from https://huggingface.co/models?library=sentence-transformers\nError: {e}"
             )
             raise e
         self.metadata = metadata
