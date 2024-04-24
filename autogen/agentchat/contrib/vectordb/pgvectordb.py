@@ -391,6 +391,7 @@ class Collection:
         if collection_name:
             self.name = collection_name
 
+        clause = "ORDER BY"
         if distance_threshold == -1:
             distance_threshold = ""
             clause = "ORDER BY"
