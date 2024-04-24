@@ -45,7 +45,7 @@ class TestCosmosDBCache(unittest.TestCase):
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
         result = cache.get(key)
         self.assertEqual(result, self.value)
-        self.container_client_mock.read_item.assert_called_with(item=key, partition_key=str(self.seed))
+        self.container_client_mock._item.assert_called_with(item=key, partition_key=str(self.seed))
 
         self.container_client_mock.read_item.side_effect = Exception("not found")
         self.assertIsNone(cache.get(key, default=None))
@@ -57,7 +57,7 @@ class TestCosmosDBCache(unittest.TestCase):
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
         cache.set(key, value)
         self.container_client_mock.upsert_item.assert_called_with(
-            {"id": key, "partitionKey": str(self.seed), "data": pickle.dumps(value)}
+            {"id": key, "partitionKey": str(self.seed), "data": self.serialized_value}
         )
 
     @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
