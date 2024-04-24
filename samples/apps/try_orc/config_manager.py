@@ -19,21 +19,24 @@ class ConfigManager:
 
         self.bing_api_key = None
 
-    def _get_config_list(self, config_path_or_env: Optional[str] = None) -> List[Dict[str, str]]:
-        config_list = None
+    def _get_config_list(self, config_path_or_env: str) -> List[Dict[str, str]]:
 
-        try:
-            config_list = autogen.config_list_from_json(config_path_or_env)
-        except Exception as e:  # config list may not be available
+        if config_path_or_env is None:
             api_key = os.environ.get("OPENAI_API_KEY", None)
             if api_key is None:
-                raise Exception("No config list or OPENAI_API_KEY found", e)
+                raise Exception("No config list or OPENAI_API_KEY found. Set at least one.")
 
             config_list = [
                 {"model": self.DEFAULT_LLM_MODEL, "api_key": api_key, "tags": ["llm"]},
                 {"model": self.DEFAULT_MLM_MODEL, "api_key": api_key, "tags": ["mlm"]},
             ]
-        return config_list
+
+        try:
+            config_list = autogen.config_list_from_json(config_path_or_env)
+        except Exception as e:  # config list may not be available
+            raise Exception(f"Error loading config list from {config_path_or_env}: {e}")
+        else:
+            return config_list
 
     def _get_bing_api_key(self) -> str:
         bing_api_key = os.environ.get("BING_API_KEY", None)
@@ -41,7 +44,7 @@ class ConfigManager:
             raise Exception("Please set BING_API_KEY environment variable.")
         return bing_api_key
 
-    def initialize(self, config_path_or_env: Optional[str] = "OAI_CONFIG_LIST") -> None:
+    def initialize(self, config_path_or_env: Optional[str] = None) -> None:
 
         config_list = self._get_config_list(config_path_or_env)
 

@@ -9,14 +9,21 @@ from config_manager import ConfigManager
 from misc_utils import response_preparer
 
 # setup LLM config and clients
+
+# config_list = "OAI_CONFIG_LIST"
+# response_format_is_supported = True
+
+config_list = "AZURE_OAI_CONFIG_LIST"
+response_format_is_supported = False
+
 config = ConfigManager()
-config.initialize()
+config.initialize(config_path_or_env=config_list)
 
 assistant = autogen.AssistantAgent(
     "assistant",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
     code_execution_config=False,
-    llm_config=config.llm_config,
+    llm_config=config.mlm_config,
 )
 
 user_proxy_name = "computer_terminal"
@@ -35,7 +42,7 @@ computer_terminal = autogen.UserProxyAgent(
 
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
-    llm_config=config.llm_config,
+    llm_config=config.mlm_config,
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     human_input_mode="NEVER",
     headless=True,
@@ -48,7 +55,8 @@ web_surfer = MultimodalWebSurferAgent(
 maestro = Orchestrator(
     "orchestrator",
     agents=[assistant, computer_terminal, web_surfer],
-    llm_config=config.llm_config,
+    llm_config=config.mlm_config,
+    response_format_is_supported=response_format_is_supported,
 )
 
 # # read the task from standard input

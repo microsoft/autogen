@@ -9,14 +9,18 @@ from config_manager import ConfigManager
 from misc_utils import response_preparer
 
 # setup LLM config and clients
-config_manager = ConfigManager()
-config_manager.initialize()
+# config_list = "OAI_CONFIG_LIST"
+config_list = "AZURE_OAI_CONFIG_LIST"
+
+config = ConfigManager()
+config.initialize(config_path_or_env=config_list)
+
 
 assistant = autogen.AssistantAgent(
     "assistant",
     is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
     code_execution_config=False,
-    llm_config=config_manager.llm_config,
+    llm_config=config.llm_config,
 )
 
 user_proxy_name = "computer_terminal"
@@ -36,7 +40,7 @@ user_proxy = autogen.UserProxyAgent(
 maestro = Orchestrator(
     "orchestrator",
     agents=[assistant, user_proxy],
-    llm_config=config_manager.llm_config,
+    llm_config=config.llm_config,
 )
 
 # # read the task from standard input
