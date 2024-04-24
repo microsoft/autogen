@@ -65,9 +65,16 @@ class Collection:
         self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
-        self.embedding_function = (
-            SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-        )
+        try:
+            self.embedding_function = (
+                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
+            )
+        except Exception as e:
+            logger.error(
+                f"Validate the model name entered: {self.model_name} "
+                f"from https://www.sbert.net/docs/pretrained_models.html\nError: {e}"
+            )
+            raise e
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
         self.get_or_create = get_or_create
@@ -609,9 +616,16 @@ class PGVectorDB(VectorDB):
             logger.error("Error connecting to the database: ", e)
             raise e
         self.model_name = model_name
-        self.embedding_function = (
-            SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
-        )
+        try:
+            self.embedding_function = (
+                SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
+            )
+        except Exception as e:
+            logger.error(
+                f"Validate the model name entered: {self.model_name} "
+                f"from https://www.sbert.net/docs/pretrained_models.html\nError: {e}"
+            )
+            raise e
         self.metadata = metadata
         self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(self.client)
