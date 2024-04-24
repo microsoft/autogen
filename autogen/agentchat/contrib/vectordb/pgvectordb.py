@@ -416,7 +416,6 @@ class Collection:
                 f"{clause} embedding {index_function} '{str(vector)}' {distance_threshold} "
                 f"LIMIT {n_results}"
             )
-            print(f"\n\nDISTNACE THRESHOLD: {distance_threshold} QUERY: {query}")
             cursor.execute(query)
             result = []
             for row in cursor.fetchall():
