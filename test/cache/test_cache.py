@@ -2,7 +2,7 @@
 
 import unittest
 from typing import Optional, TypedDict, Union
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY
 
 try:
     from azure.cosmos import CosmosClient
@@ -49,7 +49,7 @@ class TestCache(unittest.TestCase):
                 "database_id": "autogen_cache",
                 "container_id": "TestContainer",
                 "cache_seed": 42,
-                "client": MagicMock(spec=CosmosClient),
+                "client": ANY,
             },
         )
 
