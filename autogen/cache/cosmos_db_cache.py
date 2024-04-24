@@ -52,6 +52,17 @@ class CosmosDBCache(AbstractCache):
         )
 
     @classmethod
+    def create_cache(cls, seed: Union[str, int], cosmosdb_config: CosmosDBConfig):
+        """
+        Factory method to create a CosmosDBCache instance based on the provided configuration.
+        This method decides whether to use an existing CosmosClient or create a new one.
+        """
+        if 'client' in cosmosdb_config and isinstance(cosmosdb_config['client'], CosmosClient):
+            return cls.from_existing_client(seed, **cosmosdb_config)
+        else:
+            return cls.from_config(seed, cosmosdb_config)
+
+    @classmethod
     def from_config(cls, seed: Union[str, int], cosmosdb_config: CosmosDBConfig):
         return cls(seed, cosmosdb_config)
 
