@@ -57,7 +57,7 @@ class TestCache(unittest.TestCase):
                 "container_id": "TestContainer",
                 "cache_seed": 42,
                 "client": MagicMock(spec=CosmosClient),
-        }
+        },
     )
 
     def context_manager_common(self, config):
