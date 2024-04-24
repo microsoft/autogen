@@ -96,7 +96,7 @@ class CosmosDBCache(AbstractCache):
         except Exception as e:
             # Log the exception or rethrow after logging if needed
             # Consider logging or handling the error appropriately here
-            print("Error:", e) # Print out the error which might give more insight
+            print("Error:", e)  # Print out the error which might give more insight
             raise e
 
     def set(self, key: str, value: Any) -> None:
@@ -115,7 +115,7 @@ class CosmosDBCache(AbstractCache):
             item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
             self.container.upsert_item(item)
         except Exception as e:
-        # Log or handle exception
+            # Log or handle exception
             raise e
 
     def close(self) -> None:
