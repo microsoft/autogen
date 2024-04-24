@@ -14,8 +14,8 @@ web_surfer = MultimodalWebSurferAgent(
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     human_input_mode="NEVER",
     headless=True,
-    chromium_channel="chromium",
-    chromium_data_dir=None,
+    browser_channel="chromium",
+    browser_data_dir=None,
     start_page="https://bing.com",
     debug_dir=os.path.join(os.path.dirname(__file__), "debug"),
 )

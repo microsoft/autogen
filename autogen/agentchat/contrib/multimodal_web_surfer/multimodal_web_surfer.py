@@ -67,8 +67,8 @@ class MultimodalWebSurferAgent(ConversableAgent):
         mlm_config: Optional[Union[Dict, Literal[False]]] = None,  # TODO: Remove this
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         headless: bool = True,
-        chromium_channel=DEFAULT_CHANNEL,
-        chromium_data_dir: Optional[str] = None,
+        browser_channel=DEFAULT_CHANNEL,
+        browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
     ):
@@ -87,8 +87,8 @@ class MultimodalWebSurferAgent(ConversableAgent):
             llm_config: The configuration for the LLM.
             default_auto_reply: The default auto-reply.
             headless: Whether to run the browser in headless mode.
-            chromium_channel: The Chromium channel to use.
-            chromium_data_dir: The Chromium data directory. If None, a new context is created.
+            browser_channel: The Chromium channel to use.
+            browser_data_dir: The Chromium data directory. If None, a new context is created.
             start_page: The start page for the browser.
             debug_dir: The directory to store debug information. TODO: Clarify behavior on None.
         """
@@ -111,28 +111,28 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
         # Create the playwright instance
         launch_args = {"headless": headless}
-        if chromium_channel is not DEFAULT_CHANNEL:
-            launch_args["channel"] = chromium_channel
+        if browser_channel is not DEFAULT_CHANNEL:
+            launch_args["channel"] = browser_channel
         self._playwright = sync_playwright().start()
 
         # Create the context -- are we launching a persistent instance?
-        if chromium_data_dir is None:
-            if chromium_channel == "chromium":
+        if browser_data_dir is None:
+            if browser_channel == "chromium":
                 browser = self._playwright.chromium.launch(**launch_args)
-            elif chromium_channel == "firefox":
+            elif browser_channel == "firefox":
                 browser = self._playwright.firefox.launch(**launch_args)
             else:
                 raise NotImplementedError(
-                    f"Invalid chromium channel {chromium_channel}. Only chromium and firefox are supported."
+                    f"Invalid chromium channel {browser_channel}. Only chromium and firefox are supported."
                 )
             self._context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
             )
         else:
-            if chromium_channel == "chromium":
-                self._context = self._playwright.chromium.launch_persistent_context(chromium_data_dir, **launch_args)
-            elif chromium_channel == "firefox":
-                self._context = self._playwright.firefox.launch_persistent_context(chromium_data_dir, **launch_args)
+            if browser_channel == "chromium":
+                self._context = self._playwright.chromium.launch_persistent_context(browser_data_dir, **launch_args)
+            elif browser_channel == "firefox":
+                self._context = self._playwright.firefox.launch_persistent_context(browser_data_dir, **launch_args)
 
         # Create the page
         self._page = self._context.new_page()
