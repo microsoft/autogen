@@ -42,3 +42,4 @@ RUN /usr/bin/echo -e "import easyocr\nreader = easyocr.Reader(['en'])" | python
 
 # Webarena
 RUN pip install beartype aiolimiter
+RUN /usr/bin/echo -e "import nltk\nnltk.download('punkt')" | python

@@ -3,6 +3,7 @@ from autogen.agentchat.contrib.web_surfer import WebSurferAgent
 from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
 
 from autogen.agentchat.contrib.orchestrator import Orchestrator
+from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 
 from config_manager import ConfigManager
 from misc_utils import response_preparer
@@ -32,38 +33,13 @@ user_proxy = autogen.UserProxyAgent(
     max_consecutive_auto_reply=15,
 )
 
-browser = RequestsMarkdownBrowser(
-    viewport_size=1024 * 5,
-    downloads_folder="coding",
-    search_engine=BingMarkdownSearch(bing_api_key=config_manager.bing_api_key, interleave_results=False),
-)
-
-web_surfer = WebSurferAgent(
-    "web_surfer",
-    llm_config=config_manager.llm_config,
-    summarizer_llm_config=config_manager.llm_config,
-    is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
-    code_execution_config=False,
-    browser=browser,
-)
-
 maestro = Orchestrator(
     "orchestrator",
-    agents=[assistant, user_proxy, web_surfer],
+    agents=[assistant, user_proxy],
     llm_config=config_manager.llm_config,
 )
 
-# read the task from standard input
+# # read the task from standard input
 task = input("Enter the task: ")
-# task = "Find 10 highest cited publications written by Gagan Bansal"
 
 user_proxy.initiate_chat(maestro, message=task, clear_history=True)
-
-
-final_response = response_preparer(
-    inner_messages=maestro.chat_messages[user_proxy],
-    PROMPT=task,
-    client=assistant.client,
-)
-
-print(final_response)

@@ -1,4 +1,4 @@
-../../../../autogen
+-e ../../../../autogen
 pathvalidate
 markdownify
 puremagic

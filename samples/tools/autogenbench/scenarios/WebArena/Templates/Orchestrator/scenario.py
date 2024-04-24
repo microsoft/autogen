@@ -4,9 +4,9 @@ import testbed_utils
 import autogen
 import evaluation_harness
 import re
+from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.runtime_logging import logging_enabled, log_event
-from mmagent import MultimodalAgent
 
 from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
 
@@ -49,6 +49,27 @@ llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
 
+assistant = autogen.AssistantAgent(
+    "assistant",
+    is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    code_execution_config=False,
+    llm_config=llm_config,
+)
+
+user_proxy_name = "computer_terminal"
+user_proxy = autogen.UserProxyAgent(
+    user_proxy_name,
+    human_input_mode="NEVER",
+    description="A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)",
+    is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    code_execution_config={
+        "work_dir": "coding",
+        "use_docker": False,
+    },
+    default_auto_reply=f'Invalid {user_proxy_name} input: no code block detected.\nPlease provide {user_proxy_name} a complete Python script or a shell (sh) script to run. Scripts should appear in code blocks beginning "```python" or "```sh" respectively.',
+    max_consecutive_auto_reply=15,
+)
+
 web_surfer = MultimodalWebSurferAgent(
     "web_surfer",
     llm_config=llm_config,
@@ -57,19 +78,14 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     chromium_channel="chromium",
     chromium_data_dir=None,
-    start_page=HOMEPAGE,
-    debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
+    start_page="https://bing.com",
+    debug_dir=os.path.join(os.path.dirname(__file__), "debug"),
 )
 
-user_proxy = MultimodalAgent(
-    "user_proxy",
-    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
-
-Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
+maestro = Orchestrator(
+    "orchestrator",
+    agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
-    human_input_mode="NEVER",
-    is_termination_msg=lambda x: False,
-    max_consecutive_auto_reply=20,
 )
 
 # Login to the necessary websites
@@ -81,7 +97,7 @@ if "reddit" in TASK["sites"]:
     password = ACCOUNTS["reddit"]["password"]
     try:
         user_proxy.initiate_chat(
-            web_surfer,
+            maestro,
             message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
             clear_history=True,
         )
@@ -102,7 +118,7 @@ if "reddit" in TASK["sites"]:
 
         raise e
     user_proxy.reset()
-    web_surfer.reset()
+    maestro.reset()
 
 
 if "gitlab" in TASK["sites"]:
@@ -112,12 +128,12 @@ if "gitlab" in TASK["sites"]:
     username = ACCOUNTS["gitlab"]["username"]
     password = ACCOUNTS["gitlab"]["password"]
     user_proxy.initiate_chat(
-        web_surfer,
+        maestro,
         message=f"Navigate to {login_url}. type the username '{username}', and password is '{password}'. Finally click the 'Sign in' button.",
         clear_history=True,
     )
     user_proxy.reset()
-    web_surfer.reset()
+    maestro.reset()
 
 # TODO: Add the shopping sites
 
@@ -128,10 +144,10 @@ if logging_enabled():
 start_url = TASK["start_url"]
 if start_url == REDDIT:
     start_url = start_url + "/forums"
-user_proxy.send(f"Navigate to {start_url}", web_surfer, request_reply=True)
+user_proxy.send(f"Navigate to {start_url}", maestro, request_reply=True)
 
 user_proxy.reset()
-web_surfer.reset()
+maestro.reset()
 
 print("MAIN TASK STARTING !#!#")
 
@@ -147,7 +163,7 @@ if logging_enabled():
 
 try:
     web_surfer.initiate_chat(
-        user_proxy,
+        maestro,
         message=f"""
 We are visiting the website {start_url}{site_description_prompt}. On this website, please complete the following task:
 
@@ -176,7 +192,7 @@ except Exception as e:
 #########################
 if logging_enabled():
     log_event(os.path.basename(__file__), name="extract_final_answer")
-web_surfer.send(
+maestro.send(
     f"""Read the above conversation and output a FINAL ANSWER to the original request. The original request is repeated here for convenience:
 
 {TASK['intent']}
@@ -184,11 +200,11 @@ web_surfer.send(
 To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
 Your FINAL ANSWER should be as few words as possible
 If the original request was not a question, or you did not find a definitive answer, simply summarize the final state of the page or task as your FINAL ANSWER.""",
-    user_proxy,
+    assistant,
     request_reply=False,
     silent=True,
 )
-final_answer = user_proxy.generate_reply(sender=web_surfer)
+final_answer = assistant.generate_reply(sender=maestro)
 
 m = re.search("FINAL ANSWER:(.*)$", final_answer, re.DOTALL)
 if m:
@@ -201,9 +217,6 @@ print('page.stop("' + final_answer + '")')
 print("MAIN TASK COMPLETE !#!#")
 
 ########## EVALUATION ##########
-
-import nltk
-nltk.download('punkt')
 
 # playwright = web_surfer._playwright
 context = web_surfer._context

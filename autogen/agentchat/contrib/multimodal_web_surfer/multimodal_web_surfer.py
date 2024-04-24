@@ -369,7 +369,14 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         if logging_enabled():
             log_event(self, "cookies", cookies=self._page.context.cookies())
-            log_event(self, "viewport_state", page_title=self._page.title(), page_url=self._page.url, percent_visible=percent_visible, percent_scrolled=percent_scrolled)
+            log_event(
+                self,
+                "viewport_state",
+                page_title=self._page.title(),
+                page_url=self._page.url,
+                percent_visible=percent_visible,
+                percent_scrolled=percent_scrolled,
+            )
         # Return the complete observation
         return True, self._make_mm_message(
             f"Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",

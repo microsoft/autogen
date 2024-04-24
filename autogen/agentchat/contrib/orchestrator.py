@@ -347,7 +347,12 @@ Team membership:
                 # Request a reply
                 for a in self._agents:
                     if a.name == data["next_speaker"]["answer"]:
-                        reply = {"role": "user", "name": a.name, "content": a.generate_reply(sender=self)}
+                        reply = a.generate_reply(sender=self)
+                        if isinstance(reply, str):
+                            reply = {"role": "user", "name": a.name, "content": reply}
+                        elif isinstance(reply, dict):
+                            reply["role"] = "user"
+                            reply["name"] = a.name
                         self.orchestrated_messages.append(reply)
                         a.send(reply, self, request_reply=False)
                         self._broadcast(reply, exclude=[a])
