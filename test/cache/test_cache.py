@@ -2,7 +2,7 @@
 
 import unittest
 from typing import Optional, TypedDict, Union
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import ANY, MagicMock, patch
 
 try:
     from azure.cosmos import CosmosClient
