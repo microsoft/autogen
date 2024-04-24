@@ -45,7 +45,7 @@ class TestCosmosDBCache(unittest.TestCase):
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
         result = cache.get(key)
         self.assertEqual(result, self.value)
-        self.container_client_mock._item.assert_called_with(item=key, partition_key=str(self.seed))
+        self.container_client_mock.read_item.assert_called_with(item=key, partition_key=str(self.seed))
 
         self.container_client_mock.read_item.side_effect = Exception("not found")
         self.assertIsNone(cache.get(key, default=None))
