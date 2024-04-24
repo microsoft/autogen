@@ -10,15 +10,7 @@ except ImportError:
     CosmosClient = None
 
 from autogen.cache.cache import Cache
-
-
-class CosmosDBConfig(TypedDict, total=False):
-    connection_string: str
-    database_id: str
-    container_id: str
-    cache_seed: Optional[Union[str, int]]
-    client: Optional[CosmosClient]
-
+from autogen.cache.cosmos_db_cache import CosmosDBConfig
 
 class TestCache(unittest.TestCase):
     def setUp(self):
@@ -57,8 +49,8 @@ class TestCache(unittest.TestCase):
                 "container_id": "TestContainer",
                 "cache_seed": 42,
                 "client": MagicMock(spec=CosmosClient),
-        },
-    )
+            },
+        )
 
     def context_manager_common(self, config):
         mock_cache_instance = MagicMock()
