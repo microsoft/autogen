@@ -94,8 +94,10 @@ def main():
     page_groups = dict()
     for task in tasks:
 
-        # We don't know how the intent id's are distributed, so hash them to get a uniform dist
+        # We don't know how the intent ids are distributed, so hash them to get a uniform distribution
         template_hash = hashlib.md5(str(task["intent_template_id"]).encode("utf-8")).hexdigest()
+
+        # The full hash will consist of 32 hexadecimal digits. We can get a 50/50 split by checking if the first digit is in the range (0-7) vs (8-F)
         task_set = "validation" if template_hash[0] in "01234567" else "test"
 
         key = task["sites"][0]
