@@ -6,6 +6,7 @@ import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import autogen
+from autogen.token_count_utils import get_max_token_limit
 
 
 def _config_check(config: Dict):
@@ -21,6 +22,22 @@ def _config_check(config: Dict):
             agent_config.get("system_message", None) is not None
         ), 'Missing agent "system_message" in your agent_configs.'
         assert agent_config.get("description", None) is not None, 'Missing agent "description" in your agent_configs.'
+
+
+def _check_gpu_availability():
+    # check gpu availability
+    import GPUtil
+
+    gpus = GPUtil.getGPUs()
+    return len(gpus) > 0
+
+
+def _get_max_tokens(model="gpt-4"):
+    # get model's max tokens
+    try:
+        return get_max_token_limit(model)
+    except:
+        raise ValueError(f"Fail to infer the max tokens for {model}. Please specify the max tokens in the config.")
 
 
 class AgentBuilder:
@@ -118,16 +135,18 @@ output after executing the code) and provide a corrected answer or code.
 
     TASK: {task}
     POSITION: {position}
+    GPU AVAILABILITY: {gpu_avaliability}
 
-    Which following models should be used to support the position in the task?
+    Which of the following models should be used to support the position in the task?
 
     MODEL LIST:
     {model_list}
 
     Hint:
-    # You should consider if the model has the potential to support the position to complete the task based on the model's name and profile.
-    # You should select the most suitable model for the position.
+    # You should consider if the model has the potential to support the position to complete the task based on the model's name and description.
     # You should select only one model for the position.
+    # If several models are suitable, you should select the one that supports the maximum tokens.
+    # If the model needs GPU, you should consider the GPU availability.
     # Only return the selected model's name.
     """
 
@@ -193,6 +212,38 @@ output after executing the code) and provide a corrected answer or code.
         except OSError:
             return False
 
+    def _load_config_list(self):
+        """
+        Load and check the config list from the config file or environment.
+
+        Returns:
+            builder_model_config_list: a list of builder model configs.
+            agent_model_config_list: a list of agent model configs.
+        """
+        builder_model_config_list = autogen.config_list_from_json(
+            self.config_file_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": [self.builder_model]},
+        )
+        if len(builder_model_config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_file_or_env}. "
+                f'If you want to change this model, please specify the "builder_model" in the constructor.'
+            )
+
+        agent_model_config_list = autogen.config_list_from_json(
+            self.config_file_or_env,
+            file_location=self.config_file_location,
+            filter_dict={"model": self.agent_model},
+        )
+        if len(agent_model_config_list) == 0:
+            raise RuntimeError(
+                f"Fail to initialize agent model: {self.agent_model} does not exist in {self.config_file_or_env}. "
+                f'If you want to change this model, please specify the "agent_model" in the constructor.'
+            )
+
+        return builder_model_config_list, agent_model_config_list
+
     def _create_agent(
         self,
         agent_name: str,
@@ -202,6 +253,7 @@ output after executing the code) and provide a corrected answer or code.
         description: Optional[str] = autogen.AssistantAgent.DEFAULT_DESCRIPTION,
         use_oai_assistant: Optional[bool] = False,
         world_size: Optional[int] = 1,
+        **kwargs,
     ) -> autogen.AssistantAgent:
         """
         Create a group chat participant agent.
@@ -255,29 +307,23 @@ output after executing the code) and provide a corrected answer or code.
                     if self._is_port_open(self.host, port):
                         break
 
-                # Check if vLLM is installed.
-                try:
-                    import vllm  # noqa: F401
-                except ImportError:
-                    raise ImportError("vLLM is not installed. Please install vLLM by running 'pip install vllm'.")
-
                 # Use vLLM to set up a server with OpenAI API support.
+                cmd = [
+                    "python",
+                    "-m",
+                    "vllm.entrypoints.openai.api_server",
+                    "--host",
+                    f"{self.host}",
+                    "--port",
+                    f"{port}",
+                    "--model",
+                    f"{model_name_or_hf_repo}",
+                    "--tensor-parallel-size",
+                    f"{world_size}",
+                ]
+                cmd += [f"--{k} {v}" for k, v in kwargs.items()]
                 agent_proc = sp.Popen(
-                    [
-                        "python",
-                        "-m",
-                        "vllm.entrypoints.openai.api_server",
-                        "--host",
-                        f"{self.host}",
-                        "--port",
-                        f"{port}",
-                        "--model",
-                        f"{model_name_or_hf_repo}",
-                        "--tensor-parallel-size",
-                        f"{world_size}",
-                        "--dtype",
-                        "half",
-                    ],
+                    cmd,
                     stdout=sp.PIPE,
                     stderr=sp.STDOUT,
                 )
@@ -393,33 +439,12 @@ output after executing the code) and provide a corrected answer or code.
                 "use_docker": False,
                 "timeout": 60,
             }
+        builder_model_config_list, agent_model_config_list = self._load_config_list()
 
         agent_configs = []
         self.building_task = building_task
 
-        config_list = autogen.config_list_from_json(
-            self.config_file_or_env,
-            file_location=self.config_file_location,
-            filter_dict={"model": [self.builder_model]},
-        )
-        if len(config_list) == 0:
-            raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_file_or_env}. "
-                f'If you want to change this model, please specify the "builder_model" in the constructor.'
-            )
-        build_manager = autogen.OpenAIWrapper(config_list=config_list)
-
-        agent_model_config_list = autogen.config_list_from_json(
-            self.config_file_or_env,
-            file_location=self.config_file_location,
-            filter_dict={"model": self.agent_model},
-        )
-        if len(agent_model_config_list) == 0:
-            raise RuntimeError(
-                f"Fail to initialize agent model: {self.agent_model} does not exist in {self.config_file_or_env}. "
-                f'If you want to change this model list, please specify the "agent_model" in the constructor.'
-            )
-
+        build_manager = autogen.OpenAIWrapper(config_list=builder_model_config_list)
         print("==> Generating agents...")
         resp_agent_name = (
             build_manager.create(
@@ -553,38 +578,17 @@ output after executing the code) and provide a corrected answer or code.
                 "use_docker": False,
                 "timeout": 60,
             }
-
-        agent_configs = []
-
-        config_list = autogen.config_list_from_json(
-            self.config_file_or_env,
-            file_location=self.config_file_location,
-            filter_dict={"model": [self.builder_model]},
-        )
-        if len(config_list) == 0:
-            raise RuntimeError(
-                f"Fail to initialize build manager: {self.builder_model} does not exist in {self.config_file_or_env}. "
-                f'If you want to change this model, please specify the "builder_model" in the constructor.'
-            )
-        build_manager = autogen.OpenAIWrapper(config_list=config_list)
-
-        agent_model_config_list = autogen.config_list_from_json(
-            self.config_file_or_env,
-            file_location=self.config_file_location,
-            filter_dict={"model": self.agent_model},
-        )
-        if len(agent_model_config_list) == 0:
-            raise RuntimeError(
-                f"Fail to initialize agent model: {self.agent_model} does not exist in {self.config_file_or_env}. "
-                f'If you want to change this model list, please specify the "agent_model" in the constructor.'
-            )
-
+        builder_model_config_list, agent_model_config_list = self._load_config_list()
         try:
             agent_library = json.loads(library_path_or_json)
         except json.decoder.JSONDecodeError:
             with open(library_path_or_json, "r") as f:
                 agent_library = json.load(f)
 
+        agent_configs = []
+        self.building_task = building_task
+
+        build_manager = autogen.OpenAIWrapper(config_list=builder_model_config_list)
         print("==> Looking for suitable agents in library...")
         if embedding_model is not None:
             import chromadb
@@ -773,7 +777,13 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
             model_config_list: a list of model configs. A sample model config should be like:
                 {
                     "model": "model_name",
-                    "profile": "model_profile",
+                    "api_key": "xxxx-xxxx-xxxx-xxxx-xxxx",
+                    "profile": {
+                        "desc": "model_description",
+                        "max_tokens": 4000,
+                        "use_gpu": False,
+                    },
+                    ""
                 }
             search_manager: an OpenAIWrapper instance for model searching.
 
@@ -781,7 +791,10 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
             model_name: the selected model name.
         """
         model_profiles = [
-            f"No.{i + 1} MODEL's NAME: {model['model']}\nNo.{i + 1} MODEL's PROFILE: {model.get('profile', '')}\n\n"
+            f"No.{i + 1} MODEL's NAME: {model['model']}\n"
+            f"No.{i + 1} MODEL's DESCRIPTION: {model.get('profile', {}).get('desc', '')}\n"
+            f"No.{i + 1} MODEL's MAX TOKENS: {model.get('profile', {}).get('max_tokens', _get_max_tokens(model['model']))}\n"
+            f"No.{i + 1} MODEL NEEDS GPU: {model.get('profile', {}).get('use_gpu', False)}\n\n"
             for i, model in enumerate(model_config_list)
         ]
 
@@ -794,6 +807,7 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
                             task=self.building_task,
                             position=f"{agent_name}\nPOSITION PROFILE: {agent_profile}",
                             model_list="".join(model_profiles),
+                            gpu_avaliability=_check_gpu_availability(),
                         ),
                     }
                 ]
