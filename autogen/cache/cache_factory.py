@@ -1,20 +1,9 @@
-# Install Azure Cosmos DB SDK if not already
-
 import logging
-from typing import Optional, TypedDict, Union
-
-from azure.cosmos import CosmosClient
+from typing import Optional, Union, Dict, Any
 
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
 
-
-class CosmosDBConfig(TypedDict, total=False):
-    connection_string: str
-    database_id: str
-    container_id: str
-    cache_seed: Optional[Union[str, int]]
-    client: Optional[CosmosClient]
 
 
 class CacheFactory:
@@ -23,7 +12,7 @@ class CacheFactory:
         seed: Union[str, int],
         redis_url: Optional[str] = None,
         cache_path_root: str = ".cache",
-        cosmosdb_config: Optional[CosmosDBConfig] = None,
+        cosmosdb_config: Optional[Dict[str, Any]] = None,
     ) -> AbstractCache:
         """
         Factory function for creating cache instances.
@@ -79,14 +68,8 @@ class CacheFactory:
         if cosmosdb_config:
             try:
                 from .cosmos_db_cache import CosmosDBCache
+                return CosmosDBCache.create_cache(seed, cosmosdb_config)
 
-                if "client" in cosmosdb_config and isinstance(cosmosdb_config["client"], CosmosClient):
-                    # Use existing CosmosClient instance
-                    return CosmosDBCache(seed, cosmosdb_config)
-                elif all(key in cosmosdb_config for key in ["connection_string", "database_id", "container_id"]):
-                    # Create new CosmosClient instance from connection parameters
-
-                    return CosmosDBCache(seed, **cosmosdb_config)
             except ImportError:
                 logging.warning("CosmosDBCache is not available. Fallback to DiskCache.")
 
