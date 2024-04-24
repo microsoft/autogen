@@ -75,7 +75,7 @@ jobs:
         env:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_HOST_AUTH_METHOD: trust
         options: >-
           --health-cmd pg_isready
