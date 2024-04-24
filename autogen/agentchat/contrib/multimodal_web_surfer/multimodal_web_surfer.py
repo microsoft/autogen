@@ -240,6 +240,9 @@ setInterval(function() {{
         viewport = self._get_visual_viewport()
         som_screenshot, visible_rects = add_state_of_mark(self._page.screenshot(), rects)
 
+        if logging_enabled():
+            log_event(self, "som_screenshot", screenshot=self._image_to_data_uri(som_screenshot), visible_rects=visible_rects)
+
         if self.debug_dir:
             som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
 
