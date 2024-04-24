@@ -34,7 +34,8 @@ class Collection:
         embedding_function (Callable): The embedding function used to generate the vector representation.
         metadata (Optional[dict]): The metadata of the collection.
         get_or_create (Optional): The flag indicating whether to get or create the collection.
-        model_name: (Optional str) | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
+        model_name: (Optional str) | Sentence embedding model to use. Models can be chosen from:
+            https://huggingface.co/models?library=sentence-transformers
     """
 
     def __init__(
@@ -55,7 +56,8 @@ class Collection:
             embedding_function: The embedding function used to generate the vector representation.
             metadata: The metadata of the collection.
             get_or_create: The flag indicating whether to get or create the collection.
-            model_name: | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
+            model_name: | Sentence embedding model to use. Models can be chosen from:
+                https://huggingface.co/models?library=sentence-transformers
         Returns:
             None
         """
@@ -585,7 +587,8 @@ class PGVectorDB(VectorDB):
                 setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 16}. Creates Index on table
                 using hnsw (embedding vector_l2_ops) WITH (m = hnsw:M) ef_construction = "hnsw:construction_ef".
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
-            model_name: str | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
+            model_name: str | Sentence embedding model to use. Models can be chosen from:
+                https://huggingface.co/models?library=sentence-transformers
 
         Returns:
             None
