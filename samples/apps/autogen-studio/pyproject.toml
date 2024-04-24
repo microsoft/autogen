@@ -28,9 +28,10 @@ dependencies = [
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
-    "sqlmodel"
+    "sqlmodel",
+    "psycopg",
 ]
-optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg2"]}
+optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
 dynamic = ["version"]
 
