@@ -34,7 +34,7 @@ class Collection:
         embedding_function (Callable): The embedding function used to generate the vector representation.
         metadata (Optional[dict]): The metadata of the collection.
         get_or_create (Optional): The flag indicating whether to get or create the collection.
-
+        model_name: (Optional str) | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
     """
 
     def __init__(
@@ -44,6 +44,7 @@ class Collection:
         embedding_function: Callable = None,
         metadata=None,
         get_or_create=None,
+        model_name="all-MiniLM-L6-v2",
     ):
         """
         Initialize the Collection object.
@@ -54,17 +55,18 @@ class Collection:
             embedding_function: The embedding function used to generate the vector representation.
             metadata: The metadata of the collection.
             get_or_create: The flag indicating whether to get or create the collection.
-
+            model_name: | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
         Returns:
             None
         """
         self.client = client
         self.embedding_function = embedding_function
+        self.model_name = model_name
         self.name = self.set_collection_name(collection_name)
         self.require_embeddings_or_documents = False
         self.ids = []
         self.embedding_function = (
-            SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
+            SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
         )
         self.metadata = metadata if metadata else {"hnsw:space": "ip", "hnsw:construction_ef": 32, "hnsw:M": 16}
         self.documents = ""
@@ -555,6 +557,7 @@ class PGVectorDB(VectorDB):
         connect_timeout: int = 10,
         embedding_function: Callable = None,
         metadata: dict = None,
+        model_name: str = "all-MiniLM-L6-v2",
     ) -> None:
         """
         Initialize the vector database.
@@ -575,7 +578,7 @@ class PGVectorDB(VectorDB):
                 setting: {"hnsw:space": "ip", "hnsw:construction_ef": 30, "hnsw:M": 16}. Creates Index on table
                 using hnsw (embedding vector_l2_ops) WITH (m = hnsw:M) ef_construction = "hnsw:construction_ef".
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
-            kwargs: dict | Additional keyword arguments.
+            model_name: str | Sentence embedding model to use. Any of the following options are available: https://www.sbert.net/docs/pretrained_models.html
 
         Returns:
             None
@@ -605,8 +608,9 @@ class PGVectorDB(VectorDB):
         except psycopg.Error as e:
             logger.error("Error connecting to the database: ", e)
             raise e
+        self.model_name = model_name
         self.embedding_function = (
-            SentenceTransformer("all-MiniLM-L6-v2") if embedding_function is None else embedding_function
+            SentenceTransformer(self.model_name) if embedding_function is None else embedding_function
         )
         self.metadata = metadata
         self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
@@ -645,6 +649,7 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
+                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -657,6 +662,7 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
+                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -670,6 +676,7 @@ class PGVectorDB(VectorDB):
                 embedding_function=self.embedding_function,
                 get_or_create=get_or_create,
                 metadata=self.metadata,
+                model_name=self.model_name,
             )
             collection.set_collection_name(collection_name=collection_name)
             collection.create_collection(collection_name=collection_name)
@@ -698,7 +705,10 @@ class PGVectorDB(VectorDB):
         else:
             if not (self.active_collection and self.active_collection.name == collection_name):
                 self.active_collection = Collection(
-                    client=self.client, collection_name=collection_name, embedding_function=self.embedding_function
+                    client=self.client,
+                    collection_name=collection_name,
+                    embedding_function=self.embedding_function,
+                    model_name=self.model_name,
                 )
         return self.active_collection
 
