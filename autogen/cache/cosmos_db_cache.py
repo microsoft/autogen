@@ -57,7 +57,7 @@ class CosmosDBCache(AbstractCache):
         Factory method to create a CosmosDBCache instance based on the provided configuration.
         This method decides whether to use an existing CosmosClient or create a new one.
         """
-        if 'client' in cosmosdb_config and isinstance(cosmosdb_config['client'], CosmosClient):
+        if "client" in cosmosdb_config and isinstance(cosmosdb_config["client"], CosmosClient):
             return cls.from_existing_client(seed, **cosmosdb_config)
         else:
             return cls.from_config(seed, cosmosdb_config)
@@ -118,7 +118,7 @@ class CosmosDBCache(AbstractCache):
 
         Perform any necessary cleanup, such as closing network connections.
         """
-        # CosmosClient doesn't require explicit close in the current SDK
+        # CosmosClient doesn"t require explicit close in the current SDK
         # If you created the client inside this class, you should close it if necessary
         pass
 
