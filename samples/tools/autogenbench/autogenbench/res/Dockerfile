@@ -28,10 +28,10 @@ RUN playwright install --with-deps chromium
 RUN playwright install --with-deps firefox
 
 # Chrome for Selenium (need to run dpkg twice to resolve dependencies)
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-RUN dpkg -i google-chrome-stable_current_amd64.deb || :
-RUN apt -f install -y
-RUN dpkg -i google-chrome-stable_current_amd64.deb
+# RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# RUN dpkg -i google-chrome-stable_current_amd64.deb || :
+# RUN apt -f install -y
+# RUN dpkg -i google-chrome-stable_current_amd64.deb
 
 # Fix an incompatibility with numpy
 RUN pip uninstall --yes numpy
