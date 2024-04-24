@@ -55,10 +55,10 @@ class TestCosmosDBCache(unittest.TestCase):
         key = "key"
         value = "value"
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
+        serialized_value = pickle.dumps(value)
+        item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
         cache.set(key, value)
-        self.container_client_mock.upsert_item.assert_called_with(
-            {"id": key, "partitionKey": str(self.seed), "data": self.serialized_value}
-        )
+        self.container_client_mock.upsert_item.assert_called_with(item)
 
     @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_context_manager(self):
