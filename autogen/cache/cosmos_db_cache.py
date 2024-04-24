@@ -108,9 +108,13 @@ class CosmosDBCache(AbstractCache):
         Notes:
             The value is serialized using pickle before being stored.
         """
-        serialized_value = pickle.dumps(value)
-        item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
-        self.container.upsert_item(item)
+        try:
+            serialized_value = pickle.dumps(value)
+            item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
+            self.container.upsert_item(item)
+        except Exception as e:
+        # Log or handle exception
+            raise e
 
     def close(self) -> None:
         """
