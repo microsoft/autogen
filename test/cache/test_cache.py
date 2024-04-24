@@ -47,12 +47,16 @@ class TestCache(unittest.TestCase):
         cache = Cache(self.cosmos_config)
         self.assertIsInstance(cache.cache, MagicMock)
         mock_cache_factory.assert_called_with(
-            "cosmos_test_seed",
-            None,  # Redis URL not required for CosmosDB
-            None,  # Cache path not required for CosmosDB
-            "AccountEndpoint=https://example.documents.azure.com:443/;",
-            "autogen_cache",
-            "TestContainer",
+            seed="cosmos_test_seed",
+            redis_url=None,
+            cache_path_root=None,
+            cosmosdb_config={
+                'connection_string': 'AccountEndpoint=https://example.documents.azure.com:443/;',
+                'database_id': 'autogen_cache',
+                'container_id': 'TestContainer',
+                'cache_seed': 'cosmos_test_seed',
+                'client': MagicMock(spec=CosmosClient)
+            }
         )
 
     def context_manager_common(self, config):
