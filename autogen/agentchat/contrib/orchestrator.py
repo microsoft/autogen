@@ -20,6 +20,7 @@ class Orchestrator(ConversableAgent):
         function_map: Optional[Dict[str, Callable]] = None,
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = False,
+        response_format_is_supported: bool = True,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
     ):
         super().__init__(
@@ -35,7 +36,7 @@ class Orchestrator(ConversableAgent):
         )
 
         self._agents = agents
-
+        self.response_format_is_supported = response_format_is_supported
         self.orchestrated_messages = []
 
         # NOTE: Async reply functions are not yet supported with this contrib agent
@@ -60,6 +61,45 @@ class Orchestrator(ConversableAgent):
                 self.send(message, a, request_reply=False, silent=False)
             else:
                 self.send(message, a, request_reply=False, silent=True)
+
+    def _create_with_retry(self, max_tries=10, *args, **kwargs):
+        """Create a JSON response, retrying up to `max_tries` times."""
+
+        assert self.client is not None
+
+        if not self.response_format_is_supported and "response_format" in kwargs:
+            del kwargs["response_format"]
+
+        # kwargs["max_tokens"] = 4096
+
+        messages = copy.deepcopy(kwargs.pop("messages", []))
+
+        messages.append(
+            {
+                "role": "user",
+                "content": """Do not use code blocks for JSON. No need to use indentation or new lines.""",
+            }
+        )
+
+        for _ in range(max_tries):
+            # print(json.dumps(messages, indent=2))
+            response = self.client.create(*args, messages=messages, **kwargs)
+            extracted_response = str(self.client.extract_text_or_completion_object(response)[0])
+            try:
+                json.loads(extracted_response)
+                return response
+            except json.decoder.JSONDecodeError as e:
+                self._print_thought(str(e))
+                messages.append({"role": "assistant", "content": extracted_response})
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": """Your last response wasn't a valid JSON. Please
+generate a valid json. json.loads() should be able to directly parse it. No need to use
+code blocks for the json that you generate.""",
+                    }
+                )
+        raise RuntimeError("The orchestrator failed to create a JSON response after multiple attempts.")
 
     def run_chat(
         self,
@@ -216,7 +256,7 @@ Please output an answer in pure JSON format according to the following schema. T
 
                     # This is a temporary message we will immediately pop
                     self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
-                    response = self.client.create(
+                    response = self._create_with_retry(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
@@ -278,7 +318,7 @@ Please output an answer in pure JSON format according to the following schema. T
 """.strip()
                     # This is a temporary message we will immediately pop
                     self.orchestrated_messages.append({"role": "user", "content": step_prompt, "name": sender.name})
-                    response = self.client.create(
+                    response = self._create_with_retry(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                         response_format={"type": "json_object"},
