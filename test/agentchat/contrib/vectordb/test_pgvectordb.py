@@ -2,6 +2,7 @@ import os
 import sys
 
 import pytest
+from conftest import reason
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -15,10 +16,12 @@ except ImportError:
 else:
     skip = False
 
+reason = "do not run on MacOS or windows OR dependency is not installed OR " + reason
+
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    reason=reason,
 )
 def test_pgvector():
     # test create collection
@@ -52,18 +55,14 @@ def test_pgvector():
     docs = [{"content": "doc1", "id": "1"}, {"content": "doc2", "id": "2"}, {"content": "doc3", "id": "3"}]
     db.insert_docs(docs, collection_name, upsert=False)
     res = db.get_collection(collection_name).get(ids=["1", "2"])
-    final_results = []
-    for result in res:
-        final_results.append(result.get("content"))
+    final_results = [result.get("content") for result in res]
     assert final_results == ["doc1", "doc2"]
 
     # test_update_docs
     docs = [{"content": "doc11", "id": "1"}, {"content": "doc2", "id": "2"}, {"content": "doc3", "id": "3"}]
     db.update_docs(docs, collection_name)
     res = db.get_collection(collection_name).get(["1", "2"])
-    final_results = []
-    for result in res:
-        final_results.append(result.get("content"))
+    final_results = [result.get("content") for result in res]
     assert final_results == ["doc11", "doc2"]
 
     # test_delete_docs
@@ -71,9 +70,7 @@ def test_pgvector():
     collection_name = "test_collection"
     db.delete_docs(ids, collection_name)
     res = db.get_collection(collection_name).get(ids)
-    final_results = []
-    for result in res:
-        final_results.append(result.get("content"))
+    final_results = [result.get("content") for result in res]
     assert final_results == []
 
     # test_retrieve_docs

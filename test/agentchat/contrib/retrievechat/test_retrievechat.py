@@ -8,7 +8,7 @@ import pytest
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
-from conftest import skip_openai  # noqa: E402
+from conftest import reason, skip_openai  # noqa: E402
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
@@ -29,10 +29,12 @@ except ImportError:
 else:
     skip = False
 
+reason = "do not run on MacOS or windows OR dependency is not installed OR " + reason
+
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip or skip_openai,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    reason=reason,
 )
 def test_retrievechat():
     conversations = {}
@@ -80,7 +82,7 @@ def test_retrievechat():
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    reason=reason,
 )
 def test_retrieve_config():
     # test warning message when no docs_path is provided
