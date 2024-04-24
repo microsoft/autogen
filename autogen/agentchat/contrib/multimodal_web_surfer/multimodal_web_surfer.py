@@ -122,7 +122,9 @@ class MultimodalWebSurferAgent(ConversableAgent):
             elif chromium_channel == "firefox":
                 browser = self._playwright.firefox.launch(**launch_args)
             else:
-                raise NotImplementedError(f"Invalid chromium channel {chromium_channel}. Only chromium and firefox are supported.")
+                raise NotImplementedError(
+                    f"Invalid chromium channel {chromium_channel}. Only chromium and firefox are supported."
+                )
             self._context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
             )
@@ -140,20 +142,49 @@ class MultimodalWebSurferAgent(ConversableAgent):
         self._page.wait_for_load_state()
         time.sleep(1)
 
-        def log_request(source:Agent, request:Any):
+        def log_request(source: Agent, request: Any):
             try:
                 # getting post_data_json sometimes throws parsing errors
-                log_event(source, "mws_request", method=request.method, url=request.url, request_headers=request.all_headers(), request_content=request.post_data_json)
+                log_event(
+                    source,
+                    "mws_request",
+                    method=request.method,
+                    url=request.url,
+                    request_headers=request.all_headers(),
+                    request_content=request.post_data_json,
+                )
             except Exception as e:
                 import traceback
+
                 exc_type = type(e).__name__
                 exc_message = str(e)
                 exc_traceback = traceback.format_exc().splitlines()
-                log_event(source, "exception_thrown_lambda", exc_type=exc_type, exc_message=exc_message, exc_traceback=exc_traceback)
-                log_event(source, "mws_request", method=request.method, url=request.url, request_headers=request.all_headers())
+                log_event(
+                    source,
+                    "exception_thrown_lambda",
+                    exc_type=exc_type,
+                    exc_message=exc_message,
+                    exc_traceback=exc_traceback,
+                )
+                log_event(
+                    source, "mws_request", method=request.method, url=request.url, request_headers=request.all_headers()
+                )
 
         self._page.on("request", lambda request: log_request(self, request) if logging_enabled() else None)
-        self._page.on("response", lambda response: log_event(self, "mws_response", status=response.status, url=response.url, response_headers=response.all_headers()) if logging_enabled() else None)
+        self._page.on(
+            "response",
+            lambda response: (
+                log_event(
+                    self,
+                    "mws_response",
+                    status=response.status,
+                    url=response.url,
+                    response_headers=response.all_headers(),
+                )
+                if logging_enabled()
+                else None
+            ),
+        )
 
         # Prepare the debug directory -- which stores the screenshots generated throughout the process
         if self.debug_dir:

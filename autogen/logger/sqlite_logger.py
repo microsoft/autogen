@@ -267,8 +267,8 @@ class SqliteLogger(BaseLogger):
             return
 
         json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
-        
-        if isinstance(source, Agent): 
+
+        if isinstance(source, Agent):
             query = """
             INSERT INTO events (source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
             """
