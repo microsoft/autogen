@@ -188,6 +188,9 @@ print("MAIN TASK COMPLETE !#!#")
 
 ########## EVALUATION ##########
 
+import nltk
+nltk.download('punkt')
+
 # playwright = web_surfer._playwright
 context = web_surfer._context
 page = web_surfer._page

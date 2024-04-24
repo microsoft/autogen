@@ -264,6 +264,7 @@ class SqliteLogger(BaseLogger):
         from autogen import Agent
         if self.con is None:
             return
+        json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
         if isinstance(source, Agent): 
             query = """
             INSERT INTO events (source_id, source_name, event_name, agent_module, agent_class_name, json_state, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -274,7 +275,7 @@ class SqliteLogger(BaseLogger):
                 name,
                 source.__module__,
                 source.__class__.__name__,
-                json.dumps(kwargs),
+                json_args,
                 get_current_ts(),
             )
             self._run_query(query=query, args=args)
@@ -286,7 +287,7 @@ class SqliteLogger(BaseLogger):
                 id(source),
                 source.name if hasattr(source, "name") else source,
                 name,
-                json.dumps(kwargs),
+                json_args,
                 get_current_ts(),
             )
             self._run_query(query=query, args=args_str_based)

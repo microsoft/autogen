@@ -21,10 +21,11 @@ RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nl
 RUN pip install python-docx pdfminer.six requests pillow easyocr python-pptx SpeechRecognition pandas openpyxl pydub mammoth puremagic youtube_transcript_api==0.6.0
 
 # Pre-load Selenium and Playwright
-RUN pip install selenium playwright
+RUN pip install selenium playwright ipython nest-asyncio
 
 # Chromium playwright
 RUN playwright install --with-deps chromium
+RUN playwright install --with-deps firefox
 
 # Chrome for Selenium (need to run dpkg twice to resolve dependencies)
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb

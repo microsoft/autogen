@@ -746,7 +746,7 @@ class ConversableAgent(LLMAgent):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
         if logging_enabled():
-            log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
+            log_event(self, "received_message", message=message, sender=sender.name, valid=valid, sender_class=type(sender).__name__)
 
         if not valid:
             raise ValueError(
