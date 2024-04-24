@@ -200,6 +200,21 @@ class GroupChat:
         if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
             raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
 
+        if self.max_retries_for_selecting_speaker is None or len(self.role_for_select_speaker_messages) == 0:
+            raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
+
+        # Validate max select speakers retries
+        if self.max_retries_for_selecting_speaker is None or not isinstance(
+            self.max_retries_for_selecting_speaker, int
+        ):
+            raise ValueError("max_retries_for_selecting_speaker cannot be None or non-int")
+        elif self.max_retries_for_selecting_speaker < 0:
+            raise ValueError("max_retries_for_selecting_speaker must be greater than or equal to zero")
+
+        # Validate select_speaker_auto_verbose
+        if self.select_speaker_auto_verbose is None or not isinstance(self.select_speaker_auto_verbose, bool):
+            raise ValueError("select_speaker_auto_verbose cannot be None or non-bool")
+
     @property
     def agent_names(self) -> List[str]:
         """Return the names of the agents in the group chat."""
