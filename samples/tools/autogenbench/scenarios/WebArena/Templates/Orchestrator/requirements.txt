@@ -1,6 +1,3 @@
-/home/gaganbansal/workspace/autogen[websurfer]
+/autogen[websurfer]
 beartype
 aiolimiter
-setuptools
-nltk
-playwright

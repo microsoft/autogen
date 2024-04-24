@@ -86,6 +86,7 @@ maestro = Orchestrator(
     "orchestrator",
     agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
+    response_format_is_supported=True,
 )
 
 # Login to the necessary websites
