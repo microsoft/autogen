@@ -36,8 +36,8 @@ def _get_max_tokens(model="gpt-4"):
     # get model's max tokens
     try:
         return get_max_token_limit(model)
-    except:
-        raise ValueError(f"Fail to infer the max tokens for {model}. Please specify the max tokens in the config.")
+    except KeyError:
+        raise KeyError(f"Fail to infer the max tokens for {model}. Please specify the max tokens in the config.")
 
 
 class AgentBuilder:
@@ -790,13 +790,20 @@ DO NOT SELECT THIS PLAYER WHEN NO CODE TO EXECUTE; IT WILL NOT ANSWER ANYTHING."
         Returns:
             model_name: the selected model name.
         """
-        model_profiles = [
-            f"No.{i + 1} MODEL's NAME: {model['model']}\n"
-            f"No.{i + 1} MODEL's DESCRIPTION: {model.get('profile', {}).get('desc', '')}\n"
-            f"No.{i + 1} MODEL's MAX TOKENS: {model.get('profile', {}).get('max_tokens', _get_max_tokens(model['model']))}\n"
-            f"No.{i + 1} MODEL NEEDS GPU: {model.get('profile', {}).get('use_gpu', False)}\n\n"
-            for i, model in enumerate(model_config_list)
-        ]
+        model_profiles = []
+        for i, model in enumerate(model_config_list):
+            model_name = model["model"]
+            model_profile = model.get("profile", {})
+            model_desc = model_profile.get("desc", "")
+            max_tokens = model_profile["max_tokens"] if "max_tokens" in model_profile else _get_max_tokens(model_name)
+            needs_gpu = model_profile.get("use_gpu", False)
+
+            profile_str = f"No.{i + 1} MODEL's NAME: {model_name}\n"
+            profile_str += f"No.{i + 1} MODEL's DESCRIPTION: {model_desc}\n"
+            profile_str += f"No.{i + 1} MODEL's MAX TOKENS: {max_tokens}\n"
+            profile_str += f"No.{i + 1} MODEL NEEDS GPU: {needs_gpu}\n\n"
+
+            model_profiles.append(profile_str)
 
         resp_agent_model = (
             search_manager.create(
