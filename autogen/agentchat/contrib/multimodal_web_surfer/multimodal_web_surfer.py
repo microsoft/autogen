@@ -51,7 +51,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
 
     DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.)"
 
-    DEFAULT_START_PAGE = "https://www.berkshirehathaway.com/"
+    DEFAULT_START_PAGE = "https://www.bing.com/"
 
     def __init__(
         self,
