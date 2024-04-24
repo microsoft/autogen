@@ -1,9 +1,8 @@
 import logging
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
 from .abstract_cache_base import AbstractCache
 from .disk_cache import DiskCache
-
 
 
 class CacheFactory:
@@ -68,6 +67,7 @@ class CacheFactory:
         if cosmosdb_config:
             try:
                 from .cosmos_db_cache import CosmosDBCache
+
                 return CosmosDBCache.create_cache(seed, cosmosdb_config)
 
             except ImportError:
