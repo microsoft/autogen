@@ -279,7 +279,7 @@ class Collection:
             for retrieved_document in retrieval:
                 retrieved_documents.append(
                     Document(
-                        id=retrieved_document[0],
+                        id=retrieved_document[0].strip(),
                         metadata=retrieved_document[1],
                         content=retrieved_document[2],
                         embedding=retrieved_document[3],
@@ -373,6 +373,7 @@ class Collection:
         n_results: int = 10,
         distance_type: str = "euclidean",
         distance_threshold: float = -1,
+        include_embedding: bool = False,
     ) -> QueryResults:
         """
         Query documents in the collection.
@@ -383,6 +384,7 @@ class Collection:
             n_results (int): The maximum number of results to return.
             distance_type (Optional[str]): Distance search type - euclidean or cosine
             distance_threshold (Optional[float]): Distance threshold to limit searches
+            include_embedding (Optional[bool]): Include embedding values in QueryResults
         Returns:
             QueryResults: The query results.
         """
@@ -391,8 +393,10 @@ class Collection:
 
         if distance_threshold == -1:
             distance_threshold = ""
+            clause = "ORDER BY"
         elif distance_threshold > 0:
             distance_threshold = f"< {distance_threshold}"
+            clause = "WHERE"
 
         cursor = self.client.cursor()
         results = []
@@ -408,13 +412,15 @@ class Collection:
                 index_function = "<->"
             query = (
                 f"SELECT id, documents, embedding, metadatas "
-                f"FROM {self.name}\n"
-                f"ORDER BY embedding {index_function} '{str(vector)}' {distance_threshold}\n"
+                f"FROM {self.name} "
+                f"{clause} embedding {index_function} '{str(vector)}' {distance_threshold} "
                 f"LIMIT {n_results}"
             )
+            print(f"\n\nDISTNACE THRESHOLD: {distance_threshold} QUERY: {query}")
             cursor.execute(query)
+            result = []
             for row in cursor.fetchall():
-                fetched_document = Document(id=row[0], content=row[1], embedding=row[2], metadata=row[3])
+                fetched_document = Document(id=row[0].strip(), content=row[1], embedding=row[2], metadata=row[3])
                 fetched_document_array = self.convert_string_to_array(array_string=fetched_document.get("embedding"))
                 if distance_type.lower() == "cosine":
                     distance = self.cosine_distance(fetched_document_array, vector)
@@ -424,9 +430,11 @@ class Collection:
                     distance = self.inner_product_distance(fetched_document_array, vector)
                 else:
                     distance = self.euclidean_distance(fetched_document_array, vector)
-                results.append((fetched_document, distance))
+                if not include_embedding:
+                    fetched_document = Document(id=row[0].strip(), content=row[1], metadata=row[3])
+                result.append((fetched_document, distance))
+            results.append(result)
         cursor.close()
-        results = [results]
         logger.debug(f"Query Results: {results}")
         return results
 

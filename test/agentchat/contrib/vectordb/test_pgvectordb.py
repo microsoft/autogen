@@ -80,21 +80,15 @@ def test_pgvector():
     queries = ["doc2", "doc3"]
     collection_name = "test_collection"
     res = db.retrieve_docs(queries, collection_name)
-    final_results = []
-    for result, dtype in res[0]:
-        final_results.append(result.get("id").strip())
-    assert final_results == ["2", "3", "3", "2"]
+    assert [[r[0]["id"] for r in rr] for rr in res] == [["2", "3"], ["3", "2"]]
     res = db.retrieve_docs(queries, collection_name, distance_threshold=0.1)
-    final_results = []
-    for result, dtype in res[0]:
-        final_results.append(result.get("id").strip())
-    assert final_results == ["3", "2", "2", "3"]
+    assert [[r[0]["id"] for r in rr] for rr in res] == [["2"], ["3"]]
 
     # test_get_docs_by_ids
     res = db.get_docs_by_ids(["1", "2"], collection_name)
-    assert [r["id"].strip() for r in res] == ["2"]  # "1" has been deleted
+    assert [r["id"] for r in res] == ["2"]  # "1" has been deleted
     res = db.get_docs_by_ids(ids=[], collection_name=collection_name)
-    assert [r["id"].strip() for r in res] == ["2", "3"]  # All Docs returned
+    assert [r["id"] for r in res] == ["2", "3"]  # All Docs returned
 
 
 if __name__ == "__main__":
