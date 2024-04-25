@@ -85,7 +85,7 @@ class Cache(AbstractCache):
             "container_id": container_id,
             "client": client,
         }
-        return Cache({"cache_seed": cache_seed, "cosmos_db_config": cosmos_db_config})
+        return Cache({"cache_seed": str(cache_seed), "cosmos_db_config": cosmos_db_config})
 
     def __init__(self, config: Dict[str, Any]):
         """
