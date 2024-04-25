@@ -1282,16 +1282,10 @@ export const WorkflowAgentSelector = ({
 
   return (
     <div>
-      {/* <div className="flex flex-wrap">
-        {agentButtons}
-        <AddAgentDropDown title="Add Sender" onClick={senderOnClick} />
-        <AddAgentDropDown title="Add Receiver" onClick={receiverOnclick} />
-      </div> */}
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <h3 className="text-sm mb-2">
-            Sender{" "}
+            Initiator{" "}
             <Tooltip title={"Agent that initiates the conversation"}>
               <InformationCircleIcon className="h-4 w-4 inline-block" />
             </Tooltip>

@@ -245,6 +245,14 @@ const ModelsView = ({}: any) => {
   }) => {
     const [localModel, setLocalModel] = React.useState<IModelConfig>(model);
 
+    const closeModal = () => {
+      setModel(null);
+      setShowModelModal(false);
+      if (handler) {
+        handler(model);
+      }
+    };
+
     return (
       <Modal
         title={
@@ -257,22 +265,18 @@ const ModelsView = ({}: any) => {
         open={showModelModal}
         footer={[]}
         onOk={() => {
-          setModel(null);
-          setShowModelModal(false);
-          if (handler) {
-            handler(model);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setModel(null);
-          setShowModelModal(false);
-          if (handler) {
-            handler(model);
-          }
+          closeModal();
         }}
       >
         {model && (
-          <ModelConfigView model={localModel} setModel={setLocalModel} />
+          <ModelConfigView
+            model={localModel}
+            setModel={setLocalModel}
+            close={closeModal}
+          />
         )}
       </Modal>
     );

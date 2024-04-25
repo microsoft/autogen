@@ -18,7 +18,7 @@ import {
   truncateText,
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
-import { AgentFlowSpecView } from "./utils/agentconfig";
+import { AgentViewer } from "./utils/agentconfig";
 
 const AgentsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -215,31 +215,31 @@ const AgentsView = ({}: any) => {
   }) => {
     const [localAgent, setLocalAgent] = React.useState<IAgent | null>(agent);
 
+    const closeModal = () => {
+      setShowAgentModal(false);
+      if (handler) {
+        handler(localAgent);
+      }
+    };
+
     return (
       <Modal
         title={<>Agent Configuration</>}
         width={800}
         open={showAgentModal}
         onOk={() => {
-          setAgent(null);
-          setShowAgentModal(false);
-          if (handler) {
-            handler(localAgent);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setAgent(null);
-          setShowAgentModal(false);
-          if (handler) {
-            handler(localAgent);
-          }
+          closeModal();
         }}
         footer={[]}
       >
         {agent && (
-          <AgentFlowSpecView
+          <AgentViewer
             agent={localAgent || agent}
             setAgent={setLocalAgent}
+            close={closeModal}
           />
         )}
         {/* {JSON.stringify(localAgent)} */}

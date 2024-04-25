@@ -11,9 +11,11 @@ import ChatBox from "../../playground/chatbox";
 export const WorkflowViewConfig = ({
   workflow,
   setWorkflow,
+  close,
 }: {
   workflow: IWorkflow;
   setWorkflow: (newFlowConfig: IWorkflow) => void;
+  close: () => void;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<IStatus | null>(null);
@@ -73,6 +75,21 @@ export const WorkflowViewConfig = ({
   };
 
   const hasChanged = !controlChanged && workflow.id !== undefined;
+  const [drawerOpen, setDrawerOpen] = React.useState<boolean>(false);
+
+  const openDrawer = () => {
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+  };
+
+  const dummySession: IChatSession = {
+    user_id: user?.email || "test_session_user_id",
+    workflow_id: workflow?.id,
+    name: "test_session",
+  };
 
   return (
     <>
@@ -129,9 +146,9 @@ export const WorkflowViewConfig = ({
         />
       </div>
 
-      {!hasChanged && (
-        <div className="w-full mt-4 text-right">
-          {" "}
+      <div className="w-full mt-4 text-right">
+        {" "}
+        {!hasChanged && (
           <Button
             type="primary"
             onClick={() => {
@@ -141,38 +158,58 @@ export const WorkflowViewConfig = ({
           >
             {workflow.id ? "Update Workflow" : "Create Workflow"}
           </Button>
+        )}
+        {workflow?.id && (
+          <Button
+            className="ml-2"
+            type="primary"
+            onClick={() => {
+              setDrawerOpen(true);
+            }}
+          >
+            Test Workflow
+          </Button>
+        )}
+        <Button
+          className="ml-2"
+          key="close"
+          type="default"
+          onClick={() => {
+            close();
+          }}
+        >
+          Close
+        </Button>
+      </div>
+
+      <Drawer
+        title={<div>{workflow?.name || "Test Workflow"}</div>}
+        size="large"
+        onClose={closeDrawer}
+        open={drawerOpen}
+      >
+        <div className="h-full ">
+          {drawerOpen && (
+            <ChatBox
+              initMessages={[]}
+              session={dummySession}
+              heightOffset={100}
+            />
+          )}
         </div>
-      )}
+      </Drawer>
     </>
-  );
-};
-
-export const WorkflowMainView = ({
-  workflow,
-  setWorkflow,
-}: {
-  workflow: IWorkflow;
-  setWorkflow: (workflow: IWorkflow) => void;
-}) => {
-  return (
-    <div>
-      {!workflow?.type && (
-        <WorkflowTypeSelector workflow={workflow} setWorkflow={setWorkflow} />
-      )}
-
-      {workflow?.type && workflow && (
-        <WorkflowViewConfig workflow={workflow} setWorkflow={setWorkflow} />
-      )}
-    </div>
   );
 };
 
 export const WorflowViewer = ({
   workflow,
   setWorkflow,
+  close,
 }: {
   workflow: IWorkflow;
   setWorkflow: (workflow: IWorkflow) => void;
+  close: () => void;
 }) => {
   let items = [
     {
@@ -185,7 +222,22 @@ export const WorflowViewer = ({
       ),
       key: "1",
       children: (
-        <WorkflowMainView workflow={workflow} setWorkflow={setWorkflow} />
+        <div>
+          {!workflow?.type && (
+            <WorkflowTypeSelector
+              workflow={workflow}
+              setWorkflow={setWorkflow}
+            />
+          )}
+
+          {workflow?.type && workflow && (
+            <WorkflowViewConfig
+              workflow={workflow}
+              setWorkflow={setWorkflow}
+              close={close}
+            />
+          )}
+        </div>
       ),
     },
   ];
@@ -209,22 +261,8 @@ export const WorflowViewer = ({
     }
   }
 
-  const [drawerOpen, setDrawerOpen] = React.useState<boolean>(false);
-
-  const openDrawer = () => {
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-  };
-
   const { user } = React.useContext(appContext);
-  const dummySession: IChatSession = {
-    user_id: user?.email || "test_session_user_id",
-    workflow_id: workflow?.id,
-    name: "test_session",
-  };
+
   return (
     <div className="text-primary">
       <Tabs
@@ -232,35 +270,6 @@ export const WorflowViewer = ({
         defaultActiveKey="1"
         items={items}
       />
-      {workflow?.id && (
-        <div className="text-right mt-2">
-          <Button
-            type="primary"
-            onClick={() => {
-              setDrawerOpen(true);
-            }}
-          >
-            Test Workflow
-          </Button>
-        </div>
-      )}
-
-      <Drawer
-        title=<div>Test Workflow</div>
-        size="large"
-        onClose={closeDrawer}
-        open={drawerOpen}
-      >
-        <div className="h-full ">
-          {drawerOpen && (
-            <ChatBox
-              initMessages={[]}
-              session={dummySession}
-              heightOffset={100}
-            />
-          )}
-        </div>
-      </Drawer>
     </div>
   );
 };

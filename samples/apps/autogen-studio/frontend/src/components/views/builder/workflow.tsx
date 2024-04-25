@@ -219,6 +219,13 @@ const WorkflowView = ({}: any) => {
       workflow
     );
 
+    const closeModal = () => {
+      setShowModal(false);
+      if (handler) {
+        handler(localWorkflow as IWorkflow);
+      }
+    };
+
     return (
       <Modal
         title={
@@ -232,16 +239,10 @@ const WorkflowView = ({}: any) => {
         width={800}
         open={showModal}
         onOk={() => {
-          setShowModal(false);
-          if (handler) {
-            handler(localWorkflow as IWorkflow);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setShowModal(false);
-          if (handler) {
-            handler(localWorkflow as IWorkflow);
-          }
+          closeModal();
         }}
         footer={[]}
       >
@@ -250,6 +251,7 @@ const WorkflowView = ({}: any) => {
             <WorflowViewer
               workflow={localWorkflow}
               setWorkflow={setLocalWorkflow}
+              close={closeModal}
             />
           )}
         </>

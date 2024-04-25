@@ -15,7 +15,13 @@ import {
   message,
 } from "antd";
 import * as React from "react";
-import { IChatMessage, IChatSession, IMessage, IStatus } from "../../types";
+import {
+  IChatMessage,
+  IChatSession,
+  IMessage,
+  IStatus,
+  IWorkflow,
+} from "../../types";
 import { examplePrompts, fetchJSON, getServerUrl, guid } from "../../utils";
 import { appContext } from "../../../hooks/provider";
 import MetaDataView from "./metadata";
@@ -49,6 +55,7 @@ const ChatBox = ({
   const wsMessages = React.useRef<IChatMessage[]>([]);
   const [wsConnectionStatus, setWsConnectionStatus] =
     React.useState<string>("disconnected");
+  const [workflow, setWorkflow] = React.useState<IWorkflow | null>(null);
 
   const [socketMessages, setSocketMessages] = React.useState<any[]>([]);
 
@@ -305,10 +312,7 @@ const ChatBox = ({
         if (waitingToReconnect) {
           return;
         }
-
-        // Parse event code and log
         setWsConnectionStatus("disconnected");
-
         setWaitingToReconnect(true);
         setWsConnectionStatus("reconnecting");
         setTimeout(() => {
@@ -400,6 +404,30 @@ const ChatBox = ({
       ToastMessage.error(data.message);
       setLoading(false);
     }
+  };
+
+  const fetchWorkFlow = (workflowId: number) => {
+    const fetchUrl = `${serverUrl}/workflows/${workflowId}?user_id=${user?.email}`;
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        if (data.data && data.data.length > 0) {
+          setWorkflow(data.data[0]);
+        }
+      } else {
+        message.error(data.message);
+      }
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+    };
+    fetchJSON(fetchUrl, payLoad, onSuccess, onError);
   };
 
   const getCompletion = (query: string) => {
@@ -510,11 +538,19 @@ const ChatBox = ({
   };
 
   React.useEffect(() => {
-    console.log("page loaded");
-    const mainDivHeight =
-      mainDivRef.current?.getBoundingClientRect().height || 0;
-    console.log("mainDivHeight", mainDivHeight);
-  }, []);
+    if (session && session.workflow_id) {
+      fetchWorkFlow(session.workflow_id);
+    }
+  }, [session]);
+
+  const WorkflowView = ({ workflow }: { workflow: IWorkflow }) => {
+    return (
+      <div className="text-xs cursor-pointer  inline-block">
+        {" "}
+        {workflow.name}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -524,10 +560,10 @@ const ChatBox = ({
     >
       <div
         style={{ zIndex: 100 }}
-        className=" absolute right-0  text-secondary -top-8 rounded p-2"
+        className=" absolute right-3 bg-primary   rounded  text-secondary -top-6  p-2"
       >
         {" "}
-        <div className="text-xs"> {session?.name}</div>
+        {workflow && <div className="text-xs"> {workflow.name}</div>}
       </div>
 
       <div

@@ -31,9 +31,11 @@ const { useToken } = theme;
 export const AgentConfigView = ({
   agent,
   setAgent,
+  close,
 }: {
   agent: IAgent;
   setAgent: (agent: IAgent) => void;
+  close: () => void;
 }) => {
   const nameValidation = checkAndSanitizeInput(agent?.config?.name);
   const [error, setError] = React.useState<any>(null);
@@ -399,9 +401,10 @@ export const AgentConfigView = ({
           )}
         </div>
       </Form>
-      {!hasChanged && (
-        <div className="w-full mt-4 text-right">
-          {" "}
+
+      <div className="w-full mt-4 text-right">
+        {" "}
+        {!hasChanged && (
           <Button
             type="primary"
             onClick={() => {
@@ -412,36 +415,30 @@ export const AgentConfigView = ({
           >
             {agent.id ? "Update Agent" : "Create Agent"}
           </Button>
-        </div>
-      )}
+        )}
+        <Button
+          className="ml-2"
+          key="close"
+          type="default"
+          onClick={() => {
+            close();
+          }}
+        >
+          Close
+        </Button>
+      </div>
     </div>
   );
 };
 
-export const AgentMainView = ({
+export const AgentViewer = ({
   agent,
   setAgent,
+  close,
 }: {
   agent: IAgent | null;
   setAgent: (newAgent: IAgent) => void;
-}) => {
-  return (
-    <div>
-      {!agent?.type && <AgentTypeSelector agent={agent} setAgent={setAgent} />}
-
-      {agent?.type && agent && (
-        <AgentConfigView agent={agent} setAgent={setAgent} />
-      )}
-    </div>
-  );
-};
-
-export const AgentFlowSpecView = ({
-  agent,
-  setAgent,
-}: {
-  agent: IAgent | null;
-  setAgent: (newAgent: IAgent) => void;
+  close: () => void;
 }) => {
   let items = [
     {
@@ -453,7 +450,17 @@ export const AgentFlowSpecView = ({
         </div>
       ),
       key: "1",
-      children: <AgentMainView agent={agent} setAgent={setAgent} />,
+      children: (
+        <div>
+          {!agent?.type && (
+            <AgentTypeSelector agent={agent} setAgent={setAgent} />
+          )}
+
+          {agent?.type && agent && (
+            <AgentConfigView agent={agent} setAgent={setAgent} close={close} />
+          )}
+        </div>
+      ),
     },
   ];
   if (agent) {

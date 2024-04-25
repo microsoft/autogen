@@ -82,9 +82,11 @@ const ModelTypeSelector = ({
 const ModelConfigMainView = ({
   model,
   setModel,
+  close,
 }: {
   model: IModelConfig;
   setModel: (newModel: IModelConfig) => void;
+  close: () => void;
 }) => {
   const [loading, setLoading] = React.useState(false);
   const [modelStatus, setModelStatus] = React.useState<IStatus | null>(null);
@@ -310,6 +312,17 @@ const ModelConfigMainView = ({
             {model?.id ? "Update Model" : "Save Model"}
           </Button>
         )}
+
+        <Button
+          className="ml-2"
+          key="close"
+          type="default"
+          onClick={() => {
+            close();
+          }}
+        >
+          Close
+        </Button>
       </div>
     </div>
   );
@@ -318,9 +331,11 @@ const ModelConfigMainView = ({
 export const ModelConfigView = ({
   model,
   setModel,
+  close,
 }: {
   model: IModelConfig;
   setModel: (newModel: IModelConfig) => void;
+  close: () => void;
 }) => {
   return (
     <div className="text-primary">
@@ -330,7 +345,11 @@ export const ModelConfigView = ({
         )}
 
         {model?.api_type && model && (
-          <ModelConfigMainView model={model} setModel={setModel} />
+          <ModelConfigMainView
+            model={model}
+            setModel={setModel}
+            close={close}
+          />
         )}
       </div>
     </div>
