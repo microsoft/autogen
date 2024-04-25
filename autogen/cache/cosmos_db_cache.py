@@ -89,14 +89,12 @@ class CosmosDBCache(AbstractCache):
         """
         try:
             response = self.container.read_item(item=key, partition_key=str(self.seed))
-            print("Response:", response)  # For checking what the mock returns in test run
             return pickle.loads(response["data"])
         except CosmosResourceNotFoundError:
             return default
         except Exception as e:
             # Log the exception or rethrow after logging if needed
             # Consider logging or handling the error appropriately here
-            print("Error:", e)  # Print out the error which might give more insight
             raise e
 
     def set(self, key: str, value: Any) -> None:
