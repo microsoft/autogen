@@ -32,10 +32,10 @@ class TestCosmosDBCache(unittest.TestCase):
         cache = CosmosDBCache(
             self.seed,
             {
-            "connection_string": self.connection_string,
-            "database_id": self.database_id,
-            "container_id": self.container_id,
-            "client": self.client,
+                "connection_string": self.connection_string,
+                "database_id": self.database_id,
+                "container_id": self.container_id,
+                "client": self.client,
             },
         )
         cache.container.read_item.return_value = {"data": serialized_value}
@@ -52,10 +52,10 @@ class TestCosmosDBCache(unittest.TestCase):
         cache = CosmosDBCache(
             self.seed,
             {
-            "connection_string": self.connection_string,
-            "database_id": self.database_id,
-            "container_id": self.container_id,
-            "client": self.client,
+                "connection_string": self.connection_string,
+                "database_id": self.database_id,
+                "container_id": self.container_id,
+                "client": self.client,
             },
         )
         cache.set(key, value)
