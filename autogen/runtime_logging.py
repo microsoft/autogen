@@ -12,7 +12,7 @@ from autogen.logger.base_logger import LLMConfig
 from autogen.logger.logger_factory import LoggerFactory
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,14 @@ def log_new_agent(agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         return
 
     autogen_logger.log_new_agent(agent, init_args)
+
+
+def log_event(source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
+    if autogen_logger is None:
+        logger.error("[runtime logging] log_event: autogen logger is None")
+        return
+
+    autogen_logger.log_event(source, name, **kwargs)
 
 
 def log_new_wrapper(wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
