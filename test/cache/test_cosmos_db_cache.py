@@ -4,67 +4,69 @@ import pickle
 import unittest
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-try:
-    from autogen.cache.cosmos_db_cache import CosmosDBCache
-except ImportError:
-    class CosmosDBCache:  # Dummy class if import fails
-        def __init__(self, *args, **kwargs):
-            raise ImportError("Cosmos DB SDK is not installed")
+from autogen.cache.cosmos_db_cache import CosmosDBCache
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
         self.seed = "test_seed"
+        self.connection_string = "AccountEndpoint=https://example.documents.azure.com:443/;"
+        self.database_id = "autogen_cache"
+        self.container_id = "TestContainer"
         self.client = MagicMock()
-        self.database_id = "test_database"
-        self.container_id = "test_container"
-        self.container_client_mock = MagicMock()
-        self.value = "value"
-        self.serialized_value = pickle.dumps(self.value)
-        self.container_client_mock.read_item.return_value = {"data": self.serialized_value}
-        self.client.get_database_client().get_container_client.return_value = self.container_client_mock
 
-        # Create a configuration dictionary for CosmosDBCache
-        self.cosmosdb_config = {
-            "client": self.client,
-            "database_id": self.database_id,
-            "container_id": self.container_id,
-        }
-
-    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
-    def test_init(self):
-        cache = CosmosDBCache(self.seed, self.cosmosdb_config)
+    @patch("autogen.cache.cosmos_db_cache.CosmosClient.from_connection_string", return_value=MagicMock())
+    def test_init(self, mock_from_connection_string):
+        cache = CosmosDBCache.from_connection_string(
+            self.seed, self.connection_string, self.database_id, self.container_id
+        )
         self.assertEqual(cache.seed, self.seed)
-        self.assertEqual(cache.client, self.client)
+        mock_from_connection_string.assert_called_with(self.connection_string)
 
-    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_get(self):
         key = "key"
-        cache = CosmosDBCache(self.seed, self.cosmosdb_config)
-        # Verify what the mock is set to return just before calling the method
-        print(self.container_client_mock.read_item.return_value)
-        result = cache.get(key)
-        self.assertEqual(result, self.value)
-        self.container_client_mock.read_item.assert_called_with(item=key, partition_key=str(self.seed))
+        value = "value"
+        serialized_value = pickle.dumps(value)
+        cache = CosmosDBCache(self.seed, {
+            "connection_string": self.connection_string,
+            "database_id": self.database_id,
+            "container_id": self.container_id,
+            "client": self.client
+        })
+        cache.container.read_item.return_value = {"data": serialized_value}
+        self.assertEqual(cache.get(key), value)
+        cache.container.read_item.assert_called_with(item=key, partition_key=str(self.seed))
 
-        self.container_client_mock.read_item.side_effect = Exception("not found")
+        cache.container.read_item.side_effect = Exception("Item not found")
         self.assertIsNone(cache.get(key, default=None))
 
-    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_set(self):
         key = "key"
         value = "value"
-        cache = CosmosDBCache(self.seed, self.cosmosdb_config)
+        serialized_value = pickle.dumps(value)
+        cache = CosmosDBCache(self.seed, {
+            "connection_string": self.connection_string,
+            "database_id": self.database_id,
+            "container_id": self.container_id,
+            "client": self.client
+        })
         cache.set(key, value)
-        expected_item = {"id": key, "partitionKey": str(self.seed), "data": pickle.dumps(value)}
-        self.container_client_mock.upsert_item.assert_called_with(expected_item)
+        expected_item = {
+            "id": key,
+            "partitionKey": str(self.seed),
+            "data": serialized_value
+        }
+        cache.container.upsert_item.assert_called_with(expected_item)
 
-    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_context_manager(self):
-        with CosmosDBCache(self.seed, self.cosmosdb_config) as cache:
-            self.assertIsInstance(cache, CosmosDBCache)
-
+        with patch('autogen.cache.cosmos_db_cache.CosmosDBCache.close', MagicMock()) as mock_close:
+            with CosmosDBCache(self.seed, {
+                "connection_string": self.connection_string,
+                "database_id": self.database_id,
+                "container_id": self.container_id,
+                "client": self.client
+            }) as cache:
+                self.assertIsInstance(cache, CosmosDBCache)
+            mock_close.assert_called()
 
 if __name__ == "__main__":
     unittest.main()
