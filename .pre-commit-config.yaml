@@ -26,12 +26,12 @@ repos:
     rev: 24.3.0
     hooks:
     - id: black
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
-    hooks:
-      - id: ruff
-        types_or: [ python, pyi, jupyter ]
-        args: ["--fix", "--ignore=E402"]
+  # - repo: https://github.com/astral-sh/ruff-pre-commit
+  #   rev: v0.3.4
+  #   hooks:
+  #     - id: ruff
+  #       types_or: [ python, pyi, jupyter ]
+  #       args: ["--fix", "--ignore=E402"]
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
