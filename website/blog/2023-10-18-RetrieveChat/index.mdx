@@ -311,7 +311,7 @@ boss_aid = RetrieveUserProxyAgent(
     code_execution_config=False,  # we don't want to execute code in this case.
 )
 
-coder = AssistantAgent(
+coder = autogen.AssistantAgent(
     name="Senior_Python_Engineer",
     is_termination_msg=termination_msg,
     system_message="You are a senior python engineer. Reply `TERMINATE` in the end when everything is done.",
