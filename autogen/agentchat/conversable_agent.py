@@ -10,6 +10,7 @@ from collections import defaultdict
 from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
+import agentops
 from openai import BadRequestError
 
 from autogen.exception_utils import InvalidCarryOverType, SenderRequired
@@ -36,7 +37,7 @@ from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
-from agentops import track_agent
+from agentops import track_agent, ToolEvent, ErrorEvent, record
 
 __all__ = ("ConversableAgent",)
 
@@ -2478,7 +2479,7 @@ class ConversableAgent(LLMAgent):
         """Return the function map."""
         return self._function_map
 
-    def _wrap_function(self, func: F) -> F:
+    def _wrap_function(self, func: F, name: str) -> F:
         """Wrap the function to dump the return value to json.
 
         Handles both sync and async functions.
@@ -2493,15 +2494,30 @@ class ConversableAgent(LLMAgent):
         @load_basemodels_if_needed
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
-            retval = func(*args, **kwargs)
-
-            return serialize_to_str(retval)
+            tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name)
+            try:
+                retval = func(*args, **kwargs)
+                retval_str = serialize_to_str(retval)
+                tool_event.returns = retval_str
+                record(tool_event)
+                return retval_str
+            except Exception as e:
+                record(ErrorEvent(trigger_event=tool_event, exception=e))
+                raise e
 
         @load_basemodels_if_needed
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
-            retval = await func(*args, **kwargs)
-            return serialize_to_str(retval)
+            tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name)
+            try:
+                retval = await func(*args, **kwargs)
+                retval_str = serialize_to_str(retval)
+                tool_event.returns = retval_str
+                record(tool_event)
+                return retval_str
+            except Exception as e:
+                record(ErrorEvent(trigger_event=tool_event, exception=e))
+                raise e
 
         wrapped_func = _a_wrapped_func if inspect.iscoroutinefunction(func) else _wrapped_func
 
@@ -2646,7 +2662,7 @@ class ConversableAgent(LLMAgent):
             elif not hasattr(func, "_name"):
                 func._name = func.__name__
 
-            self.register_function({func._name: self._wrap_function(func)})
+            self.register_function({func._name: self._wrap_function(func, func._name)})
 
             return func
 

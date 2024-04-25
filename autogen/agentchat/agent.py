@@ -1,5 +1,5 @@
 from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
-
+from agentops import record_function
 
 @runtime_checkable
 class Agent(Protocol):
@@ -20,6 +20,7 @@ class Agent(Protocol):
         a group chat setting."""
         ...
 
+    @record_function("send_to_agent")
     def send(
         self,
         message: Union[Dict[str, Any], str],
@@ -52,6 +53,7 @@ class Agent(Protocol):
         """
         ...
 
+    @record_function("receive_from_agent")
     def receive(
         self,
         message: Union[Dict[str, Any], str],
