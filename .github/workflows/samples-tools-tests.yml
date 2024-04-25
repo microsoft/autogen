@@ -36,7 +36,8 @@ jobs:
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
+          pip install pytest-cov>=5
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |

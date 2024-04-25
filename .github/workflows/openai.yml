@@ -48,8 +48,8 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
           python -c "import autogen"
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         if: matrix.python-version == '3.9'
         run: |

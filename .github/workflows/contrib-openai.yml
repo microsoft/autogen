@@ -39,8 +39,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Install PostgreSQL
         run: |
           sudo apt install postgresql -y
@@ -84,8 +85,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -123,8 +125,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -162,8 +165,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test,teachable]
+          pip install -e .[teachable]
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -198,8 +202,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Install packages for test when needed
         run: |
           pip install -e .[autobuild]
@@ -237,8 +242,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test, websurfer]
+          pip install -e .[websurfer]
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -274,8 +280,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -311,8 +318,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test,lmm]
+          pip install -e .[lmm]
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -345,8 +353,9 @@ jobs:
         run: |
           docker --version
           python -m pip install --upgrade pip wheel
-          pip install -e .[test]
+          pip install -e .
           python -c "import autogen"
+          pip install pytest-cov>=5
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
