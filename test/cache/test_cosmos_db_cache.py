@@ -34,13 +34,13 @@ class TestCosmosDBCache(unittest.TestCase):
             "database_id": self.database_id,
             "container_id": self.container_id,
             "client": self.client,
-            }
+            }https://chat.openai.com/c/cbbb287d-4de2-49d5-bf77-1508dfd6133b
         )
         cache.container.read_item.return_value = {"data": serialized_value}
         self.assertEqual(cache.get(key), value)
         cache.container.read_item.assert_called_with(item=key, partition_key=str(self.seed))
 
-        cache.container.read_item.side_effect = CosmosResourceNotFoundError("Item not found")
+        cache.container.read_item.side_effect = CosmosResourceNotFoundError(status_code=404, message="Item not found")
         self.assertIsNone(cache.get(key, default=None))
 
     def test_set(self):
