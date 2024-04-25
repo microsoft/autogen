@@ -9,7 +9,7 @@ from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 ConfigItem = Dict[str, Union[str, List[str]]]
 LLMConfig = Dict[str, Union[None, float, int, ConfigItem, List[ConfigItem]]]
@@ -65,6 +65,18 @@ class BaseLogger(ABC):
         Args:
             agent (ConversableAgent):   The agent to log.
             init_args (dict):           The arguments passed to the construct the conversable agent
+        """
+        ...
+
+    @abstractmethod
+    def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
+        """
+        Log an event for an agent.
+
+        Args:
+            source (str or Agent):      The source/creator of the event as a string name or an Agent instance
+            name (str):                 The name of the event
+            kwargs (dict):              The event information to log
         """
         ...
 
