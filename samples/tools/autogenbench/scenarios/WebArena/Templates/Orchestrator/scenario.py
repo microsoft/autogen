@@ -4,6 +4,7 @@ import testbed_utils
 import autogen
 import evaluation_harness
 import re
+import copy
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.runtime_logging import logging_enabled, log_event
@@ -200,23 +201,54 @@ except Exception as e:
 
     raise e
 
+
 # Extract a final answer
 #########################
-if logging_enabled():
-    log_event(os.path.basename(__file__), name="extract_final_answer")
-maestro.send(
-    f"""Read the above conversation and output a FINAL ANSWER to the original request. The original request is repeated here for convenience:
+def response_preparer(inner_messages):
+    client = autogen.OpenAIWrapper(**llm_config)
+    messages = [
+        {
+            "role": "user",
+            "content": f"""Earlier you were asked the following:
+
+{TASK['intent']}
+
+Your team then worked diligently to address that request. Here is a transcript of that conversation:""",
+        }
+    ]
+
+    # copy them to this context
+    for message in inner_messages:
+        if not message.get("content"):
+            continue
+        message = copy.deepcopy(message)
+        message["role"] = "user"
+        messages.append(message)
+
+    # ask for the final answer
+    messages.append(
+        {
+            "role": "user",
+            "content": f"""Read the above conversation and output a FINAL ANSWER to the original request. The original request is repeated here for convenience:
 
 {TASK['intent']}
 
 To output the final answer, use the following template: FINAL ANSWER: [YOUR FINAL ANSWER]
-Your FINAL ANSWER should be as few words as possible
+Your FINAL ANSWER should be as few words as possible.
 If the original request was not a question, or you did not find a definitive answer, simply summarize the final state of the page or task as your FINAL ANSWER.""",
-    assistant,
-    request_reply=False,
-    silent=True,
-)
-final_answer = assistant.generate_reply(sender=maestro)
+        }
+    )
+
+    response = client.create(context=None, messages=messages)
+    if "finish_reason='content_filter'" in str(response):
+        raise Exception(str(response))
+    extracted_response = client.extract_text_or_completion_object(response)[0]
+    return extracted_response
+
+
+if logging_enabled():
+    log_event(os.path.basename(__file__), name="extract_final_answer")
+final_answer = response_preparer(maestro.orchestrated_messages)
 
 m = re.search("FINAL ANSWER:(.*)$", final_answer, re.DOTALL)
 if m:
@@ -249,4 +281,4 @@ if logging_enabled():
 print("FINAL SCORE: " + str(score))
 
 ################################
-testbed_utils.finalize(agents=[web_surfer, user_proxy])
+testbed_utils.finalize(agents=[web_surfer, user_proxy, assistant, login_assistant, maestro])

@@ -550,6 +550,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         )
 
     def _log_to_console(self, action, target="", arg=""):
+
+        if target is None:
+            target = ""
+        if arg is None:
+            arg = ""
+
         if logging_enabled():
             log_event(self, "browser_action", action=action, target=target, arg=arg)
 
