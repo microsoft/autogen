@@ -36,6 +36,7 @@ from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
+from agentops import track_agent
 
 __all__ = ("ConversableAgent",)
 
@@ -44,6 +45,7 @@ logger = logging.getLogger(__name__)
 F = TypeVar("F", bound=Callable[..., Any])
 
 
+@track_agent()
 class ConversableAgent(LLMAgent):
     """(In preview) A class for generic conversable agents which can be configured as assistant or user proxy.
 
@@ -134,6 +136,7 @@ class ConversableAgent(LLMAgent):
         )
 
         self._name = name
+        self.agent_ops_agent_name = name
         # a dictionary of conversations, default value is list
         if chat_messages is None:
             self._oai_messages = defaultdict(list)
