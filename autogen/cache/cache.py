@@ -100,12 +100,14 @@ class Cache(AbstractCache):
             ValueError: If an invalid configuration key is provided.
         """
         self.config = config
+        # Ensure that the seed is always treated as a string before being passed to any cache factory or stored.
+        self.config['cache_seed'] = str(self.config.get('cache_seed', 42))
+        
         # validate config
         for key in self.config.keys():
             if key not in self.ALLOWED_CONFIG_KEYS:
                 raise ValueError(f"Invalid config key: {key}")
         # create cache instance
-        self.config['cache_seed'] = str(self.config.get('cache_seed', 42))  # Convert seed to string
         self.cache = CacheFactory.cache_factory(
             seed=self.config["cache_seed"],
             redis_url=self.config.get("redis_url"),
