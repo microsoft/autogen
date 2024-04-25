@@ -41,7 +41,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install pytest-cov>=5
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install PostgreSQL
         run: |
           sudo apt install postgresql -y
@@ -87,7 +87,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install pytest-cov>=5
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -127,7 +127,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install pytest-cov>=5
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install docker
@@ -204,7 +204,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .
           python -c "import autogen"
-          pip install pytest-cov>=5
+          pip install pytest-cov>=5 pytest-asyncio
       - name: Install packages for test when needed
         run: |
           pip install -e .[autobuild]
