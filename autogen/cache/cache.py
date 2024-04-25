@@ -101,7 +101,7 @@ class Cache(AbstractCache):
         """
         self.config = config
         # Ensure that the seed is always treated as a string before being passed to any cache factory or stored.
-        self.config['cache_seed'] = str(self.config.get('cache_seed', 42))
+        self.config["cache_seed"] = str(self.config.get("cache_seed", 42))
 
         # validate config
         for key in self.config.keys():
