@@ -3,18 +3,15 @@
 import pickle
 import unittest
 from unittest.mock import MagicMock, patch
-from autogen.cache.cosmos_db_cache import CosmosDBCache
 
 import pytest
 
-'''
 try:
     from autogen.cache.cosmos_db_cache import CosmosDBCache
-
-    skip_cosmos_tests = False
 except ImportError:
-    skip_cosmos_tests = True
-'''
+    class CosmosDBCache:  # Dummy class if import fails
+        def __init__(self, *args, **kwargs):
+            raise ImportError("Cosmos DB SDK is not installed")
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
@@ -35,13 +32,13 @@ class TestCosmosDBCache(unittest.TestCase):
             "container_id": self.container_id,
         }
 
-    @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
+    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_init(self):
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
         self.assertEqual(cache.seed, self.seed)
         self.assertEqual(cache.client, self.client)
 
-    @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
+    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_get(self):
         key = "key"
         cache = CosmosDBCache(self.seed, self.cosmosdb_config)
@@ -54,7 +51,7 @@ class TestCosmosDBCache(unittest.TestCase):
         self.container_client_mock.read_item.side_effect = Exception("not found")
         self.assertIsNone(cache.get(key, default=None))
 
-    @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
+    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_set(self):
         key = "key"
         value = "value"
@@ -63,7 +60,7 @@ class TestCosmosDBCache(unittest.TestCase):
         expected_item = {"id": key, "partitionKey": str(self.seed), "data": pickle.dumps(value)}
         self.container_client_mock.upsert_item.assert_called_with(expected_item)
 
-    @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
+    # @pytest.mark.skipif(skip_cosmos_tests, reason="Cosmos DB SDK not installed")
     def test_context_manager(self):
         with CosmosDBCache(self.seed, self.cosmosdb_config) as cache:
             self.assertIsInstance(cache, CosmosDBCache)
