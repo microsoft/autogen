@@ -597,7 +597,6 @@ class ConversableAgent(LLMAgent):
             message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
-    # @record_function("send_to_agent")
     def send(
         self,
         message: Union[Dict, str],
