@@ -144,6 +144,7 @@ output after executing the code) and provide a corrected answer or code.
 
     Hint:
     # You should consider if the model has the potential to support the position to complete the task based on the model's name and description.
+    # You should select the most suitable model for the position.
     # You should select only one model for the position.
     # If several models are suitable, you should select the one that supports the maximum tokens.
     # If the model needs GPU, you should consider the GPU availability.
