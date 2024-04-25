@@ -121,21 +121,7 @@ def list_entity(
     order: str = "desc",
 ):
     """List all entities for a user"""
-    try:
-        entities = dbmanager.get(model_class, filters=filters, return_json=return_json, order=order)
-
-        return {
-            "status": True,
-            "message": f"{model_class.__name__} retrieved successfully",
-            "data": entities,
-        }
-
-    except Exception as ex_error:
-        print(ex_error)
-        return {
-            "status": False,
-            "message": f"Error occurred while retrieving {model_class.__name__}: " + str(ex_error),
-        }
+    return dbmanager.get(model_class, filters=filters, return_json=return_json, order=order)
 
 
 def delete_entity(model_class: Any, filters: dict = None):
@@ -291,6 +277,13 @@ async def list_workflows(user_id: str):
     return list_entity(Workflow, filters=filters)
 
 
+@api.get("/workflows/{workflow_id}")
+async def get_workflow(workflow_id: int, user_id: str):
+    """Get a workflow"""
+    filters = {"id": workflow_id, "user_id": user_id}
+    return list_entity(Workflow, filters=filters)
+
+
 @api.post("/workflows")
 async def create_workflow(workflow: Workflow):
     """Create a new workflow"""
@@ -358,7 +351,7 @@ async def delete_session(session_id: int, user_id: str):
 
 
 @api.get("/messages")
-async def list_messages(user_id: str, session_id: str):
+async def list_messages(user_id: str, session_id: int):
     """List all messages for a user"""
     filters = {"user_id": user_id, "session_id": session_id}
     return list_entity(Message, filters=filters, order="asc", return_json=True)
@@ -372,7 +365,7 @@ async def create_message(message: Message):
             Message,
             filters={"user_id": message.user_id, "session_id": message.session_id},
             return_json=True,
-        )
+        ).data
 
         # save incoming message
         dbmanager.upsert(message)

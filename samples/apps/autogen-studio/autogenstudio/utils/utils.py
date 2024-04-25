@@ -416,11 +416,11 @@ def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, wo
 
 
 def workflow_from_id(workflow_id: int, dbmanager: DBManager):
-    workflow = dbmanager.get(Workflow, filters={"id": workflow_id})
+    workflow = dbmanager.get(Workflow, filters={"id": workflow_id}).data
     if not workflow or len(workflow) == 0:
         raise ValueError("The specified workflow does not exist.")
     workflow = workflow[0].model_dump(mode="json")
-    workflow_agent_links = dbmanager.get(WorkflowAgentLink, filters={"workflow_id": workflow_id})
+    workflow_agent_links = dbmanager.get(WorkflowAgentLink, filters={"workflow_id": workflow_id}).data
 
     def dump_agent(agent: Agent):
         exclude = []
@@ -436,7 +436,7 @@ def workflow_from_id(workflow_id: int, dbmanager: DBManager):
         return agent.model_dump(warnings=False, mode="json", exclude=exclude)
 
     def get_agent(agent_id):
-        agent: Agent = dbmanager.get(Agent, filters={"id": agent_id})[0]
+        agent: Agent = dbmanager.get(Agent, filters={"id": agent_id}).data[0]
         agent_dict = dump_agent(agent)
         agent_dict["skills"] = [Skill.model_validate(skill.model_dump(mode="json")) for skill in agent.skills]
         model_exclude = [

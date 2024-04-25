@@ -143,7 +143,6 @@ class AgentConfig(SQLModel, table=False):
     admin_name: Optional[str] = "Admin"
     messages: Optional[List[Dict]] = Field(default_factory=list)
     max_round: Optional[int] = 100
-    admin_name: Optional[str] = "Admin"
     speaker_selection_method: Optional[str] = "auto"
     allow_repeat_speaker: Optional[Union[bool, List["AgentConfig"]]] = True
 

@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import exc
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
 from .datamodel import (
@@ -38,6 +39,7 @@ class DBManager:
         # check if the model exists, update else add
         status = True
         model_class = type(model)
+        existing_model = None
 
         try:
             existing_model = self.session.exec(select(model_class).where(model_class.id == model.id)).first()
@@ -80,6 +82,8 @@ class DBManager:
     ):
         """List all entities for a user"""
         result = []
+        status = True
+        status_message = ""
         try:
             if filters:
                 conditions = [getattr(model_class, col) == value for col, value in filters.items()]
@@ -97,9 +101,19 @@ class DBManager:
                 result = [self._model_to_dict(row) for row in self.session.exec(statement).all()]
             else:
                 result = self.session.exec(statement).all()
+            status_message = f"{model_class.__name__} Retrieved Successfully"
         except Exception as e:
-            logger.error("Error while getting %s: %s", model_class, e)
-        return result
+            self.session.rollback()
+            status = False
+            status_message = f"Error while fetching  {model_class.__name__}"
+            logger.error("Error while getting %s: %s", model_class.__name__, e)
+
+        response: Response = Response(
+            message=status_message,
+            status=status,
+            data=result,
+        )
+        return response
 
     def delete(self, model_class: SQLModel, filters: dict = None):
         """Delete an entity"""
@@ -121,6 +135,11 @@ class DBManager:
                 print(f"Row with filters {filters} not found")
                 logger.info("Row with filters %s not found", filters)
                 status_message = "Row not found"
+        except exc.IntegrityError as e:
+            self.session.rollback()
+            logger.error("Integrity ... Error while deleting: %s", e)
+            status_message = f"The {model_class.__name__} is linked to another entity and cannot be deleted."
+            status = False
         except Exception as e:
             self.session.rollback()
             logger.error("Error while deleting: %s", e)
@@ -162,13 +181,13 @@ class DBManager:
         status_message = ""
         try:
             if link_type == "agent_model":
-                agent = self.get(Agent, filters={"id": primary_id})[0]  # get the agent
+                agent = self.get(Agent, filters={"id": primary_id}).data[0]  # get the agent
                 linked_entities = agent.models
             elif link_type == "agent_skill":
-                agent = self.get(Agent, filters={"id": primary_id})[0]
+                agent = self.get(Agent, filters={"id": primary_id}).data[0]
                 linked_entities = agent.skills
             elif link_type == "agent_agent":
-                agent = self.get(Agent, filters={"id": primary_id})[0]
+                agent = self.get(Agent, filters={"id": primary_id}).data[0]
                 linked_entities = agent.agents
             elif link_type == "workflow_agent":
                 linked_entities = self.session.exec(
