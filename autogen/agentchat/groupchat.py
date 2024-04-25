@@ -58,8 +58,8 @@ class GroupChat:
         Applies only to "auto" speaker selection method.
         Default is 2.
     - select_speaker_auto_verbose: whether to output the select speaker responses and selections
-        If set to True, the response from selecting an agent will be displayed if it is not just an agent name and
-        it will output the selected agent's name.
+        If set to True, the outputs from the two agents in the nested select speaker chat will be output, along with
+        whether the responses were successful, or not, in selecting an agent
         Applies only to "auto" speaker selection method.
     - allow_repeat_speaker: whether to allow the same speaker to speak consecutively.
         Default is True, in which case all speakers are allowed to speak consecutively.
@@ -477,12 +477,6 @@ class GroupChat:
                 select_speaker_messages[-1] = dict(select_speaker_messages[-1], function_call=None)
             if select_speaker_messages[-1].get("tool_calls", False):
                 select_speaker_messages[-1] = dict(select_speaker_messages[-1], tool_calls=None)
-            select_speaker_messages = select_speaker_messages + [
-                {
-                    "role": self.role_for_select_speaker_messages,
-                    "content": self.select_speaker_prompt(graph_eligible_agents),
-                }
-            ]
         return selected_agent, graph_eligible_agents, select_speaker_messages
 
     def select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
@@ -545,7 +539,7 @@ class GroupChat:
 
         Speaker selection for "auto" speaker selection method:
         1. Create a two-agent chat with a speaker selector agent and a speaker validator agent, like a nested chat
-        2. Copy the current group messages and use the speaker selection message
+        2. Inject the group messages into the new chat
         3. Run the two-agent chat, evaluating the result of response from the speaker selector agent:
             - If a single agent is provided then we return it and finish. If not, we add an additional message to this nested chat in an attempt to guide the LLM to a single agent response
         4. Chat continues until a single agent is nominated or there are no more attempts left
@@ -586,14 +580,6 @@ class GroupChat:
 
         # Two-agent chat for speaker selection
 
-        # Agent for selecting a single agent name from the response
-        speaker_selection_agent = ConversableAgent(
-            "speaker_selection_agent",
-            system_message=self.select_speaker_prompt_template.format(agentlist=f"{[agent.name for agent in agents]}"),
-            llm_config=selector.llm_config,
-            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
-        )
-
         # Agent for checking the response from the speaker_select_agent
         checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
 
@@ -604,35 +590,24 @@ class GroupChat:
             remove_other_reply_funcs=True,
         )
 
-        # Copy the current group chat messages into this internal chat
-        # Exclude the last item which is the speaker selection prompt
-        for msg in messages[:-1]:
-            if (
-                "content" in msg
-                and "role" in msg
-                and msg["content"] is not None
-                and msg["role"] is not None
-                and len(msg["content"]) != 0
-                and len(msg["role"]) != 0
-            ):
-                # if msg["role"] == "user":
-                if msg["role"] == "user":
-                    msg_name = msg["name"] if "name" in msg else ""
-                    checking_agent.send(
-                        {"content": msg["content"], "role": msg["role"], "name": msg_name},
-                        speaker_selection_agent,
-                        request_reply=False,
-                        silent=True,
-                    )
+        # Agent for selecting a single agent name from the response
+        speaker_selection_agent = ConversableAgent(
+            "speaker_selection_agent",
+            system_message=self.select_speaker_msg(agents),
+            chat_messages={checking_agent: messages},
+            llm_config=selector.llm_config,
+            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+        )
 
+        # Run the speaker selection chat
         result = checking_agent.initiate_chat(
             speaker_selection_agent,
             cache=None,  # don't use caching for the speaker selection chat
-            message="You are an expert at finding the next speaker.",
+            message=self.select_speaker_prompt(agents),
             max_turns=2
             * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
             clear_history=False,
-            silent=True,  # suppress output, we're using terminal output
+            silent=not self.select_speaker_auto_verbose,  # Base silence on the verbose attribute
         )
 
         return self._process_speaker_selection_result(result, last_speaker, agents)
@@ -648,7 +623,7 @@ class GroupChat:
 
         Speaker selection for "auto" speaker selection method:
         1. Create a two-agent chat with a speaker selector agent and a speaker validator agent, like a nested chat
-        2. Copy the current group messages and use the speaker selection message
+        2. Inject the group messages into the new chat
         3. Run the two-agent chat, evaluating the result of response from the speaker selector agent:
             - If a single agent is provided then we return it and finish. If not, we add an additional message to this nested chat in an attempt to guide the LLM to a single agent response
         4. Chat continues until a single agent is nominated or there are no more attempts left
@@ -689,14 +664,6 @@ class GroupChat:
 
         # Two-agent chat for speaker selection
 
-        # Agent for selecting a single agent name from the response
-        speaker_selection_agent = ConversableAgent(
-            "speaker_selection_agent",
-            system_message=self.select_speaker_prompt_template.format(agentlist=f"{[agent.name for agent in agents]}"),
-            llm_config=selector.llm_config,
-            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
-        )
-
         # Agent for checking the response from the speaker_select_agent
         checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
 
@@ -707,35 +674,24 @@ class GroupChat:
             remove_other_reply_funcs=True,
         )
 
-        # Copy the current group chat messages into this internal chat
-        # Exclude the last item which is the speaker selection prompt
-        for msg in messages[:-1]:
-            if (
-                "content" in msg
-                and "role" in msg
-                and msg["content"] is not None
-                and msg["role"] is not None
-                and len(msg["content"]) != 0
-                and len(msg["role"]) != 0
-            ):
-                # if msg["role"] == "user":
-                if msg["role"] == "user":
-                    msg_name = msg["name"] if "name" in msg else ""
-                    checking_agent.send(
-                        {"content": msg["content"], "role": msg["role"], "name": msg_name},
-                        speaker_selection_agent,
-                        request_reply=False,
-                        silent=True,
-                    )
+        # Agent for selecting a single agent name from the response
+        speaker_selection_agent = ConversableAgent(
+            "speaker_selection_agent",
+            system_message=self.select_speaker_msg(agents),
+            chat_messages={checking_agent: messages},
+            llm_config=selector.llm_config,
+            human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+        )
 
+        # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
             speaker_selection_agent,
             cache=None,  # don't use caching for the speaker selection chat
-            message="You are an expert at finding the next speaker.",
+            message=self.select_speaker_prompt(agents),
             max_turns=2
             * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
             clear_history=False,
-            silent=True,  # suppress output, we're using terminal output
+            silent=not self.select_speaker_auto_verbose,  # Base silence on the verbose attribute
         )
 
         return self._process_speaker_selection_result(result, last_speaker, agents)
@@ -757,16 +713,6 @@ class GroupChat:
         select_name = messages[-1]["content"].strip()
 
         mentions = self._mentioned_agents(select_name, agents)
-
-        # Display the response if it's not the exact speaker name
-        if self.select_speaker_auto_verbose and (len(mentions) != 1 or (select_name.strip() != next(iter(mentions)))):
-            iostream.print(
-                colored(
-                    f"\n>>>>>>>> Select speaker attempt {attempt} of {attempt + attempts_left} response:\n{'[BLANK]' if not select_name.strip() else select_name.strip()}",
-                    "magenta",
-                ),
-                flush=False,
-            )
 
         if len(mentions) == 1:
 
