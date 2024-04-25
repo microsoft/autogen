@@ -1,4 +1,4 @@
-## AutoGen.LMStudio
+## AutoGen.Ollama
 
 This package provides support for consuming openai-like API from Ollama local server.
 
@@ -13,7 +13,6 @@ To use `AutoGen.Ollama`, add the following package to your `.csproj` file:
 
 ## Usage
 ```csharp
-sing AutoGen;
 using AutoGen.Core;
 using AutoGen.Ollama;
 
@@ -38,8 +37,3 @@ await userProxyAgent.InitiateChatAsync(
     maxRound: 10);
 
 Console.WriteLine("Thanks for using Ollama. https://ollama.com/blog/");
-
-
-## Update history
-### Update on 0.0.7 (2024-02-11)
-- Add `OllamaAgent` to support consuming openai-like API from Ollama local server.
