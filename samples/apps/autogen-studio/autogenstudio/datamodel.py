@@ -96,7 +96,7 @@ class LLMConfig(SQLModel, table=False):
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
-    max_tokens: Optional[int] = None
+    max_tokens: Optional[int] = 1000
     extra_body: Optional[dict] = None
 
 

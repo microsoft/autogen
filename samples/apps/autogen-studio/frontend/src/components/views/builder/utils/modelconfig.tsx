@@ -44,7 +44,14 @@ const ModelTypeSelector = ({
 
   const modelTypeRows = modelTypes.map((modelType: any, i: number) => {
     return (
-      <li role="listitem" key={"modeltype" + i} className="w-36">
+      <li
+        onMouseEnter={() => {
+          setSelectedHint(modelType.value);
+        }}
+        role="listitem"
+        key={"modeltype" + i}
+        className="w-36"
+      >
         <Card
           active={selectedType === modelType.value}
           className="h-full p-2 cursor-pointer"
@@ -71,10 +78,21 @@ const ModelTypeSelector = ({
     );
   });
 
+  const hints: any = {
+    open_ai:
+      "Hint: In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
+    azure: "Azure OpenAI endpoint",
+    google: "Gemini",
+  };
+
+  const [selectedHint, setSelectedHint] = React.useState<string>(hints.open_ai);
+
   return (
     <>
       <div className="pb-3">Select Model Type</div>
       <ul className="inline-flex gap-2">{modelTypeRows}</ul>
+
+      <div className="text-xs mt-4">{hints[selectedHint]}</div>
     </>
   );
 };
