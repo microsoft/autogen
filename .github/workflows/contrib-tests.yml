@@ -29,6 +29,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.9", "3.10", "3.11"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -79,7 +82,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
-        python-version: ["3.8"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -267,6 +270,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ["3.9", "3.10", "3.11", "3.12"]
+        exclude:
+          - os: macos-latest
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@v4
         with:
