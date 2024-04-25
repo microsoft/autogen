@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>AutoGen.Ollama</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.Ollama</Title>
+    <Description>
+      Provide support for consuming Ollama openai-like API service in AutoGen
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+  </ItemGroup>
+
+</Project>

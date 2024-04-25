@@ -66,6 +66,31 @@ public class GPTAgent : IStreamingAgent
 
     public GPTAgent(
         string name,
+        string modelName,
+        string systemMessage,
+        ILLMConfig config,
+        float temperature = 0.7f,
+        int maxTokens = 1024,
+        int? seed = null,
+        ChatCompletionsResponseFormat? responseFormat = null,
+        IEnumerable<FunctionDefinition>? functions = null,
+        IDictionary<string, Func<string, Task<string>>>? functionMap = null)
+    {
+        openAIClient = config switch
+        {
+            AzureOpenAIConfig azureConfig => new OpenAIClient(new Uri(azureConfig.Endpoint), new Azure.AzureKeyCredential(azureConfig.ApiKey)),
+            OpenAIConfig openAIConfig => new OpenAIClient(openAIConfig.ApiKey),
+            _ => throw new ArgumentException($"Unsupported config type {config.GetType()}"),
+        };
+
+        this.modelName = modelName;
+        _innerAgent = new OpenAIChatAgent(openAIClient, name, modelName, systemMessage, temperature, maxTokens, seed, responseFormat, functions);
+        Name = name;
+        this.functionMap = functionMap;
+    }
+
+    public GPTAgent(
+        string name,
         string systemMessage,
         OpenAIClient openAIClient,
         string modelName,
