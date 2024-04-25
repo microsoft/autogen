@@ -34,7 +34,7 @@ class TestCosmosDBCache(unittest.TestCase):
             "database_id": self.database_id,
             "container_id": self.container_id,
             "client": self.client,
-            }https://chat.openai.com/c/cbbb287d-4de2-49d5-bf77-1508dfd6133b
+            }
         )
         cache.container.read_item.return_value = {"data": serialized_value}
         self.assertEqual(cache.get(key), value)
