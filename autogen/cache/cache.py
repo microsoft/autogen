@@ -105,8 +105,9 @@ class Cache(AbstractCache):
             if key not in self.ALLOWED_CONFIG_KEYS:
                 raise ValueError(f"Invalid config key: {key}")
         # create cache instance
+        self.config['cache_seed'] = str(self.config.get('cache_seed', 42))  # Convert seed to string
         self.cache = CacheFactory.cache_factory(
-            seed=self.config.get("cache_seed", 42),
+            seed=self.config["cache_seed"],
             redis_url=self.config.get("redis_url"),
             cache_path_root=self.config.get("cache_path_root"),
             cosmosdb_config=self.config.get("cosmos_db_config"),
