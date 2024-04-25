@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional, Protocol, Union, runtime_checkable
 
+
 @runtime_checkable
 class Agent(Protocol):
     """(In preview) A protocol for Agent.
