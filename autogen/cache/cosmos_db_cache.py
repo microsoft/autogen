@@ -40,7 +40,7 @@ class CosmosDBCache(AbstractCache):
             container_id (str): The container ID to be used for caching.
             client (Optional[CosmosClient]): An existing CosmosClient instance to be used for caching.
         """
-        self.seed = seed
+        self.seed = str(seed)
         self.client = cosmosdb_config.get("client") or CosmosClient.from_connection_string(
             cosmosdb_config["connection_string"]
         )
@@ -64,17 +64,17 @@ class CosmosDBCache(AbstractCache):
 
     @classmethod
     def from_config(cls, seed: Union[str, int], cosmosdb_config: CosmosDBConfig):
-        return cls(seed, cosmosdb_config)
+        return cls(str(seed), cosmosdb_config)
 
     @classmethod
     def from_connection_string(cls, seed: Union[str, int], connection_string: str, database_id: str, container_id: str):
         config = {"connection_string": connection_string, "database_id": database_id, "container_id": container_id}
-        return cls(seed, config)
+        return cls(str(seed), config)
 
     @classmethod
     def from_existing_client(cls, seed: Union[str, int], client: CosmosClient, database_id: str, container_id: str):
         config = {"client": client, "database_id": database_id, "container_id": container_id}
-        return cls(seed, config)
+        return cls(str(seed), config)
 
     def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         """
