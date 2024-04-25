@@ -32,7 +32,9 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
         exclude:
           - os: macos-latest
-            python-version: ["3.8", "3.9"]
+            python-version: "3.8"
+          - os: macos-latest
+            python-version: "3.9"
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
