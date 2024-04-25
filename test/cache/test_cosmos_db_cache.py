@@ -76,5 +76,6 @@ class TestCosmosDBCache(unittest.TestCase):
                 self.assertIsInstance(cache, CosmosDBCache)
             mock_close.assert_called()
 
+
 if __name__ == "__main__":
     unittest.main()
