@@ -16,7 +16,8 @@ class MessageProfile:
     duration: Optional[float] = None
 
     def __str__(self):
-        repr = f"Cost: {self.cost}\tDuration: {self.duration}\t"
+        repr = self.message.source + "\t"
+        repr += f"Cost: {self.cost}\tDuration: {self.duration}\t"
         repr += ", ".join([str(state) for state in self.states])
         return repr
 
