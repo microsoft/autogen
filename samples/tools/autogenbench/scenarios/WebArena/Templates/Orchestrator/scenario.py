@@ -78,15 +78,15 @@ web_surfer = MultimodalWebSurferAgent(
     headless=True,
     browser_channel="chromium",
     browser_data_dir=None,
-    start_page="https://bing.com",
-    debug_dir=os.path.join(os.path.dirname(__file__), "debug"),
+    start_page=HOMEPAGE,
+    debug_dir=os.getenv("WEB_SURFER_DEBUG_DIR", None),
 )
 
 maestro = Orchestrator(
     "orchestrator",
     agents=[assistant, user_proxy, web_surfer],
     llm_config=llm_config,
-    response_format_is_supported=True,
+    response_format_is_supported=False,
 )
 
 # Login to the necessary websites
