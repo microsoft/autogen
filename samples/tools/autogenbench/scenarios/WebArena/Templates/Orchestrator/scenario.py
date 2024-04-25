@@ -49,9 +49,20 @@ llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
 
+login_assistant = autogen.AssistantAgent(
+    "login_assistant",
+    system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
+
+Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
+    description="A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills.",
+    is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
+    code_execution_config=False,
+    llm_config=llm_config,
+)
+
 assistant = autogen.AssistantAgent(
     "assistant",
-    is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config=False,
     llm_config=llm_config,
 )
@@ -61,7 +72,7 @@ user_proxy = autogen.UserProxyAgent(
     user_proxy_name,
     human_input_mode="NEVER",
     description="A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)",
-    is_termination_msg=lambda x: x.get("content", "").rstrip().find("TERMINATE") >= 0,
+    is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config={
         "work_dir": "coding",
         "use_docker": False,
@@ -97,8 +108,8 @@ if "reddit" in TASK["sites"]:
     username = ACCOUNTS["reddit"]["username"]
     password = ACCOUNTS["reddit"]["password"]
     try:
-        user_proxy.initiate_chat(
-            maestro,
+        login_assistant.initiate_chat(
+            web_surfer,
             message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
             clear_history=True,
         )
@@ -118,8 +129,8 @@ if "reddit" in TASK["sites"]:
             )
 
         raise e
-    user_proxy.reset()
-    maestro.reset()
+    login_assistant.reset()
+    web_surfer.reset()
 
 
 if "gitlab" in TASK["sites"]:
@@ -128,13 +139,13 @@ if "gitlab" in TASK["sites"]:
     login_url = GITLAB
     username = ACCOUNTS["gitlab"]["username"]
     password = ACCOUNTS["gitlab"]["password"]
-    user_proxy.initiate_chat(
-        maestro,
+    login_assistant.initiate_chat(
+        web_surfer,
         message=f"Navigate to {login_url}. type the username '{username}', and password is '{password}'. Finally click the 'Sign in' button.",
         clear_history=True,
     )
-    user_proxy.reset()
-    maestro.reset()
+    login_assistant.reset()
+    web_surfer.reset()
 
 # TODO: Add the shopping sites
 
@@ -145,10 +156,10 @@ if logging_enabled():
 start_url = TASK["start_url"]
 if start_url == REDDIT:
     start_url = start_url + "/forums"
-user_proxy.send(f"Navigate to {start_url}", maestro, request_reply=True)
+login_assistant.send(f"Navigate to {start_url}", web_surfer, request_reply=True)
 
-user_proxy.reset()
-maestro.reset()
+login_assistant.reset()
+web_surfer.reset()  # NOTE: This resets the message history, but not the browser state. We rely on this.. but it's notat all a very obvious behavior.
 
 print("MAIN TASK STARTING !#!#")
 
