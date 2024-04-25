@@ -37,7 +37,7 @@ from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
-from agentops import track_agent, ToolEvent, ErrorEvent, record
+from agentops import track_agent, ToolEvent, ErrorEvent, record, record_function, ActionEvent
 
 __all__ = ("ConversableAgent",)
 
@@ -597,6 +597,7 @@ class ConversableAgent(LLMAgent):
             message = hook(sender=self, message=message, recipient=recipient, silent=silent)
         return message
 
+    # @record_function("send_to_agent")
     def send(
         self,
         message: Union[Dict, str],
@@ -636,16 +637,23 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        action_event = ActionEvent(
+            action_type='send_to_agent',
+            params={'sender': self.agent_ops_agent_name, "recipient": recipient.name, 'message': message}
+        )
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
+            record(action_event)
             recipient.receive(message, self, request_reply, silent)
         else:
-            raise ValueError(
+            e = ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
+            record(ErrorEvent(trigger_event=action_event, exception=e))
+            raise e
 
     async def a_send(
         self,
@@ -686,16 +694,23 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        action_event = ActionEvent(
+            action_type='async_send_to_agent',
+            params={'sender': self.agent_ops_agent_name, "recipient": recipient.name, 'message': message}
+        )
         message = self._process_message_before_send(message, recipient, silent)
         # When the agent composes and sends the message, the role of the message is "assistant"
         # unless it's "function".
         valid = self._append_oai_message(message, "assistant", recipient)
         if valid:
+            record(action_event)
             await recipient.a_receive(message, self, request_reply, silent)
         else:
-            raise ValueError(
+            e = ValueError(
                 "Message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
             )
+            record(ErrorEvent(trigger_event=action_event, exception=e))
+            raise e
 
     def _print_received_message(self, message: Union[Dict, str], sender: Agent):
         iostream = IOStream.get_default()
@@ -801,6 +816,10 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        record(ActionEvent(
+            action_type='receive_from_agent',
+            params={'sender': sender.name, "recipient": self.name, 'message': message}
+        ))
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
@@ -838,6 +857,10 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
+        record(ActionEvent(
+            action_type='async_receive_from_agent',
+            params={'sender': sender.name, "recipient": self.name, 'message': message}
+        ))
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
