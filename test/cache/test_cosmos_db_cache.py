@@ -4,8 +4,10 @@ import pickle
 import unittest
 from unittest.mock import MagicMock, patch
 
-from autogen.cache.cosmos_db_cache import CosmosDBCache
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
+
+from autogen.cache.cosmos_db_cache import CosmosDBCache
+
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
@@ -28,13 +30,13 @@ class TestCosmosDBCache(unittest.TestCase):
         value = "value"
         serialized_value = pickle.dumps(value)
         cache = CosmosDBCache(
-            self.seed, 
+            self.seed,
             {
             "connection_string": self.connection_string,
             "database_id": self.database_id,
             "container_id": self.container_id,
             "client": self.client,
-            }
+            },
         )
         cache.container.read_item.return_value = {"data": serialized_value}
         self.assertEqual(cache.get(key), value)
@@ -47,28 +49,30 @@ class TestCosmosDBCache(unittest.TestCase):
         key = "key"
         value = "value"
         serialized_value = pickle.dumps(value)
-        cache = CosmosDBCache(self.seed, {
+        cache = CosmosDBCache(
+            self.seed,
+            {
             "connection_string": self.connection_string,
             "database_id": self.database_id,
             "container_id": self.container_id,
-            "client": self.client
-        })
+            "client": self.client,
+            },
+        )
         cache.set(key, value)
-        expected_item = {
-            "id": key,
-            "partitionKey": str(self.seed),
-            "data": serialized_value
-        }
+        expected_item = {"id": key, "partitionKey": str(self.seed), "data": serialized_value}
         cache.container.upsert_item.assert_called_with(expected_item)
 
     def test_context_manager(self):
-        with patch('autogen.cache.cosmos_db_cache.CosmosDBCache.close', MagicMock()) as mock_close:
-            with CosmosDBCache(self.seed, {
-                "connection_string": self.connection_string,
-                "database_id": self.database_id,
-                "container_id": self.container_id,
-                "client": self.client
-            }) as cache:
+        with patch("autogen.cache.cosmos_db_cache.CosmosDBCache.close", MagicMock()) as mock_close:
+            with CosmosDBCache(
+                self.seed,
+                {
+                    "connection_string": self.connection_string,
+                    "database_id": self.database_id,
+                    "container_id": self.container_id,
+                    "client": self.client,
+                },
+            ) as cache:
                 self.assertIsInstance(cache, CosmosDBCache)
             mock_close.assert_called()
 
