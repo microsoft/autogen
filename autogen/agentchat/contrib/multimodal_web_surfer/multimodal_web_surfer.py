@@ -17,8 +17,14 @@ from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
+# Optional OCR support
+IS_OCR_CAPABLE = False
+
 try:
     from termcolor import colored
+    import easyocr
+    import numpy as np
+    IS_OCR_CAPABLE = True
 except ImportError:
 
     def colored(x, *args, **kwargs):
@@ -411,9 +417,17 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 percent_visible=percent_visible,
                 percent_scrolled=percent_scrolled,
             )
+
+        if IS_OCR_CAPABLE:
+            ocr_text = self._get_ocr_text(new_screenshot)
+        text_prompt = f"""Here is a screenshot of [{self._page.title()}]({self._page.url}).
+            The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}."""
+        if ocr_text is not None:
+            text_prompt += ocr_text
+
         # Return the complete observation
         return True, self._make_mm_message(
-            f"Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.",
+            text_prompt,
             new_screenshot,
         )
 
@@ -433,6 +447,47 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:image/png;base64,{image_base64}"
+
+
+    def _get_ocr_text(self, image_content):
+        ocr_min_confidence = 0.25
+
+        try:
+            image_stream = io.BytesIO(image_content)
+            image = Image.open(image_stream)
+
+            # Remove transparency
+            if image.mode in ("RGBA", "P"):
+                image = image.convert("RGB")
+
+            reader = easyocr.Reader(["en"])
+            output = reader.readtext(np.array(image))
+            # The output is a list of tuples, each containing the coordinates of the text and the text itself.
+            # We join all the text pieces together to get the final text.
+            ocr_text = " "
+            for item in output:
+                if item[2] >= ocr_min_confidence:
+                    ocr_text += item[1] + " "
+            ocr_text = ocr_text.strip()
+
+            if len(ocr_text) > 0:
+                return "Text detected by OCR:\n" + ocr_text
+            return None
+        except Exception as e:
+            if logging_enabled():
+                import traceback
+
+                exc_type = type(e).__name__
+                exc_message = str(e)
+                exc_traceback = traceback.format_exc().splitlines()
+                log_event(
+                    self,
+                    "exception_thrown_ocr_detecting",
+                    exc_type=exc_type,
+                    exc_message=exc_message,
+                    exc_traceback=exc_traceback,
+                )
+            return None
 
     def _make_mm_message(self, text_content, image_content):
         return {
