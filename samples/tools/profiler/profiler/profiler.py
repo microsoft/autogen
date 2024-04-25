@@ -17,8 +17,10 @@ class MessageProfile:
 
     def __str__(self):
         repr = self.message.source + "\t"
-        repr += f"Cost: {self.cost}\tDuration: {self.duration}\t"
+        # repr += f"Cost: {self.cost}\tDuration: {self.duration}\t"
         repr += ", ".join([str(state) for state in self.states])
+        content = self.message.content[:40]
+        repr += f"\t\t\t{content.encode('unicode_escape').decode()}"
         return repr
 
 
