@@ -4,7 +4,7 @@ description-file = "README.md"
 
 
 [tool.pytest.ini_options]
-addopts = '--cov=. --cov-append --cov-report=xml -m "not conda"'
+addopts = '--cov=. --cov-append --cov-branch --cov-report=xml -m "not conda"'
 markers = ["conda: test related to conda forge distribution"]
 
 [tool.black]
