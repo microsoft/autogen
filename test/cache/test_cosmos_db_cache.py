@@ -3,16 +3,18 @@
 import pickle
 import unittest
 from unittest.mock import MagicMock, patch
+from autogen.cache.cosmos_db_cache import CosmosDBCache
 
 import pytest
 
+'''
 try:
     from autogen.cache.cosmos_db_cache import CosmosDBCache
 
     skip_cosmos_tests = False
 except ImportError:
     skip_cosmos_tests = True
-
+'''
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
