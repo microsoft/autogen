@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from autogen.cache.cosmos_db_cache import CosmosDBCache
+from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
@@ -36,7 +37,7 @@ class TestCosmosDBCache(unittest.TestCase):
         self.assertEqual(cache.get(key), value)
         cache.container.read_item.assert_called_with(item=key, partition_key=str(self.seed))
 
-        cache.container.read_item.side_effect = Exception("Item not found")
+        cache.container.read_item.side_effect = CosmosResourceNotFoundError("Item not found")
         self.assertIsNone(cache.get(key, default=None))
 
     def test_set(self):
