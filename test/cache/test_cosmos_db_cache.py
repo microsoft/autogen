@@ -9,7 +9,7 @@ from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
-        self.seed = 42
+        self.seed = "42"
         self.connection_string = "AccountEndpoint=https://example.documents.azure.com:443/;"
         self.database_id = "autogen_cache"
         self.container_id = "TestContainer"
