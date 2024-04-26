@@ -37,6 +37,7 @@ from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
 try:
+    import agentops
     from agentops import track_agent, ToolEvent, ErrorEvent, record, ActionEvent
 except ImportError:
     def track_agent():
