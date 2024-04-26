@@ -36,6 +36,7 @@ from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
+agentops = None
 try:
     import agentops
     from agentops import track_agent, ToolEvent, ErrorEvent, record, ActionEvent
