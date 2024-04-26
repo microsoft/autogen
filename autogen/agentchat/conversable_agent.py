@@ -2515,7 +2515,7 @@ class ConversableAgent(LLMAgent):
         """Return the function map."""
         return self._function_map
 
-    def _wrap_function(self, func: F, name: str) -> F:
+    def _wrap_function(self, func: F, name: Optional[str] = None) -> F:
         """Wrap the function to dump the return value to json.
 
         Handles both sync and async functions.
@@ -2531,7 +2531,7 @@ class ConversableAgent(LLMAgent):
         @functools.wraps(func)
         def _wrapped_func(*args, **kwargs):
             if agentops:
-                tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name)
+                tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name or func.__name__)
                 try:
                     retval = func(*args, **kwargs)
                     retval_str = serialize_to_str(retval)
@@ -2549,7 +2549,7 @@ class ConversableAgent(LLMAgent):
         @functools.wraps(func)
         async def _a_wrapped_func(*args, **kwargs):
             if agentops:
-                tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name)
+                tool_event = ToolEvent(params={'args': args, 'kwargs': kwargs}, name=name or func.__name__)
                 try:
                     retval = await func(*args, **kwargs)
                     retval_str = serialize_to_str(retval)
