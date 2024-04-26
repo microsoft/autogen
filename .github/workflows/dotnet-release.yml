@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - dotnet/release/**
       - dotnet/release
 
 concurrency:
@@ -59,13 +60,6 @@ jobs:
         echo "Publish package to Nuget"
         echo "ls output directory"
         ls -R ./output/release
-        dotnet nuget push --api-key AzureArtifacts ./output/release/*.nupkg --skip-duplicate --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }}
-    - name: Tag commit
-      run: |
-        Write-Host "Tag commit"
-        # version = eng/MetaInfo.props.Project.PropertyGroup.VersionPrefix
-        $metaInfoContent = cat ./eng/MetaInfo.props
-        $version = $metaInfoContent | Select-String -Pattern "<VersionPrefix>(.*)</VersionPrefix>" | ForEach-Object { $_.Matches.Groups[1].Value }
-        git tag -a "$version" -m "AutoGen.Net release $version"
-        git push origin --tags
-      shell: pwsh
+        # remove AutoGen.SourceGenerator.snupkg because it's an empty package
+        rm ./output/release/AutoGen.SourceGenerator.*.snupkg
+        dotnet nuget push --api-key ${{ secrets.AUTOGEN_NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json ./output/release/*.nupkg --skip-duplicate

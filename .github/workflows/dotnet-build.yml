@@ -143,4 +143,3 @@ jobs:
         dotnet nuget push --api-key ${{ secrets.MYGET_TOKEN }} --source "https://www.myget.org/F/agentchat/api/v3/index.json" ./output/nightly/*.nupkg --skip-duplicate
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
-
