@@ -25,6 +25,15 @@ The application should be run in a virtual environment to ensure that its depend
 
 ### Running the Application
 
+First you need to set up your LLM keys and configuration. You can do this by
+creating a file called `OAI_CONFIG_LIST` or export an environment variable
+with the same name and content. Its basically a JSON string that defines
+various properties like model names, api keys, base urls, etc.
+
+Please see the contents of `OAI_CONFIG_LIST_sample` in this directory for an example.
+Modify it with your keys and configuration and rename it to `OAI_CONFIG_LIST`.
+
+
 Once you've installed the required packages, you can run the application with the following command:
 
 ```bash
