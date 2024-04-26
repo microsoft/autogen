@@ -63,6 +63,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         "html": False,
         "css": False,
     }
+    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = {"py": "python", "js": "javascript"}
 
     def __init__(
         self,
@@ -107,11 +108,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
-
         work_dir.mkdir(exist_ok=True)
 
         client = docker.from_env()
-
         # Check if the image exists
         try:
             client.images.get(image)
@@ -143,7 +142,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
                 container.stop()
             except docker.errors.NotFound:
                 pass
-
             atexit.unregister(cleanup)
 
         if stop_container:
@@ -156,8 +154,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             raise ValueError(f"Failed to start container from image {image}. Logs: {self._container.logs()}")
 
         self._timeout = timeout
-        self._work_dir: Path = work_dir
-
+        self._work_dir = work_dir
         self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
         if execution_policies is not None:
             self.execution_policies.update(execution_policies)
@@ -193,7 +190,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         files = []
         last_exit_code = 0
         for code_block in code_blocks:
-            lang = code_block.language.lower()
+            lang = self.LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
             if lang not in self.SUPPORTED_LANGUAGES:
                 outputs.append(f"Unsupported language {lang}")
                 last_exit_code = 1
@@ -219,10 +216,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             result = self._container.exec_run(command)
             exit_code = result.exit_code
             output = result.output.decode("utf-8")
-            outputs.append(output)
             if exit_code == 124:
-                output += "\n"
-                output += TIMEOUT_MSG
+                output += "\n" + TIMEOUT_MSG
+            outputs.append(output)
 
             last_exit_code = exit_code
             if exit_code != 0:
