@@ -826,10 +826,11 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        record(ActionEvent(
-            action_type='receive_from_agent',
-            params={'sender': sender.name, "recipient": self.name, 'message': message}
-        )) if agentops else None
+        if agentops:
+            record(ActionEvent(
+                action_type='receive_from_agent',
+                params={'sender': sender.name, "recipient": self.name, 'message': message}
+            ))
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
@@ -867,10 +868,11 @@ class ConversableAgent(LLMAgent):
         Raises:
             ValueError: if the message can't be converted into a valid ChatCompletion message.
         """
-        record(ActionEvent(
-            action_type='async_receive_from_agent',
-            params={'sender': sender.name, "recipient": self.name, 'message': message}
-        )) if agentops else None
+        if agentops:
+            record(ActionEvent(
+                action_type='async_receive_from_agent',
+                params={'sender': sender.name, "recipient": self.name, 'message': message}
+            ))
         self._process_received_message(message, sender, silent)
         if request_reply is False or request_reply is None and self.reply_at_receive[sender] is False:
             return
