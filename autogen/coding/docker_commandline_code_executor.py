@@ -8,7 +8,7 @@ from hashlib import md5
 from pathlib import Path
 from time import sleep
 from types import TracebackType
-from typing import Any, List, Optional, Type, Union
+from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 
 import docker
 from docker.errors import ImageNotFound
@@ -39,6 +39,31 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
+    SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
+        "bash",
+        "shell",
+        "sh",
+        "pwsh",
+        "powershell",
+        "ps1",
+        "python",
+        "javascript",
+        "html",
+        "css",
+    ]
+    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
+        "bash": True,
+        "shell": True,
+        "sh": True,
+        "pwsh": True,
+        "powershell": True,
+        "ps1": True,
+        "python": True,
+        "javascript": False,
+        "html": False,
+        "css": False,
+    }
+
     def __init__(
         self,
         image: str = "python:3-slim",
@@ -47,6 +72,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         work_dir: Union[Path, str] = Path("."),
         auto_remove: bool = True,
         stop_container: bool = True,
+        execution_policies: Optional[Dict[str, bool]] = None,
     ):
         """(Experimental) A code executor class that executes code through
         a command line environment in a Docker container.
@@ -76,7 +102,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         Raises:
             ValueError: On argument error, or if the container fails to start.
         """
-
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
@@ -133,6 +158,10 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         self._timeout = timeout
         self._work_dir: Path = work_dir
 
+        self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
+        if execution_policies is not None:
+            self.execution_policies.update(execution_policies)
+
     @property
     def timeout(self) -> int:
         """(Experimental) The timeout for code execution."""
@@ -164,35 +193,36 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         files = []
         last_exit_code = 0
         for code_block in code_blocks:
-            lang = code_block.language
+            lang = code_block.language.lower()
+            if lang not in self.SUPPORTED_LANGUAGES:
+                outputs.append(f"Unsupported language {lang}")
+                last_exit_code = 1
+                break
+
+            execute_code = self.execution_policies.get(lang, False)
             code = silence_pip(code_block.code, lang)
 
-            try:
-                # Check if there is a filename comment
-                filename = _get_file_name_from_content(code, Path("/workspace"))
-            except ValueError:
-                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
-
-            if filename is None:
-                # create a file with an automatically generated name
-                code_hash = md5(code.encode()).hexdigest()
-                filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
-
+            # Check if there is a filename comment
+            filename = (
+                _get_file_name_from_content(code, self._work_dir) or f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
+            )
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
                 fout.write(code)
+            files.append(code_path)
+
+            if not execute_code:
+                outputs.append(f"Code saved to {str(code_path)}\n")
+                continue
 
             command = ["timeout", str(self._timeout), _cmd(lang), filename]
-
             result = self._container.exec_run(command)
             exit_code = result.exit_code
             output = result.output.decode("utf-8")
+            outputs.append(output)
             if exit_code == 124:
                 output += "\n"
                 output += TIMEOUT_MSG
-
-            outputs.append(output)
-            files.append(code_path)
 
             last_exit_code = exit_code
             if exit_code != 0:
