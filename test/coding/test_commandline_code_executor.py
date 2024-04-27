@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.code_utils import is_docker_running
+from autogen.code_utils import decide_use_docker, is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
@@ -16,7 +16,7 @@ from autogen.coding.local_commandline_code_executor import LocalCommandLineCodeE
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_docker  # noqa: E402
 
-if skip_docker or not is_docker_running():
+if skip_docker or not is_docker_running() or not decide_use_docker(use_docker=None):
     classes_to_test = [LocalCommandLineCodeExecutor]
 else:
     classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
@@ -99,7 +99,6 @@ def test_commandline_executor_execute_code(cls, py_variant) -> None:
 
 @pytest.mark.parametrize("py_variant", PYTHON_VARIANTS)
 def _test_execute_code(py_variant, executor: CodeExecutor) -> None:
-
     # Test single code block.
     code_blocks = [CodeBlock(code="import sys; print('hello world!')", language=py_variant)]
     code_result = executor.execute_code_blocks(code_blocks)
@@ -159,7 +158,6 @@ def test_local_commandline_code_executor_save_files_only() -> None:
 
 
 def _test_save_files(executor: CodeExecutor, save_file_only: bool) -> None:
-
     def _check_output(code_result: CodeBlock, expected_output: str) -> None:
         if save_file_only:
             return expected_output not in code_result.output
