@@ -47,7 +47,6 @@ class OpenAIJSONService:
         with Cache(self._cache_dir) as cache:
             content = cache.get(key, None)
             if content is not None:
-                print("Cache hit")
                 return OpenAIMessage(role="assistant", content=content)
             response = self._create(messages)
             cache.set(key, response.content)
