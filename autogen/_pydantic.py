@@ -64,7 +64,7 @@ else:  # pragma: no cover
         Returns:
             JsonSchemaValue: The JSON schema
         """
-    
+
         if t is None:
             return {"type": "null"}
         elif get_origin(t) is Union:
