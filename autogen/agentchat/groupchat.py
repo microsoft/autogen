@@ -29,13 +29,28 @@ class GroupChat:
         When set to True and when a message is a function call suggestion,
         the next speaker will be chosen from an agent which contains the corresponding function name
         in its `function_map`.
-    - select_speaker_message_template: customize the select speaker message (used in "auto" speaker selection), which appears first in the message context and generally includes the agent descriptions and list of agents. The string value will be converted to an f-string, use "{roles}" to output the agent's and their role descriptions and "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+    - select_speaker_message_template: customize the select speaker message (used in "auto" speaker selection), which appears first in the message context and generally includes the agent descriptions and list of agents. If the string contains "{roles}" it will replaced with the agent's and their role descriptions. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
         "You are in a role play game. The following roles are available:
                 {roles}.
                 Read the following conversation.
                 Then select the next role from {agentlist} to play. Only return the role."
-    - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. The string value will be converted to an f-string, use "{agentlist}" for a comma-separated list of agent names in square brackets. The default value is:
+    - select_speaker_prompt_template: customize the select speaker prompt (used in "auto" speaker selection), which appears last in the message context and generally includes the list of agents and guidance for the LLM to select the next agent. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
         "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
+    - select_speaker_auto_multiple_template: customize the follow-up prompt used when selecting a speaker fails with a response that contains multiple agent names. This prompt guides the LLM to return just one agent name. Applies only to "auto" speaker selection method. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
+        "You provided more than one name in your text, please return just the name of the next speaker. To determine the speaker use these prioritised rules:
+                1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+                2. If it refers to the "next" speaker name, choose that name
+                3. Otherwise, choose the first provided speaker's name in the context
+                The names are case-sensitive and should not be abbreviated or changed.
+                Respond with ONLY the name of the speaker and DO NOT provide a reason."
+    - select_speaker_auto_none_template: customize the follow-up prompt used when selecting a speaker fails with a response that contains no agent names. This prompt guides the LLM to return an agent name and provides a list of agent names. Applies only to "auto" speaker selection method. If the string contains "{agentlist}" it will be replaced with a comma-separated list of agent names in square brackets. The default value is:
+        "You didn't choose a speaker. As a reminder, to determine the speaker use these prioritised rules:
+                1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+                2. If it refers to the "next" speaker name, choose that name
+                3. Otherwise, choose the first provided speaker's name in the context
+                The names are case-sensitive and should not be abbreviated or changed.
+                The only names that are accepted are {agentlist}.
+                Respond with ONLY the name of the speaker and DO NOT provide a reason."
     - speaker_selection_method: the method for selecting the next speaker. Default is "auto".
         Could be any of the following (case insensitive), will raise ValueError if not recognized:
         - "auto": the next speaker is selected automatically by LLM.
@@ -100,6 +115,19 @@ class GroupChat:
     select_speaker_prompt_template: str = (
         "Read the above conversation. Then select the next role from {agentlist} to play. Only return the role."
     )
+    select_speaker_auto_multiple_template: str = """You provided more than one name in your text, please return just the name of the next speaker. To determine the speaker use these prioritised rules:
+    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+    2. If it refers to the "next" speaker name, choose that name
+    3. Otherwise, choose the first provided speaker's name in the context
+    The names are case-sensitive and should not be abbreviated or changed.
+    Respond with ONLY the name of the speaker and DO NOT provide a reason."""
+    select_speaker_auto_none_template: str = """You didn't choose a speaker. As a reminder, to determine the speaker use these prioritised rules:
+    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
+    2. If it refers to the "next" speaker name, choose that name
+    3. Otherwise, choose the first provided speaker's name in the context
+    The names are case-sensitive and should not be abbreviated or changed.
+    The only names that are accepted are {agentlist}.
+    Respond with ONLY the name of the speaker and DO NOT provide a reason."""
     select_speaker_auto_verbose: Optional[bool] = False
     role_for_select_speaker_messages: Optional[str] = "system"
 
@@ -190,7 +218,7 @@ class GroupChat:
             agents=self.agents,
         )
 
-        # Check select_speaker_message_template and select_speaker_prompt_template have values
+        # Check select speaker messages, prompts, roles, and retries have values
         if self.select_speaker_message_template is None or len(self.select_speaker_message_template) == 0:
             raise ValueError("select_speaker_message_template cannot be empty or None.")
 
@@ -199,6 +227,12 @@ class GroupChat:
 
         if self.role_for_select_speaker_messages is None or len(self.role_for_select_speaker_messages) == 0:
             raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
+
+        if self.select_speaker_auto_multiple_template is None or len(self.select_speaker_auto_multiple_template) == 0:
+            raise ValueError("select_speaker_auto_multiple_template cannot be empty or None.")
+
+        if self.select_speaker_auto_none_template is None or len(self.select_speaker_auto_none_template) == 0:
+            raise ValueError("select_speaker_auto_none_template cannot be empty or None.")
 
         if self.max_retries_for_selecting_speaker is None or len(self.role_for_select_speaker_messages) == 0:
             raise ValueError("role_for_select_speaker_messages cannot be empty or None.")
@@ -560,8 +594,9 @@ class GroupChat:
             agents = self.agents
 
         # The maximum number of speaker selection attempts (including requeries)
+        # is the initial speaker selection attempt plus the maximum number of retries.
         # We track these and use them in the validation function as we can't
-        # access the max_turns from within validate_speaker_name
+        # access the max_turns from within validate_speaker_name.
         max_attempts = 1 + self.max_retries_for_selecting_speaker
         attempts_left = max_attempts
         attempt = 0
@@ -603,7 +638,10 @@ class GroupChat:
         result = checking_agent.initiate_chat(
             speaker_selection_agent,
             cache=None,  # don't use caching for the speaker selection chat
-            message=self.select_speaker_prompt(agents),
+            message={
+                "content": self.select_speaker_prompt(agents),
+                "override_role": self.role_for_select_speaker_messages,
+            },
             max_turns=2
             * max(1, max_attempts),  # Limiting the chat to the number of attempts, including the initial one
             clear_history=False,
@@ -745,15 +783,12 @@ class GroupChat:
 
             if attempts_left:
                 # Message to return to the chat for the next attempt
-                return (
-                    True,
-                    """You provided more than one name in your text, please return just the name of the next speaker. To determine the speaker use these prioritised rules:
-                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
-                    2. If it refers to the "next" speaker name, choose that name
-                    3. Otherwise, choose the first provided speaker's name in the context
-                    The names are case-sensitive and should not be abbreviated or changed.
-                    Respond with ONLY the name of the speaker and DO NOT provide a reason.""",
-                )
+                agentlist = f"{[agent.name for agent in agents]}"
+
+                return True, {
+                    "content": self.select_speaker_auto_multiple_template.format(agentlist=agentlist),
+                    "override_role": self.role_for_select_speaker_messages,
+                }
             else:
                 # Final failure, no attempts left
                 messages.append(
@@ -777,16 +812,12 @@ class GroupChat:
 
             if attempts_left:
                 # Message to return to the chat for the next attempt
-                return (
-                    True,
-                    f"""You didn't choose a speaker. As a reminder, to determine the speaker use these prioritised rules:
-                    1. If the context refers to themselves as a speaker e.g. "As the..." , choose that speaker's name
-                    2. If it refers to the "next" speaker name, choose that name
-                    3. Otherwise, choose the first provided speaker's name in the context
-                    The names are case-sensitive and should not be abbreviated or changed.
-                    The only names that are accepted are {[agent.name for agent in agents]}.
-                    Respond with ONLY the name of the speaker and DO NOT provide a reason.""",
-                )
+                agentlist = f"{[agent.name for agent in agents]}"
+
+                return True, {
+                    "content": self.select_speaker_auto_none_template.format(agentlist=agentlist),
+                    "override_role": self.role_for_select_speaker_messages,
+                }
             else:
                 # Final failure, no attempts left
                 messages.append(
