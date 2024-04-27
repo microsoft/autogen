@@ -45,6 +45,9 @@ class StateSpace:
         filtered_states = {state for state in self.states if condition(state)}
         return StateSpace(filtered_states)
 
+    def sorted_states(self) -> List[State]:
+        return sorted(self.states, key=lambda state: state.name)
+
 
 DEFAULT_STATE_SPACE = StateSpace(
     states={

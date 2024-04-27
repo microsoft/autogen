@@ -94,7 +94,7 @@ class Profiler:
         state_space = self.state_space.filter_states(condition=source_or_role_in_tags)
 
         state_space_str = ""
-        for state in state_space:
+        for state in state_space.sorted_states():
             state_space_str += f"{state.name}: {state.description}" + "\n"
 
         prompt = (
