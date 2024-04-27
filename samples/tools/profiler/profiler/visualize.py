@@ -16,20 +16,21 @@ class ProfileVisualizer(Protocol):
 
 
 class Node:
-    def __init__(self, name):
+    def __init__(self, name, profile):
         self.name = name
         self.children = []
+        self.profile = profile
 
 
 class DAG:
     def __init__(self):
         self.nodes = {}
 
-    def add_edge(self, source_name, dest_name):
+    def add_edge(self, source_name, dest_name, source_profile=None, dest_profile=None):
         if source_name not in self.nodes:
-            self.nodes[source_name] = Node(source_name)
+            self.nodes[source_name] = Node(source_name, source_profile)
         if dest_name not in self.nodes:
-            self.nodes[dest_name] = Node(dest_name)
+            self.nodes[dest_name] = Node(dest_name, dest_profile)
         self.nodes[source_name].children.append(self.nodes[dest_name])
 
     def to_json(self):
@@ -37,7 +38,10 @@ class DAG:
         node_index = {}
 
         for node_name, node in self.nodes.items():
-            graph["nodes"].append({"name": node_name})
+            # Convert the profile to a dictionary
+            profile_dict = node.profile.to_dict() if node.profile else None
+
+            graph["nodes"].append({"name": node_name, "profile": profile_dict})
             node_index[node_name] = len(graph["nodes"]) - 1
 
         for node_name, node in self.nodes.items():
@@ -69,7 +73,7 @@ class DAGVisualizer:
             sorted_next_states = sorted([s.name for s in next.states])
             current_states = f"[{i}]:\n" + "\n".join(sorted_current_states)
             next_states = f"[{i+1}]:\n" + "\n".join(sorted_next_states)
-            dag.add_edge(current_states, next_states)
+            dag.add_edge(current_states, next_states, current, next)
 
         return dag
 
@@ -98,7 +102,7 @@ class DAGVisualizer:
 
         index_html_path = pkg_resources.resource_filename(__name__, os.path.join("viz", "d3_dag.html"))
 
-        dag_json = json.dumps(dag.to_json())
+        dag_json = json.dumps(dag.to_json(), indent=2)
 
         if filename is None:
             raise ValueError("Output filename must be provided.")
@@ -108,7 +112,7 @@ class DAGVisualizer:
             with open(index_html_path, "r") as index_html:
                 html_content = index_html.read()
                 # Replace the placeholder with the actual dag_json data
-                html_content = html_content.replace("__DAG_DATA__", dag_json)
+                html_content = html_content.replace('"__DAG_DATA__"', dag_json)
                 f.write(html_content)
 
         print(f"Visualization saved to {filename}")
