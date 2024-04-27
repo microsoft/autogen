@@ -39,18 +39,6 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
-    SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
-        "bash",
-        "shell",
-        "sh",
-        "pwsh",
-        "powershell",
-        "ps1",
-        "python",
-        "javascript",
-        "html",
-        "css",
-    ]
     DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
         "bash": True,
         "shell": True,
@@ -191,7 +179,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         last_exit_code = 0
         for code_block in code_blocks:
             lang = self.LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
-            if lang not in self.SUPPORTED_LANGUAGES:
+            if lang not in self.DEFAULT_EXECUTION_POLICY:
                 outputs.append(f"Unsupported language {lang}")
                 last_exit_code = 1
                 break
@@ -203,6 +191,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             filename = (
                 _get_file_name_from_content(code, self._work_dir) or f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
             )
+
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
                 fout.write(code)
