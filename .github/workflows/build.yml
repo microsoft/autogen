@@ -70,10 +70,14 @@ jobs:
       - name: Coverage with Redis
         if: matrix.python-version == '3.10'
         run: |
-          pip install -e .[test,redis,websockets]
-          pip install coverage
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
-          coverage xml
+          # Coverage doesn't play nicely with docker and windows
+          if [[ ${{ matrix.os }} != windows-latest ]]; then
+            pip install -e .[test,redis,websockets]
+            pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
+          else
+            pip install -e .[test,redis,websockets]
+            pytest test --ignore=test/agentchat/contrib --skip-openai --skip-docker --durations=10 --durations-min=1.0
+          fi
       - name: Test with Cosmos DB
         run: |
           pip install -e .[test,cosmosdb]
