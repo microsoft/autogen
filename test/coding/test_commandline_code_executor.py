@@ -317,14 +317,10 @@ def test_invalid_relative_path(cls) -> None:
     executor = cls()
     code = """# filename: /tmp/test.py
 
-    print("hello world")
-    """
+print("hello world")
+"""
     result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-    error_substring = "/tmp/test.py"
-
-    assert (
-        result.exit_code == 1 and error_substring in result.output
-    ), f"Expected an error message indicating an issue with the file path '{error_substring}', but got: {result.output}"
+    assert result.exit_code == 1 and "Filename is not in the workspace" in result.output
 
 
 @pytest.mark.parametrize("cls", classes_to_test)

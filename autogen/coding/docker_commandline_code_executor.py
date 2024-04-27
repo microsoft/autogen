@@ -190,8 +190,8 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             # Check if there is a filename comment
             try:
                 filename = _get_file_name_from_content(code, self._work_dir)
-            except ValueError as e:
-                outputs.append(f"Error determining file name: {str(e)}")
+            except ValueError:
+                outputs.append("Filename is not in the workspace")
                 last_exit_code = 1
                 break
 
