@@ -180,7 +180,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         for code_block in code_blocks:
             lang = self.LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
             if lang not in self.DEFAULT_EXECUTION_POLICY:
-                outputs.append(f"Unsupported language {lang}")
+                outputs.append(f"Unsupported language {lang}\n")
                 last_exit_code = 1
                 break
 
