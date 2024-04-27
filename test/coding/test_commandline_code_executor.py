@@ -320,12 +320,11 @@ def test_invalid_relative_path(cls) -> None:
     print("hello world")
     """
     result = executor.execute_code_blocks([CodeBlock(code=code, language="python")])
-    error_message_1 = "Filename is not in the workspace"
-    error_message_2 = "Error determining file name: '/tmp/test.py' is not in the subpath of"
+    error_substring = "/tmp/test.py"
 
-    assert result.exit_code == 1 and (
-        error_message_1 in result.output or error_message_2 in result.output
-    ), "Expected one of the specific error messages to be in the output."
+    assert (
+        result.exit_code == 1 and error_substring in result.output
+    ), f"Expected an error message indicating an issue with the file path '{error_substring}', but got: {result.output}"
 
 
 @pytest.mark.parametrize("cls", classes_to_test)
