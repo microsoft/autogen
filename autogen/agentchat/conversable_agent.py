@@ -32,7 +32,7 @@ from ..formatting_utils import colored
 from ..function_utils import get_function_schema, load_basemodels_if_needed, serialize_to_str
 from ..io.base import IOStream
 from ..oai.client import ModelClient, OpenAIWrapper
-from ..runtime_logging import log_new_agent, logging_enabled
+from ..runtime_logging import log_event, log_new_agent, logging_enabled
 from .agent import Agent, LLMAgent
 from .chat import ChatResult, a_initiate_chats, initiate_chats
 from .utils import consolidate_chat_info, gather_usage_summary
@@ -77,6 +77,7 @@ class ConversableAgent(LLMAgent):
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Union[str, Dict] = "",
         description: Optional[str] = None,
+        chat_messages: Optional[Dict[Agent, List[Dict]]] = None,
     ):
         """
         Args:
@@ -122,6 +123,9 @@ class ConversableAgent(LLMAgent):
             default_auto_reply (str or dict): default auto reply when no code execution or llm-based reply is generated.
             description (str): a short description of the agent. This description is used by other agents
                 (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)
+            chat_messages (dict or None): the previous chat messages that this agent had in the past with other agents.
+                Can be used to give the agent a memory by providing the chat history. This will allow the agent to
+                resume previous had conversations. Defaults to an empty chat history.
         """
         # we change code_execution_config below and we have to make sure we don't change the input
         # in case of UserProxyAgent, without this we could even change the default value {}
@@ -131,7 +135,11 @@ class ConversableAgent(LLMAgent):
 
         self._name = name
         # a dictionary of conversations, default value is list
-        self._oai_messages = defaultdict(list)
+        if chat_messages is None:
+            self._oai_messages = defaultdict(list)
+        else:
+            self._oai_messages = chat_messages
+
         self._oai_system_message = [{"content": system_message, "role": "system"}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
@@ -749,6 +757,9 @@ class ConversableAgent(LLMAgent):
     def _process_received_message(self, message: Union[Dict, str], sender: Agent, silent: bool):
         # When the agent receives a message, the role of the message is "user". (If 'role' exists and is 'function', it will remain unchanged.)
         valid = self._append_oai_message(message, "user", sender)
+        if logging_enabled():
+            log_event(self, "received_message", message=message, sender=sender.name, valid=valid)
+
         if not valid:
             raise ValueError(
                 "Received message can't be converted into a valid ChatCompletion message. Either content or function_call must be provided."
@@ -1210,7 +1221,6 @@ class ConversableAgent(LLMAgent):
         return self._finished_chats
 
     async def a_initiate_chats(self, chat_queue: List[Dict[str, Any]]) -> Dict[int, ChatResult]:
-
         _chat_queue = self._check_chat_queue_for_sender(chat_queue)
         self._finished_chats = await a_initiate_chats(_chat_queue)
         return self._finished_chats
@@ -1932,6 +1942,15 @@ class ConversableAgent(LLMAgent):
                 continue
             if self._match_trigger(reply_func_tuple["trigger"], sender):
                 final, reply = reply_func(self, messages=messages, sender=sender, config=reply_func_tuple["config"])
+                if logging_enabled():
+                    log_event(
+                        self,
+                        "reply_func_executed",
+                        reply_func_module=reply_func.__module__,
+                        reply_func_name=reply_func.__name__,
+                        final=final,
+                        reply=reply,
+                    )
                 if final:
                     return reply
         return self._default_auto_reply

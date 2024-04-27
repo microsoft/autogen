@@ -6,7 +6,7 @@ import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
-from typing import Any, Callable, ClassVar, List, TypeVar, Union, cast
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Union
 
 from typing_extensions import ParamSpec
 
@@ -28,7 +28,31 @@ A = ParamSpec("A")
 
 
 class LocalCommandLineCodeExecutor(CodeExecutor):
-    SUPPORTED_LANGUAGES: ClassVar[List[str]] = ["bash", "shell", "sh", "pwsh", "powershell", "ps1", "python"]
+    SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
+        "bash",
+        "shell",
+        "sh",
+        "pwsh",
+        "powershell",
+        "ps1",
+        "python",
+        "javascript",
+        "html",
+        "css",
+    ]
+    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
+        "bash": True,
+        "shell": True,
+        "sh": True,
+        "pwsh": True,
+        "powershell": True,
+        "ps1": True,
+        "python": True,
+        "javascript": False,
+        "html": False,
+        "css": False,
+    }
+
     FUNCTION_PROMPT_TEMPLATE: ClassVar[
         str
     ] = """You have access to the following user defined functions. They can be accessed from the module called `$module_name` by their function names.
@@ -43,29 +67,27 @@ $functions"""
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
         functions_module: str = "functions",
+        execution_policies: Optional[Dict[str, bool]] = None,
     ):
-        """(Experimental) A code executor class that executes code through a local command line
+        """(Experimental) A code executor class that executes or saves LLM generated code a local command line
         environment.
 
-        **This will execute LLM generated code on the local machine.**
+        **This will execute or save LLM generated code on the local machine.**
 
-        Each code block is saved as a file and executed in a separate process in
-        the working directory, and a unique file is generated and saved in the
-        working directory for each code block.
-        The code blocks are executed in the order they are received.
-        Command line code is sanitized using regular expression match against a list of dangerous commands in order to prevent self-destructive
-        commands from being executed which may potentially affect the users environment.
-        Currently the only supported languages is Python and shell scripts.
-        For Python code, use the language "python" for the code block.
-        For shell scripts, use the language "bash", "shell", or "sh" for the code
-        block.
+        Each code block is saved as a file in the working directory. Depending on the execution policy,
+        the code may be executed in a separate process.
+        The code blocks are executed or save in the order they are received.
+        Command line code is sanitized against a list of dangerous commands to prevent self-destructive commands from being executed,
+        which could potentially affect the user's environment. Supported languages include Python, shell scripts (bash, shell, sh),
+        PowerShell (pwsh, powershell, ps1), HTML, CSS, and JavaScript.
+        Execution policies determine whether each language's code blocks are executed or saved only.
 
         Args:
-            timeout (int): The timeout for code execution. Default is 60.
-            work_dir (str): The working directory for the code execution. If None,
-                a default working directory will be used. The default working
-                directory is the current directory ".".
-            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
+            timeout (int): The timeout for code execution, default is 60 seconds.
+            work_dir (Union[Path, str]): The working directory for code execution, defaults to the current directory.
+            functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]): A list of callable functions available to the executor.
+            functions_module (str): The module name under which functions are accessible.
+            execution_policies (Optional[Dict[str, bool]]): A dictionary mapping languages to execution policies (True for execution, False for saving only). Defaults to class-wide DEFAULT_EXECUTION_POLICY.
         """
 
         if timeout < 1:
@@ -91,6 +113,10 @@ $functions"""
         else:
             self._setup_functions_complete = True
 
+        self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
+        if execution_policies is not None:
+            self.execution_policies.update(execution_policies)
+
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
 
@@ -104,7 +130,6 @@ $functions"""
         Returns:
             str: The formatted prompt.
         """
-
         template = Template(prompt_template)
         return template.substitute(
             module_name=self._functions_module,
@@ -171,26 +196,19 @@ $functions"""
         required_packages = list(set(flattened_packages))
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
-
-            cmd = [sys.executable, "-m", "pip", "install"]
-            cmd.extend(required_packages)
-
+            cmd = [sys.executable, "-m", "pip", "install"] + required_packages
             try:
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
                 )
             except subprocess.TimeoutExpired as e:
                 raise ValueError("Pip install timed out") from e
-
             if result.returncode != 0:
                 raise ValueError(f"Pip install failed. {result.stdout}, {result.stderr}")
-
         # Attempt to load the function file to check for syntax errors, imports etc.
         exec_result = self._execute_code_dont_check_setup([CodeBlock(code=func_file_content, language="python")])
-
         if exec_result.exit_code != 0:
             raise ValueError(f"Functions failed to load: {exec_result.output}")
-
         self._setup_functions_complete = True
 
     def execute_code_blocks(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
@@ -201,10 +219,8 @@ $functions"""
 
         Returns:
             CommandLineCodeResult: The result of the code execution."""
-
         if not self._setup_functions_complete:
             self._setup_functions()
-
         return self._execute_code_dont_check_setup(code_blocks)
 
     def _execute_code_dont_check_setup(self, code_blocks: List[CodeBlock]) -> CommandLineCodeResult:
@@ -229,6 +245,7 @@ $functions"""
                 logs_all += "\n" + f"unknown language {lang}"
                 break
 
+            execute_code = self.execution_policies.get(lang, False)
             try:
                 # Check if there is a filename comment
                 filename = _get_file_name_from_content(code, self._work_dir)
@@ -239,15 +256,19 @@ $functions"""
                 # create a file with an automatically generated name
                 code_hash = md5(code.encode()).hexdigest()
                 filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
-
             written_file = (self._work_dir / filename).resolve()
             with written_file.open("w", encoding="utf-8") as f:
                 f.write(code)
             file_names.append(written_file)
 
-            program = sys.executable if lang.startswith("python") else _cmd(lang)
-            cmd = [program, str(written_file.absolute())]
+            if not execute_code:
+                # Just return a message that the file is saved.
+                logs_all += f"Code saved to {str(written_file)}\n"
+                exitcode = 0
+                continue
 
+            program = _cmd(lang)
+            cmd = [program, str(written_file.absolute())]
             try:
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
