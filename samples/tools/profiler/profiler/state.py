@@ -21,6 +21,13 @@ class State:
     def __hash__(self):
         return hash((self.name, self.description))
 
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "tags": self.tags,
+        }
+
 
 @dataclass
 class StateSpace:

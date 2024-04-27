@@ -23,6 +23,14 @@ class MessageProfile:
         repr += f"\t\t\t{content.encode('unicode_escape').decode()}"
         return repr
 
+    def to_dict(self):
+        return {
+            "message": self.message.to_dict(),
+            "states": [state.to_dict() for state in self.states],
+            "cost": self.cost,
+            "duration": self.duration,
+        }
+
 
 @dataclass
 class ChatProfile:
