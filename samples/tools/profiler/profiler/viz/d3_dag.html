@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAG Visualization</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <!-- Include marked library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         html, body {
             height: 100%; /* Full height for the html and body */
@@ -30,7 +32,7 @@
             padding: 10px;
             border: 1px solid gray;
             border-radius: 10px;
-            font-size: 10px;
+            font-size: 12px;
             box-sizing: border-box;
             direction: rtl; /* Right to Left text direction for scrollbar */
         }
@@ -82,11 +84,25 @@
         .selected-message {
             outline: 2px solid blue;
         }
-    </style>
 
+        .state-tags {
+            display: flex; /* Flexbox to arrange tags in a row */
+            flex-wrap: wrap; /* Allow wrapping onto the next line */
+            gap: 5px; /* Space between tags */
+            margin-top: 10px; /* Space above the tag container */
+        }
+
+        .state-tag {
+            background-color: #007BFF; /* Blue background */
+            color: white; /* White text */
+            padding: 2px 8px; /* Padding inside the tag */
+            border-radius: 10px; /* Rounded corners */
+            font-size: 0.8em; /* Smaller font size for tags */
+        }
+
+    </style>
 </head>
 <body>
-
     <div id="container">
         <div id="left-panel">
             <!-- Node information will be populated here -->
@@ -95,7 +111,6 @@
             <svg id="svg"></svg>
         </div>
     </div>
-
     <script>
         let data = "__DAG_DATA__";
 
@@ -169,14 +184,34 @@
             node.attr("transform", d => `translate(${d.x},${d.y})`);
         });
 
-        // Populate left panel with node information
+        // Add this function at the beginning of your script
+        function processMarkdown(md) {
+            md = md.replace(/>>>>>>>>/g, "**");
+            md = md.replace(/\n/g, "\n\n");
+            return md;
+        }
+
+        // Then modify the existing code
         const leftPanel = d3.select("#left-panel");
         const nodeInfo = leftPanel.selectAll(".node-info")
             .data(data.nodes)
             .enter().append("div")
             .attr("class", "node-info")
-            .attr("id", (d, i) => `node-info-${i}`) // Add unique IDs to each node info
-            .text(d => `${d.profile.message.source}: ${d.profile.message.content}`);
+            .attr("id", (d, i) => `node-info-${i}`)
+            .html(d => {
+                let contentHtml = marked.parse(processMarkdown(d.profile.message.content));
+                let statesHtml = '';
+
+                if (d.profile.states && d.profile.states.length > 0) {
+                    statesHtml += '<div class="state-tags">';
+                    d.profile.states.forEach(state => {
+                        statesHtml += `<span class="state-tag">${state.name}</span>`;
+                    });
+                    statesHtml += '</div>';
+                }
+
+                return contentHtml + statesHtml;
+            });
 
         function dragstarted(event, d) {
             if (!event.active) simulation.alphaTarget(0.3).restart();
