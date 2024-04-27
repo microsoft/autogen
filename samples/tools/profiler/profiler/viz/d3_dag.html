@@ -8,6 +8,16 @@
     <!-- Include marked library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            /* This line attempts to use system UI fonts:
+            -apple-system and BlinkMacSystemFont for Apple systems,
+            "Segoe UI" for Windows,
+            Roboto for Android and some Chrome OS,
+            "Helvetica Neue" for older macOS versions,
+            Arial as a generic fallback,
+            sans-serif as a final generic fallback. */
+        }
         html, body {
             height: 100%; /* Full height for the html and body */
             margin: 0; /* Remove default margin */
@@ -21,7 +31,7 @@
         #container {
             display: flex; /* Flex container for the panels */
             width: 90vw; /* 90% of viewport width */
-            height: 80vh; /* 80% of viewport height */
+            height: 90vh; /* 80% of viewport height */
             padding: 20px; /* Padding around the container */
             box-sizing: border-box; /* Include padding in the width and height calculation */
         }
