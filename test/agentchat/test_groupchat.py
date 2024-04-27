@@ -3,14 +3,14 @@
 import builtins
 import json
 from typing import Any, Dict, List, Optional
-from unittest import mock
+from unittest import mock, TestCase
 
 import pytest
 
 import autogen
 from autogen import Agent, GroupChat
 from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
-
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
@@ -1425,6 +1425,47 @@ def test_speaker_selection_agent_name_match():
     )
     assert result == {}
 
+def test_role_for_reflection_summary():
+    config_list = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+    )
+    llm_config={
+        "config_list": config_list,
+        "model": "gpt-3.5-turbo-0613",
+    },
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin")
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    role_name = "user"
+    with mock.patch.object(autogen.ConversableAgent, '_generate_oai_reply_from_client') as mock_generate_oai_reply_from_client:
+        mock_generate_oai_reply_from_client.return_value = "Mocked summary"
+
+        res = agent1.initiate_chat(
+            group_chat_manager,
+            max_turns=2,
+            message="hello",
+            summary_method="reflection_with_llm",
+            summary_args={"role": role_name}
+        )
+
+        mock_generate_oai_reply_from_client.assert_called_once()
+        args, kwargs = mock_generate_oai_reply_from_client.call_args
+        assert kwargs['messages'][-1]["role"] == role_name
 
 if __name__ == "__main__":
     # test_func_call_groupchat()
@@ -1443,5 +1484,6 @@ if __name__ == "__main__":
     # test_custom_speaker_selection_overrides_transition_graph()
     # test_role_for_select_speaker_messages()
     # test_select_speaker_message_and_prompt_templates()
-    test_speaker_selection_agent_name_match()
+    # test_speaker_selection_agent_name_match()
+    test_role_for_reflection_summary()
     # pass
