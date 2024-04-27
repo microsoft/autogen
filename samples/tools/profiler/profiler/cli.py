@@ -22,7 +22,13 @@ def main():
     if args.file:
         with open(args.file, "r") as f:
             chat_history_json = json.load(f)
-            chat_history = [Message(**message) for message in chat_history_json]
+            try:
+                chat_history = [Message(**message) for message in chat_history_json]
+            except Exception:
+                print(
+                    """Error parsing chat history. Please provide a file containing a list of JSON objects with the following keys: source, role, content."""
+                )
+                exit(1)
             profiler = Profiler(llm_service=OpenAIJSONService())
 
     elif args.json:
