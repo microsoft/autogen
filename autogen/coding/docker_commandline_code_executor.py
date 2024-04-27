@@ -41,7 +41,7 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 class DockerCommandLineCodeExecutor(CodeExecutor):
     def __init__(
         self,
-        image: str = "python:3-slim",
+        image: str = "python:3-slim-bullseye",
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
