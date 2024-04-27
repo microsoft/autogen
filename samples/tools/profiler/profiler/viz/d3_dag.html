@@ -15,12 +15,12 @@
             background-color: #f4f4f4;
         }
         #svg-container {
-            border: 2px solid #ccc;
+            border: 1px solid black;
             border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+
         text {
-            font-size: 10px;
+            font-size: 14px; /* Increased from 10px to 14px */
             text-anchor: middle;
             pointer-events: none;
             fill: #333;
@@ -72,7 +72,7 @@
             .attr("class", "link")
             .attr("marker-end", "url(#arrow)");
 
-        const nodeRadius = 20;
+        const nodeRadius = 30; // Increased from 20 to 30
         const simulation = d3.forceSimulation(data.nodes)
             .force("link", d3.forceLink(data.links).id(d => d.index).distance(100))
             .force("charge", d3.forceManyBody().strength(-300))

@@ -73,9 +73,7 @@ def visualize(args):
     profiles = profiles
 
     visualizer = DAGVisualizer()
-    response = visualizer.visualize(profiles, args.o)
-    if response:
-        print(f"Visualization saved to {args.o}")
+    visualizer.visualize(profiles, args.o)
 
 
 def main():

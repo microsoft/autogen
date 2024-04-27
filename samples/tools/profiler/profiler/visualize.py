@@ -1,3 +1,4 @@
+import os
 import json
 from typing import Protocol, List, Any
 import pkg_resources
@@ -95,16 +96,12 @@ class DAGVisualizer:
 
     def _create_d3_figure(self, dag: DAG, filename: str) -> None:
 
-        # save the dag to a json file
-        # with open("dag.json", "w") as f:
-        #     f.write(json.dumps(dag.to_json(), indent=2))
-
-        # use the contents of index.html to create a d3 figure
-        # with the dag.json file and launch a simpler server
-        # to visualize the figure
-        index_html_path = pkg_resources.resource_filename(__name__, "viz/d3_dag.html")
+        index_html_path = pkg_resources.resource_filename(__name__, os.path.join("viz", "d3_dag.html"))
 
         dag_json = json.dumps(dag.to_json())
+
+        if filename is None:
+            raise ValueError("Output filename must be provided.")
 
         # save this file to filename
         with open(filename, "w") as f:
