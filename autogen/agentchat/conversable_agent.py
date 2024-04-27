@@ -576,6 +576,11 @@ class ConversableAgent(LLMAgent):
 
         if message.get("role") in ["function", "tool"]:
             oai_message["role"] = message.get("role")
+        elif "override_role" in message:
+            # If we have a direction to override the role then set the
+            # role accordingly. Used to customise the role for the
+            # select speaker prompt.
+            oai_message["role"] = message.get("override_role")
         else:
             oai_message["role"] = role
 
