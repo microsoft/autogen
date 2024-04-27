@@ -71,7 +71,7 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           # Coverage doesn't play nicely with docker and windows
-          if [[ ${{ matrix.os }} != windows-latest ]]; then
+          if [ "${{ matrix.os }}" != "windows-latest" ]; then
             pip install -e .[test,redis,websockets]
             pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
           else
