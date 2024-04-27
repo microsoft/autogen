@@ -188,9 +188,15 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             code = silence_pip(code_block.code, lang)
 
             # Check if there is a filename comment
-            filename = (
-                _get_file_name_from_content(code, self._work_dir) or f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
-            )
+            try:
+                filename = _get_file_name_from_content(code, self._work_dir)
+            except ValueError as e:
+                outputs.append(f"Error determining file name: {str(e)}")
+                last_exit_code = 1
+                break
+
+            if not filename:
+                filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
 
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
