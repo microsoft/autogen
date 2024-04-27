@@ -31,6 +31,14 @@ class MessageProfile:
             "duration": self.duration,
         }
 
+    @classmethod
+    def from_dict(cls, data):
+        message = Message(**data["message"])
+        states = {State(**state) for state in data["states"]}
+        cost = data["cost"]
+        duration = data["duration"]
+        return cls(message=message, states=states, cost=cost, duration=duration)
+
 
 @dataclass
 class ChatProfile:

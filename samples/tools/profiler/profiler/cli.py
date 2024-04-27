@@ -1,9 +1,11 @@
 import argparse
 import json
 
+from typing import List
 from tqdm import tqdm
 
-from .profiler import Profiler
+from .profiler import Profiler, MessageProfile
+from .visualize import DAGVisualizer
 from .message import Message
 from .llm import OpenAIJSONService
 from .utils import parse_agb_console
@@ -59,6 +61,22 @@ def profile(args):
 def visualize(args):
     print("Visualizing profile...")
 
+    profiles: List[MessageProfile] = []
+
+    with open(args.jsonl, "r") as jsonl_file:
+        lines = jsonl_file.readlines()
+        for line in lines:
+            profile_dict = json.loads(line)
+            profile = MessageProfile.from_dict(profile_dict)
+            profiles.append(profile)
+
+    profiles = profiles
+
+    visualizer = DAGVisualizer()
+    response = visualizer.visualize(profiles, args.o)
+    if response:
+        print(f"Visualization saved to {args.o}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="Profile and visualize messages between multiple agents.")
@@ -81,7 +99,7 @@ def main():
         description="Visualize a profile. Creates a directed graph of the states that apply to a message.",
         help="visualize a profile.",
     )
-    visualize_parser.add_argument("--jsonl", type=bool, help="Read profile from a JSONL containing profile.")
+    visualize_parser.add_argument("jsonl", type=str, help="Read profile from a JSONL containing profile.")
     visualize_parser.add_argument("--o", type=str, help="Output the visualization to the given path.")
 
     args = parser.parse_args()

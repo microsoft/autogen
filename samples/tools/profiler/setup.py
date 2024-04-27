@@ -7,6 +7,9 @@ setup(
     install_requires=[
         "openai",
     ],
+    package_data={
+        "profiler": ["viz/*.html"],  # include all html files in the package
+    },
     entry_points={
         "console_scripts": [
             "aprofile=profiler.cli:main",

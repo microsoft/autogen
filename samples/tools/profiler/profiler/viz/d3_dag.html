@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DAG Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #svg-container {
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        text {
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+            fill: #333;
+        }
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 1.5px;
+            fill: none;
+            marker-end: url(#arrow);
+        }
+        .node circle {
+            fill: #66c2a5;
+            stroke: #333;
+            stroke-width: 1.5px;
+        }
+    </style>
+</head>
+<body>
+    <svg id="svg-container">
+        <!-- Define arrowhead -->
+        <defs>
+            <marker id="arrow" markerWidth="10" markerHeight="10" refX="12" refY="3" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L0,6 L9,3 z" fill="#999"></path>
+            </marker>
+        </defs>
+    </svg>
+    <script>
+        let dag_data = String.raw`__DAG_DATA__`;
+        let data = JSON.parse(dag_data);
+
+        const svgContainer = d3.select("#svg-container");
+        const width = window.innerWidth * 0.8;  // 80% width
+        const height = window.innerHeight * 0.8; // 80% height
+        const svg = svgContainer.attr("width", width).attr("height", height);
+
+        const zoom = d3.zoom()
+            .on("zoom", (event) => {
+                container.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        const container = svg.append("g");
+
+        const link = container.selectAll(".link")
+            .data(data.links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("marker-end", "url(#arrow)");
+
+        const nodeRadius = 20;
+        const simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links).id(d => d.index).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide(nodeRadius + 1));
+
+        const node = container.selectAll(".node")
+            .data(data.nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        node.append("circle")
+            .attr("r", nodeRadius);
+
+        node.append("text")
+            .attr("dy", "0.35em")
+            .text(d => d.name);
+
+        simulation.on("tick", () => {
+            link.attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+    </script>
+</body>
+</html>
