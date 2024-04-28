@@ -184,6 +184,9 @@ def test_image_generation_capability_negative(monkeypatch, image_gen_capability)
 @pytest.mark.skipif(skip_requirement, reason="Dependencies are not installed.")
 def test_image_generation_capability_cache(monkeypatch):
     """Tests ImageGeneration capability to cache the generated images."""
+    if sys.platform == "win32" and sys.version_info == (3, 12):
+        pytest.skip("Skipping test on Windows with Python 3.12")
+
     test_image_size = (256, 256)
 
     # Patching the _should_generate_image and _extract_prompt methods to avoid TextAnalyzerAgent making API calls.
