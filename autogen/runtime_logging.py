@@ -1,5 +1,3 @@
-# Add Cosmos DB logger
-
 from __future__ import annotations
 
 import logging
