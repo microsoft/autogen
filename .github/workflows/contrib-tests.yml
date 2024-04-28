@@ -57,7 +57,7 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
+          pytest test/test_retrieve_utils.py test/agentchat/contrib/retrievechat/test_retrievechat.py test/agentchat/contrib/retrievechat/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
