@@ -7,6 +7,7 @@ import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
 
 from azure.cosmos import CosmosClient, exceptions
+from azure.cosmos.exceptions import CosmosHttpResponseError, ServiceUnavailableError
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
@@ -23,12 +24,16 @@ logger = logging.getLogger(__name__)
 
 class CosmosDBLoggerConfig(TypedDict, total=False):
     connection_string: str
-    database_id: Optional[str]
-    container_id: Optional[str]
+    database_id: str
+    container_id: str
 
 
 class CosmosDBLogger(BaseLogger):
     def __init__(self, config: CosmosDBLoggerConfig):
+        required_keys = ["connection_string", "database_id", "container_id"]
+        if not all(key in config for key in required_keys):
+            raise ValueError("Missing required configuration for Cosmos DB Logger")
+
         self.config = config
         self.client = CosmosClient.from_connection_string(config["connection_string"])
         self.database_id = config.get("database_id", "autogen_logging")
@@ -65,8 +70,12 @@ class CosmosDBLogger(BaseLogger):
     def _process_log_entry(self, document: Dict[str, Any]):
         try:
             self.container.upsert_item(document)
+        except ServiceUnavailableError:
+            logger.error("Service unavailable")
         except exceptions.CosmosHttpResponseError as e:
             logger.error(f"Failed to upsert document: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error during upsert: {str(e)}")
 
     def log_chat_completion(
         self,
@@ -130,6 +139,8 @@ class CosmosDBLogger(BaseLogger):
     def stop(self) -> None:
         self.log_queue.put(None)  # Signal to stop the worker thread
         self.worker_thread.join()  # Wait for the worker thread to finish
+        if self.client:
+            self.client.close()  # Explicitly close the Cosmos client
 
     def get_connection(self) -> None:
         # Cosmos DB connection management is handled by the SDK.
