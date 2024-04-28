@@ -692,14 +692,14 @@ def detect_gpt_assistant_api_version() -> str:
 def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
     """Create a openai vector store for gpt assistant"""
 
-    vector_store = client.beta.vector_stores.create(name=name)  # type: ignore
+    vector_store = client.beta.vector_stores.create(name=name)
     # poll the status of the file batch for completion.
-    batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)  # type: ignore
+    batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
 
     if batch.status == "in_progress":
         time.sleep(1)
         logging.debug(f"file batch status: {batch.file_counts}")
-        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)  # type: ignore
+        batch = client.beta.vector_stores.file_batches.poll(vector_store_id=vector_store.id, batch_id=batch.id)
 
     if batch.status == "completed":
         return vector_store
