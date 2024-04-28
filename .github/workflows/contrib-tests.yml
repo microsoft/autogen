@@ -294,11 +294,11 @@ jobs:
             echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
           fi
       - name: Coverage
-        if: ${{ matrix.os != 'windows-2019' && matrix.python-version != '3.12' }}
+        if: ${{ matrix.os == 'windows-2019' && matrix.python-version == '3.12' }}
         run: |
           pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_image_generation_capability.py test/agentchat/contrib/capabilities/test_vision_capability.py --ignore=test/agentchat/contrib/capabilities/test_image_generation_capability.py::test_image_generation_capability_cache --skip-openai
       - name: Coverage
-        if: ${{ matrix.os == 'windows-2019' && matrix.python-version == '3.12' }}
+        if: ${{ matrix.os != 'windows-2019' && matrix.python-version != '3.12' }}
         run: |
           pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_image_generation_capability.py test/agentchat/contrib/capabilities/test_vision_capability.py --skip-openai
       - name: Upload coverage to Codecov
