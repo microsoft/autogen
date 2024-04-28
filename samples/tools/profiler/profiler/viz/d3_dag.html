@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DAG Visualization</title>
+
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <!-- Include marked library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -27,53 +28,83 @@
             justify-content: center; /* Center horizontally */
             align-items: center; /* Center vertically */
             background-color: #f4f4f4; /* Background color */
-            box-sizing: border-box; /* Border and padding included in width/height */
         }
         #container {
             display: flex; /* Flex container for the panels */
             width: 90vw; /* 90% of viewport width */
-            height: 100vh; /* 80% of viewport height */
+            height: 90vh; /* 80% of viewport height */
             padding: 20px; /* Padding around the container */
-            box-sizing: border-box; /* Include padding in the width and height calculation */
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+
+            font-size: 12px;
         }
         #left-panel {
             width: 40%;
             height: 100%; /* Full height of the container */
-            overflow-y: auto;
-            padding: 10px;
             border: 1px solid gray;
             border-radius: 10px;
-            font-size: 12px;
-            box-sizing: border-box;
-            direction: rtl; /* Right to Left text direction for scrollbar */
             margin-right: 20px;
+
+            display: flex; /* Flex container for the message history */
+            flex-direction: column;
+        }
+        #message-history {
+            padding: 20px;
+            height: auto; /* Auto height for the message history */
+            direction: rtl; /* Right to Left text direction for scrollbar */
+            overflow-y: auto;
         }
         #left-panel > * {
             direction: ltr; /* Left to Right text direction for contents */
         }
+
+        #right-panel {
+            flex: 1; /* Take remaining space */
+            height: 100%; /* Full height of the container */
+            border-radius: 10px;
+
+            display: flex; /* Flex container for the graph and states */
+            flex-direction: column;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+        }
+
         #svg-container {
             flex: 1; /* Take remaining space */
-            flex-direction: column;
-            margin-right: 20px;
-            /* height: 60%; Full height of the container */
-            /* margin-left: 2%; Gutter between panels */
-        }
-        #svg {
-            width: 100%;
-            height: 60%;
-            border: solid 1px black;
-            border-radius: 10px;
-        }
-        #states-panel {
-            flex-grow: 1;
-            margin-top: 20px; /*Space between the graph and the states panel*/
+
+            height: 60%; /* 60% of the right panel */
+            width: 100%; /* Full width of the right panel */
+            margin: 10px;
+            margin-top: 0;
             border: solid 1px gray;
             border-radius: 10px;
-            padding: 10px;
-            /* display: flex; */
-            flex-direction: column; /* Organize items vertically */
+
+            align-items: center;
+            justify-content: center;
+
+            display: flex; /* Flex container for the SVG */
+            flex-direction: column;
+        }
+
+        #svg {
+            width: 100%;
+            height: 90%;
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+
+        #states-panel {
+            height: 40%; /* 40% of the right panel */
+            width: 100%; /* Full width of the right panel */
+            margin: 10px;
+
+            border: solid 1px gray;
+            border-radius: 10px;
             align-items: center;
             overflow-y: auto; /* Enable scroll if content overflows */
+            box-sizing: border-box;
+            margin-bottom: 0; /* Remove margin bottom */
         }
 
         .state-bar {
@@ -106,7 +137,7 @@
             font-size: 14px;
             text-anchor: middle;
             pointer-events: none;
-            fill: #333;
+            /* fill: #333; */
         }
         .link {
             stroke: #999;
@@ -116,16 +147,15 @@
             marker-end: url(#arrow);
         }
         .node circle {
-            fill: #66c2a5;
+            fill: #4572d4;
             stroke: #333;
-            stroke-width: 1.5px;
         }
         .node-info {
             margin-bottom: 10px;
             padding: 10px;
             cursor: pointer;
-            background-color: #fff;
-            border: 1px solid #ccc;
+            /* background-color: #fff; */
+            border: 1px solid rgba(100, 137, 232, 0.461);
             border-radius: 5px;
         }
         .node-info:hover {
@@ -167,17 +197,25 @@
 <body>
     <div id="container">
         <div id="left-panel">
-            <!-- Node information will be populated here -->
+            <h3 style="text-align: center;">Message History</h3>
+            <div id="message-history">
+                <!-- Node information will be populated here -->
+            </div>
         </div>
-        <div id="svg-container">
-            <svg id="svg"></svg>
-            <i id="reset-view" class="fas fa-sync-alt" style="position: absolute; bottom: 10px; right: 10px; font-size: 24px; color: #007BFF; cursor: pointer;"></i>
-            <!-- New panel for states -->
+        <div id="right-panel">
+
+            <div id="svg-container">
+                <h3>Summary of Steps</h3>
+                <svg id="svg"></svg>
+                <i id="reset-view" class="fas fa-sync-alt" style="position: absolute; bottom: 10px; right: 10px; font-size: 24px; color: #007BFF; cursor: pointer;"></i>
+                <!-- New panel for states -->
+            </div>
+
             <div id="states-panel">
+                <h3 style="text-align: center;">Histogram of States vs. Num. Messages</h3>
                 <!-- States bar chart will be populated here -->
             </div>
         </div>
-
     </div>
     <script>
         let data = "__DAG_DATA__";
@@ -202,9 +240,8 @@
 
         const totalStates = Object.keys(stateCounts).reduce((sum, key) => sum + stateCounts[key], 0);
         // Modify the bar chart rendering section in the script
-        // Modify the bar chart rendering section in the script
         statesChart.selectAll(".state-bar")
-            .data(Object.entries(stateCounts))
+            .data(Object.entries(stateCounts).sort((a, b) => a[0].localeCompare(b[0])))
             .enter()
             .append("div")
             .classed("state-bar", true)
@@ -353,8 +390,8 @@
         }
 
         // Then modify the existing code
-        const leftPanel = d3.select("#left-panel");
-        const nodeInfo = leftPanel.selectAll(".node-info")
+        const messageHistory = d3.select("#message-history");
+        const nodeInfo = messageHistory.selectAll(".node-info")
             .data(data.nodes)
             .enter().append("div")
             .attr("class", "node-info")
