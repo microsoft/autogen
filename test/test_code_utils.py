@@ -386,7 +386,7 @@ def test_execute_code_with_custom_filename_on_docker():
 
 
 @pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
+    skip_docker_test,
     reason="docker is not running or requested to skip docker tests",
 )
 def test_execute_code_with_misformed_filename_on_docker():
