@@ -7,12 +7,13 @@ from unittest.mock import MagicMock, patch
 try:
     from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
+    from autogen.cache.cosmos_db_cache import CosmosDBCache
+
     skip_test = False
 except ImportError:
+    CosmosResourceNotFoundError = Exception
+    CosmosDBCache = object
     skip_test = True
-    CosmosResourceNotFoundError = None
-
-from autogen.cache.cosmos_db_cache import CosmosDBCache
 
 
 class TestCosmosDBCache(unittest.TestCase):
