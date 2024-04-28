@@ -17,8 +17,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import MOCK_OPEN_AI_API_KEY, skip_docker  # noqa: E402
 
 if skip_docker or not is_docker_running() or not decide_use_docker(use_docker=None):
+    skip_docker_test = True
     classes_to_test = [LocalCommandLineCodeExecutor]
 else:
+    skip_docker_test = False
     classes_to_test = [LocalCommandLineCodeExecutor, DockerCommandLineCodeExecutor]
 
 UNIX_SHELLS = ["bash", "sh", "shell"]
@@ -70,7 +72,7 @@ def test_create_local() -> None:
 
 
 @pytest.mark.skipif(
-    skip_docker or not is_docker_running() or not decide_use_docker(use_docker=None),
+    skip_docker_test,
     reason="docker is not running or requested to skip docker tests",
 )
 def test_create_docker() -> None:
@@ -241,7 +243,7 @@ def test_local_commandline_code_executor_restart() -> None:
 
 # This is kind of hard to test because each exec is a new env
 @pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
+    skip_docker_test,
     reason="docker is not running or requested to skip docker tests",
 )
 def test_docker_commandline_code_executor_restart() -> None:
