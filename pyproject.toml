@@ -70,6 +70,7 @@ exclude = [
     "autogen/oai/completion\\.py",
     "autogen/agentchat/contrib/compressible_agent\\.py",
     "autogen/agentchat/contrib/math_user_proxy_agent.py",
+    "autogen/oai/openai_utils.py",
 ]
 
 strict = true
