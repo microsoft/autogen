@@ -33,6 +33,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.Mistral", "src\Auto
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoGen.Mistral.Tests", "test\AutoGen.Mistral.Tests\AutoGen.Mistral.Tests.csproj", "{15441693-3659-4868-B6C1-B106F52FF3BA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autogen.Ollama", "src\Autogen.Ollama\Autogen.Ollama.csproj", "{F07D7D21-335D-4489-BDA0-08A9DEDBD206}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Autogen.Ollama.Tests", "test\Autogen.Ollama.Tests\Autogen.Ollama.Tests.csproj", "{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +91,14 @@ Global
 		{15441693-3659-4868-B6C1-B106F52FF3BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{15441693-3659-4868-B6C1-B106F52FF3BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{15441693-3659-4868-B6C1-B106F52FF3BA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F07D7D21-335D-4489-BDA0-08A9DEDBD206}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F07D7D21-335D-4489-BDA0-08A9DEDBD206}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F07D7D21-335D-4489-BDA0-08A9DEDBD206}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F07D7D21-335D-4489-BDA0-08A9DEDBD206}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -104,6 +116,8 @@ Global
 		{63445BB7-DBB9-4AEF-9D6F-98BBE75EE1EC} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{6585D1A4-3D97-4D76-A688-1933B61AEB19} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{15441693-3659-4868-B6C1-B106F52FF3BA} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{F07D7D21-335D-4489-BDA0-08A9DEDBD206} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{7E5E7DBF-FD0B-4C34-BAFE-8FD4FD4AC94C} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
