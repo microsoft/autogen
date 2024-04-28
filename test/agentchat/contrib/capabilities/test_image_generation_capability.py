@@ -191,7 +191,7 @@ def test_image_generation_capability_cache(monkeypatch):
     monkeypatch.setattr(generate_images.ImageGeneration, "_extract_prompt", lambda _, __: PROMPTS[0])
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        cache = Cache.disk(cache_path_root=temp_dir)
+        cache = Cache.disk(cache_path_root=temp_dir, cache_seed=11)
 
         user = UserProxyAgent("user", human_input_mode="NEVER")
         agent = create_test_agent()
