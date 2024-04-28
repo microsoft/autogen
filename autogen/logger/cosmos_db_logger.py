@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import queue
 import threading
-import time
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
 
@@ -22,46 +21,51 @@ __all__ = ("CosmosDBLogger",)
 logger = logging.getLogger(__name__)
 
 
-class CosmosDBConfig(TypedDict):
+class CosmosDBLoggerConfig(TypedDict, total=False):
     connection_string: str
-    database_id: str  # Optional key, hence not enforcing it as mandatory
-    container_id: str  # Optional key, hence not enforcing it as mandatory
+    database_id: Optional[str]
+    container_id: Optional[str]
 
 
 class CosmosDBLogger(BaseLogger):
-    def __init__(self, config: CosmosDBConfig):
+    def __init__(self, config: CosmosDBLoggerConfig):
         self.config = config
         self.client = CosmosClient.from_connection_string(config["connection_string"])
-        self.database_id = config.get("database_id", "AutogenLogging")
+        self.database_id = config.get("database_id", "autogen_logging")
         self.database = self.client.get_database_client(self.database_id)
         self.container_id = config.get("container_id", "Logs")
         self.container = self.database.get_container_client(self.container_id)
         self.session_id = str(uuid.uuid4())
         self.log_queue = queue.Queue()
-        self.logger_thread = threading.Thread(target=self._process_log_queue)
+        self.logger_thread = threading.Thread(target=self._worker, daemon=True)
         self.logger_thread.start()
 
     def start(self) -> str:
         try:
             self.database.create_container_if_not_exists(id=self.container_id, partition_key="/session_id")
-        except Exception as e:
+        except exceptions.CosmosHttpResponseError as e:
             logger.error(f"Failed to create or access container {self.container_id}: {e}")
         return self.session_id
 
     def _worker(self):
         while True:
+            item = self.log_queue.get()
             try:
                 item = self.log_queue.get()
-                if item is None:
-                    break  # None is a signal to stop the worker thread
-                self._process_log_entry(item)
+                if item is None: # None is a signal to stop the worker thread
+                    self.log_queue.task_done()
+                    break  
+                try:
+                    self._process_log_entry(item)
+                except Exception as e:
+                    logger.error(f"Error processing log entry: {e}")
             finally:
                 self.log_queue.task_done()
 
     def _process_log_entry(self, document: Dict[str, Any]):
         try:
             self.container.upsert_item(document)
-        except Exception as e:
+        except exceptions.CosmosHttpResponseError as e:
             logger.error(f"Failed to upsert document: {e}")
 
     def log_chat_completion(
