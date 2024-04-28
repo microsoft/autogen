@@ -295,7 +295,11 @@ jobs:
           fi
       - name: Coverage
         run: |
-          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_image_generation_capability.py test/agentchat/contrib/capabilities/test_vision_capability.py --skip-openai
+          pytest test/agentchat/contrib/test_img_utils.py test/agentchat/contrib/test_lmm.py test/agentchat/contrib/test_llava.py test/agentchat/contrib/capabilities/test_vision_capability.py --skip-openai
+      - name: Image Gen Coverage
+        if: ${{ matrix.os != 'windows-2019' && matrix.python-version != '3.12' }}
+        run: |
+          pytest test/agentchat/contrib/capabilities/test_image_generation_capability.py --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
