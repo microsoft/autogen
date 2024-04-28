@@ -4,7 +4,7 @@ from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
 
 try:
-    from autogen.logger.cosmos_db_logger import CosmosDBConfig, CosmosDBLogger
+    from autogen.logger.cosmos_db_logger import CosmosDBLoggerConfig, CosmosDBLogger
 
     cosmos_imported = True
 except ImportError:
@@ -24,10 +24,10 @@ class LoggerFactory:
         elif logger_type == "cosmos":
             if not cosmos_imported:
                 raise ImportError(
-                    "CosmosDBLogger and CosmosDBConfig could not be imported. Please ensure the cosmos package is installed."
+                    "CosmosDBLogger and CosmosDBLoggerConfig could not be imported. Please ensure the cosmos package is installed."
                 )
-            if isinstance(config, dict) and all(key in CosmosDBConfig.__annotations__ for key in config.keys()):
-                return CosmosDBLogger(config)  # Type cast to CosmosDBConfig if using Python < 3.10
+            if isinstance(config, dict) and all(key in CosmosDBLoggerConfig.__annotations__ for key in config.keys()):
+                return CosmosDBLogger(config)  # Type cast to CosmosDBLoggerConfig if using Python < 3.10
             else:
                 raise ImportError(
                     "CosmosDBLogger could not be imported. Please ensure the cosmos package is installed by using pip install pyautogen[cosmosdb]."
