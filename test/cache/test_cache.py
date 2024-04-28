@@ -7,10 +7,9 @@ from unittest.mock import ANY, MagicMock, patch
 try:
     from azure.cosmos import CosmosClient
 except ImportError:
-    CosmosClient = None
+    CosmosClient = object
 
 from autogen.cache.cache import Cache
-from autogen.cache.cosmos_db_cache import CosmosDBConfig
 
 
 class TestCache(unittest.TestCase):
