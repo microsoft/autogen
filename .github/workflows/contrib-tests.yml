@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-2019]
+        os: [macos-latest, windows-2019]
         python-version: ["3.9", "3.10", "3.11"]
         exclude:
           - os: macos-latest
@@ -45,20 +45,10 @@ jobs:
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10'
         run: |
-          pip install .[retrievechat-qdrant]
-      - name: Install unstructured when python-version is 3.9 and on linux
+          pip install -e .[retrievechat-qdrant]
+      - name: Install packages and dependencies for RetrieveChat
         run: |
-          sudo apt-get update
-          sudo apt-get install -y tesseract-ocr poppler-utils
-          pip install unstructured[all-docs]==0.13.0
-      - name: Install and Start PostgreSQL
-        runs-on: ubuntu-latest
-        run: |
-          sudo apt install postgresql -y
-          sudo service postgresql start
-      - name: Install packages and dependencies for PGVector
-        run: |
-          pip install -e .[retrievechat-pgvector]
+          pip install -e .[retrievechat]
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |
@@ -68,7 +58,69 @@ jobs:
       - name: Coverage
         run: |
           pip install coverage>=5.3
-          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/test_retrievechat.py test/agentchat/contrib/test_qdrant_retrievechat.py test/agentchat/contrib/vectordb --skip-openai
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/retrievechat test/agentchat/contrib/vectordb --skip-openai
+          coverage xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+
+  RetrieveChatTest-Ubuntu:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies for all tests
+        run: |
+          python -m pip install --upgrade pip wheel
+          pip install pytest
+      - name: Install qdrant_client when python-version is 3.10
+        if: matrix.python-version == '3.10'
+        run: |
+          pip install -e .[retrievechat-qdrant]
+      - name: Install pgvector when on linux
+        run: |
+          pip install -e .[retrievechat-pgvector]
+      - name: Install unstructured when python-version is 3.9 and on linux
+        if: matrix.python-version == '3.9'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr poppler-utils
+          pip install unstructured[all-docs]==0.13.0
+      - name: Install packages and dependencies for RetrieveChat
+        run: |
+          pip install -e .[retrievechat]
+      - name: Set AUTOGEN_USE_DOCKER based on OS
+        shell: bash
+        run: |
+          echo "AUTOGEN_USE_DOCKER=False" >> $GITHUB_ENV
+      - name: Coverage
+        run: |
+          pip install coverage>=5.3
+          coverage run -a -m pytest test/test_retrieve_utils.py test/agentchat/contrib/retrievechat test/agentchat/contrib/vectordb --skip-openai
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

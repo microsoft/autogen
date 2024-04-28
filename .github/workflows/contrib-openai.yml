@@ -24,6 +24,21 @@ jobs:
         python-version: ["3.10"]
     runs-on: ${{ matrix.os }}
     environment: openai1
+    services:
+      pgvector:
+        image: ankane/pgvector
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       # checkout to pr branch
       - name: Checkout
@@ -41,15 +56,10 @@ jobs:
           pip install -e .
           python -c "import autogen"
           pip install coverage pytest-asyncio
-      - name: Install PostgreSQL
-        run: |
-          sudo apt install postgresql -y
-      - name: Start PostgreSQL service
-        run: sudo service postgresql start
       - name: Install packages for test when needed
         run: |
           pip install docker
-          pip install -e .[retrievechat-qdrant,retrievechat-pgvector]
+          pip install -e .[retrievechat,retrievechat-qdrant,retrievechat-pgvector]
       - name: Coverage
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -57,13 +67,14 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          coverage run -a -m pytest test/agentchat/contrib/test_retrievechat.py::test_retrievechat test/agentchat/contrib/test_qdrant_retrievechat.py::test_retrievechat test/agentchat/contrib/test_pgvector_retrievechat.py::test_retrievechat
+          coverage run -a -m pytest -k test_retrievechat test/agentchat/contrib/retrievechat
           coverage xml
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage.xml
           flags: unittests
+
   CompressionTest:
     strategy:
       matrix:
