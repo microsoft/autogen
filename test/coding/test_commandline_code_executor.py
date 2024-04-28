@@ -70,7 +70,7 @@ def test_create_local() -> None:
 
 
 @pytest.mark.skipif(
-    skip_docker or not is_docker_running(),
+    skip_docker or not is_docker_running() or not decide_use_docker(use_docker=None),
     reason="docker is not running or requested to skip docker tests",
 )
 def test_create_docker() -> None:
