@@ -7,6 +7,7 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <!-- Include marked library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -31,7 +32,7 @@
         #container {
             display: flex; /* Flex container for the panels */
             width: 90vw; /* 90% of viewport width */
-            height: 90vh; /* 80% of viewport height */
+            height: 100vh; /* 80% of viewport height */
             padding: 20px; /* Padding around the container */
             box-sizing: border-box; /* Include padding in the width and height calculation */
         }
@@ -45,23 +46,62 @@
             font-size: 12px;
             box-sizing: border-box;
             direction: rtl; /* Right to Left text direction for scrollbar */
+            margin-right: 20px;
         }
         #left-panel > * {
             direction: ltr; /* Left to Right text direction for contents */
         }
         #svg-container {
             flex: 1; /* Take remaining space */
-            height: 100%; /* Full height of the container */
-            margin-left: 2%; /* Gutter between panels */
-            border: solid 1px black;
-            border-radius: 10px;
-            box-sizing: border-box;
-            background-color: white; /* Ensure background is white for visibility */
+            flex-direction: column;
+            margin-right: 20px;
+            /* height: 60%; Full height of the container */
+            /* margin-left: 2%; Gutter between panels */
         }
         #svg {
             width: 100%;
-            height: 100%;
+            height: 60%;
+            border: solid 1px black;
+            border-radius: 10px;
         }
+        #states-panel {
+            flex-grow: 1;
+            margin-top: 20px; /*Space between the graph and the states panel*/
+            border: solid 1px gray;
+            border-radius: 10px;
+            padding: 10px;
+            /* display: flex; */
+            flex-direction: column; /* Organize items vertically */
+            align-items: center;
+            overflow-y: auto; /* Enable scroll if content overflows */
+        }
+
+        .state-bar {
+            width: 100%; /* Full width to align labels and bars */
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Align items to the left */
+            margin: 5px 0;
+        }
+
+        .state-bar-label {
+            min-width: 150px; /* Ensure the label has a consistent width */
+            text-align: right; /* Align text to the right */
+            margin-right: 10px; /* Space between label and bar */
+            font-size: 10px;
+        }
+
+        .state-bar-graph {
+            height: 15px;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
         text {
             font-size: 14px;
             text-anchor: middle;
@@ -110,6 +150,18 @@
             font-size: 0.8em; /* Smaller font size for tags */
         }
 
+        #reset-view {
+            cursor: pointer;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+        }
+
+        #reset-view:hover {
+            color: #0056b3;
+        }
+
+
     </style>
 </head>
 <body>
@@ -119,15 +171,55 @@
         </div>
         <div id="svg-container">
             <svg id="svg"></svg>
+            <i id="reset-view" class="fas fa-sync-alt" style="position: absolute; bottom: 10px; right: 10px; font-size: 24px; color: #007BFF; cursor: pointer;"></i>
+            <!-- New panel for states -->
+            <div id="states-panel">
+                <!-- States bar chart will be populated here -->
+            </div>
         </div>
+
     </div>
     <script>
         let data = "__DAG_DATA__";
 
         const svg = d3.select("#svg");
         const svgContainer = d3.select("#svg-container");
-        const width = svgContainer.node().getBoundingClientRect().width;
-        const height = svgContainer.node().getBoundingClientRect().height;
+        const width = svg.node().getBoundingClientRect().width;
+        const height = svg.node().getBoundingClientRect().height;
+
+        const statesChart = d3.select("#states-panel");
+        const statesWidth = statesChart.node().getBoundingClientRect().width;
+        const statesHeight = statesChart.node().getBoundingClientRect().height;
+
+        let stateCounts = {};
+        data.nodes.forEach(node => {
+            if (node.profile.states) {
+                node.profile.states.forEach(state => {
+                    stateCounts[state.name] = (stateCounts[state.name] || 0) + 1;
+                });
+            }
+        });
+
+        const totalStates = Object.keys(stateCounts).reduce((sum, key) => sum + stateCounts[key], 0);
+        // Modify the bar chart rendering section in the script
+        // Modify the bar chart rendering section in the script
+        statesChart.selectAll(".state-bar")
+            .data(Object.entries(stateCounts))
+            .enter()
+            .append("div")
+            .classed("state-bar", true)
+            .each(function(d) {
+                const div = d3.select(this);
+                div.append("div")
+                    .classed("state-bar-label", true)
+                    .text(d[0]); // Set the label
+
+                div.append("div")
+                    .classed("state-bar-graph", true)
+                    .style("width", `${(d[1] / totalStates) * 100}%`) // Dynamic width based on data
+                    .text(`(${d[1]})`); // Set the text inside the bar
+            });
+
 
         const zoom = d3.zoom()
             .scaleExtent([0.1, 10])
@@ -192,6 +284,65 @@
                 .attr("y2", d => d.target.y);
 
             node.attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        document.getElementById('reset-view').addEventListener('click', function() {
+            fitGraph(); // Resets the graph zoom and position
+        });
+
+
+        // Ensure that the fitGraph function also considers the height of the states panel
+        function fitGraph() {
+            simulation.stop(); // Stop the simulation temporarily
+
+            let bounds = getGraphBounds(), // Get the bounds of the graph
+                widthScale = width / (bounds.maxX - bounds.minX),
+                heightScale = (height - 40) / (bounds.maxY - bounds.minY), // Adjust for the height of the states panel
+                scale = Math.min(widthScale, heightScale) * 0.8, // Scale down a bit to add padding
+                translate = [
+                    (width / 2) - scale * (bounds.minX + (bounds.maxX - bounds.minX) / 2),
+                    (height / 2) - scale * (bounds.minY + (bounds.maxY - bounds.minY) / 2) - 20 // Adjust translate to consider the panel
+                ];
+
+            svg.transition()
+                .duration(500)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+
+        // Function to get the graphical bounds of the nodes
+        function getGraphBounds() {
+            let minX = Infinity,
+                maxX = -Infinity,
+                minY = Infinity,
+                maxY = -Infinity;
+
+            node.each(d => {
+                if (d.x < minX) minX = d.x;
+                if (d.x > maxX) maxX = d.x;
+                if (d.y < minY) minY = d.y;
+                if (d.y > maxY) maxY = d.y;
+            });
+
+            return { minX, maxX, minY, maxY };
+        }
+
+        // simulation.on("end", fitGraph); // Call fitGraph when the simulation stabilizes
+        let initialFitGraph = false;
+        let isSimulationEnded = false;
+
+        window.onload = function() {
+            if (isSimulationEnded && !initialFitGraph) {
+                fitGraph();
+                initialFitGraph = true;
+            }
+        };
+
+        simulation.on("end", function() {
+            isSimulationEnded = true;
+            if (!initialFitGraph) {
+                fitGraph();
+                initialFitGraph = true;
+            }
         });
 
         // Add this function at the beginning of your script
