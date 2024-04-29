@@ -521,13 +521,8 @@ class GroupChat:
         if selected_agent:
             return selected_agent
 
-        if self.speaker_selection_method == "manual":
-            selector.update_system_message(self.select_speaker_msg(agents))
-            final, name = selector.generate_oai_reply(messages)
-            return self._finalize_speaker(last_speaker, final, name, agents)
-        else:
-            # auto speaker selection with 2-agent chat
-            return self._auto_select_speaker(last_speaker, selector, messages, agents)
+        # auto speaker selection with 2-agent chat
+        return self._auto_select_speaker(last_speaker, selector, messages, agents)
 
     async def a_select_speaker(self, last_speaker: Agent, selector: ConversableAgent) -> Agent:
         """Select the next speaker (with requery), asynchronously."""
@@ -536,13 +531,8 @@ class GroupChat:
         if selected_agent:
             return selected_agent
 
-        if self.speaker_selection_method == "manual":
-            selector.update_system_message(self.select_speaker_msg(agents))
-            final, name = await selector.a_generate_oai_reply(messages)
-            return self._finalize_speaker(last_speaker, final, name, agents)
-        else:
-            # auto speaker selection with 2-agent chat
-            return await self.a_auto_select_speaker(last_speaker, selector, messages, agents)
+        # auto speaker selection with 2-agent chat
+        return await self.a_auto_select_speaker(last_speaker, selector, messages, agents)
 
     def _finalize_speaker(self, last_speaker: Agent, final: bool, name: str, agents: Optional[List[Agent]]) -> Agent:
         if not final:
