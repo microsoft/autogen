@@ -1,9 +1,10 @@
 import json
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from azure.cosmos import CosmosClient
+
 import autogen.runtime_logging
 from autogen.logger.cosmos_db_logger import CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts
@@ -42,20 +43,22 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 """
 )
 
+
 @pytest.fixture(scope="function")
 def cosmos_db_config() -> CosmosDBLoggerConfig:
     return {
         "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
         "database_id": "TestDatabase",
-        "container_id": "TestContainer"
+        "container_id": "TestContainer",
     }
 
 @pytest.fixture(scope="function")
 def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
-    with patch.object(CosmosClient, 'from_connection_string', return_value=MagicMock()):
+    with patch.object(CosmosClient, "from_connection_string", return_value=MagicMock()):
         logger = autogen.runtime_logging.CosmosDBLogger(cosmos_db_config)
         yield logger
         logger.stop()
+
 
 def get_sample_chat_completion(response):
     return {
@@ -69,6 +72,7 @@ def get_sample_chat_completion(response):
         "start_time": get_current_ts(),
     }
 
+
 @patch("azure.cosmos.CosmosClient")
 def test_log_chat_completion(mock_cosmos_client, cosmos_logger):
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
@@ -79,11 +83,24 @@ def test_log_chat_completion(mock_cosmos_client, cosmos_logger):
 
     # Simulate processing the log entry
     document = cosmos_logger.log_queue.get()
-    expected_keys = ["type", "invocation_id", "client_id", "wrapper_id", "session_id", "request", "response", "is_cached", "cost", "start_time", "end_time"]
+    expected_keys = [
+        "type",
+        "invocation_id",
+        "client_id",
+        "wrapper_id",
+        "session_id",
+        "request",
+        "response",
+        "is_cached",
+        "cost",
+        "start_time",
+        "end_time",
+    ]
     assert all(key in document for key in expected_keys)
 
     # Check if the mock was called correctly
     mock_cosmos_client.from_connection_string.assert_called_once_with(cosmos_db_config["connection_string"])
+
 
 @pytest.mark.parametrize(
     "response, expected_logged_response",
@@ -99,9 +116,9 @@ def test_log_completion_variants(response, expected_logged_response, cosmos_logg
 
     document = cosmos_logger.log_queue.get()
     if isinstance(expected_logged_response, dict):
-        assert json.loads(document['response']) == expected_logged_response
+        assert json.loads(document["response"]) == expected_logged_response
     else:
-        assert document['response'] == to_dict(response)
+        assert document["response"] == to_dict(response)
 
 def test_stop_logging(cosmos_logger):
     cosmos_logger.stop()
