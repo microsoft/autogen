@@ -28,7 +28,9 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
     database_id: str
     container_id: str
 
+
 log_queue: queue.Queue[Dict[str, Any]] = queue.Queue()
+
 
 class CosmosDBLogger(BaseLogger):
     def __init__(self, config: CosmosDBLoggerConfig):
@@ -113,17 +115,21 @@ class CosmosDBLogger(BaseLogger):
         }
 
         if isinstance(source, Agent):
-            document.update({
-                "source_id": id(source),
-                "source_name": source.name if hasattr(source, "name") else str(source),
-                "source_type": source.__class__.__name__,
-            })
+            document.update(
+                {
+                    "source_id": id(source),
+                    "source_name": source.name if hasattr(source, "name") else str(source),
+                    "source_type": source.__class__.__name__,
+                }
+            )
         else:
-            document.update({
-                "source_id": id(source),
-                "source_name": str(source),
-                "source_type": "System",
-            })
+            document.update(
+                {
+                    "source_id": id(source),
+                    "source_name": str(source),
+                    "source_type": "System",
+                }
+            )
 
         self.log_queue.put(document)
 
