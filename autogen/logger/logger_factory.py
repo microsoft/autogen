@@ -29,6 +29,11 @@ class LoggerFactory:
             # Validate configuration for CosmosDBLogger
             required_keys = {"connection_string", "database_id", "container_id"}
             if isinstance(config, dict) and required_keys.issubset(config.keys()):
+                cosmos_config: CosmosDBLoggerConfig = {
+                    "connection_string": config["connection_string"],
+                    "database_id": config["database_id"],
+                    "container_id": config["container_id"],
+                }
                 return CosmosDBLogger(config)  # Config validated and passed as CosmosDBLoggerConfig
             else:
                 raise ValueError(
