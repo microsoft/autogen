@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// ChatCompletionResponse.cs
+
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace AutoGen.Mistral;
