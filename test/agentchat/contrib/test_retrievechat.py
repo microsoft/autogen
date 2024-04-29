@@ -1,8 +1,10 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
 import os
 import sys
+
+import pytest
+
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
@@ -12,15 +14,16 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
+    import chromadb
     import openai
+    from chromadb.utils import embedding_functions as ef
+
     from autogen.agentchat.contrib.retrieve_assistant_agent import (
         RetrieveAssistantAgent,
     )
     from autogen.agentchat.contrib.retrieve_user_proxy_agent import (
         RetrieveUserProxyAgent,
     )
-    import chromadb
-    from chromadb.utils import embedding_functions as ef
 except ImportError:
     skip = True
 else:
@@ -68,7 +71,9 @@ def test_retrievechat():
     assistant.reset()
 
     code_problem = "How can I use FLAML to perform a classification task, set use_spark=True, train 30 seconds and force cancel jobs if time limit is reached."
-    ragproxyagent.initiate_chat(assistant, problem=code_problem, search_string="spark", silent=True)
+    ragproxyagent.initiate_chat(
+        assistant, message=ragproxyagent.message_generator, problem=code_problem, search_string="spark", silent=True
+    )
 
     print(conversations)
 

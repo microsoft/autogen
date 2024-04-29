@@ -5,7 +5,8 @@
 [
     {
         "model": "gpt-4",
-        "api_key": "<your OpenAI API key here>"
+        "api_key": "<your OpenAI API key here>",
+        "tags": ["gpt-4", "tool"]
     },
     {
         "model": "<your Azure OpenAI deployment name>",

@@ -1,21 +1,30 @@
 #!/usr/bin/env python3 -m pytest
 
-import pytest
-import sys
 import os
+import sys
+
+import pytest
+
 import autogen
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from conftest import skip_openai  # noqa: E402
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+from conftest import reason, skip_openai  # noqa: E402
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 
-@pytest.mark.skipif(skip_openai, reason="requested to skip openai tests")
+@pytest.mark.skipif(skip_openai, reason=reason)
 def test_nested():
-    config_list = autogen.config_list_from_json(env_or_file="OAI_CONFIG_LIST")
+    config_list = autogen.config_list_from_json(env_or_file=OAI_CONFIG_LIST, file_location=KEY_LOC)
+    config_list_35 = autogen.config_list_from_json(
+        OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-3.5-turbo"]},
+    )
     llm_config = {"config_list": config_list}
 
     tasks = [
-        """What's Microsoft's Stock price today?""",
+        """What's the date today?""",
         """Make a pleasant joke about it.""",
     ]
 
@@ -56,7 +65,13 @@ def test_nested():
 
     assistant = autogen.AssistantAgent(
         name="Assistant",
-        llm_config={"config_list": config_list},
+        llm_config=False,
+        # is_termination_msg=lambda x: x.get("content", "") == "",
+    )
+
+    assistant_2 = autogen.AssistantAgent(
+        name="Assistant",
+        llm_config={"config_list": config_list_35},
         # is_termination_msg=lambda x: x.get("content", "") == "",
     )
 
@@ -71,9 +86,20 @@ def test_nested():
         },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
     )
 
+    user_2 = autogen.UserProxyAgent(
+        name="User",
+        human_input_mode="NEVER",
+        is_termination_msg=lambda x: x.get("content", "").find("TERMINATE") >= 0,
+        code_execution_config={
+            "last_n_messages": 1,
+            "work_dir": "tasks",
+            "use_docker": False,
+        },  # Please set use_docker=True if docker is available to run the generated code. Using docker is safer than running the generated code directly.
+    )
+
     writer = autogen.AssistantAgent(
         name="Writer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="""
         You are a professional writer, known for
         your insightful and engaging articles.
@@ -82,9 +108,9 @@ def test_nested():
         """,
     )
 
-    reviewer = autogen.AssistantAgent(
+    autogen.AssistantAgent(
         name="Reviewer",
-        llm_config={"config_list": config_list},
+        llm_config={"config_list": config_list_35},
         system_message="""
         You are a compliance reviewer, known for your thoroughness and commitment to standards.
         Your task is to scrutinize content for any harmful elements or regulatory violations, ensuring
@@ -98,23 +124,22 @@ def test_nested():
     )
 
     def writing_message(recipient, messages, sender, config):
-        return f"Polish the content to make an engaging and nicely formatted blog post. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
+        return f"Make a one-sentence comment. \n\n {recipient.chat_messages_for_summary(sender)[-1]['content']}"
 
     nested_chat_queue = [
-        {"recipient": manager, "summary_method": "reflection_with_llm"},
+        {"sender": user_2, "recipient": manager, "summary_method": "reflection_with_llm"},
         {"recipient": writer, "message": writing_message, "summary_method": "last_msg", "max_turns": 1},
-        {
-            "recipient": reviewer,
-            "message": "Review the content provided.",
-            "summary_method": "last_msg",
-            "max_turns": 1,
-        },
     ]
     assistant.register_nested_chats(
         nested_chat_queue,
         trigger=user,
     )
-    user.initiate_chats([{"recipient": assistant, "message": tasks[0]}, {"recipient": assistant, "message": tasks[1]}])
+    user.initiate_chats(
+        [
+            {"recipient": assistant, "message": tasks[0], "max_turns": 1},
+            {"recipient": assistant_2, "message": tasks[1], "max_turns": 1},
+        ]
+    )
 
 
 if __name__ == "__main__":
