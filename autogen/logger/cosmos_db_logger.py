@@ -162,7 +162,7 @@ class CosmosDBLogger(BaseLogger):
 
     def stop(self) -> None:
         self.log_queue.put(None)  # Signal to stop the worker thread
-        self.worker_thread.join()  # Wait for the worker thread to finish
+        self.logger_thread.join()  # Wait for the worker thread to finish
         if self.client:
             self.client.close()  # Explicitly close the Cosmos client
 
