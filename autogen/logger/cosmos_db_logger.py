@@ -7,7 +7,7 @@ import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
 
 from azure.cosmos import CosmosClient, exceptions
-from azure.cosmos.exceptions import CosmosHttpResponseError, ServiceUnavailableError
+from azure.cosmos.exceptions import CosmosHttpResponseError
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
@@ -71,8 +71,6 @@ class CosmosDBLogger(BaseLogger):
     def _process_log_entry(self, document: Dict[str, Any]):
         try:
             self.container.upsert_item(document)
-        except ServiceUnavailableError:
-            logger.error("Service unavailable")
         except exceptions.CosmosHttpResponseError as e:
             logger.error(f"Failed to upsert document: {e}")
         except Exception as e:
