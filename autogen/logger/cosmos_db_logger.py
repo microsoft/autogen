@@ -57,15 +57,13 @@ class CosmosDBLogger(BaseLogger):
     def _worker(self) -> None:
         while True:
             item = self.log_queue.get()
+            if item is None:  # None is a signal to stop the worker thread
+                self.log_queue.task_done()
+                break
             try:
-                item = self.log_queue.get()
-                if item is None:  # None is a signal to stop the worker thread
-                    self.log_queue.task_done()
-                    break
-                try:
-                    self._process_log_entry(item)
-                except Exception as e:
-                    logger.error(f"Error processing log entry: {e}")
+                self._process_log_entry(item)
+            except Exception as e:
+                logger.error(f"Error processing log entry: {e}")
             finally:
                 self.log_queue.task_done()
 
