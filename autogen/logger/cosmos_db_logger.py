@@ -15,7 +15,7 @@ from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
 if TYPE_CHECKING:
-    from autogen import ConversableAgent, OpenAIWrapper
+    from autogen import Agent, ConversableAgent, OpenAIWrapper
 
 __all__ = ("CosmosDBLogger",)
 
