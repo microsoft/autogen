@@ -8,11 +8,11 @@ class Task:
 
     def __init__(self, name: str, description: str, successful_response: str, failed_response: str):
         """
-        args:
-        - name (str): The name of the task.
-        - description (str): The description of the task.
-        - successful_response (str): An example of a successful response execution.
-        - failed_response (str): An example of a failed response execution.
+        Args:
+           name (str): The name of the task.
+           description (str): The description of the task.
+           successful_response (str): An example of a successful response execution.
+            failed_response (str): An example of a failed response execution.
         """
         self.name = name
         self.description = description
@@ -28,10 +28,10 @@ class Task:
     def parse_json_str(task: str):
         """
         Create a Task object from a json object.
-        args:
-        - json_data (dict): A dictionary that represents the task.
-        returns:
-        - Task: A Task object that represents the json task information.
+        Args:
+            json_data (dict): A dictionary that represents the task.
+        Returns:
+            Task: A Task object that represents the json task information.
         """
         json_data = json.loads(task)
         name = json_data.get("name")

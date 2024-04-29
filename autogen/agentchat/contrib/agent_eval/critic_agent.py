@@ -26,10 +26,10 @@ class CriticAgent(ConversableAgent):
     ):
         """
         Args:
-            - name (str): agent name.
-            - system_message (str): system message for the ChatCompletion inference.
+            name (str): agent name.
+            system_message (str): system message for the ChatCompletion inference.
                 Please override this attribute if you want to reprogram the agent.
-            - description (str): The description of the agent.
+            description (str): The description of the agent.
             **kwargs (dict): Please refer to other kwargs in
                 [ConversableAgent](../../conversable_agent#__init__).
         """

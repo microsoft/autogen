@@ -9,11 +9,11 @@ class Criterion:
 
     def __init__(self, name: str, description: str, accepted_values: List[str], sub_criteria=[]):
         """
-        args:
-        - name (str): The name of the criterion.
-        - description (str): The description of the criterion.
-        - accepted_values ([str]): The list of accepted values for the criterion.
-        - sub_criteria ([Criterion]): The list of sub-criteria for the criterion.
+        Args:
+            name (str): The name of the criterion.
+            description (str): The description of the criterion.
+            accepted_values ([str]): The list of accepted values for the criterion.
+            sub_criteria ([Criterion]): The list of sub-criteria for the criterion.
         """
         self.name = name
         self.description = description
@@ -36,10 +36,10 @@ class Criterion:
     def parse_json_str(criteria: str):
         """
         Create a list of Criterion objects from a json string.
-        args:
-        - criteria (str): Json string that represents the criteria
+        Args:
+            criteria (str): Json string that represents the criteria
         returns:
-        - [Criterion]: A list of Criterion objects that represents the json criteria information.
+            [Criterion]: A list of Criterion objects that represents the json criteria information.
         """
         criteria_list = []
         parsed_json = json.loads(criteria)
@@ -58,10 +58,10 @@ class Criterion:
     def write_json(criteria):
         """
         Create a json string from a list of Criterion objects.
-        args:
-        - criteria ([Criterion]): A list of Criterion objects.
-        returns:
-        - str: A json string that represents the list of Criterion objects.
+        Args:
+            criteria ([Criterion]): A list of Criterion objects.
+        Returns:
+            str: A json string that represents the list of Criterion objects.
         """
         criteria_json = {}
         for criterion in criteria:
