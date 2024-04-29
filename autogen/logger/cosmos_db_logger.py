@@ -5,7 +5,6 @@ import queue
 import threading
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
-import queue
 
 from azure.cosmos import CosmosClient, exceptions
 from azure.cosmos.exceptions import CosmosHttpResponseError, ServiceUnavailableError
