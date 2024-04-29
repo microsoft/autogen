@@ -52,7 +52,7 @@ class CosmosDBLogger(BaseLogger):
             logger.error(f"Failed to create or access container {self.container_id}: {e}")
         return self.session_id
 
-    def _worker(self): -> None:
+    def _worker(self) -> None:
         while True:
             item = self.log_queue.get()
             try:
