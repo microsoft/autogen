@@ -1,10 +1,10 @@
 from typing import Dict, List, Optional, Union
 
 import autogen
+from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.critic_agent import CriticAgent
 from autogen.agentchat.contrib.agent_eval.quantifier_agent import QuantifierAgent
 from autogen.agentchat.contrib.agent_eval.subcritic_agent import SubCriticAgent
-from autogen.agentchat.contrib.agent_eval.criterion import Criterion
 from autogen.agentchat.contrib.agent_eval.task import Task
 
 
