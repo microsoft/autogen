@@ -57,9 +57,9 @@ class CosmosDBLogger(BaseLogger):
             item = self.log_queue.get()
             try:
                 item = self.log_queue.get()
-                if item is None: # None is a signal to stop the worker thread
+                if item is None:  # None is a signal to stop the worker thread
                     self.log_queue.task_done()
-                    break  
+                    break
                 try:
                     self._process_log_entry(item)
                 except Exception as e:
