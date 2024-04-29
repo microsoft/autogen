@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Any, Dict, Optional, Union
 
 from .abstract_cache_base import AbstractCache
@@ -74,4 +75,5 @@ class CacheFactory:
                 logging.warning("CosmosDBCache is not available. Fallback to DiskCache.")
 
         # Default to DiskCache if neither Redis nor Cosmos DB configurations are provided
-        return DiskCache(f"./{cache_path_root}/{seed}")
+        path = os.path.join(cache_path_root, str(seed))
+        return DiskCache(os.path.join(".", path))

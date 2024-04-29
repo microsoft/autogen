@@ -4,18 +4,28 @@ import pickle
 import unittest
 from unittest.mock import MagicMock, patch
 
-from azure.cosmos.exceptions import CosmosResourceNotFoundError
+try:
+    from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
-from autogen.cache.cosmos_db_cache import CosmosDBCache
+    from autogen.cache.cosmos_db_cache import CosmosDBCache
+
+    skip_test = False
+except ImportError:
+    CosmosResourceNotFoundError = Exception
+    CosmosDBCache = object
+    skip_test = True
 
 
 class TestCosmosDBCache(unittest.TestCase):
     def setUp(self):
-        self.seed = "42"
-        self.connection_string = "AccountEndpoint=https://example.documents.azure.com:443/;"
-        self.database_id = "autogen_cache"
-        self.container_id = "TestContainer"
-        self.client = MagicMock()
+        if skip_test:
+            self.skipTest("requires azure.cosmos")
+        else:
+            self.seed = "42"
+            self.connection_string = "AccountEndpoint=https://example.documents.azure.com:443/;"
+            self.database_id = "autogen_cache"
+            self.container_id = "TestContainer"
+            self.client = MagicMock()
 
     @patch("autogen.cache.cosmos_db_cache.CosmosClient.from_connection_string", return_value=MagicMock())
     def test_init(self, mock_from_connection_string):

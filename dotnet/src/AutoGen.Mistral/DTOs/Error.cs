@@ -1,4 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Error.cs
+
+using System.Text.Json.Serialization;
 
 namespace AutoGen.Mistral
 {
