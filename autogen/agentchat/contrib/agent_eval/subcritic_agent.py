@@ -1,7 +1,6 @@
-from typing import Callable, Dict, Literal, Optional, Union
+from typing import Optional
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.runtime_logging import log_new_agent, logging_enabled
 
 
 class SubCriticAgent(ConversableAgent):
