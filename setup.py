@@ -14,7 +14,7 @@ with open(os.path.join(here, "autogen/version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "openai>=1.23.3",
+    "openai>=1.3",
     "diskcache",
     "termcolor",
     "flaml",
@@ -39,11 +39,11 @@ retrieve_chat = ["chromadb", "sentence_transformers", "pypdf", "ipython", "beaut
 
 extra_require = {
     "test": [
-        "coverage>=5.3",
         "ipykernel",
         "nbconvert",
         "nbformat",
         "pre-commit",
+        "pytest-cov>=5",
         "pytest-asyncio",
         "pytest>=6.1.1,<8",
         "pandas",
