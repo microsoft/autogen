@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 from azure.cosmos import CosmosClient
 import autogen.runtime_logging
+from autogen.logger.cosmos_db_logger import CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts
 
 # Sample data for testing
@@ -42,7 +43,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 )
 
 @pytest.fixture(scope="function")
-def cosmos_db_config():
+def cosmos_db_config() -> CosmosDBLoggerConfig:
     return {
         "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
         "database_id": "TestDatabase",
@@ -50,7 +51,7 @@ def cosmos_db_config():
     }
 
 @pytest.fixture(scope="function")
-def cosmos_logger(cosmos_db_config):
+def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
     with patch.object(CosmosClient, 'from_connection_string', return_value=MagicMock()):
         logger = autogen.runtime_logging.CosmosDBLogger(cosmos_db_config)
         yield logger
