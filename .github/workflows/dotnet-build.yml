@@ -22,7 +22,7 @@ jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
-      hasChanges: ${{ steps.filter.outputs.dotnet }}
+      hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
@@ -33,7 +33,7 @@ jobs:
               - "dotnet/**"
       - name: dotnet has changes
         run: echo "dotnet has changes"
-        if: steps.filter.outputs.dotnet
+        if: steps.filter.outputs.dotnet == 'true'
   build:
     name: Dotnet Build
     runs-on: ubuntu-latest

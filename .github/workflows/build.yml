@@ -19,7 +19,7 @@ jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
-      hasChanges: ${{ steps.filter.outputs.autogen || steps.filter.outputs.test || steps.filter.outputs.workflows || steps.filter.outputs.setup }}
+      hasChanges: ${{ steps.filter.outputs.autogen == 'true' || steps.filter.outputs.test == 'true' || steps.filter.outputs.workflows == 'true' || steps.filter.outputs.setup == 'true' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v2
@@ -36,16 +36,16 @@ jobs:
               - "setup.py"
       - name: autogen has changes
         run: echo "autogen has changes"
-        if: steps.filter.outputs.autogen
+        if: steps.filter.outputs.autogen == 'true'
       - name: test has changes
         run: echo "test has changes"
-        if: steps.filter.outputs.test
+        if: steps.filter.outputs.test == 'true'
       - name: workflows has changes
         run: echo "workflows has changes"
-        if: steps.filter.outputs.workflows
+        if: steps.filter.outputs.workflows == 'true'
       - name: setup has changes
         run: echo "setup has changes"
-        if: steps.filter.outputs.setup
+        if: steps.filter.outputs.setup == 'true'
   build:
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
