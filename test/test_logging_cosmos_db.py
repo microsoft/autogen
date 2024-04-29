@@ -52,6 +52,7 @@ def cosmos_db_config() -> CosmosDBLoggerConfig:
         "container_id": "TestContainer",
     }
 
+
 @pytest.fixture(scope="function")
 def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
     with patch.object(CosmosClient, "from_connection_string", return_value=MagicMock()):
@@ -119,6 +120,7 @@ def test_log_completion_variants(response, expected_logged_response, cosmos_logg
         assert json.loads(document["response"]) == expected_logged_response
     else:
         assert document["response"] == to_dict(response)
+
 
 def test_stop_logging(cosmos_logger):
     cosmos_logger.stop()
