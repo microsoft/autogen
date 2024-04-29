@@ -281,7 +281,7 @@ def in_docker_container() -> bool:
     return os.path.exists("/.dockerenv")
 
 
-def decide_use_docker(use_docker) -> bool:
+def decide_use_docker(use_docker: Optional[bool]) -> Optional[bool]:
     if use_docker is None:
         env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
 

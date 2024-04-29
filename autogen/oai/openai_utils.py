@@ -692,7 +692,11 @@ def detect_gpt_assistant_api_version() -> str:
 def create_gpt_vector_store(client: OpenAI, name: str, fild_ids: List[str]) -> Any:
     """Create a openai vector store for gpt assistant"""
 
-    vector_store = client.beta.vector_stores.create(name=name)
+    try:
+        vector_store = client.beta.vector_stores.create(name=name)
+    except Exception as e:
+        raise AttributeError(f"Failed to create vector store, please install the latest OpenAI python package: {e}")
+
     # poll the status of the file batch for completion.
     batch = client.beta.vector_stores.file_batches.create_and_poll(vector_store_id=vector_store.id, file_ids=fild_ids)
 
