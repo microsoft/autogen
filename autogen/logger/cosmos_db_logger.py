@@ -103,6 +103,30 @@ class CosmosDBLogger(BaseLogger):
         }
         self.log_queue.put(document)
 
+    def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
+        document = {
+            "type": "event",
+            "session_id": self.session_id,
+            "event_name": name,
+            "timestamp": get_current_ts(),
+            "details": to_dict(kwargs),
+        }
+
+        if isinstance(source, Agent):
+            document.update({
+                "source_id": id(source),
+                "source_name": source.name if hasattr(source, "name") else str(source),
+                "source_type": source.__class__.__name__,
+            })
+        else:
+            document.update({
+                "source_id": id(source),
+                "source_name": str(source),
+                "source_type": "System",
+            })
+
+        self.log_queue.put(document)
+
     def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         document = {
             "type": "new_agent",
