@@ -8,7 +8,7 @@
 Your can simplify your application development by using this single database service for all your operational data needs, from [geo-replicated distributed cache](https://medium.com/@marcodesanctis2/using-azure-cosmos-db-as-your-persistent-geo-replicated-distributed-cache-b381ad80f8a0) to backup to [vector database](https://learn.microsoft.com/en-us/azure/cosmos-db/vector-database).
 
 You can see how this is done within AutoGen:
-- [Caching](../topics/llm-caching)
+- [Caching](../topics/llm-caching.md)
 - [Logging](../../../notebook/agentchat_logging.ipynb)
 
 Many other organizations rely on Azure Cosmos DB as the data infrastructure for [a variety of scenarios](https://learn.microsoft.com/en-us/azure/cosmos-db/use-cases), including retail and marketing, IoT and telematics, gaming, social, and personalization. Its various [APIs](https://learn.microsoft.com/en-us/azure/cosmos-db/choose-api) allow you to keep all your operational data models, including relational, document, vector, key-value, graph, and table, in one database service.
