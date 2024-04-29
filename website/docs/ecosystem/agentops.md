@@ -1,5 +1,7 @@
 # AgentOps
 
+[!agentops-logo](/img/ecosystem-agentops.png)
+
 > Create an account at [AgentOps.ai](https://agentops.ai/)
 
 AgentOps works seamlessly with applications built using Autogen.
@@ -27,5 +29,5 @@ After initializing AgentOps, Autogen will now start automatically tracking
 - Token usage and costs
 
 ### Example Implementation
-[AgentOps-Notebook](../../../notebook/agentchat_agentops.ipynb)
+[AgentOps-Notebook](/docs/notebooks/agentchat_agentops)
 [AgentOps Documentation](https://docs.agentops.ai/v1/quickstart)

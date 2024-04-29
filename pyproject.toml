@@ -51,7 +51,7 @@ exclude = [
     "dist",
     "docs",
      # This file needs to be either upgraded or removed and therefore should be
-    # ignore from type checking for now
+    # ignored from type checking for now
     "math_utils\\.py$",
     "**/cap/py/autogencap/proto/*",
 ]
