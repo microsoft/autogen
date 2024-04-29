@@ -8,7 +8,6 @@ on:
   push:
     branches:
       - dotnet/release/**
-      - dotnet/release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
