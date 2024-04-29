@@ -34,7 +34,7 @@ class LoggerFactory:
                     "database_id": config["database_id"],
                     "container_id": config["container_id"],
                 }
-                return CosmosDBLogger(config)  # Config validated and passed as CosmosDBLoggerConfig
+                return CosmosDBLogger(cosmos_config)  # Config validated and passed as CosmosDBLoggerConfig
             else:
                 raise ValueError(
                     "Provided configuration is missing required keys or is not properly formatted for CosmosDBLogger."
