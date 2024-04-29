@@ -5,6 +5,7 @@ import queue
 import threading
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
+import queue
 
 from azure.cosmos import CosmosClient, exceptions
 from azure.cosmos.exceptions import CosmosHttpResponseError, ServiceUnavailableError
@@ -27,6 +28,7 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
     database_id: str
     container_id: str
 
+log_queue: queue.Queue[Dict[str, Any]] = queue.Queue()
 
 class CosmosDBLogger(BaseLogger):
     def __init__(self, config: CosmosDBLoggerConfig):
