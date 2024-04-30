@@ -45,6 +45,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         container_name: Optional[str] = None,
         timeout: int = 60,
         work_dir: Union[Path, str] = Path("."),
+        bind_dir: Optional[Union[Path, str]] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
     ):
@@ -67,6 +68,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             timeout (int, optional): The timeout for code execution. Defaults to 60.
             work_dir (Union[Path, str], optional): The working directory for the code
                 execution. Defaults to Path(".").
+            bind_dir (Union[Path, str], optional): The directory that will be bound
+            to the code executor container. Useful for cases where you want to spawn
+            the container from within a container. Defaults to work_dir.
             auto_remove (bool, optional): If true, will automatically remove the Docker
                 container when it is stopped. Defaults to True.
             stop_container (bool, optional): If true, will automatically stop the
@@ -84,6 +88,11 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             work_dir = Path(work_dir)
 
         work_dir.mkdir(exist_ok=True)
+
+        if bind_dir is None:
+            bind_dir = work_dir
+        elif isinstance(bind_dir, str):
+            bind_dir = Path(bind_dir)
 
         client = docker.from_env()
 
@@ -105,7 +114,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             entrypoint="/bin/sh",
             tty=True,
             auto_remove=auto_remove,
-            volumes={str(work_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+            volumes={str(bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
             working_dir="/workspace",
         )
         self._container.start()
@@ -132,6 +141,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+        self._bind_dir: Path = bind_dir
 
     @property
     def timeout(self) -> int:
@@ -142,6 +152,11 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
     def work_dir(self) -> Path:
         """(Experimental) The working directory for the code execution."""
         return self._work_dir
+
+    @property
+    def bind_dir(self) -> Path:
+        """(Experimental) The binding directory for the code execution container."""
+        return self._bind_dir
 
     @property
     def code_extractor(self) -> CodeExtractor:
