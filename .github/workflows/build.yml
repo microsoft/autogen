@@ -43,7 +43,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Explicitly install packages for Azure Cosmos DB
         run: |
-          pip install azure-core
           pip install azure-cosmos
       - name: Install packages and dependencies
         run: |
