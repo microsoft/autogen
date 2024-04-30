@@ -97,8 +97,10 @@ def main():
         description="Visualize a profile. Creates a directed graph of the states that apply to a message.",
         help="visualize a profile.",
     )
-    visualize_parser.add_argument("jsonl", type=str, help="Read profile from a JSONL containing profile.")
-    visualize_parser.add_argument("--o", type=str, help="Output the visualization to the given path.")
+    visualize_parser.add_argument(
+        "--jsonl", required=True, type=str, help="Read profile from a JSONL containing profile."
+    )
+    visualize_parser.add_argument("--o", required=True, type=str, help="Output the visualization to the given path.")
 
     args = parser.parse_args()
 
