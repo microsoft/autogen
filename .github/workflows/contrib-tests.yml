@@ -42,6 +42,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest-cov>=5
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10'
         run: |
