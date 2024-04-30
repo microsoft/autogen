@@ -5,7 +5,7 @@
     <RootNamespace>AutoGen.SemanticKernel</RootNamespace>
   </PropertyGroup>
 
-  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
 
   <PropertyGroup>
     <!-- NuGet Package Settings -->

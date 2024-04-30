@@ -1,6 +1,6 @@
 name: Type check
 # see: https://help.github.com/en/actions/reference/events-that-trigger-workflows
-on:  # Trigger the workflow on pull request or merge
+on: # Trigger the workflow on pull request or merge
   pull_request:
   merge_group:
     types: [checks_requested]
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-            python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.version }}
       # All additional modules should be defined in setup.py
       - run: pip install ".[types]"
       # Any additional configuration should be defined in pyproject.toml
