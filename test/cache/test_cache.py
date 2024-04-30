@@ -1,16 +1,17 @@
 #!/usr/bin/env python3 -m pytest
 
 import unittest
-from typing import Optional, TypedDict, Union
 from unittest.mock import ANY, MagicMock, patch
 
 try:
     from azure.cosmos import CosmosClient
+
+    skip_azure = False
 except ImportError:
-    CosmosClient = None
+    CosmosClient = object
+    skip_azure = True
 
 from autogen.cache.cache import Cache
-from autogen.cache.cosmos_db_cache import CosmosDBConfig
 
 
 class TestCache(unittest.TestCase):
@@ -37,6 +38,7 @@ class TestCache(unittest.TestCase):
         mock_cache_factory.assert_called()
 
     @patch("autogen.cache.cache_factory.CacheFactory.cache_factory", return_value=MagicMock())
+    @unittest.skipIf(skip_azure, "requires azure.cosmos")
     def test_cosmosdb_cache_initialization(self, mock_cache_factory):
         cache = Cache(self.cosmos_config)
         self.assertIsInstance(cache.cache, MagicMock)
@@ -65,6 +67,7 @@ class TestCache(unittest.TestCase):
     def test_redis_context_manager(self):
         self.context_manager_common(self.redis_config)
 
+    @unittest.skipIf(skip_azure, "requires azure.cosmos")
     def test_cosmos_context_manager(self):
         self.context_manager_common(self.cosmos_config)
 
@@ -83,6 +86,7 @@ class TestCache(unittest.TestCase):
     def test_redis_get_set(self):
         self.get_set_common(self.redis_config)
 
+    @unittest.skipIf(skip_azure, "requires azure.cosmos")
     def test_cosmos_get_set(self):
         self.get_set_common(self.cosmos_config)
 
@@ -96,6 +100,7 @@ class TestCache(unittest.TestCase):
     def test_redis_close(self):
         self.close_common(self.redis_config)
 
+    @unittest.skipIf(skip_azure, "requires azure.cosmos")
     def test_cosmos_close(self):
         self.close_common(self.cosmos_config)
 

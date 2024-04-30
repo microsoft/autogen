@@ -35,7 +35,43 @@ jupyter_executor = [
     "ipykernel>=6.29.0",
 ]
 
-rag = ["sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
+retrieve_chat = ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
+
+extra_require = {
+    "test": [
+        "ipykernel",
+        "nbconvert",
+        "nbformat",
+        "pre-commit",
+        "pytest-cov>=5",
+        "pytest-asyncio",
+        "pytest>=6.1.1,<8",
+        "pandas",
+    ],
+    "blendsearch": ["flaml[blendsearch]"],
+    "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
+    "retrievechat": retrieve_chat,
+    "retrievechat-pgvector": [
+        *retrieve_chat,
+        "pgvector>=0.2.5",
+        "psycopg>=3.1.18",
+    ],
+    "retrievechat-qdrant": [
+        *retrieve_chat,
+        "qdrant_client[fastembed]",
+    ],
+    "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
+    "teachable": ["chromadb"],
+    "lmm": ["replicate", "pillow"],
+    "graph": ["networkx", "matplotlib"],
+    "gemini": ["google-generativeai>=0.5,<1", "pillow", "pydantic"],
+    "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
+    "redis": ["redis"],
+    "cosmosdb": ["azure-cosmos>=4.2.0"],
+    "websockets": ["websockets>=12.0,<13"],
+    "jupyter-executor": jupyter_executor,
+    "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
+}
 
 setuptools.setup(
     name="pyautogen",
@@ -48,34 +84,7 @@ setuptools.setup(
     url="https://github.com/microsoft/autogen",
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
     install_requires=install_requires,
-    extras_require={
-        "test": [
-            "coverage>=5.3",
-            "ipykernel",
-            "nbconvert",
-            "nbformat",
-            "pre-commit",
-            "pytest-asyncio",
-            "pytest>=6.1.1,<8",
-            "pandas",
-        ],
-        "blendsearch": ["flaml[blendsearch]"],
-        "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
-        "retrievechat": ["chromadb"] + rag,
-        "retrievechat-pgvector": ["pgvector>=0.2.5", "psycopg>=3.1.18"] + rag,
-        "retrievechat-qdrant": ["qdrant_client[fastembed]"] + rag,
-        "autobuild": ["chromadb", "sentence-transformers", "huggingface-hub"],
-        "teachable": ["chromadb"],
-        "lmm": ["replicate", "pillow"],
-        "graph": ["networkx", "matplotlib"],
-        "gemini": ["google-generativeai>=0.5,<1", "pillow", "pydantic"],
-        "websurfer": ["beautifulsoup4", "markdownify", "pdfminer.six", "pathvalidate"],
-        "redis": ["redis"],
-        "cosmosdb": ["azure-cosmos>=4.2.0"],
-        "websockets": ["websockets>=12.0,<13"],
-        "jupyter-executor": jupyter_executor,
-        "types": ["mypy==1.9.0", "pytest>=6.1.1,<8"] + jupyter_executor,
-    },
+    extras_require=extra_require,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
