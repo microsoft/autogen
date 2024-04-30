@@ -335,8 +335,15 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
     {
+        Uri uri = message switch
+        {
+            { Url: { } url } => new Uri(url),
+            { Data: { } } => new Uri(message.BuildDataUri()),
+            _ => throw new ArgumentException($"Invalid message : {nameof(message)}")
+        };
+
         return new[] { new ChatRequestUserMessage([
-            new ChatMessageImageContentItem(new Uri(message.Url)),
+            new ChatMessageImageContentItem(uri),
             ])};
     }
 

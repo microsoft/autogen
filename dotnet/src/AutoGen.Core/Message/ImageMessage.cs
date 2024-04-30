@@ -23,6 +23,16 @@ public class ImageMessage : IMessage
 
     public ImageMessage(Role role, BinaryData data, string? from = null)
     {
+        if (data.IsEmpty)
+        {
+            throw new ArgumentException("Data cannot be empty", nameof(data));
+        }
+
+        if (string.IsNullOrWhiteSpace(data.MediaType))
+        {
+            throw new ArgumentException("MediaType is needed for DataUri Images", nameof(data));
+        }
+
         this.Role = role;
         this.From = from;
         this.Data = data;
