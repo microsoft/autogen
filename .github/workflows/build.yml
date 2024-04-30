@@ -48,7 +48,6 @@ jobs:
         if: steps.filter.outputs.setup == 'true'
   build:
     needs: paths-filter
-    if: needs.paths-filter.outputs.hasChanges == 'true'
     runs-on: ${{ matrix.os }}
     env:
       AUTOGEN_USE_DOCKER: ${{ matrix.os != 'ubuntu-latest'  && 'False' }}
@@ -63,6 +62,9 @@ jobs:
           - os: macos-latest
             python-version: "3.9"
     steps:
+      - name: Exit early if hasChanges is false
+        run: exit 0
+        if: needs.paths-filter.outputs.hasChanges != 'true'
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
