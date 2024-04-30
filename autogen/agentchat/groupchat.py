@@ -520,6 +520,9 @@ class GroupChat:
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
+        elif self.speaker_selection_method == "manual":
+            # An agent has not been selected while in manual mode, so move to the next agent
+            return self.next_agent(last_speaker)
 
         # auto speaker selection with 2-agent chat
         return self._auto_select_speaker(last_speaker, selector, messages, agents)
@@ -530,6 +533,9 @@ class GroupChat:
         selected_agent, agents, messages = self._prepare_and_select_agents(last_speaker)
         if selected_agent:
             return selected_agent
+        elif self.speaker_selection_method == "manual":
+            # An agent has not been selected while in manual mode, so move to the next agent
+            return self.next_agent(last_speaker)
 
         # auto speaker selection with 2-agent chat
         return await self.a_auto_select_speaker(last_speaker, selector, messages, agents)
