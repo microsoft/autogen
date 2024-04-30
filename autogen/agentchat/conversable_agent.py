@@ -922,6 +922,7 @@ class ConversableAgent(LLMAgent):
                 One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
                 on the conversation and extract a summary when summary_method is "reflection_with_llm".
                 The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+                Another available key is "summary_role", which is the role of the message sent to the agent in charge of summarizing. Default is "system".
             message (str, dict or Callable): the initial message to be sent to the recipient. Needs to be provided. Otherwise, input() will be called to get the initial message.
                 - If a string or a dict is provided, it will be used as the initial message.        `generate_init_message` is called to generate the initial message for the agent based on this string and the context.
                     If dict, it may contain the following reserved fields (either content or tool_calls need to be provided).
@@ -929,7 +930,8 @@ class ConversableAgent(LLMAgent):
                         1. "content": content of the message, can be None.
                         2. "function_call": a dictionary containing the function name and arguments. (deprecated in favor of "tool_calls")
                         3. "tool_calls": a list of dictionaries containing the function name and arguments.
-                        4. "role": role of the message, default is "system". Can be "assistant", "user", "function" or "system"
+                        4. "role": role of the message, can be "assistant", "user", "function".
+                            This field is only needed to distinguish between "function" or "assistant"/"user".
                         5. "name": In most cases, this field is not needed. When the role is "function", this field is needed to indicate the function name.
                         6. "context" (dict): the context of the message, which will be passed to
                             [OpenAIWrapper.create](../oai/client#create).
@@ -1152,7 +1154,7 @@ class ConversableAgent(LLMAgent):
             raise ValueError("The summary_prompt must be a string.")
         msg_list = recipient.chat_messages_for_summary(sender)
         agent = sender if recipient is None else recipient
-        role = summary_args.get("role", None)
+        role = summary_args.get("summary_role", None)
         if role and not isinstance(role, str):
             raise ValueError("The role (summary_arg) must be a string.")
         try:

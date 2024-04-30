@@ -1426,14 +1426,7 @@ def test_speaker_selection_agent_name_match():
     assert result == {}
 
 def test_role_for_reflection_summary():
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-    )
-    llm_config={
-        "config_list": config_list,
-        "model": "gpt-3.5-turbo-0613",
-    },
+    llm_config={"config_list": [{"model": "mock", "api_key": "mock"}]}
     agent1 = autogen.ConversableAgent(
         "alice",
         max_consecutive_auto_reply=10,
