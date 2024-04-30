@@ -38,6 +38,6 @@ chat_history = [
 
 profiler = Profiler(llm_service=OpenAIJSONService())
 
-for message in chat_history:
-    profile = profiler.profile_message(message)
+for idx, message in enumerate(chat_history):
+    profile = profiler.profile_message(chat_history, idx)
     print(profile)

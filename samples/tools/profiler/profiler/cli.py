@@ -42,7 +42,7 @@ def profile(args):
 
     msg_idx = 0
     for message in tqdm(chat_history, desc="Profiling messages", unit="message"):
-        profile = profiler.profile_message(message)
+        profile = profiler.profile_message(chat_history, msg_idx)
         state_names = [s.name for s in profile.states]
         sorted_state_names = sorted(state_names)
 

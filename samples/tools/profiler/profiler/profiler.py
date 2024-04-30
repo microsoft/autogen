@@ -82,8 +82,21 @@ class Profiler:
             raise ValueError("LLM service is not a valid ChatCompletionService instance.")
         self.llm_service = llm_service
 
-    def profile_message(self, message: Message) -> MessageProfile:
-        """ "Profile a message by asking an LLM to select the states that apply to the message.
+    def profile_message(self, messages: List[Message], idx: int) -> MessageProfile:
+        """Profile a message by asking an LLM to select the states that apply to the message.
+
+        Args:
+            messages: The list of messages to profile.
+            idx: The index of the message to profile.
+
+        Returns:
+            The message profile for the message.
+        """
+
+        return self._profile_message(messages[idx])
+
+    def _profile_message(self, message: Message) -> MessageProfile:
+        """Profile a message by asking an LLM to select the states that apply to the message.
 
         Args:
             message: The message to profile.
