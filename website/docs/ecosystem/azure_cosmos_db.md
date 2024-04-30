@@ -10,7 +10,7 @@ Your can simplify your application development by using this single database ser
 You can see how this is done within AutoGen:
 - [Caching](../topics/llm-caching.md)
 - [Logging](../../../notebook/agentchat_logging.ipynb)
-- Retrieval Augmentation coming soon; tune into the annoucement of the world's first serverless integrated vector database during Microsoft Build 2024
+- Retrieval Augmentation coming soon
 
 Many other organizations rely on Azure Cosmos DB as the data infrastructure for [a variety of scenarios](https://learn.microsoft.com/en-us/azure/cosmos-db/use-cases), including retail and marketing, IoT and telematics, gaming, social, and personalization. Its various [APIs](https://learn.microsoft.com/en-us/azure/cosmos-db/choose-api) allow you to keep all your operational data models, including relational, document, vector, key-value, graph, and table, in one database service.
 
