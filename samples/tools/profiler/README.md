@@ -1,7 +1,6 @@
 # `aprofile`
 
-This package introduces a new functionality to profile chat messages. It includes a `Profiler` class that identifies the state of a chat message based on predefined states.
-It also introduces a command called `aprofile` which can be used to profile chat messages loaded from files, json str input, and AutoGen Bench style console logs.
+`aprofile` is a command-line tool to profile chat messages loaded from files, json str input, and AutoGen Bench style console logs.
 
 
 ## Installation
@@ -10,27 +9,27 @@ To install the package, clone the repository and install the dependencies.
 
 ```bash
 # clone the correct repo/branch
-# git clone git@github.com:microsoft/autogen.git
-# git checkout ct_webarena
 cd samples/tools/profiler
 pip install -e .
 ```
 
-## Demo: API
+```bash
+export OPENAI_API_KEY=<your key>
+```
 
-A demonstration of how to use the `Profiler` class to profile a list of chat messages is provided in `demo.py`.
+## Usage
 
-## Demo: Command-Line Interface
-The `aprofile` CLI can accept various input formats.
+The tool currently provides two main commands: `profile` and `visualize`.
+For example, to profile a chat log from AutoGenBench style console logs, run:
 
 ```bash
-# for printing help
-aprofile --help
-# input: json string
-aprofile --json [{"source": "user", "content": "plot a chart"}]
-# input: path to a json
-aprofile --file chat_history.json
-# input: AGBench console log
-aprofile --agbconsole <path to AGBench output>/console_log.txt
+aprofile profile --agbconsole <path-to-file> --o profile.jsonl
 ```
-The command utility will print sources observed in the chat and their high-level states.
+
+You can then visualize the profile using the `visualize` command:
+
+```bash
+aprofile visualize --jsonl profile.jsonl --o visualization.html
+```
+
+This will generate an HTML file that you can open in your browser to interactively visualize the profile.
