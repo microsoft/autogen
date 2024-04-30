@@ -6,6 +6,9 @@ setup(
     packages=find_packages(),
     install_requires=[
         "openai",
+        "diskcache",
+        "matplotlib",
+        "networkx",
     ],
     package_data={
         "profiler": ["viz/*.html"],  # include all html files in the package
