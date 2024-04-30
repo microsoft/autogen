@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Workflow.cs
+// Graph.cs
 
 using System;
 using System.Collections.Generic;
