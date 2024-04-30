@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// OllamaClientAgentTests.cs
+// OllamaAgentTests.cs
 
 using System.Text.Json;
 using AutoGen.Core;
@@ -7,19 +7,19 @@ using FluentAssertions;
 
 namespace Autogen.Ollama.Tests;
 
-public class OllamaClientAgentTests
+public class OllamaAgentTests
 {
-    private readonly OllamaClientAgent _ollamaClientAgent;
+    private readonly OllamaAgent _ollamaClientAgent;
     private readonly string _host = "http://localhost:11434";
 
-    public OllamaClientAgentTests()
+    public OllamaAgentTests()
     {
         var httpClient = new HttpClient
         {
             BaseAddress = new Uri(_host),
             Timeout = TimeSpan.FromSeconds(250)
         };
-        _ollamaClientAgent = new OllamaClientAgent(httpClient, "TestAgent", "mixtral:latest");
+        _ollamaClientAgent = new OllamaAgent(httpClient, "TestAgent", "llama3:latest");
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class OllamaClientAgentTests
         IMessage result = await _ollamaClientAgent.GenerateReplyAsync(messages);
 
         result.Should().NotBeNull();
-        result.Should().BeOfType<MessageEnvelope<CompleteChatMessage>>();
+        result.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
         result.From.Should().Be(_ollamaClientAgent.Name);
     }
 
@@ -43,10 +43,10 @@ public class OllamaClientAgentTests
         });
 
         result.Should().NotBeNull();
-        result.Should().BeOfType<MessageEnvelope<CompleteChatMessage>>();
+        result.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
         result.From.Should().Be(_ollamaClientAgent.Name);
 
-        string jsonContent = ((MessageEnvelope<CompleteChatMessage>)result).Content.Message!.Value;
+        string jsonContent = ((MessageEnvelope<CompletedChatResponse>)result).Content.Message!.Value;
         bool isValidJson = IsValidJson(jsonContent);
         isValidJson.Should().BeTrue();
     }
@@ -65,7 +65,7 @@ public class OllamaClientAgentTests
             finalReply = message;
         }
 
-        finalReply.Should().BeOfType<MessageEnvelope<CompleteChatMessage>>();
+        finalReply.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
     }
 
     public static bool IsValidJson(string input)

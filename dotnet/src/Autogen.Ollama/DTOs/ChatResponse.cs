@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// ChatMessage.cs
+// ChatResponse.cs
 
-using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Autogen.Ollama;
 
-public class ChatMessage
+public class ChatResponse
 {
     [JsonPropertyName("model")]
     public string Model { get; set; } = string.Empty;
@@ -39,5 +38,5 @@ public class Message
     ///  (optional): a list of images to include in the message (for multimodal models such as llava)
     /// </summary>
     [JsonPropertyName("images")]
-    public IList<string> Images { get; set; } = Array.Empty<string>();
+    public IList<string>? Images { get; set; }
 }

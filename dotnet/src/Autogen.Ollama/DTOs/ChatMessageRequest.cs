@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 
 namespace Autogen.Ollama;
 
-public class ChatMessageRequest
+public class ChatRequest
 {
     /// <summary>
     /// (required) the model name
@@ -33,7 +33,7 @@ public class ChatMessageRequest
     /// </summary>
     [JsonPropertyName("options")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ModelReplyOptions Options { get; set; } = new();
+    public ModelReplyOptions? Options { get; set; }
     /// <summary>
     /// the prompt template to use (overrides what is defined in the Modelfile)
     /// </summary>

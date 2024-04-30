@@ -1,11 +1,11 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// CompleteChatMessage.cs
+// CompletedChatResponse.cs
 
 using System.Text.Json.Serialization;
 
 namespace Autogen.Ollama;
 
-public class CompleteChatMessage : ChatMessage
+public class CompletedChatResponse : ChatResponse
 {
     /// <summary>
     /// time spent generating the response
