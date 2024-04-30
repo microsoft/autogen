@@ -79,12 +79,15 @@ namespace AutoGen.Tests
                 from: "user");
 
             var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
+            var imageMessageData = new ImageMessage(Role.Assistant, BinaryData.FromString("test", "text/plain"), from: "user");
 
             IMessage[] messages = [
                 MessageEnvelope.Create(oaiMessage),
                 multiModalMessage,
                 imageMessage,
+                imageMessageData
                 ];
+
             foreach (var message in messages)
             {
                 var response = await visionAgent.SendAsync(message);
