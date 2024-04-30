@@ -185,15 +185,8 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
 
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(ImageMessage message)
     {
-        var imageContent = message switch
-        {
-            { Url: { } url } => new ImageContent(new Uri(url)),
-            { Data: { } } => new ImageContent(new Uri(message.BuildDataUri())),
-            _ => throw new ArgumentException($"Invalid message : {nameof(message)}")
-        };
-
         var collectionItems = new ChatMessageContentItemCollection();
-        collectionItems.Add(imageContent);
+        collectionItems.Add(new ImageContent(new Uri(message.Url ?? message.BuildDataUri())));
         return [new ChatMessageContent(AuthorRole.User, collectionItems)];
     }
 
@@ -213,7 +206,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
             }
             else if (item is ImageMessage imageContent)
             {
-                collections.Add(new ImageContent(new Uri(imageContent.Url)));
+                collections.Add(new ImageContent(new Uri(imageContent.Url ?? imageContent.BuildDataUri())));
             }
             else
             {

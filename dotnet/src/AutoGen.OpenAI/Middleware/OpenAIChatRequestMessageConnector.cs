@@ -335,15 +335,8 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
     {
-        Uri uri = message switch
-        {
-            { Url: { } url } => new Uri(url),
-            { Data: { } } => new Uri(message.BuildDataUri()),
-            _ => throw new ArgumentException($"Invalid message : {nameof(message)}")
-        };
-
         return new[] { new ChatRequestUserMessage([
-            new ChatMessageImageContentItem(uri),
+            new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri())),
             ])};
     }
 
@@ -352,7 +345,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         IEnumerable<ChatMessageContentItem> items = message.Content.Select<IMessage, ChatMessageContentItem>(ci => ci switch
         {
             TextMessage text => new ChatMessageTextContentItem(text.Content),
-            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url)),
+            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url ?? image.BuildDataUri())),
             _ => throw new NotImplementedException(),
         });
 

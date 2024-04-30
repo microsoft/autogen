@@ -83,12 +83,12 @@ namespace AutoGen.Tests
 
             string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApprovalTests", "square.png");
             ImageMessage imageMessageData;
-            using (FileStream fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
             {
-                MemoryStream ms = new MemoryStream();
-                fs.CopyTo(ms);
+                var ms = new MemoryStream();
+                await fs.CopyToAsync(ms);
                 ms.Seek(0, SeekOrigin.Begin);
-                BinaryData imageData = BinaryData.FromStream(ms, "image/png");
+                var imageData = await BinaryData.FromStreamAsync(ms, "image/png");
                 imageMessageData = new ImageMessage(Role.Assistant, imageData, from: "user");
             }
 
