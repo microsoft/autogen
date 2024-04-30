@@ -1196,28 +1196,46 @@ def test_role_for_select_speaker_messages():
         agents=[agent1, agent2],
         messages=[{"role": "user", "content": "Let's have a chat!"}],
         max_round=3,
+        role_for_select_speaker_messages="system",
     )
 
-    # Run the select agents function to get the select speaker messages
-    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+    # Replicate the _auto_select_speaker nested chat.
+
+    # Agent for checking the response from the speaker_select_agent
+    checking_agent = autogen.ConversableAgent("checking_agent")
+
+    # Agent for selecting a single agent name from the response
+    speaker_selection_agent = autogen.ConversableAgent(
+        "speaker_selection_agent",
+        llm_config=None,
+        human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
+    )
+
+    # The role_for_select_speaker_message is put into the initiate_chat of the nested two-way chat
+    # into a message attribute called 'override_role'. This is evaluated in Conversable Agent's _append_oai_message function
+    # e.g.: message={'content':self.select_speaker_prompt(agents),'override_role':self.role_for_select_speaker_messages},
+    message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
 
     # Test default is "system"
-    assert len(messages) == 2
-    assert messages[-1]["role"] == "system"
+    assert len(checking_agent.chat_messages) == 1
+    assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "system"
 
     # Test as "user"
     groupchat.role_for_select_speaker_messages = "user"
-    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+    message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
 
-    assert len(messages) == 2
-    assert messages[-1]["role"] == "user"
+    assert len(checking_agent.chat_messages) == 1
+    assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "user"
 
     # Test as something unusual
     groupchat.role_for_select_speaker_messages = "SockS"
-    selected_agent, agents, messages = groupchat._prepare_and_select_agents(agent1)
+    message = {"content": "A prompt goes here.", "override_role": groupchat.role_for_select_speaker_messages}
+    checking_agent._append_oai_message(message, "assistant", speaker_selection_agent)
 
-    assert len(messages) == 2
-    assert messages[-1]["role"] == "SockS"
+    assert len(checking_agent.chat_messages) == 1
+    assert checking_agent.chat_messages[speaker_selection_agent][-1]["role"] == "SockS"
 
     # Test empty string and None isn't accepted
 
@@ -1307,7 +1325,7 @@ def test_select_speaker_message_and_prompt_templates():
             speaker_selection_method="auto",
             max_round=10,
             select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template=None,
+            select_speaker_prompt_template="",
         )
 
     # Test with None
@@ -1328,7 +1346,7 @@ def test_select_speaker_message_and_prompt_templates():
             speaker_selection_method="auto",
             max_round=10,
             select_speaker_message_template="Not empty.",
-            select_speaker_prompt_template="",
+            select_speaker_prompt_template=None,
         )
 
 
@@ -1426,6 +1444,328 @@ def test_speaker_selection_agent_name_match():
     assert result == {}
 
 
+def test_speaker_selection_auto_process_result():
+    """
+    Tests the return result of the 2-agent chat used for speaker selection for the auto method.
+    The last message of the messages passed in will contain a pass or fail.
+    If passed, the message will contain the name of the correct agent and that agent will be returned.
+    If failed, the message will contain the reason for failure for the last attempt and the next
+    agent in the sequence will be returned.
+    """
+    cmo = autogen.ConversableAgent(
+        name="Chief_Marketing_Officer",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    pm = autogen.ConversableAgent(
+        name="Product_Manager",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+
+    agent_list = [cmo, pm]
+    groupchat = autogen.GroupChat(agents=agent_list, messages=[], max_round=3)
+
+    chat_result = autogen.ChatResult(
+        chat_id=None,
+        chat_history=[
+            {
+                "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+                "name": "Chairperson",
+                "role": "assistant",
+            },
+            {"content": "You are an expert at finding the next speaker.", "role": "assistant"},
+            {"content": "Product_Manager", "role": "user"},
+            {"content": "UPDATED_BELOW", "role": "user"},
+        ],
+    )
+
+    ### Agent selected successfully
+    chat_result.chat_history[3]["content"] = "[AGENT SELECTED]Product_Manager"
+
+    # Product_Manager should be returned
+    assert groupchat._process_speaker_selection_result(chat_result, cmo, agent_list) == pm
+
+    ### Agent not selected successfully
+    chat_result.chat_history[3][
+        "content"
+    ] = "[AGENT SELECTION FAILED]Select speaker attempt #3 of 3 failed as it did not include any agent names."
+
+    # The next speaker in the list will be selected, which will be the Product_Manager (as the last speaker is the Chief_Marketing_Officer)
+    assert groupchat._process_speaker_selection_result(chat_result, cmo, agent_list) == pm
+
+    ### Invalid result messages, will return the next agent
+    chat_result.chat_history[3]["content"] = "This text should not be here."
+
+    # The next speaker in the list will be selected, which will be the Chief_Marketing_Officer (as the last speaker is the Product_Maanger)
+    assert groupchat._process_speaker_selection_result(chat_result, pm, agent_list) == cmo
+
+
+def test_speaker_selection_validate_speaker_name():
+    """
+    Tests the speaker name validation function used to evaluate the return result of the LLM
+    during speaker selection in 'auto' mode.
+
+    Function: _validate_speaker_name
+
+    If a single agent name is returned by the LLM, it will add a relevant message to the chat messages and return True, None
+    If multiple agent names are returned and there are attempts left, it will return a message to be used to prompt the LLM to try again
+    If multiple agent names are return and there are no attempts left, it will add a relevant message to the chat messages and return True, None
+    If no agent names are returned and there are attempts left, it will return a message to be used to prompt the LLM to try again
+    If no agent names are returned and there are no attempts left, it will add a relevant message to the chat messages and return True, None
+
+    When returning a message, it will include the 'override_role' key and value to support the GroupChat role_for_select_speaker_messages attribute
+    """
+
+    # Group Chat setup
+    cmo = autogen.ConversableAgent(
+        name="Chief_Marketing_Officer",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    pm = autogen.ConversableAgent(
+        name="Product_Manager",
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+        function_map={"test_func": lambda x: x},
+    )
+
+    agent_list = [cmo, pm]
+    agent_list_string = f"{[agent.name for agent in agent_list]}"
+    groupchat = autogen.GroupChat(agents=agent_list, messages=[], max_round=3)
+
+    # Speaker Selection 2-agent chat setup
+
+    # Agent for selecting a single agent name from the response
+    speaker_selection_agent = autogen.ConversableAgent(
+        "speaker_selection_agent",
+    )
+
+    # Agent for checking the response from the speaker_select_agent
+    checking_agent = autogen.ConversableAgent("checking_agent")
+
+    # Select speaker messages
+    select_speaker_messages = [
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Chairperson",
+            "role": "assistant",
+        },
+        {"content": "You are an expert at finding the next speaker.", "role": "assistant"},
+        {"content": "UPDATED_BELOW", "role": "user"},
+    ]
+
+    ### Single agent name returned
+    attempts_left = 2
+    attempt = 1
+    select_speaker_messages[-1]["content"] = "Product_Manager is the next to speak"
+
+    result = groupchat._validate_speaker_name(
+        recipient=checking_agent,
+        messages=select_speaker_messages,
+        sender=speaker_selection_agent,
+        config=None,
+        attempts_left=attempts_left,
+        attempt=attempt,
+        agents=agent_list,
+    )
+
+    assert result == (True, None)
+    assert select_speaker_messages[-1]["content"] == "[AGENT SELECTED]Product_Manager"
+
+    select_speaker_messages.pop(-1)  # Remove the last message before the next test
+
+    ### Multiple agent names returned with attempts left
+    attempts_left = 2
+    attempt = 1
+    select_speaker_messages[-1]["content"] = "Product_Manager must speak after the Chief_Marketing_Officer"
+
+    result = groupchat._validate_speaker_name(
+        recipient=checking_agent,
+        messages=select_speaker_messages,
+        sender=speaker_selection_agent,
+        config=None,
+        attempts_left=attempts_left,
+        attempt=attempt,
+        agents=agent_list,
+    )
+
+    assert result == (
+        True,
+        {
+            "content": groupchat.select_speaker_auto_multiple_template.format(agentlist=agent_list_string),
+            "override_role": groupchat.role_for_select_speaker_messages,
+        },
+    )
+
+    ### Multiple agent names returned with no attempts left
+    attempts_left = 0
+    attempt = 1
+    select_speaker_messages[-1]["content"] = "Product_Manager must speak after the Chief_Marketing_Officer"
+
+    result = groupchat._validate_speaker_name(
+        recipient=checking_agent,
+        messages=select_speaker_messages,
+        sender=speaker_selection_agent,
+        config=None,
+        attempts_left=attempts_left,
+        attempt=attempt,
+        agents=agent_list,
+    )
+
+    assert result == (True, None)
+    assert (
+        select_speaker_messages[-1]["content"]
+        == f"[AGENT SELECTION FAILED]Select speaker attempt #{attempt} of {attempt + attempts_left} failed as it returned multiple names."
+    )
+
+    select_speaker_messages.pop(-1)  # Remove the last message before the next test
+
+    ### No agent names returned with attempts left
+    attempts_left = 3
+    attempt = 2
+    select_speaker_messages[-1]["content"] = "The PM must speak after the CMO"
+
+    result = groupchat._validate_speaker_name(
+        recipient=checking_agent,
+        messages=select_speaker_messages,
+        sender=speaker_selection_agent,
+        config=None,
+        attempts_left=attempts_left,
+        attempt=attempt,
+        agents=agent_list,
+    )
+
+    assert result == (
+        True,
+        {
+            "content": groupchat.select_speaker_auto_none_template.format(agentlist=agent_list_string),
+            "override_role": groupchat.role_for_select_speaker_messages,
+        },
+    )
+
+    ### Multiple agents returned with no attempts left
+    attempts_left = 0
+    attempt = 3
+    select_speaker_messages[-1]["content"] = "The PM must speak after the CMO"
+
+    result = groupchat._validate_speaker_name(
+        recipient=checking_agent,
+        messages=select_speaker_messages,
+        sender=speaker_selection_agent,
+        config=None,
+        attempts_left=attempts_left,
+        attempt=attempt,
+        agents=agent_list,
+    )
+
+    assert result == (True, None)
+    assert (
+        select_speaker_messages[-1]["content"]
+        == f"[AGENT SELECTION FAILED]Select speaker attempt #{attempt} of {attempt + attempts_left} failed as it did not include any agent names."
+    )
+
+
+def test_select_speaker_auto_messages():
+    """
+    In this test, two agents are part of a group chat which has customized select speaker "auto" multiple and no-name prompt messages. Both valid and empty string values will be used.
+    The expected behaviour is that the customized speaker selection "auto" messages will override the default values or throw exceptions if empty.
+    """
+
+    agent1 = autogen.ConversableAgent(
+        "Alice",
+        description="A wonderful employee named Alice.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+    agent2 = autogen.ConversableAgent(
+        "Bob",
+        description="An amazing employee named Bob.",
+        human_input_mode="NEVER",
+        llm_config=False,
+    )
+
+    # Customised message for select speaker auto method where multiple agent names are returned
+    custom_multiple_names_msg = "You mentioned multiple names but we need just one. Select the best one. A reminder that the options are {agentlist}."
+
+    # Customised message for select speaker auto method where no agent names are returned
+    custom_no_names_msg = "You forgot to select a single names and we need one, and only one. Select the best one. A reminder that the options are {agentlist}."
+
+    # Test empty is_termination_msg function
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2],
+        messages=[],
+        speaker_selection_method="auto",
+        max_round=10,
+        select_speaker_auto_multiple_template=custom_multiple_names_msg,
+        select_speaker_auto_none_template=custom_no_names_msg,
+    )
+
+    # Test using the _validate_speaker_name function, checking for the correct string and agentlist to be included
+    agents = [agent1, agent2]
+
+    messages = [{"content": "Alice and Bob should both speak.", "name": "speaker_selector", "role": "user"}]
+    assert groupchat._validate_speaker_name(None, messages, None, None, 1, 1, agents) == (
+        True,
+        {
+            "content": custom_multiple_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "override_role": groupchat.role_for_select_speaker_messages,
+        },
+    )
+
+    messages = [{"content": "Fred should both speak.", "name": "speaker_selector", "role": "user"}]
+    assert groupchat._validate_speaker_name(None, messages, None, None, 1, 1, agents) == (
+        True,
+        {
+            "content": custom_no_names_msg.replace("{agentlist}", "['Alice', 'Bob']"),
+            "override_role": groupchat.role_for_select_speaker_messages,
+        },
+    )
+
+    # Test with empty strings
+    with pytest.raises(ValueError, match="select_speaker_auto_multiple_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_auto_multiple_template="",
+        )
+
+    with pytest.raises(ValueError, match="select_speaker_auto_none_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_auto_none_template="",
+        )
+
+    # Test with None
+    with pytest.raises(ValueError, match="select_speaker_auto_multiple_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_auto_multiple_template=None,
+        )
+
+    with pytest.raises(ValueError, match="select_speaker_auto_none_template cannot be empty or None."):
+        groupchat = autogen.GroupChat(
+            agents=[agent1, agent2],
+            messages=[],
+            speaker_selection_method="auto",
+            max_round=10,
+            select_speaker_auto_none_template=None,
+        )
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1443,5 +1783,8 @@ if __name__ == "__main__":
     # test_custom_speaker_selection_overrides_transition_graph()
     # test_role_for_select_speaker_messages()
     # test_select_speaker_message_and_prompt_templates()
-    test_speaker_selection_agent_name_match()
+    # test_speaker_selection_agent_name_match()
+    test_speaker_selection_auto_process_result()
+    test_speaker_selection_validate_speaker_name()
+    test_select_speaker_auto_messages()
     # pass
