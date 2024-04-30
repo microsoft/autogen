@@ -6,11 +6,11 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "dotnet" ]
+    branches: [ "main" ]
     paths:
       - 'dotnet/**'
   push:
-    branches: [ "dotnet" ]
+    branches: [ "main" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}

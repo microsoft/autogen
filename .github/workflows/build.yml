@@ -46,7 +46,7 @@ jobs:
           python -m pip install --upgrade pip wheel
           pip install -e .[cosmosdb]
           python -c "import autogen"
-          pip install pytest mock
+          pip install pytest-cov>=5 mock
       - name: Install optional dependencies for code executors
         # code executors and udfs auto skip without deps, so only run for python 3.11
         if: matrix.python-version == '3.11'
@@ -71,12 +71,11 @@ jobs:
         if: matrix.python-version == '3.10'
         run: |
           pip install -e .[test,redis,websockets]
-          coverage run -a -m pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
-          coverage xml
+          pytest test --ignore=test/agentchat/contrib --skip-openai --durations=10 --durations-min=1.0
       - name: Test with Cosmos DB
         run: |
           pip install -e .[test,cosmosdb]
-          coverage run -a -m pytest test/cache/test_cosmos_db_cache.py --skip-openai --durations=10 --durations-min=1.0
+          pytest test/cache/test_cosmos_db_cache.py --skip-openai --durations=10 --durations-min=1.0
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.10'
         uses: codecov/codecov-action@v3
