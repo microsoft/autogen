@@ -93,7 +93,15 @@ def test_qdrant_filter():
         # Return only documents with "AutoGen" in the string
         search_string="AutoGen",
     )
-    assert len(results["ids"][0]) == 4
+    assert isinstance(results, list)
+
+    for sublist in results:
+        assert isinstance(sublist, list)
+        for result in sublist:
+            assert isinstance(result, QueryResponse)
+
+    assert len(results) == 1
+    assert len(results[0]) == 4
 
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
