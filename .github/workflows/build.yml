@@ -30,8 +30,6 @@ jobs:
               - "autogen/**"
             test:
               - "test/**"
-            workflows:
-              - ".github/workflows/build.yml"
             setup:
               - "setup.py"
       - name: autogen has changes
@@ -40,9 +38,6 @@ jobs:
       - name: test has changes
         run: echo "test has changes"
         if: steps.filter.outputs.test == 'true'
-      - name: workflows has changes
-        run: echo "workflows has changes"
-        if: steps.filter.outputs.workflows == 'true'
       - name: setup has changes
         run: echo "setup has changes"
         if: steps.filter.outputs.setup == 'true'
