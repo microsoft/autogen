@@ -53,7 +53,10 @@ def generate_criteria(
 
     critic_user.initiate_chat(critic_manager, message=task.sys_msg)
     criteria = critic_user.last_message()
-    criteria = Criterion.parse_json_str(criteria["content"])
+    content = criteria["content"]
+    # need to strip out any extra code around the returned json
+    content = content[content.find("{") : content.rfind("}") + 1]
+    criteria = Criterion.parse_json_str(content)
     return criteria
 
 
