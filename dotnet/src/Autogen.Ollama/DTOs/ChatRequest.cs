@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// ChatMessageRequest.cs
+// ChatRequest.cs
 
 using System;
 using System.Collections.Generic;
