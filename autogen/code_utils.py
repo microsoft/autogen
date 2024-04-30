@@ -247,17 +247,17 @@ def get_powershell_command():
 def _cmd(lang: str) -> str:
     if lang in PYTHON_VARIANTS:
         return "python"
-    elif lang.startswith("python") or lang in ["bash", "sh"]:
+    if lang.startswith("python") or lang in ["bash", "sh"]:
         return lang
-    elif lang in ["shell"]:
+    if lang in ["shell"]:
         return "sh"
-    elif lang == "javascript":
+    if lang == "javascript":
         return "node"
-    elif lang in ["ps1", "pwsh", "powershell"]:
+    if lang in ["ps1", "pwsh", "powershell"]:
         powershell_command = get_powershell_command()
         return powershell_command
-    else:
-        raise NotImplementedError(f"{lang} not recognized in code execution")
+
+    raise NotImplementedError(f"{lang} not recognized in code execution")
 
 
 def is_docker_running() -> bool:
