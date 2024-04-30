@@ -71,7 +71,7 @@ namespace AutoGen.Tests
         [ApiKeyFact("OPENAI_API_KEY")]
         public async Task GPT4ImageMessage()
         {
-            await Example15_GPT4ImageMessage.RunAsync();
+            await Example15_GPT4V_BinaryDataImageMessage.RunAsync();
         }
 
         public class ConsoleWriter : StringWriter

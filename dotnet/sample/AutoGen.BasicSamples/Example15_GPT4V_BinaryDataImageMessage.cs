@@ -12,7 +12,7 @@ namespace AutoGen.BasicSample;
 /// <br>
 /// Add additional images to the ImageResources to load and send more images to GPT-4V 
 /// </summary>
-public static class Example15_GPT4ImageMessage
+public static class Example15_GPT4V_BinaryDataImageMessage
 {
     private static readonly string ImageResourcePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ImageResources");
 
