@@ -55,7 +55,7 @@ from autogen import ConversableAgent  # As an example
 ```python
 # Load LLM inference endpoints from an env variable or a file
 # See https://microsoft.github.io/autogen/docs/FAQ#set-your-api-endpoints
-# and OAI_CONFIG_LIST_sample
+# and OAI_CONFIG_LIST_sample/OAI_CONFIG_LIST_yaml_sample
 filter_dict = {"model": ["gpt-4"]}  # GPT-3.5 is less reliable than GPT-4 at learning from user feedback.
 config_list = config_list_from_json(env_or_file="OAI_CONFIG_LIST", filter_dict=filter_dict)
 llm_config={"config_list": config_list, "timeout": 120}
