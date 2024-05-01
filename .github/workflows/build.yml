@@ -43,6 +43,7 @@ jobs:
         if: steps.filter.outputs.setup == 'true'
   build:
     needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
     runs-on: ${{ matrix.os }}
     env:
       AUTOGEN_USE_DOCKER: ${{ matrix.os != 'ubuntu-latest'  && 'False' }}
@@ -57,9 +58,6 @@ jobs:
           - os: macos-latest
             python-version: "3.9"
     steps:
-      - name: Exit early if hasChanges is false
-        run: exit 0
-        if: needs.paths-filter.outputs.hasChanges != 'true'
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -106,3 +104,32 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+  build-check:
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Get Date
+        shell: bash
+        run: |
+          echo "date=$(date +'%m/%d/%Y %H:%M:%S')" >> "$GITHUB_ENV"
+
+      - name: Run Type is ${{ github.event_name }}
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'}}
+        shell: bash
+        run: |
+          echo "run_type=${{ github.event_name }}" >> "$GITHUB_ENV"
+
+      - name: Fail workflow if build failed
+        id: check_build_failed
+        if: contains(join(needs.*.result, ','), 'failure')
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('Build Failed!')
+
+      - name: Fail workflow if build cancelled
+        id: check_build_cancelled
+        if: contains(join(needs.*.result, ','), 'cancelled')
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('Build Cancelled!')
