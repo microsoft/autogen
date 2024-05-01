@@ -1,5 +1,7 @@
 # Azure Cosmos DB
 
+![Azure Cosmos DB Example](img/ecosystem-cosmos.png)
+
 > "OpenAI relies on Cosmos DB to dynamically scale their ChatGPT service – one of the fastest-growing consumer apps ever – enabling high reliability and low maintenance."
 > – Satya Nadella, Microsoft chairman and chief executive officer
 
