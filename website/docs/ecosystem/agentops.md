@@ -15,7 +15,7 @@ To start tracking all available data on Autogen runs, simply add two lines of co
 
 ```python
 import agentops
-agentops.init() # AgentOps API key named AGENTOPS_API_KEY in environment 
+agentops.init() # AgentOps API key named AGENTOPS_API_KEY in environment
 # or
 agentops.init(api_key='you-api-key')
 ```
