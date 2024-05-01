@@ -610,7 +610,7 @@ class PGVectorDB(VectorDB):
                     host=host,
                     port=port,
                     dbname=dbname,
-                    username=username,
+                    user=username,
                     password=password,
                     connect_timeout=connect_timeout,
                     autocommit=True,
