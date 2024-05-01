@@ -8,7 +8,7 @@ from hashlib import md5
 from pathlib import Path
 from time import sleep
 from types import TracebackType
-from typing import Any, List, Optional, Type, Union
+from typing import Any, ClassVar, Dict, List, Optional, Type, Union
 
 import docker
 from docker.errors import ImageNotFound
@@ -39,6 +39,20 @@ __all__ = ("DockerCommandLineCodeExecutor",)
 
 
 class DockerCommandLineCodeExecutor(CodeExecutor):
+    DEFAULT_EXECUTION_POLICY: ClassVar[Dict[str, bool]] = {
+        "bash": True,
+        "shell": True,
+        "sh": True,
+        "pwsh": True,
+        "powershell": True,
+        "ps1": True,
+        "python": True,
+        "javascript": False,
+        "html": False,
+        "css": False,
+    }
+    LANGUAGE_ALIASES: ClassVar[Dict[str, str]] = {"py": "python", "js": "javascript"}
+
     def __init__(
         self,
         image: str = "python:3-slim",
@@ -48,6 +62,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         bind_dir: Optional[Union[Path, str]] = None,
         auto_remove: bool = True,
         stop_container: bool = True,
+        execution_policies: Optional[Dict[str, bool]] = None,
     ):
         """(Experimental) A code executor class that executes code through
         a command line environment in a Docker container.
@@ -80,13 +95,11 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         Raises:
             ValueError: On argument error, or if the container fails to start.
         """
-
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
-
         work_dir.mkdir(exist_ok=True)
 
         if bind_dir is None:
@@ -95,7 +108,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             bind_dir = Path(bind_dir)
 
         client = docker.from_env()
-
         # Check if the image exists
         try:
             client.images.get(image)
@@ -127,7 +139,6 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
                 container.stop()
             except docker.errors.NotFound:
                 pass
-
             atexit.unregister(cleanup)
 
         if stop_container:
@@ -142,6 +153,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         self._timeout = timeout
         self._work_dir: Path = work_dir
         self._bind_dir: Path = bind_dir
+        self.execution_policies = self.DEFAULT_EXECUTION_POLICY.copy()
+        if execution_policies is not None:
+            self.execution_policies.update(execution_policies)
 
     @property
     def timeout(self) -> int:
@@ -179,35 +193,42 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         files = []
         last_exit_code = 0
         for code_block in code_blocks:
-            lang = code_block.language
+            lang = self.LANGUAGE_ALIASES.get(code_block.language.lower(), code_block.language.lower())
+            if lang not in self.DEFAULT_EXECUTION_POLICY:
+                outputs.append(f"Unsupported language {lang}\n")
+                last_exit_code = 1
+                break
+
+            execute_code = self.execution_policies.get(lang, False)
             code = silence_pip(code_block.code, lang)
 
+            # Check if there is a filename comment
             try:
-                # Check if there is a filename comment
-                filename = _get_file_name_from_content(code, Path("/workspace"))
+                filename = _get_file_name_from_content(code, self._work_dir)
             except ValueError:
-                return CommandLineCodeResult(exit_code=1, output="Filename is not in the workspace")
+                outputs.append("Filename is not in the workspace")
+                last_exit_code = 1
+                break
 
-            if filename is None:
-                # create a file with an automatically generated name
-                code_hash = md5(code.encode()).hexdigest()
-                filename = f"tmp_code_{code_hash}.{'py' if lang.startswith('python') else lang}"
+            if not filename:
+                filename = f"tmp_code_{md5(code.encode()).hexdigest()}.{lang}"
 
             code_path = self._work_dir / filename
             with code_path.open("w", encoding="utf-8") as fout:
                 fout.write(code)
+            files.append(code_path)
+
+            if not execute_code:
+                outputs.append(f"Code saved to {str(code_path)}\n")
+                continue
 
             command = ["timeout", str(self._timeout), _cmd(lang), filename]
-
             result = self._container.exec_run(command)
             exit_code = result.exit_code
             output = result.output.decode("utf-8")
             if exit_code == 124:
-                output += "\n"
-                output += TIMEOUT_MSG
-
+                output += "\n" + TIMEOUT_MSG
             outputs.append(output)
-            files.append(code_path)
 
             last_exit_code = exit_code
             if exit_code != 0:
