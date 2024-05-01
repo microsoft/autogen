@@ -20,7 +20,7 @@ class MultimodalAgent(autogen.ConversableAgent):
         self.register_reply([autogen.Agent, None], autogen.ConversableAgent.check_termination_and_human_reply)
 
     def _has_image(self, message):
-        if isinstance(message, list):
+        if isinstance(message["content"], list):
             for elm in message["content"]:
                 if elm.get("type", "") == "image_url":
                     return True

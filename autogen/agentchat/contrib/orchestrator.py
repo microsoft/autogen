@@ -63,7 +63,7 @@ class Orchestrator(ConversableAgent):
                 self.send(message, a, request_reply=False, silent=True)
 
     def _has_image(self, message):
-        if isinstance(message, list):
+        if isinstance(message["content"], list):
             for elm in message["content"]:
                 if elm.get("type", "") == "image_url":
                     return True
