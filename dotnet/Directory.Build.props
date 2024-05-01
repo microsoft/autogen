@@ -18,6 +18,6 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RepoRoot>$(MSBuildThisFileDirectory)../</RepoRoot>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
   </PropertyGroup>
 </Project>
