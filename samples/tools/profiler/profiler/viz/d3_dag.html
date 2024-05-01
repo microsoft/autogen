@@ -165,14 +165,14 @@
             outline: 2px solid blue;
         }
 
-        .state-tags {
+        .tags, .state-tags {
             display: flex; /* Flexbox to arrange tags in a row */
             flex-wrap: wrap; /* Allow wrapping onto the next line */
             gap: 5px; /* Space between tags */
             margin-top: 10px; /* Space above the tag container */
         }
 
-        .state-tag {
+        .tag, .state-tag {
             background-color: #007BFF; /* Blue background */
             color: white; /* White text */
             padding: 2px 8px; /* Padding inside the tag */
@@ -398,6 +398,16 @@
             .attr("id", (d, i) => `node-info-${i}`)
             .html(d => {
                 let contentHtml = marked.parse(processMarkdown(d.profile.message.content));
+
+                let tagsHtml = '';
+                if (d.profile.message.tags && d.profile.message.tags.length > 0) {
+                    tagsHtml += '<div class="tags">';
+                    d.profile.message.tags.forEach(tag => {
+                        tagsHtml += `<span class="tag">${tag}</span>`;
+                    });
+                    tagsHtml += '</div>';
+                }
+
                 let statesHtml = '';
 
                 if (d.profile.states && d.profile.states.length > 0) {
@@ -408,7 +418,7 @@
                     statesHtml += '</div>';
                 }
 
-                return contentHtml + statesHtml;
+                return contentHtml + tagsHtml + statesHtml;
             });
 
         function dragstarted(event, d) {

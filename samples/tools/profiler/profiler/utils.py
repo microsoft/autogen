@@ -8,28 +8,55 @@ def parse_agb_console(file_path: str) -> List[Message]:
     with open(file_path, "r") as file:
         lines = file.readlines()
 
-    # extract the text between the lines that are SCENARIO.PY STARTING !#!# and SCENARIO.PY COMPLETE !#!#
-    start = False
-    chat_history_json = []
+    in_start = False
+    in_main_task = False
+
+    all_lines = []
+    main_lines = []
+
     for line in lines:
+
         if "SCENARIO.PY STARTING !#!#" in line:
-            start = True
-        elif "SCENARIO.PY COMPLETE !#!#" in line:
-            start = False
-        elif start:
-            chat_history_json.append(line)
+            in_start = True
+            continue
 
-    main_console_log = "".join(chat_history_json)
+        if "SCENARIO.PY COMPLETE !#!#" in line:
+            in_start = False
+            continue
 
-    chat_history_json = main_console_log.split(
+        if "MAIN TASK STARTING !#!#" in line:
+            in_main_task = True
+            continue
+
+        if "MAIN TASK COMPLETE !#!#" in line:
+            in_main_task = False
+            continue
+
+        if in_start:
+            all_lines.append(line)
+
+        if in_main_task:
+            main_lines.append(line)
+
+    all_console_lines = "".join(all_lines)
+    main_lines = "".join(main_lines)
+
+    all_messages = all_console_lines.split(
         "--------------------------------------------------------------------------------"
     )
 
     messages = []
-    for msg in chat_history_json:
+
+    for msg in all_messages:
+
         for line in msg.split("\n"):
             if "(to " in line and line.endswith(":"):
                 source = line.split(" (")[0]
-                messages.append(Message(source=source, role=source, content=msg))
+
+                messages.append(
+                    Message(
+                        source=source, role=source, content=msg, tags=["in_main_task"] if msg in main_lines else None
+                    )  # add tag if message is in main task
+                )
 
     return messages

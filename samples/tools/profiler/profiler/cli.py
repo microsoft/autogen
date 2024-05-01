@@ -46,9 +46,9 @@ def profile(args):
         state_names = [s.name for s in profile.states]
         sorted_state_names = sorted(state_names)
 
-        raw_content = message.content[:40].encode("unicode_escape").decode()
+        raw_content = message.content[:80].strip().encode("unicode_escape").decode()
 
-        tqdm.write(f"[{msg_idx}] {message.source}: {raw_content}")
+        tqdm.write(f"[{msg_idx}] {message.source} ({message.tags}):\n{raw_content}")
         for sname in sorted_state_names:
             tqdm.write(f"\t{sname}")
 
