@@ -62,15 +62,30 @@ class Orchestrator(ConversableAgent):
             else:
                 self.send(message, a, request_reply=False, silent=True)
 
-    def _create_with_images(self, messages, **kwargs):
+    def _has_image(self, message):
+        if isinstance(message, list):
+            for elm in message["content"]:
+                if elm.get("type", "") == "image_url":
+                    return True
+        return False
+
+    def _create_with_images(self, messages, max_images=1, **kwargs):
         # Clone the messages to give context, but remove old screenshots
         history = []
-        for i in range(0, len(messages) - 1):
+        n_images = 0
+        for m in messages[::-1]:
+            # Create a shallow copy
             message = {}
-            message.update(messages[i])
-            message["content"] = content_str(message["content"])
-            history.append(message)
-        history.append(messages[-1])
+            message.update(m)
+
+            # If there's an image, then consider replacing it with a string
+            if self._has_image(message):
+                n_images += 1
+                if n_images > max_images:
+                    message["content"] = content_str(message["content"])
+
+            # Prepend the message -- since we are iterating backwards
+            history.insert(0, message)
         return self.client.create(messages=messages, **kwargs)
 
     def _create_with_retry(self, max_tries=10, *args, **kwargs):

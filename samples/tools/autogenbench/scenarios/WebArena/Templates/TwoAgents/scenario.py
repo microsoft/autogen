@@ -5,8 +5,8 @@ import autogen
 import evaluation_harness
 import re
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
+from autogen.agentchat.contrib.mmagent import MultimodalAgent
 from autogen.runtime_logging import logging_enabled, log_event
-from mmagent import MultimodalAgent
 
 from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
 
@@ -152,8 +152,8 @@ if "shopping_admin" in TASK["sites"] or "shopping_site_admin" in TASK["sites"]:
 if logging_enabled():
     log_event(os.path.basename(__file__), name="navigate_start_url")
 start_url = TASK["start_url"]
-if start_url == REDDIT:
-    start_url = start_url + "/forums"
+# if start_url == REDDIT:
+#    start_url = start_url + "/forums"
 user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
 
 user_proxy.reset()
