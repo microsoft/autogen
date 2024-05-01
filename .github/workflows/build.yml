@@ -6,11 +6,6 @@ name: Build
 on:
   push:
     branches: ["main"]
-    paths:
-      - "autogen/**"
-      - "test/**"
-      - ".github/workflows/build.yml"
-      - "setup.py"
   pull_request:
     branches: ["main"]
   merge_group:
@@ -21,7 +16,39 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 permissions: {}
 jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      hasChanges: ${{ steps.filter.outputs.autogen == 'true' || steps.filter.outputs.test == 'true' || steps.filter.outputs.workflows == 'true' || steps.filter.outputs.setup == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            autogen:
+              - "autogen/**"
+            test:
+              - "test/**"
+            workflows:
+              - ".github/workflows/build.yml"
+            setup:
+              - "setup.py"
+      - name: autogen has changes
+        run: echo "autogen has changes"
+        if: steps.filter.outputs.autogen == 'true'
+      - name: test has changes
+        run: echo "test has changes"
+        if: steps.filter.outputs.test == 'true'
+      - name: workflows has changes
+        run: echo "workflows has changes"
+        if: steps.filter.outputs.workflows == 'true'
+      - name: setup has changes
+        run: echo "setup has changes"
+        if: steps.filter.outputs.setup == 'true'
   build:
+    needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
     runs-on: ${{ matrix.os }}
     env:
       AUTOGEN_USE_DOCKER: ${{ matrix.os != 'ubuntu-latest'  && 'False' }}
