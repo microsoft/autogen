@@ -14,7 +14,7 @@ import { appContext } from "../../../hooks/provider";
 import { fetchJSON, getServerUrl, timeAgo } from "../../utils";
 import { LaunchButton, LoadingOverlay } from "../../atoms";
 import { useConfigStore } from "../../../hooks/store";
-import WorkflowSelector from "./utiles/selectors";
+import WorkflowSelector from "./utils/selectors";
 
 const SessionsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);

@@ -50,8 +50,8 @@ folders = init_app_folders(app_file_path)
 ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
 db_path = os.path.join(folders["app_root"], "database.sqlite")
-database_uri = os.environ.get("AUTOGENSTUDIO_DATABASE_URI", f"sqlite:///{db_path}")
-dbmanager = DBManager(engine_uri=database_uri)
+database_engine_uri = os.environ.get("AUTOGENSTUDIO_DATABASE_URI", f"sqlite:///{db_path}")
+dbmanager = DBManager(engine_uri=database_engine_uri)
 
 
 @asynccontextmanager
@@ -361,11 +361,17 @@ async def list_messages(user_id: str, session_id: int):
 async def create_message(message: Message):
     """Create a new message"""
     try:
-        user_message_history = dbmanager.get(
-            Message,
-            filters={"user_id": message.user_id, "session_id": message.session_id},
-            return_json=True,
-        ).data
+        user_message_history = (
+            dbmanager.get(
+                Message,
+                filters={"user_id": message.user_id, "session_id": message.session_id},
+                return_json=True,
+            ).data
+            if message.session_id
+            else []
+        )
+
+        print("User message history: ", user_message_history)
 
         # save incoming message
         dbmanager.upsert(message)

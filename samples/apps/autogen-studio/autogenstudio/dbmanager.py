@@ -28,7 +28,6 @@ class DBManager:
 
     def __init__(self, engine_uri: str):
         self.engine = create_engine(engine_uri)
-        self.session = Session(self.engine)
 
     def create_db_and_tables(self):
         """Create a new database and tables"""
@@ -41,22 +40,23 @@ class DBManager:
         model_class = type(model)
         existing_model = None
 
-        try:
-            existing_model = self.session.exec(select(model_class).where(model_class.id == model.id)).first()
-            if existing_model:
-                model.updated_at = datetime.now()
-                for key, value in model.model_dump().items():
-                    setattr(existing_model, key, value)
-                model = existing_model
-                self.session.add(model)
-            else:
-                self.session.add(model)
-            self.session.commit()
-            self.session.refresh(model)
-        except Exception as e:
-            self.session.rollback()
-            logger.error("Error while upserting %s", e)
-            status = False
+        with Session(self.engine) as session:
+            try:
+                existing_model = session.exec(select(model_class).where(model_class.id == model.id)).first()
+                if existing_model:
+                    model.updated_at = datetime.now()
+                    for key, value in model.model_dump().items():
+                        setattr(existing_model, key, value)
+                    model = existing_model
+                    session.add(model)
+                else:
+                    session.add(model)
+                session.commit()
+                session.refresh(model)
+            except Exception as e:
+                session.rollback()
+                logger.error("Error while upserting %s", e)
+                status = False
 
         response = Response(
             message=(
@@ -73,17 +73,19 @@ class DBManager:
     def _model_to_dict(self, model_obj):
         return {col.name: getattr(model_obj, col.name) for col in model_obj.__table__.columns}
 
-    def get(
+    def get_items(
         self,
         model_class: SQLModel,
+        session: Session,
         filters: dict = None,
         return_json: bool = False,
         order: str = "desc",
     ):
-        """List all entities for a user"""
+        """List all entities"""
         result = []
         status = True
         status_message = ""
+
         try:
             if filters:
                 conditions = [getattr(model_class, col) == value for col, value in filters.items()]
@@ -98,12 +100,12 @@ class DBManager:
                 statement = select(model_class)
 
             if return_json:
-                result = [self._model_to_dict(row) for row in self.session.exec(statement).all()]
+                result = [self._model_to_dict(row) for row in session.exec(statement).all()]
             else:
-                result = self.session.exec(statement).all()
+                result = session.exec(statement).all()
             status_message = f"{model_class.__name__} Retrieved Successfully"
         except Exception as e:
-            self.session.rollback()
+            session.rollback()
             status = False
             status_message = f"Error while fetching  {model_class.__name__}"
             logger.error("Error while getting %s: %s", model_class.__name__, e)
@@ -115,42 +117,56 @@ class DBManager:
         )
         return response
 
+    def get(
+        self,
+        model_class: SQLModel,
+        filters: dict = None,
+        return_json: bool = False,
+        order: str = "desc",
+    ):
+        """List all entities"""
+
+        with Session(self.engine) as session:
+            response = self.get_items(model_class, session, filters, return_json, order)
+        return response
+
     def delete(self, model_class: SQLModel, filters: dict = None):
         """Delete an entity"""
         row = None
         status_message = ""
         status = True
-        try:
-            if filters:
-                conditions = [getattr(model_class, col) == value for col, value in filters.items()]
-                row = self.session.exec(select(model_class).where(and_(*conditions))).all()
-            else:
-                row = self.session.exec(select(model_class)).all()
-            if row:
-                for row in row:
-                    self.session.delete(row)
-                self.session.commit()
-                status_message = f"{model_class.__name__} Deleted Successfully"
-            else:
-                print(f"Row with filters {filters} not found")
-                logger.info("Row with filters %s not found", filters)
-                status_message = "Row not found"
-        except exc.IntegrityError as e:
-            self.session.rollback()
-            logger.error("Integrity ... Error while deleting: %s", e)
-            status_message = f"The {model_class.__name__} is linked to another entity and cannot be deleted."
-            status = False
-        except Exception as e:
-            self.session.rollback()
-            logger.error("Error while deleting: %s", e)
-            status_message = f"Error while deleting: {e}"
-            status = False
-        response = Response(
-            message=status_message,
-            status=status,
-            data=None,
-        )
-        print(response)
+
+        with Session(self.engine) as session:
+            try:
+                if filters:
+                    conditions = [getattr(model_class, col) == value for col, value in filters.items()]
+                    row = session.exec(select(model_class).where(and_(*conditions))).all()
+                else:
+                    row = session.exec(select(model_class)).all()
+                if row:
+                    for row in row:
+                        session.delete(row)
+                    session.commit()
+                    status_message = f"{model_class.__name__} Deleted Successfully"
+                else:
+                    print(f"Row with filters {filters} not found")
+                    logger.info("Row with filters %s not found", filters)
+                    status_message = "Row not found"
+            except exc.IntegrityError as e:
+                session.rollback()
+                logger.error("Integrity ... Error while deleting: %s", e)
+                status_message = f"The {model_class.__name__} is linked to another entity and cannot be deleted."
+                status = False
+            except Exception as e:
+                session.rollback()
+                logger.error("Error while deleting: %s", e)
+                status_message = f"Error while deleting: {e}"
+                status = False
+            response = Response(
+                message=status_message,
+                status=status,
+                data=None,
+            )
         return response
 
     def get_linked_entities(
@@ -179,31 +195,34 @@ class DBManager:
 
         status = True
         status_message = ""
-        try:
-            if link_type == "agent_model":
-                agent = self.get(Agent, filters={"id": primary_id}).data[0]  # get the agent
-                linked_entities = agent.models
-            elif link_type == "agent_skill":
-                agent = self.get(Agent, filters={"id": primary_id}).data[0]
-                linked_entities = agent.skills
-            elif link_type == "agent_agent":
-                agent = self.get(Agent, filters={"id": primary_id}).data[0]
-                linked_entities = agent.agents
-            elif link_type == "workflow_agent":
-                linked_entities = self.session.exec(
-                    select(Agent)
-                    .join(WorkflowAgentLink)
-                    .where(
-                        WorkflowAgentLink.workflow_id == primary_id,
-                        WorkflowAgentLink.agent_type == agent_type,
-                    )
-                ).all()
-        except Exception as e:
-            logger.error("Error while getting linked entities: %s", e)
-            status_message = f"Error while getting linked entities: {e}"
-            status = False
-        if return_json:
-            linked_entities = [self._model_to_dict(row) for row in linked_entities]
+
+        with Session(self.engine) as session:
+            try:
+                if link_type == "agent_model":
+                    # get the agent
+                    agent = self.get_items(Agent, filters={"id": primary_id}, session=session).data[0]
+                    linked_entities = agent.models
+                elif link_type == "agent_skill":
+                    agent = self.get_items(Agent, filters={"id": primary_id}, session=session).data[0]
+                    linked_entities = agent.skills
+                elif link_type == "agent_agent":
+                    agent = self.get_items(Agent, filters={"id": primary_id}, session=session).data[0]
+                    linked_entities = agent.agents
+                elif link_type == "workflow_agent":
+                    linked_entities = session.exec(
+                        select(Agent)
+                        .join(WorkflowAgentLink)
+                        .where(
+                            WorkflowAgentLink.workflow_id == primary_id,
+                            WorkflowAgentLink.agent_type == agent_type,
+                        )
+                    ).all()
+            except Exception as e:
+                logger.error("Error while getting linked entities: %s", e)
+                status_message = f"Error while getting linked entities: {e}"
+                status = False
+            if return_json:
+                linked_entities = [self._model_to_dict(row) for row in linked_entities]
 
         response = Response(
             message=status_message,
@@ -243,124 +262,125 @@ class DBManager:
             status = False
             status_message = f"Invalid link type: {link_type}. Valid link types are: {valid_link_types}"
         else:
-            try:
-                if link_type == "agent_model":
-                    primary_model = self.session.exec(select(Agent).where(Agent.id == primary_id)).first()
-                    secondary_model = self.session.exec(select(Model).where(Model.id == secondary_id)).first()
-                    if primary_model is None or secondary_model is None:
-                        status = False
-                        status_message = "One or both entity records do not exist."
-                    else:
-                        # check if the link already exists
-                        existing_link = self.session.exec(
-                            select(AgentModelLink).where(
-                                AgentModelLink.agent_id == primary_id,
-                                AgentModelLink.model_id == secondary_id,
-                            )
-                        ).first()
-                        if existing_link:  # link already exists
-                            return Response(
-                                message=(
-                                    f"{secondary_model.__class__.__name__} already linked "
-                                    f"to {primary_model.__class__.__name__}"
-                                ),
-                                status=False,
-                            )
+            with Session(self.engine) as session:
+                try:
+                    if link_type == "agent_model":
+                        primary_model = session.exec(select(Agent).where(Agent.id == primary_id)).first()
+                        secondary_model = session.exec(select(Model).where(Model.id == secondary_id)).first()
+                        if primary_model is None or secondary_model is None:
+                            status = False
+                            status_message = "One or both entity records do not exist."
                         else:
-                            primary_model.models.append(secondary_model)
-                elif link_type == "agent_agent":
-                    primary_model = self.session.exec(select(Agent).where(Agent.id == primary_id)).first()
-                    secondary_model = self.session.exec(select(Agent).where(Agent.id == secondary_id)).first()
-                    if primary_model is None or secondary_model is None:
-                        status = False
-                        status_message = "One or both entity records do not exist."
-                    else:
-                        # check if the link already exists
-                        existing_link = self.session.exec(
-                            select(AgentLink).where(
-                                AgentLink.parent_id == primary_id,
-                                AgentLink.agent_id == secondary_id,
-                            )
-                        ).first()
-                        if existing_link:
-                            return Response(
-                                message=(
-                                    f"{secondary_model.__class__.__name__} already linked "
-                                    f"to {primary_model.__class__.__name__}"
-                                ),
-                                status=False,
-                            )
+                            # check if the link already exists
+                            existing_link = session.exec(
+                                select(AgentModelLink).where(
+                                    AgentModelLink.agent_id == primary_id,
+                                    AgentModelLink.model_id == secondary_id,
+                                )
+                            ).first()
+                            if existing_link:  # link already exists
+                                return Response(
+                                    message=(
+                                        f"{secondary_model.__class__.__name__} already linked "
+                                        f"to {primary_model.__class__.__name__}"
+                                    ),
+                                    status=False,
+                                )
+                            else:
+                                primary_model.models.append(secondary_model)
+                    elif link_type == "agent_agent":
+                        primary_model = session.exec(select(Agent).where(Agent.id == primary_id)).first()
+                        secondary_model = session.exec(select(Agent).where(Agent.id == secondary_id)).first()
+                        if primary_model is None or secondary_model is None:
+                            status = False
+                            status_message = "One or both entity records do not exist."
                         else:
-                            primary_model.agents.append(secondary_model)
+                            # check if the link already exists
+                            existing_link = session.exec(
+                                select(AgentLink).where(
+                                    AgentLink.parent_id == primary_id,
+                                    AgentLink.agent_id == secondary_id,
+                                )
+                            ).first()
+                            if existing_link:
+                                return Response(
+                                    message=(
+                                        f"{secondary_model.__class__.__name__} already linked "
+                                        f"to {primary_model.__class__.__name__}"
+                                    ),
+                                    status=False,
+                                )
+                            else:
+                                primary_model.agents.append(secondary_model)
 
-                elif link_type == "agent_skill":
-                    primary_model = self.session.exec(select(Agent).where(Agent.id == primary_id)).first()
-                    secondary_model = self.session.exec(select(Skill).where(Skill.id == secondary_id)).first()
-                    if primary_model is None or secondary_model is None:
-                        status = False
-                        status_message = "One or both entity records do not exist."
-                    else:
-                        # check if the link already exists
-                        existing_link = self.session.exec(
-                            select(AgentSkillLink).where(
-                                AgentSkillLink.agent_id == primary_id,
-                                AgentSkillLink.skill_id == secondary_id,
-                            )
-                        ).first()
-                        if existing_link:
-                            return Response(
-                                message=(
-                                    f"{secondary_model.__class__.__name__} already linked "
-                                    f"to {primary_model.__class__.__name__}"
-                                ),
-                                status=False,
-                            )
+                    elif link_type == "agent_skill":
+                        primary_model = session.exec(select(Agent).where(Agent.id == primary_id)).first()
+                        secondary_model = session.exec(select(Skill).where(Skill.id == secondary_id)).first()
+                        if primary_model is None or secondary_model is None:
+                            status = False
+                            status_message = "One or both entity records do not exist."
                         else:
-                            primary_model.skills.append(secondary_model)
-                elif link_type == "workflow_agent":
-                    primary_model = self.session.exec(select(Workflow).where(Workflow.id == primary_id)).first()
-                    secondary_model = self.session.exec(select(Agent).where(Agent.id == secondary_id)).first()
-                    if primary_model is None or secondary_model is None:
-                        status = False
-                        status_message = "One or both entity records do not exist."
-                    else:
-                        # check if the link already exists
-                        existing_link = self.session.exec(
-                            select(WorkflowAgentLink).where(
-                                WorkflowAgentLink.workflow_id == primary_id,
-                                WorkflowAgentLink.agent_id == secondary_id,
-                                WorkflowAgentLink.agent_type == agent_type,
-                            )
-                        ).first()
-                        if existing_link:
-                            return Response(
-                                message=(
-                                    f"{secondary_model.__class__.__name__} already linked "
-                                    f"to {primary_model.__class__.__name__}"
-                                ),
-                                status=False,
-                            )
+                            # check if the link already exists
+                            existing_link = session.exec(
+                                select(AgentSkillLink).where(
+                                    AgentSkillLink.agent_id == primary_id,
+                                    AgentSkillLink.skill_id == secondary_id,
+                                )
+                            ).first()
+                            if existing_link:
+                                return Response(
+                                    message=(
+                                        f"{secondary_model.__class__.__name__} already linked "
+                                        f"to {primary_model.__class__.__name__}"
+                                    ),
+                                    status=False,
+                                )
+                            else:
+                                primary_model.skills.append(secondary_model)
+                    elif link_type == "workflow_agent":
+                        primary_model = session.exec(select(Workflow).where(Workflow.id == primary_id)).first()
+                        secondary_model = session.exec(select(Agent).where(Agent.id == secondary_id)).first()
+                        if primary_model is None or secondary_model is None:
+                            status = False
+                            status_message = "One or both entity records do not exist."
                         else:
-                            # primary_model.agents.append(secondary_model)
-                            workflow_agent_link = WorkflowAgentLink(
-                                workflow_id=primary_id,
-                                agent_id=secondary_id,
-                                agent_type=agent_type,
-                            )
-                            self.session.add(workflow_agent_link)
-                # add and commit the link
-                self.session.add(primary_model)
-                self.session.commit()
-                status_message = (
-                    f"{secondary_model.__class__.__name__} successfully linked "
-                    f"to {primary_model.__class__.__name__}"
-                )
+                            # check if the link already exists
+                            existing_link = session.exec(
+                                select(WorkflowAgentLink).where(
+                                    WorkflowAgentLink.workflow_id == primary_id,
+                                    WorkflowAgentLink.agent_id == secondary_id,
+                                    WorkflowAgentLink.agent_type == agent_type,
+                                )
+                            ).first()
+                            if existing_link:
+                                return Response(
+                                    message=(
+                                        f"{secondary_model.__class__.__name__} already linked "
+                                        f"to {primary_model.__class__.__name__}"
+                                    ),
+                                    status=False,
+                                )
+                            else:
+                                # primary_model.agents.append(secondary_model)
+                                workflow_agent_link = WorkflowAgentLink(
+                                    workflow_id=primary_id,
+                                    agent_id=secondary_id,
+                                    agent_type=agent_type,
+                                )
+                                session.add(workflow_agent_link)
+                    # add and commit the link
+                    session.add(primary_model)
+                    session.commit()
+                    status_message = (
+                        f"{secondary_model.__class__.__name__} successfully linked "
+                        f"to {primary_model.__class__.__name__}"
+                    )
 
-            except Exception as e:
-                self.session.rollback()
-                logger.error("Error while linking: %s", e)
-                status = False
-                status_message = f"Error while linking due to an exception: {e}"
+                except Exception as e:
+                    session.rollback()
+                    logger.error("Error while linking: %s", e)
+                    status = False
+                    status_message = f"Error while linking due to an exception: {e}"
 
         response = Response(
             message=status_message,
@@ -396,49 +416,50 @@ class DBManager:
             status_message = f"Invalid link type: {link_type}. Valid link types are: {valid_link_types}"
             return Response(message=status_message, status=status)
 
-        try:
-            if link_type == "agent_model":
-                existing_link = self.session.exec(
-                    select(AgentModelLink).where(
-                        AgentModelLink.agent_id == primary_id,
-                        AgentModelLink.model_id == secondary_id,
-                    )
-                ).first()
-            elif link_type == "agent_skill":
-                existing_link = self.session.exec(
-                    select(AgentSkillLink).where(
-                        AgentSkillLink.agent_id == primary_id,
-                        AgentSkillLink.skill_id == secondary_id,
-                    )
-                ).first()
-            elif link_type == "agent_agent":
-                existing_link = self.session.exec(
-                    select(AgentLink).where(
-                        AgentLink.parent_id == primary_id,
-                        AgentLink.agent_id == secondary_id,
-                    )
-                ).first()
-            elif link_type == "workflow_agent":
-                existing_link = self.session.exec(
-                    select(WorkflowAgentLink).where(
-                        WorkflowAgentLink.workflow_id == primary_id,
-                        WorkflowAgentLink.agent_id == secondary_id,
-                        WorkflowAgentLink.agent_type == agent_type,
-                    )
-                ).first()
+        with Session(self.engine) as session:
+            try:
+                if link_type == "agent_model":
+                    existing_link = session.exec(
+                        select(AgentModelLink).where(
+                            AgentModelLink.agent_id == primary_id,
+                            AgentModelLink.model_id == secondary_id,
+                        )
+                    ).first()
+                elif link_type == "agent_skill":
+                    existing_link = session.exec(
+                        select(AgentSkillLink).where(
+                            AgentSkillLink.agent_id == primary_id,
+                            AgentSkillLink.skill_id == secondary_id,
+                        )
+                    ).first()
+                elif link_type == "agent_agent":
+                    existing_link = session.exec(
+                        select(AgentLink).where(
+                            AgentLink.parent_id == primary_id,
+                            AgentLink.agent_id == secondary_id,
+                        )
+                    ).first()
+                elif link_type == "workflow_agent":
+                    existing_link = session.exec(
+                        select(WorkflowAgentLink).where(
+                            WorkflowAgentLink.workflow_id == primary_id,
+                            WorkflowAgentLink.agent_id == secondary_id,
+                            WorkflowAgentLink.agent_type == agent_type,
+                        )
+                    ).first()
 
-            if existing_link:
-                self.session.delete(existing_link)
-                self.session.commit()
-                status_message = "Link removed successfully."
-            else:
+                if existing_link:
+                    session.delete(existing_link)
+                    session.commit()
+                    status_message = "Link removed successfully."
+                else:
+                    status = False
+                    status_message = "Link does not exist."
+
+            except Exception as e:
+                session.rollback()
+                logger.error("Error while unlinking: %s", e)
                 status = False
-                status_message = "Link does not exist."
-
-        except Exception as e:
-            self.session.rollback()
-            logger.error("Error while unlinking: %s", e)
-            status = False
-            status_message = f"Error while unlinking due to an exception: {e}"
+                status_message = f"Error while unlinking due to an exception: {e}"
 
         return Response(message=status_message, status=status)
