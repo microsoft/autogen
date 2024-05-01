@@ -376,12 +376,7 @@ class TextMessageCompressor:
 
 
 def _min_tokens_reached(messages: List[Dict], min_tokens: Optional[int]) -> bool:
-    """
-    Returns True if no minimum tokens restrictions are applied.
-
-    Either if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`,
-    or no minimum tokens threshold is set.
-    """
+    """Returns True if the total number of tokens in the messages is greater than or equal to the specified value."""
     if not min_tokens:
         return True
 
