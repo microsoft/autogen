@@ -67,7 +67,7 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
+    if: success() && (github.ref == 'refs/heads/main')
     needs: build
     steps:
     - uses: actions/checkout@v4

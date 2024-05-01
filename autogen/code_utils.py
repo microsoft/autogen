@@ -251,6 +251,8 @@ def _cmd(lang: str) -> str:
         return lang
     if lang in ["shell"]:
         return "sh"
+    if lang == "javascript":
+        return "node"
     if lang in ["ps1", "pwsh", "powershell"]:
         powershell_command = get_powershell_command()
         return powershell_command
