@@ -8,6 +8,7 @@ import copy
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.runtime_logging import logging_enabled, log_event
+from mmagent import MultimodalAgent
 
 from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
 
@@ -50,7 +51,7 @@ llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
 
-login_assistant = autogen.AssistantAgent(
+login_assistant = MultimodalAgent(
     "login_assistant",
     system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
 
@@ -61,8 +62,10 @@ Once the user has taken the final necessary action to complete the task, and you
     llm_config=llm_config,
 )
 
-assistant = autogen.AssistantAgent(
+assistant = MultimodalAgent(
     "assistant",
+    system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+    description=autogen.AssistantAgent.DEFAULT_DESCRIPTION,
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config=False,
     llm_config=llm_config,
@@ -148,7 +151,33 @@ if "gitlab" in TASK["sites"]:
     login_assistant.reset()
     web_surfer.reset()
 
-# TODO: Add the shopping sites
+if "shopping" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_shopping_task")
+    login_url = SHOPPING
+    username = ACCOUNTS["shopping"]["username"]
+    password = ACCOUNTS["shopping"]["password"]
+    user_proxy.initiate_chat(
+        web_surfer,
+        message=f"Navigate to {login_url}. Click 'Sign In' at the top of the page. Enter the Email '{username}', and password '{password}'. Finally click the 'Sign In' button.",
+        clear_history=True,
+    )
+    user_proxy.reset()
+    web_surfer.reset()
+
+if "shopping_admin" in TASK["sites"] or "shopping_site_admin" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_shopping_admin_task")
+    login_url = SHOPPING_ADMIN
+    username = ACCOUNTS["shopping_admin"]["username"]
+    password = ACCOUNTS["shopping_admin"]["password"]
+    user_proxy.initiate_chat(
+        web_surfer,
+        message=f"Navigate to {login_url}. At the log in prompt, enter the username '{username}', and the password '{password}'. Finally click the 'Sign In' button.",
+        clear_history=True,
+    )
+    user_proxy.reset()
+    web_surfer.reset()
 
 
 # Navigate to the starting url
@@ -170,6 +199,10 @@ if start_url.startswith(REDDIT):
     site_description_prompt = ", which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/"
 elif start_url.startswith(GITLAB):
     site_description_prompt = ", which is a Gitlab site populated with various programming projects. Gitlab is similar to GitHub, though the UIs are slightly different"
+elif start_url.startswith(SHOPPING):
+    site_description_prompt = ", which is an online store built with the Magento open source eCommerce platform"
+elif start_url.startswith(SHOPPING_ADMIN):
+    site_description_prompt = ", which is the content management admin portal for an online store running the Magento open source eCommerce software"
 
 if logging_enabled():
     log_event(os.path.basename(__file__), name="main_task_initiate_chat")

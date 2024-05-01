@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from autogen.code_utils import extract_code
+from autogen.code_utils import extract_code, content_str
 
 
 class Orchestrator(ConversableAgent):
@@ -62,6 +62,17 @@ class Orchestrator(ConversableAgent):
             else:
                 self.send(message, a, request_reply=False, silent=True)
 
+    def _create_with_images(self, messages, **kwargs):
+        # Clone the messages to give context, but remove old screenshots
+        history = []
+        for i in range(0, len(messages) - 1):
+            message = {}
+            message.update(messages[i])
+            message["content"] = content_str(message["content"])
+            history.append(message)
+        history.append(messages[-1])
+        return self.client.create(messages=messages, **kwargs)
+
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
         """Create a JSON response, retrying up to `max_tries` times."""
 
@@ -83,7 +94,7 @@ class Orchestrator(ConversableAgent):
 
         for _ in range(max_tries):
             # print(json.dumps(messages, indent=2))
-            response = self.client.create(*args, messages=messages, **kwargs)
+            response = self._create_with_images(*args, messages=messages, **kwargs)
             extracted_response = str(self.client.extract_text_or_completion_object(response)[0])
             try:
                 json.loads(extracted_response)
@@ -160,7 +171,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 
         _messages.append({"role": "user", "content": closed_book_prompt, "name": sender.name})
 
-        response = self.client.create(
+        response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
         )
@@ -176,7 +187,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
         _messages.append({"role": "user", "content": plan_prompt, "name": sender.name})
 
-        response = self.client.create(
+        response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
         )
@@ -353,7 +364,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     self.orchestrated_messages.append(
                         {"role": "user", "content": new_facts_prompt, "name": sender.name}
                     )
-                    response = self.client.create(
+                    response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                     )
@@ -366,7 +377,7 @@ Team membership:
 {team}
 """.strip()
                     self.orchestrated_messages.append({"role": "user", "content": new_plan_prompt, "name": sender.name})
-                    response = self.client.create(
+                    response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                     )

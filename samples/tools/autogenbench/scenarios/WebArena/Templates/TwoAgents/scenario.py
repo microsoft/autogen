@@ -113,13 +113,39 @@ if "gitlab" in TASK["sites"]:
     password = ACCOUNTS["gitlab"]["password"]
     user_proxy.initiate_chat(
         web_surfer,
-        message=f"Navigate to {login_url}. type the username '{username}', and password is '{password}'. Finally click the 'Sign in' button.",
+        message=f"Navigate to {login_url}. At the log in prompt, type the username '{username}', and the password '{password}'. Finally click the 'Sign in' button.",
         clear_history=True,
     )
     user_proxy.reset()
     web_surfer.reset()
 
-# TODO: Add the shopping sites
+if "shopping" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_shopping_task")
+    login_url = SHOPPING
+    username = ACCOUNTS["shopping"]["username"]
+    password = ACCOUNTS["shopping"]["password"]
+    user_proxy.initiate_chat(
+        web_surfer,
+        message=f"Navigate to {login_url}. Click 'Sign In' at the top of the page. Enter the Email '{username}', and password '{password}'. Finally click the 'Sign In' button.",
+        clear_history=True,
+    )
+    user_proxy.reset()
+    web_surfer.reset()
+
+if "shopping_admin" in TASK["sites"] or "shopping_site_admin" in TASK["sites"]:
+    if logging_enabled():
+        log_event(os.path.basename(__file__), name="start_shopping_admin_task")
+    login_url = SHOPPING_ADMIN
+    username = ACCOUNTS["shopping_admin"]["username"]
+    password = ACCOUNTS["shopping_admin"]["password"]
+    user_proxy.initiate_chat(
+        web_surfer,
+        message=f"Navigate to {login_url}. At the log in prompt, enter the username '{username}', and the password '{password}'. Finally click the 'Sign In' button.",
+        clear_history=True,
+    )
+    user_proxy.reset()
+    web_surfer.reset()
 
 
 # Navigate to the starting url
@@ -128,7 +154,7 @@ if logging_enabled():
 start_url = TASK["start_url"]
 if start_url == REDDIT:
     start_url = start_url + "/forums"
-user_proxy.send(f"Navigate to {start_url}", web_surfer, request_reply=True)
+user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
 
 user_proxy.reset()
 web_surfer.reset()
@@ -141,6 +167,10 @@ if start_url.startswith(REDDIT):
     site_description_prompt = ", which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/"
 elif start_url.startswith(GITLAB):
     site_description_prompt = ", which is a Gitlab site populated with various programming projects. Gitlab is similar to GitHub, though the UIs are slightly different"
+elif start_url.startswith(SHOPPING):
+    site_description_prompt = ", which is an online store built with the Magento open source eCommerce platform"
+elif start_url.startswith(SHOPPING_ADMIN):
+    site_description_prompt = ", which is the content management admin portal for an online store running the Magento open source eCommerce software"
 
 if logging_enabled():
     log_event(os.path.basename(__file__), name="main_task_initiate_chat")
