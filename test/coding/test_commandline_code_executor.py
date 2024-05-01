@@ -143,16 +143,18 @@ def _test_execute_code(py_variant, executor: CodeExecutor) -> None:
             assert file_line.strip() == code_line.strip()
 
 
-def test_local_commandline_code_executor_save_files() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_local_commandline_code_executor_save_files(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        executor = cls(work_dir=temp_dir)
         _test_save_files(executor, save_file_only=False)
 
 
-def test_local_commandline_code_executor_save_files_only() -> None:
+@pytest.mark.parametrize("cls", classes_to_test)
+def test_local_commandline_code_executor_save_files_only(cls) -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         # Using execution_policies to specify that no languages should execute
-        executor = LocalCommandLineCodeExecutor(
+        executor = cls(
             work_dir=temp_dir,
             execution_policies={"python": False, "bash": False, "javascript": False, "html": False, "css": False},
         )
@@ -253,6 +255,31 @@ def test_docker_commandline_code_executor_restart() -> None:
         executor.restart()
         result = executor.execute_code_blocks([CodeBlock(code="echo $HOME", language="sh")])
         assert result.exit_code == 0
+
+
+@pytest.mark.skipif(
+    skip_docker_test,
+    reason="docker is not running or requested to skip docker tests",
+)
+def test_policy_override():
+    default_policy = DockerCommandLineCodeExecutor.DEFAULT_EXECUTION_POLICY
+    custom_policy = {
+        "python": False,
+        "javascript": True,
+    }
+
+    executor = DockerCommandLineCodeExecutor(execution_policies=custom_policy)
+
+    assert not executor.execution_policies["python"], "Python execution should be disabled"
+    assert executor.execution_policies["javascript"], "JavaScript execution should be enabled"
+
+    for lang, should_execute in default_policy.items():
+        if lang not in custom_policy:
+            assert executor.execution_policies[lang] == should_execute, f"Policy for {lang} should not be changed"
+
+    assert set(executor.execution_policies.keys()) == set(
+        default_policy.keys()
+    ), "Execution policies should only contain known languages"
 
 
 def _test_restart(executor: CodeExecutor) -> None:
