@@ -1,6 +1,6 @@
 import copy
 import sys
-from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
+from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
 import tiktoken
 from termcolor import colored
