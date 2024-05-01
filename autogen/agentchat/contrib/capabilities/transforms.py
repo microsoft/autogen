@@ -158,7 +158,7 @@ class MessageTokenLimiter:
         assert self._min_tokens is not None
 
         # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
-        if not self._are_min_tokens_reached(messages):
+        if not _min_tokens_reached(messages, self._min_tokens):
             return messages
 
         temp_messages = copy.deepcopy(messages)
@@ -206,19 +206,6 @@ class MessageTokenLimiter:
             )
             return logs_str, True
         return "No tokens were truncated.", False
-
-    def _are_min_tokens_reached(self, messages: List[Dict]) -> bool:
-        """
-        Returns True if no minimum tokens restrictions are applied.
-
-        Either if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`,
-        or no minimum tokens threshold is set.
-        """
-        if not self._min_tokens:
-            return True
-
-        messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
-        return messages_tokens >= self._min_tokens
 
     def _truncate_str_to_tokens(self, contents: Union[str, List], n_tokens: int) -> Union[str, List]:
         if isinstance(contents, str):
@@ -270,7 +257,7 @@ class MessageTokenLimiter:
 
         return max_tokens if max_tokens is not None else sys.maxsize
 
-    def _validate_min_tokens(self, min_tokens: int, max_tokens: int) -> int:
+    def _validate_min_tokens(self, min_tokens: Optional[int], max_tokens: Optional[int]) -> int:
         if min_tokens is None:
             return 0
         if min_tokens < 0:
@@ -290,28 +277,28 @@ class TextMessageCompressor:
     def __init__(
         self,
         text_compressor: Optional[TextCompressor] = None,
-        max_tokens_per_message: Optional[int] = None,
-        max_tokens: Optional[int] = None,
+        min_tokens: Optional[int] = None,
+        compression_args: Dict = dict(),
     ):
         """
         Args:
             text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor
                 protocol. If None, it defaults to LLMLingua.
-            max_tokens (int or None): The token threshold to initiate compression. If the token count of any message exceeds
+            min_tokens (int or None): The token threshold to initiate compression. If the token count of any message exceeds
                 this number, the message will be compressed to reduce its token count. If None, no threshold-based
                 compression is applied.
+            compression_args (dict): A dictionary of arguments for the compression method. Defaults to an empty
+                dictionary.
         """
 
         if text_compressor is None:
             text_compressor = LLMLingua()
 
-        self._validate_max_tokens(max_tokens)
+        self._validate_min_tokens(min_tokens)
 
         self._text_compressor = text_compressor
-        self._max_tokens = max_tokens
-        self._max_tokens_per_message = max_tokens_per_message
-
-        self._should_compress = False
+        self._min_tokens = min_tokens
+        self._compression_args = compression_args
 
         # Optimizing savings calculations to optimize log generation
         self._recent_tokens_savings = 0
@@ -334,17 +321,16 @@ class TextMessageCompressor:
         if not messages:
             return messages
 
-        total_tokens = 0
+        # if the total number of tokens in the messages is less than the min_tokens, return the messages as is
+        if not _min_tokens_reached(messages, self._min_tokens):
+            return messages
+
         total_savings = 0
         processed_messages = messages.copy()
         for message in processed_messages:
             # Some messages may not have content.
             if not isinstance(message.get("content"), (str, list)):
                 continue
-
-            total_tokens += _count_tokens(message["content"])
-            if self._max_tokens is not None and total_tokens > self._max_tokens:
-                self._should_compress = True
 
             savings, message["content"] = self._compress(message["content"])
             total_savings += savings
@@ -365,7 +351,6 @@ class TextMessageCompressor:
         elif isinstance(content, list):
             return self._compress_multimodal(content)
         else:
-            print(colored("Content type not recognized. Skipping text compression.", "yellow"))
             return 0, content
 
     def _compress_multimodal(self, content: List[Dict]) -> Tuple[int, List[Dict]]:
@@ -378,7 +363,7 @@ class TextMessageCompressor:
 
     def _compress_text(self, text: str) -> Tuple[int, str]:
         """Compresses the given text using the specified compression method."""
-        compressed_text = self._text_compressor.compress_text(text)
+        compressed_text = self._text_compressor.compress_text(text, **self._compression_args)
 
         savings = 0
         if "origin_tokens" in compressed_text and "compressed_tokens" in compressed_text:
@@ -386,9 +371,23 @@ class TextMessageCompressor:
 
         return savings, compressed_text["compressed_prompt"]
 
-    def _validate_max_tokens(self, min_tokens: Optional[int]):
+    def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:
             raise ValueError("min_tokens must be greater than 0 or None")
+
+
+def _min_tokens_reached(messages: List[Dict], min_tokens: Optional[int]) -> bool:
+    """
+    Returns True if no minimum tokens restrictions are applied.
+
+    Either if the total number of tokens in the messages is greater than or equal to the `min_theshold_tokens`,
+    or no minimum tokens threshold is set.
+    """
+    if not min_tokens:
+        return True
+
+    messages_tokens = sum(_count_tokens(msg["content"]) for msg in messages if "content" in msg)
+    return messages_tokens >= min_tokens
 
 
 def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:

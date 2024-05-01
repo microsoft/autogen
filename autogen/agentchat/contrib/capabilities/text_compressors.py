@@ -15,7 +15,7 @@ else:
 class TextCompressor(Protocol):
     """Defines a protocol for text compression to optimize agent interactions."""
 
-    def compress_text(self, text: str) -> Dict[str, Any]:
+    def compress_text(self, text: str, **compression_args) -> Dict[str, Any]:
         """This method takes a string as input and returns a dictionary containing the compressed text and other
         relevant information. The compressed text should be stored under the 'compressed_text' key in the dictionary.
         To calculate the number of saved tokens, the dictionary should include 'origin_tokens' and 'compressed_tokens' keys.
@@ -38,7 +38,6 @@ class LLMLingua:
             device_map="cpu",
         ),
         structured_compression: bool = False,
-        compression_args: Dict = dict(),
     ) -> None:
         """
         Args:
@@ -48,7 +47,6 @@ class LLMLingua:
             structured_compression (bool): A flag indicating whether to use structured compression. If True, the
                 structured_compress_prompt method of the PromptCompressor is used. Otherwise, the compress_prompt method
                 is used. Defaults to False.
-            compression_args (dict): A dictionary of arguments for the compression method. Defaults to an empty
                 dictionary.
 
         Raises:
@@ -58,7 +56,6 @@ class LLMLingua:
             raise IMPORT_ERROR
 
         self._prompt_compressor = PromptCompressor(**prompt_compressor_kwargs)
-        self._compression_args = compression_args
 
         assert isinstance(self._prompt_compressor, llmlingua.PromptCompressor)
         self._compression_method = (
@@ -67,5 +64,5 @@ class LLMLingua:
             else self._prompt_compressor.compress_prompt
         )
 
-    def compress_text(self, text: str) -> Dict[str, Any]:
-        return self._compression_method([text], **self._compression_args)
+    def compress_text(self, text: str, **compression_args) -> Dict[str, Any]:
+        return self._compression_method([text], **compression_args)
