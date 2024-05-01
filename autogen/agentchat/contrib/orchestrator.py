@@ -86,7 +86,7 @@ class Orchestrator(ConversableAgent):
 
             # Prepend the message -- since we are iterating backwards
             history.insert(0, message)
-        return self.client.create(messages=messages, **kwargs)
+        return self.client.create(messages=history, **kwargs)
 
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
         """Create a JSON response, retrying up to `max_tries` times."""
@@ -213,7 +213,7 @@ Based on the team composition, and known and unknown facts, please devise a shor
 
         # Main loop
         total_turns = 0
-        max_turns = 30
+        max_turns = 20  # 30
         while total_turns < max_turns:
 
             # Populate the message histories

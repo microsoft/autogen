@@ -43,7 +43,7 @@ class MultimodalAgent(autogen.ConversableAgent):
 
             # Prepend the message -- since we are iterating backwards
             history.insert(0, message)
-        return self.client.create(messages=messages, **kwargs)
+        return self.client.create(messages=history, **kwargs)
 
     def generate_mlm_reply(
         self,
