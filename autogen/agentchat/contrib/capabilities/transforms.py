@@ -284,9 +284,8 @@ class TextMessageCompressor:
         Args:
             text_compressor (TextCompressor or None): An instance of a class that implements the TextCompressor
                 protocol. If None, it defaults to LLMLingua.
-            min_tokens (int or None): The token threshold to initiate compression. If the token count of any message exceeds
-                this number, the message will be compressed to reduce its token count. If None, no threshold-based
-                compression is applied.
+            min_tokens (int or None): Minimum number of tokens in messages to apply the transformation. Must be greater
+                than or equal to 0 if not None. If None, no threshold-based compression is applied.
             compression_args (dict): A dictionary of arguments for the compression method. Defaults to an empty
                 dictionary.
         """
