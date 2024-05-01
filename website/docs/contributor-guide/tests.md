@@ -44,12 +44,12 @@ pytest test --skip-openai --skip-docker
 
 ## Coverage
 
-Any code you commit should not decrease coverage. To run all unit tests, install the [test] option:
+Any code you commit should not decrease coverage. To ensure your code maintains or increases coverage, use the following commands after installing the required test dependencies:
 
 ```bash
-pip install -e."[test]"
-coverage run -m pytest test
+pip install -e ."[test]"
+
+pytest test --cov-report=html
 ```
 
-Then you can see the coverage report by
-`coverage report -m` or `coverage html`.
+Pytest generated a code coverage report and created a htmlcov directory containing an index.html file and other related files. Open index.html in any web browser to visualize and navigate through the coverage data interactively. This interactive visualization allows you to identify uncovered lines and review coverage statistics for individual files.

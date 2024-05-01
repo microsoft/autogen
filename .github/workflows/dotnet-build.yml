@@ -6,11 +6,9 @@ name: dotnet-ci
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "dotnet" ]
-    paths:
-      - 'dotnet/**'
+    branches: [ "main" ]
   push:
-    branches: [ "dotnet" ]
+    branches: [ "main" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -21,14 +19,33 @@ permissions:
   packages: write
 
 jobs:
-  build:
-    name: Build
+  paths-filter:
     runs-on: ubuntu-latest
+    outputs:
+      hasChanges: ${{ steps.filter.outputs.dotnet == 'true'}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            dotnet:
+              - "dotnet/**"
+      - name: dotnet has changes
+        run: echo "dotnet has changes"
+        if: steps.filter.outputs.dotnet == 'true'
+  build:
+    name: Dotnet Build
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
       run:
         working-directory: dotnet
     steps:
     - uses: actions/checkout@v4
+      with:
+        lfs: true
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -54,6 +71,8 @@ jobs:
     needs: build
     steps:
     - uses: actions/checkout@v4
+      with:
+        lfs: true
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -139,4 +158,3 @@ jobs:
         dotnet nuget push --api-key ${{ secrets.MYGET_TOKEN }} --source "https://www.myget.org/F/agentchat/api/v3/index.json" ./output/nightly/*.nupkg --skip-duplicate
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
-

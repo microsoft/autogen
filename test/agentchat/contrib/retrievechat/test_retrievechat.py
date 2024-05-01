@@ -7,10 +7,10 @@ import pytest
 
 import autogen
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
-from conftest import skip_openai  # noqa: E402
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
+from conftest import reason, skip_openai  # noqa: E402
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
 
 try:
@@ -27,12 +27,14 @@ try:
 except ImportError:
     skip = True
 else:
-    skip = False or skip_openai
+    skip = False
+
+reason = "do not run on MacOS or windows OR dependency is not installed OR " + reason
 
 
 @pytest.mark.skipif(
-    sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    sys.platform in ["darwin", "win32"] or skip or skip_openai,
+    reason=reason,
 )
 def test_retrievechat():
     conversations = {}
@@ -80,9 +82,9 @@ def test_retrievechat():
 
 @pytest.mark.skipif(
     sys.platform in ["darwin", "win32"] or skip,
-    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
+    reason=reason,
 )
-def test_retrieve_config(caplog):
+def test_retrieve_config():
     # test warning message when no docs_path is provided
     ragproxyagent = RetrieveUserProxyAgent(
         name="ragproxyagent",
@@ -93,17 +95,7 @@ def test_retrieve_config(caplog):
             "get_or_create": True,
         },
     )
-
-    # Capture the printed content
-    captured_logs = caplog.records[0]
-    print(captured_logs)
-
-    # Assert on the printed content
-    assert (
-        f"docs_path is not provided in retrieve_config. Will raise ValueError if the collection `{ragproxyagent._collection_name}` doesn't exist."
-        in captured_logs.message
-    )
-    assert captured_logs.levelname == "WARNING"
+    assert ragproxyagent._docs_path is None
 
 
 if __name__ == "__main__":

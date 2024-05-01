@@ -4,10 +4,8 @@ description-file = "README.md"
 
 
 [tool.pytest.ini_options]
-addopts = '-m "not conda"'
-markers = [
-    "conda: test related to conda forge distribution"
-]
+addopts = '--cov=. --cov-append --cov-branch --cov-report=xml -m "not conda"'
+markers = ["conda: test related to conda forge distribution"]
 
 [tool.black]
 # https://github.com/psf/black
@@ -16,28 +14,20 @@ exclude = "(.eggs|.git|.hg|.mypy_cache|.venv|_build|buck-out|build|dist)"
 
 
 [tool.ruff]
-
 line-length = 120
 
 [tool.ruff.lint]
-
-
 # Enable Pyflakes `E` and `F` codes by default.
 select = [
-    "E", "W",  # see: https://pypi.org/project/pycodestyle
-    "F",  # see: https://pypi.org/project/pyflakes
-#    "D",  # see: https://pypi.org/project/pydocstyle
-#    "N",  # see: https://pypi.org/project/pep8-naming
-#    "S",  # see: https://pypi.org/project/flake8-bandit
-    "I",  # see: https://pypi.org/project/isort/
+    "E",
+    "W", # see: https://pypi.org/project/pycodestyle
+    "F", # see: https://pypi.org/project/pyflakes
+    #    "D",  # see: https://pypi.org/project/pydocstyle
+    #    "N",  # see: https://pypi.org/project/pep8-naming
+    #    "S",  # see: https://pypi.org/project/flake8-bandit
+    "I", # see: https://pypi.org/project/isort/
 ]
-
-ignore = [
-    "E501",
-    "F401",
-    "F403",
-    "C901",
-]
+ignore = ["E501", "F401", "F403", "C901"]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -50,7 +40,7 @@ exclude = [
     "build",
     "dist",
     "docs",
-     # This file needs to be either upgraded or removed and therefore should be
+    # This file needs to be either upgraded or removed and therefore should be
     # ignore from type checking for now
     "math_utils\\.py$",
     "**/cap/py/autogencap/proto/*",
@@ -63,7 +53,6 @@ unfixable = ["F401"]
 max-complexity = 10
 
 [tool.mypy]
-
 files = [
     "autogen/logger",
     "autogen/exception_utils.py",
@@ -76,12 +65,12 @@ files = [
     "test/test_function_utils.py",
     "test/io",
 ]
-
 exclude = [
     "autogen/math_utils\\.py",
     "autogen/oai/completion\\.py",
     "autogen/agentchat/contrib/compressible_agent\\.py",
     "autogen/agentchat/contrib/math_user_proxy_agent.py",
+    "autogen/oai/openai_utils.py",
 ]
 
 strict = true
@@ -89,9 +78,7 @@ python_version = "3.8"
 ignore_missing_imports = true
 install_types = true
 non_interactive = true
-plugins = [
-    "pydantic.mypy"
-]
+plugins = ["pydantic.mypy"]
 
 # remove after all files in the repo are fixed
 follow_imports = "silent"
