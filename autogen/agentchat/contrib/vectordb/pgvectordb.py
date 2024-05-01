@@ -567,6 +567,7 @@ class PGVectorDB(VectorDB):
         embedding_function: Callable = None,
         metadata: dict = None,
         model_name: str = "all-MiniLM-L6-v2",
+        conn: psycopg.connect() = None,
     ) -> None:
         """
         Initialize the vector database.
@@ -589,11 +590,16 @@ class PGVectorDB(VectorDB):
                 For more info: https://github.com/pgvector/pgvector?tab=readme-ov-file#hnsw
             model_name: str | Sentence embedding model to use. Models can be chosen from:
                 https://huggingface.co/models?library=sentence-transformers
+            conn: psycopg.connect() | A customer connection object to connect to the database.
+                A connection object may include additional key/values:
+                https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
 
         Returns:
             None
         """
         try:
+            if conn:
+                self.client = conn
             if connection_string:
                 parsed_connection = urllib.parse.urlparse(connection_string)
                 encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
@@ -606,15 +612,20 @@ class PGVectorDB(VectorDB):
                 )
                 self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
             elif host and port and dbname:
+                encoded_username = urllib.parse.quote(username, safe="")
+                encoded_password = urllib.parse.quote(password, safe="")
+                encoded_host = urllib.parse.quote(host, safe="")
+                encoded_database = urllib.parse.quote(dbname, safe="")
+                connection_string = (
+                    f"host={encoded_host} port={port} dbname={encoded_database} "
+                    f"user={encoded_username} password={encoded_password}"
+                )
                 self.client = psycopg.connect(
-                    host=host,
-                    port=port,
-                    dbname=dbname,
-                    user=username,
-                    password=password,
+                    conninfo=connection_string,
                     connect_timeout=connect_timeout,
                     autocommit=True,
                 )
+            self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
         except psycopg.Error as e:
             logger.error("Error connecting to the database: ", e)
             raise e
@@ -630,7 +641,6 @@ class PGVectorDB(VectorDB):
             )
             raise e
         self.metadata = metadata
-        self.client.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(self.client)
         self.active_collection = None
 
