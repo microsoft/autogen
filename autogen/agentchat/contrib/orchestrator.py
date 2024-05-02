@@ -6,7 +6,7 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union, Callable, Literal, Tuple
 from autogen import Agent, ConversableAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from autogen.code_utils import extract_code
+from autogen.code_utils import extract_code, content_str
 
 
 class Orchestrator(ConversableAgent):
@@ -62,6 +62,32 @@ class Orchestrator(ConversableAgent):
             else:
                 self.send(message, a, request_reply=False, silent=True)
 
+    def _has_image(self, message):
+        if isinstance(message["content"], list):
+            for elm in message["content"]:
+                if elm.get("type", "") == "image_url":
+                    return True
+        return False
+
+    def _create_with_images(self, messages, max_images=1, **kwargs):
+        # Clone the messages to give context, but remove old screenshots
+        history = []
+        n_images = 0
+        for m in messages[::-1]:
+            # Create a shallow copy
+            message = {}
+            message.update(m)
+
+            # If there's an image, then consider replacing it with a string
+            if self._has_image(message):
+                n_images += 1
+                if n_images > max_images:
+                    message["content"] = content_str(message["content"])
+
+            # Prepend the message -- since we are iterating backwards
+            history.insert(0, message)
+        return self.client.create(messages=history, **kwargs)
+
     def _create_with_retry(self, max_tries=10, *args, **kwargs):
         """Create a JSON response, retrying up to `max_tries` times."""
 
@@ -83,7 +109,7 @@ class Orchestrator(ConversableAgent):
 
         for _ in range(max_tries):
             # print(json.dumps(messages, indent=2))
-            response = self.client.create(*args, messages=messages, **kwargs)
+            response = self._create_with_images(*args, messages=messages, **kwargs)
             extracted_response = str(self.client.extract_text_or_completion_object(response)[0])
             try:
                 json.loads(extracted_response)
@@ -160,7 +186,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 
         _messages.append({"role": "user", "content": closed_book_prompt, "name": sender.name})
 
-        response = self.client.create(
+        response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
         )
@@ -176,7 +202,7 @@ When answering this survey, keep in mind that "facts" will typically be specific
 Based on the team composition, and known and unknown facts, please devise a short bullet-point plan for addressing the original request. Remember, there is no requirement to involve all team members -- a team member's particular expertise may not be needed for this task.""".strip()
         _messages.append({"role": "user", "content": plan_prompt, "name": sender.name})
 
-        response = self.client.create(
+        response = self._create_with_images(
             messages=_messages,
             cache=self.client_cache,
         )
@@ -187,7 +213,7 @@ Based on the team composition, and known and unknown facts, please devise a shor
 
         # Main loop
         total_turns = 0
-        max_turns = 30
+        max_turns = 20  # 30
         while total_turns < max_turns:
 
             # Populate the message histories
@@ -353,7 +379,7 @@ Please output an answer in pure JSON format according to the following schema. T
                     self.orchestrated_messages.append(
                         {"role": "user", "content": new_facts_prompt, "name": sender.name}
                     )
-                    response = self.client.create(
+                    response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                     )
@@ -366,7 +392,7 @@ Team membership:
 {team}
 """.strip()
                     self.orchestrated_messages.append({"role": "user", "content": new_plan_prompt, "name": sender.name})
-                    response = self.client.create(
+                    response = self._create_with_images(
                         messages=self.orchestrated_messages,
                         cache=self.client_cache,
                     )

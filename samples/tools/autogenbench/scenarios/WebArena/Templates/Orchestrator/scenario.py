@@ -7,9 +7,23 @@ import re
 import copy
 from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
+from autogen.agentchat.contrib.mmagent import MultimodalAgent
 from autogen.runtime_logging import logging_enabled, log_event
+from autogen.code_utils import content_str
 
-from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
+from evaluation_harness.env_config import (
+    ACCOUNTS,
+    GITLAB,
+    MAP,
+    REDDIT,
+    SHOPPING,
+    SHOPPING_ADMIN,
+    WIKIPEDIA,
+    HOMEPAGE,
+    LOGIN_PROMPTS,
+    SITE_DESCRIPTIONS,
+    url_to_sitename,
+)
 
 testbed_utils.init()
 ##############################
@@ -50,7 +64,7 @@ llm_config = testbed_utils.default_llm_config(config_list, timeout=300)
 if logging_enabled():
     log_event(os.path.basename(__file__), name="loaded_config_lists")
 
-login_assistant = autogen.AssistantAgent(
+login_assistant = MultimodalAgent(
     "login_assistant",
     system_message="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
 
@@ -61,8 +75,10 @@ Once the user has taken the final necessary action to complete the task, and you
     llm_config=llm_config,
 )
 
-assistant = autogen.AssistantAgent(
+assistant = MultimodalAgent(
     "assistant",
+    system_message=autogen.AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+    description=autogen.AssistantAgent.DEFAULT_DESCRIPTION,
     is_termination_msg=lambda x: str(x).find("TERMINATE") >= 0 or str(x).find("FINAL ANSWER") >= 0,
     code_execution_config=False,
     llm_config=llm_config,
@@ -102,53 +118,34 @@ maestro = Orchestrator(
 )
 
 # Login to the necessary websites
-if "reddit" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_reddit_task")
-    login_url = REDDIT
-    username = ACCOUNTS["reddit"]["username"]
-    password = ACCOUNTS["reddit"]["password"]
-    try:
-        login_assistant.initiate_chat(
-            web_surfer,
-            message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
-            clear_history=True,
-        )
-    except Exception as e:
-        import traceback
-
+for site in TASK["sites"]:
+    if site in ["reddit", "gitlab", "shopping", "shopping_admin"]:
         if logging_enabled():
-            exc_type = type(e).__name__
-            exc_message = str(e)
-            exc_traceback = traceback.format_exc().splitlines()
-            log_event(
-                os.path.basename(__file__),
-                name="exception_thrown",
-                exc_type=exc_type,
-                exc_message=exc_message,
-                exc_traceback=exc_traceback,
+            log_event(os.path.basename(__file__), name="start_" + site + "_task")
+        try:
+            login_assistant.initiate_chat(
+                web_surfer,
+                message=LOGIN_PROMPTS[site],
+                clear_history=True,
             )
+        except Exception as e:
+            import traceback
 
-        raise e
-    login_assistant.reset()
-    web_surfer.reset()
+            if logging_enabled():
+                exc_type = type(e).__name__
+                exc_message = str(e)
+                exc_traceback = traceback.format_exc().splitlines()
+                log_event(
+                    os.path.basename(__file__),
+                    name="exception_thrown",
+                    exc_type=exc_type,
+                    exc_message=exc_message,
+                    exc_traceback=exc_traceback,
+                )
 
-
-if "gitlab" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_gitlab_task")
-    login_url = GITLAB
-    username = ACCOUNTS["gitlab"]["username"]
-    password = ACCOUNTS["gitlab"]["password"]
-    login_assistant.initiate_chat(
-        web_surfer,
-        message=f"Navigate to {login_url}. type the username '{username}', and password is '{password}'. Finally click the 'Sign in' button.",
-        clear_history=True,
-    )
-    login_assistant.reset()
-    web_surfer.reset()
-
-# TODO: Add the shopping sites
+            raise e
+        login_assistant.reset()
+        web_surfer.reset()
 
 
 # Navigate to the starting url
@@ -157,7 +154,7 @@ if logging_enabled():
 start_url = TASK["start_url"]
 if start_url == REDDIT:
     start_url = start_url + "/forums"
-login_assistant.send(f"Navigate to {start_url}", web_surfer, request_reply=True)
+user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
 
 login_assistant.reset()
 web_surfer.reset()  # NOTE: This resets the message history, but not the browser state. We rely on this.. but it's notat all a very obvious behavior.
@@ -166,10 +163,9 @@ print("MAIN TASK STARTING !#!#")
 
 # Provide some background about the pages
 site_description_prompt = ""
-if start_url.startswith(REDDIT):
-    site_description_prompt = ", which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/"
-elif start_url.startswith(GITLAB):
-    site_description_prompt = ", which is a Gitlab site populated with various programming projects. Gitlab is similar to GitHub, though the UIs are slightly different"
+sitename = url_to_sitename(start_url)
+if sitename:
+    site_description_prompt = ", " + SITE_DESCRIPTIONS[sitename]
 
 if logging_enabled():
     log_event(os.path.basename(__file__), name="main_task_initiate_chat")
@@ -204,6 +200,34 @@ except Exception as e:
 
 # Extract a final answer
 #########################
+def _has_image(message):
+    if isinstance(message["content"], list):
+        for elm in message["content"]:
+            if elm.get("type", "") == "image_url":
+                return True
+    return False
+
+
+def _create_with_images(client, messages, max_images=1, **kwargs):
+    # Clone the messages to give context, but remove old screenshots
+    history = []
+    n_images = 0
+    for m in messages[::-1]:
+        # Create a shallow copy
+        message = {}
+        message.update(m)
+
+        # If there's an image, then consider replacing it with a string
+        if _has_image(message):
+            n_images += 1
+            if n_images > max_images:
+                message["content"] = content_str(message["content"])
+
+        # Prepend the message -- since we are iterating backwards
+        history.insert(0, message)
+    return client.create(messages=history, **kwargs)
+
+
 def response_preparer(inner_messages):
     client = autogen.OpenAIWrapper(**llm_config)
     messages = [
@@ -239,7 +263,7 @@ If the original request was not a question, or you did not find a definitive ans
         }
     )
 
-    response = client.create(context=None, messages=messages)
+    response = _create_with_images(client, messages, context=None)
     if "finish_reason='content_filter'" in str(response):
         raise Exception(str(response))
     extracted_response = client.extract_text_or_completion_object(response)[0]
