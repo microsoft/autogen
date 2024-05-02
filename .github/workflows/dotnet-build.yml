@@ -9,6 +9,8 @@ on:
     branches: [ "main" ]
   push:
     branches: [ "main" ]
+  merge_group:
+    types: [checks_requested]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
@@ -31,9 +33,14 @@ jobs:
           filters: |
             dotnet:
               - "dotnet/**"
+            workflows:
+              - ".github/workflows/**"
       - name: dotnet has changes
         run: echo "dotnet has changes"
         if: steps.filter.outputs.dotnet == 'true'
+      - name: workflows has changes
+        run: echo "workflows has changes"
+        if: steps.filter.outputs.workflows == 'true'
   build:
     name: Dotnet Build
     runs-on: ubuntu-latest
@@ -67,7 +74,7 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dotnet')
+    if: success() && (github.ref == 'refs/heads/main')
     needs: build
     steps:
     - uses: actions/checkout@v4
