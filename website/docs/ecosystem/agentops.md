@@ -1,6 +1,6 @@
 # AgentOps
 
-[!agentops-logo](/img/ecosystem-agentops.png)
+[!agentops-logo](img/ecosystem-agentops.png)
 
 > Create an account at [AgentOps.ai](https://agentops.ai/)
 
