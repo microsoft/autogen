@@ -191,12 +191,24 @@
             color: #0056b3;
         }
 
+        #tag-filter-panel {
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid gray;
+            border-radius: 10px;
+            background-color: #ffffff;
+        }
 
     </style>
 </head>
 <body>
     <div id="container">
         <div id="left-panel">
+            <h3 style="text-align: center;">Tag Filter</h3>
+            <div id="tag-filter-panel" style="display: inline-flex; gap: 10px;">
+                <!-- Filter checkboxes will be dynamically populated here -->
+            </div>
+
             <h3 style="text-align: center;">Message History</h3>
             <div id="message-history">
                 <!-- Node information will be populated here -->
@@ -228,6 +240,107 @@
         const statesChart = d3.select("#states-panel");
         const statesWidth = statesChart.node().getBoundingClientRect().width;
         const statesHeight = statesChart.node().getBoundingClientRect().height;
+
+
+        // Step to identify unique tags, ignoring nodes with no tags
+        let uniqueTags = new Set();
+        data.nodes.forEach(node => {
+            if (node.profile.message.tags) {
+                node.profile.message.tags.forEach(tag => uniqueTags.add(tag));
+            }
+        });
+
+        // Function to update the message history based on selected tags
+        function updateMessageHistory() {
+            const allChecked = document.querySelector('#tag-all').checked;
+            const checkedTags = Array.from(document.querySelectorAll('#tag-filter-panel input[type="checkbox"]:checked'))
+                                    .map(el => el.value)
+                                    .filter(tag => tag !== 'all');
+
+            const filteredNodes = data.nodes.filter(node => {
+                if (allChecked) {
+                    return true; // Show all messages
+                }
+                return node.profile.message.tags && node.profile.message.tags.some(tag => checkedTags.includes(tag));
+            });
+
+            const messageHistory = d3.select("#message-history");
+            messageHistory.html("");
+
+            messageHistory.selectAll(".node-info")
+                .data(filteredNodes)
+                .enter().append("div")
+                .attr("class", "node-info")
+                .attr("id", (d, i) => `node-info-${i}`)
+                .html(d => {
+                    let contentHtml = marked.parse(processMarkdown(d.profile.message.content));
+
+                    let tagsHtml = '';
+                    if (d.profile.message.tags && d.profile.message.tags.length > 0) {
+                        tagsHtml += '<div class="tags">';
+                        d.profile.message.tags.forEach(tag => {
+                            tagsHtml += `<span class="tag">${tag}</span>`;
+                        });
+                        tagsHtml += '</div>';
+                    }
+
+                    let statesHtml = '';
+
+                    if (d.profile.states && d.profile.states.length > 0) {
+                        statesHtml += '<div class="state-tags">';
+                        d.profile.states.forEach(state => {
+                            statesHtml += `<span class="state-tag">${state.name}</span>`;
+                        });
+                        statesHtml += '</div>';
+                    }
+
+                    return contentHtml + tagsHtml + statesHtml;
+                });
+        }
+
+        // Populate the tag filter panel
+        const tagFilterPanel = d3.select("#tag-filter-panel");
+        tagFilterPanel.append("div")
+            .append("input")
+            .attr("type", "checkbox")
+            .attr("value", "all")
+            .attr("id", "tag-all")
+            .attr("checked", true)
+            .on("change", () => {
+                if (document.querySelector('#tag-all').checked) {
+                    document.querySelectorAll('#tag-filter-panel input[type="checkbox"]:not(#tag-all)').forEach(cb => {
+                        cb.checked = false;
+                    });
+                }
+                updateMessageHistory();
+            });
+
+        tagFilterPanel.append("label")
+            .attr("for", "tag-all")
+            .text("All");
+
+        uniqueTags.forEach(tag => {
+            const tagCheckbox = tagFilterPanel.append("div");
+            tagCheckbox.append("input")
+                .attr("type", "checkbox")
+                .attr("value", tag)
+                .attr("id", `tag-${tag}`)
+                .attr("checked", false)
+                .on("change", () => {
+                    document.querySelector('#tag-all').checked = false;
+                    updateMessageHistory();
+                });
+
+            tagCheckbox.append("label")
+                .attr("for", `tag-${tag}`)
+                .text(tag);
+        });
+
+        // Initially show all messages
+        updateMessageHistory();
+
+
+
 
         let stateCounts = {};
         data.nodes.forEach(node => {
