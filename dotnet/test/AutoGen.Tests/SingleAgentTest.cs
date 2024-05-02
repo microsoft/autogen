@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoGen.OpenAI;
@@ -80,11 +81,24 @@ namespace AutoGen.Tests
 
             var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
 
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApprovalTests", "square.png");
+            ImageMessage imageMessageData;
+            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+            {
+                var ms = new MemoryStream();
+                await fs.CopyToAsync(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                var imageData = await BinaryData.FromStreamAsync(ms, "image/png");
+                imageMessageData = new ImageMessage(Role.Assistant, imageData, from: "user");
+            }
+
             IMessage[] messages = [
                 MessageEnvelope.Create(oaiMessage),
                 multiModalMessage,
                 imageMessage,
+                imageMessageData
                 ];
+
             foreach (var message in messages)
             {
                 var response = await visionAgent.SendAsync(message);

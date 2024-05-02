@@ -84,7 +84,7 @@ public class OpenAIChatAgent : IStreamingAgent
         var settings = this.CreateChatCompletionsOptions(options, messages);
         var reply = await this.openAIClient.GetChatCompletionsAsync(settings, cancellationToken);
 
-        return new MessageEnvelope<ChatResponseMessage>(reply.Value.Choices.First().Message, from: this.Name);
+        return new MessageEnvelope<ChatCompletions>(reply, from: this.Name);
     }
 
     public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
@@ -101,7 +101,7 @@ public class OpenAIChatAgent : IStreamingAgent
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var settings = this.CreateChatCompletionsOptions(options, messages);
-        var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings);
+        var response = await this.openAIClient.GetChatCompletionsStreamingAsync(settings, cancellationToken);
         await foreach (var update in response.WithCancellation(cancellationToken))
         {
             if (update.ChoiceIndex > 0)
