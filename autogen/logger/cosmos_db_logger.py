@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict, Union
 
 from azure.cosmos import CosmosClient, exceptions
 from azure.cosmos.exceptions import CosmosHttpResponseError
