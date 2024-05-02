@@ -7,7 +7,7 @@ import autogen
 class ConfigManager:
 
     DEFAULT_LLM_MODEL = "gpt-4-turbo"
-    DEFAULT_MLM_MODEL = "gpt-4-1106-vision-preview"
+    DEFAULT_MLM_MODEL = "gpt-4-turbo"
     DEFAULT_TIMEOUT = 300
 
     def __init__(self):
@@ -19,7 +19,7 @@ class ConfigManager:
 
         self.bing_api_key = None
 
-    def _get_config_list(self, config_path_or_env: str) -> List[Dict[str, str]]:
+    def _get_config_list(self, config_path_or_env: Optional[str]) -> List[Dict[str, str]]:
 
         if config_path_or_env is None:
             api_key = os.environ.get("OPENAI_API_KEY", None)
@@ -30,6 +30,7 @@ class ConfigManager:
                 {"model": self.DEFAULT_LLM_MODEL, "api_key": api_key, "tags": ["llm"]},
                 {"model": self.DEFAULT_MLM_MODEL, "api_key": api_key, "tags": ["mlm"]},
             ]
+            return config_list
 
         try:
             config_list = autogen.config_list_from_json(config_path_or_env)

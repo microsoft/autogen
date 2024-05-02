@@ -7,8 +7,8 @@ from autogen.agentchat.contrib.orchestrator import Orchestrator
 from config_manager import ConfigManager
 
 # setup LLM config and clients
-# config_list = "OAI_CONFIG_LIST"
-config_list = "AZURE_OAI_CONFIG_LIST"
+config_list = "OAI_CONFIG_LIST"
+# config_list = "AZURE_OAI_CONFIG_LIST"
 
 config = ConfigManager()
 config.initialize(config_path_or_env=config_list)
