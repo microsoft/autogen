@@ -6,7 +6,7 @@ import pytest
 from azure.cosmos import CosmosClient
 
 import autogen.runtime_logging
-from autogen.logger.cosmos_db_logger import CosmosDBLoggerConfig
+from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
 # Sample data for testing
