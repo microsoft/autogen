@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from azure.cosmos import CosmosClient
 
-import autogen.runtime_logging
 from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
@@ -62,6 +61,14 @@ def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
 
 
 def get_sample_chat_completion(response):
+    # Prepare the response as a JSON string if it is a dict, handling None or other types appropriately
+    if isinstance(response, dict):
+        response_json = json.dumps(response)  # Convert dict to JSON string
+    elif response is None:
+        response_json = json.dumps({"response": None})  # Convert None type handled as a JSON string
+    else:
+        response_json = json.dumps({"response": response})  # Treat other responses as part of a JSON structure
+    
     return {
         "invocation_id": str(uuid.uuid4()),
         "client_id": 12345,
@@ -116,10 +123,9 @@ def test_log_completion_variants(response, expected_logged_response, cosmos_logg
     cosmos_logger.log_chat_completion(**sample_completion)
 
     document = cosmos_logger.log_queue.get()
-    if isinstance(expected_logged_response, dict):
-        assert json.loads(document["response"]) == expected_logged_response
-    else:
-        assert document["response"] == to_dict(response)
+    # Since the response is serialized in the logging, parse it back to a dict to check
+    logged_response = json.loads(document["response"])
+    assert logged_response == expected_logged_response
 
 
 def test_stop_logging(cosmos_logger):
