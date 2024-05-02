@@ -21,4 +21,10 @@
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="ApprovalTests\square.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

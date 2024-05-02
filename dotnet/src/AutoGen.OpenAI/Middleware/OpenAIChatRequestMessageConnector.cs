@@ -336,7 +336,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
     {
         return new[] { new ChatRequestUserMessage([
-            new ChatMessageImageContentItem(new Uri(message.Url)),
+            new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri())),
             ])};
     }
 
@@ -345,7 +345,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         IEnumerable<ChatMessageContentItem> items = message.Content.Select<IMessage, ChatMessageContentItem>(ci => ci switch
         {
             TextMessage text => new ChatMessageTextContentItem(text.Content),
-            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url)),
+            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url ?? image.BuildDataUri())),
             _ => throw new NotImplementedException(),
         });
 
