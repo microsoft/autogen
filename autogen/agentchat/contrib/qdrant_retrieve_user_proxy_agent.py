@@ -261,7 +261,7 @@ def query_qdrant(
     search_string: Optional[str] = "",
     embedding_model: Optional[str] = "BAAI/bge-small-en-v1.5",
     qdrant_client_options: Optional[Dict] = {},
-) -> List[List[QueryResponse]]:
+) -> Dict:
     """Perform a similarity search with filters on a Qdrant collection
 
     Args:
@@ -274,13 +274,20 @@ def query_qdrant(
         qdrant_client_options: (Optional, dict): the options for instantiating the qdrant client. Reference: https://github.com/qdrant/qdrant-client/blob/master/qdrant_client/qdrant_client.py#L36-L58.
 
     Returns:
-        List[List[QueryResponse]]: the query result. The format is:
-            class QueryResponse(BaseModel, extra="forbid"):  # type: ignore
-                id: Union[str, int]
-                embedding: Optional[List[float]]
-                metadata: Dict[str, Any]
-                document: str
-                score: float
+        Dict: The query result in the following format:
+
+            {
+                "ids": List[List[Union[str, int]]],
+                "documents": List[List[str]],
+                "distances": List[List[float]],
+                "metadatas": List[List[Dict[str, Any]]]
+            }
+
+        Each sublist corresponds to a query text, and each element in the sublist contains information about a result.
+        - "ids": The IDs of the documents.
+        - "documents": The text content of the documents.
+        - "distances": The similarity scores between the query and the documents.
+        - "metadatas": Additional metadata associated with the documents.
     """
     if client is None:
         client = QdrantClient(**qdrant_client_options)
@@ -304,18 +311,11 @@ def query_qdrant(
         ),
     )
 
-    data = [
-        [
-            QueryResponse(
-                id=result.id,
-                embedding=result.embedding,
-                metadata=result.metadata,
-                document=result.document,
-                score=result.score,
-            )
-            for result in sublist
-        ]
-        for sublist in results
-    ]
+    data = {
+        "ids": [[result.id for result in sublist] for sublist in results],
+        "documents": [[result.document for result in sublist] for sublist in results],
+        "distances": [[result.score for result in sublist] for sublist in results],
+        "metadatas": [[result.metadata for result in sublist] for sublist in results],
+    }
 
     return data

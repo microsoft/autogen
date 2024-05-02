@@ -93,15 +93,7 @@ def test_qdrant_filter():
         # Return only documents with "AutoGen" in the string
         search_string="AutoGen",
     )
-    assert isinstance(results, list)
-
-    for sublist in results:
-        assert isinstance(sublist, list)
-        for result in sublist:
-            assert isinstance(result, QueryResponse)
-
-    assert len(results) == 1
-    assert len(results[0]) == 4
+    assert len(results["ids"][0]) == 4
 
 
 @pytest.mark.skipif(not QDRANT_INSTALLED, reason="qdrant_client is not installed")
@@ -111,18 +103,8 @@ def test_qdrant_search():
 
     assert client.get_collection("all-my-documents")
 
-    # Perform a semantic search without any filter
     results = query_qdrant(["autogen"], client=client)
-    assert isinstance(results, list)
-
-    # Check if each sublist in results is a list of QueryResponse objects
-    for sublist in results:
-        assert isinstance(sublist, list)
-        for result in sublist:
-            assert isinstance(result, QueryResponse)
-
-    # Check if any document contains the term "autogen"
-    assert any("autogen" in result.document.lower() for sublist in results for result in sublist)
+    assert isinstance(results, dict) and any("autogen" in res[0].lower() for res in results.get("documents", []))
 
 
 if __name__ == "__main__":
