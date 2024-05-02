@@ -41,9 +41,10 @@ public partial class OpenAIChatAgentTest
         var chatMessageContent = MessageEnvelope.Create(new ChatRequestUserMessage("Hello"));
         var reply = await openAIChatAgent.SendAsync(chatMessageContent);
 
-        reply.Should().BeOfType<MessageEnvelope<ChatResponseMessage>>();
-        reply.As<MessageEnvelope<ChatResponseMessage>>().From.Should().Be("assistant");
-        reply.As<MessageEnvelope<ChatResponseMessage>>().Content.Role.Should().Be(ChatRole.Assistant);
+        reply.Should().BeOfType<MessageEnvelope<ChatCompletions>>();
+        reply.As<MessageEnvelope<ChatCompletions>>().From.Should().Be("assistant");
+        reply.As<MessageEnvelope<ChatCompletions>>().Content.Choices.First().Message.Role.Should().Be(ChatRole.Assistant);
+        reply.As<MessageEnvelope<ChatCompletions>>().Content.Usage.TotalTokens.Should().BeGreaterThan(0);
 
         // test streaming
         var streamingReply = await openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
