@@ -69,7 +69,7 @@ def create_jsonl(name, tasks, template):
 
             record = {
                 "id": str(task["task_id"]),
-                "template": template,
+                "template": [os.path.join(TEMPLATES_DIR, "Common"), template],
                 "substitutions": {
                     "task_prompt.json.txt": {"__TASK_PROMPT__": json.dumps(task_prompt, indent=4)},
                     "full_task.json.txt": {"__FULL_TASK__": json.dumps(task, indent=4)},
@@ -88,6 +88,8 @@ def main():
     templates = {}
     for entry in os.scandir(TEMPLATES_DIR):
         if entry.is_dir():
+            if entry.name == "Common":  # Skip the common template, which will be included in all
+                next
             templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     # Divide the tasks by their websites and if they are validation or test

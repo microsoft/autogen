@@ -8,7 +8,19 @@ from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferA
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
 from autogen.runtime_logging import logging_enabled, log_event
 
-from evaluation_harness.env_config import ACCOUNTS, GITLAB, MAP, REDDIT, SHOPPING, SHOPPING_ADMIN, WIKIPEDIA, HOMEPAGE
+from evaluation_harness.env_config import (
+    ACCOUNTS,
+    GITLAB,
+    MAP,
+    REDDIT,
+    SHOPPING,
+    SHOPPING_ADMIN,
+    WIKIPEDIA,
+    HOMEPAGE,
+    LOGIN_PROMPTS,
+    SITE_DESCRIPTIONS,
+    url_to_sitename,
+)
 
 testbed_utils.init()
 ##############################
@@ -73,79 +85,34 @@ Once the user has taken the final necessary action to complete the task, and you
 )
 
 # Login to the necessary websites
-if "reddit" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_reddit_task")
-    login_url = REDDIT
-    username = ACCOUNTS["reddit"]["username"]
-    password = ACCOUNTS["reddit"]["password"]
-    try:
-        user_proxy.initiate_chat(
-            web_surfer,
-            message=f"Navigate to {login_url}. Click \"Log in\", type the username '{username}', and password is '{password}'. Finally click the login button.",
-            clear_history=True,
-        )
-    except Exception as e:
-        import traceback
-
+for site in TASK["sites"]:
+    if site in ["reddit", "gitlab", "shopping", "shopping_admin"]:
         if logging_enabled():
-            exc_type = type(e).__name__
-            exc_message = str(e)
-            exc_traceback = traceback.format_exc().splitlines()
-            log_event(
-                os.path.basename(__file__),
-                name="exception_thrown",
-                exc_type=exc_type,
-                exc_message=exc_message,
-                exc_traceback=exc_traceback,
+            log_event(os.path.basename(__file__), name="start_" + site + "_task")
+        try:
+            user_proxy.initiate_chat(
+                web_surfer,
+                message=LOGIN_PROMPTS[site],
+                clear_history=True,
             )
+        except Exception as e:
+            import traceback
 
-        raise e
-    user_proxy.reset()
-    web_surfer.reset()
+            if logging_enabled():
+                exc_type = type(e).__name__
+                exc_message = str(e)
+                exc_traceback = traceback.format_exc().splitlines()
+                log_event(
+                    os.path.basename(__file__),
+                    name="exception_thrown",
+                    exc_type=exc_type,
+                    exc_message=exc_message,
+                    exc_traceback=exc_traceback,
+                )
 
-
-if "gitlab" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_gitlab_task")
-    login_url = GITLAB
-    username = ACCOUNTS["gitlab"]["username"]
-    password = ACCOUNTS["gitlab"]["password"]
-    user_proxy.initiate_chat(
-        web_surfer,
-        message=f"Navigate to {login_url}. At the log in prompt, type the username '{username}', and the password '{password}'. Finally click the 'Sign in' button.",
-        clear_history=True,
-    )
-    user_proxy.reset()
-    web_surfer.reset()
-
-if "shopping" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_shopping_task")
-    login_url = SHOPPING
-    username = ACCOUNTS["shopping"]["username"]
-    password = ACCOUNTS["shopping"]["password"]
-    user_proxy.initiate_chat(
-        web_surfer,
-        message=f"Navigate to {login_url}. Click 'Sign In' at the top of the page. Enter the Email '{username}', and password '{password}'. Finally click the 'Sign In' button.",
-        clear_history=True,
-    )
-    user_proxy.reset()
-    web_surfer.reset()
-
-if "shopping_admin" in TASK["sites"] or "shopping_site_admin" in TASK["sites"]:
-    if logging_enabled():
-        log_event(os.path.basename(__file__), name="start_shopping_admin_task")
-    login_url = SHOPPING_ADMIN
-    username = ACCOUNTS["shopping_admin"]["username"]
-    password = ACCOUNTS["shopping_admin"]["password"]
-    user_proxy.initiate_chat(
-        web_surfer,
-        message=f"Navigate to {login_url}. At the log in prompt, enter the username '{username}', and the password '{password}'. Finally click the 'Sign In' button.",
-        clear_history=True,
-    )
-    user_proxy.reset()
-    web_surfer.reset()
+            raise e
+        user_proxy.reset()
+        web_surfer.reset()
 
 
 # Navigate to the starting url
@@ -163,14 +130,9 @@ print("MAIN TASK STARTING !#!#")
 
 # Provide some background about the pages
 site_description_prompt = ""
-if start_url.startswith(REDDIT):
-    site_description_prompt = ", which is a Postmill forum populated with a large sample of data crawled from Reddit. Postmill is similar to Reddit, but the UI is distinct, and 'subreddits' begin with /f/ rather than /r/"
-elif start_url.startswith(GITLAB):
-    site_description_prompt = ", which is a Gitlab site populated with various programming projects. Gitlab is similar to GitHub, though the UIs are slightly different"
-elif start_url.startswith(SHOPPING):
-    site_description_prompt = ", which is an online store built with the Magento open source eCommerce platform"
-elif start_url.startswith(SHOPPING_ADMIN):
-    site_description_prompt = ", which is the content management admin portal for an online store running the Magento open source eCommerce software"
+sitename = url_to_sitename(start_url)
+if sitename:
+    site_description_prompt = ", " + SITE_DESCRIPTIONS[sitename]
 
 if logging_enabled():
     log_event(os.path.basename(__file__), name="main_task_initiate_chat")
