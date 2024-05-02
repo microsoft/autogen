@@ -56,7 +56,7 @@ def cosmos_db_config() -> CosmosDBLoggerConfig:
 @pytest.fixture(scope="function")
 def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
     with patch.object(CosmosClient, "from_connection_string", return_value=MagicMock()):
-        logger = autogen.runtime_logging.CosmosDBLogger(cosmos_db_config)
+        logger = CosmosDBLogger(cosmos_db_config)
         yield logger
         logger.stop()
 
