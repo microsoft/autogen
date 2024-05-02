@@ -1,3 +1,4 @@
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
+website/docs/ecosystem/img/ecosystem-agentops.png filter=lfs diff=lfs merge=lfs -text
