@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict, Union, Queue
+from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict, Union
 
 from azure.cosmos import CosmosClient, exceptions
 from azure.cosmos.exceptions import CosmosHttpResponseError
@@ -28,7 +28,7 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
     container_id: str
 
 
-log_queue: Queue[Optional[Dict[str, Any]]] = queue.Queue()
+log_queue: queue.Queue[Optional[Dict[str, Any]]] = queue.Queue()
 
 
 class CosmosDBLogger(BaseLogger):
