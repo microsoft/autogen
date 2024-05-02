@@ -50,6 +50,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies
         run: |
           docker --version
