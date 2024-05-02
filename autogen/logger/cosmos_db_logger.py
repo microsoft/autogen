@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, TypedDict, Union, Queue
 
 from azure.cosmos import CosmosClient, exceptions
 from azure.cosmos.exceptions import CosmosHttpResponseError
@@ -28,7 +28,7 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
     container_id: str
 
 
-log_queue: queue.Queue[Optional[Dict[str, Any]]] = queue.Queue()
+log_queue: Queue[Optional[Dict[str, Any]]] = queue.Queue()
 
 
 class CosmosDBLogger(BaseLogger):
@@ -68,7 +68,7 @@ class CosmosDBLogger(BaseLogger):
             finally:
                 self.log_queue.task_done()
 
-    def _process_log_entry(self, document: Dict[str, Any]):
+    def _process_log_entry(self, document: Dict[str, Any]) -> None:
         try:
             self.container.upsert_item(document)
         except exceptions.CosmosHttpResponseError as e:
