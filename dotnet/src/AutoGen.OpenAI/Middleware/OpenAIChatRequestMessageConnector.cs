@@ -98,6 +98,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             Message => message,
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> => message,
             IMessage<ChatResponseMessage> m => PostProcessMessage(m),
+            IMessage<ChatCompletions> m => PostProcessMessage(m),
             _ => throw new InvalidOperationException("The type of message is not supported. Must be one of TextMessage, ImageMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, Message, IMessage<ChatRequestMessage>, AggregateMessage<ToolCallMessage, ToolCallResultMessage>"),
         };
     }
@@ -129,15 +130,24 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessMessage(IMessage<ChatResponseMessage> message)
     {
-        var chatResponseMessage = message.Content;
+        return PostProcessMessage(message.Content, message.From);
+    }
+
+    private IMessage PostProcessMessage(IMessage<ChatCompletions> message)
+    {
+        return PostProcessMessage(message.Content.Choices[0].Message, message.From);
+    }
+
+    private IMessage PostProcessMessage(ChatResponseMessage chatResponseMessage, string? from)
+    {
         if (chatResponseMessage.Content is string content)
         {
-            return new TextMessage(Role.Assistant, content, message.From);
+            return new TextMessage(Role.Assistant, content, from);
         }
 
         if (chatResponseMessage.FunctionCall is FunctionCall functionCall)
         {
-            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, message.From);
+            return new ToolCallMessage(functionCall.Name, functionCall.Arguments, from);
         }
 
         if (chatResponseMessage.ToolCalls.Where(tc => tc is ChatCompletionsFunctionToolCall).Any())
@@ -148,7 +158,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
             var toolCalls = functionToolCalls.Select(tc => new ToolCall(tc.Name, tc.Arguments));
 
-            return new ToolCallMessage(toolCalls, message.From);
+            return new ToolCallMessage(toolCalls, from);
         }
 
         throw new InvalidOperationException("Invalid ChatResponseMessage");
@@ -336,7 +346,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
     {
         return new[] { new ChatRequestUserMessage([
-            new ChatMessageImageContentItem(new Uri(message.Url)),
+            new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri())),
             ])};
     }
 
@@ -345,7 +355,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         IEnumerable<ChatMessageContentItem> items = message.Content.Select<IMessage, ChatMessageContentItem>(ci => ci switch
         {
             TextMessage text => new ChatMessageTextContentItem(text.Content),
-            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url)),
+            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url ?? image.BuildDataUri())),
             _ => throw new NotImplementedException(),
         });
 
