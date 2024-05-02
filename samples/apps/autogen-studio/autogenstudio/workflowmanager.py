@@ -169,16 +169,16 @@ class AutoGenWorkFlowManager:
             code_execution_config["use_docker"] = False
             agent_spec.config.code_execution_config = code_execution_config
 
-            if agent_spec.skills:
-                # get skill prompt, also write skills to a file named skills.py
-                skills_prompt = ""
-                skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
-                if agent_spec.config.system_message:
-                    agent_spec.config.system_message = agent_spec.config.system_message + "\n\n" + skills_prompt
-                else:
-                    agent_spec.config.system_message = (
-                        get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
-                    )
+        if agent_spec.skills:
+            # get skill prompt, also write skills to a file named skills.py
+            skills_prompt = ""
+            skills_prompt = get_skills_from_prompt(agent_spec.skills, self.work_dir)
+            if agent_spec.config.system_message:
+                agent_spec.config.system_message = agent_spec.config.system_message + "\n\n" + skills_prompt
+            else:
+                agent_spec.config.system_message = (
+                    get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
+                )
 
         return agent_spec
 
