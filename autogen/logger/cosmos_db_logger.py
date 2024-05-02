@@ -28,7 +28,7 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
     container_id: str
 
 
-llog_queue: queue.Queue[Optional[Dict[str, Any]]] = queue.Queue()
+log_queue: queue.Queue[Optional[Dict[str, Any]]] = queue.Queue()
 
 
 class CosmosDBLogger(BaseLogger):
