@@ -1,4 +1,4 @@
-# GPTAssistantAgent
+# Agent Backed by OpenAI Assistant API
 
 The GPTAssistantAgent is a powerful component of the AutoGen framework, utilizing OpenAI's Assistant API to enhance agents with advanced capabilities. This agent enables the integration of multiple tools such as the Code Interpreter, File Search, and Function Calling, allowing for a highly customizable and dynamic interaction model.
 
@@ -12,9 +12,9 @@ Key Features of the GPTAssistantAgent:
 
 For a practical illustration, here are some examples:
 
-- [Chat with OpenAI Assistant using function call](/notebook/agentchat_oai_assistant_function_call.ipynb) demonstrates how to leverage function calling to enable intelligent function selection.
-- [GPTAssistant with Code Interpreter](/notebook/agentchat_oai_code_interpreter.ipynb) showcases the integration of the  Code Interpreter tool which executes Python code dynamically within applications.
-- [Group Chat with GPTAssistantAgent](/notebook/agentchat_oai_assistant_groupchat.ipynb) demonstrates how to use the GPTAssistantAgent in AutoGen's group chat mode, enabling collaborative task performance through automated chat with agents powered by LLMs, tools, or humans.
+- [Chat with OpenAI Assistant using function call](/docs/notebooks/agentchat_oai_assistant_function_call) demonstrates how to leverage function calling to enable intelligent function selection.
+- [GPTAssistant with Code Interpreter](/docs/notebooks/agentchat_oai_code_interpreter) showcases the integration of the  Code Interpreter tool which executes Python code dynamically within applications.
+- [Group Chat with GPTAssistantAgent](/docs/notebooks/agentchat_oai_assistant_groupchat) demonstrates how to use the GPTAssistantAgent in AutoGen's group chat mode, enabling collaborative task performance through automated chat with agents powered by LLMs, tools, or humans.
 
 ## Create a OpenAI Assistant in Autogen
 
@@ -139,6 +139,32 @@ Using the Function calling with the following configuration.
 
 ```python
 # learn more from https://platform.openai.com/docs/guides/function-calling/function-calling
+from autogen.function_utils import get_function_schema
+
+def get_current_weather(location: str) -> dict:
+    """
+    Retrieves the current weather for a specified location.
+
+    Args:
+    location (str): The location to get the weather for.
+
+    Returns:
+    Union[str, dict]: A dictionary with weather details..
+    """
+
+    # Simulated response
+    return {
+        "location": location,
+        "temperature": 22.5,
+        "description": "Partly cloudy"
+    }
+
+api_schema = get_function_schema(
+    get_current_weather,
+    name=get_current_weather.__name__,
+    description="Returns the current weather data for a specified location."
+)
+
 api_schema = "define your function schema here"
 assistant_config = {
     "tools": [
