@@ -50,7 +50,7 @@ def test_pgvector():
     # test create collection with basic authentication
     db_config = {
         "username": "postgres",
-        "password": "postgres",
+        "password": os.environ.get("POSTGRES_PASSWORD", default="postgres"),
         "host": "localhost",
         "port": 5432,
         "dbname": "postgres",
