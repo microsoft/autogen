@@ -11,7 +11,7 @@ import pytest
 import autogen
 from autogen import OpenAIWrapper, UserProxyAgent
 from autogen.agentchat.contrib.gpt_assistant_agent import GPTAssistantAgent
-from autogen.oai.openai_utils import retrieve_assistants_by_name
+from autogen.oai.openai_utils import detect_gpt_assistant_api_version, retrieve_assistants_by_name
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 from conftest import reason, skip_openai  # noqa: E402
@@ -264,6 +264,7 @@ def test_get_assistant_files() -> None:
     openai_client = OpenAIWrapper(config_list=openai_config_list)._clients[0]._oai_client
     file = openai_client.files.create(file=open(current_file_path, "rb"), purpose="assistants")
     name = f"For test_get_assistant_files {uuid.uuid4()}"
+    gpt_assistant_api_version = detect_gpt_assistant_api_version()
 
     # keep it to test older version of assistant config
     assistant = GPTAssistantAgent(
@@ -277,10 +278,17 @@ def test_get_assistant_files() -> None:
     )
 
     try:
-        files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
-        retrieved_file_ids = [fild.id for fild in files]
+        if gpt_assistant_api_version == "v1":
+            files = assistant.openai_client.beta.assistants.files.list(assistant_id=assistant.assistant_id)
+            retrieved_file_ids = [fild.id for fild in files]
+        elif gpt_assistant_api_version == "v2":
+            oas_assistant = assistant.openai_client.beta.assistants.retrieve(assistant_id=assistant.assistant_id)
+            vectorstore_ids = oas_assistant.tool_resources.file_search.vector_store_ids
+            retrieved_file_ids = []
+            for vectorstore_id in vectorstore_ids:
+                files = assistant.openai_client.beta.vector_stores.files.list(vector_store_id=vectorstore_id)
+                retrieved_file_ids.extend([fild.id for fild in files])
         expected_file_id = file.id
-
     finally:
         assistant.delete_assistant()
         openai_client.files.delete(file.id)
@@ -401,7 +409,7 @@ def test_assistant_mismatch_retrieval() -> None:
             "tools": [
                 {"type": "function", "function": function_1_schema},
                 {"type": "function", "function": function_2_schema},
-                {"type": "retrieval"},
+                {"type": "file_search"},
                 {"type": "code_interpreter"},
             ],
             "file_ids": [file_1.id, file_2.id],
@@ -411,7 +419,6 @@ def test_assistant_mismatch_retrieval() -> None:
         name = f"For test_assistant_retrieval {uuid.uuid4()}"
 
         assistant_first, assistant_instructions_mistaching = None, None
-        assistant_file_ids_mismatch, assistant_tools_mistaching = None, None
         try:
             assistant_first = GPTAssistantAgent(
                 name,
@@ -432,30 +439,11 @@ def test_assistant_mismatch_retrieval() -> None:
             )
             assert len(candidate_instructions_mistaching) == 2
 
-            # test mismatch fild ids
-            file_ids_mismatch_llm_config = {
-                "tools": [
-                    {"type": "code_interpreter"},
-                    {"type": "retrieval"},
-                    {"type": "function", "function": function_2_schema},
-                    {"type": "function", "function": function_1_schema},
-                ],
-                "file_ids": [file_2.id],
-                "config_list": openai_config_list,
-            }
-            assistant_file_ids_mismatch = GPTAssistantAgent(
-                name,
-                instructions="This is a test",
-                llm_config=file_ids_mismatch_llm_config,
-            )
-            candidate_file_ids_mismatch = retrieve_assistants_by_name(assistant_file_ids_mismatch.openai_client, name)
-            assert len(candidate_file_ids_mismatch) == 3
-
             # test tools mismatch
             tools_mismatch_llm_config = {
                 "tools": [
                     {"type": "code_interpreter"},
-                    {"type": "retrieval"},
+                    {"type": "file_search"},
                     {"type": "function", "function": function_3_schema},
                 ],
                 "file_ids": [file_2.id, file_1.id],
@@ -467,15 +455,13 @@ def test_assistant_mismatch_retrieval() -> None:
                 llm_config=tools_mismatch_llm_config,
             )
             candidate_tools_mismatch = retrieve_assistants_by_name(assistant_tools_mistaching.openai_client, name)
-            assert len(candidate_tools_mismatch) == 4
+            assert len(candidate_tools_mismatch) == 3
 
         finally:
             if assistant_first:
                 assistant_first.delete_assistant()
             if assistant_instructions_mistaching:
                 assistant_instructions_mistaching.delete_assistant()
-            if assistant_file_ids_mismatch:
-                assistant_file_ids_mismatch.delete_assistant()
             if assistant_tools_mistaching:
                 assistant_tools_mistaching.delete_assistant()
 
