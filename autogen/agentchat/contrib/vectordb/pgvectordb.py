@@ -17,6 +17,7 @@ except ImportError:
 
 try:
     import psycopg
+    from psycopg import connection
 except ImportError:
     raise ImportError("Please install pgvector: `pip install psycopg`")
 
@@ -567,7 +568,7 @@ class PGVectorDB(VectorDB):
         embedding_function: Callable = None,
         metadata: dict = None,
         model_name: str = "all-MiniLM-L6-v2",
-        conn: psycopg.connect() = None,
+        conn: connection = None,
     ) -> None:
         """
         Initialize the vector database.
@@ -611,7 +612,7 @@ class PGVectorDB(VectorDB):
                     f"@{encoded_host}:{parsed_connection.port}/{encoded_database}"
                 )
                 self.client = psycopg.connect(conninfo=connection_string_encoded, autocommit=True)
-            elif host and port and dbname:
+            elif host and port and dbname and username and password:
                 encoded_username = urllib.parse.quote(username, safe="")
                 encoded_password = urllib.parse.quote(password, safe="")
                 encoded_host = urllib.parse.quote(host, safe="")
