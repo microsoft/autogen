@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>AutoGen.DotnetInteractive</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.DotnetInteractive</Title>
+    <Description>
+      Dotnet interactive integration for AutoGen agents
+    </Description>
+  </PropertyGroup>
+  
+  <ItemGroup>
+		<PackageReference Include="Microsoft.DotNet.Interactive.VisualStudio" Version="$(MicrosoftDotnetInteractive)" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="dotnet-tools.json" />
+	  <EmbeddedResource Include="RestoreInteractive.config" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
+	</ItemGroup>
+
+
+	<ItemGroup>
+	  <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
+	</ItemGroup>
+
+</Project>
