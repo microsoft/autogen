@@ -176,9 +176,7 @@ class AutoGenWorkFlowManager:
             if agent_spec.config.system_message:
                 agent_spec.config.system_message = agent_spec.config.system_message + "\n\n" + skills_prompt
             else:
-                agent_spec.config.system_message = (
-                    get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
-                )
+                agent_spec.config.system_message = get_default_system_message(agent_spec.type) + "\n\n" + skills_prompt
 
         return agent_spec
 
