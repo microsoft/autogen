@@ -89,7 +89,7 @@ def main():
     for entry in os.scandir(TEMPLATES_DIR):
         if entry.is_dir():
             if entry.name == "Common":  # Skip the common template, which will be included in all
-                next
+                continue
             templates[re.sub(r"\s", "", entry.name)] = entry.path
 
     # Divide the tasks by their websites and if they are validation or test
