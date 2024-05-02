@@ -94,6 +94,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -141,6 +144,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos      
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -176,6 +182,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -211,6 +220,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -250,6 +262,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip wheel
           pip install pytest-cov>=5
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for WebSurfer
         run: |
           pip install -e .[websurfer]
@@ -283,6 +298,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -362,6 +380,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
@@ -397,6 +418,9 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Explicitly install packages for Azure Cosmos DB
+        run: |
+          pip install azure-cosmos
       - name: Install packages and dependencies for all tests
         run: |
           python -m pip install --upgrade pip wheel
