@@ -31,7 +31,7 @@ class CosmosDBLoggerConfig(TypedDict, total=False):
 class CosmosDBLogger(BaseLogger):
 
     log_queue: queue.Queue[Optional[Dict[str, Any]]] = queue.Queue()
-    
+
     def __init__(self, config: CosmosDBLoggerConfig):
         required_keys = ["connection_string", "database_id", "container_id"]
         if not all(key in config for key in required_keys):
