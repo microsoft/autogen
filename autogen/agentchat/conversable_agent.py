@@ -1156,7 +1156,7 @@ class ConversableAgent(LLMAgent):
         agent = sender if recipient is None else recipient
         role = summary_args.get("summary_role", None)
         if role and not isinstance(role, str):
-            raise ValueError("The role (summary_arg) must be a string.")
+            raise ValueError("The summary_role in summary_arg must be a string.")
         try:
             summary = sender._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"), role=role)
         except BadRequestError as e:
