@@ -119,8 +119,8 @@ for site in TASK["sites"]:
 if logging_enabled():
     log_event(os.path.basename(__file__), name="navigate_start_url")
 start_url = TASK["start_url"]
-# if start_url == REDDIT:
-#    start_url = start_url + "/forums"
+if start_url == REDDIT:
+    start_url = start_url + "/forums"
 user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
 
 user_proxy.reset()

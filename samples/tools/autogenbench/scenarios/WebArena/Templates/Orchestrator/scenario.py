@@ -9,6 +9,7 @@ from autogen.agentchat.contrib.orchestrator import Orchestrator
 from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
 from autogen.agentchat.contrib.mmagent import MultimodalAgent
 from autogen.runtime_logging import logging_enabled, log_event
+from autogen.code_utils import content_str
 
 from evaluation_harness.env_config import (
     ACCOUNTS,
@@ -151,8 +152,8 @@ for site in TASK["sites"]:
 if logging_enabled():
     log_event(os.path.basename(__file__), name="navigate_start_url")
 start_url = TASK["start_url"]
-# if start_url == REDDIT:
-#    start_url = start_url + "/forums"
+if start_url == REDDIT:
+    start_url = start_url + "/forums"
 user_proxy.send(f"Type '{start_url}' into the address bar.", web_surfer, request_reply=True)
 
 login_assistant.reset()
@@ -199,6 +200,34 @@ except Exception as e:
 
 # Extract a final answer
 #########################
+def _has_image(message):
+    if isinstance(message["content"], list):
+        for elm in message["content"]:
+            if elm.get("type", "") == "image_url":
+                return True
+    return False
+
+
+def _create_with_images(client, messages, max_images=1, **kwargs):
+    # Clone the messages to give context, but remove old screenshots
+    history = []
+    n_images = 0
+    for m in messages[::-1]:
+        # Create a shallow copy
+        message = {}
+        message.update(m)
+
+        # If there's an image, then consider replacing it with a string
+        if _has_image(message):
+            n_images += 1
+            if n_images > max_images:
+                message["content"] = content_str(message["content"])
+
+        # Prepend the message -- since we are iterating backwards
+        history.insert(0, message)
+    return client.create(messages=history, **kwargs)
+
+
 def response_preparer(inner_messages):
     client = autogen.OpenAIWrapper(**llm_config)
     messages = [
@@ -234,7 +263,7 @@ If the original request was not a question, or you did not find a definitive ans
         }
     )
 
-    response = client.create(context=None, messages=messages)
+    response = _create_with_images(client, messages, context=None)
     if "finish_reason='content_filter'" in str(response):
         raise Exception(str(response))
     extracted_response = client.extract_text_or_completion_object(response)[0]
