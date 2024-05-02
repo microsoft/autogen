@@ -31,7 +31,7 @@ jobs:
             test:
               - "test/**"
             workflows:
-              - ".github/workflows/build.yml"
+              - ".github/workflows/**"
             setup:
               - "setup.py"
       - name: autogen has changes
@@ -109,3 +109,32 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
+  build-check:
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Get Date
+        shell: bash
+        run: |
+          echo "date=$(date +'%m/%d/%Y %H:%M:%S')" >> "$GITHUB_ENV"
+
+      - name: Run Type is ${{ github.event_name }}
+        if: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'}}
+        shell: bash
+        run: |
+          echo "run_type=${{ github.event_name }}" >> "$GITHUB_ENV"
+
+      - name: Fail workflow if build failed
+        id: check_build_failed
+        if: contains(join(needs.*.result, ','), 'failure')
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('Build Failed!')
+
+      - name: Fail workflow if build cancelled
+        id: check_build_cancelled
+        if: contains(join(needs.*.result, ','), 'cancelled')
+        uses: actions/github-script@v6
+        with:
+          script: core.setFailed('Build Cancelled!')

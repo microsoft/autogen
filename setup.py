@@ -35,7 +35,15 @@ jupyter_executor = [
     "ipykernel>=6.29.0",
 ]
 
-retrieve_chat = ["chromadb", "sentence_transformers", "pypdf", "ipython", "beautifulsoup4", "markdownify"]
+retrieve_chat = [
+    "protobuf==4.25.3",
+    "chromadb",
+    "sentence_transformers",
+    "pypdf",
+    "ipython",
+    "beautifulsoup4",
+    "markdownify",
+]
 
 extra_require = {
     "test": [

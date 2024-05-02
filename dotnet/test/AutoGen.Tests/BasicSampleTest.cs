@@ -68,6 +68,12 @@ namespace AutoGen.Tests
             await Example05_Dalle_And_GPT4V.RunAsync();
         }
 
+        [ApiKeyFact("OPENAI_API_KEY")]
+        public async Task GPT4ImageMessage()
+        {
+            await Example15_GPT4V_BinaryDataImageMessage.RunAsync();
+        }
+
         public class ConsoleWriter : StringWriter
         {
             private ITestOutputHelper output;
