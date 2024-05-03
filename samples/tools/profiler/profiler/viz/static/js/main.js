@@ -1,7 +1,22 @@
-import { Message, MessageWidget, MessageHistoryWidget } from './widgets.js';
+import { MessageHistoryWidget } from './widgets.js';
 import { FilterWidget } from './widgets.js';
 import { BarChartWidget } from './barchart.js';
 import { TimelineWidget } from './timelines.js';
+
+
+
+function renderOrUpdate(parentNode, widget) {
+    /*
+    If the node already exists, replace it with the new widget
+    If the node does not exist, append it to the body
+    */
+    const existingNode = parentNode.getElementById(widget.id);
+    if (existingNode) {
+        existingNode.replaceWith(widget.compose());
+    } else {
+        parentNode.appendChild(widget.compose());
+    }
+}
 
 function renderFilters(data) {
     // Extract names of all the tags from the data
@@ -19,23 +34,11 @@ function renderFilters(data) {
         filterArray: tags
     });
 
-    document.body.appendChild(tagFilter.compose());
+    renderOrUpdate(document.body, tagFilter);
 
     return [tagFilter];
 }
 
-function renderOrUpdate(parentNode, widget) {
-    /*
-    If the node already exists, replace it with the new widget
-    If the node does not exist, append it to the body
-    */
-    const existingNode = parentNode.getElementById(widget.id);
-    if (existingNode) {
-        existingNode.replaceWith(widget.compose());
-    } else {
-        parentNode.appendChild(widget.compose());
-    }
-}
 
 function updateAllWidgets(data) {
     const messageHistoryWidget = new MessageHistoryWidget({
