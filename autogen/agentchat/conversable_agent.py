@@ -148,7 +148,7 @@ class ConversableAgent(LLMAgent):
             else (lambda x: content_str(x.get("content")) == "TERMINATE")
         )
         # Take a copy to avoid modifying the given dict
-        if isinstance(llm_config, dict):
+        if isinstance(llm_config, dict) and "http_client" not in llm_config:
             llm_config = copy.deepcopy(llm_config)
 
         self._validate_llm_config(llm_config)
