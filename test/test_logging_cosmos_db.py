@@ -61,20 +61,19 @@ def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
 
 
 def get_sample_chat_completion(response):
-    # Prepare the response as a JSON string if it is a dict, handling None or other types appropriately
-    if isinstance(response, dict):
-        response_json = json.dumps(response)  # Convert dict to JSON string
-    elif response is None:
-        response_json = json.dumps({"response": None})  # Convert None type handled as a JSON string
+    if response is None:
+        response_json = json.dumps({"response": None})  # Properly handle None as a JSON value
+    elif isinstance(response, dict):
+        response_json = json.dumps(response)  # Serialize dicts to JSON strings
     else:
-        response_json = json.dumps({"response": response})  # Treat other responses as part of a JSON structure
+        response_json = json.dumps({"response": response})  # Wrap plain text or other types in JSON
     
     return {
         "invocation_id": str(uuid.uuid4()),
         "client_id": 12345,
         "wrapper_id": 67890,
         "request": SAMPLE_CHAT_REQUEST,
-        "response": response,
+        "response": response_json,
         "is_cached": 0,
         "cost": 0.347,
         "start_time": get_current_ts(),
@@ -113,9 +112,9 @@ def test_log_chat_completion(mock_cosmos_client, cosmos_logger):
 @pytest.mark.parametrize(
     "response, expected_logged_response",
     [
-        (SAMPLE_CHAT_RESPONSE, SAMPLE_CHAT_RESPONSE),
+        (SAMPLE_CHAT_RESPONSE, json.dumps(SAMPLE_CHAT_RESPONSE)),
         (None, {"response": None}),
-        ("error in response", {"response": "error in response"}),
+        ("error in response", json.dumps({"response": "error in response"})),
     ],
 )
 def test_log_completion_variants(response, expected_logged_response, cosmos_logger):
@@ -123,8 +122,6 @@ def test_log_completion_variants(response, expected_logged_response, cosmos_logg
     cosmos_logger.log_chat_completion(**sample_completion)
 
     document = cosmos_logger.log_queue.get()
-    # Since the response is serialized in the logging, parse it back to a dict to check
-    logged_response = json.loads(document["response"])
     assert logged_response == expected_logged_response
 
 
