@@ -54,20 +54,14 @@ def cosmos_db_config() -> CosmosDBLoggerConfig:
 
 @pytest.fixture(scope="function")
 def cosmos_logger(cosmos_db_config: CosmosDBLoggerConfig):
-    with patch.object(CosmosClient, "from_connection_string", return_value=MagicMock()):
+    with patch('azure.cosmos.CosmosClient.from_connection_string', return_value=MagicMock()):
         logger = CosmosDBLogger(cosmos_db_config)
         yield logger
         logger.stop()
 
 
 def get_sample_chat_completion(response):
-    if response is None:
-        response_json = json.dumps({"response": None})  # Properly handle None as a JSON value
-    elif isinstance(response, dict):
-        response_json = json.dumps(response)  # Serialize dicts to JSON strings
-    else:
-        response_json = json.dumps({"response": response})  # Wrap plain text or other types in JSON
-    
+    response_json = json.dumps(response) if isinstance(response, dict) else json.dumps({"response": response})
     return {
         "invocation_id": str(uuid.uuid4()),
         "client_id": 12345,
@@ -81,7 +75,8 @@ def get_sample_chat_completion(response):
 
 
 @patch("azure.cosmos.CosmosClient")
-def test_log_chat_completion(mock_cosmos_client, cosmos_logger):
+def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
+    mock_from_connection_string.return_value = MagicMock()
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
     cosmos_logger.log_chat_completion(**sample_completion)
 
@@ -113,7 +108,7 @@ def test_log_chat_completion(mock_cosmos_client, cosmos_logger):
     "response, expected_logged_response",
     [
         (SAMPLE_CHAT_RESPONSE, json.dumps(SAMPLE_CHAT_RESPONSE)),
-        (None, {"response": None}),
+        (None, json.dumps({"response": None})),
         ("error in response", json.dumps({"response": "error in response"})),
     ],
 )
@@ -122,7 +117,7 @@ def test_log_completion_variants(response, expected_logged_response, cosmos_logg
     cosmos_logger.log_chat_completion(**sample_completion)
 
     document = cosmos_logger.log_queue.get()
-    assert logged_response == expected_logged_response
+    assert json.loads(document["response"]) == json.loads(expected_logged_response)
 
 
 def test_stop_logging(cosmos_logger):
