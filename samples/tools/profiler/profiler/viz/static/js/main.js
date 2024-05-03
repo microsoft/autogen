@@ -24,23 +24,26 @@ function renderFilters(data) {
     return [tagFilter];
 }
 
+function renderOrUpdate(parentNode, widget) {
+    /*
+    If the node already exists, replace it with the new widget
+    If the node does not exist, append it to the body
+    */
+    const existingNode = parentNode.getElementById(widget.id);
+    if (existingNode) {
+        existingNode.replaceWith(widget.compose());
+    } else {
+        parentNode.appendChild(widget.compose());
+    }
+}
+
 function updateAllWidgets(data) {
     const messageHistoryWidget = new MessageHistoryWidget({
         id: "message-history-widget",
         messageArray: data
     });
 
-    const newWidgetElement = messageHistoryWidget.compose();
-
-    const existingWidgetElement = document.getElementById(newWidgetElement.id);
-
-    if (existingWidgetElement) {
-        // If the widget already exists, replace it with the new widget
-        existingWidgetElement.replaceWith(newWidgetElement);
-    } else {
-        // If the widget does not exist, append it to the body
-        document.body.appendChild(newWidgetElement);
-    }
+    renderOrUpdate(document.body, messageHistoryWidget);
 
     // get mapping from states to counts
     const stateCounts = data.reduce((acc, message) => {
@@ -57,27 +60,15 @@ function updateAllWidgets(data) {
         id: "bar-chart-widget",
         data: stateCounts
     });
-    // document.body.appendChild(barchart.compose());
 
-    const existingBarChartElement = document.getElementById(barchart.id);
-    if (existingBarChartElement) {
-        existingBarChartElement.replaceWith(barchart.compose());
-    } else {
-        document.body.appendChild(barchart.compose());
-    }
-
+    renderOrUpdate(document.body, barchart);
 
     const timelineWidget = new TimelineWidget({
         id: "timeline-widget",
         messageArray: data
     });
 
-    const existingTimelineElement = document.getElementById(timelineWidget.id);
-    if (existingTimelineElement) {
-        existingTimelineElement.replaceWith(timelineWidget.compose());
-    } else {
-        document.body.appendChild(timelineWidget.compose());
-    }
+    renderOrUpdate(document.body, timelineWidget);
 }
 
 function getFilteredData(labels, data) {
