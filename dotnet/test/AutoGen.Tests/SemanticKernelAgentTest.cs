@@ -107,7 +107,7 @@ public partial class SemanticKernelAgentTest
             await foreach (var streamingMessage in reply)
             {
                 streamingMessage.Should().BeOfType<TextMessage>();
-                streamingMessage.As<TextMessage>().Role.ToString().Should().Be("assistant");
+                streamingMessage.As<TextMessage>().From.Should().Be("assistant");
             }
         }
     }
