@@ -10,6 +10,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-      - name: Check Git LFS files for consistency
+      - name: "Check Git LFS files for consistency, if you see error like 'pointer: unexpectedGitObject ... should have been a pointer but was not', please install Git LFS locally, delete the problematic file, and then add it back again. This ensures it's properly tracked."
         run: |
           git lfs fsck
