@@ -73,6 +73,10 @@ export class MessageHistoryWidget {
         div.className = "message-history-widget";
         div.id = this.id;
 
+        const heading = document.createElement('h3');
+        heading.textContent = "Message History";
+        div.appendChild(heading);
+
         this.messageArray.forEach(message => {
             const messageWidget = new MessageWidget({
                 id: message.id,
@@ -150,6 +154,10 @@ export class FilterWidget {
         const div = document.createElement('div');
         div.className = "filter-widget";
         div.id = this.id;
+
+        const heading  = document.createElement('h3');
+        heading.textContent = "Filters";
+        div.appendChild(heading);
 
         this.filterArray.forEach(filter => {
             const filterWidget = new CheckboxFilter({

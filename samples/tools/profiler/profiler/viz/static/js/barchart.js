@@ -67,8 +67,8 @@ export class BarChartWidget {
     constructor({ id, data }) {
         this.id = id;
         this.data = Object.entries(data).map(([label, count]) => ({ label, count }));
-        this.width = 600;
-        this.height = 400;
+        this.width = 400;
+        this.height = 300;
     }
 
     render() {

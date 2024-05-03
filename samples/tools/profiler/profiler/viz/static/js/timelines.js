@@ -61,8 +61,8 @@ export class TimelineWidget {
     constructor({ id, messageArray }) {
         this.id = id;
         this.messageArray = messageArray;
-        this.width = 600;
-        this.height = 400;
+        this.width = 400;
+        this.height = 300;
     }
 
     render() {

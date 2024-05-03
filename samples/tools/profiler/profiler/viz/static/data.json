@@ -36,7 +36,7 @@
         "states": ["start"]
     },
     {
-        "source": "user",
+        "source": "orchestrator",
         "content": "I need help with my order",
         "tags": ["order"],
         "states": ["start"]

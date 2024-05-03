@@ -19,25 +19,9 @@ function renderFilters(data) {
         filterArray: tags
     });
 
-    const states = data.reduce((acc, message) => {
-        message.states.forEach(state => {
-            if (!acc.includes(state)) {
-                acc.push(state);
-            }
-        });
-        return acc;
-    }, []);
-
-    const stateFilter = new FilterWidget({
-            id: "state-filter-widget",
-            filterArray: states
-        });
-
-    // append the message history widget to the body
     document.body.appendChild(tagFilter.render());
-    document.body.appendChild(stateFilter.render());
 
-    return [tagFilter, stateFilter];
+    return [tagFilter];
 }
 
 function updateAllWidgets(data) {
@@ -107,8 +91,7 @@ function getFilteredData(labels, data) {
     // Include if any of the labels are in the tags
     return data.filter(message => {
         const tagMatch = labels.some(label => message.tags.includes(label));
-        const stateMatch = labels.some(label => message.states.includes(label));
-        return tagMatch || stateMatch;
+        return tagMatch;
     });
 }
 

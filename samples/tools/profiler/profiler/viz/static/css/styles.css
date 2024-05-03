@@ -1,0 +1,46 @@
+
+/* Center the body to use 80% of the view port */
+body {
+    margin: 10px auto;
+    width: 80%;
+    height: 90vh;
+    display: grid;
+    grid-template-columns: 40% 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 30px;
+}
+
+/* #tag-filter-widget, #state-filter-widget {
+    display: flex;
+    margin-bottom: 10px;
+} */
+
+#tag-filter-widget {
+    grid-column: span 2;
+    grid-row: 1;
+    border: solid 1px black;
+}
+
+#message-history-widget {
+    grid-column: 1; /* Positions the widget in the first column */
+    grid-row-start: 2; /* Positions the widget in the first row */
+    grid-row-end: 5; /* Positions the widget in the third row */
+    border: solid 1px black;
+    padding: 10px;
+}
+
+#bar-chart-widget {
+    grid-column: 2; /* Positions the widget in the second column */
+    grid-row: 3; /* Positions the widget in the second row */
+    border: solid 1px black;
+}
+
+#timeline-widget {
+    grid-column: 2; /* Positions the widget in the second column */
+    grid-row: 4; /* Positions the widget in the second row */
+    border: solid 1px black;
+}
+
+#message-history-widget {
+    overflow-y: scroll; /* Add scroll bar */
+}
