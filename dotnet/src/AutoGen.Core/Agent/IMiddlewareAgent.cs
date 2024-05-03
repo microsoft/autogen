@@ -23,7 +23,7 @@ public interface IMiddlewareAgent : IAgent
     void Use(IMiddleware middleware);
 }
 
-public interface IMiddlewareStreamAgent : IMiddlewareAgent, IStreamingAgent
+public interface IMiddlewareStreamAgent : IStreamingAgent
 {
     /// <summary>
     /// Get the inner agent.
@@ -44,7 +44,11 @@ public interface IMiddlewareAgent<out T> : IMiddlewareAgent
     T TAgent { get; }
 }
 
-public interface IMiddlewareStreamAgent<out T> : IMiddlewareStreamAgent, IMiddlewareAgent<T>
+public interface IMiddlewareStreamAgent<out T> : IMiddlewareStreamAgent
     where T : IStreamingAgent
 {
+    /// <summary>
+    /// Get the typed inner agent.
+    /// </summary>
+    T TStreamingAgent { get; }
 }

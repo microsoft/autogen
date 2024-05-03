@@ -7,28 +7,21 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
-public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
+public class MiddlewareStreamingAgent : IMiddlewareStreamAgent
 {
     private readonly IStreamingAgent _agent;
     private readonly List<IStreamingMiddleware> _streamingMiddlewares = new();
-    private readonly List<IMiddleware> _middlewares = new();
 
     public MiddlewareStreamingAgent(
         IStreamingAgent agent,
         string? name = null,
-        IEnumerable<IStreamingMiddleware>? streamingMiddlewares = null,
-        IEnumerable<IMiddleware>? middlewares = null)
-        : base(agent, name)
+        IEnumerable<IStreamingMiddleware>? streamingMiddlewares = null)
     {
+        this.Name = name ?? agent.Name;
         _agent = agent;
         if (streamingMiddlewares != null)
         {
             _streamingMiddlewares.AddRange(streamingMiddlewares);
-        }
-
-        if (middlewares != null)
-        {
-            _middlewares.AddRange(middlewares);
         }
     }
 
@@ -42,7 +35,20 @@ public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
     /// </summary>
     public IEnumerable<IStreamingMiddleware> StreamingMiddlewares => _streamingMiddlewares;
 
-    public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    public string Name { get; }
+
+    public Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        IStreamingAgent agent = this._agent;
+        foreach (var middleware in _streamingMiddlewares)
+        {
+            agent = new DelegateStreamingAgent(middleware, agent);
+        }
+
+        return agent.GenerateReplyAsync(messages, options, cancellationToken);
+    }
+
+    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
     {
         var agent = _agent;
         foreach (var middleware in _streamingMiddlewares)
@@ -61,7 +67,6 @@ public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
     private class DelegateStreamingAgent : IStreamingAgent
     {
         private IStreamingMiddleware? streamingMiddleware;
-        private IMiddleware? middleware;
         private IStreamingAgent innerAgent;
 
         public string Name => innerAgent.Name;
@@ -72,24 +77,19 @@ public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
             this.innerAgent = next;
         }
 
-        public DelegateStreamingAgent(IMiddleware middleware, IStreamingAgent next)
-        {
-            this.middleware = middleware;
-            this.innerAgent = next;
-        }
 
         public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
-            if (middleware is null)
+            if (this.streamingMiddleware is null)
             {
                 return await innerAgent.GenerateReplyAsync(messages, options, cancellationToken);
             }
 
             var context = new MiddlewareContext(messages, options);
-            return await middleware.InvokeAsync(context, innerAgent, cancellationToken);
+            return await this.streamingMiddleware.InvokeAsync(context, (IAgent)innerAgent, cancellationToken);
         }
 
-        public Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
         {
             if (streamingMiddleware is null)
             {
@@ -105,20 +105,20 @@ public class MiddlewareStreamingAgent : MiddlewareAgent, IMiddlewareStreamAgent
 public sealed class MiddlewareStreamingAgent<T> : MiddlewareStreamingAgent, IMiddlewareStreamAgent<T>
     where T : IStreamingAgent
 {
-    public MiddlewareStreamingAgent(T innerAgent, string? name = null)
-        : base(innerAgent, name)
+    public MiddlewareStreamingAgent(T innerAgent, string? name = null, IEnumerable<IStreamingMiddleware>? streamingMiddlewares = null)
+        : base(innerAgent, name, streamingMiddlewares)
     {
-        TAgent = innerAgent;
+        TStreamingAgent = innerAgent;
     }
 
     public MiddlewareStreamingAgent(MiddlewareStreamingAgent<T> other)
         : base(other)
     {
-        TAgent = other.TAgent;
+        TStreamingAgent = other.TStreamingAgent;
     }
 
     /// <summary>
     /// Get the inner agent.
     /// </summary>
-    public T TAgent { get; }
+    public T TStreamingAgent { get; }
 }

@@ -22,10 +22,14 @@ public class MiddlewareAgent : IMiddlewareAgent
     /// </summary>
     /// <param name="innerAgent">the inner agent where middleware will be added.</param>
     /// <param name="name">the name of the agent if provided. Otherwise, the name of <paramref name="innerAgent"/> will be used.</param>
-    public MiddlewareAgent(IAgent innerAgent, string? name = null)
+    public MiddlewareAgent(IAgent innerAgent, string? name = null, IEnumerable<IMiddleware>? middlewares = null)
     {
         this.Name = name ?? innerAgent.Name;
         this._agent = innerAgent;
+        if (middlewares != null)
+        {
+            this.middlewares.AddRange(middlewares);
+        }
     }
 
     /// <summary>

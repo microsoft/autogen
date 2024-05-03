@@ -114,7 +114,7 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var functionCallMiddlewareExecutorMiddleware = new FunctionCallMiddleware(
             functionMap: new Dictionary<string, Func<string, Task<string>>>
@@ -127,7 +127,7 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddlewareExecutorMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddlewareExecutorMiddleware);
         await twoAgentTest.TwoAgentGetWeatherFunctionCallTestAsync(executorAgent, functionCallAgent);
     }
 
@@ -148,7 +148,7 @@ public partial class MistralClientAgentTests
             model: "mistral-small-latest",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var question = new TextMessage(Role.User, "what's the weather in Seattle?");
         var reply = await functionCallAgent.SendAsync(question);
@@ -193,7 +193,7 @@ public partial class MistralClientAgentTests
             toolChoice: ToolChoiceEnum.Any,
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
         await singleAgentTest.EchoFunctionCallExecutionTestAsync(agent);
         await singleAgentTest.EchoFunctionCallExecutionStreamingTestAsync(agent);
     }
@@ -214,7 +214,7 @@ public partial class MistralClientAgentTests
             systemMessage: "You are a helpful assistant that can call functions",
             randomSeed: 0)
             .RegisterMessageConnector()
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
         await singleAgentTest.EchoFunctionCallTestAsync(agent);
 
 
@@ -222,7 +222,7 @@ public partial class MistralClientAgentTests
         var question = new TextMessage(Role.User, "what's the weather in Seattle?");
         IMessage? finalReply = null;
 
-        await foreach (var reply in await agent.GenerateStreamingReplyAsync([question]))
+        await foreach (var reply in agent.GenerateStreamingReplyAsync([question]))
         {
             reply.From.Should().Be(agent.Name);
             if (reply is IMessage message)

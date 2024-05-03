@@ -25,8 +25,9 @@ public static class Example02_TwoAgent_MathChat
                 Temperature = 0,
                 ConfigList = [gpt35],
             })
-            .RegisterPostProcess(async (_, reply, _) =>
+            .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
+                var reply = await agent.GenerateReplyAsync(msgs, option);
                 if (reply.GetContent()?.ToLower().Contains("terminate") is true)
                 {
                     return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: reply.From);
