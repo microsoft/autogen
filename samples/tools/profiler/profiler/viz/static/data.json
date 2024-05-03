@@ -1,0 +1,50 @@
+[
+    {
+        "source": "user",
+        "content": "Hello, how can I help you?",
+        "tags": ["greeting"],
+        "states": ["start"]
+    },
+    {
+        "source": "bot",
+        "content": "Hello, how can I help you?",
+        "tags": ["greeting"],
+        "states": ["start"]
+    },
+    {
+        "source": "user",
+        "content": "I need help with my order",
+        "tags": ["order"],
+        "states": ["start"]
+    },
+    {
+        "source": "bot",
+        "content": "I can help you with that. What is your order number?",
+        "tags": ["order"],
+        "states": ["start"]
+    },
+    {
+        "source": "user",
+        "content": "I need help with my order",
+        "tags": ["order"],
+        "states": ["start"]
+    },
+    {
+        "source": "user",
+        "content": "I need help with my order",
+        "tags": ["order"],
+        "states": ["start"]
+    },
+    {
+        "source": "user",
+        "content": "I need help with my order",
+        "tags": ["order"],
+        "states": ["start"]
+    },
+    {
+        "source": "bot",
+        "content": "I can help you with that. What is your order number?",
+        "tags": ["order"],
+        "states": ["end"]
+    }
+]
