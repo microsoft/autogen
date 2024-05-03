@@ -1163,7 +1163,9 @@ class ConversableAgent(LLMAgent):
         if role and not isinstance(role, str):
             raise ValueError("The summary_role in summary_arg must be a string.")
         try:
-            summary = sender._reflection_with_llm(prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"), role=role)
+            summary = sender._reflection_with_llm(
+                prompt, msg_list, llm_agent=agent, cache=summary_args.get("cache"), role=role
+            )
         except BadRequestError as e:
             warnings.warn(
                 f"Cannot extract summary using reflection_with_llm: {e}. Using an empty str as summary.", UserWarning
@@ -1172,7 +1174,12 @@ class ConversableAgent(LLMAgent):
         return summary
 
     def _reflection_with_llm(
-        self, prompt, messages, llm_agent: Optional[Agent] = None, cache: Optional[AbstractCache] = None, role: Union[str, None] = None
+        self,
+        prompt,
+        messages,
+        llm_agent: Optional[Agent] = None,
+        cache: Optional[AbstractCache] = None,
+        role: Union[str, None] = None,
     ) -> str:
         """Get a chat summary using reflection with an llm client based on the conversation history.
 
@@ -1192,7 +1199,6 @@ class ConversableAgent(LLMAgent):
                 "content": prompt,
             }
         ]
-
 
         messages = messages + system_msg
         if llm_agent and llm_agent.client is not None:
