@@ -61,7 +61,7 @@ For technical details, please check our technical report and research publicatio
 }
 ```
 
-* [Training Language Model Agents without Modifying Language Models](https://arxiv.org/abs/2402.11359). Shaokun Zhang, Jieyu Zhang, Jiale Liu, Linxin Song, Chi Wang, Ranjay Krishna, Qingyun Wu. ArXiv preprint arXiv:2402.09015 (2024).
+* [Training Language Model Agents without Modifying Language Models](https://arxiv.org/abs/2402.11359). Shaokun Zhang, Jieyu Zhang, Jiale Liu, Linxin Song, Chi Wang, Ranjay Krishna, Qingyun Wu. ICML'24.
 
 ```bibtex
 @misc{zhang2024agentoptimizer,
