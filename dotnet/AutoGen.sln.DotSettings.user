@@ -1,0 +1,56 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=141ca49d_002D0812_002D45b9_002D89b4_002Db801ce69afe9/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #9" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=442b0a4a_002Dae90_002D4dac_002Da0fa_002Dd874406267e1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=44d22f24_002D8294_002D4855_002Db24b_002D13c9723551db/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #6" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=59074881_002D10fa_002D4c14_002Da008_002D3cde5a50280f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #4" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7e58a945_002Dc5e3_002D47da_002Db985_002D8523f46feeb1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="SemanticKernelAgentTest #11" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=801d465e_002D891b_002D4183_002Dbc3b_002D3285b6ceb211/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #3" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8a0458c3_002Dfe1c_002D42b6_002Db896_002D5e7456ef1b81/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=91c71d58_002Db818_002D4bad_002D9244_002D393734c7546f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #7" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a154f41e_002Dec10_002D402a_002D846b_002D280e879853ba/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #5" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=a9ae159e_002D8ef8_002D435b_002Dbcef_002D97ed74d1fd14/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #10" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=bb9c9a38_002Db6ec_002D4d84_002D8083_002D76c994e314fa/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="SemanticKernelAgentTest #8" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::FDD99AEC-4C57-4020-B23F-650612856102::net8.0::AutoGen.Tests.SemanticKernelAgentTest&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

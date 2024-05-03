@@ -6,6 +6,7 @@ using AutoGen.Core;
 using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 namespace AutoGen.BasicSample;
@@ -49,8 +50,15 @@ public class Example10_SemanticKernel
         };
 
         kernel.Plugins.AddFromObject(new LightPlugin());
-        var skAgent = kernel
-            .ToSemanticKernelAgent(name: "assistant", systemMessage: "You control the light", settings);
+
+        var agent = new ChatCompletionAgent()
+        {
+            ExecutionSettings = settings,
+            Kernel = kernel,
+            Name = "ExampleAgent"
+        };
+
+        var skAgent = agent.ToSemanticKernelAgent(name: "assistant", systemMessage: "You control the light");
 
         // Send a message to the skAgent, the skAgent supports the following message types:
         // - IMessage<ChatMessageContent>
