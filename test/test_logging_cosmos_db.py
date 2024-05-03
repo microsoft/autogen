@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AzureOpenAI
 
-import autogen.runtime_logging
+from autogen.runtime_logging import start, stop, log_chat_completion, log_new_agent, log_new_wrapper, log_new_client
 from autogen import AssistantAgent, ConversableAgent, OpenAIWrapper
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
@@ -46,15 +46,14 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
-    encoded_key = "ZmFrZUtleQ=="
     config = {
         "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=ZmFrZUtleQ==;",
         "database_id": "TestDatabase",
         "container_id": "TestContainer",
     }
-    autogen.runtime_logging.start(logger_type="cosmos", config=config)
+    start(logger_type="cosmos", config=config)
     yield
-    autogen.runtime_logging.stop()
+    stop()
 
 
 def get_sample_chat_completion(response):
@@ -79,6 +78,7 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
     MockCosmosClient.from_connection_string.return_value = mock_client
     mock_client.get_database_client.return_value = mock_database
     mock_database.get_container_client.return_value = mock_container
+    mock_container.upsert_item = Mock()
 
     # Use parametrization to test various cases
     @pytest.mark.parametrize(
@@ -91,9 +91,7 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
     )
     def inner_test_log(response, expected_logged_response):
         sample_completion = get_sample_chat_completion(response)
-
-        autogen.runtime_logging.log_chat_completion(**sample_completion)
-
+        log_chat_completion(**sample_completion)
         expected_document = {
             "type": "chat_completion",
             "invocation_id": sample_completion["invocation_id"],
@@ -128,11 +126,11 @@ def test_log_new_agent_cosmos(MockCosmosClient, cosmos_db_setup):
     agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
     init_args = {"foo": "bar", "baz": {"other_key": "other_val"}, "a": None}
 
-    autogen.runtime_logging.log_new_agent(agent, init_args)
+    log_new_agent(agent, init_args)
 
     expected_document = {
         "type": "new_agent",
-        "session_id": mock_container.session_id,  # This will need to match the actual session id used in the logger
+        "session_id": mock_container.session_id,
         "agent_id": id(agent),
         "agent_name": agent.name,
         "init_args": to_dict(init_args),
@@ -156,7 +154,7 @@ def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
     init_args = {"llm_config": llm_config, "base_config": {}}
     wrapper = OpenAIWrapper(**llm_config)
 
-    autogen.runtime_logging.log_new_wrapper(wrapper, init_args)
+    log_new_wrapper(wrapper, init_args)
 
     expected_document = {
         "type": "new_wrapper",
@@ -187,7 +185,7 @@ def test_log_oai_client_cosmos(MockCosmosClient, cosmos_db_setup):
     }
     client = AzureOpenAI(**openai_config)
 
-    autogen.runtime_logging.log_new_client(client, Mock(), openai_config)
+    log_new_client(client, Mock(), openai_config)
 
     expected_document = {
         "type": "new_client",
@@ -283,6 +281,6 @@ def test_logging_exception_will_not_crash_only_print_error(MockCosmosClient, cos
         "start_time": get_current_ts(),
     }
 
-    autogen.runtime_logging.log_chat_completion(**sample_completion)
+    log_chat_completion(**sample_completion)
 
     assert "Error processing log entry" in caplog.text
