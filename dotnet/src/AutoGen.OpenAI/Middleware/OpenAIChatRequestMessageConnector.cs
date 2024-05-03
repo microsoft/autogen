@@ -127,6 +127,12 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessMessage(IMessage<ChatCompletions> message)
     {
+        // throw exception if prompt filter results is not null
+        if (message.Content.Choices[0].FinishReason == CompletionsFinishReason.ContentFiltered)
+        {
+            throw new InvalidOperationException("The content is filtered because its potential risk. Please try another input.");
+        }
+
         return PostProcessMessage(message.Content.Choices[0].Message, message.From);
     }
 

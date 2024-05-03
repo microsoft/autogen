@@ -18,7 +18,7 @@ public static class Example02_TwoAgent_MathChat
         var teacher = new AssistantAgent(
             name: "teacher",
             systemMessage: @"You are a teacher that create pre-school math question for student and check answer.
-        If the answer is correct, you terminate conversation by saying [TERMINATE].
+        If the answer is correct, you stop the conversation by saying [COMPLETE].
         If the answer is wrong, you ask student to fix it.",
             llmConfig: new ConversableAgentConfig
             {
@@ -28,7 +28,7 @@ public static class Example02_TwoAgent_MathChat
             .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
                 var reply = await agent.GenerateReplyAsync(msgs, option);
-                if (reply.GetContent()?.ToLower().Contains("terminate") is true)
+                if (reply.GetContent()?.ToLower().Contains("complete") is true)
                 {
                     return new TextMessage(Role.Assistant, GroupChatExtension.TERMINATE, from: reply.From);
                 }
