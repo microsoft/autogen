@@ -1,13 +1,14 @@
 import json
 import uuid
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 from openai import AzureOpenAI
 
 import autogen.runtime_logging
-from autogen.logger.logger_utils import get_current_ts, to_dict
 from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
+from autogen.logger.logger_utils import get_current_ts, to_dict
+
 
 # Sample data for testing
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -47,9 +48,9 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
     config = {
-        "connection_string": "your_connection_string_here",
-        "database_id": "your_database_id_here",
-        "container_id": "your_container_id_here"
+        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
+        "database_id": "TestDatabase",
+        "container_id": "TestContainer",
     }
     autogen.runtime_logging.start(logger_type="cosmos", config=config)
     yield
@@ -69,43 +70,7 @@ def get_sample_chat_completion(response):
     }
 
 
-
-@patch("azure.cosmos.CosmosClient.from_connection_string")
-def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
-    # Ensure that `cosmos_logger` is an instance of `CosmosDBLogger`
-    assert isinstance(cosmos_logger, CosmosDBLogger), "cosmos_logger is not an instance of CosmosDBLogger"
-
-    mock_client = MagicMock()
-    mock_from_connection_string.return_value = mock_client
-
-    sample_completion = get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
-    cosmos_logger.log_chat_completion(**sample_completion)
-
-    # Check if the document is correctly added to the queue
-    assert not cosmos_logger.log_queue.empty()
-
-    # Simulate processing the log entry
-    document = cosmos_logger.log_queue.get()
-    expected_keys = [
-        "type",
-        "invocation_id",
-        "client_id",
-        "wrapper_id",
-        "session_id",
-        "request",
-        "response",
-        "is_cached",
-        "cost",
-        "start_time",
-        "end_time",
-    ]
-    assert all(key in document for key in expected_keys)
-
-    # Check if the mock was called correctly using the correct mock object name
-    mock_from_connection_string.assert_called_once_with(cosmos_db_config["connection_string"])
-
-
-@patch('azure.cosmos.CosmosClient')
+@patch("azure.cosmos.CosmosClient")
 def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
     mock_client = Mock()
     mock_database = Mock()
@@ -126,7 +91,7 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
     )
     def inner_test_log(response, expected_logged_response):
         sample_completion = get_sample_chat_completion(response)
-        
+
         autogen.runtime_logging.log_chat_completion(**sample_completion)
 
         expected_document = {
@@ -146,9 +111,9 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
         mock_container.upsert_item.assert_called_once_with(expected_document)
 
     inner_test_log()
-    
 
-@patch('azure.cosmos.CosmosClient')
+
+@patch("azure.cosmos.CosmosClient")
 def test_log_new_agent_cosmos(MockCosmosClient, cosmos_db_setup):
     mock_client = Mock()
     mock_database = Mock()
@@ -176,7 +141,7 @@ def test_log_new_agent_cosmos(MockCosmosClient, cosmos_db_setup):
 
     mock_container.upsert_item.assert_called_once_with(expected_document)
 
-@patch('azure.cosmos.CosmosClient')
+@patch("azure.cosmos.CosmosClient")
 def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
     mock_client = Mock()
     mock_database = Mock()
@@ -202,7 +167,7 @@ def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
 
     mock_container.upsert_item.assert_called_once_with(expected_document)
 
-@patch('azure.cosmos.CosmosClient')
+@patch("azure.cosmos.CosmosClient")
 def test_log_oai_client_cosmos(MockCosmosClient, cosmos_db_setup):
     mock_client = Mock()
     mock_database = Mock()
@@ -233,6 +198,7 @@ def test_log_oai_client_cosmos(MockCosmosClient, cosmos_db_setup):
     }
 
     mock_container.upsert_item.assert_called_once_with(expected_document)
+
 
 def test_to_dict():
     from autogen import Agent
@@ -293,6 +259,7 @@ def test_to_dict():
     for agent in result["agents"]:
         assert "autogen.agentchat.conversable_agent.ConversableAgent" in agent
     assert "autogen.agentchat.conversable_agent.ConversableAgent" in result["first_agent"]
+
 
 @patch("azure.cosmos.CosmosClient")
 def test_logging_exception_will_not_crash_only_print_error(MockCosmosClient, cosmos_db_setup, caplog):
