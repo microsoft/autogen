@@ -181,8 +181,8 @@ def test_compress_message():
 
 
 @pytest.mark.skipif(
-    skip,
-    reason="do not run if dependency is not installed OR requested to skip",
+    sys.platform in ["darwin", "win32"] or skip,
+    reason="do not run on MacOS or windows OR dependency is not installed OR requested to skip",
 )
 def test_mode_terminate():
     assistant = CompressibleAgent(
