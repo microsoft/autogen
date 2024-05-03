@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from azure.cosmos import CosmosClient
 
+import autogen.runtime_logging
 from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
@@ -79,10 +80,10 @@ def test_log_chat_completion(mock_from_connection_string, cosmos_db_config):
     # Now using `mock_from_connection_string` which is correctly injected by the patch decorator
     mock_client = MagicMock()
     mock_from_connection_string.return_value = mock_client
-    
+
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
     cosmos_logger.log_chat_completion(**sample_completion)
-    
+
     # Check if the document is correctly added to the queue
     assert not cosmos_logger.log_queue.empty()
 
