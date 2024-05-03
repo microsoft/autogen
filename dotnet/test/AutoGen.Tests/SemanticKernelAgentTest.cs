@@ -10,6 +10,7 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen.Tests;
 
@@ -105,8 +106,8 @@ public partial class SemanticKernelAgentTest
 
             await foreach (var streamingMessage in reply)
             {
-                streamingMessage.Should().BeOfType<ChatMessageContent>();
-                streamingMessage.As<ChatMessageContent>().Role.Should().Be("assistant");
+                streamingMessage.Should().BeOfType<TextMessage>();
+                streamingMessage.As<TextMessage>().Role.ToString().Should().Be("assistant");
             }
         }
     }
@@ -132,7 +133,8 @@ public partial class SemanticKernelAgentTest
         var agent = new ChatCompletionAgent()
         {
             Kernel = kernel,
-            Name = "ExampleAgent"
+            Name = "ExampleAgent",
+            ExecutionSettings = new OpenAIPromptExecutionSettings() { ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
         };
 
         var skAgent = new SemanticKernelAgent(agent, "assistant")
