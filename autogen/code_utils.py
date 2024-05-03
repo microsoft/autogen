@@ -251,6 +251,8 @@ def _cmd(lang: str) -> str:
         return lang
     if lang in ["shell"]:
         return "sh"
+    if lang == "javascript":
+        return "node"
     if lang in ["ps1", "pwsh", "powershell"]:
         powershell_command = get_powershell_command()
         return powershell_command
@@ -281,7 +283,7 @@ def in_docker_container() -> bool:
     return os.path.exists("/.dockerenv")
 
 
-def decide_use_docker(use_docker) -> bool:
+def decide_use_docker(use_docker: Optional[bool]) -> Optional[bool]:
     if use_docker is None:
         env_var_use_docker = os.environ.get("AUTOGEN_USE_DOCKER", "True")
 
