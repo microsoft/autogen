@@ -76,10 +76,13 @@ def get_sample_chat_completion(response):
 
 @patch("azure.cosmos.CosmosClient")
 def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
-    mock_from_connection_string.return_value = MagicMock()
+    # Now using `mock_from_connection_string` which is correctly injected by the patch decorator
+    mock_client = MagicMock()
+    mock_from_connection_string.return_value = mock_client
+    
     sample_completion = get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
     cosmos_logger.log_chat_completion(**sample_completion)
-
+    
     # Check if the document is correctly added to the queue
     assert not cosmos_logger.log_queue.empty()
 
@@ -100,8 +103,8 @@ def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
     ]
     assert all(key in document for key in expected_keys)
 
-    # Check if the mock was called correctly
-    mock_cosmos_client.from_connection_string.assert_called_once_with(cosmos_db_config["connection_string"])
+    # Check if the mock was called correctly using the correct mock object name
+    mock_from_connection_string.assert_called_once_with(cosmos_db_config["connection_string"])
 
 
 @pytest.mark.parametrize(
