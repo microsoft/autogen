@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from azure.cosmos import CosmosClient
 
-from autogen.runtime_logging import log_chat_completion
+import autogen.runtime_logging
 from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
@@ -75,9 +75,11 @@ def get_sample_chat_completion(response):
     }
 
 
-@patch("azure.cosmos.CosmosClient")
-def test_log_chat_completion(mock_from_connection_string, cosmos_db_config):
-    # Now using `mock_from_connection_string` which is correctly injected by the patch decorator
+@patch("azure.cosmos.CosmosClient.from_connection_string")
+def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
+    # Ensure that `cosmos_logger` is an instance of `CosmosDBLogger`
+    assert isinstance(cosmos_logger, CosmosDBLogger), "cosmos_logger is not an instance of CosmosDBLogger"
+
     mock_client = MagicMock()
     mock_from_connection_string.return_value = mock_client
 
