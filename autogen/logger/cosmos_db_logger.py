@@ -117,6 +117,7 @@ class CosmosDBLogger(BaseLogger):
                     "source_id": id(source),
                     "source_name": source.name if hasattr(source, "name") else str(source),
                     "source_type": source.__class__.__name__,
+                    "agent_module": source.__module__,
                 }
             )
         else:
