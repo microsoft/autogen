@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from azure.cosmos import CosmosClient
 
-import autogen.runtime_logging
+from autogen.runtime_logging import log_chat_completion
 from autogen.logger.cosmos_db_logger import CosmosDBLogger, CosmosDBLoggerConfig
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
