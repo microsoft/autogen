@@ -1,3 +1,4 @@
+import base64
 import json
 import uuid
 from unittest.mock import Mock, patch
@@ -6,9 +7,8 @@ import pytest
 from openai import AzureOpenAI
 
 import autogen.runtime_logging
-from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
+from autogen import AssistantAgent, ConversableAgent, OpenAIWrapper
 from autogen.logger.logger_utils import get_current_ts, to_dict
-
 
 # Sample data for testing
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -47,8 +47,9 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
+    encoded_key = "ZmFrZUtleQ=="
     config = {
-        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
+        "connection_string": f"AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=ZmFrZUtleQ==;",
         "database_id": "TestDatabase",
         "container_id": "TestContainer",
     }
@@ -141,6 +142,7 @@ def test_log_new_agent_cosmos(MockCosmosClient, cosmos_db_setup):
 
     mock_container.upsert_item.assert_called_once_with(expected_document)
 
+
 @patch("azure.cosmos.CosmosClient")
 def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
     mock_client = Mock()
@@ -166,6 +168,7 @@ def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
     }
 
     mock_container.upsert_item.assert_called_once_with(expected_document)
+
 
 @patch("azure.cosmos.CosmosClient")
 def test_log_oai_client_cosmos(MockCosmosClient, cosmos_db_setup):
