@@ -45,11 +45,11 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_config() -> CosmosDBLoggerConfig:
-    return {
-        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
-        "database_id": "TestDatabase",
-        "container_id": "TestContainer",
-    }
+    return CosmosDBLoggerConfig(
+        connection_string="AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
+        database_id="TestDatabase",
+        container_id="TestContainer"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -75,7 +75,7 @@ def get_sample_chat_completion(response):
 
 
 @patch("azure.cosmos.CosmosClient")
-def test_log_chat_completion(mock_from_connection_string, cosmos_logger):
+def test_log_chat_completion(mock_from_connection_string, cosmos_db_config):
     # Now using `mock_from_connection_string` which is correctly injected by the patch decorator
     mock_client = MagicMock()
     mock_from_connection_string.return_value = mock_client
