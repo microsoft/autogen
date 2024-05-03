@@ -3,14 +3,15 @@
 import builtins
 import json
 from typing import Any, Dict, List, Optional
-from unittest import mock, TestCase
+from unittest import TestCase, mock
 
 import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
 from autogen import Agent, GroupChat
 from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 
 def test_func_call_groupchat():
     agent1 = autogen.ConversableAgent(
@@ -1443,8 +1444,9 @@ def test_speaker_selection_agent_name_match():
     )
     assert result == {}
 
+
 def test_role_for_reflection_summary():
-    llm_config={"config_list": [{"model": "mock", "api_key": "mock"}]}
+    llm_config = {"config_list": [{"model": "mock", "api_key": "mock"}]}
     agent1 = autogen.ConversableAgent(
         "alice",
         max_consecutive_auto_reply=10,
@@ -1459,24 +1461,29 @@ def test_role_for_reflection_summary():
         llm_config=False,
         default_auto_reply="This is bob speaking.",
     )
-    groupchat = autogen.GroupChat(agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin")
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
     group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
     role_name = "user"
-    with mock.patch.object(autogen.ConversableAgent, '_generate_oai_reply_from_client') as mock_generate_oai_reply_from_client:
+    with mock.patch.object(
+        autogen.ConversableAgent, "_generate_oai_reply_from_client"
+    ) as mock_generate_oai_reply_from_client:
         mock_generate_oai_reply_from_client.return_value = "Mocked summary"
 
-        res = agent1.initiate_chat(
+        agent1.initiate_chat(
             group_chat_manager,
             max_turns=2,
             message="hello",
             summary_method="reflection_with_llm",
-            summary_args={"role": role_name}
+            summary_args={"role": role_name},
         )
 
         mock_generate_oai_reply_from_client.assert_called_once()
         args, kwargs = mock_generate_oai_reply_from_client.call_args
-        assert kwargs['messages'][-1]["role"] == role_name
+        assert kwargs["messages"][-1]["role"] == role_name
+
 
 def test_speaker_selection_auto_process_result():
     """
@@ -1822,5 +1829,4 @@ if __name__ == "__main__":
     test_speaker_selection_auto_process_result()
     test_speaker_selection_validate_speaker_name()
     test_select_speaker_auto_messages()
-main
-    # pass
+# pass
