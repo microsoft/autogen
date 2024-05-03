@@ -1,4 +1,3 @@
-import base64
 import json
 import uuid
 from unittest.mock import Mock, patch
@@ -49,7 +48,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 def cosmos_db_setup():
     encoded_key = "ZmFrZUtleQ=="
     config = {
-        "connection_string": f"AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=ZmFrZUtleQ==;",
+        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=ZmFrZUtleQ==;",
         "database_id": "TestDatabase",
         "container_id": "TestContainer",
     }
