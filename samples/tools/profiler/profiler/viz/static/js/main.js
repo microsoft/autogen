@@ -19,7 +19,7 @@ function renderFilters(data) {
         filterArray: tags
     });
 
-    document.body.appendChild(tagFilter.render());
+    document.body.appendChild(tagFilter.compose());
 
     return [tagFilter];
 }
@@ -30,7 +30,7 @@ function updateAllWidgets(data) {
         messageArray: data
     });
 
-    const newWidgetElement = messageHistoryWidget.render();
+    const newWidgetElement = messageHistoryWidget.compose();
 
     const existingWidgetElement = document.getElementById(newWidgetElement.id);
 
@@ -57,13 +57,13 @@ function updateAllWidgets(data) {
         id: "bar-chart-widget",
         data: stateCounts
     });
-    // document.body.appendChild(barchart.render());
+    // document.body.appendChild(barchart.compose());
 
     const existingBarChartElement = document.getElementById(barchart.id);
     if (existingBarChartElement) {
-        existingBarChartElement.replaceWith(barchart.render());
+        existingBarChartElement.replaceWith(barchart.compose());
     } else {
-        document.body.appendChild(barchart.render());
+        document.body.appendChild(barchart.compose());
     }
 
 
@@ -74,9 +74,9 @@ function updateAllWidgets(data) {
 
     const existingTimelineElement = document.getElementById(timelineWidget.id);
     if (existingTimelineElement) {
-        existingTimelineElement.replaceWith(timelineWidget.render());
+        existingTimelineElement.replaceWith(timelineWidget.compose());
     } else {
-        document.body.appendChild(timelineWidget.render());
+        document.body.appendChild(timelineWidget.compose());
     }
 }
 

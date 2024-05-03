@@ -24,7 +24,7 @@ export class MessageWidget {
         this.message = message;
     }
 
-    render() {
+    compose() {
         const div = document.createElement('div');
         div.className = "message-widget";
         div.id = `message-${this.id}`;
@@ -68,7 +68,7 @@ export class MessageHistoryWidget {
         this.messageArray = messageArray;
     }
 
-    render() {
+    compose() {
         const div = document.createElement('div');
         div.className = "message-history-widget";
         div.id = this.id;
@@ -82,7 +82,7 @@ export class MessageHistoryWidget {
                 id: message.id,
                 message: message
             });
-            div.appendChild(messageWidget.render());
+            div.appendChild(messageWidget.compose());
         });
 
         return div;
@@ -99,7 +99,7 @@ class CheckboxFilter {
         this.label = label;
     }
 
-    render() {
+    compose() {
         const div = document.createElement('div');
         div.className = "checkbox-filter";
         div.id = this.id;
@@ -150,7 +150,7 @@ export class FilterWidget {
         this.filterArray = filterArray;
     }
 
-    render() {
+    compose() {
         const div = document.createElement('div');
         div.className = "filter-widget";
         div.id = this.id;
@@ -164,7 +164,7 @@ export class FilterWidget {
                 id: filter,
                 label: filter
             });
-            div.appendChild(filterWidget.render());
+            div.appendChild(filterWidget.compose());
         });
 
         return div;

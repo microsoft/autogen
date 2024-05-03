@@ -71,7 +71,7 @@ export class BarChartWidget {
         this.height = 300;
     }
 
-    render() {
+    compose() {
         // Create a new div element
         const div = document.createElement('div');
         div.id = this.id;
