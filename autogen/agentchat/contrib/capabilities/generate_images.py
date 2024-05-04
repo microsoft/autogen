@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List, Literal, Optional, Protocol, Tuple, Union
 
-from openai import OpenAI
+from openai import AzureOpenAI, OpenAI
 from PIL.Image import Image
 
 from autogen import Agent, ConversableAgent, code_utils
@@ -25,6 +25,7 @@ class ImageGenerator(Protocol):
     Concrete implementations of this protocol must provide a `generate_image` method that takes a string prompt as
     input and returns a PIL Image object.
 
+    NOTE: Only OpenAI's and Azure's DALL-E model are supported.
     NOTE: Current implementation does not allow you to edit a previously existing image.
     """
 
@@ -87,7 +88,7 @@ class DalleImageGenerator:
         self._resolution = resolution
         self._quality = quality
         self._num_images = num_images
-        self._dalle_client = OpenAI(api_key=config_list[0]["api_key"])
+        self._dalle_client = self._dalle_client_factory(config_list)
 
     def generate_image(self, prompt: str) -> Image:
         response = self._dalle_client.images.generate(
@@ -107,6 +108,12 @@ class DalleImageGenerator:
     def cache_key(self, prompt: str) -> str:
         keys = (prompt, self._model, self._resolution, self._quality, self._num_images)
         return ",".join([str(k) for k in keys])
+
+    def _dalle_client_factory(self, config_list: List[Dict]) -> Union[OpenAI, AzureOpenAI]:
+        if config_list[0]["api_type"] == "azure":
+            return AzureOpenAI(api_key=config_list[0]["api_key"])
+        else:
+            return OpenAI(api_key=config_list[0]["api_key"])
 
 
 class ImageGeneration(AgentCapability):
