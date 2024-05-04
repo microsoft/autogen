@@ -23,7 +23,7 @@ function drawTimeline(svg, data, width, height) {
 
     const xAxis = d3.axisBottom(x)
         .ticks(Math.min(data.length, 10))
-        .tickFormat(d => `Msg ${d + 1}`);
+        .tickFormat(d => `${d + 1}`);
 
     const yAxis = d3.axisLeft(y);
 
@@ -57,12 +57,27 @@ function drawTimeline(svg, data, width, height) {
     g.append("g")
         .attr("class", "x-axis")
         .attr("transform", `translate(0,${chartHeight})`)
-        .call(xAxis);
+        .call(xAxis)
+        .append("text")
+        .attr("class", "x-axis-label")
+        .attr("x", chartWidth / 2)
+        .attr("y", margin.bottom - 5)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .text("Message Index");
 
     // Add y-axis
     g.append("g")
         .attr("class", "y-axis")
-        .call(yAxis);
+        .call(yAxis)
+        .append("text")
+        .attr("class", "y-axis-label")
+        .attr("x", -margin.left + 10)
+        .attr("y", chartHeight / 2)
+        .attr("fill", "black")
+        .attr("text-anchor", "middle")
+        .attr("transform", `rotate(-90, -${margin.left - 10}, ${chartHeight / 2})`)
+        .text("Source");
 }
 
 export class TimelineWidget {
@@ -78,6 +93,11 @@ export class TimelineWidget {
         const div = document.createElement('div');
         div.id = this.id;
         div.className = "timeline-widget";
+
+        // Add a heading to the div element
+        const heading = document.createElement('h3');
+        heading.textContent = "Message Timeline";
+        div.appendChild(heading);
 
         // Create an SVG element inside the div
         const svg = d3.select(div).append("svg")

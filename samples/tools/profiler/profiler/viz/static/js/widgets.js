@@ -175,7 +175,7 @@ export class FilterWidget {
         div.id = this.id;
 
         const heading  = document.createElement('h3');
-        heading.textContent = "Filters";
+        heading.textContent = "Global Filters";
         div.appendChild(heading);
 
         this.filterArray.forEach(filter => {

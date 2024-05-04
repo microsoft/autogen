@@ -1,5 +1,5 @@
 function drawBarChart(svg, data, width, height) {
-    const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+    const margin = { top: 20, right: 30, bottom: 50, left: 70 }; // Adjusted left margin for label space
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -15,7 +15,6 @@ function drawBarChart(svg, data, width, height) {
         .range([0, chartHeight])
         .padding(0.1);
 
-    // Use ticks that ensure only integers are shown
     const xAxis = d3.axisBottom(x)
         .ticks(Math.ceil(d3.max(data, d => d.count)))
         .tickFormat(d3.format("d"))
@@ -49,7 +48,6 @@ function drawBarChart(svg, data, width, height) {
     svg.selectAll(".x-axis path").remove();
     svg.selectAll(".x-axis line").remove();
 
-    // Add labels to bars
     g.selectAll(".bar-label")
         .data(data)
         .enter()
@@ -59,8 +57,22 @@ function drawBarChart(svg, data, width, height) {
         .attr("y", d => y(d.label) + y.bandwidth() / 2 + 4)
         .text(d => d.count)
         .attr("fill", "black");
-}
 
+    // Add x-axis label
+    g.append("text")
+        .attr("class", "x-axis-label")
+        .attr("x", chartWidth / 2)
+        .attr("y", chartHeight + margin.bottom - 10)
+        .attr("text-anchor", "middle")
+        .text("Count");
+
+    // Add y-axis label
+    g.append("text")
+        .attr("class", "y-axis-label")
+        .attr("transform", `translate(-50, ${chartHeight / 2}) rotate(-90)`)
+        .attr("text-anchor", "middle")
+        .text("State Label");
+}
 
 // BarChartWidget class
 export class BarChartWidget {
@@ -76,6 +88,11 @@ export class BarChartWidget {
         const div = document.createElement('div');
         div.id = this.id;
         div.className = "bar-chart-widget";
+
+        // Add a heading to the div element
+        const heading = document.createElement('h3');
+        heading.textContent = "Distribution of States";
+        div.appendChild(heading);
 
         // Create an SVG element inside the div
         const svg = d3.select(div).append("svg")
