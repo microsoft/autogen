@@ -10,7 +10,7 @@ function renderOrUpdate(parentNode, widget) {
     If the node already exists, replace it with the new widget
     If the node does not exist, append it to the body
     */
-    const existingNode = parentNode.getElementById(widget.id);
+    const existingNode = document.getElementById(widget.id);
     if (existingNode) {
         existingNode.replaceWith(widget.compose());
     } else {

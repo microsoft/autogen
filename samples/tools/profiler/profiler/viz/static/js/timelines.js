@@ -40,7 +40,17 @@ function drawTimeline(svg, data, width, height) {
             .attr("y", y(source))
             .attr("width", x(1) - x(0))
             .attr("height", y.bandwidth())
-            .attr("fill", color(source));
+            .attr("fill", color(source))
+            .on("click", function (event, d) {
+                // Create and dispatch the custom event
+                const messageClickedEvent = new CustomEvent("messageClicked", {
+                    bubbles: true,
+                    detail: {
+                        message: d
+                    }
+                });
+                window.dispatchEvent(messageClickedEvent);
+            });
     });
 
     // Add x-axis
@@ -54,8 +64,6 @@ function drawTimeline(svg, data, width, height) {
         .attr("class", "y-axis")
         .call(yAxis);
 }
-
-
 
 export class TimelineWidget {
     constructor({ id, messageArray }) {

@@ -27,7 +27,7 @@ export class MessageWidget {
     compose() {
         const div = document.createElement('div');
         div.className = "message-widget";
-        div.id = `message-${this.id}`;
+        div.id = this.id;
 
         const h3 = document.createElement('h3');
         h3.textContent = this.message.source;
@@ -79,10 +79,22 @@ export class MessageHistoryWidget {
 
         this.messageArray.forEach(message => {
             const messageWidget = new MessageWidget({
-                id: message.id,
+                id: "message-" + message.id,
                 message: message
             });
             div.appendChild(messageWidget.compose());
+        });
+
+        // Add a custom event listener to the div element
+        window.addEventListener('messageClicked', (event) => {
+            const message = event.detail.message;
+            console.log("Message clicked: ", message);
+            // scroll to the message with this id
+            const messageDiv = document.getElementById(`message-${message.id}`);
+            console.log("Message div: ", messageDiv);
+            if (messageDiv) {
+                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         });
 
         return div;
