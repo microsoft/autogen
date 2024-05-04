@@ -2,6 +2,11 @@
 
 The GPTAssistantAgent is a powerful component of the AutoGen framework, utilizing OpenAI's Assistant API to enhance agents with advanced capabilities. This agent enables the integration of multiple tools such as the Code Interpreter, File Search, and Function Calling, allowing for a highly customizable and dynamic interaction model.
 
+Version Requirements:
+
+- AutoGen: Version 0.2.27 or higher.
+- OpenAI: Version 1.21 or higher.
+
 Key Features of the GPTAssistantAgent:
 
 - Multi-Tool Mastery:  Agents can leverage a combination of OpenAI's built-in tools, like [Code Interpreter](https://platform.openai.com/docs/assistants/tools/code-interpreter) and [File Search](https://platform.openai.com/docs/assistants/tools/file-search), alongside custom tools you create or integrate via [Function Calling](https://platform.openai.com/docs/assistants/tools/function-calling).
@@ -165,7 +170,6 @@ api_schema = get_function_schema(
     description="Returns the current weather data for a specified location."
 )
 
-api_schema = "define your function schema here"
 assistant_config = {
     "tools": [
         {
