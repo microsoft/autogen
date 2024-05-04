@@ -26,6 +26,7 @@ reason = "do not run on MacOS or windows OR dependency is not installed OR " + r
     reason=reason,
 )
 def test_pgvector():
+    # test db config
     db_config = {
         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
     }
