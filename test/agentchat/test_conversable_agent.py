@@ -1382,7 +1382,7 @@ def test_chat_history():
     assert bob.chat_messages[charlie][-2]["content"] == "This is bob from the future speaking."
 
 
-def test_class_values():
+def test_http_client():
 
     import httpx
 
