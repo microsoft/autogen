@@ -15,14 +15,13 @@ I often got asked about two common questions.
 1. What's an agent?
 1. What are pros and cons of multi vs. single agent?
 
-This blog collects my thoughts from several interviews.
+This blog collects my thoughts from several interviews and recent learnings.
 
 ## What's an agent?
 
 There are many different types of definitions of agents. When I thought about it when building AutoGen, I was looking for
 the most generic notion that can incorporate all these different types of definitions. And to do that we
-really need to think about the minimal set of concepts that are needed. In AutoGen, we think about the agent as an entity that can receive messages, send messages, and
-generally respond to other agents after taking actions. We think it's a minimal set of capabilities the an agent needs to
+really need to think about the minimal set of concepts that are needed. In AutoGen, we think about the agent as an entity that can act on behalf of human intent. They can send messages, receive messages, respond to other agents after taking actions and interact with other agents. We think it's a minimal set of capabilities the an agent needs to
 have underneath. They can have different types of backends to support them to perform
 actions and generate replies. Some of the agents can use large models to generate replies. Some other agents can use tools
 underneath to generate tool-based replies and other agents can use human input as a way to reply to
@@ -128,7 +127,7 @@ There are certainly tradeoffs to make. The large design space of multi-agents of
 
 ## Watch the interviews
 
-- [Interview at Foundation Capital]
-- [Interview at AI Frontiers]
+- Interview with Joanne Chen from Foundation Capital in [_AI in the Real World_]
+- Interview with Thomas Maybrier from Valory in [_AI Frontiers_](https://www.youtube.com/watch?v=iMvq_z4LT0U)
 
 _Do you find this note helpful? Would you like to share your thoughts, use cases, findings? Please join our [Discord](https://aka.ms/autogen-dc) server for discussion._
