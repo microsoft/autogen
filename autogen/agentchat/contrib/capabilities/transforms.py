@@ -386,8 +386,7 @@ class TextMessageCompressor:
 
     def _cache_get(self, content: Union[str, List[Dict]]) -> Optional[Tuple[int, Union[str, List[Dict]]]]:
         if self._cache:
-            key = f"{json.dumps(content)}_{self._min_tokens}"
-            cached_value = self._cache.get(key)
+            cached_value = self._cache.get(self._cache_key(content))
             if cached_value:
                 return cached_value
 
@@ -395,9 +394,11 @@ class TextMessageCompressor:
         self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
     ):
         if self._cache:
-            key = json.dumps(content)
             value = (tokens_saved, json.dumps(compressed_content))
-            self._cache.set(key, value)
+            self._cache.set(self._cache_key(content), value)
+
+    def _cache_key(self, content: Union[str, List[Dict]]) -> str:
+        return f"{json.dumps(content)}_{self._min_tokens}"
 
     def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:
