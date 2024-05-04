@@ -149,11 +149,14 @@ class ConversableAgent(LLMAgent):
         )
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
-            # If http_client is provided, then don't deep copy it
-            http_client = llm_config.pop("http_client", None)
-            llm_config = copy.deepcopy(llm_config)
-            if http_client is not None:
-                llm_config["http_client"] = http_client
+            try:
+                llm_config = copy.deepcopy(llm_config)
+            except TypeError as e:
+                raise TypeError(
+                    "Please implement __deepcopy__ method for each value class in llm_config to support deepcopy."
+                    "Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#class-values-in-llm_config"
+                ) from e
+
 
         self._validate_llm_config(llm_config)
 
