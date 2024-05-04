@@ -90,10 +90,17 @@ export class MessageHistoryWidget {
             const message = event.detail.message;
             console.log("Message clicked: ", message);
             // scroll to the message with this id
-            const messageDiv = document.getElementById(`message-${message.id}`);
+            const messageDiv = div.querySelector(`#message-${message.id}`);
             console.log("Message div: ", messageDiv);
             if (messageDiv) {
                 messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // messageDiv.style.outline = "2px solid blue";
+
+                const selectedMessages = div.querySelectorAll('.message-selected');
+                selectedMessages.forEach(message => {
+                    message.classList.remove('message-selected');
+                })
+                messageDiv.classList.add('message-selected');
             }
         });
 

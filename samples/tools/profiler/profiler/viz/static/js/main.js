@@ -89,6 +89,16 @@ function getFilteredData(labels, data) {
     });
 }
 
+
+function getFilterMask(labels, data) {
+    // Create a mask of the data based on the labels
+    return data.map(message => {
+        const tagMatch = labels.some(label => message.tags.includes(label));
+        return tagMatch;
+    });
+}
+
+
 function renderPage(data) {
     const filters = renderFilters(data);
     updateAllWidgets(data);
