@@ -268,3 +268,12 @@ Migrating enhances flexibility, modularity, and customization in handling chat m
 ### How to migrate?
 
 To ensure a smooth migration process, simply follow the detailed guide provided in [Handling Long Context Conversations with Transform Messages](/docs/topics/long_contexts.md).
+
+### What should I do if I get the error "TypeError: Assistants.create() got an unexpected keyword argument 'file_ids'"?
+
+This error typically occurs when using Autogen version earlier than 0.2.27 in combination with OpenAI library version 1.21 or later. The issue arises because the older version of Autogen does not support the file_ids parameter used by newer versions of the OpenAI API.
+To resolve this issue, you need to upgrade your Autogen library to version 0.2.27 or higher that ensures compatibility between Autogen and the OpenAI library.
+
+```python
+pip install --upgrade autogen
+```
