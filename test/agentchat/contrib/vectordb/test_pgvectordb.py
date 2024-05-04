@@ -26,11 +26,19 @@ reason = "do not run on MacOS or windows OR dependency is not installed OR " + r
     reason=reason,
 )
 def test_pgvector():
-    # test create collection with connection_string authentication
     db_config = {
         "connection_string": "postgresql://postgres:postgres@localhost:5432/postgres",
     }
 
+    # test create collection with connection_string authentication
+    db = PGVectorDB(
+        connection_string=db_config["connection_string"],
+    )
+    collection_name = "test_collection"
+    collection = db.create_collection(collection_name=collection_name, overwrite=True, get_or_create=True)
+    assert collection.name == collection_name
+
+    # test create collection with conn object authentication
     parsed_connection = urllib.parse.urlparse(db_config["connection_string"])
     encoded_username = urllib.parse.quote(parsed_connection.username, safe="")
     encoded_password = urllib.parse.quote(parsed_connection.password, safe="")
