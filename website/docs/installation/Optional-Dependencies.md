@@ -44,10 +44,20 @@ Example notebooks:
 
 ## retrievechat
 
-`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it.
+`pyautogen` supports retrieval-augmented generation tasks such as question answering and code generation with RAG agents. Please install with the [retrievechat] option to use it with ChromaDB.
 
 ```bash
 pip install "pyautogen[retrievechat]"
+```
+
+Alternatively `pyautogen` also supports PGVector and Qdrant which can be installed in place of ChromaDB, or alongside it.
+
+```bash
+pip install "pyautogen[retrievechat-pgvector]"
+```
+
+```bash
+pip install "pyautogen[retrievechat-qdrant]"
 ```
 
 RetrieveChat can handle various types of documents. By default, it can process

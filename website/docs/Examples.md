@@ -78,6 +78,7 @@ Links to notebook examples:
 - Chat with OpenAI Assistant with Code Interpreter - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_code_interpreter.ipynb)
 - Chat with OpenAI Assistant with Retrieval Augmentation - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_retrieval.ipynb)
 - OpenAI Assistant in a Group Chat - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/agentchat_oai_assistant_groupchat.ipynb)
+- GPTAssistantAgent based Multi-Agent Tool Use - [View Notebook](https://github.com/microsoft/autogen/blob/main/notebook/gpt_assistant_agent_function_call.ipynb)
 
 ### Multimodal Agent
 
