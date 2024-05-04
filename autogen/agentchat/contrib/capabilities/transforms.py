@@ -291,6 +291,8 @@ class TextMessageCompressor:
                 than or equal to 0 if not None. If None, no threshold-based compression is applied.
             compression_args (dict): A dictionary of arguments for the compression method. Defaults to an empty
                 dictionary.
+            cache (None or AbstractCache): The cache client to use to store and retrieve previously compressed messages.
+                If None, no caching will be used.
         """
 
         if text_compressor is None:
@@ -384,7 +386,7 @@ class TextMessageCompressor:
 
     def _cache_get(self, content: Union[str, List[Dict]]) -> Optional[Tuple[int, Union[str, List[Dict]]]]:
         if self._cache:
-            key = json.dumps(content)
+            key = f"{json.dumps(content)}_{self._min_tokens}"
             cached_value = self._cache.get(key)
             if cached_value:
                 return cached_value
