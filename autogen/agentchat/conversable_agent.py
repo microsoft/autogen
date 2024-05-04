@@ -157,7 +157,6 @@ class ConversableAgent(LLMAgent):
                     "Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#class-values-in-llm_config"
                 ) from e
 
-
         self._validate_llm_config(llm_config)
 
         if logging_enabled():
