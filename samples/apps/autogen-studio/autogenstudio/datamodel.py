@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Union
 
-from sqlalchemy import orm
+from sqlalchemy import ForeignKey, Integer, orm
 from sqlmodel import (
     JSON,
     Column,
@@ -34,8 +34,9 @@ class Message(SQLModel, table=True):
     user_id: Optional[str] = None
     role: str
     content: str
-    session_id: Optional[int] = Field(default=None, foreign_key="session.id")
-    workflow_id: Optional[int] = Field(default=None, foreign_key="workflow.id")
+    session_id: Optional[int] = Field(
+        default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
+    )
     connection_id: Optional[str] = None
     meta: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
 

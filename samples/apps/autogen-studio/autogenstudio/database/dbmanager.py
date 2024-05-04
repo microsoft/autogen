@@ -1,11 +1,11 @@
-import logging
 from datetime import datetime
 from typing import Optional
 
+from loguru import logger
 from sqlalchemy import exc
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from .datamodel import (
+from ..datamodel import (
     Agent,
     AgentLink,
     AgentModelLink,
@@ -16,9 +16,7 @@ from .datamodel import (
     Workflow,
     WorkflowAgentLink,
 )
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from .migrate import run_migration
 
 valid_link_types = ["agent_model", "agent_skill", "agent_agent", "workflow_agent"]
 
@@ -28,6 +26,7 @@ class DBManager:
 
     def __init__(self, engine_uri: str):
         self.engine = create_engine(engine_uri)
+        # run_migration(engine_uri=engine_uri)
 
     def create_db_and_tables(self):
         """Create a new database and tables"""

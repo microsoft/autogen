@@ -80,19 +80,22 @@ const ModelTypeSelector = ({
 
   const hints: any = {
     open_ai:
-      "Hint: In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
+      "In addition to OpenAI models, You can also use OSS models via tools like Ollama, vLLM, LMStudio etc. that provide OpenAI compatible endpoint.",
     azure: "Azure OpenAI endpoint",
     google: "Gemini",
   };
 
-  const [selectedHint, setSelectedHint] = React.useState<string>(hints.open_ai);
+  const [selectedHint, setSelectedHint] = React.useState<string>("open_ai");
 
   return (
     <>
       <div className="pb-3">Select Model Type</div>
       <ul className="inline-flex gap-2">{modelTypeRows}</ul>
 
-      <div className="text-xs mt-4">{hints[selectedHint]}</div>
+      <div className="text-xs mt-4">
+        <InformationCircleIcon className="h-4 w-4 inline mr-1 -mt-1" />
+        {hints[selectedHint]}
+      </div>
     </>
   );
 };

@@ -30,6 +30,8 @@ dependencies = [
     "numpy < 2.0.0",
     "sqlmodel",
     "psycopg",
+    "alembic",
+    "loguru",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 

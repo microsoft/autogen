@@ -10,7 +10,7 @@ import websockets
 from fastapi import WebSocket, WebSocketDisconnect
 
 from .datamodel import Message, SocketMessage, Workflow
-from .utils import (
+from .utils.util import (
     extract_successful_code_blocks,
     get_modified_files,
     summarize_chat_history,

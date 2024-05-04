@@ -65,7 +65,6 @@ const ChatBox = ({
   const [retries, setRetries] = React.useState(0);
 
   const serverUrl = getServerUrl();
-  const deleteMsgUrl = `${serverUrl}/messages/delete`;
 
   let websocketUrl = serverUrl.replace("http", "ws") + "/ws/";
 
@@ -368,36 +367,8 @@ const ChatBox = ({
     if (data && data.status) {
       const msg = parseMessage(data.data);
       wsMessages.current.push(msg);
-      console.log("wsLenght", wsMessages.current);
       setMessages(wsMessages.current);
       setLoading(false);
-      //   const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${data.data.session_id}`;
-      //   const payLoad = {
-      //     method: "GET",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //   };
-      //   const onSuccess = (data: any) => {
-      //     if (data && data.status) {
-      //       const updatedMessages = parseMessages(data.data);
-      //       setMessages(updatedMessages);
-      //     } else {
-      //       message.error(data.message);
-      //     }
-      //     setLoading(false);
-      //   };
-      //   const onError = (err: any) => {
-      //     setError(err);
-      //     message.error(err.message);
-      //     setLoading(false);
-      //   };
-      //   fetchJSON(fetchMessagesUrl, payLoad, onSuccess, onError);
-      // } else {
-      //   console.log("error", data);
-      //   // setError(data);
-      //   ToastMessage.error(data.message);
-      //   setLoading(false);
     } else {
       console.log("error", data);
       // setError(data);
@@ -452,9 +423,8 @@ const ChatBox = ({
       workflow_id: session?.workflow_id,
       connection_id: connectionId,
     };
-    console.log("messagePayload", messagePayload);
 
-    const textUrl = `${serverUrl}/messages`;
+    const textUrl = `${serverUrl}/messages/${session?.id}`;
 
     const postData = {
       method: "POST",
@@ -476,7 +446,6 @@ const ChatBox = ({
           type: "user_message",
         })
       );
-      console.log("sending on socket ..");
     } else {
       fetch(textUrl, postData)
         .then((res) => {

@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
 from dotenv import load_dotenv
+from loguru import logger
 
 from autogen.coding import DockerCommandLineCodeExecutor, LocalCommandLineCodeExecutor
 from autogen.oai.client import ModelClient, OpenAIWrapper
 
-from ..database.dbmanager import DBManager
-from ..datamodel import Agent, AgentType, CodeExecutionConfigTypes, Model, Skill, Workflow, WorkflowAgentLink
+from ..datamodel import CodeExecutionConfigTypes, Model, Skill
 from ..version import APP_NAME
 
 
@@ -227,6 +227,33 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
     return modified_files
 
 
+def get_app_root() -> str:
+    """
+    Get the root directory of the application.
+
+    :return: The root directory of the application.
+    """
+    app_name = f".{APP_NAME}"
+    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
+    if not os.path.exists(default_app_root):
+        os.makedirs(default_app_root, exist_ok=True)
+    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+    return app_root
+
+
+def get_db_uri(app_root: str) -> str:
+    """
+    Get the default database URI for the application.
+
+    :param app_root: The root directory of the application.
+    :return: The default database URI.
+    """
+    db_uri = f"sqlite:///{os.path.join(app_root, 'database.sqlite')}"
+    db_uri = os.environ.get("AUTOGENSTUDIO_DATABASE_URI") or db_uri
+    logger.info(f"Using database URI: {db_uri}")
+    return db_uri
+
+
 def init_app_folders(app_file_path: str) -> Dict[str, str]:
     """
     Initialize folders needed for a web server, such as static file directories
@@ -235,12 +262,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     :param root_file_path: The root directory where webserver folders will be created
     :return: A dictionary with the path of each created folder
     """
-
-    app_name = f".{APP_NAME}"
-    default_app_root = os.path.join(os.path.expanduser("~"), app_name)
-    if not os.path.exists(default_app_root):
-        os.makedirs(default_app_root, exist_ok=True)
-    app_root = os.environ.get("AUTOGENSTUDIO_APPDIR") or default_app_root
+    app_root = get_app_root()
 
     if not os.path.exists(app_root):
         os.makedirs(app_root, exist_ok=True)
@@ -248,7 +270,7 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     # load .env file if it exists
     env_file = os.path.join(app_root, ".env")
     if os.path.exists(env_file):
-        print(f"Loading environment variables from {env_file}")
+        logger.info(f"Loaded environment variables from {env_file}")
         load_dotenv(env_file)
 
     files_static_root = os.path.join(app_root, "files/")
@@ -261,8 +283,9 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
         "files_static_root": files_static_root,
         "static_folder_root": static_folder_root,
         "app_root": app_root,
+        "database_engine_uri": get_db_uri(app_root=app_root),
     }
-    print(f"Initialized application data folder: {app_root}")
+    logger.info(f"Initialized application data folder: {app_root}")
     return folders
 
 
@@ -318,7 +341,6 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
     for folder in folders:
         # Check if the folder exists
         if not os.path.isdir(folder):
-            print(f"The folder {folder} does not exist.")
             continue
 
         # List all the entries in the directory
@@ -334,7 +356,7 @@ def delete_files_in_folder(folders: Union[str, List[str]]) -> None:
                     shutil.rmtree(path)
             except Exception as e:
                 # Print the error message and skip
-                print(f"Failed to delete {path}. Reason: {e}")
+                logger.info(f"Failed to delete {path}. Reason: {e}")
 
 
 def extract_successful_code_blocks(messages: List[Dict[str, str]]) -> List[str]:
@@ -413,56 +435,6 @@ def load_code_execution_config(code_execution_type: CodeExecutionConfigTypes, wo
         "executor": executor,
     }
     return code_execution_config
-
-
-def workflow_from_id(workflow_id: int, dbmanager: DBManager):
-    workflow = dbmanager.get(Workflow, filters={"id": workflow_id}).data
-    if not workflow or len(workflow) == 0:
-        raise ValueError("The specified workflow does not exist.")
-    workflow = workflow[0].model_dump(mode="json")
-    workflow_agent_links = dbmanager.get(WorkflowAgentLink, filters={"workflow_id": workflow_id}).data
-
-    def dump_agent(agent: Agent):
-        exclude = []
-        if agent.type != AgentType.groupchat:
-            exclude = [
-                "admin_name",
-                "messages",
-                "max_round",
-                "admin_name",
-                "speaker_selection_method",
-                "allow_repeat_speaker",
-            ]
-        return agent.model_dump(warnings=False, mode="json", exclude=exclude)
-
-    def get_agent(agent_id):
-        agent: Agent = dbmanager.get(Agent, filters={"id": agent_id}).data[0]
-        agent_dict = dump_agent(agent)
-        agent_dict["skills"] = [Skill.model_validate(skill.model_dump(mode="json")) for skill in agent.skills]
-        model_exclude = [
-            "id",
-            "agent_id",
-            "created_at",
-            "updated_at",
-            "user_id",
-            "description",
-        ]
-        models = [model.model_dump(mode="json", exclude=model_exclude) for model in agent.models]
-        agent_dict["models"] = [model.model_dump(mode="json") for model in agent.models]
-
-        if len(models) > 0:
-            agent_dict["config"]["llm_config"] = agent_dict.get("config", {}).get("llm_config", {})
-            llm_config = agent_dict["config"]["llm_config"]
-            if llm_config:
-                llm_config["config_list"] = models
-            agent_dict["config"]["llm_config"] = llm_config
-        agent_dict["agents"] = [get_agent(agent.id) for agent in agent.agents]
-        return agent_dict
-
-    for link in workflow_agent_links:
-        agent_dict = get_agent(link.agent_id)
-        workflow[link.agent_type] = agent_dict
-    return workflow
 
 
 def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: ModelClient):

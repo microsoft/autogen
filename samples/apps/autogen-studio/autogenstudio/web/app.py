@@ -12,9 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
-from ..dbmanager import DBManager
-from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model, workflow_from_id
+from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
+from ..utils.db_utils import workflow_from_id
 from ..version import VERSION
 
 managers = {"chat": None}  # manage calls to autogen
@@ -49,8 +50,7 @@ app_file_path = os.path.dirname(os.path.abspath(__file__))
 folders = init_app_folders(app_file_path)
 ui_folder_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 
-db_path = os.path.join(folders["app_root"], "database.sqlite")
-database_engine_uri = os.environ.get("AUTOGENSTUDIO_DATABASE_URI", f"sqlite:///{db_path}")
+database_engine_uri = folders["database_engine_uri"]
 dbmanager = DBManager(engine_uri=database_engine_uri)
 
 
@@ -370,14 +370,13 @@ async def create_message(message: Message):
             if message.session_id
             else []
         )
-
-        print("User message history: ", user_message_history)
-
         # save incoming message
         dbmanager.upsert(message)
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
-        workflow = workflow_from_id(message.workflow_id, dbmanager=dbmanager)
+
+        session: Session = dbmanager.get(Session, filters={"id": message.session_id}).data[0]
+        workflow = workflow_from_id(session.workflow_id, dbmanager=dbmanager)
         agent_response: Message = managers["chat"].chat(
             message=message,
             history=user_message_history,
