@@ -1382,6 +1382,27 @@ def test_chat_history():
     assert bob.chat_messages[charlie][-2]["content"] == "This is bob from the future speaking."
 
 
+def test_http_client():
+
+    import httpx
+
+    with pytest.raises(TypeError):
+        config_list = [
+            {
+                "model": "my-gpt-4-deployment",
+                "api_key": "",
+                "http_client": httpx.Client(),
+            }
+        ]
+
+        autogen.ConversableAgent(
+            "test_agent",
+            human_input_mode="NEVER",
+            llm_config={"config_list": config_list},
+            default_auto_reply="This is alice speaking.",
+        )
+
+
 if __name__ == "__main__":
     # test_trigger()
     # test_context()

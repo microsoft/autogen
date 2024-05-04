@@ -149,7 +149,13 @@ class ConversableAgent(LLMAgent):
         )
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
-            llm_config = copy.deepcopy(llm_config)
+            try:
+                llm_config = copy.deepcopy(llm_config)
+            except TypeError as e:
+                raise TypeError(
+                    "Please implement __deepcopy__ method for each value class in llm_config to support deepcopy."
+                    " Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#adding-http-client-in-llm_config-for-proxy"
+                ) from e
 
         self._validate_llm_config(llm_config)
 
