@@ -1,4 +1,5 @@
 import copy
+import json
 import sys
 from typing import Any, Dict, List, Optional, Protocol, Tuple, Union
 
@@ -6,6 +7,7 @@ import tiktoken
 from termcolor import colored
 
 from autogen import token_count_utils
+from autogen.cache import AbstractCache, Cache
 
 from .text_compressors import LLMLingua, TextCompressor
 
@@ -279,6 +281,7 @@ class TextMessageCompressor:
         text_compressor: Optional[TextCompressor] = None,
         min_tokens: Optional[int] = None,
         compression_args: Dict = dict(),
+        cache: Optional[AbstractCache] = Cache.disk(),
     ):
         """
         Args:
@@ -298,6 +301,7 @@ class TextMessageCompressor:
         self._text_compressor = text_compressor
         self._min_tokens = min_tokens
         self._compression_args = compression_args
+        self._cache = cache
 
         # Optimizing savings calculations to optimize log generation
         self._recent_tokens_savings = 0
@@ -305,7 +309,7 @@ class TextMessageCompressor:
     def apply_transform(self, messages: List[Dict]) -> List[Dict]:
         """Applies compression to messages in a conversation history based on the specified configuration.
 
-        The function processes each message according to the `compress_all_messages_on_first_apply` setting, applying
+        The function processes each message according to the `compression_args` and `min_tokens` settings, applying
         the specified compression configuration and returning a new list of messages with reduced token counts
         where possible.
 
@@ -331,7 +335,15 @@ class TextMessageCompressor:
             if not isinstance(message.get("content"), (str, list)):
                 continue
 
-            savings, message["content"] = self._compress(message["content"])
+            cached_content = self._cache_get(message["content"])
+            if cached_content is not None:
+                savings, compressed_content = cached_content
+            else:
+                savings, compressed_content = self._compress(message["content"])
+
+            self._cache_set(message["content"], compressed_content, savings)
+
+            message["content"] = compressed_content
             total_savings += savings
 
         self._recent_tokens_savings = total_savings
@@ -369,6 +381,21 @@ class TextMessageCompressor:
             savings = compressed_text["origin_tokens"] - compressed_text["compressed_tokens"]
 
         return savings, compressed_text["compressed_prompt"]
+
+    def _cache_get(self, content: Union[str, List[Dict]]) -> Optional[Tuple[int, Union[str, List[Dict]]]]:
+        if self._cache:
+            key = json.dumps(content)
+            cached_value = self._cache.get(key)
+            if cached_value:
+                return cached_value
+
+    def _cache_set(
+        self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
+    ):
+        if self._cache:
+            key = json.dumps(content)
+            value = (tokens_saved, json.dumps(compressed_content))
+            self._cache.set(key, value)
 
     def _validate_min_tokens(self, min_tokens: Optional[int]):
         if min_tokens is not None and min_tokens <= 0:

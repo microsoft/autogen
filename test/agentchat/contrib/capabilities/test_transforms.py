@@ -1,5 +1,6 @@
 import copy
 from typing import Dict, List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -147,15 +148,44 @@ def test_text_compression():
 
     assert len(transformed_messages[0]["content"]) < len(text)
 
-    # Test compressing last message
-    transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
-    assert len(transformed_messages[-1]["content"][0]["text"]) < len(messages[-1]["content"][0]["text"])
-
     # Test compressing all messages
     text_compressor = TextMessageCompressor()
     transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
     for message in transformed_messages:
         assert len(message["content"][0]["text"]) < len(messages[0]["content"][0]["text"])
+
+
+def test_text_compression_cache():
+    try:
+        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+
+    except ImportError:
+        pytest.skip("LLM Lingua is not installed.")
+
+    messages = get_long_messages()
+    mock_compressed_content = (1, {"content": "mock"})
+
+    with patch(
+        "autogen.agentchat.contrib.capabilities.transforms.TextMessageCompressor._cache_get",
+        MagicMock(return_value=(1, {"content": "mock"})),
+    ) as mocked_get, patch(
+        "autogen.agentchat.contrib.capabilities.transforms.TextMessageCompressor._cache_set", MagicMock()
+    ) as mocked_set:
+        text_compressor = TextMessageCompressor()
+
+        text_compressor.apply_transform(messages)
+        text_compressor.apply_transform(messages)
+
+        assert mocked_get.call_count == len(messages)
+        assert mocked_set.call_count == len(messages)
+
+    # We already populated the cache with the mock content
+    # We need to test if we retrieve the correct content
+    text_compressor = TextMessageCompressor()
+    compressed_messages = text_compressor.apply_transform(messages)
+
+    for message in compressed_messages:
+        assert message["content"] == mock_compressed_content[1]
 
 
 if __name__ == "__main__":
