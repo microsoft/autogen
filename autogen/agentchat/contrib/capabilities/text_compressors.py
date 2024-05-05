@@ -15,7 +15,7 @@ else:
 class TextCompressor(Protocol):
     """Defines a protocol for text compression to optimize agent interactions."""
 
-    def compress_text(self, text: str, **compression_args) -> Dict[str, Any]:
+    def compress_text(self, text: str, **compression_params) -> Dict[str, Any]:
         """This method takes a string as input and returns a dictionary containing the compressed text and other
         relevant information. The compressed text should be stored under the 'compressed_text' key in the dictionary.
         To calculate the number of saved tokens, the dictionary should include 'origin_tokens' and 'compressed_tokens' keys.
@@ -64,5 +64,5 @@ class LLMLingua:
             else self._prompt_compressor.compress_prompt
         )
 
-    def compress_text(self, text: str, **compression_args) -> Dict[str, Any]:
-        return self._compression_method([text], **compression_args)
+    def compress_text(self, text: str, **compression_params) -> Dict[str, Any]:
+        return self._compression_method([text], **compression_params)
