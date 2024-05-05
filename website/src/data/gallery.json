@@ -1,4 +1,4 @@
-[
+f[
   {
     "title": "AutoTx - Crypto Transactions Agent",
     "link": "https://blog.polywrap.io/p/autotx-your-ai-powered-transaction",
@@ -10,7 +10,7 @@
     "title": "AutoGen Virtual Focus Group",
     "link": "https://github.com/msamylea/autogen_focus_group",
     "description": "A virtual consumer focus group with multiple custom personas, product details, and final analysis created with AutoGen, Ollama/Llama3, and Streamlit.",
-    "image": "virtual_group.png",
+    "image": "default.png",
     "tags": ["ui", "groupchat"]
   }
   {
