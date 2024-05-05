@@ -13,7 +13,7 @@
 	  <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
   </PropertyGroup>
 
-  <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
 
 
 	<PropertyGroup>

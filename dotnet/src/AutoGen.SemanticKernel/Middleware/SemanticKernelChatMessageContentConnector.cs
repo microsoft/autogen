@@ -92,7 +92,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         {
             TextContent txt => new TextMessage(Role.Assistant, txt.Text!, messageEnvelope.From),
             ImageContent img when img.Uri is Uri uri => new ImageMessage(Role.Assistant, uri.ToString(), from: messageEnvelope.From),
-            ImageContent img when img.Uri is null => throw new InvalidOperationException("ImageContent.Uri is null"),
+            ImageContent img when img.Data is ReadOnlyMemory<byte> data => new ImageMessage(Role.Assistant, BinaryData.FromBytes(data), from: messageEnvelope.From),
             _ => throw new InvalidOperationException("Unsupported content type"),
         });
 
@@ -185,9 +185,8 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
 
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(ImageMessage message)
     {
-        var imageContent = new ImageContent(new Uri(message.Url));
         var collectionItems = new ChatMessageContentItemCollection();
-        collectionItems.Add(imageContent);
+        collectionItems.Add(new ImageContent(new Uri(message.Url ?? message.BuildDataUri())));
         return [new ChatMessageContent(AuthorRole.User, collectionItems)];
     }
 
@@ -207,7 +206,7 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
             }
             else if (item is ImageMessage imageContent)
             {
-                collections.Add(new ImageContent(new Uri(imageContent.Url)));
+                collections.Add(new ImageContent(new Uri(imageContent.Url ?? imageContent.BuildDataUri())));
             }
             else
             {

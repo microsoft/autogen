@@ -149,7 +149,13 @@ class ConversableAgent(LLMAgent):
         )
         # Take a copy to avoid modifying the given dict
         if isinstance(llm_config, dict):
-            llm_config = copy.deepcopy(llm_config)
+            try:
+                llm_config = copy.deepcopy(llm_config)
+            except TypeError as e:
+                raise TypeError(
+                    "Please implement __deepcopy__ method for each value class in llm_config to support deepcopy."
+                    " Refer to the docs for more details: https://microsoft.github.io/autogen/docs/topics/llm_configuration#adding-http-client-in-llm_config-for-proxy"
+                ) from e
 
         self._validate_llm_config(llm_config)
 
@@ -576,6 +582,11 @@ class ConversableAgent(LLMAgent):
 
         if message.get("role") in ["function", "tool"]:
             oai_message["role"] = message.get("role")
+        elif "override_role" in message:
+            # If we have a direction to override the role then set the
+            # role accordingly. Used to customise the role for the
+            # select speaker prompt.
+            oai_message["role"] = message.get("override_role")
         else:
             oai_message["role"] = role
 
