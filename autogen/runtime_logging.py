@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -21,7 +21,9 @@ is_logging = False
 
 
 def start(
-    logger: Optional[BaseLogger] = None, logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None
+    logger: Optional[BaseLogger] = None,
+    logger_type: Literal["sqlite", "filelogger"] = "sqlite",
+    config: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Start logging for the runtime.
