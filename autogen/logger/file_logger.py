@@ -97,16 +97,86 @@ class FileLogger(BaseLogger):
 
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         """"""
-        ...
+        from autogen import Agent
+
+        json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
+
+        if isinstance(source, Agent):
+            with lock:
+                try:
+                    with open(self.log_file, "a") as f:
+                        f.write(
+                            json.dumps(
+                                {
+                                    "source_id": id(source),
+                                    "source_name": source.name if hasattr(source, "name") else source,
+                                    "event_name": name,
+                                    "agent_module": source.__module__,
+                                    "agent_class": source.__class__.__name__,
+                                    "json_state": json_args,
+                                    "timestamp": get_current_ts(),
+                                }
+                            )
+                        )
+                except Exception as e:
+                    logger.error(f"[file_logger] Failed to log event {e}")
+        else:
+            with lock:
+                try:
+                    with open(self.log_file, "a") as f:
+                        f.write(
+                            json.dumps(
+                                {
+                                    "source_id": id(source),
+                                    "source_name": source.name if hasattr(source, "name") else source,
+                                    "event_name": name,
+                                    "json_state": json_args,
+                                    "timestamp": get_current_ts(),
+                                }
+                            )
+                        )
+                except Exception as e:
+                    logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         """"""
-        ...
+        with lock:
+            try:
+                with open(self.log_file, "a") as f:
+                    f.write(
+                        json.dumps(
+                            {
+                                "wrapper_id": id(wrapper),
+                                "session_id": self.session_id,
+                                "json_state": json.dumps(init_args),
+                                "timestamp": get_current_ts(),
+                            }
+                        )
+                    )
+            except Exception as e:
+                logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_client(self, client: AzureOpenAI | OpenAI, wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
-        return super().log_new_client(client, wrapper, init_args)
+        with lock:
+            try:
+                with open(self.log_file, "a") as f:
+                    f.write(
+                        json.dumps(
+                            {
+                                "client_id": id(client),
+                                "wrapper_id": id(wrapper),
+                                "session_id": self.session_id,
+                                "class": type(client).__name__,
+                                "json_state": json.dumps(init_args),
+                                "timestamp": get_current_ts(),
+                            }
+                        )
+                    )
+            except Exception as e:
+                logger.error(f"[file_logger] Failed to log event {e}")
 
     def get_connection(self) -> None:
+        """Method is intentionally left blank because there is no specific connection needed for the FileLogger."""
         pass
 
     def stop(self) -> None:
