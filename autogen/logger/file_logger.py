@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlite3
 import threading
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
@@ -11,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
-from autogen import OpenAIWrapper
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
@@ -107,6 +105,9 @@ class FileLogger(BaseLogger):
 
     def log_new_client(self, client: AzureOpenAI | OpenAI, wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
         return super().log_new_client(client, wrapper, init_args)
+
+    def get_connection(self) -> None:
+        pass
 
     def stop(self) -> None:
         """Method is intentionally left blank because there is no specific shutdown needed for the FileLogger."""
