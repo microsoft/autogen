@@ -130,7 +130,7 @@ The framework's architecture is designed so that it can be seamlessly integrated
 
 ## Example 3: Modifying LLMLingua's Compression Parameters
 
-LLMLingua can be configured to compress text in a variety of ways. For example, we can pass in new instructions to the LLM or setting target token counts for compression. We'll be showcasing on how to set the target token count to allow us to use models with smaller context size like gpt-3.5.
+LLMLingua's flexibility allows for various configurations, such as customizing instructions for the LLM or setting specific token counts for compression. This example demonstrates how to set a target token count, enabling the use of models with smaller context sizes like gpt-3.5.
 
 ```python
 config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
