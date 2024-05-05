@@ -193,11 +193,11 @@ class HuggingFaceAgent(ConversableAgent):
 
         self._user_proxy.send(messages[-1], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
-        print("Agent Reply: " + str(agent_reply))
+        # print("Agent Reply: " + str(agent_reply))
         proxy_reply = self._user_proxy.generate_reply(
             messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
         )
-        print("Proxy Reply: " + str(proxy_reply))
+        # print("Proxy Reply: " + str(proxy_reply))
 
         if proxy_reply == "":
             # default reply
