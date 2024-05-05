@@ -32,14 +32,14 @@
         "source": "user",
         "content": "I need help with my order",
         "tags": ["order"],
-        "states": ["start"]
+        "states": ["end"]
     },
     {
         "id": "6",
         "source": "user",
         "content": "I need help with my order",
         "tags": ["order"],
-        "states": ["start"]
+        "states": ["start", "end"]
     },
     {
         "id": "7",

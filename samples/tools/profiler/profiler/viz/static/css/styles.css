@@ -6,14 +6,18 @@ body {
     height: 90vh;
     display: grid;
     grid-template-columns: 40% 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr 1fr;
     gap: 30px;
 }
 
-/* #tag-filter-widget, #state-filter-widget {
+
+#tag-filter-widget, #bar-chart-widget, #timeline-widget, #directed-graph-widget{
     display: flex;
-    margin-bottom: 10px;
-} */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    /* overflow: scroll; */
+}
 
 #tag-filter-widget {
     grid-column: span 2;
@@ -24,12 +28,20 @@ body {
 #message-history-widget {
     grid-column: 1; /* Positions the widget in the first column */
     grid-row-start: 2; /* Positions the widget in the first row */
-    grid-row-end: 5; /* Positions the widget in the third row */
+    grid-row-end: 6; /* Positions the widget in the third row */
     border: solid 1px black;
     padding: 10px;
+    overflow-y: scroll; /* Add scroll bar */
 }
 
 #bar-chart-widget {
+    grid-column: 2; /* Positions the widget in the second column */
+    grid-row: 2; /* Positions the widget in the second row */
+    border: solid 1px black;
+    /* Center its content */
+}
+
+#directed-graph-widget {
     grid-column: 2; /* Positions the widget in the second column */
     grid-row: 3; /* Positions the widget in the second row */
     border: solid 1px black;
@@ -39,8 +51,4 @@ body {
     grid-column: 2; /* Positions the widget in the second column */
     grid-row: 4; /* Positions the widget in the second row */
     border: solid 1px black;
-}
-
-#message-history-widget {
-    overflow-y: scroll; /* Add scroll bar */
 }

@@ -2,6 +2,7 @@ import { MessageHistoryWidget } from './widgets.js';
 import { FilterWidget } from './widgets.js';
 import { BarChartWidget } from './barchart.js';
 import { TimelineWidget } from './timelines.js';
+import { DirectedGraphWidget } from './graph.js';
 
 
 
@@ -72,6 +73,13 @@ function updateAllWidgets(data) {
     });
 
     renderOrUpdate(document.body, timelineWidget);
+
+    const directedGraphWidget = new DirectedGraphWidget({
+        id: "directed-graph-widget",
+        messages: data
+    });
+
+    renderOrUpdate(document.body, directedGraphWidget);
 }
 
 function getFilteredData(labels, data) {
