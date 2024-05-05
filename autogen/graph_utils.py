@@ -134,3 +134,34 @@ def visualize_speaker_transitions_dict(speaker_transitions_dict: dict, agents: L
     # Visualize
     nx.draw(G, with_labels=True, font_weight="bold")
     plt.show()
+
+def save_speaker_transitions_dict(speaker_transitions_dict: dict, agents: List[Agent], path: str):
+    """
+    Save the speaker_transitions_dict using networkx.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import networkx as nx
+    except ImportError as e:
+        logging.fatal("Failed to import networkx or matplotlib. Try running 'pip install autogen[graphs]'")
+        raise e
+
+    G = nx.DiGraph()
+
+    # Add nodes
+    G.add_nodes_from([agent.name for agent in agents])
+
+    # Add edges
+    for key, value in speaker_transitions_dict.items():
+        for agent in value:
+            G.add_edge(key.name, agent.name)
+
+    # Save
+    nx.draw(G, with_labels=True, font_weight="bold")
+    try:
+        # Save the figure to the specified path
+        plt.savefig(path)
+        return True  # Return True if the save operation is successful
+    except Exception as e:
+        logging.fatal(f"Error occurred while saving the figure: {e}")
+        raise e
