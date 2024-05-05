@@ -47,20 +47,12 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
         return PostProcessMessage(reply);
     }
 
-    public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(InvokeStreamingAsync(context, agent, cancellationToken));
-    }
-
-    private async IAsyncEnumerable<IStreamingMessage> InvokeStreamingAsync(
-        MiddlewareContext context,
-        IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatMessageContents = ProcessMessage(context.Messages, agent)
             .Select(m => new MessageEnvelope<ChatMessageContent>(m));
 
-        await foreach (var reply in await agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
+        await foreach (var reply in agent.GenerateStreamingReplyAsync(chatMessageContents, context.Options, cancellationToken))
         {
             yield return PostProcessStreamingMessage(reply);
         }
