@@ -1477,7 +1477,7 @@ def test_role_for_reflection_summary():
             max_turns=2,
             message="hello",
             summary_method="reflection_with_llm",
-            summary_args={"role": role_name},
+            summary_args={"summary_role": role_name},
         )
 
         mock_generate_oai_reply_from_client.assert_called_once()
