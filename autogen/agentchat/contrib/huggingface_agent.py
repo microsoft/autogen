@@ -13,11 +13,8 @@ from autogen.oai.client import OpenAIWrapper
 
 class HuggingFaceCapability(Enum):
     # Computer vision
-    IMAGE_CLASSIFICATION = "image-classification"
-    IMAGE_SEGMENTATION = "image-segmentation"
     IMAGE_TO_IMAGE = "image-to-image"
     IMAGE_TO_TEXT = "image-to-text"
-    OBJECT_DETECTION = "object-detection"
     TEXT_TO_IMAGE = "text-to-image"
 
 
@@ -145,6 +142,32 @@ class HuggingFaceAgent(ConversableAgent):
                 response = {
                     "content": [
                         {"type": "text", "text": f"I generated the following text from the image: {generated_text}"},
+                    ]
+                }
+
+                return json.dumps(response)
+
+        if HuggingFaceCapability.IMAGE_TO_IMAGE in self._hf_capability_list:
+
+            @self._user_proxy.register_for_execution()
+            @self._assistant.register_for_llm(
+                name=HuggingFaceCapability.IMAGE_TO_IMAGE.value,
+                description="Transforms a source image to match the characteristics of a target image or a target image domain.",
+            )
+            def _image_to_image(
+                image_file: Annotated[
+                    str,
+                    "The input image for translation. It can be raw bytes, an image file, or a URL to an online image.",
+                ],
+                text: Annotated[str, "The text prompt to guide the image generation."],
+            ) -> str:
+                model, params = _load_capability_config(HuggingFaceCapability.IMAGE_TO_IMAGE)
+                image_data = img_utils.get_image_data(image_file, use_b64=False)
+                tgt_image = self._hf_client.image_to_image(image_data, prompt=text, model=model, **params)
+                response = {
+                    "content": [
+                        {"type": "text", "text": f"I generated an image from the input image with the prompt: {text}"},
+                        {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(tgt_image)}},
                     ]
                 }
 
