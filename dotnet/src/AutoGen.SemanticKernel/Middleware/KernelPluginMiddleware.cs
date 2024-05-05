@@ -15,13 +15,13 @@ namespace AutoGen.SemanticKernel;
 /// <summary>
 /// A middleware that consumes <see cref="KernelPlugin"/>
 /// </summary>
-public class KernelFunctionMiddleware : IMiddleware
+public class KernelPluginMiddleware : IMiddleware
 {
     private readonly KernelPlugin _kernelPlugin;
     private readonly FunctionCallMiddleware _functionCallMiddleware;
-    public string? Name => nameof(KernelFunctionMiddleware);
+    public string? Name => nameof(KernelPluginMiddleware);
 
-    public KernelFunctionMiddleware(Kernel kernel, KernelPlugin kernelPlugin)
+    public KernelPluginMiddleware(Kernel kernel, KernelPlugin kernelPlugin)
     {
         _kernelPlugin = kernelPlugin;
         var functionContracts = kernelPlugin.Select(k => k.Metadata.ToFunctionContract());

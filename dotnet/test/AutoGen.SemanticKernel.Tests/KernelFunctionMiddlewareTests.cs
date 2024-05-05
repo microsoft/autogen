@@ -22,7 +22,7 @@ public class KernelFunctionMiddlewareTests
 
         var kernel = new Kernel();
         var plugin = kernel.ImportPluginFromType<TestPlugin>();
-        var kernelFunctionMiddleware = new KernelFunctionMiddleware(kernel, plugin);
+        var kernelFunctionMiddleware = new KernelPluginMiddleware(kernel, plugin);
 
         var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: "gpt-35-turbo-16k")
             .RegisterMessageConnector()
@@ -67,7 +67,7 @@ public class KernelFunctionMiddlewareTests
         var getWeatherMethod = kernel.CreateFunctionFromMethod((string location) => $"The weather in {location} is sunny.", functionName: "GetWeather", description: "Get the weather for a location.");
         var createPersonObjectMethod = kernel.CreateFunctionFromMethod((string name, string email, int age) => new Person(name, email, age), functionName: "CreatePersonObject", description: "Creates a person object.");
         var plugin = kernel.ImportPluginFromFunctions("plugin", [getWeatherMethod, createPersonObjectMethod]);
-        var kernelFunctionMiddleware = new KernelFunctionMiddleware(kernel, plugin);
+        var kernelFunctionMiddleware = new KernelPluginMiddleware(kernel, plugin);
 
         var agent = new OpenAIChatAgent(openaiClient, "assistant", modelName: "gpt-35-turbo-16k")
             .RegisterMessageConnector()
