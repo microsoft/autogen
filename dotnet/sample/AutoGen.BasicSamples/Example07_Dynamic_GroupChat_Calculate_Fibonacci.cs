@@ -85,26 +85,16 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             systemMessage: "You run dotnet code",
             defaultReply: "No code available.")
             .RegisterDotnetCodeBlockExectionHook(interactiveService: service)
-            .RegisterReply(async (msgs, _) =>
+            .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
-                if (msgs.Count() == 0)
+                if (msgs.Count() == 0 || msgs.All(msg => msg.From != "coder"))
                 {
                     return new TextMessage(Role.Assistant, "No code available. Coder please write code");
                 }
-
-                return null;
-            })
-            .RegisterPreProcess(async (msgs, _) =>
-            {
-                // retrieve the most recent message from coder
-                var coderMsg = msgs.LastOrDefault(msg => msg.From == "coder");
-                if (coderMsg is null)
-                {
-                    return Enumerable.Empty<IMessage>();
-                }
                 else
                 {
-                    return new[] { coderMsg };
+                    var coderMsg = msgs.Last(msg => msg.From == "coder");
+                    return await agent.GenerateReplyAsync([coderMsg], option);
                 }
             })
             .RegisterPrintMessage();
@@ -122,8 +112,9 @@ public partial class Example07_Dynamic_GroupChat_Calculate_Fibonacci
             systemMessage: "You are group admin, terminate the group chat once task is completed by saying [TERMINATE] plus the final answer",
             temperature: 0,
             config: gpt3Config)
-            .RegisterPostProcess(async (_, reply, _) =>
+            .RegisterMiddleware(async (msgs, option, agent, _) =>
             {
+                var reply = await agent.GenerateReplyAsync(msgs, option);
                 if (reply is TextMessage textMessage && textMessage.Content.Contains("TERMINATE") is true)
                 {
                     var content = $"{textMessage.Content}\n\n {GroupChatExtension.TERMINATE}";

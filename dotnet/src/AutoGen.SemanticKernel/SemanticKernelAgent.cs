@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
@@ -64,17 +65,25 @@ public class SemanticKernelAgent : IStreamingAgent
         return new MessageEnvelope<ChatMessageContent>(reply.First(), from: this.Name);
     }
 
-    public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatHistory = BuildChatHistory(messages);
         var option = BuildOption(options);
         var chatService = _kernel.GetRequiredService<IChatCompletionService>();
         var response = chatService.GetStreamingChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
 
-        return ProcessMessage(response);
+        await foreach (var content in response)
+        {
+            if (content.ChoiceIndex > 0)
+            {
+                throw new InvalidOperationException("Only one choice is supported in streaming response");
+            }
+
+            yield return new MessageEnvelope<StreamingChatMessageContent>(content, from: this.Name);
+        }
     }
 
     private ChatHistory BuildChatHistory(IEnumerable<IMessage> messages)
@@ -99,19 +108,6 @@ public class SemanticKernelAgent : IStreamingAgent
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
             ResultsPerPrompt = 1,
         };
-    }
-
-    private async IAsyncEnumerable<IMessage> ProcessMessage(IAsyncEnumerable<StreamingChatMessageContent> response)
-    {
-        await foreach (var content in response)
-        {
-            if (content.ChoiceIndex > 0)
-            {
-                throw new InvalidOperationException("Only one choice is supported in streaming response");
-            }
-
-            yield return new MessageEnvelope<StreamingChatMessageContent>(content, from: this.Name);
-        }
     }
 
     private IEnumerable<ChatMessageContent> ProcessMessage(IEnumerable<IMessage> messages)

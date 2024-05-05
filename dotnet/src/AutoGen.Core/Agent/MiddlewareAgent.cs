@@ -14,7 +14,7 @@ namespace AutoGen.Core;
 /// </summary>
 public class MiddlewareAgent : IMiddlewareAgent
 {
-    private readonly IAgent _agent;
+    private IAgent _agent;
     private readonly List<IMiddleware> middlewares = new();
 
     /// <summary>
@@ -22,10 +22,17 @@ public class MiddlewareAgent : IMiddlewareAgent
     /// </summary>
     /// <param name="innerAgent">the inner agent where middleware will be added.</param>
     /// <param name="name">the name of the agent if provided. Otherwise, the name of <paramref name="innerAgent"/> will be used.</param>
-    public MiddlewareAgent(IAgent innerAgent, string? name = null)
+    public MiddlewareAgent(IAgent innerAgent, string? name = null, IEnumerable<IMiddleware>? middlewares = null)
     {
         this.Name = name ?? innerAgent.Name;
         this._agent = innerAgent;
+        if (middlewares != null && middlewares.Any())
+        {
+            foreach (var middleware in middlewares)
+            {
+                this.Use(middleware);
+            }
+        }
     }
 
     /// <summary>
@@ -55,13 +62,7 @@ public class MiddlewareAgent : IMiddlewareAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        IAgent agent = this._agent;
-        foreach (var middleware in this.middlewares)
-        {
-            agent = new DelegateAgent(middleware, agent);
-        }
-
-        return agent.GenerateReplyAsync(messages, options, cancellationToken);
+        return _agent.GenerateReplyAsync(messages, options, cancellationToken);
     }
 
     /// <summary>
@@ -71,15 +72,18 @@ public class MiddlewareAgent : IMiddlewareAgent
     /// </summary>
     public void Use(Func<IEnumerable<IMessage>, GenerateReplyOptions?, IAgent, CancellationToken, Task<IMessage>> func, string? middlewareName = null)
     {
-        this.middlewares.Add(new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
+        var middleware = new DelegateMiddleware(middlewareName, async (context, agent, cancellationToken) =>
         {
             return await func(context.Messages, context.Options, agent, cancellationToken);
-        }));
+        });
+
+        this.Use(middleware);
     }
 
     public void Use(IMiddleware middleware)
     {
         this.middlewares.Add(middleware);
+        _agent = new DelegateAgent(middleware, _agent);
     }
 
     public override string ToString()
