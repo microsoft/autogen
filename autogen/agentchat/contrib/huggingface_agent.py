@@ -11,7 +11,7 @@ from autogen.agentchat.contrib import img_utils
 from autogen.oai.client import OpenAIWrapper
 
 
-class HuggingFaceTask(Enum):
+class HuggingFaceCapability(Enum):
     # Computer vision
     IMAGE_CLASSIFICATION = "image-classification"
     IMAGE_SEGMENTATION = "image-segmentation"
@@ -27,7 +27,7 @@ class HuggingFaceAgent(ConversableAgent):
 
     DEFAULT_DESCRIPTION = "A helpful assistant with multimodal capabilities. Ask them to perform image-to-text, text-to-image, speech-to-text, text-to-speech, and more!"
 
-    DEFAULT_HF_TASK_LIST = list(HuggingFaceTask)
+    DEFAULT_HF_CAPABILITY_LIST = list(HuggingFaceCapability)
 
     def __init__(
         self,
@@ -41,7 +41,7 @@ class HuggingFaceAgent(ConversableAgent):
         code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
-        hf_task_list: Optional[List[Union[str, HuggingFaceTask]]] = DEFAULT_HF_TASK_LIST,
+        hf_capability_list: Optional[List[Union[str, HuggingFaceCapability]]] = DEFAULT_HF_CAPABILITY_LIST,
         hf_config: Optional[Dict[str, Union[str, Dict]]] = {},
     ):
         super().__init__(
@@ -76,7 +76,7 @@ class HuggingFaceAgent(ConversableAgent):
         )
 
         # Set up the HF InferenceClient
-        self._hf_task_list = [HuggingFaceTask[t] if isinstance(t, str) else t for t in hf_task_list]
+        self._hf_capability_list = [HuggingFaceCapability[t] if isinstance(t, str) else t for t in hf_capability_list]
         self._hf_config = hf_config
         self._check_hf_config()
 
@@ -90,28 +90,28 @@ class HuggingFaceAgent(ConversableAgent):
         self.register_reply([Agent, None], HuggingFaceAgent.generate_huggingface_reply, position=2)
 
     def _check_hf_config(self) -> None:
-        valid_keys = [t.value for t in HuggingFaceTask] + ["api_key", "params"]
+        valid_keys = [t.value for t in HuggingFaceCapability] + ["api_key", "params"]
         for key in self._hf_config.keys():
             if key not in valid_keys:
                 raise ValueError(f"Invalid key in hf_config: {key}. Valid keys are: {valid_keys}.")
 
     def _register_functions(self) -> None:
         # Helper functions
-        def _load_task_config(task: HuggingFaceTask) -> Tuple[Union[str, None], Dict]:
-            task_config = self._hf_config.get(task.value, {})
-            model = task_config.get("model", None)
-            params = task_config.get("params", {})
+        def _load_capability_config(capability: HuggingFaceCapability) -> Tuple[Union[str, None], Dict]:
+            capability_config = self._hf_config.get(capability.value, {})
+            model = capability_config.get("model", None)
+            params = capability_config.get("params", {})
             return model, params
 
-        if HuggingFaceTask.TEXT_TO_IMAGE in self._hf_task_list:
+        if HuggingFaceCapability.TEXT_TO_IMAGE in self._hf_capability_list:
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name=HuggingFaceTask.TEXT_TO_IMAGE.value,
+                name=HuggingFaceCapability.TEXT_TO_IMAGE.value,
                 description="Generates images from input text.",
             )
             def _text_to_image(text: Annotated[str, "The prompt to generate an image from"]) -> str:
-                model, params = _load_task_config(HuggingFaceTask.TEXT_TO_IMAGE)
+                model, params = _load_capability_config(HuggingFaceCapability.TEXT_TO_IMAGE)
                 image = self._hf_client.text_to_image(text, model=model, **params)
                 response = {
                     "content": [
@@ -122,11 +122,11 @@ class HuggingFaceAgent(ConversableAgent):
 
                 return json.dumps(response)
 
-        if HuggingFaceTask.IMAGE_TO_TEXT in self._hf_task_list:
+        if HuggingFaceCapability.IMAGE_TO_TEXT in self._hf_capability_list:
 
             @self._user_proxy.register_for_execution()
             @self._assistant.register_for_llm(
-                name=HuggingFaceTask.IMAGE_TO_TEXT.value,
+                name=HuggingFaceCapability.IMAGE_TO_TEXT.value,
                 description="Outputs a text from a given image. Image captioning or optical character recognition can be considered as the most common applications of image to text.",
             )
             def _image_to_text(
@@ -134,12 +134,12 @@ class HuggingFaceAgent(ConversableAgent):
                     str, "The path to the image file, a URL to an image, or a base64-encoded string of the image"
                 ]
             ) -> str:
-                model, params = _load_task_config(HuggingFaceTask.IMAGE_TO_TEXT)
+                model, params = _load_capability_config(HuggingFaceCapability.IMAGE_TO_TEXT)
                 image_data = img_utils.get_image_data(image_file, use_b64=False)
                 raw_response = self._hf_client.post(
                     data=image_data,
                     model=model,
-                    task=HuggingFaceTask.IMAGE_TO_TEXT.value,
+                    task=HuggingFaceCapability.IMAGE_TO_TEXT.value,
                 )
                 generated_text = ImageToTextOutput.parse_obj_as_list(raw_response)[0].generated_text
                 response = {
