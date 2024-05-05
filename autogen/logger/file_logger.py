@@ -109,5 +109,5 @@ class FileLogger(BaseLogger):
         return super().log_new_client(client, wrapper, init_args)
 
     def stop(self) -> None:
-        """Methos is intentionally left blank because there is no specific shutdown needed for the FileLogger."""
+        """Method is intentionally left blank because there is no specific shutdown needed for the FileLogger."""
         pass
