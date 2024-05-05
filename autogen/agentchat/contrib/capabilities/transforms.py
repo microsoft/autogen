@@ -280,7 +280,7 @@ class TextMessageCompressor:
         self,
         text_compressor: Optional[TextCompressor] = None,
         min_tokens: Optional[int] = None,
-        compression_args: Dict = dict(),
+        compression_params: Dict = dict(),
         cache: Optional[AbstractCache] = Cache.disk(),
     ):
         """
@@ -302,7 +302,7 @@ class TextMessageCompressor:
 
         self._text_compressor = text_compressor
         self._min_tokens = min_tokens
-        self._compression_args = compression_args
+        self._compression_args = compression_params
         self._cache = cache
 
         # Optimizing savings calculations to optimize log generation
@@ -335,6 +335,9 @@ class TextMessageCompressor:
         for message in processed_messages:
             # Some messages may not have content.
             if not isinstance(message.get("content"), (str, list)):
+                continue
+
+            if _is_content_text_empty(message["content"]):
                 continue
 
             cached_content = self._cache_get(message["content"])
@@ -422,3 +425,12 @@ def _count_tokens(content: Union[str, List[Dict[str, Any]]]) -> int:
         for item in content:
             token_count += _count_tokens(item.get("text", ""))
     return token_count
+
+
+def _is_content_text_empty(content: Union[str, List[Dict[str, Any]]]) -> bool:
+    if isinstance(content, str):
+        return content == ""
+    elif isinstance(content, list):
+        return all(_is_content_text_empty(item.get("text", "")) for item in content)
+    else:
+        return False

@@ -53,7 +53,8 @@ def extract_text_from_pdf():
 # Example usage
 pdf_text = extract_text_from_pdf()
 
-text_compressor = TextMessageCompressor(text_compressor=LLMLingua())
+llm_lingua = LLMLingua()
+text_compressor = TextMessageCompressor(text_compressor=llm_lingua)
 compressed_text = text_compressor.apply_transform([{"content": pdf_text}])
 
 print(text_compressor.get_logs([], []))
@@ -69,19 +70,20 @@ Now, let's integrate `LLMLingua` into a conversational agent within AutoGen. Thi
 
 ```python
 import os
-import copy
 
 import autogen
 from autogen.agentchat.contrib.capabilities import transform_messages
-from typing import Dict, List
 
-config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
+system_message = "You are a world class researcher."
+config_list = [{"model": "gpt-4-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
 
 # Define your agent; the user proxy and an assistant
-assistant = autogen.AssistantAgent(
+researcher = autogen.ConversableAgent(
     "assistant",
     llm_config={"config_list": config_list},
     max_consecutive_auto_reply=1,
+    system_message=system_message,
+    human_input_mode="NEVER",
 )
 user_proxy = autogen.UserProxyAgent(
     "user_proxy",
@@ -97,39 +99,73 @@ Learn more about configuring LLMs for agents [here](/docs/topics/llm_configurati
 
 ```python
 context_handling = transform_messages.TransformMessages(transforms=[text_compressor])
-context_handling.add_to_agent(assistant)
+context_handling.add_to_agent(researcher)
 
-message = "Explain to me what's happening in this research paper.\n" + pdf_text
-result = user_proxy.initiate_chat(recipient=assistant, clear_history=True, message=message, silent=True)
+message = "Summarize this research paper for me, include the important information" + pdf_text
+result = user_proxy.initiate_chat(recipient=researcher, clear_history=True, message=message, silent=True)
 
 print(result.chat_history[1]["content"])
 ```
 
 ```console
-The research paper you mentioned, titled "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation," authored by Qingyun Wu and colleagues, provides a comprehensive discussion on AutoGen, a distinctive framework for building large-language-model (LLM) applications through multi-agent conversations.
+19953 tokens saved with text compression.
+The paper describes AutoGen, a framework designed to facilitate the development of diverse large language model (LLM) applications through conversational multi-agent systems. The framework emphasizes customization and flexibility, enabling developers to define agent interaction behaviors in natural language or computer code.
 
-Here's a summary of the key points in the research paper:
+Key components of AutoGen include:
+1. **Conversable Agents**: These are customizable agents designed to operate autonomously or through human interaction. They are capable of initiating, maintaining, and responding within conversations, contributing effectively to multi-agent dialogues.
 
-### 1. **Overview of AutoGen Framework**
-   AutoGen is a multi-agent conversational framework designed to facilitate the development of applications utilizing LLMs (Large Language Models) like GPT-4. It provides tools for agent customization, allowing interactions in dynamic and context-aware conversation patterns that can adapt based on user inputs and other environmental considerations.
+2. **Conversation Programming**: AutoGen introduces a programming paradigm centered around conversational interactions among agents. This approach simplifies the development of complex applications by streamlining how agents communicate and interact, focusing on conversational logic rather than traditional coding for
+mats.
 
-### 2. **Multi-Agent Conversations**
-   The framework supports complex communication patterns between multiple agents, each capable of performing distinct roles within a conversation. This architecture allows AutoGen to decompose complex tasks into smaller, manageable chunks handled by specialized agents, leading to more efficient problem solving.
+3. **Agent Customization and Flexibility**: Developers have the freedom to define the capabilities and behaviors of agents within the system, allowing for a wide range of applications across different domains.
 
-### 3. **Customizable and Conversable Agents**
-   Agents within AutoGen are both customizable and conversable, meaning they can be tailored to meet specific application needs and can engage intelligently in dialogue. This adaptability makes it possible to use the same framework across various domains by altering agent configurations without redesigning the entire system.
+4. **Application Versatility**: The paper outlines various use cases from mathematics and coding to decision-making and entertainment, demonstrating AutoGen's ability to cope with a broad spectrum of complexities and requirements.
 
-### 4. **Hierarchical and Flexible Conversation Structures**
-   The paper emphasizes the hierarchical nature of conversations, where some agents may control or guide the flow of interaction, while others execute specific tasks. This setup helps in managing the complexity of conversations and ensuring coherence across the contributions of different agents.
+5. **Hierarchical and Joint Chat Capabilities**: The system supports complex conversation patterns including hierarchical and multi-agent interactions, facilitating robust dialogues that can dynamically adjust based on the conversation context and the agents' roles.
 
-### 5. **Application Areas**
-   AutoGen is shown to be applicable in diverse fields ranging from mathematics and coding problem-solving to more sophisticated decision-making and operational research. These applications demonstrate the framework's robustness and flexibility, capable of handling both structured and semi-structured tasks.
+6. **Open-source and Community Engagement**: AutoGen is presented as an open-source framework, inviting contributions and adaptations from the global development community to expand its capabilities and applications.
 
-### 6. **Open-source and Community Contribution**
-   The AutoGen framework is open-source, inviting contributions from developers worldwide. This approach helps in refining the framework, extending its capabilities, and adapting it to new challenges and scenarios.
+The framework's architecture is designed so that it can be seamlessly integrated into existing systems, providing a robust foundation for developing sophisticated multi-agent applications that leverage the capabilities of modern LLMs. The paper also discusses potential ethical considerations and future improvements, highlighting the importance of continual development in response to evolving tech landscapes and user needs.
+```
 
-### 7. **Empirical Studies and Evaluations**
-   The paper mentions empirical studies that assess the effectiveness of the AutoGen framework across various applications. These studies typically compare AutoGen's performance against standard baselines or existing solutions to highlight its advantages in terms of flexibility, efficiency, and adaptability.
+## Example 3: Modifying LLMLingua's Compression Parameters
 
-This paper not only advances the field by introducing a scalable and versatile framework but also opens up several avenues for further research and development in the area of multi-agent systems and LLM applications. If you need to execute any specific actions or require more detailed explanations on any part of the paper, let me know!
+LLMLingua can be configured to compress text in a variety of ways. For example, we can pass in new instructions to the LLM or setting target token counts for compression. We'll be showcasing on how to set the target token count to allow us to use models with smaller context size like gpt-3.5.
+
+```python
+config_list = [{"model": "gpt-3.5-turbo", "api_key": os.getenv("OPENAI_API_KEY")}]
+researcher = autogen.ConversableAgent(
+    "assistant",
+    llm_config={"config_list": config_list},
+    max_consecutive_auto_reply=1,
+    system_message=system_message,
+    human_input_mode="NEVER",
+)
+
+text_compressor = TextMessageCompressor(
+    text_compressor=llm_lingua,
+    compression_params={"target_token": 13000},
+    cache=None,
+)
+context_handling = transform_messages.TransformMessages(transforms=[text_compressor])
+context_handling.add_to_agent(researcher)
+
+compressed_text = text_compressor.apply_transform([{"content": message}])
+
+result = user_proxy.initiate_chat(recipient=researcher, clear_history=True, message=message, silent=True)
+
+print(result.chat_history[1]["content"])
+```
+
+```console
+25308 tokens saved with text compression.
+Based on the extensive research paper information provided, it seems that the focus is on developing a framework called AutoGen for creating multi-agent conversations based on Large Language Models (LLMs) for a variety of applications such as math problem solving, coding, decision-making, and more.
+
+The paper discusses the importance of incorporating diverse roles of LLMs, human inputs, and tools to enhance the capabilities of the conversable agents within the AutoGen framework. It also delves into the effectiveness of different systems in various scenarios, showcases the implementation of AutoGen in pilot studies, and compares its performance with other systems in tasks like math problem-solving, coding, and decision-making.
+
+The paper also highlights the different features and components of AutoGen such as the AssistantAgent, UserProxyAgent, ExecutorAgent, and GroupChatManager, emphasizing its flexibility, ease of use, and modularity in managing multi-agent interactions. It presents case analyses to demonstrate the effectiveness of AutoGen in various applications and scenarios.
+
+Furthermore, the paper includes manual evaluations, scenario testing, code examples, and detailed comparisons with other systems like ChatGPT, OptiGuide, MetaGPT, and more, to showcase the performance and capabilities of the AutoGen framework.
+
+Overall, the research paper showcases the potential of AutoGen in facilitating dynamic multi-agent conversations, enhancing decision-making processes, and improving problem-solving tasks with the integration of LLMs, human inputs, and tools in a collaborative framework.
 ```
