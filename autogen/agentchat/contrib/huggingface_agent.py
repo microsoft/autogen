@@ -3,7 +3,7 @@ import json
 from enum import Enum
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
-from huggingface_hub import InferenceClient
+from huggingface_hub import ImageToTextOutput, InferenceClient
 from typing_extensions import Annotated
 
 from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
@@ -122,6 +122,34 @@ class HuggingFaceAgent(ConversableAgent):
 
                 return json.dumps(response)
 
+        if HuggingFaceTask.IMAGE_TO_TEXT in self._hf_task_list:
+
+            @self._user_proxy.register_for_execution()
+            @self._assistant.register_for_llm(
+                name=HuggingFaceTask.IMAGE_TO_TEXT.value,
+                description="Outputs a text from a given image. Image captioning or optical character recognition can be considered as the most common applications of image to text.",
+            )
+            def _image_to_text(
+                image_file: Annotated[
+                    str, "The path to the image file, a URL to an image, or a base64-encoded string of the image"
+                ]
+            ) -> str:
+                model, params = _load_task_config(HuggingFaceTask.IMAGE_TO_TEXT)
+                image_data = img_utils.get_image_data(image_file, use_b64=False)
+                raw_response = self._hf_client.post(
+                    data=image_data,
+                    model=model,
+                    task=HuggingFaceTask.IMAGE_TO_TEXT.value,
+                )
+                generated_text = ImageToTextOutput.parse_obj_as_list(raw_response)[0].generated_text
+                response = {
+                    "content": [
+                        {"type": "text", "text": f"I generated the following text from the image: {generated_text}"},
+                    ]
+                }
+
+                return json.dumps(response)
+
     def generate_huggingface_reply(
         self,
         messages: Optional[List[Dict[str, str]]] = None,
@@ -142,9 +170,11 @@ class HuggingFaceAgent(ConversableAgent):
 
         self._user_proxy.send(messages[-1], self._assistant, request_reply=True, silent=True)
         agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
+        print("Agent Reply: " + str(agent_reply))
         proxy_reply = self._user_proxy.generate_reply(
             messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
         )
+        print("Proxy Reply: " + str(proxy_reply))
 
         if proxy_reply == "":
             # default reply
