@@ -25,9 +25,9 @@
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.1.1" />
     <PackageReference Include="Octokit" Version="11.0.1" />
 
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.9.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.9.0-alpha" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.9.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.10.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.10.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.10.0-alpha" />
 
     <PackageReference Include="Microsoft.Orleans.Server" Version="8.1.0" />
     <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />

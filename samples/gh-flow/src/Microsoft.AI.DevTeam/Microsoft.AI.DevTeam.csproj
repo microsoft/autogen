@@ -18,20 +18,20 @@
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.0.3" />
     <PackageReference Include="Octokit" Version="10.0.0" />
 
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.6.2-alpha" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.6.2-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.10.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.10.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.10.0-alpha" />
 
-    <PackageReference Include="Microsoft.Orleans.Server" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.0.0" />
-    <PackageReference Include="OrleansDashboard" Version="7.2.2" />
+    <PackageReference Include="Microsoft.Orleans.Server" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.1.0" />
+    <PackageReference Include="OrleansDashboard" Version="8.0.0" />
 
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.21.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
