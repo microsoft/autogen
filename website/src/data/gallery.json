@@ -12,7 +12,7 @@
     "description": "A virtual consumer focus group with multiple custom personas, product details, and final analysis created with AutoGen, Ollama/Llama3, and Streamlit.",
     "image": "default.png",
     "tags": ["ui", "groupchat"]
-  }
+  },
   {
     "title": "Function Generator & Validator",
     "link": "https://github.com/abhaymathur21/TensionCode",
