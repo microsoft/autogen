@@ -1,58 +1,127 @@
 [
     {
-        "id": "1",
-        "source": "user",
-        "content": "Hello, how can I help you?",
-        "tags": ["greeting"],
-        "states": ["start"]
+        "message": {
+            "id": "1",
+            "source": "user",
+            "content": "Hello, how can I help you?",
+            "tags": ["greeting"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "2",
-        "source": "bot",
-        "content": "Hello, how can I help you?",
-        "tags": ["greeting"],
-        "states": ["start"]
+        "message": {
+            "id": "2",
+            "source": "bot",
+            "content": "Hello, how can I help you?",
+            "tags": ["greeting"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "3",
-        "source": "user",
-        "content": "I need help with my order",
-        "tags": ["order"],
-        "states": ["start"]
+        "message": {
+            "id": "3",
+            "source": "user",
+            "content": "I need help with my order",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "4",
-        "source": "bot",
-        "content": "I can help you with that. What is your order number?",
-        "tags": ["order"],
-        "states": ["start"]
+        "message": {
+            "id": "4",
+            "source": "bot",
+            "content": "I can help you with that. What is your order number?",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "5",
-        "source": "user",
-        "content": "I need help with my order",
-        "tags": ["order"],
-        "states": ["end"]
+        "message": {
+            "id": "5",
+            "source": "user",
+            "content": "I need help with my order",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "end",
+                "description": "The conversation has ended",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "6",
-        "source": "user",
-        "content": "I need help with my order",
-        "tags": ["order"],
-        "states": ["start", "end"]
+        "message": {
+            "id": "6",
+            "source": "user",
+            "content": "I need help with my order",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            },
+            {
+                "name": "end",
+                "description": "The conversation has ended",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "7",
-        "source": "orchestrator",
-        "content": "I need help with my order",
-        "tags": ["order"],
-        "states": ["start"]
+        "message": {
+            "id": "7",
+            "source": "orchestrator",
+            "content": "I need help with my order",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     },
     {
-        "id": "8",
-        "source": "bot",
-        "content": "I can help you with that. What is your order number?",
-        "tags": ["order"],
-        "states": ["end"]
+        "message": {
+            "id": "8",
+            "source": "bot",
+            "content": "I can help you with that. What is your order number?",
+            "tags": ["order"]
+        },
+        "states": [
+            {
+                "name": "start",
+                "description": "The conversation has just started",
+                "tags": []
+            }
+        ]
     }
 ]

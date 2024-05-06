@@ -3,7 +3,7 @@ function drawTimeline(svg, data, width, height) {
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
-    const sources = Array.from(new Set(data.map(d => d.source)));
+    const sources = Array.from(new Set(data.map(d => d.message.source)));
     const sourceCount = sources.length;
 
     const g = svg.append("g")
@@ -29,7 +29,7 @@ function drawTimeline(svg, data, width, height) {
 
     // Draw the timelines
     sources.forEach(source => {
-        const sourceMessages = data.filter(d => d.source === source);
+        const sourceMessages = data.filter(d => d.message.source === source);
 
         g.selectAll(`.bar-${source}`)
             .data(sourceMessages)
@@ -46,7 +46,7 @@ function drawTimeline(svg, data, width, height) {
                 const messageClickedEvent = new CustomEvent("messageClicked", {
                     bubbles: true,
                     detail: {
-                        message: d
+                        message: d.message
                     }
                 });
                 window.dispatchEvent(messageClickedEvent);
@@ -81,9 +81,9 @@ function drawTimeline(svg, data, width, height) {
 }
 
 export class TimelineWidget {
-    constructor({ id, messageArray }) {
+    constructor({ id, profileArray }) {
         this.id = id;
-        this.messageArray = messageArray;
+        this.profileArray = profileArray;
         this.width = 400;
         this.height = 300;
     }
@@ -105,7 +105,7 @@ export class TimelineWidget {
             .attr("height", this.height);
 
         // Call the drawBarChart function to render the bar chart
-        drawTimeline(svg, this.messageArray, this.width, this.height);
+        drawTimeline(svg, this.profileArray, this.width, this.height);
 
         // Append the SVG element to the div
         return div;

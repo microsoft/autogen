@@ -1,45 +1,89 @@
 
-export class Message {
-
+class State {
     /*
-    A class to represent a message
+    A class to represent a state
     */
-
-    constructor(id, source, content, tags, states) {
-        this.id = id;
-        this.source = source;
-        this.content = content;
+    constructor({name, description, tags}) {
+        this.name = name;
+        this.description = description;
         this.tags = tags;
-        this.states = states;
+    }
+
+    static fromList(distList) {
+        /*
+        Create a list of State objects from a list of dictionaries
+        */
+        return distList.map(state => new State(state));
     }
 }
 
-export class MessageWidget {
+class Message {
+    /*
+    A class to represent a message
+    */
+    constructor({id, source, content, tags}) {
+        if (!id || !source || !content) {
+            throw new Error('id, source, content are required fields');
+        }
+        this.id = id;
+        this.source = source;
+        this.content = content;
+        if (!tags) {
+            tags = [];
+        }
+        this.tags = tags;
+    }
+}
+
+export class MessageProfile {
+    /*
+    A class to represent a message
+    */
+    constructor({message, states, cost, duration}) {
+        if (!message || !states) {
+            throw new Error('message, states are required fields');
+        }
+        this.message = new Message(message);
+        this.states = State.fromList(states);
+        if (!cost) {
+            cost = -1;
+        }
+        this.cost = cost;
+        if (!duration) {
+            duration = -1;
+        }
+        this.duration = duration;
+    }
+}
+
+
+class MessageWidget {
 
     constructor({
         id,
-        message
+        msgProfile
     }) {
         this.id = id;
-        this.message = message;
+        this.msgProfile = msgProfile;
     }
 
     compose() {
         const div = document.createElement('div');
         div.className = "message-widget";
         div.id = this.id;
+        const message = this.msgProfile.message;
 
         const h3 = document.createElement('h3');
-        h3.textContent = this.message.source;
+        h3.textContent = message.source;
         div.appendChild(h3);
 
         const p = document.createElement('p');
-        p.textContent = this.message.content;
+        p.textContent = message.content;
         div.appendChild(p);
 
         const tagsDiv = document.createElement('div');
         tagsDiv.className = "tags";
-        this.message.tags.forEach(tag => {
+        message.tags.forEach(tag => {
             const span = document.createElement('span');
             span.className = "tag";
             span.textContent = tag;
@@ -49,10 +93,10 @@ export class MessageWidget {
 
         const statesDiv = document.createElement('div');
         statesDiv.className = "states";
-        this.message.states.forEach(state => {
+        this.msgProfile.states.forEach(state => {
             const span = document.createElement('span');
             span.className = "state";
-            span.textContent = state;
+            span.textContent = state.name;
             statesDiv.appendChild(span);
         });
         div.appendChild(statesDiv);
@@ -63,9 +107,9 @@ export class MessageWidget {
 
 export class MessageHistoryWidget {
 
-    constructor({id, messageArray}) {
+    constructor({id, messageProfileArray}) {
         this.id = id;
-        this.messageArray = messageArray;
+        this.messageProfileArray = messageProfileArray;
     }
 
     compose() {
@@ -77,10 +121,10 @@ export class MessageHistoryWidget {
         heading.textContent = "Message History";
         div.appendChild(heading);
 
-        this.messageArray.forEach(message => {
+        this.messageProfileArray.forEach(profile => {
             const messageWidget = new MessageWidget({
-                id: "message-" + message.id,
-                message: message
+                id: "message-" + profile.message.id,
+                msgProfile: profile
             });
             div.appendChild(messageWidget.compose());
         });

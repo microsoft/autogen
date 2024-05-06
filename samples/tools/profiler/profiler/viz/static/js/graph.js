@@ -4,13 +4,14 @@ function setEqual(setA, setB) {
     return true;
 }
 
-function prepareGraphDataWithFrequency(messages) {
+function prepareGraphDataWithFrequency(profileArray) {
     const stateSets = [];
     const nodes = [];
     const linksMap = new Map();
 
-    messages.forEach((msg, index) => {
-        const stateSet = new Set(msg.states);
+    profileArray.forEach((profile, index) => {
+        const stateNames = profile.states.map(state => state.name);
+        const stateSet = new Set(stateNames);
 
         let sourceIndex = stateSets.findIndex(s => setEqual(s, stateSet));
         if (sourceIndex === -1) {
@@ -19,8 +20,9 @@ function prepareGraphDataWithFrequency(messages) {
             nodes.push({ id: sourceIndex, label: [...stateSet].join(', ') });
         }
 
-        if (index < messages.length - 1) {
-            const nextStateSet = new Set(messages[index + 1].states);
+        if (index < profileArray.length - 1) {
+            const nextStateNames = profileArray[index + 1].states.map(state => state.name);
+            const nextStateSet = new Set(nextStateNames);
             let targetIndex = stateSets.findIndex(s => setEqual(s, nextStateSet));
             if (targetIndex === -1) {
                 targetIndex = stateSets.length;
@@ -185,9 +187,9 @@ function drawDirectedGraph(svg, graphData, width, height) {
 }
 
 export class DirectedGraphWidget {
-    constructor({ id, messages, width = 400, height = 300 }) {
+    constructor({ id, profileArray, width = 400, height = 300 }) {
         this.id = id;
-        this.messages = messages;
+        this.profileArray = profileArray;
         this.width = width;
         this.height = height;
     }
@@ -206,7 +208,7 @@ export class DirectedGraphWidget {
             .attr("width", this.width)
             .attr("height", this.height);
 
-        const graphData = prepareGraphDataWithFrequency(this.messages);
+        const graphData = prepareGraphDataWithFrequency(this.profileArray);
         drawDirectedGraph(svg, graphData, this.width, this.height);
 
         return div;

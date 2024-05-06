@@ -1,4 +1,4 @@
-import { MessageHistoryWidget } from './widgets.js';
+import { MessageProfile, MessageHistoryWidget } from './widgets.js';
 import { FilterWidget } from './widgets.js';
 import { BarChartWidget } from './barchart.js';
 import { TimelineWidget } from './timelines.js';
@@ -22,7 +22,7 @@ function renderOrUpdate(parentNode, widget) {
 function renderFilters(data) {
     // Extract names of all the tags from the data
     const tags = data.reduce((acc, message) => {
-        message.tags.forEach(tag => {
+        message.message.tags.forEach(tag => {
             if (!acc.includes(tag)) {
                 acc.push(tag);
             }
@@ -44,18 +44,19 @@ function renderFilters(data) {
 function updateAllWidgets(data) {
     const messageHistoryWidget = new MessageHistoryWidget({
         id: "message-history-widget",
-        messageArray: data
+        messageProfileArray: data
     });
 
     renderOrUpdate(document.body, messageHistoryWidget);
 
     // get mapping from states to counts
-    const stateCounts = data.reduce((acc, message) => {
-        message.states.forEach(state => {
-            if (!acc[state]) {
-                acc[state] = 0;
+    const stateCounts = data.reduce((acc, profile) => {
+        profile.states.forEach(state => {
+            const stateName = state.name;
+            if (!acc[stateName]) {
+                acc[stateName] = 0;
             }
-            acc[state]++;
+            acc[stateName]++;
         });
         return acc;
     }, {});
@@ -69,14 +70,14 @@ function updateAllWidgets(data) {
 
     const timelineWidget = new TimelineWidget({
         id: "timeline-widget",
-        messageArray: data
+        profileArray: data
     });
 
     renderOrUpdate(document.body, timelineWidget);
 
     const directedGraphWidget = new DirectedGraphWidget({
         id: "directed-graph-widget",
-        messages: data
+        profileArray: data
     });
 
     renderOrUpdate(document.body, directedGraphWidget);
@@ -91,8 +92,8 @@ function getFilteredData(labels, data) {
 
     // Filter the data based on the labels
     // Include if any of the labels are in the tags
-    return data.filter(message => {
-        const tagMatch = labels.some(label => message.tags.includes(label));
+    return data.filter(profile => {
+        const tagMatch = labels.some(label => profile.message.tags.includes(label));
         return tagMatch;
     });
 }
@@ -114,13 +115,31 @@ function renderPage(data) {
     // listen for the filterChanged event
     document.addEventListener('filterChanged', (event) => {
         // get all the filters that are checked
-        // const checkedFilters = filters[0].getCheckedFilters();
         const checkedFilters = filters.reduce((acc, filter) => {
             return acc.concat(filter.getCheckedFilters());
         }, []);
         const filteredData = getFilteredData(checkedFilters, data);
         updateAllWidgets(filteredData);
     });
+}
+
+function parseData(data) {
+    console.log(data);
+    // Parse the data
+    const formattedData = [];
+    // loop through the data and create a new ProfiledMessage
+    // object for each message
+
+    data.forEach(row => {
+        const msg = new MessageProfile({
+            message: row.message,
+            states: row.states
+        });
+        formattedData.push(msg);
+    });
+
+    console.log(formattedData);
+    return formattedData;
 }
 
 (function loadData() {
@@ -130,5 +149,6 @@ function renderPage(data) {
     // Fetch the data from the path
     fetch(path)
         .then(response => response.json())
+        .then(data => parseData(data))
         .then(data => renderPage(data));
 })();
