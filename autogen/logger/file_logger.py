@@ -26,7 +26,17 @@ class FileLogger(BaseLogger):
         self.session_id = str(uuid.uuid4())
         self.log_file = self.config.get("filename", "runtime.log")
 
-        logger.basicConfig(filename=self.log_file, level=logging.INFO)
+        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
+        if not os.path.exists(self.log_file):
+            with open(self.log_file, "w"):
+                pass
+
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        file_handler = logging.FileHandler(self.log_file)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
 
     def start(self) -> str:
         try:
@@ -61,9 +71,9 @@ class FileLogger(BaseLogger):
                 "end_time": get_current_ts(),
             }
 
-            logger.info(json.dumps(log_data))
+            self.logger.info(json.dumps(log_data))
         except Exception as e:
-            logger.error(f"[file_logger] Failed to log chat completion: {e}")
+            self.logger.error(f"[file_logger] Failed to log chat completion: {e}")
 
     def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         try:
@@ -80,9 +90,9 @@ class FileLogger(BaseLogger):
                     "args": init_args,
                 }
             )
-            logger.info(log_data)
+            self.logger.info(log_data)
         except Exception as e:
-            logger.error(f"[file_logger] Failed to log new agent: {e}")
+            self.logger.error(f"[file_logger] Failed to log new agent: {e}")
 
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         """"""
@@ -103,9 +113,9 @@ class FileLogger(BaseLogger):
                         "timestamp": get_current_ts(),
                     }
                 )
-                logger.info(log_data)
+                self.logger.info(log_data)
             except Exception as e:
-                logger.error(f"[file_logger] Failed to log event {e}")
+                self.logger.error(f"[file_logger] Failed to log event {e}")
         else:
             try:
                 log_data = json.dumps(
@@ -117,9 +127,9 @@ class FileLogger(BaseLogger):
                         "timestamp": get_current_ts(),
                     }
                 )
-                logger.info(log_data)
+                self.logger.info(log_data)
             except Exception as e:
-                logger.error(f"[file_logger] Failed to log event {e}")
+                self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
         """"""
@@ -132,9 +142,9 @@ class FileLogger(BaseLogger):
                     "timestamp": get_current_ts(),
                 }
             )
-            logger.info(log_data)
+            self.logger.info(log_data)
         except Exception as e:
-            logger.error(f"[file_logger] Failed to log event {e}")
+            self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_client(self, client: AzureOpenAI | OpenAI, wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
         try:
@@ -148,9 +158,9 @@ class FileLogger(BaseLogger):
                     "timestamp": get_current_ts(),
                 }
             )
-            logger.info(log_data)
+            self.logger.info(log_data)
         except Exception as e:
-            logger.error(f"[file_logger] Failed to log event {e}")
+            self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def get_connection(self) -> None:
         """Method is intentionally left blank because there is no specific connection needed for the FileLogger."""
