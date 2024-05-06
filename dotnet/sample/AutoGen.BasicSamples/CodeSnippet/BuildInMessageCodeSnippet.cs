@@ -11,7 +11,7 @@ internal class BuildInMessageCodeSnippet
         IStreamingAgent agent = default;
         #region StreamingCallCodeSnippet
         var helloTextMessage = new TextMessage(Role.User, "Hello");
-        var reply = await agent.GenerateStreamingReplyAsync([helloTextMessage]);
+        var reply = agent.GenerateStreamingReplyAsync([helloTextMessage]);
         var finalTextMessage = new TextMessage(Role.Assistant, string.Empty, from: agent.Name);
         await foreach (var message in reply)
         {
@@ -24,7 +24,7 @@ internal class BuildInMessageCodeSnippet
         #endregion StreamingCallCodeSnippet
 
         #region StreamingCallWithFinalMessage
-        reply = await agent.GenerateStreamingReplyAsync([helloTextMessage]);
+        reply = agent.GenerateStreamingReplyAsync([helloTextMessage]);
         TextMessage finalMessage = null;
         await foreach (var message in reply)
         {
