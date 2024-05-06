@@ -13,18 +13,15 @@ from typing_extensions import Annotated
 from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
-from ....runtime_logging import logging_enabled, log_event
 from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
-# Optional OCR support
-IS_OCR_CAPABLE = False
+from autogen.runtime_logging import logging_enabled, log_event
+from autogen.browser_utils import OCR
 
 try:
     from termcolor import colored
-    import easyocr
-    import numpy as np
-    IS_OCR_CAPABLE = True
+
 except ImportError:
 
     def colored(x, *args, **kwargs):
@@ -77,6 +74,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         browser_data_dir: Optional[str] = None,
         start_page: Optional[str] = None,
         debug_dir: Optional[str] = None,
+        ocr_enabled: Optional[bool] = False,
     ):
         """
         Create a new MultimodalWebSurferAgent.
@@ -114,6 +112,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # self._mlm_client = OpenAIWrapper(**self._mlm_config)
         self.start_page = start_page or self.DEFAULT_START_PAGE
         self.debug_dir = debug_dir or os.getcwd()
+        self.ocr = OCR() if ocr_enabled else None
 
         # Create the playwright instance
         launch_args = {"headless": headless}
@@ -440,16 +439,18 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                 percent_scrolled=percent_scrolled,
             )
 
-        if IS_OCR_CAPABLE:
-            ocr_text = self._get_ocr_text(new_screenshot)
-        text_prompt = f"""Here is a screenshot of [{self._page.title()}]({self._page.url}).
-            The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}."""
-        if ocr_text is not None:
+        ocr_text = None
+        if self.ocr is not None:
+            ocr_text = self.ocr.get_ocr_text(new_screenshot)
+
+        text_prompt = f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip()
+
+        if ocr_text:
             text_prompt += ocr_text
 
         # Return the complete observation
         return True, self._make_mm_message(
-            f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
+            text_prompt,
             new_screenshot,
         )
 
