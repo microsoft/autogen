@@ -10,14 +10,14 @@ __all__ = ("LoggerFactory",)
 class LoggerFactory:
     @staticmethod
     def get_logger(
-        logger_type: Literal["sqlite", "filelogger"] = "sqlite", config: Optional[Dict[str, Any]] = None
+        logger_type: Literal["sqlite", "file"] = "sqlite", config: Optional[Dict[str, Any]] = None
     ) -> BaseLogger:
         if config is None:
             config = {}
 
         if logger_type == "sqlite":
             return SqliteLogger(config)
-        elif logger_type == "filelogger":
+        elif logger_type == "file":
             return FileLogger(config)
         else:
             raise ValueError(f"[logger_factory] Unknown logger type: {logger_type}")

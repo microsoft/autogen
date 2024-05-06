@@ -22,7 +22,7 @@ is_logging = False
 
 def start(
     logger: Optional[BaseLogger] = None,
-    logger_type: Literal["sqlite", "filelogger"] = "sqlite",
+    logger_type: Literal["sqlite", "file"] = "sqlite",
     config: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
