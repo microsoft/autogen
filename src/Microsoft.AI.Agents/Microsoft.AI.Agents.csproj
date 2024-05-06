@@ -7,8 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.2" />
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
+   
+    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="8.1.0" />
+
+    <PackageReference Include="Microsoft.Orleans.Server" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.1.0" />
+    <PackageReference Include="OrleansDashboard" Version="8.0.0" />
+	  
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.9.0" />
   </ItemGroup>
 
 </Project>

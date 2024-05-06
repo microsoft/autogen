@@ -1,3 +1,6 @@
+using Orleans;
+using Orleans.CodeGeneration;
+
 namespace Microsoft.AI.Agents.Abstractions
 {
     [GenerateSerializer]

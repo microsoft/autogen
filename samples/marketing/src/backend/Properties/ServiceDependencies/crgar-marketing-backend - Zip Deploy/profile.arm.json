@@ -1,0 +1,173 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_dependencyType": "compute.function.linux.appService"
+  },
+  "parameters": {
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "crgar-marketing-rg",
+      "metadata": {
+        "description": "Name of the resource group for the resource. It is recommended to put resources under same resource group for better tracking."
+      }
+    },
+    "resourceGroupLocation": {
+      "type": "string",
+      "defaultValue": "swedencentral",
+      "metadata": {
+        "description": "Location of the resource group. Resource groups could have different location than resources, however by default we use API versions from latest hybrid profile which support all locations for resource types we support."
+      }
+    },
+    "resourceName": {
+      "type": "string",
+      "defaultValue": "crgar-marketing-backend",
+      "metadata": {
+        "description": "Name of the main resource to be created by this template."
+      }
+    },
+    "resourceLocation": {
+      "type": "string",
+      "defaultValue": "[parameters('resourceGroupLocation')]",
+      "metadata": {
+        "description": "Location of the resource. By default use resource group's location, unless the resource provider is not supported there."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "name": "[parameters('resourceGroupName')]",
+      "location": "[parameters('resourceGroupLocation')]",
+      "apiVersion": "2019-10-01"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "name": "[concat(parameters('resourceGroupName'), 'Deployment', uniqueString(concat(parameters('resourceName'), subscription().subscriptionId)))]",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "apiVersion": "2019-10-01",
+      "dependsOn": [
+        "[parameters('resourceGroupName')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "parameters": {
+          "resourceGroupName": {
+            "value": "[parameters('resourceGroupName')]"
+          },
+          "resourceGroupLocation": {
+            "value": "[parameters('resourceGroupLocation')]"
+          },
+          "resourceName": {
+            "value": "[parameters('resourceName')]"
+          },
+          "resourceLocation": {
+            "value": "[parameters('resourceLocation')]"
+          }
+        },
+        "template": {
+          "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "resourceGroupName": {
+              "type": "string"
+            },
+            "resourceGroupLocation": {
+              "type": "string"
+            },
+            "resourceName": {
+              "type": "string"
+            },
+            "resourceLocation": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "storage_name": "[toLower(concat('storage', uniqueString(concat(parameters('resourceName'), subscription().subscriptionId))))]",
+            "appServicePlan_name": "[concat('Plan', uniqueString(concat(parameters('resourceName'), subscription().subscriptionId)))]",
+            "storage_ResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('resourceGroupName'), '/providers/Microsoft.Storage/storageAccounts/', variables('storage_name'))]",
+            "appServicePlan_ResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('resourceGroupName'), '/providers/Microsoft.Web/serverFarms/', variables('appServicePlan_name'))]",
+            "function_ResourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('resourceGroupName'), '/providers/Microsoft.Web/sites/', parameters('resourceName'))]"
+          },
+          "resources": [
+            {
+              "location": "[parameters('resourceLocation')]",
+              "name": "[parameters('resourceName')]",
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2015-08-01",
+              "tags": {
+                "[concat('hidden-related:', variables('appServicePlan_ResourceId'))]": "empty"
+              },
+              "dependsOn": [
+                "[variables('appServicePlan_ResourceId')]",
+                "[variables('storage_ResourceId')]"
+              ],
+              "kind": "functionapp",
+              "properties": {
+                "name": "[parameters('resourceName')]",
+                "kind": "functionapp",
+                "httpsOnly": true,
+                "reserved": false,
+                "serverFarmId": "[variables('appServicePlan_ResourceId')]",
+                "siteConfig": {
+                  "alwaysOn": true,
+                  "linuxFxVersion": "dotnet|3.1"
+                }
+              },
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "resources": [
+                {
+                  "name": "appsettings",
+                  "type": "config",
+                  "apiVersion": "2015-08-01",
+                  "dependsOn": [
+                    "[variables('function_ResourceId')]"
+                  ],
+                  "properties": {
+                    "AzureWebJobsStorage": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storage_name'), ';AccountKey=', listKeys(variables('storage_ResourceId'), '2017-10-01').keys[0].value, ';EndpointSuffix=', 'core.windows.net')]",
+                    "FUNCTIONS_EXTENSION_VERSION": "~3",
+                    "FUNCTIONS_WORKER_RUNTIME": "dotnet"
+                  }
+                }
+              ]
+            },
+            {
+              "location": "[parameters('resourceGroupLocation')]",
+              "name": "[variables('storage_name')]",
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2017-10-01",
+              "tags": {
+                "[concat('hidden-related:', concat('/providers/Microsoft.Web/sites/', parameters('resourceName')))]": "empty"
+              },
+              "properties": {
+                "supportsHttpsTrafficOnly": true
+              },
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "kind": "Storage"
+            },
+            {
+              "location": "[parameters('resourceGroupLocation')]",
+              "name": "[variables('appServicePlan_name')]",
+              "type": "Microsoft.Web/serverFarms",
+              "apiVersion": "2015-02-01",
+              "kind": "linux",
+              "properties": {
+                "name": "[variables('appServicePlan_name')]",
+                "sku": "Standard",
+                "workerSizeId": "0",
+                "reserved": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

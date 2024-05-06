@@ -1,0 +1,59 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <Compile Remove="Services\**" />
+    <Content Remove="Services\**" />
+    <EmbeddedResource Remove="Services\**" />
+    <None Remove="Services\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+	  <ProjectReference Include="..\..\..\..\src\Microsoft.AI.Agents.Orleans\Microsoft.AI.Agents.Orleans.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <UserSecretsId>c073c86e-8483-4956-942f-331fd09172d4</UserSecretsId>
+    <AnalysisMode>All</AnalysisMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.1.1" />
+    <PackageReference Include="Octokit" Version="11.0.1" />
+
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.9.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.9.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.9.0-alpha" />
+
+    <PackageReference Include="Microsoft.Orleans.Server" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Runtime" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.Cosmos" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Reminders" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.1.0" />
+    <PackageReference Include="OrleansDashboard" Version="8.0.0" />
+
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.7.3" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.3.24209.3" />
+    <PackageReference Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
+    <PackageReference Include="Azure.Storage.Files.Shares" Version="12.18.0-beta.2" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.8.3" />
+    <PackageReference Include="Azure.Identity" Version="1.12.0-beta.1" />
+   
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.1" />
+    
+    
+  </ItemGroup>
+  
+
+</Project>

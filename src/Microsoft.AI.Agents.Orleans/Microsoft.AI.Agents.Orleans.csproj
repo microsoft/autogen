@@ -7,8 +7,8 @@
   </PropertyGroup>
 
    <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="8.1.0" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="8.1.0" />
     <ProjectReference Include="..\Microsoft.AI.Agents\Microsoft.AI.Agents.csproj" />
   </ItemGroup>
 
