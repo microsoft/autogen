@@ -1,42 +1,45 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatResponse.cs
 
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Autogen.Ollama;
 
-public class ChatResponse
-{
-    [JsonPropertyName("model")]
-    public string Model { get; set; } = string.Empty;
-
-    [JsonPropertyName("created_at")]
-    public string CreatedAt { get; set; } = string.Empty;
-
-    [JsonPropertyName("message")]
-    public Message? Message { get; set; }
-
-    [JsonPropertyName("done")]
-    public bool Done { get; set; }
-}
-
-public class Message
+public class ChatResponse : ChatResponseUpdate
 {
     /// <summary>
-    /// the role of the message, either system, user or assistant
+    /// time spent generating the response
     /// </summary>
-    [JsonPropertyName("role")]
-    public string Role { get; set; } = string.Empty;
-    /// <summary>
-    /// the content of the message
-    /// </summary>
-    [JsonPropertyName("content")]
-    public string Value { get; set; } = string.Empty;
+    [JsonPropertyName("total_duration")]
+    public long TotalDuration { get; set; }
 
     /// <summary>
-    ///  (optional): a list of images to include in the message (for multimodal models such as llava)
+    /// time spent in nanoseconds loading the model
     /// </summary>
-    [JsonPropertyName("images")]
-    public IList<string>? Images { get; set; }
+    [JsonPropertyName("load_duration")]
+    public long LoadDuration { get; set; }
+
+    /// <summary>
+    /// number of tokens in the prompt
+    /// </summary>
+    [JsonPropertyName("prompt_eval_count")]
+    public int PromptEvalCount { get; set; }
+
+    /// <summary>
+    /// time spent in nanoseconds evaluating the prompt
+    /// </summary>
+    [JsonPropertyName("prompt_eval_duration")]
+    public long PromptEvalDuration { get; set; }
+
+    /// <summary>
+    /// number of tokens the response
+    /// </summary>
+    [JsonPropertyName("eval_count")]
+    public int EvalCount { get; set; }
+
+    /// <summary>
+    /// time in nanoseconds spent generating the response
+    /// </summary>
+    [JsonPropertyName("eval_duration")]
+    public long EvalDuration { get; set; }
 }

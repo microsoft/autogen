@@ -44,7 +44,7 @@ public class ChatRequest
     /// if false the response will be returned as a single response object, rather than a stream of objects
     /// </summary>
     [JsonPropertyName("stream")]
-    public bool Stream { get; set; } = false;
+    public bool Stream { get; set; }
     /// <summary>
     /// controls how long the model will stay loaded into memory following the request (default: 5m)
     /// </summary>

@@ -46,8 +46,8 @@ public class OllamaAgent : IStreamingAgent
         {
             response.EnsureSuccessStatusCode();
             Stream? streamResponse = await response.Content.ReadAsStreamAsync();
-            MessageEnvelope<CompletedChatResponse> output = await JsonSerializer
-                                                               .DeserializeAsync<MessageEnvelope<CompletedChatResponse>>(streamResponse, cancellationToken: cancellation)
+            MessageEnvelope<ChatResponse> output = await JsonSerializer
+                                                               .DeserializeAsync<MessageEnvelope<ChatResponse>>(streamResponse, cancellationToken: cancellation)
                                                            ?? throw new Exception("Failed to deserialize response");
             output.From = Name;
             return output;
@@ -78,17 +78,17 @@ public class OllamaAgent : IStreamingAgent
                 string? line = await reader.ReadLineAsync();
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                ChatResponse? update = JsonSerializer.Deserialize<ChatResponse>(line);
+                ChatResponseUpdate? update = JsonSerializer.Deserialize<ChatResponseUpdate>(line);
                 if (update != null)
                 {
-                    yield return new MessageEnvelope<ChatResponse>(update, from: Name);
+                    yield return new MessageEnvelope<ChatResponseUpdate>(update, from: Name);
                 }
 
                 if (update is { Done: false }) continue;
 
-                CompletedChatResponse? chatMessage = JsonSerializer.Deserialize<CompletedChatResponse>(line);
+                ChatResponse? chatMessage = JsonSerializer.Deserialize<ChatResponse>(line);
                 if (chatMessage == null) continue;
-                yield return new MessageEnvelope<CompletedChatResponse>(chatMessage, from: Name);
+                yield return new MessageEnvelope<ChatResponse>(chatMessage, from: Name);
             }
         }
     }

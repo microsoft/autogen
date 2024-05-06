@@ -11,30 +11,30 @@ namespace Autogen.Ollama.Tests;
 public class OllamaAgentTests
 {
 
-    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
     public async Task GenerateReplyAsync_ReturnsValidMessage_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
-                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
+                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
-                           ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+                           ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
         IMessage result = await ollamaClientAgent.GenerateReplyAsync(messages);
 
         result.Should().NotBeNull();
-        result.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
+        result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
         result.From.Should().Be(ollamaClientAgent.Name);
     }
 
-    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
     public async Task GenerateReplyAsync_ReturnsValidJsonMessageContent_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
-                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
+                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
-                           ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+                           ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
@@ -44,21 +44,21 @@ public class OllamaAgentTests
         });
 
         result.Should().NotBeNull();
-        result.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
+        result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
         result.From.Should().Be(ollamaClientAgent.Name);
 
-        string jsonContent = ((MessageEnvelope<CompletedChatResponse>)result).Content.Message!.Value;
-        bool isValidJson = IsValidJson(jsonContent);
+        string jsonContent = ((MessageEnvelope<ChatResponse>)result).Content.Message!.Value;
+        bool isValidJson = IsValidJsonMessage(jsonContent);
         isValidJson.Should().BeTrue();
     }
 
-    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
     public async Task GenerateStreamingReplyAsync_ReturnsValidMessages_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
-                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
+                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
-                           ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
+                           ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
@@ -72,10 +72,10 @@ public class OllamaAgentTests
             finalReply = message;
         }
 
-        finalReply.Should().BeOfType<MessageEnvelope<CompletedChatResponse>>();
+        finalReply.Should().BeOfType<MessageEnvelope<ChatResponse>>();
     }
 
-    private static bool IsValidJson(string input)
+    private static bool IsValidJsonMessage(string input)
     {
         try
         {
