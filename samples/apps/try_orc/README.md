@@ -33,6 +33,8 @@ various properties like model names, api keys, base urls, etc.
 Please see the contents of `OAI_CONFIG_LIST_sample` in this directory for an example.
 Modify it with your keys and configuration and rename it to `OAI_CONFIG_LIST`.
 
+*Note*: The config list must contain one multi-modal model tagged with "mlm" and one (at least) text model tagged with "llm"
+
 
 Once you've installed the required packages, you can run the application with the following command:
 

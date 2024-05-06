@@ -342,8 +342,10 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         if m:
             argument = m.group(1).strip()
 
+        action_description = ""
         try:
             if target == str(MARK_ID_ADDRESS_BAR) and argument:
+                action_description = f"I typed '{argument}' into the browser address bar."
                 self._log_to_console("goto", arg=argument)
                 # Check if the argument starts with a known protocol
                 if argument.startswith(("https://", "http://", "file://")):
@@ -356,27 +358,47 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
                     argument = "https://" + argument
                     self._visit_page(argument)
             elif target == str(MARK_ID_BACK):
+                action_description = "I clicked the browser back button."
                 self._log_to_console("back")
                 self._back()
             elif target == str(MARK_ID_SEARCH_BAR) and argument:
+                action_description = f"I typed '{argument}' into the browser search bar."
                 self._log_to_console("search", arg=argument)
                 self._visit_page(f"https://www.bing.com/search?q={quote_plus(argument)}&FORM=QBLH")
             elif target == str(MARK_ID_PAGE_UP):
+                action_description = "I scrolled up one screen in the browser."
                 self._log_to_console("page_up")
                 self._page_up()
             elif target == str(MARK_ID_PAGE_DOWN):
+                action_description = "I scrolled down one screen in the browser."
                 self._log_to_console("page_down")
                 self._page_down()
             elif action == "click":
+                if target_name:
+                    action_description = f"I clicked '{target_name}'."
+                else:
+                    action_description = "I clicked the control."
                 self._log_to_console("click", target=target_name if target_name else target)
                 self._click_id(target)
             elif action == "type":
+                if target_name:
+                    action_description = f"I typed '{argument}' into '{target_name}'."
+                else:
+                    action_description = f"I input '{argument}'."
                 self._log_to_console("type", target=target_name if target_name else target, arg=argument)
                 self._fill_id(target, argument if argument else "")
             elif action == "scroll_up":
+                if target_name:
+                    action_description = f"I scrolled '{target_name}' up."
+                else:
+                    action_description = "I scrolled the control up."
                 self._log_to_console("scroll_up", target=target_name if target_name else target)
                 self._scroll_id(target, "up")
             elif action == "scroll_down":
+                if target_name:
+                    action_description = f"I scrolled '{target_name}' down."
+                else:
+                    action_description = "I scrolled the control down."
                 self._log_to_console("scroll_down", target=target_name if target_name else target)
                 self._scroll_id(target, "down")
             else:
@@ -427,7 +449,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         # Return the complete observation
         return True, self._make_mm_message(
-            text_prompt,
+            f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip(),
             new_screenshot,
         )
 

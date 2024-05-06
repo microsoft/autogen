@@ -10,10 +10,8 @@ from misc_utils import response_preparer
 
 # setup LLM config and clients
 
-# config_list = "OAI_CONFIG_LIST"
+config_list = "OAI_CONFIG_LIST"
 # response_format_is_supported = True
-
-config_list = "AZURE_OAI_CONFIG_LIST"
 response_format_is_supported = False
 
 config = ConfigManager()
