@@ -68,9 +68,7 @@ For technical details, please check our technical report and research publicatio
       title={Training Language Model Agents without Modifying Language Models},
       author={Shaokun Zhang and Jieyu Zhang and Jiale Liu and Linxin Song and Chi Wang and Ranjay Krishna and Qingyun Wu},
       year={2024},
-      eprint={2402.11359},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI}
+      booktitle={ICML'24},
 }
 ```
 

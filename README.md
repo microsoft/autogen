@@ -272,7 +272,7 @@ In addition, you can find:
 @article{zhang2024training,
   title={Training Language Model Agents without Modifying Language Models},
   author={Zhang, Shaokun and Zhang, Jieyu and Liu, Jiale and Song, Linxin and Wang, Chi and Krishna, Ranjay and Wu, Qingyun},
-  journal={arXiv preprint arXiv:2402.11359},
+  journal={ICML'24},
   year={2024}
 }
 ```
