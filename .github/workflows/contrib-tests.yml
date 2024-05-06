@@ -147,7 +147,7 @@ jobs:
           pip install -e .
       - name: Coverage
         run: |
-          pytest test/agentchat/contrib/agent_eval/test_criterion.py --skip-openai test/agentchat/contrib/agent_eval/test_task.py --skip-openai
+          pytest test/agentchat/contrib/agent_eval/ --skip-openai
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
