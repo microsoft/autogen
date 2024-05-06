@@ -1,7 +1,13 @@
-function drawBarChart(svg, data, width, height) {
-    const margin = { top: 20, right: 30, bottom: 50, left: 70 }; // Adjusted left margin for label space
+function drawBarChart(svg, data) {
+    const width = svg.node().parentNode.clientWidth;
+    const height = svg.node().parentNode.clientHeight;
+
+    // Increase the left margin to accommodate long y-axis labels
+    const margin = { top: 20, right: 30, bottom: 50, left: 100 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
+
+    svg.attr("viewBox", `0 0 ${width} ${height}`);
 
     const g = svg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
@@ -69,9 +75,8 @@ function drawBarChart(svg, data, width, height) {
     // Add y-axis label
     g.append("text")
         .attr("class", "y-axis-label")
-        .attr("transform", `translate(-50, ${chartHeight / 2}) rotate(-90)`)
-        .attr("text-anchor", "middle")
-        .text("State Label");
+        .attr("transform", `translate(-60, ${chartHeight / 2}) rotate(-90)`)
+        .attr("text-anchor", "middle");
 }
 
 // BarChartWidget class
@@ -96,11 +101,11 @@ export class BarChartWidget {
 
         // Create an SVG element inside the div
         const svg = d3.select(div).append("svg")
-            .attr("width", this.width)
-            .attr("height", this.height);
+            .attr("width", "80%")
+            .attr("height", "80%");
 
         // Call the drawBarChart function to render the bar chart
-        drawBarChart(svg, this.data, this.width, this.height);
+        window.setTimeout(() => drawBarChart(svg, this.data), 0);
 
         // Append the SVG element to the div
         return div;

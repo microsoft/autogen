@@ -129,6 +129,30 @@ export class MessageHistoryWidget {
             div.appendChild(messageWidget.compose());
         });
 
+        function scrollToElement(element) {
+            const parent = element.parentElement;
+            const startPos = parent.scrollTop;
+            const topPos = element.offsetTop - parent.clientHeight / 2 + element.clientHeight / 2;
+            const diff = topPos - startPos;
+
+            let start;
+
+            window.requestAnimationFrame(function step(timestamp) {
+                if (!start) start = timestamp;
+                // Elapsed milliseconds since start of scrolling.
+                const time = timestamp - start;
+                // Get percent of completion.
+                const percent = Math.min(time / 500, 1); // 500ms duration
+
+                parent.scrollTop = startPos + diff * percent;
+
+                // Proceed with animation as long as we wanted it to.
+                if (time < 500) {
+                    window.requestAnimationFrame(step);
+                }
+            });
+        }
+
         // Add a custom event listener to the div element
         window.addEventListener('messageClicked', (event) => {
             const message = event.detail.message;
@@ -137,7 +161,8 @@ export class MessageHistoryWidget {
             const messageDiv = div.querySelector(`#message-${message.id}`);
             console.log("Message div: ", messageDiv);
             if (messageDiv) {
-                messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // messageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                scrollToElement(messageDiv);
                 // messageDiv.style.outline = "2px solid blue";
 
                 const selectedMessages = div.querySelectorAll('.message-selected');

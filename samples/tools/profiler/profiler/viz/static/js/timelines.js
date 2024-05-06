@@ -1,5 +1,13 @@
-function drawTimeline(svg, data, width, height) {
-    const margin = { top: 20, right: 50, bottom: 30, left: 100 };
+function drawTimeline(svg, data) {
+    const width = svg.node().parentNode.clientWidth;
+    const height = svg.node().parentNode.clientHeight;
+
+    console.log("Width: ", width);
+    console.log("Height: ", height);
+
+    svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+    const margin = { top: 10, right: 50, bottom: 40, left: 100 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
@@ -42,7 +50,6 @@ function drawTimeline(svg, data, width, height) {
             .attr("height", y.bandwidth())
             .attr("fill", color(source))
             .on("click", function (event, d) {
-                // Create and dispatch the custom event
                 const messageClickedEvent = new CustomEvent("messageClicked", {
                     bubbles: true,
                     detail: {
@@ -80,12 +87,11 @@ function drawTimeline(svg, data, width, height) {
         .text("Source");
 }
 
+
 export class TimelineWidget {
     constructor({ id, profileArray }) {
         this.id = id;
         this.profileArray = profileArray;
-        this.width = 400;
-        this.height = 300;
     }
 
     compose() {
@@ -101,11 +107,13 @@ export class TimelineWidget {
 
         // Create an SVG element inside the div
         const svg = d3.select(div).append("svg")
-            .attr("width", this.width)
-            .attr("height", this.height);
+            .attr("width", "90%")
+            .attr("height", "90%");
 
         // Call the drawBarChart function to render the bar chart
-        drawTimeline(svg, this.profileArray, this.width, this.height);
+        window.setTimeout(() => drawTimeline(svg, this.profileArray), 0);
+
+        // drawTimeline(svg, this.profileArray);
 
         // Append the SVG element to the div
         return div;

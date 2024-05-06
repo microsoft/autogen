@@ -5,50 +5,54 @@ body {
     width: 80%;
     height: 90vh;
     display: grid;
-    grid-template-columns: 40% 1fr;
-    grid-template-rows: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 100px 40% 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     gap: 30px;
 }
 
+#timeline-widget {
+    grid-column: 3; /* Positions the widget in the second column */
+    grid-row: 1; /* Positions the widget in the second row */
+    border: solid 1px black;
 
-#tag-filter-widget, #bar-chart-widget, #timeline-widget, #directed-graph-widget{
+    flex-direction: column;
     display: flex;
     justify-content: center;
     align-items: center;
-    flex-direction: column;
-    /* overflow: scroll; */
 }
 
 #tag-filter-widget {
-    grid-column: span 2;
-    grid-row: 1;
+    grid-column: 1;
+    grid-row: 1/ span 3;
+
+    position: sticky;
+    top: 0;
+
     border: solid 1px black;
+    flex-direction: column;
+    text-align: left;
 }
 
 #message-history-widget {
-    grid-column: 1; /* Positions the widget in the first column */
-    grid-row-start: 2; /* Positions the widget in the first row */
-    grid-row-end: 6; /* Positions the widget in the third row */
+    grid-column: 2; /* Positions the widget in the first column */
+    grid-row: 1/span 3; /* Positions the widget in the first row */
     border: solid 1px black;
     padding: 10px;
     overflow-y: scroll; /* Add scroll bar */
 }
 
 #bar-chart-widget {
-    grid-column: 2; /* Positions the widget in the second column */
-    grid-row: 2; /* Positions the widget in the second row */
+    grid-column: 3; /* Positions the widget in the second column */
     border: solid 1px black;
-    /* Center its content */
+
+    flex-direction: column;
+    /* Center the widget */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 #directed-graph-widget {
-    grid-column: 2; /* Positions the widget in the second column */
-    grid-row: 3; /* Positions the widget in the second row */
-    border: solid 1px black;
-}
-
-#timeline-widget {
-    grid-column: 2; /* Positions the widget in the second column */
-    grid-row: 4; /* Positions the widget in the second row */
+    grid-column: 3; /* Positions the widget in the second column */
     border: solid 1px black;
 }

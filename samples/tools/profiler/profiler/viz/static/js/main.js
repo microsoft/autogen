@@ -80,7 +80,7 @@ function updateAllWidgets(data) {
         profileArray: data
     });
 
-    renderOrUpdate(document.body, directedGraphWidget);
+    // renderOrUpdate(document.body, directedGraphWidget);
 }
 
 function getFilteredData(labels, data) {
