@@ -33,7 +33,7 @@ public class Writer : AiAgent<WriterState>, IWriter
                     return;
                 }
 
-                SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
+                await SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
 
                 break;
 
@@ -44,7 +44,7 @@ public class Writer : AiAgent<WriterState>, IWriter
                 var context = new KernelArguments { ["input"] = AppendChatHistory(item.Message) };
                 string newArticle = await CallFunction(WriterPrompts.Write, context);
 
-                SendDesignedCreatedEvent(newArticle, item.Data["UserId"]);
+                await SendDesignedCreatedEvent(newArticle, item.Data["UserId"]);
 
                 break;
             default:

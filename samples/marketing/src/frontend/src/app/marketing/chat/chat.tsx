@@ -40,7 +40,7 @@ type Message = {
 
 type ChatProps = {
   messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  setMessages: (messages: Message[]) => void;
   sendMessage: (message: string, agent: string) => void;
 };
 
@@ -124,7 +124,7 @@ export default function Chat({ messages, setMessages, sendMessage }: ChatProps) 
                 inputProps={{ style: { height: 'auto' } }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handleSend(e.target.value);
+                    handleSend((e.target as HTMLInputElement).value);
                     setMessage('');
                   }
                 }}

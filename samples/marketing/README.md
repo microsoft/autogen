@@ -6,8 +6,9 @@ There are five agents in this application that control the different areas of th
 The agents are designed to be able to interact with each other and the user to achieve their goals.
 To do that each agent has 
 
-![Agents](readme-media/agents.png)
+![Agents](readme-media/screenshot.png)
 
+![Agents](readme-media/agents.png)
 
 ## Requirements to run locally
 ### Frontend
@@ -15,6 +16,16 @@ The latest version of Node.js and npm
 
 ### Backend
 Visual Studio or Visual Studio code and the latest version of dotnet
+
+## Running with azd
+To run the application with azd, you need to have the azd cli installed. You can install it following the instructions here:
+
+https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux
+
+
+
+Then you can run the following command to start the application:
+```powers
 
 ## How to run the application locally
 

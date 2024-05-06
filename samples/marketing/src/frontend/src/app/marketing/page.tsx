@@ -11,11 +11,11 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 
-import StakeholderList from './stakeholders/page';
-import CostList from './costs/page';
-import RelevantDocumentList from './docs/page';
-import Chat from './chat/page';
-import CommunityManager from './community-manager/page';
+import StakeholderList from './stakeholders/stakeholders';
+import CostList from './costs/cost';
+import RelevantDocumentList from './docs/docs';
+import Chat from './chat/chat';
+import CommunityManager from './community-manager/community-manager';
 import { Container, Grid } from '@mui/material';
 import { HubConnectionBuilder, HubConnection, LogLevel } from '@microsoft/signalr';
 
@@ -25,7 +25,7 @@ type SignalRMessage = {
   agent: string;
 };
 
-export default function LegalAssistant() {
+export default function Marketing() {
   const Item = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
     ...theme.typography.body2,
@@ -100,6 +100,10 @@ export default function LegalAssistant() {
     }
   };
 
+  const setMessagesInUI = async (messages: { sender: string; text: any; }[]) => {
+    await setMessages(messages);
+  }
+
   const sendMessage = async (message: string, agent: string) => {
     if (connection) {
       const frontEndMessage:SignalRMessage = { 
@@ -119,14 +123,14 @@ export default function LegalAssistant() {
     createSignalRConnection(userId);
   }, []);
 
-  console.log(`[LegalAssistant] Rendering.`);
+  console.log(`[Marketing] Rendering.`);
   return (
     <Background>
     <Container maxWidth="xl" disableGutters >
       <Grid container spacing={3}>
         <Grid item xs={6}>
           <Paper elevation={0} style={{ border: '1px solid #000' }}>
-            <Chat messages={messages} setMessages={setMessages} sendMessage={sendMessage}/>
+            <Chat messages={messages} setMessages={setMessagesInUI} sendMessage={sendMessage}/>
           </Paper>
         </Grid>
         <Grid item xs={6}>
@@ -169,7 +173,7 @@ export default function LegalAssistant() {
               </Item>
               <Item>
                 <Paper elevation={0}>
-                  <CommunityManager article={article} setArticle={setArticle} open={communityManagerOpen} setOpen={setCommunityManagerOpen} imgUrl={imgUrl}/>
+                  <CommunityManager article={article} open={communityManagerOpen} setOpen={setCommunityManagerOpen} imgUrl={imgUrl}/>
                 </Paper>
                 <Divider />
               </Item>

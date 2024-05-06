@@ -81,11 +81,7 @@ var app = builder.Build();
 
 app.UseRouting();
 app.UseCors(AllowDebugOriginPolicy);
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapControllers();
-});
-
+app.MapControllers();
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -99,8 +95,8 @@ app.Run();
 
 static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
-    var qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
+    OpenAIOptions openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+    QdrantOptions qdrantConfig = provider.GetService<IOptions<QdrantOptions>>().Value;
 
     var loggerFactory = LoggerFactory.Create(builder =>
     {
@@ -119,7 +115,7 @@ static ISemanticTextMemory CreateMemory(IServiceProvider provider)
 
 static Kernel CreateKernel(IServiceProvider provider)
 {
-    var openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
+    OpenAIOptions openAiConfig = provider.GetService<IOptions<OpenAIOptions>>().Value;
     var clientOptions = new OpenAIClientOptions();
     clientOptions.Retry.NetworkTimeout = TimeSpan.FromMinutes(5);
     var builder = Kernel.CreateBuilder();
@@ -127,7 +123,7 @@ static Kernel CreateKernel(IServiceProvider provider)
 
     // Chat
     var openAIClient = new OpenAIClient(new Uri(openAiConfig.ChatEndpoint), new AzureKeyCredential(openAiConfig.ChatApiKey), clientOptions);
-    if (openAiConfig.ChatEndpoint.Contains("azure"))
+    if (openAiConfig.ChatEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
     {
         builder.Services.AddAzureOpenAIChatCompletion(openAiConfig.ChatDeploymentOrModelId, openAIClient);
     }
@@ -139,7 +135,7 @@ static Kernel CreateKernel(IServiceProvider provider)
 
     // Text to Image
     openAIClient = new OpenAIClient(new Uri(openAiConfig.ImageEndpoint), new AzureKeyCredential(openAiConfig.ImageApiKey), clientOptions);
-    if (openAiConfig.ImageEndpoint.Contains("azure"))
+    if (openAiConfig.ImageEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
     {
         Throw.IfNullOrEmpty(nameof(openAiConfig.ImageDeploymentOrModelId), openAiConfig.ImageDeploymentOrModelId);
         builder.Services.AddAzureOpenAITextToImage(openAiConfig.ImageDeploymentOrModelId, openAIClient);
@@ -151,7 +147,7 @@ static Kernel CreateKernel(IServiceProvider provider)
 
     // Embeddings
     openAIClient = new OpenAIClient(new Uri(openAiConfig.EmbeddingsEndpoint), new AzureKeyCredential(openAiConfig.EmbeddingsApiKey), clientOptions);
-    if (openAiConfig.EmbeddingsEndpoint.Contains("azure"))
+    if (openAiConfig.EmbeddingsEndpoint.Contains(".azure", StringComparison.OrdinalIgnoreCase))
     {  
         builder.Services.AddAzureOpenAITextEmbeddingGeneration(openAiConfig.EmbeddingsDeploymentOrModelId, openAIClient);
     }

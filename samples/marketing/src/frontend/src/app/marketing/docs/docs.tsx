@@ -39,7 +39,7 @@ const FireNav = styled(List)<{ component?: React.ElementType }>({
 
 export default function RelevantDocumentList() {
   const [open, setOpen] = React.useState(false);
-  console.log(`[LegalAssistant] Rendering.`);
+  console.log(`[Marketing] Rendering.`);
 
   const [courtCasesOpen, setCourtCasesOpen] = React.useState(true);
   const courtCasesOpenHandleClick = () => {

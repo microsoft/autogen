@@ -33,7 +33,7 @@ public class CommunityManager : AiAgent<CommunityManagerState>
                     return;
                 }
 
-                SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
+                await SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
                 break;
 
             case nameof(EventTypes.ArticleCreated):                
@@ -44,7 +44,7 @@ public class CommunityManager : AiAgent<CommunityManagerState>
                 var context = new KernelArguments { ["input"] = AppendChatHistory(item.Message) };
                 string socialMediaPost = await CallFunction(CommunityManagerPrompts.WritePost, context);
                 _state.State.Data.WrittenSocialMediaPost = socialMediaPost;
-                SendDesignedCreatedEvent(socialMediaPost, item.Data["UserId"]);
+                await SendDesignedCreatedEvent(socialMediaPost, item.Data["UserId"]);
                 break;
 
             default:

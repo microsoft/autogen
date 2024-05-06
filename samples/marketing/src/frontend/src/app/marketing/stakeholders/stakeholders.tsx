@@ -81,7 +81,7 @@ const RedStyledBadge = styled(Badge)(({ theme }) => ({
 export default function StakeholderList() {
     const [open, setOpen] = React.useState(false);
 
-    console.log(`[LegalAssistant] Rendering.`);
+    console.log(`[Marketing] Rendering.`);
     return (
         <Box sx={{ display: 'flex' }}>
             <List sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>
