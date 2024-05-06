@@ -49,7 +49,7 @@ public class SemanticKernelCodeSnippet
         #endregion create_semantic_kernel_agent
 
         #region create_semantic_kernel_agent_streaming
-        var streamingReply = await semanticKernelAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+        var streamingReply = semanticKernelAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
 
         await foreach (var streamingMessage in streamingReply)
         {
