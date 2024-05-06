@@ -266,6 +266,17 @@ In addition, you can find:
 }
 ```
 
+[AgentOptimizer](https://arxiv.org/pdf/2402.11359)
+
+```
+@article{zhang2024training,
+  title={Training Language Model Agents without Modifying Language Models},
+  author={Zhang, Shaokun and Zhang, Jieyu and Liu, Jiale and Song, Linxin and Wang, Chi and Krishna, Ranjay and Wu, Qingyun},
+  journal={ICML'24},
+  year={2024}
+}
+```
+
 <p align="right" style="font-size: 14px; color: #555; margin-top: 20px;">
   <a href="#readme-top" style="text-decoration: none; color: blue; font-weight: bold;">
     ↑ Back to Top ↑

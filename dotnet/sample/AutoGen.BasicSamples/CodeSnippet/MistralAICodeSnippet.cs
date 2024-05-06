@@ -38,7 +38,7 @@ internal class MistralAICodeSnippet
         #endregion create_mistral_agent
 
         #region streaming_chat
-        var reply = await agent.GenerateStreamingReplyAsync(
+        var reply = agent.GenerateStreamingReplyAsync(
             messages: [new TextMessage(Role.User, "Hello, how are you?")]
         );
 
@@ -75,7 +75,7 @@ internal class MistralAICodeSnippet
         #endregion create_get_weather_function_call_middleware
 
         #region register_function_call_middleware
-        agent = agent.RegisterMiddleware(functionCallMiddleware);
+        agent = agent.RegisterStreamingMiddleware(functionCallMiddleware);
         #endregion register_function_call_middleware
 
         #region send_message_with_function_call
