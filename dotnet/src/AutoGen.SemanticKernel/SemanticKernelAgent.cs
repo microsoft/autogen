@@ -27,21 +27,42 @@ namespace AutoGen.SemanticKernel;
 /// 
 /// <para>To support more AutoGen built-in <see cref="IMessage"/>, register with <see cref="SemanticKernelChatMessageContentConnector"/>.</para>
 /// </summary>
-public class SemanticKernelAgent(
-    ChatCompletionAgent chatCompletionAgent,
-    string name,
-    string systemMessage = "You are a helpful AI assistant")
-    : IStreamingAgent
+public class SemanticKernelAgent : IStreamingAgent
 {
-    public string Name { get; } = name;
+    public string Name { get; }
 
-    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    private readonly ChatCompletionAgent _chatCompletionAgent;
+    private readonly string _systemMessage;
+
+    public SemanticKernelAgent(ChatCompletionAgent chatCompletionAgent, string name,
+        string systemMessage = "You are a helpful AI assistant")
     {
-        ChatMessageContent[] reply = await chatCompletionAgent.InvokeAsync(BuildChatHistory(messages), cancellationToken)
+        this.Name = name;
+        this._chatCompletionAgent = chatCompletionAgent;
+        this._systemMessage = systemMessage;
+    }
+
+    [Obsolete($"This constructor will be removed. Use SemanticKernelAgent constructor with ChatCompletionAgent instead of Kernel")]
+    public SemanticKernelAgent(Kernel kernel,
+        string name,
+        string systemMessage = "You are a helpful AI assistant",
+        PromptExecutionSettings? settings = null)
+    {
+        this.Name = name;
+        this._chatCompletionAgent = new ChatCompletionAgent();
+        this._systemMessage = systemMessage;
+    }
+
+    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ChatMessageContent[] reply = await _chatCompletionAgent
+            .InvokeAsync(BuildChatHistory(messages), cancellationToken)
             .ToArrayAsync(cancellationToken: cancellationToken);
 
         return reply.Length > 1
-            ? throw new InvalidOperationException("ResultsPerPrompt greater than 1 is not supported in this semantic kernel agent")
+            ? throw new InvalidOperationException(
+                "ResultsPerPrompt greater than 1 is not supported in this semantic kernel agent")
             : new MessageEnvelope<ChatMessageContent>(reply[0], from: this.Name);
     }
 
@@ -51,7 +72,7 @@ public class SemanticKernelAgent(
         CancellationToken cancellationToken = default)
     {
         var chatHistory = BuildChatHistory(messages);
-        var response = chatCompletionAgent.InvokeAsync(chatHistory, cancellationToken);
+        var response = _chatCompletionAgent.InvokeAsync(chatHistory, cancellationToken);
 
         return ProcessMessage(response);
     }
@@ -62,7 +83,8 @@ public class SemanticKernelAgent(
         // if there's no system message in chatMessageContents, add one to the beginning
         if (!chatMessageContents.Any(c => c.Role == AuthorRole.System))
         {
-            chatMessageContents = new[] { new ChatMessageContent(AuthorRole.System, systemMessage) }.Concat(chatMessageContents);
+            chatMessageContents =
+                new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
         }
 
         return new ChatHistory(chatMessageContents);
