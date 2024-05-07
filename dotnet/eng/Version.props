@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <AzureOpenAIVersion>1.0.0-beta.15</AzureOpenAIVersion>
+        <SemanticKernelVersion>1.7.1</SemanticKernelVersion>
+        <SemanticKernelExperimentalVersion>1.7.1-alpha</SemanticKernelExperimentalVersion>
+        <SystemCodeDomVersion>5.0.0</SystemCodeDomVersion>
+        <MicrosoftCodeAnalysisVersion>4.3.0</MicrosoftCodeAnalysisVersion>
+        <ApprovalTestVersion>6.0.0</ApprovalTestVersion>
+        <FluentAssertionVersion>6.8.0</FluentAssertionVersion>
+        <XUnitVersion>2.4.2</XUnitVersion>
+        <MicrosoftNETTestSdkVersion>17.7.0</MicrosoftNETTestSdkVersion>
+        <MicrosoftDotnetInteractive>1.0.0-beta.23523.2</MicrosoftDotnetInteractive>
+        <MicrosoftSourceLinkGitHubVersion>8.0.0</MicrosoftSourceLinkGitHubVersion>
+        <JsonSchemaVersion>4.0.0</JsonSchemaVersion>
+    </PropertyGroup>
+</Project>

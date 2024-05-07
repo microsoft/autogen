@@ -14,7 +14,7 @@
     <img src="https://github.com/microsoft/autogen/blob/main/website/static/img/flaml.svg"  width=200>
     <br>
 </p> -->
-:fire: Mar 26, 2024: Andrew Ng gave a shoutout to AutoGen in [What's next for AI agentic workflows](https://youtu.be/sal78ACtGTc?si=JduUzN_1kDnMq0vF) at Sequoia Capital's AI Ascent.
+:fire: Apr 17, 2024: Andrew Ng cited AutoGen in [The Batch newsletter](https://www.deeplearning.ai/the-batch/issue-245/) and [What's next for AI agentic workflows](https://youtu.be/sal78ACtGTc?si=JduUzN_1kDnMq0vF) at Sequoia Capital's AI Ascent (Mar 26).
 
 :fire: Mar 3, 2024: What's new in AutoGen? 📰[Blog](https://microsoft.github.io/autogen/blog/2024/03/03/AutoGen-Update); 📺[Youtube](https://www.youtube.com/watch?v=j_mtwQiaLGU).
 
@@ -263,6 +263,17 @@ In addition, you can find:
     author={Yiran Wu and Feiran Jia and Shaokun Zhang and Hangyu Li and Erkang Zhu and Yue Wang and Yin Tat Lee and Richard Peng and Qingyun Wu and Chi Wang},
     year={2023},
     booktitle={ArXiv preprint arXiv:2306.01337},
+}
+```
+
+[AgentOptimizer](https://arxiv.org/pdf/2402.11359)
+
+```
+@article{zhang2024training,
+  title={Training Language Model Agents without Modifying Language Models},
+  author={Zhang, Shaokun and Zhang, Jieyu and Liu, Jiale and Song, Linxin and Wang, Chi and Krishna, Ranjay and Wu, Qingyun},
+  journal={ICML'24},
+  year={2024}
 }
 ```
 
