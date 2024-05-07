@@ -281,7 +281,7 @@ $functions"""
             program = _cmd(lang)
             cmd = [program, str(written_file.absolute())]
             try:
-                env = {}
+                env = os.environ.copy()
                 if self._virtual_env_path:
                     path_sep = ";" if WIN32 else ":"
                     path_with_virtualenv = (
