@@ -9,7 +9,6 @@ from tqdm import tqdm
 
 from .profiler import Profiler, MessageProfile
 
-# from .visualize import DAGVisualizer
 from .message import Message
 from .llm import OpenAIJSONService
 from .utils import parse_agb_console
