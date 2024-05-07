@@ -28,8 +28,7 @@ class FileLogger(BaseLogger):
 
         os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
         if not os.path.exists(self.log_file):
-            with open(self.log_file, "w"):
-                pass
+            open(self.log_file, "a").close()
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -40,9 +39,9 @@ class FileLogger(BaseLogger):
 
     def start(self) -> str:
         try:
-            logger.info(self.session_id)
+            self.logger.info(self.session_id)
         except Exception as e:
-            logger.error(f"[file_logger] Failed to create logging file: {e}")
+            self.logger.error(f"[file_logger] Failed to create logging file: {e}")
             raise e
         finally:
             return self.session_id
