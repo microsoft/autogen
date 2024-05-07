@@ -128,7 +128,7 @@ const ChatBox = ({
         type="primary"
         className=""
         onClick={() => {
-          getCompletion(prompt.prompt);
+          runWorkflow(prompt.prompt);
         }}
       >
         {" "}
@@ -158,7 +158,7 @@ const ChatBox = ({
           <div
             onClick={() => {
               console.log("retrying");
-              getCompletion(message.text);
+              runWorkflow(message.text);
             }}
           >
             <ArrowPathIcon
@@ -401,7 +401,7 @@ const ChatBox = ({
     fetchJSON(fetchUrl, payLoad, onSuccess, onError);
   };
 
-  const getCompletion = (query: string) => {
+  const runWorkflow = (query: string) => {
     setError(null);
     socketMsgs = [];
     let messageHolder = Object.assign([], messages);
@@ -424,7 +424,7 @@ const ChatBox = ({
       connection_id: connectionId,
     };
 
-    const textUrl = `${serverUrl}/messages/${session?.id}`;
+    const runWorkflowUrl = `${serverUrl}/sessions/${session?.id}/workflow/${session?.workflow_id}/run`;
 
     const postData = {
       method: "POST",
@@ -444,10 +444,12 @@ const ChatBox = ({
           connection_id: connectionId,
           data: messagePayload,
           type: "user_message",
+          session_id: session?.id,
+          workflow_id: session?.workflow_id,
         })
       );
     } else {
-      fetch(textUrl, postData)
+      fetch(runWorkflowUrl, postData)
         .then((res) => {
           if (res.status === 200) {
             res.json().then((data) => {
@@ -491,7 +493,7 @@ const ChatBox = ({
     if (event.key === "Enter" && !event.shiftKey) {
       if (textAreaInputRef.current && !loading) {
         event.preventDefault();
-        getCompletion(textAreaInputRef.current.value);
+        runWorkflow(textAreaInputRef.current.value);
       }
     }
   };
@@ -656,7 +658,7 @@ const ChatBox = ({
                 title="Send message"
                 onClick={() => {
                   if (textAreaInputRef.current && !loading) {
-                    getCompletion(textAreaInputRef.current.value);
+                    runWorkflow(textAreaInputRef.current.value);
                   }
                 }}
                 className="absolute right-3 bottom-2 bg-accent hover:brightness-75 transition duration-300 rounded cursor-pointer flex justify-center items-center"

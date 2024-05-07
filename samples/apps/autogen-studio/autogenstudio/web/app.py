@@ -350,16 +350,16 @@ async def delete_session(session_id: int, user_id: str):
     return delete_entity(Session, filters=filters)
 
 
-@api.get("/messages")
+@api.get("/sessions/{session_id}/messages")
 async def list_messages(user_id: str, session_id: int):
-    """List all messages for a user"""
+    """List all messages for a use session"""
     filters = {"user_id": user_id, "session_id": session_id}
     return list_entity(Message, filters=filters, order="asc", return_json=True)
 
 
-@api.post("/messages")
-async def create_message(message: Message):
-    """Create a new message"""
+@api.post("/sessions/{session_id}/workflow/{workflow_id}/run")
+async def run_session_workflow(message: Message, session_id: int, workflow_id: int):
+    """Runs a workflow on provided message"""
     try:
         user_message_history = (
             dbmanager.get(
@@ -367,16 +367,14 @@ async def create_message(message: Message):
                 filters={"user_id": message.user_id, "session_id": message.session_id},
                 return_json=True,
             ).data
-            if message.session_id
+            if session_id is not None
             else []
         )
         # save incoming message
         dbmanager.upsert(message)
         user_dir = os.path.join(folders["files_static_root"], "user", md5_hash(message.user_id))
         os.makedirs(user_dir, exist_ok=True)
-
-        session: Session = dbmanager.get(Session, filters={"id": message.session_id}).data[0]
-        workflow = workflow_from_id(session.workflow_id, dbmanager=dbmanager)
+        workflow = workflow_from_id(workflow_id, dbmanager=dbmanager)
         agent_response: Message = managers["chat"].chat(
             message=message,
             history=user_message_history,
@@ -411,7 +409,9 @@ async def process_socket_message(data: dict, websocket: WebSocket, client_id: st
     print(f"Client says: {data['type']}")
     if data["type"] == "user_message":
         user_message = Message(**data["data"])
-        response = await create_message(user_message)
+        session_id = data["data"].get("session_id", None)
+        workflow_id = data["data"].get("workflow_id", None)
+        response = await run_session_workflow(message=user_message, session_id=session_id, workflow_id=workflow_id)
         response_socket_message = {
             "type": "agent_response",
             "data": response,

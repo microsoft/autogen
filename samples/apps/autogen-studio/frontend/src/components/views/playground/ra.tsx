@@ -26,7 +26,7 @@ const RAView = () => {
 
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
-  const fetchMessagesUrl = `${serverUrl}/messages?user_id=${user?.email}&session_id=${session?.id}`;
+  const fetchMessagesUrl = `${serverUrl}/sessions/${session?.id}/messages?user_id=${user?.email}`;
 
   const fetchMessages = () => {
     setError(null);
