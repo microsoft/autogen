@@ -277,6 +277,8 @@ def logger():
     config = {"filename": log_file}
     logger = FileLogger(config)
     yield logger
+    with open(logger.log_file, "w") as f:
+        f.truncate(0)
 
 
 def test_start(logger):
@@ -301,7 +303,7 @@ def test_log_chat_completion(logger):
         with open(logger.log_file, "r") as f:
             lines = f.readlines()
             assert len(lines) == 2
-            log_data = json.loads(lines[0])
+            log_data = json.loads(lines[1])
             assert log_data["invocation_id"] == str(invocation_id)
             assert log_data["client_id"] == client_id
             assert log_data["wrapper_id"] == wrapper_id
@@ -362,8 +364,8 @@ def test_log_new_wrapper(logger):
 
 
 def test_log_new_client(logger):
-    client = Mock()
-    wrapper = Mock()
+    client = TestAgent(name="TestClient", init_args={"foo": "bar"})
+    wrapper = TestWrapper(init_args={"foo": "bar"})
     init_args = {"foo": "bar"}
     logger.log_new_client(client, wrapper, init_args)
 
