@@ -1,0 +1,73 @@
+
+/* Center the body to use 80% of the view port */
+body {
+    margin: auto;
+    width: 80%;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 100px 40% 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
+    gap: 20px;
+
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11px;
+}
+
+body h3 {
+    text-align: center;
+    color: #005A9E;
+}
+
+#timeline-widget {
+    grid-column: 3; /* Positions the widget in the second column */
+    grid-row: 1; /* Positions the widget in the second row */
+    border: solid 1px black;
+    margin: 10px;
+
+    flex-direction: column;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#tag-filter-widget {
+    grid-column: 1;
+    grid-row: 1/ span 3;
+    margin: 10px;
+
+    position: sticky;
+    top: 0;
+
+    border: solid 1px black;
+    flex-direction: column;
+    text-align: left;
+}
+
+#message-history-widget {
+    grid-column: 2; /* Positions the widget in the first column */
+    grid-row: 1/span 3; /* Positions the widget in the first row */
+    /* border: solid 1px #323130; Dark gray */
+    /* border-radius: 5px; Slightly rounded corners */
+
+    padding: 10px;
+    overflow-y: scroll; /* Add scroll bar */
+
+    margin: 10px;
+}
+
+#bar-chart-widget {
+    grid-column: 3; /* Positions the widget in the second column */
+    border: solid 1px black;
+    margin: 10px;
+
+    flex-direction: column;
+    /* Center the widget */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#directed-graph-widget {
+    grid-column: 3; /* Positions the widget in the second column */
+    border: solid 1px black;
+}
