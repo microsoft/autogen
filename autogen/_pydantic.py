@@ -13,7 +13,7 @@ if not PYDANTIC_V1:
     from pydantic._internal._typing_extra import eval_type_lenient as evaluate_forwardref
     from pydantic.json_schema import JsonSchemaValue
 
-    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
+    def type2schema(t: Any) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
@@ -51,11 +51,11 @@ if not PYDANTIC_V1:
 # Remove this once we drop support for pydantic 1.x
 else:  # pragma: no cover
     from pydantic import schema_of
-    from pydantic.typing import evaluate_forwardref as evaluate_forwardref
+    from pydantic.typing import evaluate_forwardref as evaluate_forwardref  # type: ignore[no-redef]
 
-    JsonSchemaValue = Dict[str, Any]
+    JsonSchemaValue = Dict[str, Any]  # type: ignore[misc]
 
-    def type2schema(t: Optional[Type]) -> JsonSchemaValue:
+    def type2schema(t: Any) -> JsonSchemaValue:
         """Convert a type to a JSON schema
 
         Args:
@@ -64,27 +64,27 @@ else:  # pragma: no cover
         Returns:
             JsonSchemaValue: The JSON schema
         """
-        if PYDANTIC_V1:
-            if t is None:
-                return {"type": "null"}
-            elif get_origin(t) is Union:
-                return {"anyOf": [type2schema(tt) for tt in get_args(t)]}
-            elif get_origin(t) in [Tuple, tuple]:
-                prefixItems = [type2schema(tt) for tt in get_args(t)]
-                return {
-                    "maxItems": len(prefixItems),
-                    "minItems": len(prefixItems),
-                    "prefixItems": prefixItems,
-                    "type": "array",
-                }
 
-        d = schema_of(t)
-        if "title" in d:
-            d.pop("title")
-        if "description" in d:
-            d.pop("description")
+        if t is None:
+            return {"type": "null"}
+        elif get_origin(t) is Union:
+            return {"anyOf": [type2schema(tt) for tt in get_args(t)]}
+        elif get_origin(t) in [Tuple, tuple]:
+            prefixItems = [type2schema(tt) for tt in get_args(t)]
+            return {
+                "maxItems": len(prefixItems),
+                "minItems": len(prefixItems),
+                "prefixItems": prefixItems,
+                "type": "array",
+            }
+        else:
+            d = schema_of(t)
+            if "title" in d:
+                d.pop("title")
+            if "description" in d:
+                d.pop("description")
 
-        return d
+            return d
 
     def model_dump(model: BaseModel) -> Dict[str, Any]:
         """Convert a pydantic model to a dict

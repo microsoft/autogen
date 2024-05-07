@@ -1,13 +1,15 @@
 #!/usr/bin/env python3 -m pytest
 
 import inspect
-import pytest
 import json
-import sys
 import os
+import sys
+
+import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
+
 import autogen
 from autogen.math_utils import eval_math_responses
-from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 from autogen.oai.client import TOOL_ENABLED
 
 try:

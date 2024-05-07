@@ -8,11 +8,10 @@ from unittest import mock
 from unittest.mock import patch
 
 import pytest
+from conftest import MOCK_OPEN_AI_API_KEY
 
 import autogen  # noqa: E402
 from autogen.oai.openai_utils import DEFAULT_AZURE_API_VERSION, filter_config, is_valid_api_key
-
-from conftest import MOCK_OPEN_AI_API_KEY
 
 # Example environment variables
 ENV_VARS = {
@@ -383,6 +382,7 @@ def test_is_valid_api_key():
     assert not is_valid_api_key("sk-asajsdjsd22372%23kjdfdfdf2329ffUUDSDS")
     assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS")
     assert is_valid_api_key("sk-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS1212121221212sssXX")
+    assert is_valid_api_key("sk-proj-asajsdjsd22372X23kjdfdfdf2329ffUUDSDS12121212212")
     assert is_valid_api_key(MOCK_OPEN_AI_API_KEY)
 
 
