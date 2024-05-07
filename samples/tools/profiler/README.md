@@ -23,13 +23,13 @@ The tool currently provides two main commands: `profile` and `visualize`.
 For example, to profile a chat log from AutoGenBench style console logs, run:
 
 ```bash
-aprofile profile --agbconsole <path-to-file> --o profile.jsonl
+aprofile profile --agbconsole <path-to-file> --o profile.json
 ```
 
 You can then visualize the profile using the `visualize` command:
 
 ```bash
-aprofile visualize --jsonl profile.jsonl --o visualization.html
+aprofile visualize --json profile.json --port 8000
 ```
 
-This will generate an HTML file that you can open in your browser to interactively visualize the profile.
+This will launch a simple Python HTTP server on port 8000. You can visit the website `localhost:8000` in your browser to interactively visualize the data.

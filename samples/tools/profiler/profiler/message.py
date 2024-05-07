@@ -10,9 +10,10 @@ class Message:
     role: str
     content: str
     tags: List[str] = None
+    id: str = None
 
     def to_dict(self):
-        return {"source": self.source, "role": self.role, "content": self.content, "tags": self.tags}
+        return {"id": self.id, "source": self.source, "role": self.role, "content": self.content, "tags": self.tags}
 
 
 @dataclass
