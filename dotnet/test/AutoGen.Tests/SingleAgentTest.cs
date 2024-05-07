@@ -43,7 +43,7 @@ namespace AutoGen.Tests
 
             var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
 
-            await UpperCaseTest(agent);
+            await UpperCaseTestAsync(agent);
             await UpperCaseStreamingTestAsync(agent);
         }
 
@@ -118,7 +118,7 @@ namespace AutoGen.Tests
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
-            await UpperCaseTest(agentWithFunction);
+            await UpperCaseTestAsync(agentWithFunction);
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -144,7 +144,7 @@ namespace AutoGen.Tests
                 llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
-            await UpperCaseTest(assistantAgent);
+            await UpperCaseTestAsync(assistantAgent);
         }
 
         [Fact]
@@ -163,6 +163,24 @@ namespace AutoGen.Tests
 
             assistantAgent.Name.Should().Be("assistant");
             assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
+        }
+
+        [ApiKeyFact("LMStudio_ENDPOINT")]
+        public async Task ItTestAssistantAgentFromLMStudioConfigAsync()
+        {
+            var Uri = Environment.GetEnvironmentVariable("LMStudio_ENDPOINT") ?? throw new ArgumentException("LMStudio_ENDPOINT is not set");
+            var lmStudioConfig = new LMStudioConfig(new Uri(Uri));
+
+            var assistantAgent = new AssistantAgent(
+                name: "assistant",
+                llmConfig: new ConversableAgentConfig()
+                {
+                    ConfigList = [lmStudioConfig],
+                });
+
+            assistantAgent.Name.Should().Be("assistant");
+            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
+            await this.UpperCaseTestAsync(assistantAgent);
         }
 
 
@@ -205,7 +223,6 @@ namespace AutoGen.Tests
                 });
 
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
-            await UpperCaseTest(assistantAgent);
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -225,7 +242,7 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallExecutionStreamingTestAsync(agent);
             await EchoFunctionCallExecutionTestAsync(agent);
-            await UpperCaseTest(agent);
+            await UpperCaseTestAsync(agent);
         }
 
         /// <summary>
@@ -302,7 +319,7 @@ namespace AutoGen.Tests
             }
         }
 
-        public async Task UpperCaseTest(IAgent agent)
+        public async Task UpperCaseTestAsync(IAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
             var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
