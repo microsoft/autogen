@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -99,8 +99,9 @@ $functions"""
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        if isinstance(virtual_env_path, str):
-            virtual_env_path = Path(virtual_env_path)
+        self._virtual_env_path: Optional[Path] = None
+        if virtual_env_path:
+            self._virtual_env_path = Path(virtual_env_path) if isinstance(virtual_env_path, str) else virtual_env_path
 
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
@@ -111,7 +112,6 @@ $functions"""
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
-        self._virtual_env_path: Path = virtual_env_path
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
