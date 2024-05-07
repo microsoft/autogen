@@ -294,7 +294,7 @@ public class OpenAIMessageTests
                                 ChatMessageImageContentItem imageContentItem => new
                                 {
                                     Type = "Image",
-                                    ImageUrl = imageContentItem.ImageUrl,
+                                    ImageUrl = imageContentItem.GetType().GetProperty("ImageUrl")?.GetValue(imageContentItem),
                                 } as object,
                                 ChatMessageTextContentItem textContentItem => new
                                 {
