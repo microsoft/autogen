@@ -3,6 +3,7 @@ import sys
 import tempfile
 import uuid
 from pathlib import Path
+import venv
 
 import pytest
 
@@ -393,3 +394,23 @@ def test_silent_pip_install(cls, lang: str) -> None:
     code_blocks = [CodeBlock(code=code, language=lang)]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output
+
+
+def test_local_executor_with_custom_python_env():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        venv_path = os.path.join(temp_dir, "venv")
+        venv.create(venv_path, with_pip=True)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_path=venv_path)
+        code_blocks = [
+            CodeBlock(code="pip install yfinance", language="sh"),
+            CodeBlock(code="import yfinance", language="python"),
+        ]
+        execution = executor.execute_code_blocks(code_blocks)
+
+        assert execution.exit_code == 0
+
+        venv_lib_path = os.path.join(venv_path, "lib")
+        venv_site_packages_path = os.path.join(venv_lib_path, os.listdir(venv_lib_path)[0], "site-packages")
+
+        assert os.path.exists(os.path.join(venv_site_packages_path, "yfinance"))

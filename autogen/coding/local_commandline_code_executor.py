@@ -1,3 +1,4 @@
+import os
 import logging
 import re
 import subprocess
@@ -64,6 +65,7 @@ $functions"""
     def __init__(
         self,
         timeout: int = 60,
+        virtual_env_path: Optional[Union[Path, str]] = None,
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
         functions_module: str = "functions",
@@ -84,6 +86,7 @@ $functions"""
 
         Args:
             timeout (int): The timeout for code execution, default is 60 seconds.
+            virtual_env_path (Optional[Union[Path, str]]): The virtual environment to use to execute python code, defaults to using the base python virtual env.
             work_dir (Union[Path, str]): The working directory for code execution, defaults to the current directory.
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]): A list of callable functions available to the executor.
             functions_module (str): The module name under which functions are accessible.
@@ -96,6 +99,9 @@ $functions"""
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
+        if isinstance(virtual_env_path, str):
+            virtual_env_path = Path(virtual_env_path)
+
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
 
@@ -105,6 +111,7 @@ $functions"""
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+        self._virtual_env_path: Path = virtual_env_path
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
@@ -196,7 +203,11 @@ $functions"""
         required_packages = list(set(flattened_packages))
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
-            cmd = [sys.executable, "-m", "pip", "install"] + required_packages
+            if self._virtual_env_path:
+                py_executable = os.path.join(str(self._virtual_env_path), "bin", "python")
+            else:
+                py_executable = sys.executable
+            cmd = [py_executable, "-m", "pip", "install"] + required_packages
             try:
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
@@ -270,8 +281,16 @@ $functions"""
             program = _cmd(lang)
             cmd = [program, str(written_file.absolute())]
             try:
+                env = {}
+                if self._virtual_env_path:
+                    path_sep = ";" if WIN32 else ":"
+                    path_with_virtualenv = (
+                        str(os.path.join(self._virtual_env_path, "bin")) + path_sep + os.environ["PATH"]
+                    )
+                    env["PATH"] = path_with_virtualenv
+
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env
                 )
             except subprocess.TimeoutExpired:
                 logs_all += "\n" + TIMEOUT_MSG
