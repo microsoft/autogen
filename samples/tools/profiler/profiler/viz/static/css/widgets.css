@@ -1,3 +1,49 @@
+.message-widget{
+    padding: 10px;
+    margin: 10px;
+    border: solid 1px #323130; /* Dark gray */
+    border-radius: 10px;
+    background-color: #F3F2F1; /* Light gray */
+}
+
+.message-widget h3{
+    color: black; /* Blue */
+}
+
+.message-widget > .states{
+    /* margin: 4px; */
+    display: flex;;
+    align-items: center; /* Center the items horizontally */
+    justify-content: center; /* Center the items vertically */
+
+}
+
+.message-widget > .states > .state{
+    margin: 4px;
+    padding: 4px;
+    border: solid 1px #323130; /* Dark gray */
+    border-radius: 5px; /* Slightly rounded corners */
+    background-color: #F3F2F1; /* Light gray */
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.message-widget > .tags{
+    margin-top: 10px; /* Add some space above the tags */
+}
+
+.message-widget > .tags > .tag{
+    margin: 4px;
+    padding: 4px;
+    border: solid 1px #E1DFDD; /* Lighter gray */
+    border-radius: 5px; /* Slightly rounded corners */
+    background-color: #F3F2F1; /* Light gray */
+    font-size: 0.7em; /* Smaller font */
+    font-weight: normal; /* Normal font weight */
+    color: #323130; /* Dark gray */
+}
+
 .message-selected{
     outline: solid 1px blue;
+    background-color: #E1DFDD; /* Slightly darker gray */
 }

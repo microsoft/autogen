@@ -77,6 +77,16 @@ class MessageWidget {
         h3.textContent = message.source;
         div.appendChild(h3);
 
+        const statesDiv = document.createElement('div');
+        statesDiv.className = "states";
+        this.msgProfile.states.forEach(state => {
+            const span = document.createElement('span');
+            span.className = "state";
+            span.textContent = state.name;
+            statesDiv.appendChild(span);
+        });
+        div.appendChild(statesDiv);
+
         const p = document.createElement('p');
         p.textContent = message.content;
         div.appendChild(p);
@@ -91,15 +101,6 @@ class MessageWidget {
         });
         div.appendChild(tagsDiv);
 
-        const statesDiv = document.createElement('div');
-        statesDiv.className = "states";
-        this.msgProfile.states.forEach(state => {
-            const span = document.createElement('span');
-            span.className = "state";
-            span.textContent = state.name;
-            statesDiv.appendChild(span);
-        });
-        div.appendChild(statesDiv);
 
         return div;
     }
