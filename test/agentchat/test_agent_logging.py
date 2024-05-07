@@ -9,13 +9,14 @@ import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
-import autogen
-import autogen.runtime_logging
-from autogen.logger.file_logger import FileLogger
 from unittest.mock import Mock
 
 from conftest import skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
+
+import autogen
+import autogen.runtime_logging
+from autogen.logger.file_logger import FileLogger
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.
@@ -263,22 +264,26 @@ def test_groupchat_logging(db_connection):
     assert len(rows) == 1
     assert rows[0]["id"] == 1 and rows[0]["version_number"] == 1
 
+
 ############################
+
 
 @pytest.fixture
 def logger():
-    project_dir = os.path.dirname(os.path.abspath(__file__))  
-    log_dir = os.path.join(project_dir, "logs") 
-    os.makedirs(log_dir, exist_ok=True) 
-    log_file = os.path.join(log_dir, "test.log")  
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    log_dir = os.path.join(project_dir, "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "test.log")
     config = {"filename": log_file}
     logger = FileLogger(config)
     yield logger
+
 
 def test_start(logger):
     session_id = logger.start()
     assert isinstance(session_id, str)
     assert len(session_id) == 36
+
 
 def test_log_chat_completion(logger):
     invocation_id = uuid.uuid4()
@@ -290,9 +295,7 @@ def test_log_chat_completion(logger):
     cost = 0.5
     start_time = "2024-05-06 15:20:21.263231"
 
-    logger.log_chat_completion(
-        invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time
-    )
+    logger.log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time)
 
     if isinstance(logger, FileLogger):
         with open(logger.log_file, "r") as f:
@@ -307,14 +310,17 @@ def test_log_chat_completion(logger):
             assert log_data["cost"] == cost
             assert log_data["start_time"] == start_time
 
+
 class TestAgent:
     def __init__(self, name, init_args):
         self.name = name
         self.init_args = init_args
 
+
 class TestWrapper:
     def __init__(self, init_args):
         self.init_args = init_args
+
 
 def test_log_new_agent(logger):
     agent = TestAgent(name="TestAgent", init_args={"foo": "bar"})
@@ -323,9 +329,10 @@ def test_log_new_agent(logger):
     if isinstance(logger, FileLogger):
         with open(logger.log_file, "r") as f:
             lines = f.readlines()
-            log_data = json.loads(lines[1]) # the first line is the session id
+            log_data = json.loads(lines[1])  # the first line is the session id
             assert log_data["agent_name"] == "TestAgent"
             assert log_data["args"] == agent.init_args
+
 
 def test_log_event(logger):
     source = "TestSource"
@@ -336,10 +343,11 @@ def test_log_event(logger):
     if isinstance(logger, FileLogger):
         with open(logger.log_file, "r") as f:
             lines = f.readlines()
-            log_data = json.loads(lines[2]) # the first two lines are session id and chat completion
+            log_data = json.loads(lines[2])  # the first two lines are session id and chat completion
             assert log_data["source_name"] == source
             assert log_data["event_name"] == name
             assert log_data["json_state"] == json.dumps(kwargs)
+
 
 def test_log_new_wrapper(logger):
     wrapper = TestWrapper(init_args={"foo": "bar"})
@@ -348,9 +356,10 @@ def test_log_new_wrapper(logger):
     if isinstance(logger, FileLogger):
         with open(logger.log_file, "r") as f:
             lines = f.readlines()
-            log_data = json.loads(lines[3]) # the first three lines are session id, chat completion, and event
+            log_data = json.loads(lines[3])  # the first three lines are session id, chat completion, and event
             assert log_data["wrapper_id"] == id(wrapper)
             assert log_data["json_state"] == json.dumps(wrapper.init_args)
+
 
 def test_log_new_client(logger):
     client = Mock()
@@ -361,8 +370,7 @@ def test_log_new_client(logger):
     if isinstance(logger, FileLogger):
         with open(logger.log_file, "r") as f:
             lines = f.readlines()
-            log_data = json.loads(lines[4]) # the first four lines are session id, chat completion, event, and wrapper
+            log_data = json.loads(lines[4])  # the first four lines are session id, chat completion, event, and wrapper
             assert log_data["client_id"] == id(client)
             assert log_data["wrapper_id"] == id(wrapper)
             assert log_data["json_state"] == json.dumps(init_args)
-
