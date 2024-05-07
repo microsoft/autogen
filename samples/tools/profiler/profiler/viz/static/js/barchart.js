@@ -3,7 +3,7 @@ function drawBarChart(svg, data) {
     const height = svg.node().parentNode.clientHeight;
 
     // Increase the left margin to accommodate long y-axis labels
-    const margin = { top: 20, right: 30, bottom: 50, left: 100 };
+    const margin = { top: 20, right: 30, bottom: 50, left: 150 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 

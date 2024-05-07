@@ -1,0 +1,41 @@
+
+.timeline-widget {
+    border: solid 1px #323130; /* Dark gray */
+    background-color: #F3F2F1; /* Light gray */
+    border-radius: 10px; /* Slightly rounded corners */
+}
+
+.timeline-widget  rect{
+    cursor: pointer;
+}
+
+.timeline-widget rect:hover{
+    stroke: black; /* Microsoft Blue */
+    stroke-width: 2; /* Outline width */
+    paint-order: stroke; /* Draw the outline on top of the rectangle */
+}
+
+.bar-chart-widget {
+    background-color: #F3F2F1; /* Light gray */
+    border-radius: 10px; /* Slightly rounded corners */
+}
+
+.bar-chart-widget  rect{
+    cursor: pointer;
+}
+
+.bar-chart-widget rect:hover{
+    stroke: black; /* Microsoft Blue */
+    stroke-width: 2; /* Outline width */
+    paint-order: stroke; /* Draw the outline on top of the rectangle */
+}
+
+
+.filter-widget {
+    background-color: #F3F2F1; /* Light gray */
+    border-radius: 10px; /* Slightly rounded corners */
+}
+
+.filter-widget > .label {
+    font-weight: bold;
+}

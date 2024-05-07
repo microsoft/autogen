@@ -32,7 +32,7 @@
     margin-top: 10px; /* Add some space above the tags */
 }
 
-.message-widget > .tags > .tag{
+.message-widget > .tags > .tag {
     margin: 4px;
     padding: 4px;
     border: solid 1px #E1DFDD; /* Lighter gray */
