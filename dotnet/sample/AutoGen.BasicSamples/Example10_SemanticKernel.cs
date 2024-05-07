@@ -62,7 +62,7 @@ public class Example10_SemanticKernel
         Console.WriteLine((reply as IMessage<ChatMessageContent>).Content.Items[0].As<TextContent>().Text);
 
         var skAgentWithMiddleware = skAgent
-            .RegisterMessageConnector()
+            .RegisterMessageConnector() // Register the message connector to support more AutoGen built-in message types
             .RegisterPrintMessage();
 
         // Now the skAgentWithMiddleware supports more IMessage types like TextMessage, ImageMessage or MultiModalMessage

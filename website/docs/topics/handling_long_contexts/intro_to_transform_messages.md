@@ -1,4 +1,4 @@
-# Handling Long Context Conversations with Transform Messages
+# Introduction to Transform Messages
 
 Why do we need to handle long contexts? The problem arises from several constraints and requirements:
 
@@ -14,6 +14,7 @@ The `TransformMessages` capability is designed to modify incoming messages befor
 
 :::info Requirements
 Install `pyautogen`:
+
 ```bash
 pip install pyautogen
 ```
@@ -99,9 +100,9 @@ pprint.pprint(processed_short_messages)
 ```console
 [{'content': 'hello there, how are you?', 'role': 'user'},
  {'content': [{'text': 'hello', 'type': 'text'}], 'role': 'assistant'}]
- ```
+```
 
- We can see that no transformation was applied, because the threshold of 10 total tokens was not reached.
+We can see that no transformation was applied, because the threshold of 10 total tokens was not reached.
 
 ### Apply Transformations Using Agents
 
@@ -318,7 +319,7 @@ result = user_proxy.initiate_chat(
 
 ```
 
-````console
+```console
 user_proxy (to assistant):
 
 What are the two API keys that I just provided
@@ -340,4 +341,4 @@ user_proxy (to assistant):
 
 --------------------------------------------------------------------------------
 Redacted 2 OpenAI API keys.
-````
+```

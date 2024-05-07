@@ -1,5 +1,6 @@
 import copy
 from typing import Dict, List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -118,13 +119,82 @@ def test_message_token_limiter_get_logs(message_token_limiter, messages, expecte
     assert logs_str == expected_logs
 
 
+def test_text_compression():
+    """Test the TextMessageCompressor transform."""
+    try:
+        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+
+        text_compressor = TextMessageCompressor()
+    except ImportError:
+        pytest.skip("LLM Lingua is not installed.")
+
+    text = "Run this test with a long string. "
+    messages = [
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "".join([text] * 3)}],
+        },
+    ]
+
+    transformed_messages = text_compressor.apply_transform([{"content": text}])
+
+    assert len(transformed_messages[0]["content"]) < len(text)
+
+    # Test compressing all messages
+    text_compressor = TextMessageCompressor()
+    transformed_messages = text_compressor.apply_transform(copy.deepcopy(messages))
+    for message in transformed_messages:
+        assert len(message["content"][0]["text"]) < len(messages[0]["content"][0]["text"])
+
+
+def test_text_compression_cache():
+    try:
+        from autogen.agentchat.contrib.capabilities.transforms import TextMessageCompressor
+
+    except ImportError:
+        pytest.skip("LLM Lingua is not installed.")
+
+    messages = get_long_messages()
+    mock_compressed_content = (1, {"content": "mock"})
+
+    with patch(
+        "autogen.agentchat.contrib.capabilities.transforms.TextMessageCompressor._cache_get",
+        MagicMock(return_value=(1, {"content": "mock"})),
+    ) as mocked_get, patch(
+        "autogen.agentchat.contrib.capabilities.transforms.TextMessageCompressor._cache_set", MagicMock()
+    ) as mocked_set:
+        text_compressor = TextMessageCompressor()
+
+        text_compressor.apply_transform(messages)
+        text_compressor.apply_transform(messages)
+
+        assert mocked_get.call_count == len(messages)
+        assert mocked_set.call_count == len(messages)
+
+    # We already populated the cache with the mock content
+    # We need to test if we retrieve the correct content
+    text_compressor = TextMessageCompressor()
+    compressed_messages = text_compressor.apply_transform(messages)
+
+    for message in compressed_messages:
+        assert message["content"] == mock_compressed_content[1]
+
+
 if __name__ == "__main__":
     long_messages = get_long_messages()
     short_messages = get_short_messages()
     no_content_messages = get_no_content_messages()
-    message_history_limiter = MessageHistoryLimiter(max_messages=3)
-    message_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
-    message_token_limiter_with_threshold = MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
+    msg_history_limiter = MessageHistoryLimiter(max_messages=3)
+    msg_token_limiter = MessageTokenLimiter(max_tokens_per_message=3)
+    msg_token_limiter_with_threshold = MessageTokenLimiter(max_tokens_per_message=1, min_tokens=10)
 
     # Test Parameters
     message_history_limiter_apply_transform_parameters = {
@@ -170,14 +240,14 @@ if __name__ == "__main__":
         message_history_limiter_apply_transform_parameters["messages"],
         message_history_limiter_apply_transform_parameters["expected_messages_len"],
     ):
-        test_message_history_limiter_apply_transform(message_history_limiter, messages, expected_messages_len)
+        test_message_history_limiter_apply_transform(msg_history_limiter, messages, expected_messages_len)
 
     for messages, expected_logs, expected_effect in zip(
         message_history_limiter_get_logs_parameters["messages"],
         message_history_limiter_get_logs_parameters["expected_logs"],
         message_history_limiter_get_logs_parameters["expected_effect"],
     ):
-        test_message_history_limiter_get_logs(message_history_limiter, messages, expected_logs, expected_effect)
+        test_message_history_limiter_get_logs(msg_history_limiter, messages, expected_logs, expected_effect)
 
     # Call the MessageTokenLimiter tests
 
@@ -187,7 +257,7 @@ if __name__ == "__main__":
         message_token_limiter_apply_transform_parameters["expected_messages_len"],
     ):
         test_message_token_limiter_apply_transform(
-            message_token_limiter, messages, expected_token_count, expected_messages_len
+            msg_token_limiter, messages, expected_token_count, expected_messages_len
         )
 
     for messages, expected_token_count, expected_messages_len in zip(
@@ -196,7 +266,7 @@ if __name__ == "__main__":
         message_token_limiter_with_threshold_apply_transform_parameters["expected_messages_len"],
     ):
         test_message_token_limiter_with_threshold_apply_transform(
-            message_token_limiter_with_threshold, messages, expected_token_count, expected_messages_len
+            msg_token_limiter_with_threshold, messages, expected_token_count, expected_messages_len
         )
 
     for messages, expected_logs, expected_effect in zip(
@@ -204,4 +274,4 @@ if __name__ == "__main__":
         message_token_limiter_get_logs_parameters["expected_logs"],
         message_token_limiter_get_logs_parameters["expected_effect"],
     ):
-        test_message_token_limiter_get_logs(message_token_limiter, messages, expected_logs, expected_effect)
+        test_message_token_limiter_get_logs(msg_token_limiter, messages, expected_logs, expected_effect)
