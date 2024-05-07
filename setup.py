@@ -56,7 +56,7 @@ extra_require = {
         "pytest>=6.1.1,<8",
         "pandas",
     ],
-    "agentops": ["agentops>=0.1.5"],
+    "agentops": ["agentops>=0.1.9"],
     "blendsearch": ["flaml[blendsearch]"],
     "mathchat": ["sympy", "pydantic==1.10.9", "wolframalpha"],
     "retrievechat": retrieve_chat,
