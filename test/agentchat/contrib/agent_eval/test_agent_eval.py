@@ -14,7 +14,7 @@ KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"
 
 
-def remove_ground_truth(test_case):
+def remove_ground_truth(test_case: str):
     test_details = json.loads(test_case)
     # need to remove the ground truth from the test details
     correctness = test_details.pop("is_correct", None)
