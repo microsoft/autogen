@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoGen.LMStudio;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
@@ -144,6 +145,24 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallTestAsync(assistantAgent);
             await UpperCaseTest(assistantAgent);
+        }
+
+        [Fact]
+        public async Task ItCreateAssistantAgentFromLMStudioConfigAsync()
+        {
+            var host = "http://localhost";
+            var port = 8080;
+            var lmStudioConfig = new LMStudioConfig(host, port);
+
+            var assistantAgent = new AssistantAgent(
+                name: "assistant",
+                llmConfig: new ConversableAgentConfig()
+                {
+                    ConfigList = [lmStudioConfig],
+                });
+
+            assistantAgent.Name.Should().Be("assistant");
+            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
         }
 
 
