@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.code_utils import decide_use_docker, is_docker_running
+from autogen.code_utils import WIN32, decide_use_docker, is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
@@ -410,7 +410,11 @@ def test_local_executor_with_custom_python_env():
 
         assert execution.exit_code == 0
 
-        venv_lib_path = os.path.join(venv_path, "lib")
-        venv_site_packages_path = os.path.join(venv_lib_path, os.listdir(venv_lib_path)[0], "site-packages")
+        if WIN32:
+            venv_lib_path = os.path.join(venv_path, "Lib")
+            venv_site_packages_path = os.path.join(venv_lib_path, "site-packages")
+        else:
+            venv_lib_path = os.path.join(venv_path, "lib")
+            venv_site_packages_path = os.path.join(venv_lib_path, os.listdir(venv_lib_path)[0], "site-packages")
 
         assert os.path.exists(os.path.join(venv_site_packages_path, "yfinance"))

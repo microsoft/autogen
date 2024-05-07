@@ -204,7 +204,10 @@ $functions"""
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
             if self._virtual_env_path:
-                py_executable = os.path.join(str(self._virtual_env_path), "bin", "python")
+                if WIN32:
+                    py_executable = os.path.join(str(self._virtual_env_path), "Scripts", "python.exe")
+                else:
+                    py_executable = os.path.join(str(self._virtual_env_path), "bin", "python")
             else:
                 py_executable = sys.executable
             cmd = [py_executable, "-m", "pip", "install"] + required_packages
@@ -283,12 +286,15 @@ $functions"""
             try:
                 env = os.environ.copy()
                 if self._virtual_env_path:
-                    path_sep = ";" if WIN32 else ":"
-                    path_with_virtualenv = (
-                        str(os.path.join(self._virtual_env_path, "bin")) + path_sep + os.environ["PATH"]
-                    )
+                    if WIN32:
+                        path_sep = ";"
+                        bin_dir = "Scripts"
+                    else:
+                        path_sep = ":"
+                        bin_dir = "bin"
+                    virtual_env_path_bin = os.path.join(str(self._virtual_env_path), bin_dir)
+                    path_with_virtualenv = virtual_env_path_bin + path_sep + os.environ["PATH"]
                     env["PATH"] = path_with_virtualenv
-
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env
                 )
