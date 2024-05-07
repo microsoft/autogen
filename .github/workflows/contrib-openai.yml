@@ -105,7 +105,7 @@ jobs:
           AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
           OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
         run: |
-          pytest test/agentchat/contrib/agent_eval/test_agent_eval.py::test_generate_criteria test/agentchat/contrib/agent_eval/test_agent_eval.py::test_quantify_criteria
+          pytest test/agentchat/contrib/agent_eval/test_agent_eval.py
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
