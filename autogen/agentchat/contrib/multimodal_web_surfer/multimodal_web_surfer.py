@@ -412,7 +412,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         self._page.wait_for_load_state()
         time.sleep(1)
 
-        # Descrive the viewport of the new page in words
+        # Describe the viewport of the new page in words
         viewport = self._get_visual_viewport()
         percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
         percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
