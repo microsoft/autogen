@@ -7,7 +7,6 @@ import logging
 import re
 import warnings
 from collections import defaultdict
-from functools import partial
 from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 from openai import BadRequestError
@@ -434,10 +433,15 @@ class ConversableAgent(LLMAgent):
             reply_func_from_nested_chats = self._summary_from_nested_chats
         if not callable(reply_func_from_nested_chats):
             raise ValueError("reply_func_from_nested_chats must be a callable")
-        reply_func = partial(reply_func_from_nested_chats, chat_queue)
+
+        def wrapped_reply_func(recipient, messages=None, sender=None, config=None):
+            return reply_func_from_nested_chats(chat_queue, recipient, messages, sender, config)
+
+        functools.update_wrapper(wrapped_reply_func, reply_func_from_nested_chats)
+
         self.register_reply(
             trigger,
-            reply_func,
+            wrapped_reply_func,
             position,
             kwargs.get("config"),
             kwargs.get("reset_config"),

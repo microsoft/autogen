@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoGen.Core;
@@ -77,19 +78,14 @@ public class MistralClientAgent : IStreamingAgent
         return new MessageEnvelope<ChatCompletionResponse>(response, from: this.Name);
     }
 
-    public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var request = BuildChatRequest(messages, options);
         var response = _client.StreamingChatCompletionsAsync(request);
 
-        return ProcessMessage(response);
-    }
-
-    private async IAsyncEnumerable<IMessage> ProcessMessage(IAsyncEnumerable<ChatCompletionResponse> response)
-    {
         await foreach (var content in response)
         {
             yield return new MessageEnvelope<ChatCompletionResponse>(content, from: this.Name);
