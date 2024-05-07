@@ -10,6 +10,7 @@ using AutoGen.SemanticKernel.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
 #endregion using_statement
@@ -35,7 +36,11 @@ public partial class Sequential_GroupChat_Example
         var agent = new ChatCompletionAgent()
         {
             Kernel = kernel,
-            Name = "ExampleAgent"
+            Name = "ExampleAgent",
+            ExecutionSettings = new OpenAIPromptExecutionSettings
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            },
         };
 
         var skAgent = new SemanticKernelAgent(

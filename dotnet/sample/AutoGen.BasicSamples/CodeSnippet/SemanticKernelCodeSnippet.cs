@@ -8,6 +8,7 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen.BasicSample.CodeSnippet;
 
@@ -31,7 +32,11 @@ public class SemanticKernelCodeSnippet
         var agent = new ChatCompletionAgent()
         {
             Kernel = kernel,
-            Name = "ExampleAgent"
+            Name = "ExampleAgent",
+            ExecutionSettings = new OpenAIPromptExecutionSettings
+            {
+                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            },
         };
 
         var semanticKernelAgent = new SemanticKernelAgent(
