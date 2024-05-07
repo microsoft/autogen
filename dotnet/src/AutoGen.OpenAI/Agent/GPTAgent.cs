@@ -90,30 +90,28 @@ public class GPTAgent : IStreamingAgent
         GenerateReplyOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var agent = this._innerAgent
-            .RegisterMessageConnector();
-        if (this.functionMap is not null)
-        {
-            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
-            agent = agent.RegisterMiddleware(functionMapMiddleware);
-        }
-
-        return await agent.GenerateReplyAsync(messages, options, cancellationToken);
-    }
-
-    public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
-        IEnumerable<IMessage> messages,
-        GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        var agent = this._innerAgent
-            .RegisterMessageConnector();
+        var agent = this._innerAgent.RegisterMessageConnector();
         if (this.functionMap is not null)
         {
             var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
             agent = agent.RegisterStreamingMiddleware(functionMapMiddleware);
         }
 
-        return await agent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
+        return await agent.GenerateReplyAsync(messages, options, cancellationToken);
+    }
+
+    public IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
+        IEnumerable<IMessage> messages,
+        GenerateReplyOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var agent = this._innerAgent.RegisterMessageConnector();
+        if (this.functionMap is not null)
+        {
+            var functionMapMiddleware = new FunctionCallMiddleware(functionMap: this.functionMap);
+            agent = agent.RegisterStreamingMiddleware(functionMapMiddleware);
+        }
+
+        return agent.GenerateStreamingReplyAsync(messages, options, cancellationToken);
     }
 }

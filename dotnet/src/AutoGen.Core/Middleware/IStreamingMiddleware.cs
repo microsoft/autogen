@@ -3,18 +3,18 @@
 
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AutoGen.Core;
 
 /// <summary>
-/// The streaming middleware interface
+/// The streaming middleware interface. For non-streaming version middleware, check <see cref="IMiddleware"/>.
 /// </summary>
-public interface IStreamingMiddleware
+public interface IStreamingMiddleware : IMiddleware
 {
-    public string? Name { get; }
-
-    public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(
+    /// <summary>
+    /// The streaming version of <see cref="IMiddleware.InvokeAsync(MiddlewareContext, IAgent, CancellationToken)"/>.
+    /// </summary>
+    public IAsyncEnumerable<IStreamingMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
         CancellationToken cancellationToken = default);

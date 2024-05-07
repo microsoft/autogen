@@ -20,7 +20,6 @@
     <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
     <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-
   </ItemGroup>
 
   <ItemGroup>
