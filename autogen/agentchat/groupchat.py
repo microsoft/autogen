@@ -904,17 +904,6 @@ class GroupChat:
                 mentions[agent.name] = count
         return mentions
 
-    def _agent_names_as_list(self) -> List[str]:
-        """Returns the list of agent names in the group chat as a list, sorted alphabetically"""
-        agent_list = []
-        for agent in self.agents:
-            if agent.name not in agent_list:
-                agent_list.append(agent.name)
-
-        agent_list.sort()
-
-        return agent_list
-
 
 class GroupChatManager(ConversableAgent):
     """(In preview) A chat manager agent that can manage a group chat of multiple agents."""
@@ -1016,21 +1005,17 @@ class GroupChatManager(ConversableAgent):
                 a.previous_cache = a.client_cache
                 a.client_cache = self.client_cache
         for i in range(groupchat.max_round):
-
             groupchat.append(message, speaker)
-
             # broadcast the message to all agents except the speaker
             for agent in groupchat.agents:
                 if agent != speaker:
                     self.send(message, agent, request_reply=False, silent=True)
-
             if self._is_termination_msg(message) or i == groupchat.max_round - 1:
                 # The conversation is over or it's the last round
                 break
             try:
                 # select the next speaker
                 speaker = groupchat.select_speaker(speaker, self)
-
                 # let the speaker speak
                 reply = speaker.generate_reply(sender=self)
             except KeyboardInterrupt:
@@ -1148,8 +1133,7 @@ class GroupChatManager(ConversableAgent):
     # MS MS Need to do async version too!!!
     def resume_chat(
         self,
-        # messages: Optional[List[Dict]] = None,
-        saved_state: str,
+        messages: Union[List[Dict], str],
         remove_termination_string: str = None,
         silent: Optional[bool] = False,
         max_turns: Optional[int] = None,
@@ -1160,7 +1144,7 @@ class GroupChatManager(ConversableAgent):
         as per the original group chat.
 
         Args:
-            messages Optional[List[Dict]]: The content of the previous chat's messages, either as a single string or a list of strings.
+            messages Union[List[Dict], str]: The content of the previous chat's messages, either as a single Json string or a list of message dictionaries.
             remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
             silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
@@ -1189,14 +1173,16 @@ class GroupChatManager(ConversableAgent):
                 The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
 
         Returns:
-            Dict: chat result
+            ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
         """
 
         print("<--- RESUMING CHAT --->")
 
         # Get agents and messages from state
-        # agent_list, messages = self.get_saved_state(saved_state)
-        messages = self.convert_saved_state(saved_state)
+
+        # Convert messages from string to messages list, if needed
+        if isinstance(messages, str):
+            messages = self.messages_from_string(messages)
 
         # Validation of message and agents
 
@@ -1204,16 +1190,6 @@ class GroupChatManager(ConversableAgent):
         if not messages:
             logger.warn("Cannot resume group chat as no messages were provided. Use run_chat to start a new chat.")
             return
-
-        # Ensure we have all the agents
-        """
-        gc_agentnames = self.groupchat._agent_names_as_list()
-        agent_list.sort()
-
-        if gc_agentnames != agent_list:
-            logger.warn(f"Agents in group chat do not match agents in state.\n\nGroup Chat: {', '.join(n for n in gc_agentnames)}\n\nState: {', '.join(n for n in agent_list)}")
-            return
-        """
 
         # Check that all agents in the chat messages exist in the group chat
         for message in messages:
@@ -1281,8 +1257,8 @@ class GroupChatManager(ConversableAgent):
             summary_args=summary_args,
         )
 
-    def convert_saved_state(self, state_string: str) -> List[Dict]:  # Tuple[List[str], List[Dict]]:
-        """Reads the saved state for resume and returns the messages from it
+    def messages_from_string(self, message_string: str) -> List[Dict]:
+        """Reads the saved state of messages in Json format for resume and returns as a messages list
 
         args:
             - state_string: Json string, the saved state
@@ -1290,31 +1266,21 @@ class GroupChatManager(ConversableAgent):
         returns:
             - List[Dict]: List of messages
         """
-        state = json.loads(state_string)
+        state = json.loads(message_string)
 
         return state
 
-    def state_to_string(self) -> str:
+    def messages_to_string(self) -> str:
         """Converts the group chat state into a Json string that can be used for resuming the chat.
         The state is made up of a list of agents and the messages
 
         args:
             - None
 
-
         returns:
             - str: Json representation of the messages
         """
-        """
-        agent_list = []
-        for agent in self.groupchat.agents:
-            if not agent.name in agent_list:
-                agent_list.append(agent.name)
-        state = {
-            "agents": agent_list.sort(),
-            "messages": self.groupchat.messages
-        }
-        """
+
         state = self.groupchat.messages
 
         return json.dumps(state)
