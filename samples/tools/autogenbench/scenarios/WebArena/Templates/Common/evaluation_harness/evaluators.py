@@ -177,12 +177,14 @@ class StringEvaluator(Evaluator):
                                 intent=configs["intent"],
                                 ref=configs["eval"]["string_note"],
                                 pred=pred,
-                                azure_config=azure_config
+                                azure_config=azure_config,
                             )
                     else:
                         assert isinstance(value, list)
                         for reference in value:
-                            score *= self.fuzzy_match(ref=reference, pred=pred, intent=intent, azure_config=azure_config)
+                            score *= self.fuzzy_match(
+                                ref=reference, pred=pred, intent=intent, azure_config=azure_config
+                            )
         return score
 
 

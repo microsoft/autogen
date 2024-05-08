@@ -302,7 +302,7 @@ score = evaluator(
     config_file=config_file,
     page=page,
     client=cdp_session,
-    azure_config=llm_config
+    azure_config=llm_config,
 )
 
 if logging_enabled():
