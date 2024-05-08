@@ -37,6 +37,7 @@ class FileLogger(BaseLogger):
         self.logger.addHandler(file_handler)
 
     def start(self) -> str:
+        """Start the logger and return the session_id."""
         try:
             self.logger.info(self.session_id)
         except Exception as e:
@@ -56,6 +57,9 @@ class FileLogger(BaseLogger):
         cost: float,
         start_time: str,
     ) -> None:
+        """
+        Log a chat completion.
+        """
         try:
             log_data = json.dumps(
                 {
@@ -76,6 +80,9 @@ class FileLogger(BaseLogger):
             self.logger.error(f"[file_logger] Failed to log chat completion: {e}")
 
     def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
+        """
+        Log a new agent instance.
+        """
         try:
             log_data = json.dumps(
                 {
@@ -95,9 +102,13 @@ class FileLogger(BaseLogger):
             self.logger.error(f"[file_logger] Failed to log new agent: {e}")
 
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
-        """"""
+        """
+        Log an event from an agent or a string source.
+        """
         from autogen import Agent
 
+        # This takes an object o as input and returns a string. If the object o cannot be serialized, instead of raising an error,
+        # it returns a string indicating that the object is non-serializable, along with its type's qualified name obtained using __qualname__.
         json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
 
         if isinstance(source, Agent):
@@ -132,7 +143,9 @@ class FileLogger(BaseLogger):
                 self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
-        """"""
+        """
+        Log a new wrapper instance.
+        """
         try:
             log_data = json.dumps(
                 {
@@ -147,6 +160,9 @@ class FileLogger(BaseLogger):
             self.logger.error(f"[file_logger] Failed to log event {e}")
 
     def log_new_client(self, client: AzureOpenAI | OpenAI, wrapper: OpenAIWrapper, init_args: Dict[str, Any]) -> None:
+        """
+        Log a new client instance.
+        """
         try:
             log_data = json.dumps(
                 {

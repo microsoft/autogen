@@ -17,7 +17,7 @@ from autogen.logger.file_logger import FileLogger
 
 
 @pytest.fixture
-def logger():
+def logger() -> FileLogger:
     project_dir = os.path.dirname(os.path.abspath(__file__))
     log_dir = os.path.join(project_dir, "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -29,13 +29,13 @@ def logger():
         f.truncate(0)
 
 
-def test_start(logger):
+def test_start(logger: FileLogger):
     session_id = logger.start()
     assert isinstance(session_id, str)
     assert len(session_id) == 36
 
 
-def test_log_chat_completion(logger):
+def test_log_chat_completion(logger: FileLogger):
     invocation_id = uuid.uuid4()
     client_id = 123456789
     wrapper_id = 987654321
@@ -82,7 +82,7 @@ def test_log_new_agent(logger):
         assert log_data["args"] == agent.init_args
 
 
-def test_log_event(logger):
+def test_log_event(logger: FileLogger):
     source = "TestSource"
     name = "TestEvent"
     kwargs = {"key": "value"}
@@ -96,7 +96,7 @@ def test_log_event(logger):
         assert log_data["json_state"] == json.dumps(kwargs)
 
 
-def test_log_new_wrapper(logger):
+def test_log_new_wrapper(logger: FileLogger):
     wrapper = TestWrapper(init_args={"foo": "bar"})
     logger.log_new_wrapper(wrapper, wrapper.init_args)
 
@@ -107,7 +107,7 @@ def test_log_new_wrapper(logger):
         assert log_data["json_state"] == json.dumps(wrapper.init_args)
 
 
-def test_log_new_client(logger):
+def test_log_new_client(logger: FileLogger):
     client = TestAgent(name="TestClient", init_args={"foo": "bar"})
     wrapper = TestWrapper(init_args={"foo": "bar"})
     init_args = {"foo": "bar"}
