@@ -145,7 +145,9 @@ public partial class SemanticKernelAgentTest
         var kernel = builder.Build();
         var agent = new ChatCompletionAgent()
         {
-            Kernel = kernel, Name = "assistant", Instructions = "You are a helpful AI assistant"
+            Kernel = kernel,
+            Name = "assistant",
+            Instructions = "You are a helpful AI assistant"
         };
 
         var skAgent = new SemanticKernelChatCompletionAgent(agent);
@@ -170,7 +172,9 @@ public partial class SemanticKernelAgentTest
         var connector = new SemanticKernelChatMessageContentConnector();
         var agent = new ChatCompletionAgent()
         {
-            Kernel = kernel, Name = "assistant", Instructions = "You are a helpful AI assistant"
+            Kernel = kernel,
+            Name = "assistant",
+            Instructions = "You are a helpful AI assistant"
         };
         var skAgent = new SemanticKernelChatCompletionAgent(agent)
             .RegisterMiddleware(connector);
