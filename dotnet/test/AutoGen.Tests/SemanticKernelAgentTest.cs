@@ -217,7 +217,9 @@ public partial class SemanticKernelAgentTest
                     ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions
                 }
         };
-        var skAgent = new SemanticKernelChatCompletionAgent(agent).RegisterMiddleware(new SkSequentialChatMessageContentConnector());
+        var skAgent =
+            new SemanticKernelChatCompletionAgent(agent).RegisterMiddleware(
+                new SemanticKernelChatMessageContentConnector());
 
         var question = "What is the weather in Seattle?";
         var reply = await skAgent.SendAsync(question);
