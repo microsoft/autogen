@@ -44,7 +44,7 @@ public partial class SemanticKernelAgentTest
         reply.As<MessageEnvelope<ChatMessageContent>>().From.Should().Be("assistant");
 
         // test streaming
-        var streamingReply = await skAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+        var streamingReply = skAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
 
         await foreach (var streamingMessage in streamingReply)
         {
@@ -63,10 +63,8 @@ public partial class SemanticKernelAgentTest
 
         var kernel = builder.Build();
 
-        var connector = new SemanticKernelChatMessageContentConnector();
         var skAgent = new SemanticKernelAgent(kernel, "assistant")
-            .RegisterStreamingMiddleware(connector)
-            .RegisterMiddleware(connector);
+            .RegisterMessageConnector();
 
         var messages = new IMessage[]
         {
@@ -90,7 +88,7 @@ public partial class SemanticKernelAgentTest
         // test streaming
         foreach (var message in messages)
         {
-            var reply = await skAgent.GenerateStreamingReplyAsync([message]);
+            var reply = skAgent.GenerateStreamingReplyAsync([message]);
 
             await foreach (var streamingMessage in reply)
             {
@@ -122,7 +120,6 @@ public partial class SemanticKernelAgentTest
         var skAgent = new SemanticKernelAgent(kernel, "assistant")
             .RegisterMessageConnector();
 
-        skAgent.Middlewares.Count().Should().Be(1);
         skAgent.StreamingMiddlewares.Count().Should().Be(1);
 
         var question = "What is the weather in Seattle?";

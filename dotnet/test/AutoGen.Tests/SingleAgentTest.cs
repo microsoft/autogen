@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AutoGen.LMStudio;
 using AutoGen.OpenAI;
 using Azure.AI.OpenAI;
 using FluentAssertions;
@@ -41,7 +43,7 @@ namespace AutoGen.Tests
 
             var agent = new GPTAgent("gpt", "You are a helpful AI assistant", config);
 
-            await UpperCaseTest(agent);
+            await UpperCaseTestAsync(agent);
             await UpperCaseStreamingTestAsync(agent);
         }
 
@@ -80,11 +82,24 @@ namespace AutoGen.Tests
 
             var imageMessage = new ImageMessage(Role.User, imageUri, from: "user");
 
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ApprovalTests", "square.png");
+            ImageMessage imageMessageData;
+            using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read))
+            {
+                var ms = new MemoryStream();
+                await fs.CopyToAsync(ms);
+                ms.Seek(0, SeekOrigin.Begin);
+                var imageData = await BinaryData.FromStreamAsync(ms, "image/png");
+                imageMessageData = new ImageMessage(Role.Assistant, imageData, from: "user");
+            }
+
             IMessage[] messages = [
                 MessageEnvelope.Create(oaiMessage),
                 multiModalMessage,
                 imageMessage,
+                imageMessageData
                 ];
+
             foreach (var message in messages)
             {
                 var response = await visionAgent.SendAsync(message);
@@ -103,7 +118,7 @@ namespace AutoGen.Tests
             var agentWithFunction = new GPTAgent("gpt", "You are a helpful AI assistant", config, 0, functions: new[] { this.EchoAsyncFunction });
 
             await EchoFunctionCallTestAsync(agentWithFunction);
-            await UpperCaseTest(agentWithFunction);
+            await UpperCaseTestAsync(agentWithFunction);
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -129,7 +144,43 @@ namespace AutoGen.Tests
                 llmConfig: llmConfig);
 
             await EchoFunctionCallTestAsync(assistantAgent);
-            await UpperCaseTest(assistantAgent);
+            await UpperCaseTestAsync(assistantAgent);
+        }
+
+        [Fact]
+        public async Task ItCreateAssistantAgentFromLMStudioConfigAsync()
+        {
+            var host = "http://localhost";
+            var port = 8080;
+            var lmStudioConfig = new LMStudioConfig(host, port);
+
+            var assistantAgent = new AssistantAgent(
+                name: "assistant",
+                llmConfig: new ConversableAgentConfig()
+                {
+                    ConfigList = [lmStudioConfig],
+                });
+
+            assistantAgent.Name.Should().Be("assistant");
+            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
+        }
+
+        [ApiKeyFact("LMStudio_ENDPOINT")]
+        public async Task ItTestAssistantAgentFromLMStudioConfigAsync()
+        {
+            var Uri = Environment.GetEnvironmentVariable("LMStudio_ENDPOINT") ?? throw new ArgumentException("LMStudio_ENDPOINT is not set");
+            var lmStudioConfig = new LMStudioConfig(new Uri(Uri));
+
+            var assistantAgent = new AssistantAgent(
+                name: "assistant",
+                llmConfig: new ConversableAgentConfig()
+                {
+                    ConfigList = [lmStudioConfig],
+                });
+
+            assistantAgent.Name.Should().Be("assistant");
+            assistantAgent.InnerAgent.Should().BeOfType<LMStudioAgent>();
+            await this.UpperCaseTestAsync(assistantAgent);
         }
 
 
@@ -172,7 +223,6 @@ namespace AutoGen.Tests
                 });
 
             await EchoFunctionCallExecutionTestAsync(assistantAgent);
-            await UpperCaseTest(assistantAgent);
         }
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
@@ -192,7 +242,7 @@ namespace AutoGen.Tests
 
             await EchoFunctionCallExecutionStreamingTestAsync(agent);
             await EchoFunctionCallExecutionTestAsync(agent);
-            await UpperCaseTest(agent);
+            await UpperCaseTestAsync(agent);
         }
 
         /// <summary>
@@ -247,7 +297,7 @@ namespace AutoGen.Tests
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
+            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "[ECHO] Hello world";
             IStreamingMessage? finalReply = default;
             await foreach (var reply in replyStream)
@@ -269,7 +319,7 @@ namespace AutoGen.Tests
             }
         }
 
-        public async Task UpperCaseTest(IAgent agent)
+        public async Task UpperCaseTestAsync(IAgent agent)
         {
             var message = new TextMessage(Role.System, "You are a helpful AI assistant that convert user message to upper case");
             var uppCaseMessage = new TextMessage(Role.User, "abcdefg");
@@ -288,7 +338,7 @@ namespace AutoGen.Tests
             {
                 Temperature = 0,
             };
-            var replyStream = await agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
+            var replyStream = agent.GenerateStreamingReplyAsync(messages: new[] { message, helloWorld }, option);
             var answer = "A B C D E F G H I J K L M N";
             TextMessage? finalReply = default;
             await foreach (var reply in replyStream)

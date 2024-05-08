@@ -41,12 +41,13 @@ public partial class OpenAIChatAgentTest
         var chatMessageContent = MessageEnvelope.Create(new ChatRequestUserMessage("Hello"));
         var reply = await openAIChatAgent.SendAsync(chatMessageContent);
 
-        reply.Should().BeOfType<MessageEnvelope<ChatResponseMessage>>();
-        reply.As<MessageEnvelope<ChatResponseMessage>>().From.Should().Be("assistant");
-        reply.As<MessageEnvelope<ChatResponseMessage>>().Content.Role.Should().Be(ChatRole.Assistant);
+        reply.Should().BeOfType<MessageEnvelope<ChatCompletions>>();
+        reply.As<MessageEnvelope<ChatCompletions>>().From.Should().Be("assistant");
+        reply.As<MessageEnvelope<ChatCompletions>>().Content.Choices.First().Message.Role.Should().Be(ChatRole.Assistant);
+        reply.As<MessageEnvelope<ChatCompletions>>().Content.Usage.TotalTokens.Should().BeGreaterThan(0);
 
         // test streaming
-        var streamingReply = await openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+        var streamingReply = openAIChatAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
 
         await foreach (var streamingMessage in streamingReply)
         {
@@ -92,7 +93,7 @@ public partial class OpenAIChatAgentTest
         // test streaming
         foreach (var message in messages)
         {
-            var reply = await assistant.GenerateStreamingReplyAsync([message]);
+            var reply = assistant.GenerateStreamingReplyAsync([message]);
 
             await foreach (var streamingMessage in reply)
             {
@@ -118,10 +119,9 @@ public partial class OpenAIChatAgentTest
         MiddlewareStreamingAgent<OpenAIChatAgent> assistant = openAIChatAgent
             .RegisterMessageConnector();
 
-        assistant.Middlewares.Count().Should().Be(1);
         assistant.StreamingMiddlewares.Count().Should().Be(1);
         var functionCallAgent = assistant
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
@@ -149,7 +149,7 @@ public partial class OpenAIChatAgentTest
         // test streaming
         foreach (var message in messages)
         {
-            var reply = await functionCallAgent.GenerateStreamingReplyAsync([message]);
+            var reply = functionCallAgent.GenerateStreamingReplyAsync([message]);
             ToolCallMessage? toolCallMessage = null;
             await foreach (var streamingMessage in reply)
             {
@@ -190,7 +190,7 @@ public partial class OpenAIChatAgentTest
             .RegisterMessageConnector();
 
         var functionCallAgent = assistant
-            .RegisterMiddleware(functionCallMiddleware);
+            .RegisterStreamingMiddleware(functionCallMiddleware);
 
         var question = "What's the weather in Seattle";
         var messages = new IMessage[]
@@ -219,7 +219,7 @@ public partial class OpenAIChatAgentTest
         // test streaming
         foreach (var message in messages)
         {
-            var reply = await functionCallAgent.GenerateStreamingReplyAsync([message]);
+            var reply = functionCallAgent.GenerateStreamingReplyAsync([message]);
             await foreach (var streamingMessage in reply)
             {
                 if (streamingMessage is not IMessage)

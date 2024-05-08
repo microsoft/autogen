@@ -20,12 +20,15 @@
     <ProjectReference Include="..\AutoGen.Mistral\AutoGen.Mistral.csproj" />
     <ProjectReference Include="..\AutoGen.SemanticKernel\AutoGen.SemanticKernel.csproj" />
     <ProjectReference Include="..\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.Tests" />
   </ItemGroup>
 
 </Project>

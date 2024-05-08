@@ -13,6 +13,15 @@ public class LMStudioConfig : ILLMConfig
         this.Host = host;
         this.Port = port;
         this.Version = version;
+        this.Uri = new Uri($"http://{host}:{port}/v{version}");
+    }
+
+    public LMStudioConfig(Uri uri)
+    {
+        this.Uri = uri;
+        this.Host = uri.Host;
+        this.Port = uri.Port;
+        this.Version = int.Parse(uri.Segments[1].TrimStart('v'));
     }
 
     public string Host { get; }
@@ -21,5 +30,5 @@ public class LMStudioConfig : ILLMConfig
 
     public int Version { get; }
 
-    public Uri Uri => new Uri($"http://{Host}:{Port}/v{Version}");
+    public Uri Uri { get; }
 }

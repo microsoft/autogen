@@ -77,7 +77,7 @@ public static class MessageExtension
             else if (message is ImageMessage imageMessage)
             {
                 // multi-modal
-                var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url)));
+                var msg = new ChatRequestUserMessage(new ChatMessageImageContentItem(new Uri(imageMessage.Url ?? imageMessage.BuildDataUri())));
 
                 return [msg];
             }
@@ -101,7 +101,7 @@ public static class MessageExtension
                     return m switch
                     {
                         TextMessage textMessage => new ChatMessageTextContentItem(textMessage.Content),
-                        ImageMessage imageMessage => new ChatMessageImageContentItem(new Uri(imageMessage.Url)),
+                        ImageMessage imageMessage => new ChatMessageImageContentItem(new Uri(imageMessage.Url ?? imageMessage.BuildDataUri())),
                         _ => throw new ArgumentException($"Unknown message type: {m.GetType()}")
                     };
                 });
