@@ -17,7 +17,7 @@ from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
 from autogen.runtime_logging import logging_enabled, log_event
-from autogen.screen_parsing import OCR
+from autogen.screen_parsing.ocr import OCR
 
 from importlib import resources
 
