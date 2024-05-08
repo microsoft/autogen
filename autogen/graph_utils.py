@@ -110,7 +110,11 @@ def invert_disallowed_to_allowed(disallowed_speaker_transitions_dict: dict, agen
     return allowed_speaker_transitions_dict
 
 
-def visualize_speaker_transitions_dict(speaker_transitions_dict: dict, agents: List[Agent], export_path: Optional[str] = None):
+def visualize_speaker_transitions_dict(
+    speaker_transitions_dict: dict,
+    agents: List[Agent], 
+    export_path: Optional[str] = None
+):
     """
     Visualize the speaker_transitions_dict using networkx.
     """
@@ -130,7 +134,7 @@ def visualize_speaker_transitions_dict(speaker_transitions_dict: dict, agents: L
     for key, value in speaker_transitions_dict.items():
         for agent in value:
             G.add_edge(key.name, agent.name)
-
+            
     # Visualize
     nx.draw(G, with_labels=True, font_weight="bold")
     
