@@ -101,6 +101,12 @@ class LLMConfig(SQLModel, table=False):
     extra_body: Optional[dict] = None
 
 
+class ModelTypes(str, Enum):
+    openai = "open_ai"
+    google = "google"
+    azure = "azure"
+
+
 class Model(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -116,7 +122,7 @@ class Model(SQLModel, table=True):
     model: str
     api_key: Optional[str] = None
     base_url: Optional[str] = None
-    api_type: Optional[str] = None
+    api_type: ModelTypes = Field(default=ModelTypes.openai, sa_column=Column(SqlEnum(ModelTypes)))
     api_version: Optional[str] = None
     description: Optional[str] = None
     agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)

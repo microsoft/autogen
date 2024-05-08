@@ -12,10 +12,10 @@ from fastapi.staticfiles import StaticFiles
 from openai import OpenAIError
 
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
+from ..database import workflow_from_id
 from ..database.dbmanager import DBManager
 from ..datamodel import Agent, Message, Model, Response, Session, Skill, Workflow
 from ..utils import check_and_cast_datetime_fields, init_app_folders, md5_hash, test_model
-from ..utils.db_utils import workflow_from_id
 from ..version import VERSION
 
 managers = {"chat": None}  # manage calls to autogen

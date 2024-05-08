@@ -173,7 +173,9 @@ const AgentsView = ({}: any) => {
         <Card
           className="h-full p-2 cursor-pointer"
           title={
-            <div className="  ">{truncateText(agent.config.name, 25)}</div>
+            <div className="  ">
+              {truncateText(agent.config.name || "", 25)}
+            </div>
           }
           onClick={() => {
             setSelectedAgent(agent);

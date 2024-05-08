@@ -16,7 +16,7 @@ from ..datamodel import (
     Workflow,
     WorkflowAgentLink,
 )
-from .migrate import run_migration
+from .utils import init_db_samples
 
 valid_link_types = ["agent_model", "agent_skill", "agent_agent", "workflow_agent"]
 
@@ -26,6 +26,7 @@ class DBManager:
 
     def __init__(self, engine_uri: str):
         self.engine = create_engine(engine_uri)
+        init_db_samples(self)
         # run_migration(engine_uri=engine_uri)
 
     def create_db_and_tables(self):
