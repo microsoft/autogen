@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// KernelFunctionMiddleware.cs
+// KernelPluginMiddleware.cs
 
 using System;
 using System.Linq;
