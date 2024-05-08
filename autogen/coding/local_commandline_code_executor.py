@@ -7,6 +7,7 @@ import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
+from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Union
 
 from typing_extensions import ParamSpec
@@ -65,7 +66,7 @@ $functions"""
     def __init__(
         self,
         timeout: int = 60,
-        virtual_env_path: Optional[Union[Path, str]] = None,
+        virtual_env_context: Optional[SimpleNamespace] = None,
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
         functions_module: str = "functions",
@@ -86,7 +87,7 @@ $functions"""
 
         Args:
             timeout (int): The timeout for code execution, default is 60 seconds.
-            virtual_env_path (Optional[Union[Path, str]]): The virtual environment to use to execute python code, defaults to using the base python virtual env.
+            virtual_env_context (Optional[SimpleNamespace]): The virtual environment context to use.
             work_dir (Union[Path, str]): The working directory for code execution, defaults to the current directory.
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]): A list of callable functions available to the executor.
             functions_module (str): The module name under which functions are accessible.
@@ -99,10 +100,6 @@ $functions"""
         if isinstance(work_dir, str):
             work_dir = Path(work_dir)
 
-        self._virtual_env_path: Optional[Path] = None
-        if virtual_env_path:
-            self._virtual_env_path = Path(virtual_env_path) if isinstance(virtual_env_path, str) else virtual_env_path
-
         if not functions_module.isidentifier():
             raise ValueError("Module name must be a valid Python identifier")
 
@@ -112,6 +109,7 @@ $functions"""
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+        self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
@@ -203,11 +201,8 @@ $functions"""
         required_packages = list(set(flattened_packages))
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
-            if self._virtual_env_path:
-                if WIN32:
-                    py_executable = os.path.join(str(self._virtual_env_path), "Scripts", "python.exe")
-                else:
-                    py_executable = os.path.join(str(self._virtual_env_path), "bin", "python")
+            if self._virtual_env_context:
+                py_executable = self._virtual_env_context.env_exe
             else:
                 py_executable = sys.executable
             cmd = [py_executable, "-m", "pip", "install"] + required_packages
@@ -285,15 +280,9 @@ $functions"""
             cmd = [program, str(written_file.absolute())]
             try:
                 env = os.environ.copy()
-                if self._virtual_env_path:
-                    if WIN32:
-                        path_sep = ";"
-                        bin_dir = "Scripts"
-                    else:
-                        path_sep = ":"
-                        bin_dir = "bin"
-                    virtual_env_path_bin = os.path.join(str(self._virtual_env_path), bin_dir)
-                    path_with_virtualenv = virtual_env_path_bin + path_sep + os.environ["PATH"]
+                if self._virtual_env_context:
+                    path_sep = ";" if WIN32 else ":"
+                    path_with_virtualenv = self._virtual_env_context.bin_path + path_sep + os.environ["PATH"]
                     env["PATH"] = path_with_virtualenv
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env

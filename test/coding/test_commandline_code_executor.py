@@ -398,10 +398,11 @@ def test_silent_pip_install(cls, lang: str) -> None:
 
 def test_local_executor_with_custom_python_env():
     with tempfile.TemporaryDirectory() as temp_dir:
-        venv_path = os.path.join(temp_dir, "venv")
-        venv.create(venv_path, with_pip=True)
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(temp_dir)
+        env_builder_context = env_builder.ensure_directories(temp_dir)
 
-        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_path=venv_path)
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
         code_blocks = [
             CodeBlock(code="pip install yfinance", language="sh"),
             CodeBlock(code="import yfinance", language="python"),
@@ -410,11 +411,4 @@ def test_local_executor_with_custom_python_env():
 
         assert execution.exit_code == 0
 
-        if WIN32:
-            venv_lib_path = os.path.join(venv_path, "Lib")
-            venv_site_packages_path = os.path.join(venv_lib_path, "site-packages")
-        else:
-            venv_lib_path = os.path.join(venv_path, "lib")
-            venv_site_packages_path = os.path.join(venv_lib_path, os.listdir(venv_lib_path)[0], "site-packages")
-
-        assert os.path.exists(os.path.join(venv_site_packages_path, "yfinance"))
+        assert os.path.exists(os.path.join(env_builder._venv_path(temp_dir, "purelib"), "yfinance"))
