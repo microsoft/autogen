@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen.SemanticKernel;
 
@@ -29,41 +29,39 @@ namespace AutoGen.SemanticKernel;
 /// </summary>
 public class SemanticKernelAgent : IStreamingAgent
 {
-    public string Name { get; }
-
-    private readonly ChatCompletionAgent _chatCompletionAgent;
+    private readonly Kernel _kernel;
     private readonly string _systemMessage;
+    private readonly PromptExecutionSettings? _settings;
 
-    public SemanticKernelAgent(ChatCompletionAgent chatCompletionAgent, string name,
-        string systemMessage = "You are a helpful AI assistant")
-    {
-        this.Name = name;
-        this._chatCompletionAgent = chatCompletionAgent;
-        this._systemMessage = systemMessage;
-    }
-
-    [Obsolete($"This constructor will be removed. Use SemanticKernelAgent constructor with ChatCompletionAgent instead of Kernel")]
-    public SemanticKernelAgent(Kernel kernel,
+    public SemanticKernelAgent(
+        Kernel kernel,
         string name,
         string systemMessage = "You are a helpful AI assistant",
         PromptExecutionSettings? settings = null)
     {
+        _kernel = kernel;
         this.Name = name;
-        this._chatCompletionAgent = new ChatCompletionAgent();
-        this._systemMessage = systemMessage;
+        _systemMessage = systemMessage;
+        _settings = settings;
     }
 
-    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null,
-        CancellationToken cancellationToken = default)
-    {
-        ChatMessageContent[] reply = await _chatCompletionAgent
-            .InvokeAsync(BuildChatHistory(messages), cancellationToken)
-            .ToArrayAsync(cancellationToken: cancellationToken);
+    public string Name { get; }
 
-        return reply.Length > 1
-            ? throw new InvalidOperationException(
-                "ResultsPerPrompt greater than 1 is not supported in this semantic kernel agent")
-            : new MessageEnvelope<ChatMessageContent>(reply[0], from: this.Name);
+
+    public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        var chatHistory = BuildChatHistory(messages);
+        var option = BuildOption(options);
+        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+
+        var reply = await chatService.GetChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
+
+        if (reply.Count > 1)
+        {
+            throw new InvalidOperationException("ResultsPerPrompt greater than 1 is not supported in this semantic kernel agent");
+        }
+
+        return new MessageEnvelope<ChatMessageContent>(reply.First(), from: this.Name);
     }
 
     public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
@@ -72,7 +70,9 @@ public class SemanticKernelAgent : IStreamingAgent
         CancellationToken cancellationToken = default)
     {
         var chatHistory = BuildChatHistory(messages);
-        var response = _chatCompletionAgent.InvokeAsync(chatHistory, cancellationToken);
+        var option = BuildOption(options);
+        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+        var response = chatService.GetStreamingChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
 
         return ProcessMessage(response);
     }
@@ -83,19 +83,34 @@ public class SemanticKernelAgent : IStreamingAgent
         // if there's no system message in chatMessageContents, add one to the beginning
         if (!chatMessageContents.Any(c => c.Role == AuthorRole.System))
         {
-            chatMessageContents =
-                new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
+            chatMessageContents = new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
         }
 
         return new ChatHistory(chatMessageContents);
     }
 
+    private PromptExecutionSettings BuildOption(GenerateReplyOptions? options)
+    {
+        return _settings ?? new OpenAIPromptExecutionSettings
+        {
+            Temperature = options?.Temperature ?? 0.7f,
+            MaxTokens = options?.MaxToken ?? 1024,
+            StopSequences = options?.StopSequence,
+            ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
+            ResultsPerPrompt = 1,
+        };
+    }
 
-    private async IAsyncEnumerable<IMessage> ProcessMessage(IAsyncEnumerable<ChatMessageContent> response)
+    private async IAsyncEnumerable<IMessage> ProcessMessage(IAsyncEnumerable<StreamingChatMessageContent> response)
     {
         await foreach (var content in response)
         {
-            yield return new MessageEnvelope<ChatMessageContent>(content, from: this.Name);
+            if (content.ChoiceIndex > 0)
+            {
+                throw new InvalidOperationException("Only one choice is supported in streaming response");
+            }
+
+            yield return new MessageEnvelope<StreamingChatMessageContent>(content, from: this.Name);
         }
     }
 

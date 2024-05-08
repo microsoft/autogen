@@ -6,9 +6,7 @@ using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 
 namespace AutoGen.BasicSample.CodeSnippet;
 
@@ -18,7 +16,6 @@ public class SemanticKernelCodeSnippet
     {
         return "The weather in " + location + " is sunny.";
     }
-
     public async Task CreateSemanticKernelAgentAsync()
     {
         #region create_semantic_kernel_agent
@@ -29,18 +26,8 @@ public class SemanticKernelCodeSnippet
         var kernel = builder.Build();
 
         // create a semantic kernel agent
-        var agent = new ChatCompletionAgent()
-        {
-            Kernel = kernel,
-            Name = "ExampleAgent",
-            ExecutionSettings = new OpenAIPromptExecutionSettings
-            {
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            },
-        };
-
         var semanticKernelAgent = new SemanticKernelAgent(
-            chatCompletionAgent: agent,
+            kernel: kernel,
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.");
 
@@ -82,14 +69,8 @@ public class SemanticKernelCodeSnippet
         var kernel = builder.Build();
 
         // create a semantic kernel agent
-        var agent = new ChatCompletionAgent()
-        {
-            Kernel = kernel,
-            Name = "ExampleAgent"
-        };
-
         var semanticKernelAgent = new SemanticKernelAgent(
-            chatCompletionAgent: agent,
+            kernel: kernel,
             name: "assistant",
             systemMessage: "You are an assistant that help user to do some tasks.");
 

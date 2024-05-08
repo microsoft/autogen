@@ -9,8 +9,6 @@ using AutoGen.SemanticKernel;
 using AutoGen.SemanticKernel.Extension;
 using Azure.AI.OpenAI;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
 #endregion using_statement
@@ -32,19 +30,8 @@ public partial class Sequential_GroupChat_Example
         kernelBuilder.Plugins.AddFromObject(webSearchPlugin);
 
         var kernel = kernelBuilder.Build();
-
-        var agent = new ChatCompletionAgent()
-        {
-            Kernel = kernel,
-            Name = "ExampleAgent",
-            ExecutionSettings = new OpenAIPromptExecutionSettings
-            {
-                ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
-            },
-        };
-
-        var skAgent = new SemanticKernelAgent(
-            chatCompletionAgent: agent,
+        var kernelAgent = new SemanticKernelAgent(
+            kernel: kernel,
             name: "bing-search",
             systemMessage: """
             You search results from Bing and return it as-is.
@@ -58,7 +45,7 @@ public partial class Sequential_GroupChat_Example
             .RegisterMessageConnector()
             .RegisterPrintMessage(); // pretty print the message
 
-        return skAgent;
+        return kernelAgent;
         #endregion CreateBingSearchAgent
     }
 
