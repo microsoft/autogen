@@ -1,6 +1,5 @@
 import json
 import os
-import sqlite3
 import sys
 import uuid
 
@@ -48,18 +47,17 @@ def test_log_chat_completion(logger):
 
     logger.log_chat_completion(invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time)
 
-    if isinstance(logger, FileLogger):
-        with open(logger.log_file, "r") as f:
-            lines = f.readlines()
-            assert len(lines) == 2
-            log_data = json.loads(lines[1])
-            assert log_data["invocation_id"] == str(invocation_id)
-            assert log_data["client_id"] == client_id
-            assert log_data["wrapper_id"] == wrapper_id
-            assert log_data["response"] == response
-            assert log_data["is_cached"] == is_cached
-            assert log_data["cost"] == cost
-            assert log_data["start_time"] == start_time
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        assert len(lines) == 2
+        log_data = json.loads(lines[1])
+        assert log_data["invocation_id"] == str(invocation_id)
+        assert log_data["client_id"] == client_id
+        assert log_data["wrapper_id"] == wrapper_id
+        assert log_data["response"] == response
+        assert log_data["is_cached"] == is_cached
+        assert log_data["cost"] == cost
+        assert log_data["start_time"] == start_time
 
 
 class TestAgent:
@@ -77,12 +75,11 @@ def test_log_new_agent(logger):
     agent = TestAgent(name="TestAgent", init_args={"foo": "bar"})
     logger.log_new_agent(agent, agent.init_args)
 
-    if isinstance(logger, FileLogger):
-        with open(logger.log_file, "r") as f:
-            lines = f.readlines()
-            log_data = json.loads(lines[1])  # the first line is the session id
-            assert log_data["agent_name"] == "TestAgent"
-            assert log_data["args"] == agent.init_args
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        log_data = json.loads(lines[1])  # the first line is the session id
+        assert log_data["agent_name"] == "TestAgent"
+        assert log_data["args"] == agent.init_args
 
 
 def test_log_event(logger):
@@ -91,25 +88,23 @@ def test_log_event(logger):
     kwargs = {"key": "value"}
     logger.log_event(source, name, **kwargs)
 
-    if isinstance(logger, FileLogger):
-        with open(logger.log_file, "r") as f:
-            lines = f.readlines()
-            log_data = json.loads(lines[2])  # the first two lines are session id and chat completion
-            assert log_data["source_name"] == source
-            assert log_data["event_name"] == name
-            assert log_data["json_state"] == json.dumps(kwargs)
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        log_data = json.loads(lines[2])  # the first two lines are session id and chat completion
+        assert log_data["source_name"] == source
+        assert log_data["event_name"] == name
+        assert log_data["json_state"] == json.dumps(kwargs)
 
 
 def test_log_new_wrapper(logger):
     wrapper = TestWrapper(init_args={"foo": "bar"})
     logger.log_new_wrapper(wrapper, wrapper.init_args)
 
-    if isinstance(logger, FileLogger):
-        with open(logger.log_file, "r") as f:
-            lines = f.readlines()
-            log_data = json.loads(lines[3])  # the first three lines are session id, chat completion, and event
-            assert log_data["wrapper_id"] == id(wrapper)
-            assert log_data["json_state"] == json.dumps(wrapper.init_args)
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        log_data = json.loads(lines[3])  # the first three lines are session id, chat completion, and event
+        assert log_data["wrapper_id"] == id(wrapper)
+        assert log_data["json_state"] == json.dumps(wrapper.init_args)
 
 
 def test_log_new_client(logger):
@@ -118,10 +113,9 @@ def test_log_new_client(logger):
     init_args = {"foo": "bar"}
     logger.log_new_client(client, wrapper, init_args)
 
-    if isinstance(logger, FileLogger):
-        with open(logger.log_file, "r") as f:
-            lines = f.readlines()
-            log_data = json.loads(lines[4])  # the first four lines are session id, chat completion, event, and wrapper
-            assert log_data["client_id"] == id(client)
-            assert log_data["wrapper_id"] == id(wrapper)
-            assert log_data["json_state"] == json.dumps(init_args)
+    with open(logger.log_file, "r") as f:
+        lines = f.readlines()
+        log_data = json.loads(lines[4])  # the first four lines are session id, chat completion, event, and wrapper
+        assert log_data["client_id"] == id(client)
+        assert log_data["wrapper_id"] == id(wrapper)
+        assert log_data["json_state"] == json.dumps(init_args)
