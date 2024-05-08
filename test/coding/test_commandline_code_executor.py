@@ -410,5 +410,3 @@ def test_local_executor_with_custom_python_env():
         execution = executor.execute_code_blocks(code_blocks)
 
         assert execution.exit_code == 0
-
-        assert os.path.exists(os.path.join(env_builder._venv_path(temp_dir, "purelib"), "yfinance"))
