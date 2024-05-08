@@ -17,7 +17,7 @@ from .base_logger import LLMConfig
 if TYPE_CHECKING:
     from autogen import Agent, ConversableAgent, OpenAIWrapper
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class FileLogger(BaseLogger):
@@ -26,7 +26,8 @@ class FileLogger(BaseLogger):
         self.session_id = str(uuid.uuid4())
         self.log_file = self.config.get("filename", "runtime.log")
 
-        os.makedirs(os.path.dirname(self.log_file), exist_ok=True)
+        # log_dir = os.path.dirname(self.log_file)
+        # os.makedirs(log_dir, exist_ok=True)
         if not os.path.exists(self.log_file):
             open(self.log_file, "a").close()
 
@@ -68,26 +69,24 @@ class FileLogger(BaseLogger):
                 "end_time": get_current_ts(),
             }
 
-            self.logger.info(json.dumps(log_data))
+            self.logger.info(to_dict(log_data))
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to log chat completion: {e}")
 
     def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
         try:
-            log_data = json.dumps(
-                {
-                    "id": id(agent),
-                    "agent_name": agent.name if hasattr(agent, "name") and agent.name is not None else "",
-                    "wrapper_id": (
-                        agent.client.wrapper_id if hasattr(agent, "client") and agent.client is not None else ""
-                    ),
-                    "session_id": self.session_id,
-                    "current_time": get_current_ts(),
-                    "agent_type": type(agent).__name__,
-                    "args": init_args,
-                }
-            )
-            self.logger.info(log_data)
+            log_data = {
+                "id": id(agent),
+                "agent_name": agent.name if hasattr(agent, "name") and agent.name is not None else "",
+                "wrapper_id": to_dict(
+                    agent.client.wrapper_id if hasattr(agent, "client") and agent.client is not None else ""
+                ),
+                "session_id": self.session_id,
+                "current_time": get_current_ts(),
+                "agent_type": type(agent).__name__,
+                "args": to_dict(init_args),
+            }
+            self.logger.info(to_dict(log_data))
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to log new agent: {e}")
 
@@ -99,26 +98,24 @@ class FileLogger(BaseLogger):
 
         if isinstance(source, Agent):
             try:
-                log_data = json.dumps(
-                    {
-                        "source_id": id(source),
-                        "source_name": source.name if hasattr(source, "name") else source,
-                        "event_name": name,
-                        "agent_module": source.__module__,
-                        "agent_class": source.__class__.__name__,
-                        "json_state": json_args,
-                        "timestamp": get_current_ts(),
-                    }
-                )
-                self.logger.info(log_data)
+                log_data = {
+                    "source_id": id(source),
+                    "source_name": str(source.name) if hasattr(source, "name") else source,
+                    "event_name": name,
+                    "agent_module": source.__module__,
+                    "agent_class": source.__class__.__name__,
+                    "json_state": json_args,
+                    "timestamp": get_current_ts(),
+                }
+                self.logger.info(to_dict(log_data))
             except Exception as e:
                 self.logger.error(f"[file_logger] Failed to log event {e}")
         else:
             try:
-                log_data = json.dumps(
+                log_data = to_dict(
                     {
                         "source_id": id(source),
-                        "source_name": source.name if hasattr(source, "name") else source,
+                        "source_name": str(source.name) if hasattr(source, "name") else source,
                         "event_name": name,
                         "json_state": json_args,
                         "timestamp": get_current_ts(),
@@ -135,7 +132,7 @@ class FileLogger(BaseLogger):
                 {
                     "wrapper_id": id(wrapper),
                     "session_id": self.session_id,
-                    "json_state": json.dumps(init_args),
+                    "json_state": to_dict(json.dumps(init_args)),
                     "timestamp": get_current_ts(),
                 }
             )
@@ -151,7 +148,7 @@ class FileLogger(BaseLogger):
                     "wrapper_id": id(wrapper),
                     "session_id": self.session_id,
                     "class": type(client).__name__,
-                    "json_state": json.dumps(init_args),
+                    "json_state": to_dict(json.dumps(init_args)),
                     "timestamp": get_current_ts(),
                 }
             )
