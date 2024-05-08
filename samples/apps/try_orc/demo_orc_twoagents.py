@@ -1,12 +1,6 @@
 import autogen
-from autogen.agentchat.contrib.web_surfer import WebSurferAgent
-from autogen.screen_parsing import RequestsMarkdownBrowser, BingMarkdownSearch
-
 from autogen.agentchat.contrib.orchestrator import Orchestrator
-from autogen.agentchat.contrib.multimodal_web_surfer import MultimodalWebSurferAgent
-
 from config_manager import ConfigManager
-from misc_utils import response_preparer
 
 # setup LLM config and clients
 config_list = "OAI_CONFIG_LIST"

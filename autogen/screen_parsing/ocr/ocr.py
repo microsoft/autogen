@@ -7,12 +7,13 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
 class OCRParsingError(Exception):
     pass
 
 
 class OCR:
-    def __init__(self, min_confidence: float=0.25):
+    def __init__(self, min_confidence: float = 0.25):
         self.min_confidence = min_confidence
 
     def get_ocr_text(self, image_content: bytes) -> str:
@@ -42,4 +43,4 @@ class OCR:
         except Exception as e:
             logger.error(f"OCR failed to detect from image: {e}")
 
-            raise OCRParsingError(f"Error occurred during OCR parsing") from e
+            raise OCRParsingError("Error occurred during OCR parsing") from e

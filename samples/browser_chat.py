@@ -1,9 +1,8 @@
 import os
 from autogen import UserProxyAgent, config_list_from_json
-from autogen.screen_parsing import (
+from autogen.screen_parsing.browser_utils import (
     RequestsMarkdownBrowser,
     PlaywrightMarkdownBrowser,
-    SeleniumMarkdownBrowser,
     BingMarkdownSearch,
 )
 from autogen.agentchat.contrib.web_surfer import WebSurferAgent

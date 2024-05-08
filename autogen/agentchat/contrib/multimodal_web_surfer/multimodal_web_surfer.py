@@ -17,7 +17,7 @@ from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
 from autogen.runtime_logging import logging_enabled, log_event
-from autogen.screen_parsing.ocr import OCR
+from autogen.screen_parsing.ocr import OCR, OCRParsingError
 
 from importlib import resources
 
@@ -443,11 +443,26 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         ocr_text = None
         if self.ocr is not None:
-            ocr_text = self.ocr.get_ocr_text(new_screenshot)
+            try:
+                ocr_text = self.ocr.get_ocr_text(new_screenshot)
+            except OCRParsingError as e:
+                if logging_enabled():
+                    import traceback
+
+                    exc_type = type(e).__name__
+                    exc_message = str(e)
+                    exc_traceback = traceback.format_exc().splitlines()
+                    log_event(
+                        self,
+                        "exception_thrown_ocr_detecting",
+                        exc_type=exc_type,
+                        exc_message=exc_message,
+                        exc_traceback=exc_traceback,
+                    )
 
         text_prompt = f"{action_description} Here is a screenshot of [{self._page.title()}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.".strip()
 
-        if ocr_text:
+        if ocr_text is not None:
             text_prompt += ocr_text
 
         # Return the complete observation
@@ -456,11 +471,9 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             new_screenshot,
         )
 
-
     def _get_page_script_path(self):
         with resources.path("autogen.screen_parsing.static", "page_script.js") as path:
             return str(path)
-
 
     def _image_to_data_uri(self, image):
         """
@@ -478,47 +491,6 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
         image_base64 = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:image/png;base64,{image_base64}"
-
-
-    def _get_ocr_text(self, image_content):
-        ocr_min_confidence = 0.25
-
-        try:
-            image_stream = io.BytesIO(image_content)
-            image = Image.open(image_stream)
-
-            # Remove transparency
-            if image.mode in ("RGBA", "P"):
-                image = image.convert("RGB")
-
-            reader = easyocr.Reader(["en"])
-            output = reader.readtext(np.array(image))
-            # The output is a list of tuples, each containing the coordinates of the text and the text itself.
-            # We join all the text pieces together to get the final text.
-            ocr_text = " "
-            for item in output:
-                if item[2] >= ocr_min_confidence:
-                    ocr_text += item[1] + " "
-            ocr_text = ocr_text.strip()
-
-            if len(ocr_text) > 0:
-                return "Text detected by OCR:\n" + ocr_text
-            return None
-        except Exception as e:
-            if logging_enabled():
-                import traceback
-
-                exc_type = type(e).__name__
-                exc_message = str(e)
-                exc_traceback = traceback.format_exc().splitlines()
-                log_event(
-                    self,
-                    "exception_thrown_ocr_detecting",
-                    exc_type=exc_type,
-                    exc_message=exc_message,
-                    exc_traceback=exc_traceback,
-                )
-            return None
 
     def _make_mm_message(self, text_content, image_content):
         return {

@@ -2,7 +2,6 @@
 
 import pytest
 import os
-import sys
 import requests
 import hashlib
 import re
@@ -38,7 +37,7 @@ LOCAL_FILE_TEST_STRINGS = [
 ]
 
 try:
-    from autogen.screen_parsing import RequestsMarkdownBrowser, BingMarkdownSearch
+    from autogen.screen_parsing.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
 except ImportError:
     skip_all = True
 else:

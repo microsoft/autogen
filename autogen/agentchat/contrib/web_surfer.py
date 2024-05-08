@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union, Callable, Literal, Tuple
 from typing_extensions import Annotated
 from ... import Agent, ConversableAgent, AssistantAgent, UserProxyAgent, GroupChatManager, GroupChat, OpenAIWrapper
-from ...screen_parsing import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
+from autogen.screen_parsing.browser_utils import AbstractMarkdownBrowser, RequestsMarkdownBrowser, BingMarkdownSearch
 from ...code_utils import content_str
 from ...token_count_utils import count_token, get_max_token_limit
 from ...oai.openai_utils import filter_config

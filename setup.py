@@ -47,7 +47,7 @@ setuptools.setup(
     packages=setuptools.find_packages(include=["autogen*"], exclude=["test"]),
     package_data={
         "autogen.agentchat.contrib.multimodal_web_surfer": ["*.*"],
-        'autogen.screen_parsing': ['autogen/screen_parsing/static/*']
+        "autogen.screen_parsing": ["autogen/screen_parsing/static/*"],
     },
     include_package_data=True,
     install_requires=install_requires,

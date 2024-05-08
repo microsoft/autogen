@@ -30,7 +30,7 @@ BING_TITLE = f"{BING_QUERY} - Search"
 BING_STRING = f"A Bing search for '{BING_QUERY}' found"
 
 try:
-    from autogen.screen_parsing import SimpleTextBrowser
+    from autogen.screen_parsing.browser_utils import SimpleTextBrowser
 except ImportError:
     skip_all = True
 else:

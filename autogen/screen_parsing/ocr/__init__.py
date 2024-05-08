@@ -1,3 +1,3 @@
-from .ocr import OCR
+from .ocr import OCR, OCRParsingError
 
-__all__ = ["OCR"]
+__all__ = ["OCR", "OCRParsingError"]
