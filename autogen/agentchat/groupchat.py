@@ -1163,21 +1163,16 @@ class GroupChatManager(ConversableAgent):
             ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
         """
 
-        if not silent:
-            iostream = IOStream.get_default()
-            iostream.print(
-                colored("Resuming chat...", "yellow"),
-                flush=True,
-            )
-
         # Convert messages from string to messages list, if needed
         if isinstance(messages, str):
             messages = self.messages_from_string(messages)
 
         # Validation of message and agents
 
-        if not self._valid_resume_messages(messages):
-            return
+        try:
+            self._valid_resume_messages(messages)
+        except:
+            raise
 
         # Load the messages into the group chat
         for i, message in enumerate(messages):
@@ -1221,11 +1216,12 @@ class GroupChatManager(ConversableAgent):
             previous_last_agent = self
 
         # Termination removal and check
-        self._process_resume_termination(remove_termination_string, messages, last_message)
+        self._process_resume_termination(remove_termination_string, messages)
 
         if not silent:
+            iostream = IOStream.get_default()
             iostream.print(
-                "Last speaker is",
+                f"Resuming group chat with {len(messages)} messages, the last speaker is",
                 colored(last_speaker_name, "yellow"),
                 "- conversation will resume with their last message.",
                 flush=True,
@@ -1290,21 +1286,16 @@ class GroupChatManager(ConversableAgent):
             ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
         """
 
-        if not silent:
-            iostream = IOStream.get_default()
-            iostream.print(
-                colored("Resuming chat...", "yellow"),
-                flush=True,
-            )
-
         # Convert messages from string to messages list, if needed
         if isinstance(messages, str):
             messages = self.messages_from_string(messages)
 
         # Validation of message and agents
 
-        if not self._valid_resume_messages(messages):
-            return
+        try:
+            self._valid_resume_messages(messages)
+        except:
+            raise
 
         # Load the messages into the group chat
         for i, message in enumerate(messages):
@@ -1350,11 +1341,12 @@ class GroupChatManager(ConversableAgent):
             previous_last_agent = self
 
         # Termination removal and check
-        self._process_resume_termination(remove_termination_string, messages, last_message)
+        self._process_resume_termination(remove_termination_string, messages)
 
         if not silent:
+            iostream = IOStream.get_default()
             iostream.print(
-                "Last speaker is",
+                f"Resuming group chat with {len(messages)} messages, the last speaker is",
                 colored(last_speaker_name, "yellow"),
                 "- conversation will resume with their last message.",
                 flush=True,
@@ -1374,7 +1366,7 @@ class GroupChatManager(ConversableAgent):
             summary_args=summary_args,
         )
 
-    def _valid_resume_messages(self, messages: List[Dict]) -> bool:
+    def _valid_resume_messages(self, messages: List[Dict]):
         """Validates the messages used for resuming
 
         args:
@@ -1385,10 +1377,9 @@ class GroupChatManager(ConversableAgent):
         """
         # Must have messages to start with, otherwise they should run run_chat
         if not messages:
-            logger.warn(
+            raise Exception(
                 "Cannot resume group chat as no messages were provided. Use GroupChatManager.run_chat or ConversableAgent.initiate_chat to start a new chat."
             )
-            return False
 
         # Check that all agents in the chat messages exist in the group chat
         for message in messages:
@@ -1397,13 +1388,10 @@ class GroupChatManager(ConversableAgent):
                     not self.groupchat.agent_by_name(message["name"])
                     and not message["name"] == self.groupchat.admin_name  # ignore group chat's name
                     and not message["name"] == self.name  # ignore group chat manager's name
-                ):  # Ignore the admin name as it is the groupchat itself
-                    logger.warn(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
-                    return False
+                ):
+                    raise Exception(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
 
-        return True
-
-    def _process_resume_termination(self, remove_termination_string: str, messages: List[Dict], last_message: Dict):
+    def _process_resume_termination(self, remove_termination_string: str, messages: List[Dict]):
         """Removes termination string, if required, and checks if termination may occur.
 
         args:
@@ -1412,6 +1400,8 @@ class GroupChatManager(ConversableAgent):
         returns:
             None
         """
+
+        last_message = messages[-1]
 
         # Replace any given termination string in the last message
         if remove_termination_string:
