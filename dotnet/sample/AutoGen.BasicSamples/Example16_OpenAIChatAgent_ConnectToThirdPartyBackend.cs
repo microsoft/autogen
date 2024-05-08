@@ -1,14 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.cs
-
+#region using_statement
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
+#endregion using_statement
 
 namespace AutoGen.BasicSample;
 
+#region CustomHttpClientHandler
 public sealed class CustomHttpClientHandler : HttpClientHandler
 {
     private string _modelServiceUrl;
@@ -25,6 +27,7 @@ public sealed class CustomHttpClientHandler : HttpClientHandler
         return base.SendAsync(request, cancellationToken);
     }
 }
+#endregion CustomHttpClientHandler
 
 public class Example16_OpenAIChatAgent_ConnectToThirdPartyBackend
 {
@@ -50,8 +53,10 @@ public class Example16_OpenAIChatAgent_ConnectToThirdPartyBackend
             seed: 0)
             .RegisterMessageConnector()
             .RegisterPrintMessage();
-
-        await agent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
         #endregion create_agent
+
+        #region send_message
+        await agent.SendAsync("Can you write a piece of C# code to calculate 100th of fibonacci?");
+        #endregion send_message
     }
 }
