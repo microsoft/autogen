@@ -26,5 +26,9 @@
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
     <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.Tests" />
+  </ItemGroup>
 
 </Project>
