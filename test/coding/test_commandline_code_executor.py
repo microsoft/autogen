@@ -404,9 +404,9 @@ def test_local_executor_with_custom_python_env():
 
         executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
         code_blocks = [
-            CodeBlock(code="pip install yfinance", language="sh"),
-            CodeBlock(code="import yfinance", language="python"),
+            CodeBlock(code="import sys; print(sys.executable, end='')", language="python"),
         ]
         execution = executor.execute_code_blocks(code_blocks)
 
         assert execution.exit_code == 0
+        assert execution.output == env_builder_context.env_exe
