@@ -1935,4 +1935,6 @@ if __name__ == "__main__":
     # test_speaker_selection_validate_speaker_name()
     # test_select_speaker_auto_messages()
     test_manager_messages_to_string()
+    test_manager_messages_from_string()
+    test_manager_resume_chat()
     # pass
