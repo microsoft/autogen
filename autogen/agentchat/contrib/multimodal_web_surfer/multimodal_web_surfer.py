@@ -17,7 +17,9 @@ from ....code_utils import content_str
 from .state_of_mark import add_state_of_mark
 
 from autogen.runtime_logging import logging_enabled, log_event
-from autogen.browser_utils import OCR
+from autogen.screen_parsing import OCR
+
+from importlib import resources
 
 try:
     from termcolor import colored
@@ -142,7 +144,7 @@ class MultimodalWebSurferAgent(ConversableAgent):
         # Create the page
         self._page = self._context.new_page()
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.add_init_script(path=self._get_page_script_path())
         self._page.goto(self.start_page)
         self._page.wait_for_load_state()
         time.sleep(1)
@@ -454,6 +456,12 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
             new_screenshot,
         )
 
+
+    def _get_page_script_path(self):
+        with resources.path("autogen.screen_parsing.static", "page_script.js") as path:
+            return str(path)
+
+
     def _image_to_data_uri(self, image):
         """
         Image can be a bytes string, a Binary file-like stream, or PIL Image.
@@ -528,7 +536,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_interactive_rects(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -536,7 +544,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_visual_viewport(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -544,7 +552,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
 
     def _get_focused_rect_id(self):
         try:
-            with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
+            with open(self._get_page_script_path(), "rt") as fh:
                 self._page.evaluate(fh.read())
         except:
             pass
@@ -554,7 +562,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         self._page = page
         self._page.set_viewport_size({"width": VIEWPORT_WIDTH, "height": VIEWPORT_HEIGHT})
         time.sleep(0.2)
-        self._page.add_init_script(path=os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"))
+        self._page.add_init_script(self._get_page_script_path())
         self._page.wait_for_load_state()
 
         title = None

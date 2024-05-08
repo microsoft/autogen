@@ -3,7 +3,7 @@ import pytest
 import os
 
 try:
-    from autogen.browser_utils import BingMarkdownSearch
+    from autogen.screen_parsing import BingMarkdownSearch
 except ImportError:
     skip_all = True
 else:

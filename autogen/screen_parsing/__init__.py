@@ -6,6 +6,9 @@ from .markdown_search import AbstractMarkdownSearch, BingMarkdownSearch
 from .mdconvert import MarkdownConverter, UnsupportedFormatException, FileConversionException, DocumentConverterResult
 from .ocr import OCR
 
+import os
+from pathlib import Path
+
 __all__ = (
     "AbstractMarkdownBrowser",
     "RequestsMarkdownBrowser",

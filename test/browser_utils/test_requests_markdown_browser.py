@@ -38,7 +38,7 @@ LOCAL_FILE_TEST_STRINGS = [
 ]
 
 try:
-    from autogen.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
+    from autogen.screen_parsing import RequestsMarkdownBrowser, BingMarkdownSearch
 except ImportError:
     skip_all = True
 else:

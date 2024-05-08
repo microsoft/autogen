@@ -1,6 +1,6 @@
 import os
 from autogen import UserProxyAgent, config_list_from_json
-from autogen.browser_utils import (
+from autogen.screen_parsing import (
     RequestsMarkdownBrowser,
     PlaywrightMarkdownBrowser,
     SeleniumMarkdownBrowser,
