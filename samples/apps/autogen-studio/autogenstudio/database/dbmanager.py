@@ -25,13 +25,20 @@ class DBManager:
     """A class to manage database operations"""
 
     def __init__(self, engine_uri: str):
-        self.engine = create_engine(engine_uri)
-        init_db_samples(self)
+        connection_args = {"check_same_thread": True} if "sqlite" in engine_uri else {}
+        self.engine = create_engine(engine_uri, connect_args=connection_args)
         # run_migration(engine_uri=engine_uri)
 
     def create_db_and_tables(self):
         """Create a new database and tables"""
-        SQLModel.metadata.create_all(self.engine)
+        try:
+            SQLModel.metadata.create_all(self.engine)
+            try:
+                init_db_samples(self)
+            except Exception as e:
+                logger.info("Error while initializing database samples: " + str(e))
+        except Exception as e:
+            logger.info("Error while creating database tables:" + str(e))
 
     def upsert(self, model: SQLModel):
         """Create a new entity"""

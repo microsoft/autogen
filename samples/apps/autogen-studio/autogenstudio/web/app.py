@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from loguru import logger
 from openai import OpenAIError
 
 from ..chatmanager import AutoGenChatManager, WebSocketConnectionManager
@@ -32,13 +33,21 @@ websocket_manager = WebSocketConnectionManager(
 def message_handler():
     while True:
         message = message_queue.get()
-        print(
-            "Active Connections: ",
-            [client_id for _, client_id in websocket_manager.active_connections],
+        logger.info(
+            "** Processing Agent Message on Queue: Active Connections: "
+            + str([client_id for _, client_id in websocket_manager.active_connections])
+            + " **"
         )
         for connection, socket_client_id in websocket_manager.active_connections:
             if message["connection_id"] == socket_client_id:
+                logger.info(
+                    f"Sending message to connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+                )
                 asyncio.run(websocket_manager.send_message(message, connection))
+            else:
+                logger.info(
+                    f"Skipping message for connection_id: {message['connection_id']}. Connection ID: {socket_client_id}"
+                )
         message_queue.task_done()
 
 

@@ -282,8 +282,8 @@ def init_db_samples(dbmanager: Any):
         session.add(local_assistant)
         session.add(language_assistant)
 
-        session.add(travel_workflow)
         session.add(default_workflow)
+        session.add(travel_workflow)
         session.commit()
 
         dbmanager.link(link_type="agent_model", primary_id=painter_assistant.id, secondary_id=gpt_4_model.id)
