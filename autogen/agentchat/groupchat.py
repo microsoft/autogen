@@ -1031,18 +1031,6 @@ class GroupChatManager(ConversableAgent):
                 # No eligible speaker, terminate the conversation
                 break
 
-            # MS TEMP Output all Agents and their chat history for testing
-            print("------------------ MESSAGES")
-            for i, message in enumerate(self.groupchat.messages):
-                print(f"{i}:")
-                if "role" in message:
-                    print(f"role: {message['role']}")
-                if "name" in message:
-                    print(f"role: {message['name']}")
-                if "content" in message:
-                    print(f"content: {message['content'][:50]}")
-            print("------------------")
-
             if reply is None:
                 # no reply is generated, exit the chat
                 break
@@ -1144,7 +1132,7 @@ class GroupChatManager(ConversableAgent):
         as per the original group chat.
 
         Args:
-            messages Union[List[Dict], str]: The content of the previous chat's messages, either as a single Json string or a list of message dictionaries.
+            messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
             remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
             silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
             max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
@@ -1176,9 +1164,10 @@ class GroupChatManager(ConversableAgent):
             ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
         """
 
-        print("<--- RESUMING CHAT --->")
+        if not silent:
+            logger.info("Resuming chat...")
 
-        # Get agents and messages from state
+        # Get messages from state
 
         # Convert messages from string to messages list, if needed
         if isinstance(messages, str):
@@ -1188,7 +1177,9 @@ class GroupChatManager(ConversableAgent):
 
         # Must have messages to start with, otherwise they should run run_chat
         if not messages:
-            logger.warn("Cannot resume group chat as no messages were provided. Use run_chat to start a new chat.")
+            logger.warn(
+                "Cannot resume group chat as no messages were provided. Use GroupChatManager.run_chat or ConversableAgent.initiate_chat to start a new chat."
+            )
             return
 
         # Check that all agents in the chat messages exist in the group chat
@@ -1196,17 +1187,25 @@ class GroupChatManager(ConversableAgent):
             if message.get("name"):
                 if (
                     not self.groupchat.agent_by_name(message["name"])
-                    and not message["name"] == self.groupchat.admin_name
+                    and not message["name"] == self.groupchat.admin_name  # ignore group chat's name
+                    and not message["name"] == self.name  # ignore group chat manager's name
                 ):  # Ignore the admin name as it is the groupchat itself
                     logger.warn(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
                     return
-            else:
-                message["name"] = self.groupchat.admin_name  # No name indicates it's the group chat's admin name
 
         # Load the messages into the group chat
         for i, message in enumerate(messages):
 
-            message_speaker_agent = self.groupchat.agent_by_name(message["name"])
+            if "name" in message:
+                message_speaker_agent = self.groupchat.agent_by_name(message["name"])
+            else:
+                # If there's no name, assign the group chat manager (this is an indication the ChatResult messages was used instead of groupchat.messages as state)
+                message_speaker_agent = self
+                message["name"] = self.name
+
+            # If it wasn't an agent speaking, it may be the manager
+            if not message_speaker_agent and message["name"] == self.name:
+                message_speaker_agent = self
 
             # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
             if i != len(messages) - 1:
@@ -1229,6 +1228,12 @@ class GroupChatManager(ConversableAgent):
         # Get last speaker as an agent
         previous_last_agent = self.groupchat.agent_by_name(name=last_speaker_name)
 
+        # If we didn't match a last speaker agent, we check that it's the group chat's admin name and assign the manager, if so
+        if not previous_last_agent and (
+            last_speaker_name == self.groupchat.admin_name or last_speaker_name == self.name
+        ):
+            previous_last_agent = self
+
         # Replace any given termination string in the last message
         if remove_termination_string:
             if messages[-1].get("content") and remove_termination_string in messages[-1]["content"]:
@@ -1241,7 +1246,8 @@ class GroupChatManager(ConversableAgent):
                     "WARNING: Last message meets termination criteria and this may terminate the chat. Set ignore_initial_termination_check=False to avoid checking termination at the start of the chat."
                 )
 
-        print(f"<--- LAST SPEAKER: {last_speaker_name}")
+        if not silent:
+            logger.info(f"Last speaker is {last_speaker_name}. Conversation will resume with their last message.")
 
         # Update group chat settings for resuming
         self.groupchat.send_introductions = False
@@ -1261,7 +1267,7 @@ class GroupChatManager(ConversableAgent):
         """Reads the saved state of messages in Json format for resume and returns as a messages list
 
         args:
-            - state_string: Json string, the saved state
+            - message_string: Json string, the saved state
 
         returns:
             - List[Dict]: List of messages
@@ -1278,7 +1284,7 @@ class GroupChatManager(ConversableAgent):
             - None
 
         returns:
-            - str: Json representation of the messages
+            - str: Json representation of the messages which can be persisted for resuming later
         """
 
         state = self.groupchat.messages
