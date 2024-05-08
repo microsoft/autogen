@@ -16,14 +16,11 @@ public class SemanticKernelChatCompletionAgent : IAgent
 {
     public string Name { get; }
     private readonly ChatCompletionAgent _chatCompletionAgent;
-    private readonly string _systemMessage;
 
-    public SemanticKernelChatCompletionAgent(ChatCompletionAgent chatCompletionAgent,
-        string systemMessage = "You are a helpful AI assistant")
+    public SemanticKernelChatCompletionAgent(ChatCompletionAgent chatCompletionAgent)
     {
-        this.Name = chatCompletionAgent.Name ?? string.Empty;
+        this.Name = chatCompletionAgent.Name ?? throw new ArgumentNullException(nameof(chatCompletionAgent.Name));
         this._chatCompletionAgent = chatCompletionAgent;
-        this._systemMessage = systemMessage;
     }
 
     public async Task<IMessage> GenerateReplyAsync(IEnumerable<IMessage> messages, GenerateReplyOptions? options = null,
@@ -40,15 +37,7 @@ public class SemanticKernelChatCompletionAgent : IAgent
 
     private ChatHistory BuildChatHistory(IEnumerable<IMessage> messages)
     {
-        var chatMessageContents = ProcessMessage(messages);
-        // if there's no system message in chatMessageContents, add one to the beginning
-        if (!chatMessageContents.Any(c => c.Role == AuthorRole.System))
-        {
-            chatMessageContents =
-                new[] { new ChatMessageContent(AuthorRole.System, _systemMessage) }.Concat(chatMessageContents);
-        }
-
-        return new ChatHistory(chatMessageContents);
+        return new ChatHistory(ProcessMessage(messages));
     }
 
     private IEnumerable<ChatMessageContent> ProcessMessage(IEnumerable<IMessage> messages)

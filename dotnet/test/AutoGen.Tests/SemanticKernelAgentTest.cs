@@ -143,7 +143,10 @@ public partial class SemanticKernelAgentTest
             .AddAzureOpenAIChatCompletion("gpt-35-turbo-16k", endpoint, key);
 
         var kernel = builder.Build();
-        var agent = new ChatCompletionAgent() { Kernel = kernel, Name = "assistant" };
+        var agent = new ChatCompletionAgent()
+        {
+            Kernel = kernel, Name = "assistant", Instructions = "You are a helpful AI assistant"
+        };
 
         var skAgent = new SemanticKernelChatCompletionAgent(agent);
 
@@ -165,7 +168,10 @@ public partial class SemanticKernelAgentTest
         var kernel = builder.Build();
 
         var connector = new SemanticKernelChatMessageContentConnector();
-        var agent = new ChatCompletionAgent() { Kernel = kernel, Name = "assistant" };
+        var agent = new ChatCompletionAgent()
+        {
+            Kernel = kernel, Name = "assistant", Instructions = "You are a helpful AI assistant"
+        };
         var skAgent = new SemanticKernelChatCompletionAgent(agent)
             .RegisterMiddleware(connector);
 
@@ -211,6 +217,7 @@ public partial class SemanticKernelAgentTest
         {
             Kernel = kernel,
             Name = "assistant",
+            Instructions = "You are a helpful AI assistant",
             ExecutionSettings =
                 new OpenAIPromptExecutionSettings()
                 {
