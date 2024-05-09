@@ -98,5 +98,4 @@ public class SemanticKernelCodeSnippet
         }
         #endregion register_semantic_kernel_chat_message_content_connector
     }
-
 }

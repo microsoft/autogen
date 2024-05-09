@@ -64,6 +64,8 @@
           href: OpenAIChatAgent-use-function-call.md
         - name: Use json mode in OpenAIChatAgent
           href: OpenAIChatAgent-use-json-mode.md
+        - name: Connect to third-party OpenAI API endpoints.
+          href: OpenAIChatAgent-connect-to-third-party-api.md
 
 - name: AutoGen.SemanticKernel
   items:
