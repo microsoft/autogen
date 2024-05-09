@@ -62,10 +62,8 @@ public class OllamaAgentTests
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello how are you") };
-        IAsyncEnumerable<IStreamingMessage> streamingResults = await ollamaClientAgent.GenerateStreamingReplyAsync(messages);
-
         IStreamingMessage? finalReply = default;
-        await foreach (IStreamingMessage message in streamingResults)
+        await foreach (IStreamingMessage message in ollamaClientAgent.GenerateStreamingReplyAsync(messages))
         {
             message.Should().NotBeNull();
             message.From.Should().Be(ollamaClientAgent.Name);
