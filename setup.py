@@ -52,9 +52,9 @@ retrieve_chat = [
 retrieve_chat_pgvector = [*retrieve_chat, "pgvector>=0.2.5"]
 
 if current_os in ["Windows", "Darwin"]:
-    install_requires.extend(["psycopg[binary]>=3.1.18"])
+    retrieve_chat_pgvector.extend(["psycopg[binary]>=3.1.18"])
 elif current_os == "Linux":
-    install_requires.extend(["psycopg>=3.1.18"])
+    retrieve_chat_pgvector.extend(["psycopg>=3.1.18"])
 
 extra_require = {
     "test": [
