@@ -278,12 +278,16 @@ $functions"""
 
             program = _cmd(lang)
             cmd = [program, str(written_file.absolute())]
+            env = os.environ.copy()
+
+            if self._virtual_env_context:
+                path_with_virtualenv = rf"{self._virtual_env_context.bin_path}{os.pathsep}{env['PATH']}"
+                env["PATH"] = path_with_virtualenv
+                if WIN32:
+                    activation_script = os.path.join(self._virtual_env_context.bin_path, "activate.bat")
+                    cmd = [activation_script, "&&", *cmd]
+
             try:
-                env = os.environ.copy()
-                if self._virtual_env_context:
-                    path_sep = ";" if WIN32 else ":"
-                    path_with_virtualenv = self._virtual_env_context.bin_path + path_sep + os.environ["PATH"]
-                    env["PATH"] = path_with_virtualenv
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env
                 )
