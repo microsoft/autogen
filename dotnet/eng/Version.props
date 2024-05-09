@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <AzureOpenAIVersion>1.0.0-beta.15</AzureOpenAIVersion>
-        <SemanticKernelVersion>1.7.1</SemanticKernelVersion>
-        <SemanticKernelExperimentalVersion>1.7.1-alpha</SemanticKernelExperimentalVersion>
+        <AzureOpenAIVersion>1.0.0-beta.17</AzureOpenAIVersion>
+        <SemanticKernelVersion>1.10.0</SemanticKernelVersion>
+        <SemanticKernelExperimentalVersion>1.10.0-alpha</SemanticKernelExperimentalVersion>
         <SystemCodeDomVersion>5.0.0</SystemCodeDomVersion>
         <MicrosoftCodeAnalysisVersion>4.3.0</MicrosoftCodeAnalysisVersion>
         <ApprovalTestVersion>6.0.0</ApprovalTestVersion>

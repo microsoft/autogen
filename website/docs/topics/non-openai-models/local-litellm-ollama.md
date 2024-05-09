@@ -18,7 +18,7 @@ Note: We recommend using a virtual environment for your stack, see [this article
 Install LiteLLM with the proxy server functionality:
 
 ```bash
-pip install litellm[proxy]
+pip install 'litellm[proxy]'
 ```
 
 Note: If using Windows, run LiteLLM and Ollama within a [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install).
