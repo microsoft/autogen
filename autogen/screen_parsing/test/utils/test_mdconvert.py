@@ -6,8 +6,9 @@ import requests
 import io
 
 try:
-    from screen_parsing.browser_utils import MarkdownConverter
-except ImportError:
+    from screen_parsing.utils import MarkdownConverter
+except ImportError as e:
+    raise e
     skip_all = True
 else:
     skip_all = False

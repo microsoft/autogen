@@ -37,7 +37,7 @@ LOCAL_FILE_TEST_STRINGS = [
 ]
 
 try:
-    from screen_parsing.browser_utils import RequestsMarkdownBrowser, BingMarkdownSearch
+    from screen_parsing.utils import RequestsMarkdownBrowser, BingMarkdownSearch
 except ImportError as e:
     raise e
     skip_all = True
