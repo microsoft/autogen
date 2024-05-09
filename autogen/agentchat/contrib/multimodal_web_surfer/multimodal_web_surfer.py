@@ -14,10 +14,10 @@ from playwright.sync_api import sync_playwright
 from playwright._impl._errors import TimeoutError
 from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....code_utils import content_str
-from .state_of_mark import add_state_of_mark
 
 from autogen.runtime_logging import logging_enabled, log_event
 from autogen.screen_parsing.ocr import OCR, OCRParsingError
+from autogen.screen_parsing.browser_utils.state_of_mark import add_state_of_mark
 
 from importlib import resources
 
