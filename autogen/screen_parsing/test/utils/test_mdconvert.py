@@ -7,8 +7,7 @@ import io
 
 try:
     from screen_parsing.utils import MarkdownConverter
-except ImportError as e:
-    raise e
+except ImportError:
     skip_all = True
 else:
     skip_all = False

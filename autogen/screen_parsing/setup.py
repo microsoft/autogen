@@ -12,7 +12,7 @@ with open(os.path.join(here, "version.py")) as fp:
 __version__ = version["__version__"]
 
 install_requires = [
-    "numpy", # mdconvert
+    "numpy",  # mdconvert
     "beautifulsoup4",
     "markdownify",
     "pathvalidate",
@@ -27,16 +27,16 @@ install_requires = [
 ]
 
 setuptools.setup(
-    name='screen_parsing',
+    name="screen_parsing",
     version=__version__,
     long_description=long_description,
-    long_description_content_type='text/markdown',
-    packages=setuptools.find_packages(exclude=('tests',)),
+    long_description_content_type="text/markdown",
+    packages=setuptools.find_packages(exclude=("tests",)),
     install_requires=install_requires,
     extras_require={
-      "test": [
-          "pytest>=6.1.1,<8",
-      ],
+        "test": [
+            "pytest>=6.1.1,<8",
+        ],
     },
-    python_requires='>=3.10, <3.13',
+    python_requires=">=3.10, <3.13",
 )
