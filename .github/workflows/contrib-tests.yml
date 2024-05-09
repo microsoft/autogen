@@ -400,7 +400,7 @@ jobs:
           pip install pytest-cov>=5
       - name: Install packages and dependencies for Transform Messages
         run: |
-          pip install -e .
+          pip install -e '.[long-context]'
       - name: Set AUTOGEN_USE_DOCKER based on OS
         shell: bash
         run: |

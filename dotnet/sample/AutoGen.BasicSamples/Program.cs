@@ -2,4 +2,5 @@
 // Program.cs
 
 using AutoGen.BasicSample;
-await Example14_MistralClientAgent_TokenCount.RunAsync();
+Console.ReadLine();
+await Example16_OpenAIChatAgent_ConnectToThirdPartyBackend.RunAsync();
