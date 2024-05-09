@@ -20,25 +20,7 @@ public class OllamaTextEmbeddingServiceTests
             BaseAddress = new Uri(host),
             Timeout = TimeSpan.FromSeconds(250)
         };
-        var request = new TextEmbeddingsRequest { Model = embeddingModelName, Prompt = "Hi, you must follow these instructions", };
-        var service = new OllamaTextEmbeddingService(httpClient);
-        TextEmbeddingsResponse response = await service.GenerateAsync(request);
-        response.Should().NotBeNull();
-    }
-
-    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME", "OLLAMA_EMBEDDING_MODEL_NAME")]
-    public async Task GenerateAsync_ThrowsHttpRequestException_WhenApiResponseIsError()
-    {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
-                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
-        string modelName = Environment.GetEnvironmentVariable("OLLAMA_EMBEDDING_MODEL_NAME")
-                                    ?? throw new InvalidOperationException("OLLAMA_EMBEDDING_MODEL_NAME is not set.");
-        var httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(host),
-            Timeout = TimeSpan.FromSeconds(250)
-        };
-        var request = new TextEmbeddingsRequest { Model = modelName, Prompt = "Hi, you must follow these instructions", };
+        var request = new TextEmbeddingsRequest { Model = embeddingModelName, Prompt = "Llamas are members of the camelid family", };
         var service = new OllamaTextEmbeddingService(httpClient);
         TextEmbeddingsResponse response = await service.GenerateAsync(request);
         response.Should().NotBeNull();

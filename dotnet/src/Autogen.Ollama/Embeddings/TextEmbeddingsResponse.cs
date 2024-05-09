@@ -8,5 +8,5 @@ namespace Autogen.Ollama;
 public class TextEmbeddingsResponse
 {
     [JsonPropertyName("embedding")]
-    public long[]? Embedding { get; set; }
+    public double[]? Embedding { get; set; }
 }

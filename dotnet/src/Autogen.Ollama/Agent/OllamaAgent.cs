@@ -46,10 +46,9 @@ public class OllamaAgent : IStreamingAgent
         {
             response.EnsureSuccessStatusCode();
             Stream? streamResponse = await response.Content.ReadAsStreamAsync();
-            MessageEnvelope<ChatResponse> output = await JsonSerializer
-                                                               .DeserializeAsync<MessageEnvelope<ChatResponse>>(streamResponse, cancellationToken: cancellation)
+            ChatResponse chatResponse = await JsonSerializer.DeserializeAsync<ChatResponse>(streamResponse, cancellationToken: cancellation)
                                                            ?? throw new Exception("Failed to deserialize response");
-            output.From = Name;
+            var output = new MessageEnvelope<ChatResponse>(chatResponse, from: Name);
             return output;
         }
     }
@@ -118,22 +117,44 @@ public class OllamaAgent : IStreamingAgent
         request.Format = replyOptions.Format == FormatType.Json ? OllamaConsts.JsonFormatType : null;
         request.Template = replyOptions.Template;
         request.KeepAlive = replyOptions.KeepAlive;
-        request.Options!.Temperature = replyOptions.Temperature;
-        request.Options.NumPredict = replyOptions.MaxToken;
-        request.Options.Stop = replyOptions.StopSequence?[0];
-        request.Options.Seed = replyOptions.Seed;
-        request.Options.MiroStat = replyOptions.MiroStat;
-        request.Options.MiroStatEta = replyOptions.MiroStatEta;
-        request.Options.MiroStatTau = replyOptions.MiroStatTau;
-        request.Options.NumCtx = replyOptions.NumCtx;
-        request.Options.NumGqa = replyOptions.NumGqa;
-        request.Options.NumGpu = replyOptions.NumGpu;
-        request.Options.NumThread = replyOptions.NumThread;
-        request.Options.RepeatLastN = replyOptions.RepeatLastN;
-        request.Options.RepeatPenalty = replyOptions.RepeatPenalty;
-        request.Options.TopK = replyOptions.TopK;
-        request.Options.TopP = replyOptions.TopP;
-        request.Options.TfsZ = replyOptions.TfsZ;
+
+        if (replyOptions.Temperature != null
+            || replyOptions.MaxToken != null
+            || replyOptions.StopSequence != null
+            || replyOptions.Seed != null
+            || replyOptions.MiroStat != null
+            || replyOptions.MiroStatEta != null
+            || replyOptions.MiroStatTau != null
+            || replyOptions.NumCtx != null
+            || replyOptions.NumGqa != null
+            || replyOptions.NumGpu != null
+            || replyOptions.NumThread != null
+            || replyOptions.RepeatLastN != null
+            || replyOptions.RepeatPenalty != null
+            || replyOptions.TopK != null
+            || replyOptions.TopP != null
+            || replyOptions.TfsZ != null)
+        {
+            request.Options = new ModelReplyOptions
+            {
+                Temperature = replyOptions.Temperature,
+                NumPredict = replyOptions.MaxToken,
+                Stop = replyOptions.StopSequence?[0],
+                Seed = replyOptions.Seed,
+                MiroStat = replyOptions.MiroStat,
+                MiroStatEta = replyOptions.MiroStatEta,
+                MiroStatTau = replyOptions.MiroStatTau,
+                NumCtx = replyOptions.NumCtx,
+                NumGqa = replyOptions.NumGqa,
+                NumGpu = replyOptions.NumGpu,
+                NumThread = replyOptions.NumThread,
+                RepeatLastN = replyOptions.RepeatLastN,
+                RepeatPenalty = replyOptions.RepeatPenalty,
+                TopK = replyOptions.TopK,
+                TopP = replyOptions.TopP,
+                TfsZ = replyOptions.TfsZ
+            };
+        }
     }
     private async Task<List<Message>> BuildChatHistory(IEnumerable<IMessage> messages)
     {
@@ -153,7 +174,7 @@ public class OllamaAgent : IStreamingAgent
                     item = new Message { Role = tm.Role.ToString(), Value = tm.Content };
                     break;
                 case ImageMessage im:
-                    string base64Image = await ImageUrlToBase64(im.Url);
+                    string base64Image = await ImageUrlToBase64(im.Url!);
                     item = new Message { Role = im.Role.ToString(), Images = [base64Image] };
                     break;
                 case MultiModalMessage mm:
@@ -165,7 +186,7 @@ public class OllamaAgent : IStreamingAgent
 
                     IEnumerable<Task<string>> imagesConversionTasks = mm.Content
                         .OfType<ImageMessage>()
-                        .Select(async im => await ImageUrlToBase64(im.Url));
+                        .Select(async im => await ImageUrlToBase64(im.Url!));
 
                     string[]? imagesBase64 = await Task.WhenAll(imagesConversionTasks);
                     item = new Message { Role = mm.Role.ToString(), Value = content, Images = imagesBase64 };

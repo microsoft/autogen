@@ -20,7 +20,7 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
+        var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
         IMessage result = await ollamaClientAgent.GenerateReplyAsync(messages);
 
         result.Should().NotBeNull();
@@ -37,7 +37,7 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
+        var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
         IMessage result = await ollamaClientAgent.GenerateReplyAsync(messages, new OllamaReplyOptions
         {
             Format = FormatType.Json
@@ -61,7 +61,7 @@ public class OllamaAgentTests
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
         OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
 
-        var messages = new IMessage[] { new TextMessage(Role.User, "Hello") };
+        var messages = new IMessage[] { new TextMessage(Role.User, "Hello how are you") };
         IAsyncEnumerable<IStreamingMessage> streamingResults = await ollamaClientAgent.GenerateStreamingReplyAsync(messages);
 
         IStreamingMessage? finalReply = default;

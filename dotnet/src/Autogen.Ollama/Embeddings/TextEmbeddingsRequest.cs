@@ -11,12 +11,12 @@ public class TextEmbeddingsRequest
     /// name of model to generate embeddings from
     /// </summary>
     [JsonPropertyName("model")]
-    public required string Model { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
     /// <summary>
     /// text to generate embeddings for
     /// </summary>
     [JsonPropertyName("prompt")]
-    public required string Prompt { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
     /// <summary>
     /// additional model parameters listed in the documentation for the Modelfile such as temperature
     /// </summary>

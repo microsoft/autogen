@@ -21,7 +21,7 @@ public class OllamaReplyOptions : GenerateReplyOptions
     /// <summary>
     /// the prompt template to use (overrides what is defined in the Modelfile)
     /// </summary>
-    public string Template { get; set; } = string.Empty;
+    public string? Template { get; set; }
 
     /// <summary>
     /// The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.8)
