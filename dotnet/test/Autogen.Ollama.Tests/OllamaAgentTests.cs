@@ -11,62 +11,62 @@ namespace Autogen.Ollama.Tests;
 public class OllamaAgentTests
 {
 
-    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
     public async Task GenerateReplyAsync_ReturnsValidMessage_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
-                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
+                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
-        OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
+        OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
-        IMessage result = await ollamaClientAgent.GenerateReplyAsync(messages);
+        IMessage result = await ollamaAgent.GenerateReplyAsync(messages);
 
         result.Should().NotBeNull();
         result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
-        result.From.Should().Be(ollamaClientAgent.Name);
+        result.From.Should().Be(ollamaAgent.Name);
     }
 
-    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
     public async Task GenerateReplyAsync_ReturnsValidJsonMessageContent_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
-                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
+                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
-        OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
+        OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello, how are you") };
-        IMessage result = await ollamaClientAgent.GenerateReplyAsync(messages, new OllamaReplyOptions
+        IMessage result = await ollamaAgent.GenerateReplyAsync(messages, new OllamaReplyOptions
         {
             Format = FormatType.Json
         });
 
         result.Should().NotBeNull();
         result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
-        result.From.Should().Be(ollamaClientAgent.Name);
+        result.From.Should().Be(ollamaAgent.Name);
 
         string jsonContent = ((MessageEnvelope<ChatResponse>)result).Content.Message!.Value;
         bool isValidJson = IsValidJsonMessage(jsonContent);
         isValidJson.Should().BeTrue();
     }
 
-    [ApiKeyFact("OLLAMA_API", "OLLAMA_MODEL_NAME")]
+    [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]
     public async Task GenerateStreamingReplyAsync_ReturnsValidMessages_WhenCalled()
     {
-        string host = Environment.GetEnvironmentVariable("OLLAMA_API")
-                      ?? throw new InvalidOperationException("OLLAMA_API is not set.");
+        string host = Environment.GetEnvironmentVariable("OLLAMA_HOST")
+                      ?? throw new InvalidOperationException("OLLAMA_HOST is not set.");
         string modelName = Environment.GetEnvironmentVariable("OLLAMA_MODEL_NAME")
                            ?? throw new InvalidOperationException("OLLAMA_MODEL_NAME is not set.");
-        OllamaAgent ollamaClientAgent = BuildOllamaAgent(host, modelName);
+        OllamaAgent ollamaAgent = BuildOllamaAgent(host, modelName);
 
         var messages = new IMessage[] { new TextMessage(Role.User, "Hello how are you") };
         IStreamingMessage? finalReply = default;
-        await foreach (IStreamingMessage message in ollamaClientAgent.GenerateStreamingReplyAsync(messages))
+        await foreach (IStreamingMessage message in ollamaAgent.GenerateStreamingReplyAsync(messages))
         {
             message.Should().NotBeNull();
-            message.From.Should().Be(ollamaClientAgent.Name);
+            message.From.Should().Be(ollamaAgent.Name);
             finalReply = message;
         }
 
@@ -95,8 +95,7 @@ public class OllamaAgentTests
     {
         var httpClient = new HttpClient
         {
-            BaseAddress = new Uri(host),
-            Timeout = TimeSpan.FromSeconds(250)
+            BaseAddress = new Uri(host)
         };
         return new OllamaAgent(httpClient, "TestAgent", modelName);
     }
