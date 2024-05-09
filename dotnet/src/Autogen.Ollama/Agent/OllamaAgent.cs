@@ -52,27 +52,21 @@ public class OllamaAgent : IStreamingAgent
             return output;
         }
     }
-
-    public async Task<IAsyncEnumerable<IStreamingMessage>> GenerateStreamingReplyAsync(
+    public async IAsyncEnumerable<IStreamingMessage> GenerateStreamingReplyAsync(
         IEnumerable<IMessage> messages,
         GenerateReplyOptions? options = null,
-        CancellationToken cancellation = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ChatRequest request = await BuildChatRequest(messages, options);
         request.Stream = true;
-        return StreamMessagesAsync(request, cancellation);
-    }
-    private async IAsyncEnumerable<IStreamingMessage> StreamMessagesAsync(
-        ChatRequest request, [EnumeratorCancellation] CancellationToken cancellation)
-    {
         HttpRequestMessage message = BuildRequestMessage(request);
-        using (HttpResponseMessage? response = await _httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellation))
+        using (HttpResponseMessage? response = await _httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
         {
             response.EnsureSuccessStatusCode();
             using Stream? stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var reader = new StreamReader(stream);
 
-            while (!reader.EndOfStream && !cancellation.IsCancellationRequested)
+            while (!reader.EndOfStream && !cancellationToken.IsCancellationRequested)
             {
                 string? line = await reader.ReadLineAsync();
                 if (string.IsNullOrWhiteSpace(line)) continue;
@@ -200,7 +194,6 @@ public class OllamaAgent : IStreamingAgent
 
         return collection;
     }
-
     private static HttpRequestMessage BuildRequestMessage(ChatRequest request)
     {
         string serialized = JsonSerializer.Serialize(request);
