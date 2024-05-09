@@ -32,7 +32,7 @@ class FileLogger(BaseLogger):
 
         self.log_file = os.path.join(self.log_dir, self.config.get("filename", "runtime.log"))
         try:
-            with open(self.log_file, "a") as f:
+            with open(self.log_file, "a"):
                 pass
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to create logging file: {e}")
