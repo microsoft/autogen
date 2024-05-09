@@ -1,7 +1,6 @@
 # ruff: noqa: E722
 import os
 import re
-import io
 import sys
 import requests
 import json
@@ -13,7 +12,6 @@ import mimetypes
 from binaryornot.check import is_binary
 
 import html
-import pathlib
 import tempfile
 import copy
 import mammoth

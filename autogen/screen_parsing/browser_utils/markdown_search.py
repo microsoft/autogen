@@ -5,7 +5,6 @@ import requests
 import logging
 import os
 
-from bs4 import BeautifulSoup
 from typing import Any, Dict, List, Optional, Union, Tuple
 from urllib.parse import urlparse, quote, quote_plus, unquote, urlunparse, parse_qs
 from abc import ABC, abstractmethod
