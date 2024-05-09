@@ -1,18 +1,23 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Class.cs
 
+using System;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AutoGen.Service.OpenAI.DTO;
 
+[JsonConverter(typeof(OpenAIMessageConverter))]
 public abstract class OpenAIMessage
 {
+    [JsonPropertyName("role")]
+    public abstract string? Role { get; }
 }
 
 public class OpenAISystemMessage : OpenAIMessage
 {
     [JsonPropertyName("role")]
-    public string? Role { get; set; } = "system";
+    public override string? Role { get; } = "system";
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
@@ -24,7 +29,7 @@ public class OpenAISystemMessage : OpenAIMessage
 public class OpenAIUserMessage : OpenAIMessage
 {
     [JsonPropertyName("role")]
-    public string? Role { get; set; } = "user";
+    public override string? Role { get; } = "user";
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
@@ -69,7 +74,7 @@ public class OpenAIUserImageContent : IOpenAIUserMessageItem
 public class OpenAIUserMultiModalMessage : OpenAIMessage
 {
     [JsonPropertyName("role")]
-    public string? Role { get; set; } = "user";
+    public override string? Role { get; } = "user";
 
     [JsonPropertyName("content")]
     public IOpenAIUserMessageItem[]? Content { get; set; }
@@ -90,7 +95,7 @@ public class OpenAIToolCallObject
 public class OpenAIAssistantMessage : OpenAIMessage
 {
     [JsonPropertyName("role")]
-    public string? Role { get; set; } = "assistant";
+    public override string? Role { get; } = "assistant";
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
@@ -105,13 +110,61 @@ public class OpenAIAssistantMessage : OpenAIMessage
 public class OpenAIToolMessage : OpenAIMessage
 {
     [JsonPropertyName("role")]
-    public string? Role { get; set; } = "tool";
+    public override string? Role { get; } = "tool";
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
 
     [JsonPropertyName("tool_call_id")]
     public string? ToolCallId { get; set; }
+}
+
+public class OpenAIMessageConverter : JsonConverter<OpenAIMessage>
+{
+    public override OpenAIMessage Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using JsonDocument document = JsonDocument.ParseValue(ref reader);
+        var root = document.RootElement;
+        var role = root.GetProperty("role").GetString();
+        var contentDocument = root.GetProperty("content");
+        var isContentDocumentString = contentDocument.ValueKind == JsonValueKind.String;
+        switch (role)
+        {
+            case "system":
+                return JsonSerializer.Deserialize<OpenAISystemMessage>(root.GetRawText()) ?? throw new JsonException();
+            case "user" when isContentDocumentString:
+                return JsonSerializer.Deserialize<OpenAIUserMessage>(root.GetRawText()) ?? throw new JsonException();
+            case "user" when !isContentDocumentString:
+                return JsonSerializer.Deserialize<OpenAIUserMultiModalMessage>(root.GetRawText()) ?? throw new JsonException();
+            case "assistant":
+                return JsonSerializer.Deserialize<OpenAIAssistantMessage>(root.GetRawText()) ?? throw new JsonException();
+            case "tool":
+                return JsonSerializer.Deserialize<OpenAIToolMessage>(root.GetRawText()) ?? throw new JsonException();
+            default:
+                throw new JsonException();
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, OpenAIMessage value, JsonSerializerOptions options)
+    {
+        switch (value)
+        {
+            case OpenAISystemMessage systemMessage:
+                JsonSerializer.Serialize(writer, systemMessage, options);
+                break;
+            case OpenAIUserMessage userMessage:
+                JsonSerializer.Serialize(writer, userMessage, options);
+                break;
+            case OpenAIAssistantMessage assistantMessage:
+                JsonSerializer.Serialize(writer, assistantMessage, options);
+                break;
+            case OpenAIToolMessage toolMessage:
+                JsonSerializer.Serialize(writer, toolMessage, options);
+                break;
+            default:
+                throw new JsonException();
+        }
+    }
 }
 
 public class OpenAIChatCompletionOption
@@ -126,7 +179,7 @@ public class OpenAIChatCompletionOption
     public int? MaxTokens { get; set; }
 
     [JsonPropertyName("temperature")]
-    public double? Temperature { get; set; } = 1;
+    public float Temperature { get; set; } = 1;
 }
 
 public class OpenAIChatCompletionUsage
@@ -144,7 +197,7 @@ public class OpenAIChatCompletionUsage
 public class OpenAIChatCompletionMessage
 {
     [JsonPropertyName("role")]
-    public string Role { get; set; } = "assistant";
+    public string Role { get; } = "assistant";
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
@@ -168,7 +221,7 @@ public class OpenAIChatCompletion
     public string? ID { get; set; }
 
     [JsonPropertyName("created")]
-    public int Created { get; set; }
+    public long Created { get; set; }
 
     [JsonPropertyName("choices")]
     public OpenAIChatCompletionChoice[]? Choices { get; set; }
