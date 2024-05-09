@@ -2,6 +2,7 @@
 - [API Breaking Change] Update the return type of `IStreamingAgent.GenerateStreamingReplyAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
 - [API Breaking Change] Update the return type of `IStreamingMiddleware.InvokeAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
 - [API Breaking Change] Mark `RegisterReply`, `RegisterPreProcess` and `RegisterPostProcess` as obsolete. You can replace them with `RegisterMiddleware`
+- Fix [Issue 2609](https://github.com/microsoft/autogen/issues/2609)
 ##### Update on 0.0.12 (2024-04-22)
 - Add AutoGen.Mistral package to support Mistral.AI models
 ##### Update on 0.0.11 (2024-04-10)

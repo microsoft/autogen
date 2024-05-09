@@ -37,7 +37,7 @@ public partial class MistralClientAgentTests
             model: "open-mistral-7b")
             .RegisterMessageConnector();
         var singleAgentTest = new SingleAgentTest(_output);
-        await singleAgentTest.UpperCaseTest(agent);
+        await singleAgentTest.UpperCaseTestAsync(agent);
         await singleAgentTest.UpperCaseStreamingTestAsync(agent);
     }
 
