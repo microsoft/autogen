@@ -5,7 +5,7 @@ import logging
 import os
 import tempfile
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
@@ -35,7 +35,7 @@ class FileLogger(BaseLogger):
             with open(self.log_file, "a"):
                 pass
         except Exception as e:
-            self.logger.error(f"[file_logger] Failed to create logging file: {e}")
+            logger.error(f"[file_logger] Failed to create logging file: {e}")
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -47,8 +47,7 @@ class FileLogger(BaseLogger):
         try:
             self.logger.info(f"Started new session with Session ID: {self.session_id}")
         except Exception as e:
-            self.logger.error(f"[file_logger] Failed to create logging file: {e}")
-            raise e
+            logger.error(f"[file_logger] Failed to create logging file: {e}")
         finally:
             return self.session_id
 
@@ -85,7 +84,7 @@ class FileLogger(BaseLogger):
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to log chat completion: {e}")
 
-    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any] = None) -> None:
+    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any] = {}) -> None:
         """
         Log a new agent instance.
         """
@@ -148,7 +147,9 @@ class FileLogger(BaseLogger):
             except Exception as e:
                 self.logger.error(f"[file_logger] Failed to log event {e}")
 
-    def log_new_wrapper(self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]]) -> None:
+    def log_new_wrapper(
+        self, wrapper: OpenAIWrapper, init_args: Dict[str, Union[LLMConfig, List[LLMConfig]]] = {}
+    ) -> None:
         """
         Log a new wrapper instance.
         """
