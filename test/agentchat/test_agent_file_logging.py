@@ -18,11 +18,7 @@ from autogen.logger.file_logger import FileLogger
 
 @pytest.fixture
 def logger() -> FileLogger:
-    project_dir = os.path.dirname(os.path.abspath(__file__))
-    log_dir = os.path.join(project_dir, "logs")
-    os.makedirs(log_dir, exist_ok=True)
-    log_file = os.path.join(log_dir, "test.log")
-    config = {"filename": log_file}
+    config = {}
     logger = FileLogger(config)
     yield logger
     with open(logger.log_file, "w") as f:
@@ -60,30 +56,23 @@ def test_log_chat_completion(logger: FileLogger):
         assert log_data["start_time"] == start_time
 
 
-class TestAgent:
-    def __init__(self, name, init_args):
-        self.name = name
-        self.init_args = init_args
-
-
 class TestWrapper:
     def __init__(self, init_args):
         self.init_args = init_args
 
 
 def test_log_new_agent(logger):
-    agent = TestAgent(name="TestAgent", init_args={"foo": "bar"})
-    logger.log_new_agent(agent, agent.init_args)
+    agent = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
+    logger.log_new_agent(agent)
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
         log_data = json.loads(lines[1])  # the first line is the session id
-        assert log_data["agent_name"] == "TestAgent"
-        assert log_data["args"] == agent.init_args
+        assert log_data["agent_name"] == "user_proxy"
 
 
 def test_log_event(logger: FileLogger):
-    source = "TestSource"
+    source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
     name = "TestEvent"
     kwargs = {"key": "value"}
     logger.log_event(source, name, **kwargs)
@@ -91,7 +80,7 @@ def test_log_event(logger: FileLogger):
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
         log_data = json.loads(lines[2])  # the first two lines are session id and chat completion
-        assert log_data["source_name"] == source
+        assert log_data["source_name"] == "TestAgent"
         assert log_data["event_name"] == name
         assert log_data["json_state"] == json.dumps(kwargs)
 
@@ -108,7 +97,7 @@ def test_log_new_wrapper(logger: FileLogger):
 
 
 def test_log_new_client(logger: FileLogger):
-    client = TestAgent(name="TestClient", init_args={"foo": "bar"})
+    client = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
     wrapper = TestWrapper(init_args={"foo": "bar"})
     init_args = {"foo": "bar"}
     logger.log_new_client(client, wrapper, init_args)

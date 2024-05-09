@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple, Union
 
@@ -24,12 +25,17 @@ class FileLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.session_id = str(uuid.uuid4())
-        self.log_file = self.config.get("filename", "runtime.log")
 
-        log_dir = os.path.dirname(self.log_file)
-        os.makedirs(log_dir, exist_ok=True)
-        if not os.path.exists(self.log_file):
-            open(self.log_file, "a").close()
+        curr_dir = os.getcwd()
+        self.log_dir = os.path.join(curr_dir, "autogen_logs")
+        os.makedirs(self.log_dir, exist_ok=True)
+
+        self.log_file = os.path.join(self.log_dir, self.config.get("filename", "runtime.log"))
+        try:
+            with open(self.log_file, "a") as f:
+                pass
+        except Exception as e:
+            self.logger.error(f"[file_logger] Failed to create logging file: {e}")
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
@@ -39,7 +45,7 @@ class FileLogger(BaseLogger):
     def start(self) -> str:
         """Start the logger and return the session_id."""
         try:
-            self.logger.info(self.session_id)
+            self.logger.info(f"Started new session with Session ID: {self.session_id}")
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to create logging file: {e}")
             raise e
@@ -79,7 +85,7 @@ class FileLogger(BaseLogger):
         except Exception as e:
             self.logger.error(f"[file_logger] Failed to log chat completion: {e}")
 
-    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
+    def log_new_agent(self, agent: ConversableAgent, init_args: Dict[str, Any] = None) -> None:
         """
         Log a new agent instance.
         """
