@@ -7,7 +7,6 @@ using AutoGen.OpenAI.Extension;
 using Azure.AI.OpenAI;
 using Azure.Core.Pipeline;
 using FluentAssertions;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,14 +40,9 @@ public class OpenAIChatCompletionMiddlewareTests
             .ConfigureWebHost(webHost =>
             {
                 webHost.UseTestServer();
-                webHost.ConfigureServices(services =>
-                {
-                    services.AddSingleton(agent);
-                    services.AddTransient<OpenAIChatCompletionMiddleware>();
-                });
                 webHost.Configure(app =>
                 {
-                    app.UseMiddleware<OpenAIChatCompletionMiddleware>();
+                    app.UseAgentAsOpenAIChatCompletionEndpoint(agent);
                 });
             });
     }
