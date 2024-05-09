@@ -20,9 +20,12 @@ class HuggingFaceCapability(Enum):
 
 class HuggingFaceAgent(ConversableAgent):
 
-    DEFAULT_PROMPT = "You are a helpful AI assistant with multimodal capabilities (via the provided functions)."
+    DEFAULT_PROMPT = """You are a helpful AI assistant with multimodal capabilities (via the provided functions).
+If your response contains an image path, wrap it in an HTML image tag as: <img "path_to_image">
+"""
 
-    DEFAULT_DESCRIPTION = "A helpful assistant with multimodal capabilities. Ask them to perform image-to-text, text-to-image, speech-to-text, text-to-speech, and more!"
+    DEFAULT_DESCRIPTION = """A helpful assistant with multimodal capabilities. Ask them to perform image-to-text, text-to-image, speech-to-text, text-to-speech, and more!
+"""
 
     DEFAULT_HF_CAPABILITY_LIST = list(HuggingFaceCapability)
 
@@ -40,6 +43,7 @@ class HuggingFaceAgent(ConversableAgent):
         default_auto_reply: Optional[Union[str, Dict, None]] = "",
         hf_capability_list: Optional[List[Union[str, HuggingFaceCapability]]] = DEFAULT_HF_CAPABILITY_LIST,
         hf_config: Optional[Dict[str, Union[str, Dict]]] = {},
+        is_gpt4v_format: Optional[bool] = False,
     ):
         super().__init__(
             name=name,
@@ -53,6 +57,8 @@ class HuggingFaceAgent(ConversableAgent):
             llm_config=llm_config,
             default_auto_reply=default_auto_reply,
         )
+
+        self._is_gpt4v_format = is_gpt4v_format
 
         # Set up the inner monologue
         inner_llm_config = copy.deepcopy(llm_config)
@@ -108,16 +114,16 @@ class HuggingFaceAgent(ConversableAgent):
                 description="Generates images from input text.",
             )
             def _text_to_image(text: Annotated[str, "The prompt to generate an image from"]) -> str:
+                import tempfile
+
                 model, params = _load_capability_config(HuggingFaceCapability.TEXT_TO_IMAGE)
                 image = self._hf_client.text_to_image(text, model=model, **params)
-                response = {
-                    "content": [
-                        {"type": "text", "text": f"I generated an image with the prompt: {text}"},
-                        {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(image)}},
-                    ]
-                }
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+                    image.save(temp_file.name)
+                    response = f"I generated an image with the prompt: {text}"
+                    response += f"<img {temp_file.name}>"
 
-                return json.dumps(response)
+                return response
 
         if HuggingFaceCapability.IMAGE_TO_TEXT in self._hf_capability_list:
 
@@ -139,13 +145,9 @@ class HuggingFaceAgent(ConversableAgent):
                     task=HuggingFaceCapability.IMAGE_TO_TEXT.value,
                 )
                 generated_text = ImageToTextOutput.parse_obj_as_list(raw_response)[0].generated_text
-                response = {
-                    "content": [
-                        {"type": "text", "text": f"I generated the following text from the image: {generated_text}"},
-                    ]
-                }
+                response = f"I generated the following text from the image: {generated_text}"
 
-                return json.dumps(response)
+                return response
 
         if HuggingFaceCapability.IMAGE_TO_IMAGE in self._hf_capability_list:
 
@@ -161,17 +163,18 @@ class HuggingFaceAgent(ConversableAgent):
                 ],
                 text: Annotated[str, "The text prompt to guide the image generation."],
             ) -> str:
+                import tempfile
+
                 model, params = _load_capability_config(HuggingFaceCapability.IMAGE_TO_IMAGE)
                 image_data = img_utils.get_image_data(image_file, use_b64=False)
                 tgt_image = self._hf_client.image_to_image(image_data, prompt=text, model=model, **params)
-                response = {
-                    "content": [
-                        {"type": "text", "text": f"I generated an image from the input image with the prompt: {text}"},
-                        {"type": "image_url", "image_url": {"url": img_utils.pil_to_data_uri(tgt_image)}},
-                    ]
-                }
 
-                return json.dumps(response)
+                with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp_file:
+                    tgt_image.save(temp_file.name)
+                    response = f"I generated an image from the input image with the prompt: {text}"
+                    response += f"<img {temp_file.name}>"
+
+                return response
 
     def generate_huggingface_reply(
         self,
@@ -191,17 +194,19 @@ class HuggingFaceAgent(ConversableAgent):
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
 
-        self._user_proxy.send(messages[-1], self._assistant, request_reply=True, silent=True)
-        agent_reply = self._user_proxy.chat_messages[self._assistant][-1]
-        # print("Agent Reply: " + str(agent_reply))
-        proxy_reply = self._user_proxy.generate_reply(
-            messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
-        )
-        # print("Proxy Reply: " + str(proxy_reply))
+        proxy_reply = messages[-1]
+        while True:
+            self._user_proxy.send(proxy_reply, self._assistant, request_reply=True, silent=True)
+            assistant_reply = self._user_proxy.chat_messages[self._assistant][-1]
+            proxy_reply = self._user_proxy.generate_reply(
+                messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
+            )
+            if proxy_reply == "":
+                break
+            elif self._is_gpt4v_format:
+                proxy_reply["content"] = img_utils.gpt4v_formatter(proxy_reply["content"], img_format="pil")
 
-        if proxy_reply == "":
-            # default reply
-            return True, None if agent_reply is None else agent_reply["content"]
-        else:
-            # tool reply
-            return True, None if proxy_reply is None else json.loads(proxy_reply["content"])
+        if assistant_reply is not None and self._is_gpt4v_format:
+            assistant_reply["content"] = img_utils.gpt4v_formatter(assistant_reply["content"], img_format="pil")
+
+        return True, assistant_reply
