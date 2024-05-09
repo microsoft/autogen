@@ -17,7 +17,7 @@ from ....code_utils import content_str
 
 from autogen.runtime_logging import logging_enabled, log_event
 from autogen.screen_parsing.ocr import OCR, OCRParsingError
-from autogen.screen_parsing.browser_utils.state_of_mark import add_state_of_mark
+from autogen.screen_parsing.utils.state_of_mark import add_state_of_mark
 
 from importlib import resources
 
