@@ -13,5 +13,6 @@
         <MicrosoftDotnetInteractive>1.0.0-beta.23523.2</MicrosoftDotnetInteractive>
         <MicrosoftSourceLinkGitHubVersion>8.0.0</MicrosoftSourceLinkGitHubVersion>
         <JsonSchemaVersion>4.0.0</JsonSchemaVersion>
+        <MicrosoftASPNETCoreVersion>8.0.4</MicrosoftASPNETCoreVersion>
     </PropertyGroup>
 </Project>

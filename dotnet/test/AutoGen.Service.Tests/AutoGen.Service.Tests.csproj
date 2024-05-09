@@ -16,7 +16,7 @@
     <PackageReference Include="xunit" Version="$(XUnitVersion)" />
     <PackageReference Include="xunit.runner.console" Version="$(XUnitVersion)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XUnitVersion)" />
-    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="$(MicrosoftASPNETCoreVersion)" />
   </ItemGroup>
 
   <ItemGroup>

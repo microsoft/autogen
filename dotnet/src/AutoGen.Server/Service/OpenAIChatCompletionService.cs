@@ -10,7 +10,7 @@ using AutoGen.Service.OpenAI.DTO;
 
 namespace AutoGen.Server;
 
-public class OpenAIChatCompletionService
+internal class OpenAIChatCompletionService
 {
     private readonly IAgent agent;
 
@@ -74,7 +74,7 @@ public class OpenAIChatCompletionService
             throw new ArgumentNullException(nameof(message.Content));
         }
 
-        IEnumerable<IMessage> items = message.Content.Select<IOpenAIUserMessageItem, IMessage>(item => item switch
+        IEnumerable<IMessage> items = message.Content.Select<OpenAIUserMessageItem, IMessage>(item => item switch
         {
             OpenAIUserImageContent imageContent when imageContent.Url is string url => new ImageMessage(Role.User, url, this.agent.Name),
             OpenAIUserTextContent textContent when textContent.Content is string content => new TextMessage(Role.User, content, this.agent.Name),
