@@ -29,7 +29,7 @@ namespace AutoGen.Core;
 /// If the streaming reply from the inner agent is other types of message, the most recent message will be used to invoke the function.
 /// </para>
 /// </summary>
-public class FunctionCallMiddleware : IMiddleware, IStreamingMiddleware
+public class FunctionCallMiddleware : IStreamingMiddleware
 {
     private readonly IEnumerable<FunctionContract>? functions;
     private readonly IDictionary<string, Func<string, Task<string>>>? functionMap;
@@ -71,15 +71,10 @@ public class FunctionCallMiddleware : IMiddleware, IStreamingMiddleware
         return reply;
     }
 
-    public Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(MiddlewareContext context, IStreamingAgent agent, CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(this.StreamingInvokeAsync(context, agent, cancellationToken));
-    }
-
-    private async IAsyncEnumerable<IStreamingMessage> StreamingInvokeAsync(
+    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var lastMessage = context.Messages.Last();
         if (lastMessage is ToolCallMessage toolCallMessage)
@@ -93,7 +88,7 @@ public class FunctionCallMiddleware : IMiddleware, IStreamingMiddleware
         options.Functions = combinedFunctions?.ToArray();
 
         IStreamingMessage? initMessage = default;
-        await foreach (var message in await agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
+        await foreach (var message in agent.GenerateStreamingReplyAsync(context.Messages, options, cancellationToken))
         {
             if (message is ToolCallMessageUpdate toolCallMessageUpdate && this.functionMap != null)
             {
