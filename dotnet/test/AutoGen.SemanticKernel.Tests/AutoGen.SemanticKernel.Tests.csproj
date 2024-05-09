@@ -4,6 +4,7 @@
     <TargetFramework>$(TestTargetFramework)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <NoWarn>$(NoWarn);SKEXP0110</NoWarn>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
