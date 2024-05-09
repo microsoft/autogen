@@ -5,15 +5,15 @@ from autogen.agentchat.conversable_agent import ConversableAgent
 
 class QuantifierAgent(ConversableAgent):
     """
-    An agent for quantifing the performance of a system using the provided criteria.
+    An agent for quantifying the performance of a system using the provided criteria.
     """
 
     DEFAULT_SYSTEM_MESSAGE = """"You are a helpful assistant. You quantify the output of different tasks based on the given criteria.
-    The criterion is given in a dictionary format where each key is a dintinct criteria.
-    The value of each key is a dictionary as follows {"description": criteria description , "accepted_values": possible accepted inputs for this key}
+    The criterion is given in a json list format where each element is a distinct criteria.
+    The each element is a dictionary as follows {"name": name of the criterion, "description": criteria description , "accepted_values": possible accepted inputs for this key}
     You are going to quantify each of the crieria for a given task based on the task description.
     Return a dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
-    Return only the dictionary."""
+    Return only the dictionary, no code."""
 
     DEFAULT_DESCRIPTION = "An AI agent for quantifing the performance of a system using the provided criteria."
 

@@ -20,7 +20,7 @@ def remove_ground_truth(test_case: str):
     correctness = test_details.pop("is_correct", None)
     test_details.pop("correct_ans", None)
     test_details.pop("check_result", None)
-    return test_details, correctness
+    return str(test_details), correctness
 
 
 if not skip_openai:
@@ -53,15 +53,13 @@ if not skip_openai:
     response_successful = remove_ground_truth(success_str)[0]
     failed_str = open("test/test_files/agenteval-in-out/samples/sample_math_response_failed.txt", "r").read()
     response_failed = remove_ground_truth(failed_str)[0]
-    task = Task.parse_json_str(
-        json.dumps(
-            {
-                "name": "Math problem solving",
-                "description": "Given any question, the system needs to solve the problem as consisely and accurately as possible",
-                "successful_response": response_successful,
-                "failed_response": response_failed,
-            }
-        )
+    task = Task(
+        **{
+            "name": "Math problem solving",
+            "description": "Given any question, the system needs to solve the problem as consisely and accurately as possible",
+            "successful_response": response_successful,
+            "failed_response": response_failed,
+        }
     )
 
 

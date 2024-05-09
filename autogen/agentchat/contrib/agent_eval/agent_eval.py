@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Literal, Optional, Union
 
 import autogen
 from autogen.agentchat.contrib.agent_eval.criterion import Criterion
@@ -9,7 +9,7 @@ from autogen.agentchat.contrib.agent_eval.task import Task
 
 
 def generate_criteria(
-    llm_config: Optional[Union[Dict, bool]] = None,
+    llm_config: Optional[Union[Dict, Literal[False]]] = None,
     task: Task = None,
     additional_instructions: str = "",
     max_round=2,
@@ -51,20 +51,20 @@ def generate_criteria(
     )
     critic_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
 
-    critic_user.initiate_chat(critic_manager, message=task.sys_msg)
+    critic_user.initiate_chat(critic_manager, message=task.get_sys_message())
     criteria = critic_user.last_message()
     content = criteria["content"]
     # need to strip out any extra code around the returned json
-    content = content[content.find("{") : content.rfind("}") + 1]
+    content = content[content.find("[") : content.rfind("]") + 1]
     criteria = Criterion.parse_json_str(content)
     return criteria
 
 
 def quantify_criteria(
-    llm_config: Optional[Union[Dict, bool]] = None,
+    llm_config: Optional[Union[Dict, Literal[False]]] = None,
     criteria: List[Criterion] = None,
     task: Task = None,
-    test_case: Dict = None,
+    test_case: str = "",
     ground_truth: str = "",
 ):
     """
@@ -73,7 +73,7 @@ def quantify_criteria(
         llm_config (dict or bool): llm inference configuration.
         criteria ([Criterion]): A list of criteria for evaluating the utility of a given task.
         task (Task): The task to evaluate.
-        test_case (dict): The test case to evaluate.
+        test_case (str): The test case to evaluate.
         ground_truth (str): The ground truth for the test case.
     Returns:
         dict: A dictionary where the keys are the criteria and the values are the assessed performance based on accepted values for each criteria.
@@ -91,11 +91,11 @@ def quantify_criteria(
 
     quantifier_user.initiate_chat(  # noqa: F841
         quantifier,
-        message=task.sys_msg
+        message=task.get_sys_message()
         + "Evaluation dictionary: "
         + Criterion.write_json(criteria)
         + "actual test case to evaluate: "
-        + str(test_case),
+        + test_case,
     )
     quantified_results = quantifier_user.last_message()
     return {"actual_success": ground_truth, "estimated_performance": quantified_results["content"]}

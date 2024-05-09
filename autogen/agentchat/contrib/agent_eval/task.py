@@ -1,28 +1,24 @@
 import json
 
+from pydantic import BaseModel
 
-class Task:
+
+class Task(BaseModel):
     """
     Class representing a task for agent completion, includes example agent execution for criteria generation.
     """
 
-    def __init__(self, name: str, description: str, successful_response: str, failed_response: str):
+    name: str
+    description: str
+    successful_response: str
+    failed_response: str
+
+    def get_sys_message(self):
+        return f"""Task: {self.name}.
+        Task description: {self.description}
+        Task successful example: {self.successful_response}
+        Task failed example: {self.failed_response}
         """
-        Args:
-           name (str): The name of the task.
-           description (str): The description of the task.
-           successful_response (str): An example of a successful response execution.
-            failed_response (str): An example of a failed response execution.
-        """
-        self.name = name
-        self.description = description
-        self.successful_response = successful_response
-        self.failed_response = failed_response
-        self.sys_msg = f"""Task: {self.name}.
-    Task description: {self.description}
-    Task successful example: {self.successful_response}
-    Task failed example: {self.failed_response}
-    """
 
     @staticmethod
     def parse_json_str(task: str):

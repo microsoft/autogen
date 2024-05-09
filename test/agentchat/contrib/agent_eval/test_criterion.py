@@ -20,8 +20,9 @@ def test_write_json():
     output = Criterion.write_json([criteria1, criteria2])
     assert (
         output
-        == """{
-  "test1": {
+        == """[
+  {
+    "name": "test1",
     "description": "test1 description",
     "accepted_values": [
       "test1",
@@ -29,7 +30,8 @@ def test_write_json():
     ],
     "sub_criteria": []
   },
-  "test2": {
+  {
+    "name": "test2",
     "description": "test2 description",
     "accepted_values": [
       "test1",
@@ -37,13 +39,14 @@ def test_write_json():
     ],
     "sub_criteria": []
   }
-}"""
+]"""
     )
 
 
 def test_write_parse_compatibility():
     criterion1 = Criterion(name="test1", description="test1 description", accepted_values=["test1", "test2"])
     criterion2 = Criterion(name="test2", description="test2 description", accepted_values=["test1", "test2"])
+
     output = Criterion.write_json([criterion1, criterion2])
     criteria = Criterion.parse_json_str(output)
     assert criteria
