@@ -92,7 +92,7 @@ public partial class MistralClientAgentTests
             new TextMessage(Role.User, "what's the weather in Seattle?"),
             new ToolCallMessage(this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets, from: agent.Name),
             new ToolCallResultMessage(functionCallResult, this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets),
-            ];
+        ];
 
         var reply = await agent.SendAsync(chatHistory: chatHistory);
 
