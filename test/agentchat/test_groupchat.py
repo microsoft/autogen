@@ -1786,7 +1786,7 @@ def test_manager_messages_to_string():
     manager = GroupChatManager(groupchat)
 
     # Convert the messages List[Dict] to a JSON string
-    converted_string = manager.messages_to_string()
+    converted_string = manager.messages_to_string(messages)
 
     # The conversion should match the original messages
     assert json.loads(converted_string) == messages
@@ -1907,10 +1907,7 @@ def test_manager_resume_functions():
     # Get the logged output and check that the warning was provided.
     log_output = log_stream.getvalue()
 
-    assert (
-        "WARNING: Last message meets termination criteria and this may terminate the chat. Set ignore_initial_termination_check=False to avoid checking termination at the start of the chat."
-        in log_output
-    )
+    assert "WARNING: Last message meets termination criteria and this may terminate the chat." in log_output
 
 
 def test_manager_resume_returns():
@@ -1938,17 +1935,35 @@ def test_manager_resume_returns():
     assert return_message == messages[-1]
 
     # Test when no agent provided, the manager will be returned
-    messages = [
-        {
-            "content": "You are an expert at coding.",
-            "role": "system",
-        }
-    ]
+    messages = [{"content": "You are an expert at coding.", "role": "system", "name": "chat_manager"}]
 
     return_agent, return_message = manager.resume(messages=messages)
 
     assert return_agent == manager
     assert return_message == messages[-1]
+
+
+def test_manager_resume_messages():
+    """Tests that the messages passed into resume are the correct format"""
+
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = 1
+
+    # Only acceptable messages types are JSON str and List[Dict]
+
+    # Try a number
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages=messages)
+
+    # Try an empty string
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="")
+
+    # Try a message starter string, which isn't valid
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
 
 
 if __name__ == "__main__":
@@ -1976,4 +1991,5 @@ if __name__ == "__main__":
     test_manager_messages_from_string()
     test_manager_resume_functions()
     test_manager_resume_returns()
+    test_manager_resume_messages()
     # pass

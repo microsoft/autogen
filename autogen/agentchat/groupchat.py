@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import random
@@ -1136,6 +1137,14 @@ class GroupChatManager(ConversableAgent):
             - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
+        # Convert messages from string to messages list, if needed
+        if isinstance(messages, str):
+            messages = self.messages_from_string(messages)
+        elif isinstance(messages, list) and all(isinstance(item, dict) for item in messages):
+            messages = copy.deepcopy(messages)
+        else:
+            raise Exception("Messages is not of type str or List[Dict]")
+
         # Clean up the objects, ensuring there are no messages in the agents and group chat
 
         # Clear agent message history
@@ -1148,10 +1157,6 @@ class GroupChatManager(ConversableAgent):
 
         # Clear GroupChat messages
         self._groupchat.reset()
-
-        # Convert messages from string to messages list, if needed
-        if isinstance(messages, str):
-            messages = self.messages_from_string(messages)
 
         # Validation of message and agents
 
@@ -1235,6 +1240,14 @@ class GroupChatManager(ConversableAgent):
             - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
+        # Convert messages from string to messages list, if needed
+        if isinstance(messages, str):
+            messages = self.messages_from_string(messages)
+        elif isinstance(messages, list) and all(isinstance(item, dict) for item in messages):
+            messages = copy.deepcopy(messages)
+        else:
+            raise Exception("Messages is not of type str or List[Dict]")
+
         # Clean up the objects, ensuring there are no messages in the agents and group chat
 
         # Clear agent message history
@@ -1247,10 +1260,6 @@ class GroupChatManager(ConversableAgent):
 
         # Clear GroupChat messages
         self._groupchat.reset()
-
-        # Convert messages from string to messages list, if needed
-        if isinstance(messages, str):
-            messages = self.messages_from_string(messages)
 
         # Validation of message and agents
 
@@ -1363,9 +1372,7 @@ class GroupChatManager(ConversableAgent):
         # Check if the last message meets termination (if it has one)
         if self._is_termination_msg:
             if self._is_termination_msg(last_message):
-                logger.warning(
-                    "WARNING: Last message meets termination criteria and this may terminate the chat. Set ignore_initial_termination_check=False to avoid checking termination at the start of the chat."
-                )
+                logger.warning("WARNING: Last message meets termination criteria and this may terminate the chat.")
 
     def messages_from_string(self, message_string: str) -> List[Dict]:
         """Reads the saved state of messages in Json format for resume and returns as a messages list
@@ -1376,7 +1383,10 @@ class GroupChatManager(ConversableAgent):
         returns:
             - List[Dict]: List of messages
         """
-        state = json.loads(message_string)
+        try:
+            state = json.loads(message_string)
+        except json.JSONDecodeError:
+            raise Exception("Messages string is not a valid JSON string")
 
         return state
 
