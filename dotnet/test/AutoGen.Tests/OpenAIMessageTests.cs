@@ -294,7 +294,7 @@ public class OpenAIMessageTests
                                 ChatMessageImageContentItem imageContentItem => new
                                 {
                                     Type = "Image",
-                                    ImageUrl = GetImageUrlFromContent(imageContentItem),
+                                    ImageUrl = imageContentItem.ImageUrl,
                                 } as object,
                                 ChatMessageTextContentItem textContentItem => new
                                 {
@@ -373,10 +373,5 @@ public class OpenAIMessageTests
 
         var json = JsonSerializer.Serialize(jsonObjects, this.jsonSerializerOptions);
         Approvals.Verify(json);
-    }
-
-    private object? GetImageUrlFromContent(ChatMessageImageContentItem content)
-    {
-        return content.GetType().GetProperty("ImageUrl", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(content);
     }
 }

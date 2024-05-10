@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Example15_GPT4V_BinaryDataImageMessage.cs
+// Example15_ImageMessage.cs
 
 using AutoGen.Core;
 using AutoGen.OpenAI;
