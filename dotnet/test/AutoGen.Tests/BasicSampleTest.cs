@@ -74,6 +74,12 @@ namespace AutoGen.Tests
             await Example15_GPT4V_BinaryDataImageMessage.RunAsync();
         }
 
+        [ApiKeyFact("ANTHROPIC_API_KEY")]
+        public async Task AnthropicTestAsync()
+        {
+            await Example16_Anthropic.RunAsync();
+        }
+
         public class ConsoleWriter : StringWriter
         {
             private ITestOutputHelper output;
