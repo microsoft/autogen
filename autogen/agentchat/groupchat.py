@@ -1136,6 +1136,19 @@ class GroupChatManager(ConversableAgent):
             - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
+        # Clean up the objects, ensuring there are no messages in the agents and group chat
+
+        # Clear agent message history
+        for agent in self._groupchat.agents:
+            if isinstance(agent, ConversableAgent):
+                agent.clear_history()
+
+        # Clear Manager message history
+        self.clear_history()
+
+        # Clear GroupChat messages
+        self._groupchat.reset()
+
         # Convert messages from string to messages list, if needed
         if isinstance(messages, str):
             messages = self.messages_from_string(messages)
@@ -1151,7 +1164,7 @@ class GroupChatManager(ConversableAgent):
         for i, message in enumerate(messages):
 
             if "name" in message:
-                message_speaker_agent = self.groupchat.agent_by_name(message["name"])
+                message_speaker_agent = self._groupchat.agent_by_name(message["name"])
             else:
                 # If there's no name, assign the group chat manager (this is an indication the ChatResult messages was used instead of groupchat.messages as state)
                 message_speaker_agent = self
@@ -1163,15 +1176,15 @@ class GroupChatManager(ConversableAgent):
 
             # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
             if i != len(messages) - 1:
-                for agent in self.groupchat.agents:
+                for agent in self._groupchat.agents:
                     if agent.name != message["name"]:
-                        self.send(message, self.groupchat.agent_by_name(agent.name), request_reply=False, silent=True)
+                        self.send(message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True)
 
                 # Add previous message to the new groupchat, if it's an admin message the name may not match so add the message directly
                 if message_speaker_agent:
-                    self.groupchat.append(message, message_speaker_agent)
+                    self._groupchat.append(message, message_speaker_agent)
                 else:
-                    self.groupchat.messages.append(message)
+                    self._groupchat.messages.append(message)
 
             # Last speaker agent
             last_speaker_name = message["name"]
@@ -1180,11 +1193,11 @@ class GroupChatManager(ConversableAgent):
             last_message = message
 
         # Get last speaker as an agent
-        previous_last_agent = self.groupchat.agent_by_name(name=last_speaker_name)
+        previous_last_agent = self._groupchat.agent_by_name(name=last_speaker_name)
 
         # If we didn't match a last speaker agent, we check that it's the group chat's admin name and assign the manager, if so
         if not previous_last_agent and (
-            last_speaker_name == self.groupchat.admin_name or last_speaker_name == self.name
+            last_speaker_name == self._groupchat.admin_name or last_speaker_name == self.name
         ):
             previous_last_agent = self
 
@@ -1200,7 +1213,7 @@ class GroupChatManager(ConversableAgent):
             )
 
         # Update group chat settings for resuming
-        self.groupchat.send_introductions = False
+        self._groupchat.send_introductions = False
 
         return previous_last_agent, last_message
 
@@ -1222,6 +1235,19 @@ class GroupChatManager(ConversableAgent):
             - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
+        # Clean up the objects, ensuring there are no messages in the agents and group chat
+
+        # Clear agent message history
+        for agent in self._groupchat.agents:
+            if isinstance(agent, ConversableAgent):
+                agent.clear_history()
+
+        # Clear Manager message history
+        self.clear_history()
+
+        # Clear GroupChat messages
+        self._groupchat.reset()
+
         # Convert messages from string to messages list, if needed
         if isinstance(messages, str):
             messages = self.messages_from_string(messages)
@@ -1237,7 +1263,7 @@ class GroupChatManager(ConversableAgent):
         for i, message in enumerate(messages):
 
             if "name" in message:
-                message_speaker_agent = self.groupchat.agent_by_name(message["name"])
+                message_speaker_agent = self._groupchat.agent_by_name(message["name"])
             else:
                 # If there's no name, assign the group chat manager (this is an indication the ChatResult messages was used instead of groupchat.messages as state)
                 message_speaker_agent = self
@@ -1249,17 +1275,17 @@ class GroupChatManager(ConversableAgent):
 
             # Add previous messages to each agent (except their own messages and the last message, as we'll kick off the conversation with it)
             if i != len(messages) - 1:
-                for agent in self.groupchat.agents:
+                for agent in self._groupchat.agents:
                     if agent.name != message["name"]:
                         await self.a_send(
-                            message, self.groupchat.agent_by_name(agent.name), request_reply=False, silent=True
+                            message, self._groupchat.agent_by_name(agent.name), request_reply=False, silent=True
                         )
 
                 # Add previous message to the new groupchat, if it's an admin message the name may not match so add the message directly
                 if message_speaker_agent:
-                    self.groupchat.append(message, message_speaker_agent)
+                    self._groupchat.append(message, message_speaker_agent)
                 else:
-                    self.groupchat.messages.append(message)
+                    self._groupchat.messages.append(message)
 
             # Last speaker agent
             last_speaker_name = message["name"]
@@ -1268,11 +1294,11 @@ class GroupChatManager(ConversableAgent):
             last_message = message
 
         # Get last speaker as an agent
-        previous_last_agent = self.groupchat.agent_by_name(name=last_speaker_name)
+        previous_last_agent = self._groupchat.agent_by_name(name=last_speaker_name)
 
         # If we didn't match a last speaker agent, we check that it's the group chat's admin name and assign the manager, if so
         if not previous_last_agent and (
-            last_speaker_name == self.groupchat.admin_name or last_speaker_name == self.name
+            last_speaker_name == self._groupchat.admin_name or last_speaker_name == self.name
         ):
             previous_last_agent = self
 
@@ -1288,7 +1314,7 @@ class GroupChatManager(ConversableAgent):
             )
 
         # Update group chat settings for resuming
-        self.groupchat.send_introductions = False
+        self._groupchat.send_introductions = False
 
         return previous_last_agent, last_message
 
@@ -1311,8 +1337,8 @@ class GroupChatManager(ConversableAgent):
         for message in messages:
             if message.get("name"):
                 if (
-                    not self.groupchat.agent_by_name(message["name"])
-                    and not message["name"] == self.groupchat.admin_name  # ignore group chat's name
+                    not self._groupchat.agent_by_name(message["name"])
+                    and not message["name"] == self._groupchat.admin_name  # ignore group chat's name
                     and not message["name"] == self.name  # ignore group chat manager's name
                 ):
                     raise Exception(f"Agent name in message doesn't exist as agent in group chat: {message['name']}")
@@ -1354,20 +1380,18 @@ class GroupChatManager(ConversableAgent):
 
         return state
 
-    def messages_to_string(self) -> str:
-        """Converts the group chat state into a Json string that can be used for resuming the chat.
+    def messages_to_string(self, messages: List[Dict]) -> str:
+        """Converts the provided messages into a Json string that can be used for resuming the chat.
         The state is made up of a list of messages
 
         args:
-            - None
+            - messages (List[Dict]): set of messages to convert to a string
 
         returns:
             - str: Json representation of the messages which can be persisted for resuming later
         """
 
-        state = self.groupchat.messages
-
-        return json.dumps(state)
+        return json.dumps(messages)
 
     def _raise_exception_on_async_reply_functions(self) -> None:
         """Raise an exception if any async reply functions are registered.
