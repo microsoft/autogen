@@ -1118,49 +1118,22 @@ class GroupChatManager(ConversableAgent):
                 a.previous_cache = None
         return True, None
 
-    def resume_chat(
+    def resume(
         self,
         messages: Union[List[Dict], str],
         remove_termination_string: str = None,
         silent: Optional[bool] = False,
-        max_turns: Optional[int] = None,
-        summary_method: Optional[Union[str, Callable]] = ConversableAgent.DEFAULT_SUMMARY_METHOD,
-        summary_args: Optional[dict] = {},
-    ) -> ChatResult:
+    ) -> Tuple[ConversableAgent, Dict]:
         """Resumes a group chat using the previous messages as a starting point. Requires the agents, group chat, and group chat manager to be established
         as per the original group chat.
 
         Args:
-            messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
-            remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
-            silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
-            max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
-                [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
-                If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
-            summary_method (str or callable): a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
-
-            Supported strings are "last_msg" and "reflection_with_llm":
-                - when set to "last_msg", it returns the last message of the dialog as the summary.
-                - when set to "reflection_with_llm", it returns a summary extracted using an llm client.
-                    `llm_config` must be set in either the recipient or sender.
-
-            A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g.,
-
-            ```python
-            def my_summary_method(
-                sender: ConversableAgent,
-                recipient: ConversableAgent,
-                summary_args: dict,
-            ):
-                return recipient.last_message(sender)["content"]
-            ```
-            summary_args (dict): a dictionary of arguments to be passed to the summary_method.
-                One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
-                on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+            - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
+            - remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
+            - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
 
         Returns:
-            ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
+            - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
         # Convert messages from string to messages list, if needed
@@ -1221,69 +1194,32 @@ class GroupChatManager(ConversableAgent):
         if not silent:
             iostream = IOStream.get_default()
             iostream.print(
-                f"Resuming group chat with {len(messages)} messages, the last speaker is",
+                f"Prepared group chat with {len(messages)} messages, the last speaker is",
                 colored(last_speaker_name, "yellow"),
-                "- conversation will resume with their last message.",
                 flush=True,
             )
 
         # Update group chat settings for resuming
         self.groupchat.send_introductions = False
 
-        # Resume the chat by running initiate_chat on the last agent with the manager as the recipient
-        return previous_last_agent.initiate_chat(
-            recipient=self,
-            message=last_message,
-            clear_history=False,
-            silent=silent,
-            max_turns=max_turns,
-            summary_method=summary_method,
-            summary_args=summary_args,
-        )
+        return previous_last_agent, last_message
 
-    async def a_resume_chat(
+    async def a_resume(
         self,
         messages: Union[List[Dict], str],
         remove_termination_string: str = None,
         silent: Optional[bool] = False,
-        max_turns: Optional[int] = None,
-        summary_method: Optional[Union[str, Callable]] = ConversableAgent.DEFAULT_SUMMARY_METHOD,
-        summary_args: Optional[dict] = {},
-    ) -> ChatResult:
+    ) -> Tuple[ConversableAgent, Dict]:
         """Resumes a group chat using the previous messages as a starting point, asynchronously. Requires the agents, group chat, and group chat manager to be established
         as per the original group chat.
 
         Args:
-            messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
-            remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
-            silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
-            max_turns (int or None): the maximum number of turns for the chat between the two agents. One turn means one conversation round trip. Note that this is different from
-                [max_consecutive_auto_reply](#max_consecutive_auto_reply) which is the maximum number of consecutive auto replies; and it is also different from [max_rounds in GroupChat](./groupchat#groupchat-objects) which is the maximum number of rounds in a group chat session.
-                If max_turns is set to None, the chat will continue until a termination condition is met. Default is None.
-            summary_method (str or callable): a method to get a summary from the chat. Default is DEFAULT_SUMMARY_METHOD, i.e., "last_msg".
-
-            Supported strings are "last_msg" and "reflection_with_llm":
-                - when set to "last_msg", it returns the last message of the dialog as the summary.
-                - when set to "reflection_with_llm", it returns a summary extracted using an llm client.
-                    `llm_config` must be set in either the recipient or sender.
-
-            A callable summary_method should take the recipient and sender agent in a chat as input and return a string of summary. E.g.,
-
-            ```python
-            def my_summary_method(
-                sender: ConversableAgent,
-                recipient: ConversableAgent,
-                summary_args: dict,
-            ):
-                return recipient.last_message(sender)["content"]
-            ```
-            summary_args (dict): a dictionary of arguments to be passed to the summary_method.
-                One example key is "summary_prompt", and value is a string of text used to prompt a LLM-based agent (the sender or receiver agent) to reflect
-                on the conversation and extract a summary when summary_method is "reflection_with_llm".
-                The default summary_prompt is DEFAULT_SUMMARY_PROMPT, i.e., "Summarize takeaway from the conversation. Do not add any introductory phrases. If the intended request is NOT properly addressed, please point it out."
+            - messages Union[List[Dict], str]: The content of the previous chat's messages, either as a Json string or a list of message dictionaries.
+            - remove_termination_string str: Remove the provided string from the last message to prevent immediate termination
+            - silent (bool or None): (Experimental) whether to print the messages for this conversation. Default is False.
 
         Returns:
-            ChatResult: The result of the chat which includes the chat message history and, optionally, a summary
+            - Tuple[ConversableAgent, Dict]: A tuple containing the last agent who spoke and their message
         """
 
         # Convert messages from string to messages list, if needed
@@ -1346,25 +1282,15 @@ class GroupChatManager(ConversableAgent):
         if not silent:
             iostream = IOStream.get_default()
             iostream.print(
-                f"Resuming group chat with {len(messages)} messages, the last speaker is",
+                f"Prepared group chat with {len(messages)} messages, the last speaker is",
                 colored(last_speaker_name, "yellow"),
-                "- conversation will resume with their last message.",
                 flush=True,
             )
 
         # Update group chat settings for resuming
         self.groupchat.send_introductions = False
 
-        # Resume the chat by running initiate_chat on the last agent with the manager as the recipient
-        return await previous_last_agent.a_initiate_chat(
-            recipient=self,
-            message=last_message,
-            clear_history=False,
-            silent=silent,
-            max_turns=max_turns,
-            summary_method=summary_method,
-            summary_args=summary_args,
-        )
+        return previous_last_agent, last_message
 
     def _valid_resume_messages(self, messages: List[Dict]):
         """Validates the messages used for resuming
@@ -1411,7 +1337,7 @@ class GroupChatManager(ConversableAgent):
         # Check if the last message meets termination (if it has one)
         if self._is_termination_msg:
             if self._is_termination_msg(last_message):
-                logger.warn(
+                logger.warning(
                     "WARNING: Last message meets termination criteria and this may terminate the chat. Set ignore_initial_termination_check=False to avoid checking termination at the start of the chat."
                 )
 

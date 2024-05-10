@@ -1806,8 +1806,8 @@ def test_manager_messages_from_string():
     assert messages_str == json.dumps(messages)
 
 
-def test_manager_resume_chat():
-    """Tests the resume chat functionality"""
+def test_manager_resume_functions():
+    """Tests functions within the resume chat functionality"""
 
     # Setup
     coder = AssistantAgent(name="Coder", llm_config=None)
@@ -1913,6 +1913,44 @@ def test_manager_resume_chat():
     )
 
 
+def test_manager_resume_returns():
+    """Tests the return resume chat functionality"""
+
+    # Test the return agent and message is correct
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = [
+        {
+            "content": "You are an expert at coding.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get coding, should I use Python?",
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == coder
+    assert return_message == messages[-1]
+
+    # Test when no agent provided, the manager will be returned
+    messages = [
+        {
+            "content": "You are an expert at coding.",
+            "role": "system",
+        }
+    ]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == manager
+    assert return_message == messages[-1]
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1936,5 +1974,6 @@ if __name__ == "__main__":
     # test_select_speaker_auto_messages()
     test_manager_messages_to_string()
     test_manager_messages_from_string()
-    test_manager_resume_chat()
+    test_manager_resume_functions()
+    test_manager_resume_returns()
     # pass
