@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-import tempfile
+import threading
 import uuid
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
@@ -25,6 +25,7 @@ class FileLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.session_id = str(uuid.uuid4())
+        self.thread_id = threading.get_ident()
 
         curr_dir = os.getcwd()
         self.log_dir = os.path.join(curr_dir, "autogen_logs")
@@ -77,6 +78,7 @@ class FileLogger(BaseLogger):
                     "cost": cost,
                     "start_time": start_time,
                     "end_time": get_current_ts(),
+                    "thread_id": self.thread_id,
                 }
             )
 
@@ -100,6 +102,7 @@ class FileLogger(BaseLogger):
                     "current_time": get_current_ts(),
                     "agent_type": type(agent).__name__,
                     "args": to_dict(init_args),
+                    "thread_id": self.thread_id,
                 }
             )
             self.logger.info(log_data)
@@ -127,6 +130,7 @@ class FileLogger(BaseLogger):
                         "agent_class": source.__class__.__name__,
                         "json_state": json_args,
                         "timestamp": get_current_ts(),
+                        "thread_id": self.thread_id,
                     }
                 )
                 self.logger.info(log_data)
@@ -141,6 +145,7 @@ class FileLogger(BaseLogger):
                         "event_name": name,
                         "json_state": json_args,
                         "timestamp": get_current_ts(),
+                        "thread_id": self.thread_id,
                     }
                 )
                 self.logger.info(log_data)
@@ -160,6 +165,7 @@ class FileLogger(BaseLogger):
                     "session_id": self.session_id,
                     "json_state": json.dumps(init_args),
                     "timestamp": get_current_ts(),
+                    "thread_id": self.thread_id,
                 }
             )
             self.logger.info(log_data)
@@ -179,6 +185,7 @@ class FileLogger(BaseLogger):
                     "class": type(client).__name__,
                     "json_state": json.dumps(init_args),
                     "timestamp": get_current_ts(),
+                    "thread_id": self.thread_id,
                 }
             )
             self.logger.info(log_data)
