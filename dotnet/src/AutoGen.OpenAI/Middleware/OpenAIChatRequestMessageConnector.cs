@@ -19,7 +19,6 @@ namespace AutoGen.OpenAI;
 /// <para>- <see cref="MultiModalMessage"/></para>
 /// <para>- <see cref="ToolCallMessage"/></para>
 /// <para>- <see cref="ToolCallResultMessage"/></para>
-/// <para>- <see cref="Message"/></para>
 /// <para>- <see cref="IMessage{ChatRequestMessage}"/> where T is <see cref="ChatRequestMessage"/></para>
 /// <para>- <see cref="AggregateMessage{TMessage1, TMessage2}"/> where TMessage1 is <see cref="ToolCallMessage"/> and TMessage2 is <see cref="ToolCallResultMessage"/></para>
 /// </summary>
