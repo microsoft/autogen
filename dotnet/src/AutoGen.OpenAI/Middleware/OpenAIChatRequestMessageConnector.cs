@@ -167,14 +167,14 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 var chatRequestMessages = m switch
                 {
                     TextMessage textMessage => ProcessTextMessage(agent, textMessage),
-                    ImageMessage imageMessage => ProcessImageMessage(agent, imageMessage),
-                    MultiModalMessage multiModalMessage => ProcessMultiModalMessage(agent, multiModalMessage),
+                    ImageMessage imageMessage when (imageMessage.From is null || imageMessage.From != agent.Name) => ProcessImageMessage(agent, imageMessage),
+                    MultiModalMessage multiModalMessage when (multiModalMessage.From is null || multiModalMessage.From != agent.Name) => ProcessMultiModalMessage(agent, multiModalMessage),
                     ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(agent, toolCallMessage),
                     ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
                     AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessFunctionCallMiddlewareMessage(agent, aggregateMessage),
                     Message msg => ProcessMessage(agent, msg),
                     _ when strictMode is false => [],
-                    _ => throw new InvalidOperationException("Invalid message type"),
+                    _ => throw new InvalidOperationException($"Invalid message type: {m.GetType().Name}"),
                 };
 
                 if (chatRequestMessages.Any())

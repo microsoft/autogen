@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
@@ -71,183 +72,265 @@ public class OpenAIMessageTests
     }
 
     [Fact]
-    public void ToOpenAIChatRequestMessageTest()
+    public async Task ItProcessUserTextMessageAsync()
     {
-        var agent = new EchoAgent("assistant");
         var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("Hello");
+                chatRequestMessage.Name.Should().Be("user");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
         // user message
         IMessage message = new TextMessage(Role.User, "Hello", "user");
-        var oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        var userMessage = (ChatRequestUserMessage)oaiMessages.First();
-        userMessage.Content.Should().Be("Hello");
+    [Fact]
+    public async Task ItProcessAssistantTextMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("How can I help you?");
+                chatRequestMessage.Name.Should().Be("assistant");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        // user message test 2
-        // even if Role is assistant, it should be converted to user message because it is from the user
-        message = new TextMessage(Role.Assistant, "Hello", "user");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        // assistant message
+        IMessage message = new TextMessage(Role.Assistant, "How can I help you?", "assistant");
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        userMessage = (ChatRequestUserMessage)oaiMessages.First();
-        userMessage.Content.Should().Be("Hello");
+    [Fact]
+    public async Task ItProcessSystemTextMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestSystemMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("You are a helpful AI assistant");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        // user message with multimodal content
-        // image
-        message = new ImageMessage(Role.User, "https://example.com/image.png", "user");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        // system message
+        IMessage message = new TextMessage(Role.System, "You are a helpful AI assistant");
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        userMessage = (ChatRequestUserMessage)oaiMessages.First();
-        userMessage.Content.Should().BeNullOrEmpty();
-        userMessage.MultimodalContentItems.Count().Should().Be(1);
-        userMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageImageContentItem>();
+    [Fact]
+    public async Task ItProcessImageMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().BeNullOrEmpty();
+                chatRequestMessage.Name.Should().Be("user");
+                chatRequestMessage.MultimodalContentItems.Count().Should().Be(1);
+                chatRequestMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageImageContentItem>();
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        // text and image
-        message = new MultiModalMessage(
+        // user message
+        IMessage message = new ImageMessage(Role.User, "https://example.com/image.png", "user");
+        await agent.GenerateReplyAsync([message]);
+    }
+
+    [Fact]
+    public async Task ItThrowExceptionWhenProcessingImageMessageFromSelfAndStrictModeIsTrueAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector(true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        var imageMessage = new ImageMessage(Role.Assistant, "https://example.com/image.png", "assistant");
+        Func<Task> action = async () => await agent.GenerateReplyAsync([imageMessage]);
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Invalid message type: ImageMessage");
+    }
+
+    [Fact]
+    public async Task ItProcessMultiModalMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().BeNullOrEmpty();
+                chatRequestMessage.Name.Should().Be("user");
+                chatRequestMessage.MultimodalContentItems.Count().Should().Be(2);
+                chatRequestMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageTextContentItem>();
+                chatRequestMessage.MultimodalContentItems.Last().Should().BeOfType<ChatMessageImageContentItem>();
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        IMessage message = new MultiModalMessage(
             Role.User,
             [
                 new TextMessage(Role.User, "Hello", "user"),
                 new ImageMessage(Role.User, "https://example.com/image.png", "user"),
             ], "user");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        userMessage = (ChatRequestUserMessage)oaiMessages.First();
-        userMessage.Content.Should().BeNullOrEmpty();
-        userMessage.MultimodalContentItems.Count().Should().Be(2);
-        userMessage.MultimodalContentItems.First().Should().BeOfType<ChatMessageTextContentItem>();
+    [Fact]
+    public async Task ItThrowExceptionWhenProcessingMultiModalMessageFromSelfAndStrictModeIsTrueAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector(true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
 
-        // assistant text message
-        message = new TextMessage(Role.Assistant, "How can I help you?", "assistant");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
-
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
-        var assistantMessage = (ChatRequestAssistantMessage)oaiMessages.First();
-        assistantMessage.Content.Should().Be("How can I help you?");
-
-        // assistant text message with single tool call
-        message = new ToolCallMessage("test", "test", "assistant");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
-
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
-        assistantMessage = (ChatRequestAssistantMessage)oaiMessages.First();
-        assistantMessage.Content.Should().BeNullOrEmpty();
-        assistantMessage.ToolCalls.Count().Should().Be(1);
-        assistantMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
-
-        // user should not suppose to send tool call message
-        message = new ToolCallMessage("test", "test", "user");
-        Func<IMessage> action = () => middleware.ProcessIncomingMessages(agent, [message]).First();
-        action.Should().Throw<ArgumentException>().WithMessage("ToolCallMessage is not supported when message.From is not the same with agent");
-
-        // assistant text message with multiple tool calls
-        message = new ToolCallMessage(
-            toolCalls:
+        var multiModalMessage = new MultiModalMessage(
+            Role.Assistant,
             [
-                new ToolCall("test", "test"),
-                new ToolCall("test", "test"),
+                new TextMessage(Role.User, "Hello", "assistant"),
+                new ImageMessage(Role.User, "https://example.com/image.png", "assistant"),
             ], "assistant");
 
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        Func<Task> action = async () => await agent.GenerateReplyAsync([multiModalMessage]);
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
-        assistantMessage = (ChatRequestAssistantMessage)oaiMessages.First();
-        assistantMessage.Content.Should().BeNullOrEmpty();
-        assistantMessage.ToolCalls.Count().Should().Be(2);
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Invalid message type: MultiModalMessage");
+    }
 
-        // tool call result message
-        message = new ToolCallResultMessage("result", "test", "test", "user");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+    [Fact]
+    public async Task ItProcessToolCallMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().BeNullOrEmpty();
+                chatRequestMessage.Name.Should().Be("assistant");
+                chatRequestMessage.ToolCalls.Count().Should().Be(1);
+                chatRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
+                var functionToolCall = (ChatCompletionsFunctionToolCall)chatRequestMessage.ToolCalls.First();
+                functionToolCall.Name.Should().Be("test");
+                functionToolCall.Arguments.Should().Be("test");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestToolMessage>();
-        var toolCallMessage = (ChatRequestToolMessage)oaiMessages.First();
-        toolCallMessage.Content.Should().Be("result");
+        // user message
+        IMessage message = new ToolCallMessage("test", "test", "assistant");
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        // tool call result message with multiple tool calls
-        message = new ToolCallResultMessage(
-            toolCalls:
-            [
-                new ToolCall("result", "test", "test"),
-                new ToolCall("result", "test", "test"),
-            ], "user");
+    [Fact]
+    public async Task ItThrowExceptionWhenProcessingToolCallMessageFromUserAndStrictModeIsTrueAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector(strictMode: true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
 
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+        var toolCallMessage = new ToolCallMessage("test", "test", "user");
+        Func<Task> action = async () => await agent.GenerateReplyAsync([toolCallMessage]);
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Invalid message type: ToolCallMessage");
+    }
 
-        oaiMessages.Count().Should().Be(2);
-        oaiMessages.First().Should().BeOfType<ChatRequestToolMessage>();
-        toolCallMessage = (ChatRequestToolMessage)oaiMessages.First();
-        toolCallMessage.Content.Should().Be("test");
-        oaiMessages.Last().Should().BeOfType<ChatRequestToolMessage>();
-        toolCallMessage = (ChatRequestToolMessage)oaiMessages.Last();
-        toolCallMessage.Content.Should().Be("test");
+    [Fact]
+    public async Task ItProcessToolCallResultMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("result");
+                chatRequestMessage.ToolCallId.Should().Be("test");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        // aggregate message test
-        // aggregate message with tool call and tool call result will be returned by GPT agent if the tool call is automatically invoked inside agent
-        message = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(
-            message1: new ToolCallMessage("test", "test", "assistant"),
-            message2: new ToolCallResultMessage("result", "test", "test", "assistant"), "assistant");
+        // user message
+        IMessage message = new ToolCallResultMessage("result", "test", "test", "user");
+        await agent.GenerateReplyAsync([message]);
+    }
 
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
+    [Fact]
+    public async Task ItProcessFunctionCallMiddlewareMessageFromUserAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                msgs.Count().Should().Be(1);
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("result");
+                chatRequestMessage.Name.Should().Be("user");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        oaiMessages.Count().Should().Be(2);
-        oaiMessages.First().Should().BeOfType<ChatRequestAssistantMessage>();
-        assistantMessage = (ChatRequestAssistantMessage)oaiMessages.First();
-        assistantMessage.Content.Should().BeNullOrEmpty();
-        assistantMessage.ToolCalls.Count().Should().Be(1);
+        // user message
+        var toolCallMessage = new ToolCallMessage("test", "test", "user");
+        var toolCallResultMessage = new ToolCallResultMessage("result", "test", "test", "user");
+        var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "user");
+        await agent.GenerateReplyAsync([aggregateMessage]);
+    }
 
-        oaiMessages.Last().Should().BeOfType<ChatRequestToolMessage>();
-        toolCallMessage = (ChatRequestToolMessage)oaiMessages.Last();
-        toolCallMessage.Content.Should().Be("result");
+    [Fact]
+    public async Task ItProcessFunctionCallMiddlewareMessageFromAssistantAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                msgs.Count().Should().Be(2);
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var chatRequestMessage = (ChatRequestToolMessage)((MessageEnvelope<ChatRequestMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("result");
 
-        // aggregate message test 2
-        // if the aggregate message is from user, it should be converted to user message
-        message = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(
-            message1: new ToolCallMessage("test", "test", "user"),
-            message2: new ToolCallResultMessage("result", "test", "test", "user"), "user");
+                var toolCallMessage = msgs.First();
+                toolCallMessage!.Should().BeOfType<MessageEnvelope<ChatRequestMessage>>();
+                var toolCallRequestMessage = (ChatRequestAssistantMessage)((MessageEnvelope<ChatRequestMessage>)toolCallMessage!).Content;
+                toolCallRequestMessage.Content.Should().BeNullOrEmpty();
+                toolCallRequestMessage.ToolCalls.Count().Should().Be(1);
+                toolCallRequestMessage.ToolCalls.First().Should().BeOfType<ChatCompletionsFunctionToolCall>();
+                var functionToolCall = (ChatCompletionsFunctionToolCall)toolCallRequestMessage.ToolCalls.First();
+                functionToolCall.Name.Should().Be("test");
+                functionToolCall.Arguments.Should().Be("test");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
 
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
-
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        userMessage = (ChatRequestUserMessage)oaiMessages.First();
-        userMessage.Content.Should().Be("result");
-
-        // aggregate message test 3
-        // if the aggregate message is from user and contains multiple tool call results, it should be converted to user message
-        message = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(
-            message1: new ToolCallMessage(
-                toolCalls:
-                [
-                    new ToolCall("test", "test"),
-                    new ToolCall("test", "test"),
-                ], from: "user"),
-            message2: new ToolCallResultMessage(
-                toolCalls:
-                [
-                    new ToolCall("result", "test", "test"),
-                    new ToolCall("result", "test", "test"),
-                ], from: "user"), "user");
-
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
-        oaiMessages.Count().Should().Be(2);
-        oaiMessages.First().Should().BeOfType<ChatRequestUserMessage>();
-        oaiMessages.Last().Should().BeOfType<ChatRequestUserMessage>();
-
-        // system message
-        message = new TextMessage(Role.System, "You are a helpful AI assistant");
-        oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
-        oaiMessages.Count().Should().Be(1);
-        oaiMessages.First().Should().BeOfType<ChatRequestSystemMessage>();
+        // user message
+        var toolCallMessage = new ToolCallMessage("test", "test", "assistant");
+        var toolCallResultMessage = new ToolCallResultMessage("result", "test", "test", "assistant");
+        var aggregateMessage = new AggregateMessage<ToolCallMessage, ToolCallResultMessage>(toolCallMessage, toolCallResultMessage, "assistant");
+        await agent.GenerateReplyAsync([aggregateMessage]);
     }
 
     [Fact]
