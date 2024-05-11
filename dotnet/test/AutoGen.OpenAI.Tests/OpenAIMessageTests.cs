@@ -287,6 +287,7 @@ public class OpenAIMessageTests
                     {
                         Role = userMessage.Role.ToString(),
                         Content = userMessage.Content,
+                        Name = userMessage.Name,
                         MultiModaItem = userMessage.MultimodalContentItems?.Select(item =>
                         {
                             return item switch
@@ -313,6 +314,7 @@ public class OpenAIMessageTests
                     {
                         Role = assistantMessage.Role.ToString(),
                         Content = assistantMessage.Content,
+                        Name = assistantMessage.Name,
                         TooCall = assistantMessage.ToolCalls.Select(tc =>
                         {
                             return tc switch
@@ -336,6 +338,7 @@ public class OpenAIMessageTests
                 {
                     obj = new
                     {
+                        Name = systemMessage.Name,
                         Role = systemMessage.Role.ToString(),
                         Content = systemMessage.Content,
                     };
