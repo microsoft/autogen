@@ -54,7 +54,7 @@ def test_log_chat_completion(logger: FileLogger):
         assert log_data["is_cached"] == is_cached
         assert log_data["cost"] == cost
         assert log_data["start_time"] == start_time
-        assert type(log_data["thread_id"]) == int
+        assert isinstance(log_data["thread_id"], int)
 
 
 class TestWrapper:
