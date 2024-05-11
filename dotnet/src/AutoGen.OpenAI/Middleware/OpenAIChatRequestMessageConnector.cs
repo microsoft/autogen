@@ -27,6 +27,11 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 {
     private bool strictMode = false;
 
+    /// <summary>
+    /// Create a new instance of <see cref="OpenAIChatRequestMessageConnector"/>.
+    /// </summary>
+    /// <param name="strictMode">If true, <see cref="OpenAIChatRequestMessageConnector"/> will throw an <see cref="InvalidOperationException"/>
+    /// When the message type is not supported. If false, it will ignore the unsupported message type.</param>
     public OpenAIChatRequestMessageConnector(bool strictMode = false)
     {
         this.strictMode = strictMode;
@@ -36,8 +41,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     public async Task<IMessage> InvokeAsync(MiddlewareContext context, IAgent agent, CancellationToken cancellationToken = default)
     {
-        var chatMessages = ProcessIncomingMessages(agent, context.Messages)
-            .Select(m => new MessageEnvelope<ChatRequestMessage>(m));
+        var chatMessages = ProcessIncomingMessages(agent, context.Messages);
 
         var reply = await agent.GenerateReplyAsync(chatMessages, context.Options, cancellationToken);
 
@@ -49,8 +53,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         IStreamingAgent agent,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var chatMessages = ProcessIncomingMessages(agent, context.Messages)
-            .Select(m => new MessageEnvelope<ChatRequestMessage>(m));
+        var chatMessages = ProcessIncomingMessages(agent, context.Messages);
         var streamingReply = agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
         string? currentToolName = null;
         await foreach (var reply in streamingReply)
@@ -82,16 +85,10 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         return message switch
         {
-            TextMessage => message,
-            ImageMessage => message,
-            MultiModalMessage => message,
-            ToolCallMessage => message,
-            ToolCallResultMessage => message,
-            Message => message,
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> => message,
-            IMessage<ChatResponseMessage> m => PostProcessMessage(m),
-            IMessage<ChatCompletions> m => PostProcessMessage(m),
-            _ => throw new InvalidOperationException("The type of message is not supported. Must be one of TextMessage, ImageMessage, MultiModalMessage, ToolCallMessage, ToolCallResultMessage, Message, IMessage<ChatRequestMessage>, AggregateMessage<ToolCallMessage, ToolCallResultMessage>"),
+            IMessage<ChatResponseMessage> m => PostProcessChatResponseMessage(m.Content, m.From),
+            IMessage<ChatCompletions> m => PostProcessChatCompletions(m),
+            _ when strictMode is false => message,
+            _ => throw new InvalidOperationException("Invalid message type"),
         };
     }
 
@@ -120,12 +117,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
     }
 
-    private IMessage PostProcessMessage(IMessage<ChatResponseMessage> message)
-    {
-        return PostProcessMessage(message.Content, message.From);
-    }
-
-    private IMessage PostProcessMessage(IMessage<ChatCompletions> message)
+    private IMessage PostProcessChatCompletions(IMessage<ChatCompletions> message)
     {
         // throw exception if prompt filter results is not null
         if (message.Content.Choices[0].FinishReason == CompletionsFinishReason.ContentFiltered)
@@ -133,10 +125,10 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             throw new InvalidOperationException("The content is filtered because its potential risk. Please try another input.");
         }
 
-        return PostProcessMessage(message.Content.Choices[0].Message, message.From);
+        return PostProcessChatResponseMessage(message.Content.Choices[0].Message, message.From);
     }
 
-    private IMessage PostProcessMessage(ChatResponseMessage chatResponseMessage, string? from)
+    private IMessage PostProcessChatResponseMessage(ChatResponseMessage chatResponseMessage, string? from)
     {
         if (chatResponseMessage.Content is string content)
         {
@@ -162,110 +154,39 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         throw new InvalidOperationException("Invalid ChatResponseMessage");
     }
 
-    public IEnumerable<ChatRequestMessage> ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages)
+    public IEnumerable<IMessage> ProcessIncomingMessages(IAgent agent, IEnumerable<IMessage> messages)
     {
-        return messages.SelectMany(m =>
+        return messages.SelectMany<IMessage, IMessage>(m =>
         {
-            if (m.From == null)
+            if (m is IMessage<ChatRequestMessage> crm)
             {
-                return ProcessIncomingMessagesWithEmptyFrom(m);
-            }
-            else if (m.From == agent.Name)
-            {
-                return ProcessIncomingMessagesForSelf(m);
+                return [MessageEnvelope.Create(crm.Content, crm.From)];
             }
             else
             {
-                return ProcessIncomingMessagesForOther(m);
+                var chatRequestMessages = m switch
+                {
+                    TextMessage textMessage => ProcessTextMessage(agent, textMessage),
+                    ImageMessage imageMessage => ProcessImageMessage(agent, imageMessage),
+                    MultiModalMessage multiModalMessage => ProcessMultiModalMessage(agent, multiModalMessage),
+                    ToolCallMessage toolCallMessage when (toolCallMessage.From is null || toolCallMessage.From == agent.Name) => ProcessToolCallMessage(agent, toolCallMessage),
+                    ToolCallResultMessage toolCallResultMessage => ProcessToolCallResultMessage(toolCallResultMessage),
+                    AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessFunctionCallMiddlewareMessage(agent, aggregateMessage),
+                    Message msg => ProcessMessage(agent, msg),
+                    _ when strictMode is false => [],
+                    _ => throw new InvalidOperationException("Invalid message type"),
+                };
+
+                if (chatRequestMessages.Any())
+                {
+                    return chatRequestMessages.Select(cm => MessageEnvelope.Create(cm, m.From));
+                }
+                else
+                {
+                    return [m];
+                }
             }
         });
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(IMessage message)
-    {
-        return message switch
-        {
-            TextMessage textMessage => ProcessIncomingMessagesForSelf(textMessage),
-            ImageMessage imageMessage => ProcessIncomingMessagesForSelf(imageMessage),
-            MultiModalMessage multiModalMessage => ProcessIncomingMessagesForSelf(multiModalMessage),
-            ToolCallMessage toolCallMessage => ProcessIncomingMessagesForSelf(toolCallMessage),
-            ToolCallResultMessage toolCallResultMessage => ProcessIncomingMessagesForSelf(toolCallResultMessage),
-            Message msg => ProcessIncomingMessagesForSelf(msg),
-            IMessage<ChatRequestMessage> crm => ProcessIncomingMessagesForSelf(crm),
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessIncomingMessagesForSelf(aggregateMessage),
-            _ => throw new NotImplementedException(),
-        };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(IMessage message)
-    {
-        return message switch
-        {
-            TextMessage textMessage => ProcessIncomingMessagesWithEmptyFrom(textMessage),
-            ImageMessage imageMessage => ProcessIncomingMessagesWithEmptyFrom(imageMessage),
-            MultiModalMessage multiModalMessage => ProcessIncomingMessagesWithEmptyFrom(multiModalMessage),
-            ToolCallMessage toolCallMessage => ProcessIncomingMessagesWithEmptyFrom(toolCallMessage),
-            ToolCallResultMessage toolCallResultMessage => ProcessIncomingMessagesWithEmptyFrom(toolCallResultMessage),
-            Message msg => ProcessIncomingMessagesWithEmptyFrom(msg),
-            IMessage<ChatRequestMessage> crm => ProcessIncomingMessagesWithEmptyFrom(crm),
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessIncomingMessagesWithEmptyFrom(aggregateMessage),
-            _ => throw new NotImplementedException(),
-        };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(IMessage message)
-    {
-        return message switch
-        {
-            TextMessage textMessage => ProcessIncomingMessagesForOther(textMessage),
-            ImageMessage imageMessage => ProcessIncomingMessagesForOther(imageMessage),
-            MultiModalMessage multiModalMessage => ProcessIncomingMessagesForOther(multiModalMessage),
-            ToolCallMessage toolCallMessage => ProcessIncomingMessagesForOther(toolCallMessage),
-            ToolCallResultMessage toolCallResultMessage => ProcessIncomingMessagesForOther(toolCallResultMessage),
-            Message msg => ProcessIncomingMessagesForOther(msg),
-            IMessage<ChatRequestMessage> crm => ProcessIncomingMessagesForOther(crm),
-            AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => ProcessIncomingMessagesForOther(aggregateMessage),
-            _ => throw new NotImplementedException(),
-        };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(TextMessage message)
-    {
-        if (message.Role == Role.System)
-        {
-            return new[] { new ChatRequestSystemMessage(message.Content) };
-        }
-        else
-        {
-            return new[] { new ChatRequestAssistantMessage(message.Content) };
-        }
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(ImageMessage _)
-    {
-        return [new ChatRequestAssistantMessage("// Image Message is not supported")];
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(MultiModalMessage _)
-    {
-        return [new ChatRequestAssistantMessage("// MultiModal Message is not supported")];
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(ToolCallMessage message)
-    {
-        var toolCall = message.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
-        var chatRequestMessage = new ChatRequestAssistantMessage(string.Empty);
-        foreach (var tc in toolCall)
-        {
-            chatRequestMessage.ToolCalls.Add(tc);
-        }
-
-        return new[] { chatRequestMessage };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(ToolCallResultMessage message)
-    {
-        return message.ToolCalls.Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(Message message)
@@ -303,71 +224,6 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(IMessage<ChatRequestMessage> message)
-    {
-        return new[] { message.Content };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForSelf(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
-    {
-        var toolCallMessage1 = aggregateMessage.Message1;
-        var toolCallResultMessage = aggregateMessage.Message2;
-
-        var assistantMessage = new ChatRequestAssistantMessage(string.Empty);
-        var toolCalls = toolCallMessage1.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
-        foreach (var tc in toolCalls)
-        {
-            assistantMessage.ToolCalls.Add(tc);
-        }
-
-        var toolCallResults = toolCallResultMessage.ToolCalls.Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
-
-        // return assistantMessage and tool call result messages
-        var messages = new List<ChatRequestMessage> { assistantMessage };
-        messages.AddRange(toolCallResults);
-
-        return messages;
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(TextMessage message)
-    {
-        if (message.Role == Role.System)
-        {
-            return [new ChatRequestSystemMessage(message.Content) { Name = message.From }];
-        }
-        else
-        {
-            return [new ChatRequestUserMessage(message.Content) { Name = message.From }];
-        }
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
-    {
-        return [new ChatRequestUserMessage([new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri()))]) { Name = message.From }];
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(MultiModalMessage message)
-    {
-        IEnumerable<ChatMessageContentItem> items = message.Content.Select<IMessage, ChatMessageContentItem>(ci => ci switch
-        {
-            TextMessage text => new ChatMessageTextContentItem(text.Content),
-            ImageMessage image => new ChatMessageImageContentItem(new Uri(image.Url ?? image.BuildDataUri())),
-            _ => throw new NotImplementedException(),
-        });
-
-        return new[] { new ChatRequestUserMessage(items) { Name = message.From } };
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallMessage msg)
-    {
-        throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
-    }
-
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallResultMessage message)
-    {
-        return message.ToolCalls.Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
-    }
-
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(Message message)
     {
         if (message.Role == Role.System)
@@ -393,56 +249,129 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         }
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(IMessage<ChatRequestMessage> message)
+    private IEnumerable<ChatRequestMessage> ProcessTextMessage(IAgent agent, TextMessage message)
     {
-        return [message.Content];
+        if (message.Role == Role.System)
+        {
+            return [new ChatRequestSystemMessage(message.Content) { Name = message.From }];
+        }
+
+        if (agent.Name == message.From)
+        {
+            return [new ChatRequestAssistantMessage(message.Content) { Name = agent.Name }];
+        }
+        else if (message.From is null)
+        {
+            if (message.Role == Role.User)
+            {
+                return [new ChatRequestUserMessage(message.Content)];
+            }
+            else if (message.Role == Role.Assistant)
+            {
+                return [new ChatRequestAssistantMessage(message.Content)];
+            }
+            else
+            {
+                throw new InvalidOperationException("Invalid Role");
+            }
+        }
+        else
+        {
+            return [new ChatRequestUserMessage(message.Content) { Name = message.From }];
+        }
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
+    private IEnumerable<ChatRequestMessage> ProcessImageMessage(IAgent agent, ImageMessage message)
     {
-        // convert as user message
-        var resultMessage = aggregateMessage.Message2;
+        if (agent.Name == message.From)
+        {
+            // image message from assistant is not supported
+            throw new ArgumentException("ImageMessage is not supported when message.From is the same with agent");
+        }
 
-        return resultMessage.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result) { Name = aggregateMessage.From });
+        var imageContentItem = this.CreateChatMessageImageContentItemFromImageMessage(message);
+        return [new ChatRequestUserMessage([imageContentItem]) { Name = message.From }];
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(TextMessage message)
+    private IEnumerable<ChatRequestMessage> ProcessMultiModalMessage(IAgent agent, MultiModalMessage message)
     {
-        return ProcessIncomingMessagesForOther(message);
+        if (agent.Name == message.From)
+        {
+            // image message from assistant is not supported
+            throw new ArgumentException("MultiModalMessage is not supported when message.From is the same with agent");
+        }
+
+        IEnumerable<ChatMessageContentItem> items = message.Content.Select<IMessage, ChatMessageContentItem>(ci => ci switch
+        {
+            TextMessage text => new ChatMessageTextContentItem(text.Content),
+            ImageMessage image => this.CreateChatMessageImageContentItemFromImageMessage(image),
+            _ => throw new NotImplementedException(),
+        });
+
+        return [new ChatRequestUserMessage(items) { Name = message.From }];
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(ImageMessage message)
+    private ChatMessageImageContentItem CreateChatMessageImageContentItemFromImageMessage(ImageMessage message)
     {
-        return ProcessIncomingMessagesForOther(message);
+        return message.Data is null
+            ? new ChatMessageImageContentItem(new Uri(message.Url))
+            : new ChatMessageImageContentItem(message.Data, message.Data.MediaType);
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(MultiModalMessage message)
+    private IEnumerable<ChatRequestMessage> ProcessToolCallMessage(IAgent agent, ToolCallMessage message)
     {
-        return ProcessIncomingMessagesForOther(message);
+        if (message.From is not null && message.From != agent.Name)
+        {
+            throw new ArgumentException("ToolCallMessage is not supported when message.From is not the same with agent");
+        }
+
+        var toolCall = message.ToolCalls.Select(tc => new ChatCompletionsFunctionToolCall(tc.FunctionName, tc.FunctionName, tc.FunctionArguments));
+        var chatRequestMessage = new ChatRequestAssistantMessage(string.Empty) { Name = message.From };
+        foreach (var tc in toolCall)
+        {
+            chatRequestMessage.ToolCalls.Add(tc);
+        }
+
+        return [chatRequestMessage];
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(ToolCallMessage message)
+    private IEnumerable<ChatRequestMessage> ProcessToolCallResultMessage(ToolCallResultMessage message)
     {
-        return ProcessIncomingMessagesForSelf(message);
+        return message.ToolCalls
+            .Where(tc => tc.Result is not null)
+            .Select(tc => new ChatRequestToolMessage(tc.Result, tc.FunctionName));
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(ToolCallResultMessage message)
+    private IEnumerable<ChatRequestMessage> ProcessMessage(IAgent agent, Message message)
     {
-        return ProcessIncomingMessagesForOther(message);
+        if (message.From is not null && message.From != agent.Name)
+        {
+            return ProcessIncomingMessagesForOther(message);
+        }
+        else
+        {
+            return ProcessIncomingMessagesForSelf(message);
+        }
     }
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(Message message)
+    private IEnumerable<ChatRequestMessage> ProcessFunctionCallMiddlewareMessage(IAgent agent, AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
     {
-        return ProcessIncomingMessagesForOther(message);
-    }
+        if (aggregateMessage.From is not null && aggregateMessage.From != agent.Name)
+        {
+            // convert as user message
+            var resultMessage = aggregateMessage.Message2;
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(IMessage<ChatRequestMessage> message)
-    {
-        return [message.Content];
-    }
+            return resultMessage.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result) { Name = aggregateMessage.From });
+        }
+        else
+        {
+            var toolCallMessage1 = aggregateMessage.Message1;
+            var toolCallResultMessage = aggregateMessage.Message2;
 
-    private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
-    {
-        return ProcessIncomingMessagesForOther(aggregateMessage);
+            var assistantMessage = this.ProcessToolCallMessage(agent, toolCallMessage1);
+            var toolCallResults = this.ProcessToolCallResultMessage(toolCallResultMessage);
+
+            return assistantMessage.Concat(toolCallResults);
+        }
     }
 }

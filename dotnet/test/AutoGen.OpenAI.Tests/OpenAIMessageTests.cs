@@ -145,7 +145,7 @@ public class OpenAIMessageTests
 
         // user should not suppose to send tool call message
         message = new ToolCallMessage("test", "test", "user");
-        Func<ChatRequestMessage> action = () => middleware.ProcessIncomingMessages(agent, [message]).First();
+        Func<IMessage> action = () => middleware.ProcessIncomingMessages(agent, [message]).First();
         action.Should().Throw<ArgumentException>().WithMessage("ToolCallMessage is not supported when message.From is not the same with agent");
 
         // assistant text message with multiple tool calls
@@ -269,10 +269,19 @@ public class OpenAIMessageTests
             IMessage message = new MessageEnvelope<ChatRequestMessage>(oaiMessage);
             var oaiMessages = middleware.ProcessIncomingMessages(agent, [message]);
             oaiMessages.Count().Should().Be(1);
-            oaiMessages.First().Should().Be(oaiMessage);
+            //oaiMessages.First().Should().BeOfType<IMessage<ChatRequestMessage>>();
+            if (oaiMessages.First() is IMessage<ChatRequestMessage> chatRequestMessage)
+            {
+                chatRequestMessage.Content.Should().Be(oaiMessage);
+            }
+            else
+            {
+                // fail the test
+                Assert.True(false);
+            }
         }
     }
-    private void VerifyOAIMessages(IEnumerable<(IMessage, IEnumerable<ChatRequestMessage>)> messages)
+    private void VerifyOAIMessages(IEnumerable<(IMessage, IEnumerable<IMessage>)> messages)
     {
         var jsonObjects = messages.Select(pair =>
         {
@@ -281,7 +290,8 @@ public class OpenAIMessageTests
             foreach (var m in ms)
             {
                 object? obj = null;
-                if (m is ChatRequestUserMessage userMessage)
+                var chatRequestMessage = (m as IMessage<ChatRequestMessage>)?.Content;
+                if (chatRequestMessage is ChatRequestUserMessage userMessage)
                 {
                     obj = new
                     {
@@ -308,7 +318,7 @@ public class OpenAIMessageTests
                     };
                 }
 
-                if (m is ChatRequestAssistantMessage assistantMessage)
+                if (chatRequestMessage is ChatRequestAssistantMessage assistantMessage)
                 {
                     obj = new
                     {
@@ -334,7 +344,7 @@ public class OpenAIMessageTests
                     };
                 }
 
-                if (m is ChatRequestSystemMessage systemMessage)
+                if (chatRequestMessage is ChatRequestSystemMessage systemMessage)
                 {
                     obj = new
                     {
@@ -344,7 +354,7 @@ public class OpenAIMessageTests
                     };
                 }
 
-                if (m is ChatRequestFunctionMessage functionMessage)
+                if (chatRequestMessage is ChatRequestFunctionMessage functionMessage)
                 {
                     obj = new
                     {
@@ -354,7 +364,7 @@ public class OpenAIMessageTests
                     };
                 }
 
-                if (m is ChatRequestToolMessage toolCallMessage)
+                if (chatRequestMessage is ChatRequestToolMessage toolCallMessage)
                 {
                     obj = new
                     {
