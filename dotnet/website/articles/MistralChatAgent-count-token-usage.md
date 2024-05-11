@@ -4,7 +4,7 @@ The following example shows how to create a `MistralAITokenCounterMiddleware` @A
 To collect the token usage for the entire chat session, one easy solution is simply collect all the responses from agent and sum up the token usage for each response. To collect all the agent responses, we can create a middleware which simply saves all responses to a list and register it with the agent. To get the token usage information for each response, because in the example we are using @AutoGen.Mistral.MistralClientAgent, we can simply get the token usage from the response object.
 
 > [!NOTE]
-> You can find the complete example in the [Example13_OpenAIAgent_JsonMode](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples/Example14_MistralClientAgent_TokenCount.cs).
+> You can find the complete example in the [Example13_OpenAIAgent_JsonMode](https://github.com/microsoft/autogen/tree/main/dotnet/sample/AutoGen.BasicSamples/Example14_MistralClientAgent_TokenCount.cs).
 
 - Step 1: Adding using statement
 [!code-csharp[](../../sample/AutoGen.BasicSamples/Example14_MistralClientAgent_TokenCount.cs?name=using_statements)]
