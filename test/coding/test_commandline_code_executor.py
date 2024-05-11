@@ -2,12 +2,13 @@ import os
 import sys
 import tempfile
 import uuid
+import venv
 from pathlib import Path
 
 import pytest
 
 from autogen.agentchat.conversable_agent import ConversableAgent
-from autogen.code_utils import decide_use_docker, is_docker_running
+from autogen.code_utils import WIN32, decide_use_docker, is_docker_running
 from autogen.coding.base import CodeBlock, CodeExecutor
 from autogen.coding.docker_commandline_code_executor import DockerCommandLineCodeExecutor
 from autogen.coding.factory import CodeExecutorFactory
@@ -393,3 +394,20 @@ def test_silent_pip_install(cls, lang: str) -> None:
     code_blocks = [CodeBlock(code=code, language=lang)]
     code_result = executor.execute_code_blocks(code_blocks)
     assert code_result.exit_code == error_exit_code and "ERROR: " in code_result.output
+
+
+def test_local_executor_with_custom_python_env():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(temp_dir)
+        env_builder_context = env_builder.ensure_directories(temp_dir)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
+        code_blocks = [
+            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
+            CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
+        ]
+        execution = executor.execute_code_blocks(code_blocks)
+
+        assert execution.exit_code == 0
+        assert execution.output.strip() == "True"
