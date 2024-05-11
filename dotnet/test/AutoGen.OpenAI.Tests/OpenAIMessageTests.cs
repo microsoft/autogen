@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ApprovalTests;
@@ -90,6 +91,65 @@ public class OpenAIMessageTests
         // user message
         IMessage message = new TextMessage(Role.User, "Hello", "user");
         await agent.GenerateReplyAsync([message]);
+    }
+
+    [Fact]
+    public async Task ItShortcutChatRequestMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<ChatRequestUserMessage>>();
+
+                var chatRequestMessage = (ChatRequestUserMessage)((MessageEnvelope<ChatRequestUserMessage>)innerMessage!).Content;
+                chatRequestMessage.Content.Should().Be("hello");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var userMessage = new ChatRequestUserMessage("hello");
+        var chatRequestMessage = MessageEnvelope.Create(userMessage);
+        await agent.GenerateReplyAsync([chatRequestMessage]);
+    }
+
+    [Fact]
+    public async Task ItShortcutMessageWhenStrictModelIsFalseAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(async (msgs, _, innerAgent, _) =>
+            {
+                var innerMessage = msgs.Last();
+                innerMessage!.Should().BeOfType<MessageEnvelope<string>>();
+
+                var chatRequestMessage = ((MessageEnvelope<string>)innerMessage!).Content;
+                chatRequestMessage.Should().Be("hello");
+                return await innerAgent.GenerateReplyAsync(msgs);
+            })
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var userMessage = "hello";
+        var chatRequestMessage = MessageEnvelope.Create(userMessage);
+        await agent.GenerateReplyAsync([chatRequestMessage]);
+    }
+
+    [Fact]
+    public async Task ItThrowExceptionWhenStrictModeIsTrueAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector(true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        // user message
+        var userMessage = "hello";
+        var chatRequestMessage = MessageEnvelope.Create(userMessage);
+        Func<Task> action = async () => await agent.GenerateReplyAsync([chatRequestMessage]);
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Invalid message type: MessageEnvelope`1");
     }
 
     [Fact]
@@ -334,6 +394,70 @@ public class OpenAIMessageTests
     }
 
     [Fact]
+    public async Task ItConvertChatResponseMessageToTextMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        // text message
+        var textMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "hello");
+        var chatRequestMessage = MessageEnvelope.Create(textMessage);
+
+        var message = await agent.GenerateReplyAsync([chatRequestMessage]);
+        message.Should().BeOfType<TextMessage>();
+        message.GetContent().Should().Be("hello");
+        message.GetRole().Should().Be(Role.Assistant);
+    }
+
+    [Fact]
+    public async Task ItConvertChatResponseMessageToToolCallMessageAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        // tool call message
+        var toolCallMessage = CreateInstance<ChatResponseMessage>(ChatRole.Assistant, "", new[] { new ChatCompletionsFunctionToolCall("test", "test", "test") }, new FunctionCall("test", "test"), CreateInstance<AzureChatExtensionsMessageContext>(), new Dictionary<string, BinaryData>());
+        var chatRequestMessage = MessageEnvelope.Create(toolCallMessage);
+        var message = await agent.GenerateReplyAsync([chatRequestMessage]);
+        message.Should().BeOfType<ToolCallMessage>();
+        message.GetToolCalls()!.Count().Should().Be(1);
+        message.GetToolCalls()!.First().FunctionName.Should().Be("test");
+        message.GetToolCalls()!.First().FunctionArguments.Should().Be("test");
+    }
+
+    [Fact]
+    public async Task ItReturnOriginalMessageWhenStrictModeIsFalseAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector();
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        // text message
+        var textMessage = "hello";
+        var messageToSend = MessageEnvelope.Create(textMessage);
+
+        var message = await agent.GenerateReplyAsync([messageToSend]);
+        message.Should().BeOfType<MessageEnvelope<string>>();
+    }
+
+    [Fact]
+    public async Task ItThrowInvalidOperationExceptionWhenStrictModeIsTrueAsync()
+    {
+        var middleware = new OpenAIChatRequestMessageConnector(true);
+        var agent = new EchoAgent("assistant")
+            .RegisterMiddleware(middleware);
+
+        // text message
+        var textMessage = new ChatRequestUserMessage("hello");
+        var messageToSend = MessageEnvelope.Create(textMessage);
+        Func<Task> action = async () => await agent.GenerateReplyAsync([messageToSend]);
+
+        await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Invalid return message type MessageEnvelope`1");
+    }
+
+    [Fact]
     public void ToOpenAIChatRequestMessageShortCircuitTest()
     {
         var agent = new EchoAgent("assistant");
@@ -474,5 +598,15 @@ public class OpenAIMessageTests
     private object? GetImageUrlFromContent(ChatMessageImageContentItem content)
     {
         return content.GetType().GetProperty("ImageUrl", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(content);
+    }
+
+    private static T CreateInstance<T>(params object[] args)
+    {
+        var type = typeof(T);
+        var instance = type.Assembly.CreateInstance(
+            type.FullName!, false,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            null, args, null, null);
+        return (T)instance!;
     }
 }

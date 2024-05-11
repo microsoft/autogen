@@ -76,7 +76,14 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             }
             else
             {
-                yield return reply;
+                if (this.strictMode)
+                {
+                    throw new InvalidOperationException($"Invalid streaming message type {reply.GetType().Name}");
+                }
+                else
+                {
+                    yield return reply;
+                }
             }
         }
     }
@@ -88,7 +95,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             IMessage<ChatResponseMessage> m => PostProcessChatResponseMessage(m.Content, m.From),
             IMessage<ChatCompletions> m => PostProcessChatCompletions(m),
             _ when strictMode is false => message,
-            _ => throw new InvalidOperationException("Invalid message type"),
+            _ => throw new InvalidOperationException($"Invalid return message type {message.GetType().Name}"),
         };
     }
 
@@ -130,7 +137,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessChatResponseMessage(ChatResponseMessage chatResponseMessage, string? from)
     {
-        if (chatResponseMessage.Content is string content)
+        if (chatResponseMessage.Content is string content && !string.IsNullOrEmpty(content))
         {
             return new TextMessage(Role.Assistant, content, from);
         }
@@ -160,7 +167,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             if (m is IMessage<ChatRequestMessage> crm)
             {
-                return [MessageEnvelope.Create(crm.Content, crm.From)];
+                return [crm];
             }
             else
             {
