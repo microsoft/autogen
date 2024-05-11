@@ -374,22 +374,72 @@ def config_list_gpt4_gpt35(
 
 
 def filter_config(
-    items: List[Dict[str, Any]],
-    criteria_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]],
+    config_list: List[Dict[str, Any]],
+    filter_dict: Optional[Dict[str, Union[List[Union[str, None]], Set[Union[str, None]]]]],
     exclude: bool = False,
 ) -> List[Dict[str, Any]]:
-    """
-    Filters dictionaries from a list based on criteria specified in `criteria_dict`.
-    Can either include or exclude dictionaries based on the `exclude` flag.
+    """This function filters `config_list` by checking each configuration dictionary against the criteria specified in
+    `filter_dict`. A configuration dictionary is retained if for every key in `filter_dict`, see example below.
+
+    Args:
+        config_list (list of dict): A list of configuration dictionaries to be filtered.
+        filter_dict (dict): A dictionary representing the filter criteria, where each key is a
+                            field name to check within the configuration dictionaries, and the
+                            corresponding value is a list of acceptable values for that field.
+                            If the configuration's field's value is not a list, then a match occurs
+                            when it is found in the list of acceptable values. If the configuration's
+                            field's value is a list, then a match occurs if there is a non-empty
+                            intersection with the acceptable values.
+        exclude (bool): If False (the default value), configs that match the filter will be included in the returned
+            list. If True, configs that match the filter will be excluded in the returned list.
+    Returns:
+        list of dict: A list of configuration dictionaries that meet all the criteria specified
+                      in `filter_dict`.
+
+    Example:
+        ```python
+        # Example configuration list with various models and API types
+        configs = [
+            {'model': 'gpt-3.5-turbo'},
+            {'model': 'gpt-4'},
+            {'model': 'gpt-3.5-turbo', 'api_type': 'azure'},
+            {'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']},
+        ]
+        # Define filter criteria to select configurations for the 'gpt-3.5-turbo' model
+        # that are also using the 'azure' API type
+        filter_criteria = {
+            'model': ['gpt-3.5-turbo'],  # Only accept configurations for 'gpt-3.5-turbo'
+            'api_type': ['azure']       # Only accept configurations for 'azure' API type
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'api_type': 'azure', ...}]
+        # Define a filter to select a given tag
+        filter_criteria = {
+            'tags': ['gpt35_turbo'],
+        }
+        # Apply the filter to the configuration list
+        filtered_configs = filter_config(configs, filter_criteria)
+        # The resulting `filtered_configs` will be:
+        # [{'model': 'gpt-3.5-turbo', 'tags': ['gpt35_turbo', 'gpt-35-turbo']}]
+        ```
+    Note:
+        - If `filter_dict` is empty or None, no filtering is applied and `config_list` is returned as is.
+        - If a configuration dictionary in `config_list` does not contain a key specified in `filter_dict`,
+          it is considered a non-match and is excluded from the result.
+        - If the list of acceptable values for a key in `filter_dict` includes None, then configuration
+          dictionaries that do not have that key will also be considered a match.
+
     """
 
-    if criteria_dict:
+    if filter_dict:
         return [
             item
-            for item in items
-            if all(_satisfies_criteria(item.get(key), values) != exclude for key, values in criteria_dict.items())
+            for item in config_list
+            if all(_satisfies_criteria(item.get(key), values) != exclude for key, values in filter_dict.items())
         ]
-    return items
+    return config_list
 
 
 def _satisfies_criteria(value: Any, criteria_values: Any) -> bool:
