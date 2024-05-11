@@ -33,32 +33,22 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
         self,
         name: str,
         system_message: Optional[Union[str, List[str]]] = DEFAULT_PROMPT,
-        description: Optional[str] = DEFAULT_DESCRIPTION,
-        is_termination_msg: Optional[Callable[[Dict[str, Any]], bool]] = None,
-        max_consecutive_auto_reply: Optional[int] = None,
-        human_input_mode: Optional[str] = "TERMINATE",
-        function_map: Optional[Dict[str, Callable]] = None,
-        code_execution_config: Union[Dict, Literal[False]] = False,
         llm_config: Optional[Union[Dict, Literal[False]]] = None,
-        default_auto_reply: Optional[Union[str, Dict, None]] = "",
         hf_capability_list: Optional[List[Union[str, HuggingFaceCapability]]] = DEFAULT_HF_CAPABILITY_LIST,
         hf_config: Optional[Dict[str, Union[str, Dict]]] = {},
         is_gpt4v_format: Optional[bool] = False,
+        is_silent: Optional[bool] = True,
+        **kwargs,
     ):
         super().__init__(
             name=name,
             system_message=system_message,
-            description=description,
-            is_termination_msg=is_termination_msg,
-            max_consecutive_auto_reply=max_consecutive_auto_reply,
-            human_input_mode=human_input_mode,
-            function_map=function_map,
-            code_execution_config=code_execution_config,
             llm_config=llm_config,
-            default_auto_reply=default_auto_reply,
+            **kwargs,
         )
 
         self._is_gpt4v_format = is_gpt4v_format
+        self._is_silent = is_silent
 
         # Set up the inner monologue
         inner_llm_config = copy.deepcopy(llm_config)
@@ -196,7 +186,7 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
 
         proxy_reply = messages[-1]
         while True:
-            self._user_proxy.send(proxy_reply, self._assistant, request_reply=True, silent=True)
+            self._user_proxy.send(proxy_reply, self._assistant, request_reply=True, silent=self._is_silent)
             assistant_reply = self._user_proxy.chat_messages[self._assistant][-1]
             proxy_reply = self._user_proxy.generate_reply(
                 messages=self._user_proxy.chat_messages[self._assistant], sender=self._assistant
