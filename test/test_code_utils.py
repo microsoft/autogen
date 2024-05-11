@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from io import StringIO
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -15,6 +16,7 @@ from autogen.code_utils import (
     UNKNOWN,
     check_can_use_docker_or_throw,
     content_str,
+    create_virtual_env,
     decide_use_docker,
     execute_code,
     extract_code,
@@ -498,6 +500,20 @@ def test_can_use_docker_or_throw():
     if not is_docker_running() and not in_docker_container():
         with pytest.raises(RuntimeError):
             check_can_use_docker_or_throw(True)
+
+
+def test_create_virtual_env():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        venv_context = create_virtual_env(temp_dir)
+        assert isinstance(venv_context, SimpleNamespace)
+        assert venv_context.env_name == os.path.split(temp_dir)[1]
+
+
+def test_create_virtual_env_with_extra_args():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        venv_context = create_virtual_env(temp_dir, with_pip=False)
+        assert isinstance(venv_context, SimpleNamespace)
+        assert venv_context.env_name == os.path.split(temp_dir)[1]
 
 
 def _test_improve():
