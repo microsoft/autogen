@@ -85,6 +85,19 @@ $functions"""
         PowerShell (pwsh, powershell, ps1), HTML, CSS, and JavaScript.
         Execution policies determine whether each language's code blocks are executed or saved only.
 
+        ## Execution with a Python virtual environment
+        A python virtual env can be used to execute code and install dependencies. This has the added benefit of not polluting the
+        base environment with unwanted modules.
+        ```python
+        from autogen.code_utils import create_virtual_env
+        from autogen.coding import LocalCommandLineCodeExecutor
+
+        venv_dir = ".venv"
+        venv_context = create_virtual_env(venv_dir)
+
+        executor = LocalCommandLineCodeExecutor(virtual_env_context=venv_context)
+        ```
+
         Args:
             timeout (int): The timeout for code execution, default is 60 seconds.
             virtual_env_context (Optional[SimpleNamespace]): The virtual environment context to use.
