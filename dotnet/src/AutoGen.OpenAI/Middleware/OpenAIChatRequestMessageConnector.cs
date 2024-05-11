@@ -333,19 +333,17 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         if (message.Role == Role.System)
         {
-            return new[] { new ChatRequestSystemMessage(message.Content) };
+            return [new ChatRequestSystemMessage(message.Content) { Name = message.From }];
         }
         else
         {
-            return new[] { new ChatRequestUserMessage(message.Content) };
+            return [new ChatRequestUserMessage(message.Content) { Name = message.From }];
         }
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ImageMessage message)
     {
-        return new[] { new ChatRequestUserMessage([
-            new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri())),
-            ])};
+        return [new ChatRequestUserMessage([new ChatMessageImageContentItem(new Uri(message.Url ?? message.BuildDataUri()))]) { Name = message.From }];
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(MultiModalMessage message)
@@ -357,7 +355,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
             _ => throw new NotImplementedException(),
         });
 
-        return new[] { new ChatRequestUserMessage(items) };
+        return new[] { new ChatRequestUserMessage(items) { Name = message.From } };
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(ToolCallMessage msg)
@@ -374,7 +372,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
     {
         if (message.Role == Role.System)
         {
-            return new[] { new ChatRequestSystemMessage(message.Content) };
+            return [new ChatRequestSystemMessage(message.Content) { Name = message.From }];
         }
         else if (message.Content is string content && content is { Length: > 0 })
         {
@@ -383,14 +381,11 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
                 return new[] { new ChatRequestToolMessage(content, message.FunctionName) };
             }
 
-            return new[] { new ChatRequestUserMessage(message.Content) };
+            return [new ChatRequestUserMessage(message.Content) { Name = message.From }];
         }
         else if (message.FunctionName is string _)
         {
-            return new[]
-            {
-                new ChatRequestUserMessage("// Message type is not supported"),
-            };
+            return [new ChatRequestUserMessage("// Message type is not supported") { Name = message.From }];
         }
         else
         {
@@ -400,7 +395,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(IMessage<ChatRequestMessage> message)
     {
-        return new[] { message.Content };
+        return [message.Content];
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesForOther(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)
@@ -408,7 +403,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         // convert as user message
         var resultMessage = aggregateMessage.Message2;
 
-        return resultMessage.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result));
+        return resultMessage.ToolCalls.Select(tc => new ChatRequestUserMessage(tc.Result) { Name = aggregateMessage.From });
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(TextMessage message)
@@ -443,7 +438,7 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(IMessage<ChatRequestMessage> message)
     {
-        return new[] { message.Content };
+        return [message.Content];
     }
 
     private IEnumerable<ChatRequestMessage> ProcessIncomingMessagesWithEmptyFrom(AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage)

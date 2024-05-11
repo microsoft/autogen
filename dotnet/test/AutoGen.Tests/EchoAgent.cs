@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace AutoGen.Tests
 {
-    internal class EchoAgent : IAgent
+    public class EchoAgent : IAgent
     {
         public EchoAgent(string name)
         {
