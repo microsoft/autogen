@@ -422,7 +422,7 @@ class TextMessageCompressor:
         self, content: Union[str, List[Dict]], compressed_content: Union[str, List[Dict]], tokens_saved: int
     ):
         if self._cache:
-            value = (tokens_saved, json.dumps(compressed_content))
+            value = (tokens_saved, compressed_content)
             self._cache.set(self._cache_key(content), value)
 
     def _cache_key(self, content: Union[str, List[Dict]]) -> str:
