@@ -1,8 +1,16 @@
-##### Update
-- [API Breaking Change] Update the return type of `IStreamingAgent.GenerateStreamingReplyAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
-- [API Breaking Change] Update the return type of `IStreamingMiddleware.InvokeAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
-- [API Breaking Change] Mark `RegisterReply`, `RegisterPreProcess` and `RegisterPostProcess` as obsolete. You can replace them with `RegisterMiddleware`
-- Fix [Issue 2609](https://github.com/microsoft/autogen/issues/2609)
+##### Update on 0.0.13 (2024-05-09)
+###### New features
+- [Issue 2593](https://github.com/microsoft/autogen/issues/2593) Consume SK plugins in Agent.
+- [Issue 1893](https://github.com/microsoft/autogen/issues/1893) Support inline-data in ImageMessage
+- [Issue 2481](https://github.com/microsoft/autogen/issues/2481) Introduce `ChatCompletionAgent` to `AutoGen.SemanticKernel`
+###### API Breaking Changes
+- [Issue 2470](https://github.com/microsoft/autogen/issues/2470) Update the return type of `IStreamingAgent.GenerateStreamingReplyAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
+- [Issue 2470](https://github.com/microsoft/autogen/issues/2470) Update the return type of `IStreamingMiddleware.InvokeAsync` from `Task<IAsyncEnumerable<IStreamingMessage>>` to `IAsyncEnumerable<IStreamingMessage>`
+- Mark `RegisterReply`, `RegisterPreProcess` and `RegisterPostProcess` as obsolete. You can replace them with `RegisterMiddleware`
+
+###### Bug Fixes
+- Fix [Issue 2609](https://github.com/microsoft/autogen/issues/2609) Constructor of conversableAgentConfig does not accept LMStudioConfig as ConfigList
+
 ##### Update on 0.0.12 (2024-04-22)
 - Add AutoGen.Mistral package to support Mistral.AI models
 ##### Update on 0.0.11 (2024-04-10)

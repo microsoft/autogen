@@ -3,9 +3,6 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>AutoGen.SemanticKernel</RootNamespace>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <NoWarn>$(NoWarn);SKEXP0110</NoWarn>
   </PropertyGroup>
 
