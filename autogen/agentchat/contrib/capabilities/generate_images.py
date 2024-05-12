@@ -7,6 +7,7 @@ from PIL.Image import Image
 from autogen import Agent, ConversableAgent, code_utils
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.capabilities.agent_capability import AgentCapability
+from autogen.agentchat.contrib.huggingface_utils import HuggingFaceClient
 from autogen.agentchat.contrib.text_analyzer_agent import TextAnalyzerAgent
 from autogen.cache import AbstractCache
 
@@ -106,6 +107,78 @@ class DalleImageGenerator:
 
     def cache_key(self, prompt: str) -> str:
         keys = (prompt, self._model, self._resolution, self._quality, self._num_images)
+        return ",".join([str(k) for k in keys])
+
+
+class HuggingFaceImageGenerator:
+    """Generates images using HuggingFace's text-to-image models.
+
+    This class provides a convenient interface for generating images based on textual prompts using HuggingFace's
+    text-to-image models. It allows you to specify the model id, the inference mode, and additional parameters for
+    the image generation process.
+
+    Note: Current implementation does not allow you to edit a previously existing image.
+    """
+
+    def __init__(
+        self,
+        llm_config: Optional[Union[Dict, None]] = None,
+        height: Optional[float] = None,
+        width: Optional[float] = None,
+        num_inference_steps: Optional[int] = None,
+        guidance_scale: Optional[float] = None,
+    ):
+        """
+        Args:
+            llm_config (dict or None): The LLM config for the HuggingFace client. An example config is:
+                ```python
+                {
+                    "config_list": [
+                        {
+                            "model": "<HF_MODEL_ID_OR_URL>",
+                            "api_key": "<HF_API_KEY>",
+                            "inference_mode": "auto",
+                        }
+                    ]
+                }
+                ```
+            height (float or None): The height of the generated image.
+            width (float or None): The width of the generated image.
+            num_inference_steps (int or None): The number of denoising steps. More denoising steps usually lead to a higher quality image at the expense of slower inference.
+            guidance_scale (float or None): Higher guidance scale encourages to generate images that are closely linked to the text prompt, usually at the expense of lower image quality.
+        """
+        if llm_config is None or "config_list" not in llm_config:
+            self._hf_client = HuggingFaceClient()
+            self._model = None
+            self._inference_mode = "auto"
+        else:
+            config_list = llm_config["config_list"]
+            self._hf_client = HuggingFaceClient(config_list[0].get("api_key"))
+            self._model = config_list[0].get("model")
+            self._inference_mode = config_list[0].get("inference_mode", "auto")
+            if self._inference_mode not in HuggingFaceClient.VALID_INFERENCE_MODES:
+                raise ValueError(
+                    f"Invalid inference mode: {self._inference_mode}. Must be one of: {HuggingFaceClient.VALID_INFERENCE_MODES}"
+                )
+
+        self._height = height
+        self._width = width
+        self._num_inference_steps = num_inference_steps
+        self._guidance_scale = guidance_scale
+
+    def generate_image(self, prompt: str) -> Image:
+        return self._hf_client.text_to_image(
+            prompt,
+            model=self._model,
+            inference_mode=self._inference_mode,
+            height=self._height,
+            width=self._width,
+            num_inference_steps=self._num_inference_steps,
+            guidance_scale=self._guidance_scale,
+        )
+
+    def cache_key(self, prompt: str) -> str:
+        keys = (prompt, self._model, self._height, self._width, self._num_inference_steps, self._guidance_scale)
         return ",".join([str(k) for k in keys])
 
 
