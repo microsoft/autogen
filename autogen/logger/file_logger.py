@@ -148,7 +148,7 @@ class FileLogger(BaseLogger):
                         "event_name": name,
                         "json_state": json_args,
                         "timestamp": get_current_ts(),
-                        "thread_id": self.thread_id,
+                        "thread_id": thread_id,
                     }
                 )
                 self.logger.info(log_data)
