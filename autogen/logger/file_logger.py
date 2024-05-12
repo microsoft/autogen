@@ -25,7 +25,6 @@ class FileLogger(BaseLogger):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.session_id = str(uuid.uuid4())
-        self.thread_id = threading.get_ident()
 
         curr_dir = os.getcwd()
         self.log_dir = os.path.join(curr_dir, "autogen_logs")
@@ -66,6 +65,7 @@ class FileLogger(BaseLogger):
         """
         Log a chat completion.
         """
+        thread_id = threading.get_ident()
         try:
             log_data = json.dumps(
                 {
@@ -78,7 +78,7 @@ class FileLogger(BaseLogger):
                     "cost": cost,
                     "start_time": start_time,
                     "end_time": get_current_ts(),
-                    "thread_id": self.thread_id,
+                    "thread_id": thread_id,
                 }
             )
 
@@ -90,6 +90,8 @@ class FileLogger(BaseLogger):
         """
         Log a new agent instance.
         """
+        thread_id = threading.get_ident()
+
         try:
             log_data = json.dumps(
                 {
@@ -102,7 +104,7 @@ class FileLogger(BaseLogger):
                     "current_time": get_current_ts(),
                     "agent_type": type(agent).__name__,
                     "args": to_dict(init_args),
-                    "thread_id": self.thread_id,
+                    "thread_id": thread_id,
                 }
             )
             self.logger.info(log_data)
@@ -118,6 +120,7 @@ class FileLogger(BaseLogger):
         # This takes an object o as input and returns a string. If the object o cannot be serialized, instead of raising an error,
         # it returns a string indicating that the object is non-serializable, along with its type's qualified name obtained using __qualname__.
         json_args = json.dumps(kwargs, default=lambda o: f"<<non-serializable: {type(o).__qualname__}>>")
+        thread_id = threading.get_ident()
 
         if isinstance(source, Agent):
             try:
@@ -130,7 +133,7 @@ class FileLogger(BaseLogger):
                         "agent_class": source.__class__.__name__,
                         "json_state": json_args,
                         "timestamp": get_current_ts(),
-                        "thread_id": self.thread_id,
+                        "thread_id": thread_id,
                     }
                 )
                 self.logger.info(log_data)
@@ -158,6 +161,8 @@ class FileLogger(BaseLogger):
         """
         Log a new wrapper instance.
         """
+        thread_id = threading.get_ident()
+
         try:
             log_data = json.dumps(
                 {
@@ -165,7 +170,7 @@ class FileLogger(BaseLogger):
                     "session_id": self.session_id,
                     "json_state": json.dumps(init_args),
                     "timestamp": get_current_ts(),
-                    "thread_id": self.thread_id,
+                    "thread_id": thread_id,
                 }
             )
             self.logger.info(log_data)
@@ -176,6 +181,8 @@ class FileLogger(BaseLogger):
         """
         Log a new client instance.
         """
+        thread_id = threading.get_ident()
+
         try:
             log_data = json.dumps(
                 {
@@ -185,7 +192,7 @@ class FileLogger(BaseLogger):
                     "class": type(client).__name__,
                     "json_state": json.dumps(init_args),
                     "timestamp": get_current_ts(),
-                    "thread_id": self.thread_id,
+                    "thread_id": thread_id,
                 }
             )
             self.logger.info(log_data)
