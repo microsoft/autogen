@@ -45,22 +45,23 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
-    config = {
-        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
-        "database_id": "TestDatabase",
-        "container_id": "TestContainer",
-    }
-    # Patch the CosmosClient to not actually attempt a connection
     with patch('azure.cosmos.CosmosClient') as MockCosmosClient:
         mock_client = Mock()
         mock_database = Mock()
         mock_container = Mock()
         mock_client.get_database_client.return_value = mock_database
         mock_database.get_container_client.return_value = mock_container
+        
         MockCosmosClient.from_connection_string.return_value = mock_client
         
+        config = {
+            "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
+            "database_id": "TestDatabase",
+            "container_id": "TestContainer",
+        }
+        
         autogen.runtime_logging.start(logger_type="cosmos", config=config)
-        yield mock_container  # Yielding the container to be used in the test
+        yield mock_container
         autogen.runtime_logging.stop()
 
 @pytest.mark.usefixtures("cosmos_db_setup")
