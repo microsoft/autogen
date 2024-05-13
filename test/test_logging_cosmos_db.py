@@ -57,7 +57,7 @@ def cosmos_db_setup():
         mock_auth_header.return_value = "Mocked Auth Header"  # Mock deeper authorization functions if necessary
 
         config = {
-            "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
+            "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=dGVzdA==",
             "database_id": "TestDatabase",
             "container_id": "TestContainer",
         }
