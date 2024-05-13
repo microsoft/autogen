@@ -56,9 +56,8 @@ def cosmos_db_setup():
         }
 
         start(logger_type="cosmos", config=config)
-        yield mock_logger
+        yield mock_logger  # This correctly passes mock_logger to your test
         stop()
-
 
 class TestCosmosDBLogging:
     def get_sample_chat_completion(self, response):
@@ -74,7 +73,7 @@ class TestCosmosDBLogging:
         }
 
     @pytest.mark.usefixtures("cosmos_db_setup")
-    def test_log_completion_cosmos(self, mock_logger):
+    def test_log_completion_cosmos(self, cosmos_db_setup):  # Use cosmos_db_setup here
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         log_chat_completion(**sample_completion)
 
@@ -83,7 +82,7 @@ class TestCosmosDBLogging:
             "invocation_id": sample_completion["invocation_id"],
             "client_id": sample_completion["client_id"],
             "wrapper_id": sample_completion["wrapper_id"],
-            "session_id": mock_logger.session_id,  # Ensure session_id is handled correctly
+            "session_id": cosmos_db_setup.session_id,  # Ensure session_id is handled correctly
             "request": sample_completion["request"],
             "response": SAMPLE_CHAT_RESPONSE,
             "is_cached": sample_completion["is_cached"],
@@ -92,4 +91,4 @@ class TestCosmosDBLogging:
             "end_time": get_current_ts(),
         }
 
-        mock_logger.log_queue.put.assert_called_once_with(expected_document)
+        cosmos_db_setup.log_queue.put.assert_called_once_with(expected_document)
