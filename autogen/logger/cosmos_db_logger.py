@@ -167,8 +167,8 @@ class CosmosDBLogger(BaseLogger):
     def stop(self) -> None:
         self.log_queue.put(None)  # Signal to stop the worker thread
         self.logger_thread.join()  # Wait for the worker thread to finish
-        if self.client:
-            self.client.close()  # Explicitly close the Cosmos client
+        #if self.client:
+            #self.client.close()  # Explicitly close the Cosmos client
 
     def get_connection(self) -> None:
         # Cosmos DB connection management is handled by the SDK.
