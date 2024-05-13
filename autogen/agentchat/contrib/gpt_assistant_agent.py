@@ -4,13 +4,13 @@ import logging
 import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple, Union
-
 import openai
 
 from autogen import OpenAIWrapper
 from autogen.agentchat.agent import Agent
 from autogen.agentchat.assistant_agent import AssistantAgent, ConversableAgent
 from autogen.oai.openai_utils import create_gpt_assistant, retrieve_assistants_by_name, update_gpt_assistant
+from autogen.runtime_logging import log_new_agent, logging_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +65,9 @@ class GPTAssistantAgent(ConversableAgent):
         super().__init__(
             name=name, system_message=instructions, human_input_mode="NEVER", llm_config=openai_client_cfg, **kwargs
         )
+
+        if logging_enabled():
+            log_new_agent(self, locals())
 
         # GPTAssistantAgent's azure_deployment param may cause NotFoundError (404) in client.beta.assistants.list()
         # See: https://github.com/microsoft/autogen/pull/1721
@@ -212,6 +215,12 @@ class GPTAssistantAgent(ConversableAgent):
                 content=message["content"],
                 role=message["role"],
             )
+
+        self.client.create(
+            context=messages[-1].pop("context", None),
+            messages=messages,
+            cache=self.client_cache,
+        )
 
         # Create a new run to get responses from the assistant
         run = self._openai_client.beta.threads.runs.create(
