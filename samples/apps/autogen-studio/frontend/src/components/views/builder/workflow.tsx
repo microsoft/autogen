@@ -2,16 +2,15 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   DocumentDuplicateIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
-import { IFlowConfig, IStatus } from "../../types";
+import { IWorkflow, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
@@ -21,14 +20,8 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  BounceLoader,
-  Card,
-  CardHoverBar,
-  FlowConfigViewer,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
+import { WorflowViewer } from "./utils/workflowconfig";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -40,14 +33,13 @@ const WorkflowView = ({}: any) => {
   const serverUrl = getServerUrl();
   const listWorkflowsUrl = `${serverUrl}/workflows?user_id=${user?.email}`;
   const saveWorkflowsUrl = `${serverUrl}/workflows`;
-  const deleteWorkflowsUrl = `${serverUrl}/workflows/delete`;
 
-  const [workflows, setWorkflows] = React.useState<IFlowConfig[] | null>([]);
+  const [workflows, setWorkflows] = React.useState<IWorkflow[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
-    React.useState<IFlowConfig | null>(null);
+    React.useState<IWorkflow | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
+  const [newWorkflow, setNewWorkflow] = React.useState<IWorkflow | null>(
     defaultConfig
   );
 
@@ -67,8 +59,6 @@ const WorkflowView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         setWorkflows(data.data);
       } else {
         message.error(data.message);
@@ -83,10 +73,11 @@ const WorkflowView = ({}: any) => {
     fetchJSON(listWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const deleteWorkFlow = (workflow: IFlowConfig) => {
+  const deleteWorkFlow = (workflow: IWorkflow) => {
     setError(null);
     setLoading(true);
     // const fetch;
+    const deleteWorkflowsUrl = `${serverUrl}/workflows/delete?user_id=${user?.email}&workflow_id=${workflow.id}`;
     const payLoad = {
       method: "DELETE",
       headers: {
@@ -101,7 +92,7 @@ const WorkflowView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setWorkflows(data.data);
+        fetchWorkFlow();
       } else {
         message.error(data.message);
       }
@@ -113,40 +104,6 @@ const WorkflowView = ({}: any) => {
       setLoading(false);
     };
     fetchJSON(deleteWorkflowsUrl, payLoad, onSuccess, onError);
-  };
-
-  const saveWorkFlow = (workflow: IFlowConfig) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id: user?.email,
-        workflow: workflow,
-      }),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        // console.log("workflows", data.data);
-        setWorkflows(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
   React.useEffect(() => {
@@ -163,7 +120,7 @@ const WorkflowView = ({}: any) => {
   }, [selectedWorkflow]);
 
   const workflowRows = (workflows || []).map(
-    (workflow: IFlowConfig, i: number) => {
+    (workflow: IWorkflow, i: number) => {
       const cardItems = [
         {
           title: "Download",
@@ -191,7 +148,6 @@ const WorkflowView = ({}: any) => {
             let newWorkflow = { ...workflow };
             newWorkflow.name = `${workflow.name} Copy`;
             newWorkflow.user_id = user?.email;
-            newWorkflow.timestamp = new Date().toISOString();
             if (newWorkflow.id) {
               delete newWorkflow.id;
             }
@@ -212,32 +168,36 @@ const WorkflowView = ({}: any) => {
         },
       ];
       return (
-        <div
+        <li
           key={"workflowrow" + i}
           className="block   h-full"
           style={{ width: "200px" }}
         >
-          <div className="  block">
-            {" "}
-            <Card
-              className="  block p-2 cursor-pointer"
-              title={
-                <div className="  ">{truncateText(workflow.name, 25)}</div>
-              }
-              onClick={() => {
-                setSelectedWorkflow(workflow);
-              }}
+          <Card
+            className="  block p-2 cursor-pointer"
+            title={<div className="  ">{truncateText(workflow.name, 25)}</div>}
+            onClick={() => {
+              setSelectedWorkflow(workflow);
+            }}
+          >
+            <div
+              style={{ minHeight: "65px" }}
+              className="break-words  my-2"
+              aria-hidden="true"
             >
-              <div style={{ minHeight: "65px" }} className="break-words  my-2">
-                {" "}
-                {truncateText(workflow.description, 70)}
-              </div>
-              <div className="text-xs">{timeAgo(workflow.timestamp || "")}</div>
+              {" "}
+              {truncateText(workflow.description, 70)}
+            </div>
+            <div
+              aria-label={`Updated ${timeAgo(workflow.updated_at || "")} ago`}
+              className="text-xs"
+            >
+              {timeAgo(workflow.updated_at || "")}
+            </div>
 
-              <CardHoverBar items={cardItems} />
-            </Card>
-          </div>
-        </div>
+            <CardHoverBar items={cardItems} />
+          </Card>
+        </li>
       );
     }
   );
@@ -245,18 +205,26 @@ const WorkflowView = ({}: any) => {
   const WorkflowModal = ({
     workflow,
     setWorkflow,
-    showWorkflowModal,
-    setShowWorkflowModal,
+    showModal,
+    setShowModal,
     handler,
   }: {
-    workflow: IFlowConfig | null;
-    setWorkflow?: (workflow: IFlowConfig | null) => void;
-    showWorkflowModal: boolean;
-    setShowWorkflowModal: (show: boolean) => void;
-    handler?: (workflow: IFlowConfig) => void;
+    workflow: IWorkflow | null;
+    setWorkflow?: (workflow: IWorkflow | null) => void;
+    showModal: boolean;
+    setShowModal: (show: boolean) => void;
+    handler?: (workflow: IWorkflow) => void;
   }) => {
-    const [localWorkflow, setLocalWorkflow] =
-      React.useState<IFlowConfig | null>(workflow);
+    const [localWorkflow, setLocalWorkflow] = React.useState<IWorkflow | null>(
+      workflow
+    );
+
+    const closeModal = () => {
+      setShowModal(false);
+      if (handler) {
+        handler(localWorkflow as IWorkflow);
+      }
+    };
 
     return (
       <Modal
@@ -269,24 +237,24 @@ const WorkflowView = ({}: any) => {
           </>
         }
         width={800}
-        open={showWorkflowModal}
+        open={showModal}
         onOk={() => {
-          setShowWorkflowModal(false);
-          if (handler) {
-            handler(localWorkflow as IFlowConfig);
-          }
+          closeModal();
         }}
         onCancel={() => {
-          setShowWorkflowModal(false);
-          setWorkflow?.(null);
+          closeModal();
         }}
+        footer={[]}
       >
-        {localWorkflow && (
-          <FlowConfigViewer
-            flowConfig={localWorkflow}
-            setFlowConfig={setLocalWorkflow}
-          />
-        )}
+        <>
+          {localWorkflow && (
+            <WorflowViewer
+              workflow={localWorkflow}
+              setWorkflow={setLocalWorkflow}
+              close={closeModal}
+            />
+          )}
+        </>
       </Modal>
     );
   };
@@ -350,7 +318,7 @@ const WorkflowView = ({}: any) => {
     },
   ];
 
-  const showWorkflow = (config: IFlowConfig) => {
+  const showWorkflow = (config: IWorkflow) => {
     setSelectedWorkflow(config);
     setShowWorkflowModal(true);
   };
@@ -368,21 +336,19 @@ const WorkflowView = ({}: any) => {
       <WorkflowModal
         workflow={selectedWorkflow}
         setWorkflow={setSelectedWorkflow}
-        showWorkflowModal={showWorkflowModal}
-        setShowWorkflowModal={setShowWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
-          setShowWorkflowModal(false);
+        showModal={showWorkflowModal}
+        setShowModal={setShowWorkflowModal}
+        handler={(workflow: IWorkflow) => {
+          fetchWorkFlow();
         }}
       />
 
       <WorkflowModal
         workflow={newWorkflow}
-        showWorkflowModal={showNewWorkflowModal}
-        setShowWorkflowModal={setShowNewWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
-          saveWorkFlow(workflow);
-          setShowNewWorkflowModal(false);
+        showModal={showNewWorkflowModal}
+        setShowModal={setShowNewWorkflowModal}
+        handler={(workflow: IWorkflow) => {
+          fetchWorkFlow();
         }}
       />
 
@@ -418,7 +384,7 @@ const WorkflowView = ({}: any) => {
               className="w-full relative"
             >
               <LoadingOverlay loading={loading} />
-              <div className="flex flex-wrap gap-3">{workflowRows}</div>
+              <ul className="flex flex-wrap gap-3">{workflowRows}</ul>
             </div>
           )}
           {workflows && workflows.length === 0 && !loading && (

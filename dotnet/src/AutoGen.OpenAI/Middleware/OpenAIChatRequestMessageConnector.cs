@@ -44,22 +44,14 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         return PostProcessMessage(reply);
     }
 
-    public async Task<IAsyncEnumerable<IStreamingMessage>> InvokeAsync(
+    public async IAsyncEnumerable<IStreamingMessage> InvokeAsync(
         MiddlewareContext context,
         IStreamingAgent agent,
-        CancellationToken cancellationToken = default)
-    {
-        return InvokeStreamingAsync(context, agent, cancellationToken);
-    }
-
-    private async IAsyncEnumerable<IStreamingMessage> InvokeStreamingAsync(
-        MiddlewareContext context,
-        IStreamingAgent agent,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var chatMessages = ProcessIncomingMessages(agent, context.Messages)
             .Select(m => new MessageEnvelope<ChatRequestMessage>(m));
-        var streamingReply = await agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
+        var streamingReply = agent.GenerateStreamingReplyAsync(chatMessages, context.Options, cancellationToken);
         string? currentToolName = null;
         await foreach (var reply in streamingReply)
         {
@@ -135,6 +127,12 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
 
     private IMessage PostProcessMessage(IMessage<ChatCompletions> message)
     {
+        // throw exception if prompt filter results is not null
+        if (message.Content.Choices[0].FinishReason == CompletionsFinishReason.ContentFiltered)
+        {
+            throw new InvalidOperationException("The content is filtered because its potential risk. Please try another input.");
+        }
+
         return PostProcessMessage(message.Content.Choices[0].Message, message.From);
     }
 
