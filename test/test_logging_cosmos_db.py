@@ -48,7 +48,8 @@ def cosmos_db_setup():
     with patch('azure.cosmos.CosmosClient') as MockCosmosClient, \
          patch('azure.cosmos.CosmosClient.from_connection_string') as mock_from_conn_str, \
          patch('azure.cosmos.auth._get_authorization_header') as mock_auth_header, \
-         patch('azure.cosmos._synchronized_request.SynchronizedRequest') as mock_sync_req:
+         patch('azure.cosmos._synchronized_request.SynchronizedRequest') as mock_sync_req, \
+         patch('azure.cosmos.CosmosClient.close', create=True):
         
         mock_client = Mock()
         mock_database = Mock()
@@ -57,7 +58,8 @@ def cosmos_db_setup():
         mock_database.get_container_client.return_value = mock_container
         mock_from_conn_str.return_value = mock_client
         mock_auth_header.return_value = "Mocked Auth Header"
-        mock_sync_req.return_value = ({"mock": "data"}, {"mock": "headers"})  # Mock the response as needed
+        mock_sync_req.return_value = ({"mock": "data"}, {"mock": "headers"})
+        mock_client.close = Mock()  # Mock the close method
 
         config = {
             "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=dGVzdA==",
@@ -65,7 +67,6 @@ def cosmos_db_setup():
             "container_id": "TestContainer",
         }
 
-        # Import and use your logging functions after patching
         from autogen.runtime_logging import start, stop
         start(logger_type="cosmos", config=config)
         yield mock_container
@@ -73,19 +74,8 @@ def cosmos_db_setup():
 
 @pytest.mark.usefixtures("cosmos_db_setup")
 class TestCosmosDBLogging:
-    def get_sample_chat_completion(self, response):
-        return {
-            "invocation_id": str(uuid.uuid4()),
-            "client_id": 140609438577184,
-            "wrapper_id": 140610167717744,
-            "request": SAMPLE_CHAT_REQUEST,
-            "response": response,
-            "is_cached": 0,
-            "cost": 0.347,
-            "start_time": get_current_ts(),
-        }
-
-    def test_log_completion_cosmos(self, mock_container):
+    def test_log_completion_cosmos(self, cosmos_db_setup):
+        mock_container = cosmos_db_setup
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         autogen.runtime_logging.log_chat_completion(**sample_completion)
 
