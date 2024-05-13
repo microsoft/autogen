@@ -44,9 +44,10 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
-    with patch('autogen.runtime_logging.CosmosDBLogger') as MockLogger:
-        mock_logger_instance = MockLogger.return_value
-        mock_logger_instance.log_queue.put = Mock()
+    with patch('autogen.runtime_logging.LoggerFactory.get_logger') as mock_get_logger:
+        mock_logger = Mock()
+        mock_get_logger.return_value = mock_logger
+        mock_logger.log_queue.put = Mock()
 
         config = {
             "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=dGVzdA==",
@@ -73,7 +74,7 @@ class TestCosmosDBLogging:
         }
 
     @pytest.mark.usefixtures("cosmos_db_setup")
-    def test_log_completion_cosmos(self, mock_logger_instance):
+    def test_log_completion_cosmos(self, mock_logger):
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         log_chat_completion(**sample_completion)
 
