@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reflection;
 using Microsoft.DotNet.Interactive;
-using Microsoft.DotNet.Interactive.App.Connection;
 using Microsoft.DotNet.Interactive.Commands;
 using Microsoft.DotNet.Interactive.Connection;
 using Microsoft.DotNet.Interactive.Events;
