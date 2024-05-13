@@ -5,9 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AzureOpenAI
 
-from autogen.runtime_logging import start, stop, log_chat_completion
-# from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
 from autogen.logger.logger_utils import get_current_ts, to_dict
+from autogen.runtime_logging import log_chat_completion, start, stop
 
 # Sample data for testing
 SAMPLE_CHAT_REQUEST = json.loads(
@@ -45,11 +44,13 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
-    with patch('azure.cosmos.CosmosClient') as MockCosmosClient, \
-         patch('azure.cosmos.CosmosClient.from_connection_string') as mock_from_conn_str, \
-         patch('azure.cosmos.auth._get_authorization_header') as mock_auth_header, \
-         patch('azure.cosmos._synchronized_request.SynchronizedRequest') as mock_sync_req, \
-         patch('azure.cosmos.CosmosClient.close', create=True):
+    with patch("azure.cosmos.CosmosClient") as MockCosmosClient, patch(
+        "azure.cosmos.CosmosClient.from_connection_string"
+    ) as mock_from_conn_str, patch("azure.cosmos.auth._get_authorization_header") as mock_auth_header, patch(
+        "azure.cosmos._synchronized_request.SynchronizedRequest"
+    ) as mock_sync_req, patch(
+        "azure.cosmos.CosmosClient.close", create=True
+    ):
         
         mock_client = Mock()
         mock_database = Mock()
@@ -70,6 +71,7 @@ def cosmos_db_setup():
         start(logger_type="cosmos", config=config)
         yield mock_container
         stop()
+
 
 class TestCosmosDBLogging:
     def get_sample_chat_completion(self, response):
