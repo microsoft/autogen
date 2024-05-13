@@ -67,17 +67,28 @@ def cosmos_db_setup():
             "container_id": "TestContainer",
         }
 
-        from autogen.runtime_logging import start, stop
         start(logger_type="cosmos", config=config)
         yield mock_container
         stop()
 
-@pytest.mark.usefixtures("cosmos_db_setup")
 class TestCosmosDBLogging:
+    def get_sample_chat_completion(self, response):
+        return {
+            "invocation_id": str(uuid.uuid4()),
+            "client_id": 140609438577184,
+            "wrapper_id": 140610167717744,
+            "request": SAMPLE_CHAT_REQUEST,
+            "response": response,
+            "is_cached": 0,
+            "cost": 0.347,
+            "start_time": get_current_ts(),
+        }
+
+    @pytest.mark.usefixtures("cosmos_db_setup")
     def test_log_completion_cosmos(self, cosmos_db_setup):
         mock_container = cosmos_db_setup
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
-        autogen.runtime_logging.log_chat_completion(**sample_completion)
+        log_chat_completion(**sample_completion)
 
         expected_document = {
             "type": "chat_completion",
