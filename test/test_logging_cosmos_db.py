@@ -45,24 +45,27 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
-    with patch('azure.cosmos.CosmosClient') as MockCosmosClient:
+    with patch('azure.cosmos.CosmosClient') as MockCosmosClient, \
+         patch('azure.cosmos.CosmosClient.from_connection_string') as mock_from_conn_str, \
+         patch('azure.cosmos.auth._get_authorization_header') as mock_auth_header:
         mock_client = Mock()
         mock_database = Mock()
         mock_container = Mock()
         mock_client.get_database_client.return_value = mock_database
         mock_database.get_container_client.return_value = mock_container
-        
-        MockCosmosClient.from_connection_string.return_value = mock_client
-        
+        mock_from_conn_str.return_value = mock_client
+        mock_auth_header.return_value = "Mocked Auth Header"  # Mock deeper authorization functions if necessary
+
         config = {
             "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
             "database_id": "TestDatabase",
             "container_id": "TestContainer",
         }
         
-        autogen.runtime_logging.start(logger_type="cosmos", config=config)
+        from autogen.runtime_logging import start, stop
+        start(logger_type="cosmos", config=config)
         yield mock_container
-        autogen.runtime_logging.stop()
+        stop()
 
 @pytest.mark.usefixtures("cosmos_db_setup")
 class TestCosmosDBLogging:
