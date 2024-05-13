@@ -48,9 +48,7 @@ def cosmos_db_setup():
         "azure.cosmos.CosmosClient.from_connection_string"
     ) as mock_from_conn_str, patch("azure.cosmos.auth._get_authorization_header") as mock_auth_header, patch(
         "azure.cosmos._synchronized_request.SynchronizedRequest"
-    ) as mock_sync_req, patch(
-        "azure.cosmos.CosmosClient.close", create=True
-    ):
+    ) as mock_sync_req:
         
         mock_client = Mock()
         mock_database = Mock()
@@ -60,7 +58,6 @@ def cosmos_db_setup():
         mock_from_conn_str.return_value = mock_client
         mock_auth_header.return_value = "Mocked Auth Header"
         mock_sync_req.return_value = ({"mock": "data"}, {"mock": "headers"})
-        mock_client.close = Mock()  # Mock the close method
 
         config = {
             "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=dGVzdA==",
@@ -90,7 +87,9 @@ class TestCosmosDBLogging:
     def test_log_completion_cosmos(self, cosmos_db_setup):
         mock_container = cosmos_db_setup
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
-        log_chat_completion(**sample_completion)
+
+        with patch('autogen.logger.cosmos_db_logger.CosmosDBLogger.log_queue.put') as mock_put:
+            log_chat_completion(**sample_completion)
 
         expected_document = {
             "type": "chat_completion",
