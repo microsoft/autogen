@@ -9,7 +9,7 @@ JSON mode is a new feature in OpenAI which allows you to instruct model to alway
 ## How to enable JSON mode in OpenAIChatAgent.
 
 > [!NOTE]
-> You can find the complete example in the [Example13_OpenAIAgent_JsonMode](https://github.com/microsoft/autogen/tree/dotnet/dotnet/sample/AutoGen.BasicSamples/Example13_OpenAIAgent_JsonMode.cs).
+> You can find the complete example in the [Example13_OpenAIAgent_JsonMode](https://github.com/microsoft/autogen/tree/main/dotnet/sample/AutoGen.BasicSamples/Example13_OpenAIAgent_JsonMode.cs).
 
 To enable JSON mode for @AutoGen.OpenAI.OpenAIChatAgent, set `responseFormat` to `ChatCompletionsResponseFormat.JsonObject` when creating the agent. Note that when enabling JSON mode, you also need to instruct the agent to output JSON format in its system message.
 

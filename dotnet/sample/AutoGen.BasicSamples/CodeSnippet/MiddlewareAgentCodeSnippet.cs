@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MiddlewareAgentCodeSnippet.cs
 
-using AutoGen.Core;
 using System.Text.Json;
+using AutoGen.Core;
 using AutoGen.OpenAI;
 using FluentAssertions;
 

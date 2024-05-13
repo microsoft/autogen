@@ -6,8 +6,10 @@ import string
 import subprocess
 import sys
 import time
+import venv
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from hashlib import md5
+from types import SimpleNamespace
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import docker
@@ -719,3 +721,19 @@ def implement(
     #     cost += metrics["gen_cost"]
     #     if metrics["succeed_assertions"] or i == len(configs) - 1:
     #         return responses[metrics["index_selected"]], cost, i
+
+
+def create_virtual_env(dir_path: str, **env_args) -> SimpleNamespace:
+    """Creates a python virtual environment and returns the context.
+
+    Args:
+        dir_path (str): Directory path where the env will be created.
+        **env_args: Any extra args to pass to the `EnvBuilder`
+
+    Returns:
+        SimpleNamespace: the virtual env context object."""
+    if not env_args:
+        env_args = {"with_pip": True}
+    env_builder = venv.EnvBuilder(**env_args)
+    env_builder.create(dir_path)
+    return env_builder.ensure_directories(dir_path)
