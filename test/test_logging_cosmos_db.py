@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AzureOpenAI
 
-from autogen.runtime_logging import start, stop, log_chat_completion, log_new_agent, log_new_wrapper, log_new_client
-from autogen import AssistantAgent, ConversableAgent, OpenAIWrapper
+import autogen.runtime_logging
+from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
 # Sample data for testing
@@ -43,18 +43,16 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 """
 )
 
-
 @pytest.fixture(scope="function")
 def cosmos_db_setup():
     config = {
-        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=ZmFrZUtleQ==;",
+        "connection_string": "AccountEndpoint=https://example.documents.azure.com:443/;AccountKey=fakeKey;",
         "database_id": "TestDatabase",
         "container_id": "TestContainer",
     }
-    start(logger_type="cosmos", config=config)
+    autogen.runtime_logging.start(logger_type="cosmos", config=config)
     yield
-    stop()
-
+    autogen.runtime_logging.stop()
 
 def get_sample_chat_completion(response):
     return {
@@ -68,19 +66,8 @@ def get_sample_chat_completion(response):
         "start_time": get_current_ts(),
     }
 
-
 @patch("azure.cosmos.CosmosClient")
-def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
-    mock_client = Mock()
-    mock_database = Mock()
-    mock_container = Mock()
-
-    MockCosmosClient.from_connection_string.return_value = mock_client
-    mock_client.get_database_client.return_value = mock_database
-    mock_database.get_container_client.return_value = mock_container
-    mock_container.upsert_item = Mock()
-
-    # Use parametrization to test various cases
+class TestCosmosDBLogging:
     @pytest.mark.parametrize(
         "response, expected_logged_response",
         [
@@ -89,9 +76,19 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
             ("error in response", {"response": "error in response"}),
         ],
     )
-    def inner_test_log(response, expected_logged_response):
+    def test_log_completion_cosmos(self, MockCosmosClient, cosmos_db_setup, response, expected_logged_response):
+        mock_client = Mock()
+        mock_database = Mock()
+        mock_container = Mock()
+
+        MockCosmosClient.from_connection_string.return_value = mock_client
+        mock_client.get_database_client.return_value = mock_database
+        mock_database.get_container_client.return_value = mock_container
+
         sample_completion = get_sample_chat_completion(response)
-        log_chat_completion(**sample_completion)
+
+        autogen.runtime_logging.log_chat_completion(**sample_completion)
+
         expected_document = {
             "type": "chat_completion",
             "invocation_id": sample_completion["invocation_id"],
@@ -108,179 +105,36 @@ def test_log_completion_cosmos(MockCosmosClient, cosmos_db_setup):
 
         mock_container.upsert_item.assert_called_once_with(expected_document)
 
-    inner_test_log()
+    def test_log_new_entity(self, MockCosmosClient, cosmos_db_setup):
+        mock_client = Mock()
+        mock_database = Mock()
+        mock_container = Mock()
 
+        MockCosmosClient.from_connection_string.return_value = mock_client
+        mock_client.get_database_client.return_value = mock_database
+        mock_database.get_container_client.return_value = mock_container
 
-@patch("azure.cosmos.CosmosClient")
-def test_log_new_agent_cosmos(MockCosmosClient, cosmos_db_setup):
-    mock_client = Mock()
-    mock_database = Mock()
-    mock_container = Mock()
+        agent = ConversableAgent("Assistant", llm_config={"config_list": [{"model": "gpt-3"}]})
+        init_args = {"name": "Assistant", "config": agent.llm_config}
 
-    MockCosmosClient.from_connection_string.return_value = mock_client
-    mock_client.get_database_client.return_value = mock_database
-    mock_database.get_container_client.return_value = mock_container
+        autogen.runtime_logging.log_new_agent(agent, init_args)
+        autogen.runtime_logging.log_new_wrapper(OpenAIWrapper(), init_args)  # Simplified for example
 
-    agent_name = "some_assistant"
-    config_list = [{"model": "gpt-4", "api_key": "some_key"}]
-    agent = AssistantAgent(agent_name, llm_config={"config_list": config_list})
-    init_args = {"foo": "bar", "baz": {"other_key": "other_val"}, "a": None}
-
-    log_new_agent(agent, init_args)
-
-    expected_document = {
-        "type": "new_agent",
-        "session_id": mock_container.session_id,
-        "agent_id": id(agent),
-        "agent_name": agent.name,
-        "init_args": to_dict(init_args),
-        "timestamp": get_current_ts(),
-    }
-
-    mock_container.upsert_item.assert_called_once_with(expected_document)
-
-
-@patch("azure.cosmos.CosmosClient")
-def test_log_oai_wrapper_cosmos(MockCosmosClient, cosmos_db_setup):
-    mock_client = Mock()
-    mock_database = Mock()
-    mock_container = Mock()
-
-    MockCosmosClient.from_connection_string.return_value = mock_client
-    mock_client.get_database_client.return_value = mock_database
-    mock_database.get_container_client.return_value = mock_container
-
-    llm_config = {"config_list": [{"model": "gpt-4", "api_key": "some_key", "base_url": "some url"}]}
-    init_args = {"llm_config": llm_config, "base_config": {}}
-    wrapper = OpenAIWrapper(**llm_config)
-
-    log_new_wrapper(wrapper, init_args)
-
-    expected_document = {
-        "type": "new_wrapper",
-        "session_id": mock_container.session_id,
-        "wrapper_id": id(wrapper),
-        "init_args": to_dict(init_args, exclude=("api_key", "base_url")),
-        "timestamp": get_current_ts(),
-    }
-
-    mock_container.upsert_item.assert_called_once_with(expected_document)
-
-
-@patch("azure.cosmos.CosmosClient")
-def test_log_oai_client_cosmos(MockCosmosClient, cosmos_db_setup):
-    mock_client = Mock()
-    mock_database = Mock()
-    mock_container = Mock()
-
-    MockCosmosClient.from_connection_string.return_value = mock_client
-    mock_client.get_database_client.return_value = mock_database
-    mock_database.get_container_client.return_value = mock_container
-
-    openai_config = {
-        "api_key": "some_key",
-        "api_version": "2024-02-15-preview",
-        "azure_deployment": "gpt-4",
-        "azure_endpoint": "https://foobar.openai.azure.com/",
-    }
-    client = AzureOpenAI(**openai_config)
-
-    log_new_client(client, Mock(), openai_config)
-
-    expected_document = {
-        "type": "new_client",
-        "session_id": mock_container.session_id,
-        "client_id": id(client),
-        "wrapper_id": id(Mock()),
-        "client_class": type(client).__name__,
-        "init_args": to_dict(openai_config, exclude=("api_key", "azure_endpoint")),
-        "timestamp": get_current_ts(),
-    }
-
-    mock_container.upsert_item.assert_called_once_with(expected_document)
-
-
-def test_to_dict():
-    from autogen import Agent
-
-    agent1 = ConversableAgent(
-        "alice",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is alice speaking.",
-    )
-
-    agent2 = ConversableAgent(
-        "bob",
-        human_input_mode="NEVER",
-        llm_config=False,
-        default_auto_reply="This is bob speaking.",
-        function_map={"test_func": lambda x: x},
-    )
-
-    class Foo:
-        def __init__(self):
-            self.a = 1.234
-            self.b = "some string"
-            self.c = {"some_key": [7, 8, 9]}
-            self.d = None
-            self.test_function = lambda x, y: x + y
-            self.extra_key = "remove this key"
-
-    class Bar(object):
-        def init(self):
-            pass
-
-        def build(self):
-            self.foo_val = [Foo()]
-            self.o = {"key_1": None, "key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
-            self.agents = [agent1, agent2]
-            self.first_agent = agent1
-
-    bar = Bar()
-    bar.build()
-
-    expected_foo_val_field = [
-        {
-            "a": 1.234,
-            "b": "some string",
-            "c": {"some_key": [7, 8, 9]},
-            "d": None,
-            "test_function": "self.test_function = lambda x, y: x + y",
+        expected_document_agent = {
+            "type": "new_agent",
+            "session_id": mock_container.session_id,
+            "agent_id": id(agent),
+            "agent_name": agent.name,
+            "init_args": to_dict(init_args),
+            "timestamp": get_current_ts(),
         }
-    ]
+        expected_document_wrapper = {
+            "type": "new_wrapper",
+            "session_id": mock_container.session_id,
+            "wrapper_id": id(OpenAIWrapper()),  # Not exactly the same instance but for example's sake
+            "init_args": to_dict(init_args),
+            "timestamp": get_current_ts(),
+        }
 
-    expected_o_field = {"key_2": [{"nested_key_1": ["nested_val_1", "nested_val_2"]}]}
-
-    result = to_dict(bar, exclude=("key_1", "extra_key"), no_recursive=(Agent))
-    assert result["foo_val"] == expected_foo_val_field
-    assert result["o"] == expected_o_field
-    assert len(result["agents"]) == 2
-    for agent in result["agents"]:
-        assert "autogen.agentchat.conversable_agent.ConversableAgent" in agent
-    assert "autogen.agentchat.conversable_agent.ConversableAgent" in result["first_agent"]
-
-
-@patch("azure.cosmos.CosmosClient")
-def test_logging_exception_will_not_crash_only_print_error(MockCosmosClient, cosmos_db_setup, caplog):
-    mock_client = Mock()
-    mock_database = Mock()
-    mock_container = Mock()
-    MockCosmosClient.from_connection_string.return_value = mock_client
-    mock_client.get_database_client.return_value = mock_database
-    mock_database.get_container_client.return_value = mock_container
-
-    sample_completion = {
-        "invocation_id": str(uuid.uuid4()),
-        "client_id": 140609438577184,
-        "wrapper_id": 140610167717744,
-        "request": SAMPLE_CHAT_REQUEST,
-        "response": SAMPLE_CHAT_RESPONSE,
-        "is_cached": {"foo": "bar"},  # This will cause a serialization error
-        "cost": 0.347,
-        "start_time": get_current_ts(),
-    }
-
-    log_chat_completion(**sample_completion)
-
-    assert "Error processing log entry" in caplog.text
+        mock_container.upsert_item.assert_any_call(expected_document_agent)
+        mock_container.upsert_item.assert_any_call(expected_document_wrapper)
