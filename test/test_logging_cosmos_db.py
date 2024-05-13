@@ -56,7 +56,7 @@ def cosmos_db_setup():
         }
 
         start(logger_type="cosmos", config=config)
-        yield mock_container
+        yield mock_logger
         stop()
 
 
@@ -83,7 +83,7 @@ class TestCosmosDBLogging:
             "invocation_id": sample_completion["invocation_id"],
             "client_id": sample_completion["client_id"],
             "wrapper_id": sample_completion["wrapper_id"],
-            "session_id": mock_container.session_id,
+            "session_id": mock_logger.session_id,  # Ensure session_id is handled correctly
             "request": sample_completion["request"],
             "response": SAMPLE_CHAT_RESPONSE,
             "is_cached": sample_completion["is_cached"],
@@ -92,4 +92,4 @@ class TestCosmosDBLogging:
             "end_time": get_current_ts(),
         }
 
-        mock_container.upsert_item.assert_called_once_with(expected_document)
+        mock_logger.log_queue.put.assert_called_once_with(expected_document)
