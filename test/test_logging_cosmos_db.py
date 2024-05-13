@@ -44,6 +44,7 @@ SAMPLE_CHAT_RESPONSE = json.loads(
 )
 
 @pytest.fixture(scope="function")
+def cosmos_db_setup():
     with patch('azure.cosmos.CosmosClient') as MockCosmosClient, \
          patch('azure.cosmos.CosmosClient.from_connection_string') as mock_from_conn_str, \
          patch('azure.cosmos.auth._get_authorization_header') as mock_auth_header, \
