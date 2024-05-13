@@ -5,8 +5,8 @@ from unittest.mock import Mock, patch
 import pytest
 from openai import AzureOpenAI
 
-import autogen.runtime_logging
-from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
+from autogen.runtime_logging import start, stop, log_chat_completion
+# from autogen import AssistantAgent, OpenAIWrapper, ConversableAgent
 from autogen.logger.logger_utils import get_current_ts, to_dict
 
 # Sample data for testing
