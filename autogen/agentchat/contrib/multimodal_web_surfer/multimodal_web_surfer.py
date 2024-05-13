@@ -16,8 +16,8 @@ from .... import Agent, ConversableAgent, OpenAIWrapper
 from ....code_utils import content_str
 
 from autogen.runtime_logging import logging_enabled, log_event
-from autogen.screen_parsing.ocr import OCR, OCRParsingError
-from autogen.screen_parsing.utils.state_of_mark import add_state_of_mark
+from screen_parsing.ocr import OCR, OCRParsingError
+from screen_parsing.utils.state_of_mark import add_state_of_mark
 
 from importlib import resources
 
@@ -472,7 +472,7 @@ ARGUMENT: <The action' argument, if any. For example, the text to type if the ac
         )
 
     def _get_page_script_path(self):
-        with resources.path("autogen.screen_parsing.static", "page_script.js") as path:
+        with resources.path("screen_parsing.static", "page_script.js") as path:
             return str(path)
 
     def _image_to_data_uri(self, image):

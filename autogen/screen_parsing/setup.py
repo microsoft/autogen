@@ -24,6 +24,7 @@ install_requires = [
     "pandas",  # Xlsx
     "openpyxl",
     "youtube_transcript_api==0.6.0",  # Transcription
+    "easyocr"
 ]
 
 setuptools.setup(
@@ -32,6 +33,10 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(exclude=("tests",)),
+    package_data={
+        "screen_parsing": ["static/*"],
+    },
+    include_package_data=True,
     install_requires=install_requires,
     extras_require={
         "test": [
