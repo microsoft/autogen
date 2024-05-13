@@ -51,16 +51,17 @@ def cosmos_db_setup():
         "container_id": "TestContainer",
     }
     # Patch the CosmosClient to not actually attempt a connection
-    with patch('azure.cosmos.CosmosClient.from_connection_string') as mock:
-        mock.return_value = Mock(get_database_client=Mock(return_value=Mock(get_container_client=Mock(return_value=Mock()))))
+    with patch('azure.cosmos.CosmosClient') as MockCosmosClient:
+        mock_client = Mock()
+        mock_database = Mock()
+        mock_container = Mock()
+        mock_client.get_database_client.return_value = mock_database
+        mock_database.get_container_client.return_value = mock_container
+        MockCosmosClient.from_connection_string.return_value = mock_client
+        
         autogen.runtime_logging.start(logger_type="cosmos", config=config)
-        yield
+        yield mock_container  # Yielding the container to be used in the test
         autogen.runtime_logging.stop()
-
-@pytest.fixture(scope="class")
-def mock_cosmos_client():
-    with patch("azure.cosmos.CosmosClient.from_connection_string") as mock:
-        yield mock
 
 @pytest.mark.usefixtures("cosmos_db_setup")
 class TestCosmosDBLogging:
@@ -76,14 +77,7 @@ class TestCosmosDBLogging:
             "start_time": get_current_ts(),
         }
 
-    def test_log_completion_cosmos(self, mock_cosmos_client):
-        mock_client = Mock()
-        mock_database = Mock()
-        mock_container = Mock()
-        mock_client.get_database_client.return_value = mock_database
-        mock_database.get_container_client.return_value = mock_container
-        mock_cosmos_client.return_value = mock_client
-
+    def test_log_completion_cosmos(self, mock_container):
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         autogen.runtime_logging.log_chat_completion(**sample_completion)
 
