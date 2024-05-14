@@ -27,7 +27,6 @@ def logger() -> FileLogger:
         yield logger
 
     logger.stop()
-    temp_dir.cleanup()
 
 
 def test_start(logger: FileLogger):
