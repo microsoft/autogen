@@ -277,3 +277,22 @@ To resolve this issue, you need to upgrade your Autogen library to version 0.2.2
 ```python
 pip install --upgrade autogen
 ```
+
+## None of the devcontainers are building due to "Hash sum mismatch", what should I do?
+
+This is an intermittent issue that appears to be caused by some combination of mirror and proxy issues.
+If it arises, try to replace the `apt-get update` step with the following:
+
+```bash
+RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
+    echo "Acquire::BrokenProxy    true;" >> /etc/apt/apt.conf.d/99custom
+
+RUN apt-get clean && \
+    rm -r /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::CompressionTypes::Order::=gz && \
+    apt-get -y update && \
+    apt-get install sudo git npm # and whatever packages need to be installed in this specific version of the devcontainer
+```
+
+This is a combination of StackOverflow suggestions [here](https://stackoverflow.com/a/48777773/2114580) and [here](https://stackoverflow.com/a/76092743/2114580).
