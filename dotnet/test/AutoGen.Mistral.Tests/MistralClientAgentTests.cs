@@ -37,7 +37,7 @@ public partial class MistralClientAgentTests
             model: "open-mistral-7b")
             .RegisterMessageConnector();
         var singleAgentTest = new SingleAgentTest(_output);
-        await singleAgentTest.UpperCaseTest(agent);
+        await singleAgentTest.UpperCaseTestAsync(agent);
         await singleAgentTest.UpperCaseStreamingTestAsync(agent);
     }
 
@@ -92,7 +92,7 @@ public partial class MistralClientAgentTests
             new TextMessage(Role.User, "what's the weather in Seattle?"),
             new ToolCallMessage(this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets, from: agent.Name),
             new ToolCallResultMessage(functionCallResult, this.GetWeatherFunctionContract.Name!, weatherFunctionArgumets),
-            ];
+        ];
 
         var reply = await agent.SendAsync(chatHistory: chatHistory);
 
