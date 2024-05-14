@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tempfile
 import uuid
 
 import pytest
@@ -18,11 +19,15 @@ from autogen.logger.file_logger import FileLogger
 
 @pytest.fixture
 def logger() -> FileLogger:
-    config = {}
-    logger = FileLogger(config)
-    yield logger
-    with open(logger.log_file, "w") as f:
-        f.truncate(0)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    with tempfile.TemporaryDirectory(dir=current_dir) as temp_dir:
+        log_file = os.path.join(temp_dir, "test_log.log")
+        config = {"filename": log_file}
+        logger = FileLogger(config)
+        yield logger
+
+    logger.stop()
+    temp_dir.cleanup()
 
 
 def test_start(logger: FileLogger):
@@ -45,8 +50,8 @@ def test_log_chat_completion(logger: FileLogger):
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
-        assert len(lines) == 2
-        log_data = json.loads(lines[1])
+        assert len(lines) == 1
+        log_data = json.loads(lines[0])
         assert log_data["invocation_id"] == str(invocation_id)
         assert log_data["client_id"] == client_id
         assert log_data["wrapper_id"] == wrapper_id
@@ -62,13 +67,13 @@ class TestWrapper:
         self.init_args = init_args
 
 
-def test_log_new_agent(logger):
+def test_log_new_agent(logger: FileLogger):
     agent = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
     logger.log_new_agent(agent)
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
-        log_data = json.loads(lines[1])  # the first line is the session id
+        log_data = json.loads(lines[0])  # the first line is the session id
         assert log_data["agent_name"] == "user_proxy"
 
 
@@ -80,10 +85,11 @@ def test_log_event(logger: FileLogger):
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
-        log_data = json.loads(lines[2])  # the first two lines are session id and chat completion
+        log_data = json.loads(lines[0])
         assert log_data["source_name"] == "TestAgent"
         assert log_data["event_name"] == name
         assert log_data["json_state"] == json.dumps(kwargs)
+        assert isinstance(log_data["thread_id"], int)
 
 
 def test_log_new_wrapper(logger: FileLogger):
@@ -92,9 +98,10 @@ def test_log_new_wrapper(logger: FileLogger):
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
-        log_data = json.loads(lines[3])  # the first three lines are session id, chat completion, and event
+        log_data = json.loads(lines[0])
         assert log_data["wrapper_id"] == id(wrapper)
         assert log_data["json_state"] == json.dumps(wrapper.init_args)
+        assert isinstance(log_data["thread_id"], int)
 
 
 def test_log_new_client(logger: FileLogger):
@@ -105,7 +112,8 @@ def test_log_new_client(logger: FileLogger):
 
     with open(logger.log_file, "r") as f:
         lines = f.readlines()
-        log_data = json.loads(lines[4])  # the first four lines are session id, chat completion, event, and wrapper
+        log_data = json.loads(lines[0])
         assert log_data["client_id"] == id(client)
         assert log_data["wrapper_id"] == id(wrapper)
         assert log_data["json_state"] == json.dumps(init_args)
+        assert isinstance(log_data["thread_id"], int)

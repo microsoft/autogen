@@ -204,5 +204,8 @@ class FileLogger(BaseLogger):
         pass
 
     def stop(self) -> None:
-        """Method is intentionally left blank because there is no specific shutdown needed for the FileLogger."""
-        pass
+        """Close the file handler and remove it from the logger."""
+        for handler in self.logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                self.logger.removeHandler(handler)
