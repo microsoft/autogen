@@ -17,6 +17,9 @@ NON_CACHE_KEY = ["api_key", "base_url", "api_type", "api_version"]
 DEFAULT_AZURE_API_VERSION = "2024-02-15-preview"
 OAI_PRICE1K = {
     # https://openai.com/pricing
+    # gpt-4o
+    "gpt-4o": (0.005, 0.015),
+    "gpt-4o-2024-05-13": (0.005, 0.015),
     # gpt-4-turbo
     "gpt-4-turbo-2024-04-09": (0.01, 0.03),
     # gpt-4
