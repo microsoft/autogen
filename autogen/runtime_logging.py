@@ -49,9 +49,16 @@ def log_chat_completion(
         logger.error("[runtime logging] log_chat_completion: autogen logger is None")
         return
 
-    autogen_logger.log_chat_completion(
-        invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time
-    )
+    # Debug output
+    logger.debug(f"Logging chat completion for invocation_id: {invocation_id}, client_id: {client_id}, wrapper_id: {wrapper_id}")
+
+    try:
+        autogen_logger.log_chat_completion(
+            invocation_id, client_id, wrapper_id, request, response, is_cached, cost, start_time
+        )
+        logger.debug(f"Successfully logged chat completion for invocation_id: {invocation_id}")
+    except Exception as e:
+        logger.error(f"Error while logging chat completion: {e}", exc_info=True)
 
 
 def log_new_agent(agent: ConversableAgent, init_args: Dict[str, Any]) -> None:
