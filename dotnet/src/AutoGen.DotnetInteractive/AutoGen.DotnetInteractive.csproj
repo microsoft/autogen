@@ -19,7 +19,7 @@
   </PropertyGroup>
   
   <ItemGroup>
-		<PackageReference Include="Microsoft.DotNet.Interactive.VisualStudio" Version="$(MicrosoftDotnetInteractive)" />
+    <PackageReference Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotnetInteractive)" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -27,14 +27,12 @@
 	  <EmbeddedResource Include="RestoreInteractive.config" />
 	</ItemGroup>
 
-
-	<ItemGroup>
+  <ItemGroup>
 		<PackageReference Include="Azure.AI.OpenAI" Version="$(AzureOpenAIVersion)" />
 	</ItemGroup>
 
-
 	<ItemGroup>
-	  <ProjectReference Include="..\AutoGen\AutoGen.csproj" />
+	  <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
 	</ItemGroup>
 
 </Project>

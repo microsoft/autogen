@@ -4,12 +4,6 @@
 
 AutoGen.Net provides the following packages, you can choose to install one or more of them based on your needs:
 
-> [!Note]
-> The `AutoGen.DotnetInteractive` has a dependency on `Microsoft.DotNet.Interactive.VisualStudio` which is not available on nuget.org. To restore the dependency, you need to add the following package source to your project:
-> ```bash
-> https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json
-> ```
-
 - `AutoGen`: The one-in-all package. This package has dependencies over `AutoGen.Core`, `AutoGen.OpenAI`, `AutoGen.LMStudio`, `AutoGen.SemanticKernel` and `AutoGen.SourceGenerator`.
 - `AutoGen.Core`: The core package, this package provides the abstraction for message type, agent and group chat.
 - `AutoGen.OpenAI`: This package provides the integration agents over openai models.
