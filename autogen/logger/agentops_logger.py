@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 import threading
@@ -35,7 +34,6 @@ class AgentOpsLogger(BaseLogger):
 
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        print('Starting agentops logger')
 
     def start(self) -> str:
         pass
@@ -59,25 +57,8 @@ class AgentOpsLogger(BaseLogger):
     ) -> None:
         end_time = get_current_ts()
 
-        # if response is None or isinstance(response, str):
-        #     response_messages = json.dumps({"response": response})
-        # else:
-        #     response_messages = json.dumps(to_dict(response), indent=4)
-
-        # print('request')
-        # print(request)
-        # print('response')
-        # print(response)
-        # print('response_messages')
-        # print(response_messages)
-
         completion = response.choices[len(response.choices)-1]
 
-        # completion_str = completion.message.content
-        # if completion_str is None and completion.message.tool_calls is not None:
-        #     completion_str = f'Using tool "{completion.message.tool_calls[0].function.name}"'
-
-        # request['messages'][0]['content']
         llm_event = LLMEvent(prompt=request['messages'], completion=completion.message, model=response.model)
         llm_event.init_timestamp = start_time
         llm_event.end_timestamp = end_time
