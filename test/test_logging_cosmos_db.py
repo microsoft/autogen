@@ -91,4 +91,4 @@ class TestCosmosDBLogging:
             "cost": sample_completion["cost"],
             "start_time": sample_completion["start_time"],
             "end_time": get_current_ts(),
-        }
+        })
