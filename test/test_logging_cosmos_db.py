@@ -81,7 +81,8 @@ class TestCosmosDBLogging:
         print("log_chat_completion should have been called") # For debugging
 
         assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
-        
+
+        print("About to check queue.put call") # For debugging
         cosmos_db_setup.log_queue.put.assert_called_once_with({
             "type": "chat_completion",
             "invocation_id": sample_completion["invocation_id"],
@@ -95,3 +96,4 @@ class TestCosmosDBLogging:
             "start_time": sample_completion["start_time"],
             "end_time": get_current_ts(),
         })
+        print("Queue.put call check completed") # For debugging
