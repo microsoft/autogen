@@ -27,17 +27,17 @@ public class SignalR : Agent
         switch (item.Type)
         {
             case nameof(EventTypes.ArticleCreated):
-                var writenArticle = item.Message;
+                var writenArticle = item.Data["article"]; 
                 await _signalRClient.SendMessageToSpecificClient(item.Data["UserId"], writenArticle, AgentTypes.Chat);
                 break;
 
             case nameof(EventTypes.GraphicDesignCreated):
-                var imageUrl = item.Message;
+                var imageUrl = item.Data["imageUri"]; 
                 await _signalRClient.SendMessageToSpecificClient(item.Data["UserId"], imageUrl, AgentTypes.GraphicDesigner);
                 break;
 
             case nameof(EventTypes.SocialMediaPostCreated):
-                var post = item.Message;
+                var post = item.Data["socialMediaPost"]; 
                 await _signalRClient.SendMessageToSpecificClient(item.Data["UserId"], post, AgentTypes.CommunityManager);
                 break;
 

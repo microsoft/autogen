@@ -36,17 +36,18 @@ public class CommunityManager : AiAgent<CommunityManagerState>
                 await SendDesignedCreatedEvent(lastMessage, item.Data["UserId"]);
                 break;
 
-            case nameof(EventTypes.ArticleCreated):                
-                //var lastCode = _state.State.History.Last().Message;
+            case nameof(EventTypes.ArticleCreated):   
+            {
+                var article = item.Data["article"]; 
 
-                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}. UserMessage: {item.Message}");
+                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}. Article: {article}");
                     
-                var context = new KernelArguments { ["input"] = AppendChatHistory(item.Message) };
+                var context = new KernelArguments { ["input"] = AppendChatHistory(article) };
                 string socialMediaPost = await CallFunction(CommunityManagerPrompts.WritePost, context);
                 _state.State.Data.WrittenSocialMediaPost = socialMediaPost;
                 await SendDesignedCreatedEvent(socialMediaPost, item.Data["UserId"]);
                 break;
-
+            }     
             default:
                 break;
         }
@@ -59,8 +60,8 @@ public class CommunityManager : AiAgent<CommunityManagerState>
             Type = nameof(EventTypes.SocialMediaPostCreated),
             Data = new Dictionary<string, string> {
                             { "UserId", userId },
-                        },
-            Message = socialMediaPost
+                            { nameof(socialMediaPost), socialMediaPost}
+                        }
         });
     }
 

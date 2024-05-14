@@ -10,6 +10,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Marketing.SignalRHub;
 using Marketing.Options;
 using Marketing;
+using Orleans.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddTransient(CreateKernel);
@@ -50,14 +51,6 @@ builder.Services.AddOptions<QdrantOptions>()
     .Configure<IConfiguration>((settings, configuration) =>
     {
         configuration.GetSection(nameof(QdrantOptions)).Bind(settings);
-    })
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-
-builder.Services.AddOptions<ServiceOptions>()
-    .Configure<IConfiguration>((settings, configuration) =>
-    {
-        configuration.GetSection(nameof(ServiceOptions)).Bind(settings);
     })
     .ValidateDataAnnotations()
     .ValidateOnStart();

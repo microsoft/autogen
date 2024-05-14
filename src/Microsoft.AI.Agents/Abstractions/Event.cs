@@ -1,16 +1,12 @@
-using Orleans;
-using Orleans.CodeGeneration;
+using System.Runtime.Serialization;
 
 namespace Microsoft.AI.Agents.Abstractions
 {
-    [GenerateSerializer]
+    [DataContract]
     public class Event
     {
-        [Id(0)]
-        public string Message { get; set; }
-        [Id(1)]
         public Dictionary<string, string> Data { get; set; }
-        [Id(2)]
         public string Type { get; set; }
+        public string Subject { get; set; }
     }
 }

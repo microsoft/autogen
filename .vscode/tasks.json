@@ -1,99 +1,19 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "clean (functions)",
-      "command": "dotnet",
-      "args": [
-        "clean",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "type": "process",
-      "problemMatcher": "$msCompile",
-      "options": {
-        "cwd": "${workspaceFolder}/sk-azfunc-server"
-      }
-    },
-    {
-      "label": "build (functions)",
-      "command": "dotnet",
-      "args": [
-        "build",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "type": "process",
-      "dependsOn": "clean (functions)",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "problemMatcher": "$msCompile",
-      "options": {
-        "cwd": "${workspaceFolder}/sk-azfunc-server"
-      }
-    },
-    {
-      "label": "clean release (functions)",
-      "command": "dotnet",
-      "args": [
-        "clean",
-        "--configuration",
-        "Release",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "type": "process",
-      "problemMatcher": "$msCompile",
-      "options": {
-        "cwd": "${workspaceFolder}/sk-azfunc-server"
-      }
-    },
-    {
-      "label": "publish (functions)",
-      "command": "dotnet",
-      "args": [
-        "publish",
-        "--configuration",
-        "Release",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "type": "process",
-      "dependsOn": "clean release (functions)",
-      "problemMatcher": "$msCompile",
-      "options": {
-        "cwd": "${workspaceFolder}/sk-azfunc-server"
-      }
-    },
-    {
-      "type": "func",
-      "label": "func: host start",
-      "command": "host start",
-      "problemMatcher": "$func-node-watch",
-      "isBackground": true,
-      "dependsOn": "npm install (functions)",
-      "options": {
-        "cwd": "${workspaceFolder}/src/apps/ingest"
-      }
-    },
-    {
-      "type": "shell",
-      "label": "npm install (functions)",
-      "command": "npm install",
-      "options": {
-        "cwd": "${workspaceFolder}/src/apps/ingest"
-      }
-    },
-    {
-      "type": "shell",
-      "label": "npm prune (functions)",
-      "command": "npm prune --production",
-      "problemMatcher": [],
-      "options": {
-        "cwd": "${workspaceFolder}/src/apps/ingest"
-      }
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"appId": "dev-agents",
+			"grpcPort": 50001,
+			"httpPort": 3500,
+			"appPort": 5244,
+			"componentsPath": "samples/gh-flow/components",
+			"label": "dapr-debug",
+			"type": "dapr"
+		},
+		{
+			"appId": "dev-agents",
+			"label": "daprd-down",
+			"type": "daprd-down"
+		}
+	]
 }

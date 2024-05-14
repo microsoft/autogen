@@ -8,7 +8,7 @@ public static class DeveloperSkills {
         Make specific choices about implementation. Do not offer a range of options.
         Use comments in the code to describe the intent. Do not include other text other than code and code comments.
         Input: {{$input}}
-        {{$wafContext}}
+        {{$waf}}
         """;
 
     public static string Improve = """
@@ -20,7 +20,7 @@ public static class DeveloperSkills {
         Make specific choices about implementation. Do not offer a range of options.
         Use comments in the code to describe the intent. Do not include other text other than code and code comments.
         Input: {{$input}}
-        {{$wafContext}}
+        {{$waf}}
         """;
 
     public static string Explain = """

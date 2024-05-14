@@ -1,18 +1,12 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Attach to .NET Functions",
-      "type": "coreclr",
-      "request": "attach",
-      "processId": "${command:azureFunctions.pickProcess}"
-    },
-    {
-      "name": "Attach to Node Functions",
-      "type": "node",
-      "request": "attach",
-      "port": 9229,
-      "preLaunchTask": "func: host start"
-    }
-  ]
+    "configurations": [
+        {
+            "name": "C#: Microsoft.AI.DevTeam.Dapr [Default Configuration] with Dapr",
+            "type": "dotnet",
+            "request": "launch",
+            "projectPath": "${workspaceFolder}/samples/gh-flow/src/Microsoft.AI.DevTeam.Dapr/Microsoft.AI.DevTeam.Dapr.csproj",
+            "preLaunchTask": "dapr-debug",
+            "postDebugTask": "daprd-down"
+        }
+    ]
 }

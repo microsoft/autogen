@@ -32,7 +32,7 @@ public static class DevLeadSkills {
         Do not output any other text. 
         Do not wrap the JSON in any other text, output the JSON format described above, making sure it's a valid JSON.
         Input: {{$input}}
-        {{$wafContext}}
+        {{$waf}}
         """;
 
     public static string Explain = """

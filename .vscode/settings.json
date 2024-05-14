@@ -1,11 +1,4 @@
 {
-    "dotnet.defaultSolution": "sk-dev-team.sln",
-    "azureFunctions.deploySubpath": "src/apps/ingest",
-    "azureFunctions.projectLanguage": "JavaScript",
-    "azureFunctions.projectRuntime": "~4",
+    "dotnet.defaultSolution": "Microsoft.AI.Agents.sln",
     "debug.internalConsoleOptions": "neverOpen",
-    "azureFunctions.preDeployTask": "npm prune (functions)",
-    "azureFunctions.postDeployTask": "npm install (functions)",
-    "azureFunctions.projectLanguageModel": 4,
-    "azureFunctions.projectSubpath": "src/apps/ingest"
 }

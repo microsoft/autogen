@@ -24,31 +24,32 @@ public class ProductManager : AiAgent<ProductManagerState>, IManageProducts
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.ReadmeRequested):
-                var readme = await CreateReadme(item.Message);
+            {
+                var context = item.ToGithubContext();
+                var readme = await CreateReadme(item.Data["input"]);
+                var data = context.ToData();
+                data["result"]=readme;
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
                      Type = nameof(GithubFlowEventType.ReadmeGenerated),
-                        Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "readme", readme }
-                        },
-                       Message = readme
+                     Subject = context.Subject,
+                     Data = data
                 });
+            }
+                
                 break;
             case nameof(GithubFlowEventType.ReadmeChainClosed):
+            {
+                var context = item.ToGithubContext();
                 var lastReadme = _state.State.History.Last().Message;
+                var data = context.ToData();
+                data["readme"] = lastReadme;
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event {
                      Type = nameof(GithubFlowEventType.ReadmeCreated),
-                        Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "readme", lastReadme },
-                            { "parentNumber", item.Data["parentNumber"] }
-                        },
-                       Message = lastReadme
+                     Subject = context.Subject,
+                    Data = data
                 });
+            }
+                
                 break;
             default:
                 break;

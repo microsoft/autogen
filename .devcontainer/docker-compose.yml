@@ -10,19 +10,21 @@ services:
       - ..:/workspace:cached
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
-    network_mode: service:cosmos
+    network_mode: service:qdrant
     depends_on:
-      - cosmos
-  cosmos:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-    mem_limit: "3g"
-    cpu_count: 2
-    init: true
-    restart: unless-stopped
-    environment:
-      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "10"
-      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+      - qdrant
   qdrant:
     image: qdrant/qdrant
     ports:
       - 6333:6333
+  redis:
+    image: redis:alpine
+    network_mode: service:qdrant
+  zipkin:
+    image: openzipkin/zipkin-slim:latest
+    ports:
+      - 9411:9411
+  dapr-placement:
+    image: "daprio/dapr"
+    command: ["./placement", "--port", "50005"]
+    network_mode: service:qdrant

@@ -41,7 +41,6 @@ public class ArticleHub : Hub<IArticleHub>
         await stream.OnNextAsync(new Event
         {
             Type = nameof(EventTypes.UserChatInput),
-            Message = frontEndMessage.Message,
             Data = data
         });
 
@@ -70,7 +69,6 @@ public class ArticleHub : Hub<IArticleHub>
         await stream.OnNextAsync(new Event
         {
             Type = nameof(EventTypes.UserConnected),
-            Message = frontEndMessage.Message,
             Data = data
         });
     }

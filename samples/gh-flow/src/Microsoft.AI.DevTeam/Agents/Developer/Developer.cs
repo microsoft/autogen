@@ -11,10 +11,10 @@ namespace Microsoft.AI.DevTeam;
 public class Dev : AiAgent<DeveloperState>, IDevelopApps
 {
     protected override string Namespace => Consts.MainNamespace;
-    
+
     private readonly ILogger<Dev> _logger;
 
-    public Dev([PersistentState("state", "messages")] IPersistentState<AgentState<DeveloperState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger) 
+    public Dev([PersistentState("state", "messages")] IPersistentState<AgentState<DeveloperState>> state, Kernel kernel, ISemanticTextMemory memory, ILogger<Dev> logger)
     : base(state, memory, kernel)
     {
         _logger = logger;
@@ -25,33 +25,34 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.CodeGenerationRequested):
-                var code = await GenerateCode(item.Message);
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.CodeGenerated),
-                    Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "code", code }
-                        },
-                    Message = code
-                });
+                    var context = item.ToGithubContext();
+                    var code = await GenerateCode(item.Data["input"]);
+                    var data = context.ToData();
+                    data["result"] = code;
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.CodeGenerated),
+                        Subject = context.Subject,
+                        Data = data
+                    });
+                }
+
                 break;
             case nameof(GithubFlowEventType.CodeChainClosed):
-                var lastCode = _state.State.History.Last().Message;
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.CodeCreated),
-                    Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "code", lastCode },
-                            { "parentNumber", item.Data["parentNumber"] }
-                        },
-                    Message = lastCode
-                });
+                    var context = item.ToGithubContext();
+                    var lastCode = _state.State.History.Last().Message;
+                    var data = context.ToData();
+                    data["code"] = lastCode;
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.CodeCreated),
+                        Subject = context.Subject,
+                        Data = data
+                    });
+                }
+
                 break;
             default:
                 break;
@@ -63,9 +64,9 @@ public class Dev : AiAgent<DeveloperState>, IDevelopApps
         try
         {
             // TODO: ask the architect for the high level architecture as well as the files structure of the project
-            var context = new KernelArguments { ["input"] = AppendChatHistory(ask)};
+            var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
             var instruction = "Consider the following architectural guidelines:!waf!";
-            var enhancedContext = await AddKnowledge(instruction, "waf",context);
+            var enhancedContext = await AddKnowledge(instruction, "waf", context);
             return await CallFunction(DeveloperSkills.Implement, enhancedContext);
         }
         catch (Exception ex)

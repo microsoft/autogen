@@ -54,7 +54,6 @@ namespace Marketing.Controller
             await stream.OnNextAsync(new Event
             {
                 Type = nameof(EventTypes.UserChatInput),
-                Message = userMessage,
                 Data = data
             });
 

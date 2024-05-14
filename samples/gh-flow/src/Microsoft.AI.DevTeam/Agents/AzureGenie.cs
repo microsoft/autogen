@@ -1,6 +1,7 @@
 ﻿using Microsoft.AI.Agents.Abstractions;
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.AI.DevTeam;
 
@@ -21,17 +22,22 @@ public class AzureGenie : Agent
         {
             case nameof(GithubFlowEventType.ReadmeCreated):
             {
-                var parentNumber = long.Parse(item.Data["parentNumber"]);
-                var issueNumber = long.Parse(item.Data["issueNumber"]);
-                await Store(item.Data["org"], item.Data["repo"], parentNumber, issueNumber, "readme", "md", "output", item.Message);
+                var data = item.Data;
+                var parentNumber = long.Parse(data["parentNumber"].ToString());
+                var issueNumber = long.Parse(data["issueNumber"].ToString());
+                var org = data["org"].ToString();
+                var repo = data["repo"].ToString();
+                var subject = $"{org}/{repo}/{issueNumber}";
+                await Store(org,repo, parentNumber, issueNumber, "readme", "md", "output", data["readme"].ToString());
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
                     Type = nameof(GithubFlowEventType.ReadmeStored),
+                    Subject = subject,
                     Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "parentNumber", item.Data["parentNumber"]  }
+                            { "org", org },
+                            { "repo", repo },
+                            { "issueNumber", $"{issueNumber}" },
+                            { "parentNumber", $"{parentNumber}" }
                         }
                 });
             }
@@ -39,18 +45,23 @@ public class AzureGenie : Agent
                 break;
             case nameof(GithubFlowEventType.CodeCreated):
             {
-                var parentNumber = long.Parse(item.Data["parentNumber"]);
-                var issueNumber = long.Parse(item.Data["issueNumber"]);
-                await Store(item.Data["org"], item.Data["repo"], parentNumber, issueNumber, "run", "sh", "output", item.Message);
-                await RunInSandbox(item.Data["org"], item.Data["repo"], parentNumber, issueNumber);
+                var data = item.Data;
+                var parentNumber = long.Parse(data["parentNumber"].ToString());
+                var issueNumber = long.Parse(data["issueNumber"].ToString());
+                var org = data["org"].ToString();
+                var repo = data["repo"].ToString();
+                var subject = $"{org}/{repo}/{issueNumber}";
+                await Store(org,repo, parentNumber, issueNumber, "run", "sh", "output", data["code"].ToString());
+                await RunInSandbox(org, repo, parentNumber, issueNumber);
                 await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
                     Type = nameof(GithubFlowEventType.SandboxRunCreated),
+                    Subject = subject,
                     Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "parentNumber", item.Data["parentNumber"]  }
+                            { "org", org },
+                            { "repo", repo },
+                            { "issueNumber", $"{issueNumber}" },
+                            { "parentNumber", $"{parentNumber}" }
                         }
                 });
             }

@@ -3,6 +3,7 @@ using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
+using Newtonsoft.Json.Linq;
 using Orleans.Runtime;
 
 namespace Microsoft.AI.DevTeam;
@@ -23,33 +24,34 @@ public class DeveloperLead : AiAgent<DeveloperLeadState>, ILeadDevelopers
         switch (item.Type)
         {
             case nameof(GithubFlowEventType.DevPlanRequested):
-                var plan = await CreatePlan(item.Message);
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.DevPlanGenerated),
-                    Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            { "plan", plan }
-                        },
-                    Message = plan
-                });
+                    var context = item.ToGithubContext();
+                    var plan = await CreatePlan(item.Data["input"]);
+                    var data = context.ToData();
+                    data["result"] = plan;
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.DevPlanGenerated),
+                        Subject = context.Subject,
+                        Data = data
+                    });
+                }
+
                 break;
             case nameof(GithubFlowEventType.DevPlanChainClosed):
-                var latestPlan = _state.State.History.Last().Message;
-                await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
                 {
-                    Type = nameof(GithubFlowEventType.DevPlanCreated),
-                    Data = new Dictionary<string, string> {
-                            { "org", item.Data["org"] },
-                            { "repo", item.Data["repo"] },
-                            { "issueNumber", item.Data["issueNumber"] },
-                            {"parentNumber", item.Data["parentNumber"]},
-                            { "plan", latestPlan }
-                        },
-                    Message = latestPlan
-                });
+                    var context = item.ToGithubContext();
+                    var latestPlan = _state.State.History.Last().Message;
+                    var data = context.ToData();
+                    data["plan"] = latestPlan;
+                    await PublishEvent(Consts.MainNamespace, this.GetPrimaryKeyString(), new Event
+                    {
+                        Type = nameof(GithubFlowEventType.DevPlanCreated),
+                        Subject = context.Subject,
+                        Data = data
+                    });
+                }
+
                 break;
             default:
                 break;

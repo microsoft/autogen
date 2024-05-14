@@ -15,7 +15,8 @@
 		"ghcr.io/azure/azure-dev/azd:latest": {},
 		"ghcr.io/devcontainers/features/node:1": {},
 		"ghcr.io/azure/azure-dev/azd:0": {},
-		"ghcr.io/stuartleeks/dev-container-features/dev-tunnels:0": {}
+		"ghcr.io/stuartleeks/dev-container-features/dev-tunnels:0": {},
+		"ghcr.io/dapr/cli/dapr-cli:0": {}
 	},
 	"postCreateCommand": "bash .devcontainer/startup.sh",
 	"hostRequirements": {
@@ -48,10 +49,11 @@
 				"ms-semantic-kernel.semantic-kernel",
 				"GitHub.copilot-chat",
 				"GitHub.vscode-github-actions",
-                "ms-azuretools.azure-dev",
-                "ms-azuretools.vscode-azurefunctions",
-                "ms-azuretools.vscode-bicep",
-                "ms-dotnettools.vscode-dotnet-runtime"
+				"ms-azuretools.azure-dev",
+				"ms-azuretools.vscode-azurefunctions",
+				"ms-azuretools.vscode-bicep",
+				"ms-dotnettools.vscode-dotnet-runtime",
+				"ms-azuretools.vscode-dapr"
 			]
 		}
 	}

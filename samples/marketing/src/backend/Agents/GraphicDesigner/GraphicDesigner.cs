@@ -42,10 +42,11 @@ public class GraphicDesigner : AiAgent<GraphicDesignerState>
 
                 break;
             case nameof(EventTypes.ArticleCreated):
-                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}. UserMessage: {item.Message}");
-
+                //TODO
+                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.ArticleCreated)}.");
+                var article = item.Data["article"];
                 var dallEService = _kernel.GetRequiredService<ITextToImageService>();
-                var imageUri = await dallEService.GenerateImageAsync(item.Message, 1024, 1024);
+                var imageUri = await dallEService.GenerateImageAsync(article, 1024, 1024);
 
                 _state.State.Data.imageUrl = imageUri;
 
@@ -58,15 +59,15 @@ public class GraphicDesigner : AiAgent<GraphicDesignerState>
         }
     }
 
-    private async Task SendDesignedCreatedEvent(string AbsoluteImageUri, string userId)
+    private async Task SendDesignedCreatedEvent(string imageUri, string userId)
     {
         await PublishEvent(Consts.OrleansNamespace, this.GetPrimaryKeyString(), new Event
         {
             Type = nameof(EventTypes.GraphicDesignCreated),
             Data = new Dictionary<string, string> {
                             { "UserId", userId },
-                        },
-            Message = AbsoluteImageUri
+                            { nameof(imageUri), imageUri}
+                        }
         });
     }
 }

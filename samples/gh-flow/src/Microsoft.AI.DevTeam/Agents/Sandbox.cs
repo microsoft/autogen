@@ -2,14 +2,13 @@
 using Microsoft.AI.Agents.Orleans;
 using Microsoft.AI.DevTeam.Events;
 using Orleans.Runtime;
-using Orleans.Streams;
 using Orleans.Timers;
 
 namespace Microsoft.AI.DevTeam;
 [ImplicitStreamSubscription(Consts.MainNamespace)]
 public class Sandbox : Agent, IRemindable
 {
-     protected override string Namespace => Consts.MainNamespace;
+    protected override string Namespace => Consts.MainNamespace;
     private const string ReminderName = "SandboxRunReminder";
     private readonly IManageAzure _azService;
     private readonly IReminderRegistry _reminderRegistry;
@@ -26,18 +25,18 @@ public class Sandbox : Agent, IRemindable
     }
     public override async Task HandleEvent(Event item)
     {
-       switch(item.Type)
-       {
-           case nameof(GithubFlowEventType.SandboxRunCreated):
-               var org = item.Data["org"];
-               var repo = item.Data["repo"];
-               var parentIssueNumber = long.Parse(item.Data["parentNumber"]);
-               var issueNumber = long.Parse(item.Data["issueNumber"]);
-               await ScheduleCommitSandboxRun(org, repo, parentIssueNumber, issueNumber);
-               break;
-           default:
-               break;
-       }
+        switch (item.Type)
+        {
+            case nameof(GithubFlowEventType.SandboxRunCreated):
+                {
+                    var context = item.ToGithubContext();
+                    await ScheduleCommitSandboxRun(context.Org, context.Repo, context.ParentNumber.Value, context.IssueNumber);
+                    break;
+                }
+
+            default:
+                break;
+        }
     }
     public async Task ScheduleCommitSandboxRun(string org, string repo, long parentIssueNumber, long issueNumber)
     {
@@ -54,6 +53,7 @@ public class Sandbox : Agent, IRemindable
         if (!_state.State.IsCompleted)
         {
             var sandboxId =  $"sk-sandbox-{_state.State.Org}-{_state.State.Repo}-{_state.State.ParentIssueNumber}-{_state.State.IssueNumber}".ToLower();
+
             if (await _azService.IsSandboxCompleted(sandboxId))
             {
                 await _azService.DeleteSandbox(sandboxId);
@@ -94,7 +94,7 @@ public class Sandbox : Agent, IRemindable
         await _state.WriteStateAsync();
     }
 
-    
+
 }
 
 

@@ -17,7 +17,6 @@
   <ItemGroup>
     <PackageReference Include="Octokit.Webhooks.AspNetCore" Version="2.0.3" />
     <PackageReference Include="Octokit" Version="10.0.0" />
-
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.10.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.10.0-alpha" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.10.0-alpha" />
@@ -44,9 +43,7 @@
     <PackageReference Include="Azure.Identity" Version="1.11.0-beta.1" />
    
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.1" />
-    <PackageReference Include="Microsoft.Orleans.Serialization.NewtonsoftJson" Version="8.0.0" />
-    
-    
+        
   </ItemGroup>
   
 

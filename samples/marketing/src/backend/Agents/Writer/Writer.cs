@@ -38,30 +38,31 @@ public class Writer : AiAgent<WriterState>, IWriter
                 break;
 
             case nameof(EventTypes.UserChatInput):                
+                {
+                    var userMessage = item.Data["userMessage"]; 
+                    _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.UserChatInput)}. UserMessage: {userMessage}");
                 
-                _logger.LogInformation($"[{nameof(GraphicDesigner)}] Event {nameof(EventTypes.UserChatInput)}. UserMessage: {item.Message}");
-                    
-                var context = new KernelArguments { ["input"] = AppendChatHistory(item.Message) };
-                string newArticle = await CallFunction(WriterPrompts.Write, context);
+                    var context = new KernelArguments { ["input"] = AppendChatHistory(userMessage) };
+                    string newArticle = await CallFunction(WriterPrompts.Write, context);
 
-                await SendDesignedCreatedEvent(newArticle, item.Data["UserId"]);
-
-                break;
+                    await SendDesignedCreatedEvent(newArticle, item.Data["UserId"]);
+                    break;   
+                }
+                
             default:
                 break;
         }
     }
 
-    private async Task SendDesignedCreatedEvent(string writtenArticle, string userId)
+    private async Task SendDesignedCreatedEvent(string article, string userId)
     {
         await PublishEvent(Consts.OrleansNamespace, this.GetPrimaryKeyString(), new Event
         {
             Type = nameof(EventTypes.ArticleCreated),
             Data = new Dictionary<string, string> {
                             { "UserId", userId },
-                            { "UserMessage", writtenArticle },
-                        },
-            Message = writtenArticle
+                            { nameof(article), article },
+                        }
         });
     }
 
