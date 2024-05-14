@@ -77,7 +77,9 @@ class TestCosmosDBLogging:
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         log_chat_completion(**sample_completion)
 
-        expected_document = {
+        assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
+        
+        cosmos_db_setup.log_queue.put.assert_called_once_with({
             "type": "chat_completion",
             "invocation_id": sample_completion["invocation_id"],
             "client_id": sample_completion["client_id"],
@@ -90,6 +92,3 @@ class TestCosmosDBLogging:
             "start_time": sample_completion["start_time"],
             "end_time": get_current_ts(),
         }
-
-        assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
-        cosmos_db_setup.log_queue.put.assert_called_once_with(expected_document)
