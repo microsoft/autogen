@@ -87,6 +87,17 @@ class CosmosDBLogger(BaseLogger):
         cost: float,
         start_time: str,
     ) -> None:
+        # Debugging: Print when the method is called and the parameters it received
+        print("log_chat_completion called")
+        print("Invocation ID:", str(invocation_id))
+        print("Client ID:", client_id)
+        print("Wrapper ID:", wrapper_id)
+        print("Request:", request)
+        print("Response:", response)
+        print("Is Cached:", is_cached)
+        print("Cost:", cost)
+        print("Start Time:", start_time
+        # End debugging
         document = {
             "type": "chat_completion",
             "invocation_id": str(invocation_id),
@@ -100,7 +111,15 @@ class CosmosDBLogger(BaseLogger):
             "start_time": start_time,
             "end_time": get_current_ts(),
         }
+        # Debugging: Print the document to be added to the queue
+        print("Document prepared for queue:", document)
+        # End debugging
+
         self.log_queue.put(document)
+
+        # Debugging: Confirm the document has been added to the queue
+        print("Document added to queue")
+        # End debugging
 
     def log_event(self, source: Union[str, Agent], name: str, **kwargs: Dict[str, Any]) -> None:
         document = {
