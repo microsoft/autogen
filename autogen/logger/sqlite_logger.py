@@ -191,6 +191,7 @@ class SqliteLogger(BaseLogger):
         invocation_id: uuid.UUID,
         client_id: int,
         wrapper_id: int,
+        source: Union[str, Agent],
         request: Dict[str, Union[float, str, List[Dict[str, str]]]],
         response: Union[str, ChatCompletion],
         is_cached: int,

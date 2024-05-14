@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
 
+from autogen.logger.agentops_logger import AgentOpsLogger
 from autogen.logger.base_logger import BaseLogger
 from autogen.logger.sqlite_logger import SqliteLogger
 
@@ -14,5 +15,7 @@ class LoggerFactory:
 
         if logger_type == "sqlite":
             return SqliteLogger(config)
+        if logger_type == "agentops":
+            return AgentOpsLogger(config)
         else:
             raise ValueError(f"[logger_factory] Unknown logger type: {logger_type}")

@@ -282,6 +282,7 @@ class OpenAIClient:
             # If streaming is not enabled, send a regular chat completion request
             params = params.copy()
             params["stream"] = False
+            del params['source']
             response = completions.create(**params)
 
         return response
@@ -533,6 +534,7 @@ class OpenAIWrapper:
                 Note that the cache argument overrides the legacy cache_seed argument: if this argument is provided,
                 then the cache_seed argument is ignored. If this argument is not provided or None,
                 then the cache_seed argument is used.
+            - agent (AbstractAgent | None): The object responsible for creating a completion if an agent.
             - (Legacy) cache_seed (int | None) for using the DiskCache. Default to 41.
                 An integer cache_seed is useful when implementing "controlled randomness" for the completion.
                 None for no caching.
@@ -617,6 +619,7 @@ class OpenAIWrapper:
                                 invocation_id=invocation_id,
                                 client_id=id(client),
                                 wrapper_id=id(self),
+                                source=full_config.get("source"),
                                 request=params,
                                 response=response,
                                 is_cached=1,
@@ -649,6 +652,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        source=full_config.get("source"),
                         request=params,
                         response=f"error_code:{error_code}, config {i} failed",
                         is_cached=0,
@@ -679,6 +683,7 @@ class OpenAIWrapper:
                         invocation_id=invocation_id,
                         client_id=id(client),
                         wrapper_id=id(self),
+                        source=full_config.get("source"),
                         request=params,
                         response=response,
                         is_cached=0,
