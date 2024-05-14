@@ -96,7 +96,7 @@ class CosmosDBLogger(BaseLogger):
         print("Response:", response)
         print("Is Cached:", is_cached)
         print("Cost:", cost)
-        print("Start Time:", start_time
+        print("Start Time:", start_time)
         # End debugging
         document = {
             "type": "chat_completion",
