@@ -74,7 +74,43 @@ jobs:
         with:
           file: ./coverage.xml
           flags: unittests
-
+  AgentEvalTest:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10"]
+    runs-on: ${{ matrix.os }}
+    environment: openai1
+    steps:
+      # checkout to pr branch
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install packages and dependencies
+        run: |
+          docker --version
+          python -m pip install --upgrade pip wheel
+          pip install -e .
+          python -c "import autogen"
+          pip install pytest-cov>=5 pytest-asyncio
+      - name: Coverage
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_API_BASE: ${{ secrets.AZURE_OPENAI_API_BASE }}
+          OAI_CONFIG_LIST: ${{ secrets.OAI_CONFIG_LIST }}
+        run: |
+          pytest test/agentchat/contrib/agent_eval/test_agent_eval.py
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
   CompressionTest:
     strategy:
       matrix:
