@@ -54,6 +54,7 @@ def cosmos_db_setup():
         "container_id": "TestContainer",
     }
 
+    # Patch the get_logger method of the LoggerFactory object
     with patch.object(LoggerFactory, 'get_logger', return_value=autogen_logger):
         start(logger_type="cosmos", config=config)
         yield autogen_logger
