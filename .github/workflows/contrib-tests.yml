@@ -45,6 +45,7 @@ jobs:
       - name: Explicitly install packages for Azure Cosmos DB
         run: |
           pip install azure-cosmos
+          pip install pytest-asyncio
       - name: Install qdrant_client when python-version is 3.10
         if: matrix.python-version == '3.10'
         run: |
