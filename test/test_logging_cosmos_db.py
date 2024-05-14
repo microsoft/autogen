@@ -91,4 +91,5 @@ class TestCosmosDBLogging:
             "end_time": get_current_ts(),
         }
 
+        assert mock_logger.log_chat_completion.called, "log_chat_completion was not called"
         cosmos_db_setup.log_queue.put.assert_called_once_with(expected_document)
