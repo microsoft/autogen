@@ -76,7 +76,9 @@ class TestCosmosDBLogging:
     @pytest.mark.usefixtures("cosmos_db_setup")
     def test_log_completion_cosmos(self, cosmos_db_setup):
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
+        print("Testing log_chat_completion with sample data:", sample_completion) # For debugging
         log_chat_completion(**sample_completion)
+        print("log_chat_completion should have been called") # For debugging
 
         assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
         
