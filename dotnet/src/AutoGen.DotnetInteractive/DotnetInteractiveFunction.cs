@@ -12,57 +12,58 @@ namespace AutoGen.DotnetInteractive;
 public class DotnetInteractiveFunction : IDisposable
 {
     private readonly InteractiveService? _interactiveService = null;
-    private string? _notebookPath;
+    private string _notebookPath;
     private readonly KernelInfoCollection _kernelInfoCollection = new KernelInfoCollection();
 
+    /// <summary>
+    /// Create an instance of <see cref="DotnetInteractiveFunction"/>"
+    /// </summary>
+    /// <param name="interactiveService">interactive service to use.</param>
+    /// <param name="notebookPath">notebook path if provided.</param>
     public DotnetInteractiveFunction(InteractiveService interactiveService, string? notebookPath = null, bool continueFromExistingNotebook = false)
     {
         this._interactiveService = interactiveService;
-        this._notebookPath = notebookPath;
+        this._notebookPath = notebookPath ?? Path.GetTempPath() + "notebook.ipynb";
         this._kernelInfoCollection.Add(new KernelInfo("csharp"));
         this._kernelInfoCollection.Add(new KernelInfo("markdown"));
-
-        if (this._notebookPath != null)
+        if (continueFromExistingNotebook == false)
         {
-            if (continueFromExistingNotebook == false)
+            // remove existing notebook
+            if (File.Exists(this._notebookPath))
             {
-                // remove existing notebook
-                if (File.Exists(this._notebookPath))
-                {
-                    File.Delete(this._notebookPath);
-                }
-
-                var document = new InteractiveDocument();
-
-                using var stream = File.OpenWrite(_notebookPath);
-                Notebook.Write(document, stream, this._kernelInfoCollection);
-                stream.Flush();
-                stream.Dispose();
+                File.Delete(this._notebookPath);
             }
-            else if (continueFromExistingNotebook == true && File.Exists(this._notebookPath))
+
+            var document = new InteractiveDocument();
+
+            using var stream = File.OpenWrite(_notebookPath);
+            Notebook.Write(document, stream, this._kernelInfoCollection);
+            stream.Flush();
+            stream.Dispose();
+        }
+        else if (continueFromExistingNotebook == true && File.Exists(this._notebookPath))
+        {
+            // load existing notebook
+            using var readStream = File.OpenRead(this._notebookPath);
+            var document = Notebook.Read(readStream, this._kernelInfoCollection);
+            foreach (var cell in document.Elements)
             {
-                // load existing notebook
-                using var readStream = File.OpenRead(this._notebookPath);
-                var document = Notebook.Read(readStream, this._kernelInfoCollection);
-                foreach (var cell in document.Elements)
+                if (cell.KernelName == "csharp")
                 {
-                    if (cell.KernelName == "csharp")
-                    {
-                        var code = cell.Contents;
-                        this._interactiveService.SubmitCSharpCodeAsync(code, default).Wait();
-                    }
+                    var code = cell.Contents;
+                    this._interactiveService.SubmitCSharpCodeAsync(code, default).Wait();
                 }
             }
-            else
-            {
-                // create an empty notebook
-                var document = new InteractiveDocument();
+        }
+        else
+        {
+            // create an empty notebook
+            var document = new InteractiveDocument();
 
-                using var stream = File.OpenWrite(_notebookPath);
-                Notebook.Write(document, stream, this._kernelInfoCollection);
-                stream.Flush();
-                stream.Dispose();
-            }
+            using var stream = File.OpenWrite(_notebookPath);
+            Notebook.Write(document, stream, this._kernelInfoCollection);
+            stream.Flush();
+            stream.Dispose();
         }
     }
 
