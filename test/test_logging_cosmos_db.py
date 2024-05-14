@@ -56,7 +56,7 @@ def cosmos_db_setup():
         }
 
         start(logger_type="cosmos", config=config)
-        yield mock_logger  # This correctly passes mock_logger to your test
+        yield mock_logger
         stop()
 
 class TestCosmosDBLogging:
@@ -73,7 +73,7 @@ class TestCosmosDBLogging:
         }
 
     @pytest.mark.usefixtures("cosmos_db_setup")
-    def test_log_completion_cosmos(self, cosmos_db_setup):  # Use cosmos_db_setup here
+    def test_log_completion_cosmos(self, cosmos_db_setup):
         sample_completion = self.get_sample_chat_completion(SAMPLE_CHAT_RESPONSE)
         log_chat_completion(**sample_completion)
 
@@ -91,5 +91,5 @@ class TestCosmosDBLogging:
             "end_time": get_current_ts(),
         }
 
-        assert mock_logger.log_chat_completion.called, "log_chat_completion was not called"
+        assert cosmos_db_setup.log_chat_completion.called, "log_chat_completion was not called"
         cosmos_db_setup.log_queue.put.assert_called_once_with(expected_document)
