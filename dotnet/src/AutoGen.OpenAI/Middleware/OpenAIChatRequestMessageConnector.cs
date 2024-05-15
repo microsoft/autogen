@@ -266,7 +266,13 @@ public class OpenAIChatRequestMessageConnector : IMiddleware, IStreamingMiddlewa
         {
             return [new ChatRequestAssistantMessage(message.Content) { Name = agent.Name }];
         }
-        else if (message.From is null)
+               return message.From switch
+        {
+            null when message.Role == Role.User => [new ChatRequestUserMessage(message.Content)],
+            null when message.Role == Role.Assistant => [new ChatRequestAssistantMessage(message.Content)],
+            null => throw new InvalidOperationException("Invalid Role"),
+            _ => [new ChatRequestUserMessage(message.Content) { Name = message.From }]
+        };
         {
             if (message.Role == Role.User)
             {
