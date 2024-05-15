@@ -18,7 +18,7 @@ jobs:
       with:
         python-version: '3.10'
     - run: pip install ".[dev]"
-    - run: ruff --check
+    - run: ruff check
 
   format:
     runs-on: ubuntu-latest
