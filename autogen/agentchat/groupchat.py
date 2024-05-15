@@ -7,6 +7,7 @@ import sys
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
+from ..oai.client import ModelClient
 from ..code_utils import content_str
 from ..exception_utils import AgentNameConflict, NoEligibleSpeaker, UndefinedNextAgent
 from ..formatting_utils import colored
@@ -100,6 +101,7 @@ class GroupChat:
 
     agents: List[Agent]
     messages: List[Dict]
+    model_client_cls: Optional[Union[ModelClient, List[ModelClient]]] = None
     max_round: Optional[int] = 10
     admin_name: Optional[str] = "Admin"
     func_call_filter: Optional[bool] = True
@@ -560,6 +562,39 @@ class GroupChat:
         agent = self.agent_by_name(name)
         return agent if agent else self.next_agent(last_speaker, agents)
 
+    def _register_custom_model_clients(self, agent: ConversableAgent, selector: ConversableAgent):
+        for config in selector.llm_config['config_list']:
+            model_client_cls_to_match = config.get('model_client_cls')
+            if model_client_cls_to_match:
+                if not self.model_client_cls:
+                    raise ValueError(
+                        "A custom model was detected in the config but no 'model_client_cls' "
+                        "was supplied for registration in GroupChat."
+                    )
+
+                if isinstance(self.model_client_cls, list):
+                    # Register the first custom model client class matching the name specified in the config
+                    matching_model_cls = [
+                        client_cls
+                        for client_cls in self.model_client_cls
+                        if client_cls.__name__ == model_client_cls_to_match
+                    ]
+                    if len(set(matching_model_cls)) > 1:
+                        raise RuntimeError(
+                            f"More than one unique 'model_client_cls' with __name__ '{model_client_cls_to_match}'."
+                        )
+                    if not matching_model_cls:
+                        raise ValueError(
+                            "No model's __name__ matches the model client class "
+                            f"'{model_client_cls_to_match}' specified in llm_config."
+                        )
+                    model_client_cls = matching_model_cls[0]
+                else:
+                    # Register the only custom model client
+                    model_client_cls = self.model_client_cls
+
+                agent.register_model_client(model_client_cls)
+
     def _auto_select_speaker(
         self,
         last_speaker: Agent,
@@ -614,7 +649,14 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
+        checking_agent = ConversableAgent(
+            "checking_agent",
+            default_auto_reply=max_attempts,
+            llm_config=selector.llm_config
+        )
+
+        # Register any custom model passed in llm_config with the checking_agent
+        self._register_custom_model_clients(checking_agent, selector)
 
         # Register the speaker validation function with the checking agent
         checking_agent.register_reply(
@@ -631,6 +673,9 @@ class GroupChat:
             llm_config=selector.llm_config,
             human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
         )
+
+        # Register any custom model passed in llm_config with the speaker_selection_agent
+        self._register_custom_model_clients(speaker_selection_agent, selector)
 
         # Run the speaker selection chat
         result = checking_agent.initiate_chat(
@@ -701,7 +746,14 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
+        checking_agent = ConversableAgent(
+            "checking_agent",
+            default_auto_reply=max_attempts,
+            llm_config=selector.llm_config
+        )
+
+        # Register any custom model passed in llm_config with the checking_agent
+        self._register_custom_model_clients(checking_agent, selector)
 
         # Register the speaker validation function with the checking agent
         checking_agent.register_reply(
@@ -718,6 +770,9 @@ class GroupChat:
             llm_config=selector.llm_config,
             human_input_mode="NEVER",  # Suppresses some extra terminal outputs, outputs will be handled by select_speaker_auto_verbose
         )
+
+        # Register any custom model passed in llm_config with the speaker_selection_agent
+        self._register_custom_model_clients(speaker_selection_agent, selector)
 
         # Run the speaker selection chat
         result = await checking_agent.a_initiate_chat(
