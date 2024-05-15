@@ -2,8 +2,8 @@
 // MistralAICodeSnippet.cs
 
 #region using_statement
-using AutoGen.Mistral;
 using AutoGen.Core;
+using AutoGen.Mistral;
 using AutoGen.Mistral.Extension;
 using FluentAssertions;
 #endregion using_statement

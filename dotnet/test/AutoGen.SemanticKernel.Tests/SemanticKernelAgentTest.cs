@@ -1,18 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // SemanticKernelAgentTest.cs
 
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using AutoGen.SemanticKernel;
+using AutoGen.Core;
 using AutoGen.SemanticKernel.Extension;
+using AutoGen.Tests;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 
-namespace AutoGen.Tests;
+namespace AutoGen.SemanticKernel.Tests;
 
 public partial class SemanticKernelAgentTest
 {
