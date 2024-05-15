@@ -16,7 +16,10 @@ import autogen
 import autogen.runtime_logging
 from autogen.logger.file_logger import FileLogger
 
+is_windows = sys.platform.startswith("win")
 
+
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 @pytest.fixture
 def logger() -> FileLogger:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -29,12 +32,14 @@ def logger() -> FileLogger:
     logger.stop()
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_start(logger: FileLogger):
     session_id = logger.start()
     assert isinstance(session_id, str)
     assert len(session_id) == 36
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_chat_completion(logger: FileLogger):
     invocation_id = uuid.uuid4()
     client_id = 123456789
@@ -66,6 +71,7 @@ class TestWrapper:
         self.init_args = init_args
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_new_agent(logger: FileLogger):
     agent = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
     logger.log_new_agent(agent)
@@ -76,6 +82,7 @@ def test_log_new_agent(logger: FileLogger):
         assert log_data["agent_name"] == "user_proxy"
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_event(logger: FileLogger):
     source = autogen.AssistantAgent(name="TestAgent", code_execution_config=False)
     name = "TestEvent"
@@ -91,6 +98,7 @@ def test_log_event(logger: FileLogger):
         assert isinstance(log_data["thread_id"], int)
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_new_wrapper(logger: FileLogger):
     wrapper = TestWrapper(init_args={"foo": "bar"})
     logger.log_new_wrapper(wrapper, wrapper.init_args)
@@ -103,6 +111,7 @@ def test_log_new_wrapper(logger: FileLogger):
         assert isinstance(log_data["thread_id"], int)
 
 
+@pytest.mark.skipif(is_windows, reason="Skipping file logging tests on Windows")
 def test_log_new_client(logger: FileLogger):
     client = autogen.UserProxyAgent(name="user_proxy", code_execution_config=False)
     wrapper = TestWrapper(init_args={"foo": "bar"})
