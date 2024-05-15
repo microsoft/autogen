@@ -3,6 +3,7 @@ import sys
 import argparse
 import tabulate as tb
 from .load_module import load_module
+from copy import deepcopy
 
 # Figure out where everything is
 SCRIPT_PATH = os.path.realpath(__file__)
@@ -104,6 +105,13 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
         help="Output the results in CSV format.",
     )
 
+    parser.add_argument(
+        "-e",
+        "--excel",
+        help="Output the results in Excel format. Please specify a path for the Excel file.",
+        type=str
+    )
+
     parsed_args = parser.parse_args(args)
 
     all_results = list()
@@ -161,15 +169,17 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
         def _count_equals(value, trial):
             count = 0
             for row in all_results:
+                is_answer_matched = row[trial + 1][0] if isinstance(row[trial + 1], tuple) else row[trial + 1]
+
                 # Count missing
                 if value is None:
                     if trial + 1 < len(row):
-                        if row[trial + 1] is None:
+                        if is_answer_matched is None:
                             count += 1
                     else:
                         count += 1
                 # Count match
-                elif trial + 1 < len(row) and row[trial + 1] == value:
+                elif trial + 1 < len(row) and is_answer_matched == value:
                     count += 1
             return count
 
@@ -194,7 +204,12 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
             footer_row.append(footer[0][i + 1] + footer[1][i + 1] + footer[2][i + 1])
         footer.append(footer_row)
 
-        table = all_results.copy()
+        table = deepcopy(all_results)
+        for row in table:
+            for trial in range(0, max_instances):
+                if isinstance(row[trial + 1], tuple):
+                    row[trial + 1] = row[trial + 1][0]
+
         table.append(tb.SEPARATING_LINE)
         table.extend(footer)
 
@@ -202,6 +217,7 @@ def default_tabulate(args, scorer=default_scorer, exclude_dir_names=EXCLUDE_DIR_
 
         # Print out alpha-version warning
         sys.stderr.write("\n" + warning + "\n\n")
+    return parsed_args, all_results
 
 
 def tabulate_cli(args):
