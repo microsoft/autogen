@@ -14,9 +14,17 @@ class HuggingFaceClient:
     def __init__(
         self,
         hf_api_key: Optional[Union[str, bool, None]] = None,
+        model: Optional[Union[str, None]] = None,
+        inference_mode: Optional[Literal["auto", "local", "remote"]] = "auto",
     ):
+        if inference_mode not in self.VALID_INFERENCE_MODES:
+            raise ValueError(f"Invalid inference mode: {inference_mode}. Choose from: {self.VALID_INFERENCE_MODES}")
+
         self._hf_api_key = hf_api_key
-        self._inference_client = InferenceClient(token=hf_api_key)
+        self._default_model = model
+        self._default_inference_mode = inference_mode
+
+        self._inference_client = InferenceClient(model=self._default_model, token=hf_api_key)
 
     def _get_recommended_model(self, task: str):
         return self._inference_client.get_recommended_model(task)
@@ -45,13 +53,16 @@ class HuggingFaceClient:
         self,
         task: str,
         model: Optional[str] = None,
-        inference_mode: Literal["auto", "local", "remote"] = "auto",
+        inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
     ):
+        if model is None:
+            model = self._default_model if self._default_model is not None else self._get_recommended_model(task)
+
+        if inference_mode is None:
+            inference_mode = self._default_inference_mode
+
         if inference_mode.lower() not in self.VALID_INFERENCE_MODES:
             raise ValueError(f"Invalid inference mode: {inference_mode}. Choose from: {self.VALID_INFERENCE_MODES}")
-
-        if model is None:
-            model = self._get_recommended_model(task)
 
         if inference_mode.lower() == "auto":
             inference_mode = self._infer_inference_mode(model)
@@ -62,7 +73,7 @@ class HuggingFaceClient:
         self,
         prompt: str,
         model: Optional[str] = None,
-        inference_mode: Literal["auto", "local", "remote"] = "auto",
+        inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
     ) -> Image:
         model, inference_mode = self._pre_check("text-to-image", model, inference_mode)
@@ -87,7 +98,7 @@ class HuggingFaceClient:
         self,
         image_file: Union[str, Image],
         model: Optional[str] = None,
-        inference_mode: Literal["auto", "local", "remote"] = "auto",
+        inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
     ) -> str:
         model, inference_mode = self._pre_check("image-to-text", model, inference_mode)
@@ -115,7 +126,7 @@ class HuggingFaceClient:
         image_file: Union[str, Image],
         prompt: Optional[str] = None,
         model: Optional[str] = None,
-        inference_mode: Literal["auto", "local", "remote"] = "auto",
+        inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
     ) -> Image:
         model, inference_mode = self._pre_check("image-to-image", model, inference_mode)
@@ -143,7 +154,7 @@ class HuggingFaceClient:
         image_file: Union[str, Image],
         question: str,
         model: Optional[str] = None,
-        inference_mode: Literal["auto", "local", "remote"] = "auto",
+        inference_mode: Optional[Union[Literal["auto", "local", "remote"], None]] = None,
         **kwargs,
     ) -> str:
         model, inference_mode = self._pre_check("visual-question-answering", model, inference_mode)
