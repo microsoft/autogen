@@ -1,13 +1,8 @@
+import asyncio
+import random
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Protocol, Sequence, Type, cast
-
-import asyncio
-
-from abc import ABC, abstractmethod
-
-import random
-
-
 
 # Type based routing for event
 
@@ -28,6 +23,8 @@ import random
 
 class Event(Protocol):
     sender: str
+    # reply_to: Optional[str]
+
 
 
 # T must encompass all subscribed types for a given agent
@@ -44,6 +41,13 @@ class EventBasedAgent[T: Event](Agent):
 
     async def on_event(self, event: T) -> None:
         ...
+
+    # async def _send_event(self, event: T) -> None:
+    #     ...
+
+    # async def _broadcast_message(self, event: T) -> None:
+    #     ...
+
 
 # NOTE: this works on concrete types and not inheritance
 def event_handler[T: Event](target_type: Type[T]):
