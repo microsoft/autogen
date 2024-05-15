@@ -14,7 +14,6 @@ from ..graph_utils import check_graph_validity, invert_disallowed_to_allowed
 from ..io.base import IOStream
 from ..runtime_logging import log_new_agent, logging_enabled
 from .agent import Agent
-from .chat import ChatResult
 from .conversable_agent import ConversableAgent
 
 logger = logging.getLogger(__name__)
