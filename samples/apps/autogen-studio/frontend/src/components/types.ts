@@ -65,7 +65,7 @@ export interface IWorkflow {
   description: string;
   sender: IAgent;
   receiver: IAgent;
-  type: "twoagents" | "groupchat";
+  type: "autonomous" | "sequential";
   created_at?: string;
   updated_at?: string;
   summary_method?: "none" | "last" | "llm";

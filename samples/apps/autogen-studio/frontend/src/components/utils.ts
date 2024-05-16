@@ -357,7 +357,7 @@ export const sampleAgentConfig = (agent_type: string = "assistant") => {
   }
 };
 
-export const sampleWorkflowConfig = (type = "twoagents") => {
+export const sampleWorkflowConfig = (type = "autonomous") => {
   const llm_model_config: IModelConfig[] = [];
 
   const llm_config: ILLMConfig = {
@@ -402,42 +402,9 @@ export const sampleWorkflowConfig = (type = "twoagents") => {
     description: "Default Agent Workflow",
     sender: userProxyFlowSpec,
     receiver: assistantFlowSpec,
-    type: "twoagents",
+    type: "autonomous",
   };
 
-  const groupChatAssistantConfig = Object.assign(
-    {
-      admin_name: "groupchat_assistant",
-      messages: [],
-      max_round: 10,
-      speaker_selection_method: "auto",
-      allow_repeat_speaker: false,
-      description: "Group Chat Assistant",
-    },
-    assistantConfig
-  );
-  groupChatAssistantConfig.name = "groupchat_assistant";
-  groupChatAssistantConfig.system_message =
-    "You are a helpful assistant skilled at cordinating a group of other assistants to solve a task. ";
-
-  const groupChatFlowSpec: IAgent = {
-    type: "groupchat",
-    config: groupChatAssistantConfig,
-  };
-
-  const groupChatWorkFlowConfig: IWorkflow = {
-    name: "Default Group Workflow",
-    description: "Default Group  Workflow",
-    sender: userProxyFlowSpec,
-    receiver: groupChatFlowSpec,
-    type: "groupchat",
-  };
-
-  if (type === "twoagents") {
-    return workFlowConfig;
-  } else if (type === "groupchat") {
-    return groupChatWorkFlowConfig;
-  }
   return workFlowConfig;
 };
 

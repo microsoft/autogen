@@ -1,0 +1,238 @@
+{
+  "name": "Travel Planning Workflow",
+  "type": "twoagents",
+  "user_id": "guestuser@gmail.com",
+  "description": "Travel workflow",
+  "summary_method": "last",
+  "sender": {
+    "type": "userproxy",
+    "user_id": "guestuser@gmail.com",
+    "config": {
+      "name": "user_proxy",
+      "human_input_mode": "NEVER",
+      "max_consecutive_auto_reply": 25,
+      "system_message": "You are a helpful assistant",
+      "is_termination_msg": null,
+      "code_execution_config": "local",
+      "default_auto_reply": "TERMINATE",
+      "description": "User Proxy Agent Configuration",
+      "llm_config": false,
+      "admin_name": "Admin",
+      "messages": [],
+      "max_round": 100,
+      "speaker_selection_method": "auto",
+      "allow_repeat_speaker": true
+    },
+    "skills": [],
+    "models": [],
+    "agents": []
+  },
+  "receiver": {
+    "type": "groupchat",
+    "user_id": "guestuser@gmail.com",
+    "config": {
+      "name": "travel_groupchat",
+      "human_input_mode": "NEVER",
+      "max_consecutive_auto_reply": 25,
+      "system_message": "You are a group chat manager",
+      "is_termination_msg": null,
+      "code_execution_config": "none",
+      "default_auto_reply": "TERMINATE",
+      "description": "Group Chat Agent Configuration",
+      "llm_config": {
+        "config_list": [
+          {
+            "api_type": "open_ai",
+            "model": "gpt-4-1106-preview",
+            "base_url": null,
+            "api_version": null
+          }
+        ],
+        "temperature": 0,
+        "cache_seed": null,
+        "timeout": null,
+        "max_tokens": 1000,
+        "extra_body": null
+      },
+      "admin_name": "groupchat",
+      "messages": [],
+      "max_round": 100,
+      "speaker_selection_method": "auto",
+      "allow_repeat_speaker": true
+    },
+    "skills": [],
+    "models": [
+      {
+        "user_id": "guestuser@gmail.com",
+        "api_type": "open_ai",
+        "description": "OpenAI GPT-4 model",
+        "model": "gpt-4-1106-preview",
+        "base_url": null,
+        "api_version": null
+      }
+    ],
+    "agents": [
+      {
+        "type": "userproxy",
+        "user_id": "guestuser@gmail.com",
+        "config": {
+          "name": "user_proxy",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 25,
+          "system_message": "You are a helpful assistant",
+          "is_termination_msg": null,
+          "code_execution_config": "local",
+          "default_auto_reply": "TERMINATE",
+          "description": "User Proxy Agent Configuration",
+          "llm_config": false,
+          "admin_name": "Admin",
+          "messages": [],
+          "max_round": 100,
+          "speaker_selection_method": "auto",
+          "allow_repeat_speaker": true
+        },
+        "skills": [],
+        "models": [],
+        "agents": []
+      },
+      {
+        "type": "assistant",
+        "user_id": "guestuser@gmail.com",
+        "config": {
+          "name": "planner_assistant",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 25,
+          "system_message": "You are a helpful assistant that can suggest a travel plan for a user. You are the primary cordinator who will receive suggestions or advice from other agents (local_assistant, language_assistant). You must ensure that the finally plan integrates the suggestions from other agents or team members. YOUR FINAL RESPONSE MUST BE THE COMPLETE PLAN. When the plan is complete and all perspectives are integrated, you can respond with TERMINATE.",
+          "is_termination_msg": null,
+          "code_execution_config": "none",
+          "default_auto_reply": "",
+          "description": "Assistant Agent",
+          "llm_config": {
+            "config_list": [
+              {
+                "api_type": "open_ai",
+                "model": "gpt-4-1106-preview",
+                "base_url": null,
+                "api_version": null
+              }
+            ],
+            "temperature": 0,
+            "cache_seed": null,
+            "timeout": null,
+            "max_tokens": 1000,
+            "extra_body": null
+          },
+          "admin_name": "Admin",
+          "messages": [],
+          "max_round": 100,
+          "speaker_selection_method": "auto",
+          "allow_repeat_speaker": true
+        },
+        "skills": [],
+        "models": [
+          {
+            "user_id": "guestuser@gmail.com",
+            "api_type": "open_ai",
+            "description": "OpenAI GPT-4 model",
+            "model": "gpt-4-1106-preview",
+            "base_url": null,
+            "api_version": null
+          }
+        ],
+        "agents": []
+      },
+      {
+        "type": "assistant",
+        "user_id": "guestuser@gmail.com",
+        "config": {
+          "name": "local_assistant",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 25,
+          "system_message": "You are a local assistant that can suggest local activities or places to visit for a user. You can suggest local activities, places to visit, restaurants to eat at, etc. You can also provide information about the weather, local events, etc. You can provide information about the local area, but you cannot suggest a complete travel plan. You can only provide information about the local area.",
+          "is_termination_msg": null,
+          "code_execution_config": "none",
+          "default_auto_reply": "",
+          "description": "Local Assistant Agent",
+          "llm_config": {
+            "config_list": [
+              {
+                "api_type": "open_ai",
+                "model": "gpt-4-1106-preview",
+                "base_url": null,
+                "api_version": null
+              }
+            ],
+            "temperature": 0,
+            "cache_seed": null,
+            "timeout": null,
+            "max_tokens": 1000,
+            "extra_body": null
+          },
+          "admin_name": "Admin",
+          "messages": [],
+          "max_round": 100,
+          "speaker_selection_method": "auto",
+          "allow_repeat_speaker": true
+        },
+        "skills": [],
+        "models": [
+          {
+            "user_id": "guestuser@gmail.com",
+            "api_type": "open_ai",
+            "description": "OpenAI GPT-4 model",
+            "model": "gpt-4-1106-preview",
+            "base_url": null,
+            "api_version": null
+          }
+        ],
+        "agents": []
+      },
+      {
+        "type": "assistant",
+        "user_id": "guestuser@gmail.com",
+        "config": {
+          "name": "language_assistant",
+          "human_input_mode": "NEVER",
+          "max_consecutive_auto_reply": 25,
+          "system_message": "You are a helpful assistant that can review travel plans, providing feedback on important/critical tips about how best to address language or communication challenges for the given destination. If the plan already includes language tips, you can mention that the plan is satisfactory, with rationale.",
+          "is_termination_msg": null,
+          "code_execution_config": "none",
+          "default_auto_reply": "",
+          "description": "Language Assistant Agent",
+          "llm_config": {
+            "config_list": [
+              {
+                "api_type": "open_ai",
+                "model": "gpt-4-1106-preview",
+                "base_url": null,
+                "api_version": null
+              }
+            ],
+            "temperature": 0,
+            "cache_seed": null,
+            "timeout": null,
+            "max_tokens": 1000,
+            "extra_body": null
+          },
+          "admin_name": "Admin",
+          "messages": [],
+          "max_round": 100,
+          "speaker_selection_method": "auto",
+          "allow_repeat_speaker": true
+        },
+        "skills": [],
+        "models": [
+          {
+            "user_id": "guestuser@gmail.com",
+            "api_type": "open_ai",
+            "description": "OpenAI GPT-4 model",
+            "model": "gpt-4-1106-preview",
+            "base_url": null,
+            "api_version": null
+          }
+        ],
+        "agents": []
+      }
+    ]
+  }
+}

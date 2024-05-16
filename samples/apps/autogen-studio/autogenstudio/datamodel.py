@@ -164,6 +164,7 @@ class WorkflowAgentType(str, Enum):
     sender = "sender"
     receiver = "receiver"
     planner = "planner"
+    sequential = "sequential"
 
 
 class WorkflowAgentLink(SQLModel, table=True):
@@ -174,6 +175,7 @@ class WorkflowAgentLink(SQLModel, table=True):
         default=WorkflowAgentType.sender,
         sa_column=Column(SqlEnum(WorkflowAgentType), primary_key=True),
     )
+    sequence_id: Optional[int] = None
 
 
 class AgentLink(SQLModel, table=True):
@@ -218,8 +220,8 @@ class Agent(SQLModel, table=True):
 
 
 class WorkFlowType(str, Enum):
-    twoagents = "twoagents"
-    groupchat = "groupchat"
+    autonomous = "autonomous"
+    sequential = "sequential"
 
 
 class WorkFlowSummaryMethod(str, Enum):
@@ -243,11 +245,12 @@ class Workflow(SQLModel, table=True):
     name: str
     description: str
     agents: List[Agent] = Relationship(back_populates="workflows", link_model=WorkflowAgentLink)
-    type: WorkFlowType = Field(default=WorkFlowType.twoagents, sa_column=Column(SqlEnum(WorkFlowType)))
+    type: WorkFlowType = Field(default=WorkFlowType.autonomous, sa_column=Column(SqlEnum(WorkFlowType)))
     summary_method: Optional[WorkFlowSummaryMethod] = Field(
         default=WorkFlowSummaryMethod.last,
         sa_column=Column(SqlEnum(WorkFlowSummaryMethod)),
     )
+    sample_tasks: Optional[List[str]] = Field(default_factory=list, sa_column=Column(JSON))
 
 
 class Response(SQLModel):

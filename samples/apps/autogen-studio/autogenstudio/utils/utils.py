@@ -307,6 +307,8 @@ install via pip and use --quiet option.
          """
     prompt = ""  # filename:  skills.py
     for skill in skills:
+        if not isinstance(skill, Skill):
+            skill = Skill(**skill)
         prompt += f"""
 
 ##### Begin of {skill.name} #####

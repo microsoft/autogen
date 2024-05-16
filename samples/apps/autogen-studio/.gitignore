@@ -9,6 +9,9 @@ autogenstudio/web/workdir/*
 autogenstudio/web/ui/*
 autogenstudio/web/skills/user/*
 .release.sh
+.nightly.sh
+
+notebooks/work_dir/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

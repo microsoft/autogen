@@ -92,8 +92,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-api = FastAPI(root_path="/api")
+show_docs = os.environ.get("AUTOGENSTUDIO_API_DOCS", "False").lower() == "true"
+docs_url = "/docs" if show_docs else None
+api = FastAPI(
+    root_path="/api",
+    title="AutoGen Studio API",
+    version=VERSION,
+    docs_url=docs_url,
+    description="AutoGen Studio is a low-code tool for building and testing multi-agent workflows using AutoGen.",
+)
 # mount an api route such that the main route serves the ui and the /api
 app.mount("/api", api)
 
@@ -291,6 +298,19 @@ async def get_workflow(workflow_id: int, user_id: str):
     """Get a workflow"""
     filters = {"id": workflow_id, "user_id": user_id}
     return list_entity(Workflow, filters=filters)
+
+
+@api.get("/workflows/export/{workflow_id}")
+async def export_workflow(workflow_id: int, user_id: str):
+    """Export a user workflow"""
+    response = Response(message="Workflow exported successfully", status=True, data=None)
+    try:
+        workflow_details = workflow_from_id(workflow_id, dbmanager=dbmanager)
+        response.data = workflow_details
+    except Exception as ex_error:
+        response.message = "Error occurred while exporting workflow: " + str(ex_error)
+        response.status = False
+    return response.model_dump(mode="json")
 
 
 @api.post("/workflows")

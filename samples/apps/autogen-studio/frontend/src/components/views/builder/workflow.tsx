@@ -1,6 +1,7 @@
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
+  CodeBracketSquareIcon,
   DocumentDuplicateIcon,
   InformationCircleIcon,
   PlusIcon,
@@ -22,6 +23,7 @@ import {
 } from "../../utils";
 import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
 import { WorflowViewer } from "./utils/workflowconfig";
+import { ExportWorkflowModal } from "./utils/export";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -36,6 +38,8 @@ const WorkflowView = ({}: any) => {
 
   const [workflows, setWorkflows] = React.useState<IWorkflow[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
+    React.useState<IWorkflow | null>(null);
+  const [selectedExportWorkflow, setSelectedExportWorkflow] =
     React.useState<IWorkflow | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
@@ -119,9 +123,21 @@ const WorkflowView = ({}: any) => {
     }
   }, [selectedWorkflow]);
 
+  const [showExportModal, setShowExportModal] = React.useState(false);
+
   const workflowRows = (workflows || []).map(
     (workflow: IWorkflow, i: number) => {
       const cardItems = [
+        {
+          title: "Export",
+          icon: CodeBracketSquareIcon,
+          onClick: (e: any) => {
+            e.stopPropagation();
+            setSelectedExportWorkflow(workflow);
+            setShowExportModal(true);
+          },
+          hoverText: "Export",
+        },
         {
           title: "Download",
           icon: ArrowDownTrayIcon,
@@ -285,28 +301,28 @@ const WorkflowView = ({}: any) => {
   };
 
   const workflowTypes: MenuProps["items"] = [
-    {
-      key: "twoagents",
-      label: (
-        <div>
-          {" "}
-          <UsersIcon className="w-5 h-5 inline-block mr-2" />
-          Two Agents
-        </div>
-      ),
-    },
-    {
-      key: "groupchat",
-      label: (
-        <div>
-          <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
-          Group Chat
-        </div>
-      ),
-    },
-    {
-      type: "divider",
-    },
+    // {
+    //   key: "twoagents",
+    //   label: (
+    //     <div>
+    //       {" "}
+    //       <UsersIcon className="w-5 h-5 inline-block mr-2" />
+    //       Two Agents
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   key: "groupchat",
+    //   label: (
+    //     <div>
+    //       <UserGroupIcon className="w-5 h-5 inline-block mr-2" />
+    //       Group Chat
+    //     </div>
+    //   ),
+    // },
+    // {
+    //   type: "divider",
+    // },
     {
       key: "uploadworkflow",
       label: (
@@ -350,6 +366,12 @@ const WorkflowView = ({}: any) => {
         handler={(workflow: IWorkflow) => {
           fetchWorkFlow();
         }}
+      />
+
+      <ExportWorkflowModal
+        workflow={selectedExportWorkflow}
+        show={showExportModal}
+        setShow={setShowExportModal}
       />
 
       <div className="mb-2   relative">

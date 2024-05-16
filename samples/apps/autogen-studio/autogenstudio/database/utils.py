@@ -23,6 +23,7 @@ from ..datamodel import (
     Skill,
     Workflow,
     WorkflowAgentLink,
+    WorkFlowType,
 )
 
 
@@ -71,9 +72,12 @@ def workflow_from_id(workflow_id: int, dbmanager: Any):
             agent_dict["agents"] = [get_agent(agent.id) for agent in agent.agents]
             return agent_dict
 
+    agents = []
     for link in workflow_agent_links:
         agent_dict = get_agent(link.agent_id)
+        agents.append({"agent": agent_dict, "link": link.model_dump(mode="json")})
         workflow[str(link.agent_type.value)] = agent_dict
+
     return workflow
 
 
@@ -141,9 +145,13 @@ def init_db_samples(dbmanager: Any):
         logger.info("Database already initialized with Default and Travel Planning Workflows")
         return
     logger.info("Initializing database with Default and Travel Planning Workflows")
+
     # models
-    gpt_4_model = Model(
-        model="gpt-4-1106-preview", description="OpenAI GPT-4 model", user_id="guestuser@gmail.com", api_type="open_ai"
+    google_gemini_model = Model(
+        model="gemini-1.5-pro-latest",
+        description="Google's Gemini model",
+        user_id="guestuser@gmail.com",
+        api_type="google",
     )
     azure_model = Model(
         model="gpt4-turbo",
@@ -160,15 +168,11 @@ def init_db_samples(dbmanager: Any):
         api_type="open_ai",
     )
 
-    google_gemini_model = Model(
-        model="gemini-1.5-pro-latest",
-        description="Google's Gemini model",
-        user_id="guestuser@gmail.com",
-        api_type="google",
+    gpt_4_model = Model(
+        model="gpt-4-1106-preview", description="OpenAI GPT-4 model", user_id="guestuser@gmail.com", api_type="open_ai"
     )
 
     # skills
-
     generate_image_skill = Skill(
         name="generate_images",
         description="Generate and save images based on a user's query.",
@@ -177,32 +181,6 @@ def init_db_samples(dbmanager: Any):
     )
 
     # agents
-    user_proxy_config = AgentConfig(
-        name="user_proxy",
-        description="User Proxy Agent Configuration",
-        human_input_mode="NEVER",
-        max_consecutive_auto_reply=25,
-        system_message="You are a helpful assistant",
-        code_execution_config=CodeExecutionConfigTypes.local,
-        default_auto_reply="TERMINATE",
-        llm_config=False,
-    )
-    user_proxy = Agent(
-        user_id="guestuser@gmail.com", type=AgentType.userproxy, config=user_proxy_config.model_dump(mode="json")
-    )
-
-    painter_assistant_config = AgentConfig(
-        name="default_assistant",
-        description="Assistant Agent",
-        human_input_mode="NEVER",
-        max_consecutive_auto_reply=25,
-        system_message=AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
-        code_execution_config=CodeExecutionConfigTypes.none,
-        llm_config={},
-    )
-    painter_assistant = Agent(
-        user_id="guestuser@gmail.com", type=AgentType.assistant, config=painter_assistant_config.model_dump(mode="json")
-    )
 
     planner_assistant_config = AgentConfig(
         name="planner_assistant",
@@ -245,7 +223,7 @@ def init_db_samples(dbmanager: Any):
         config=language_assistant_config.model_dump(mode="json"),
     )
 
-    # group chat
+    # group chat agent
     travel_groupchat_config = AgentConfig(
         name="travel_groupchat",
         admin_name="groupchat",
@@ -262,11 +240,48 @@ def init_db_samples(dbmanager: Any):
         user_id="guestuser@gmail.com", type=AgentType.groupchat, config=travel_groupchat_config.model_dump(mode="json")
     )
 
-    # workflows
-    default_workflow = Workflow(name="Default Workflow", description="Default workflow", user_id="guestuser@gmail.com")
+    user_proxy_config = AgentConfig(
+        name="user_proxy",
+        description="User Proxy Agent Configuration",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=25,
+        system_message="You are a helpful assistant",
+        code_execution_config=CodeExecutionConfigTypes.local,
+        default_auto_reply="TERMINATE",
+        llm_config=False,
+    )
+    user_proxy = Agent(
+        user_id="guestuser@gmail.com", type=AgentType.userproxy, config=user_proxy_config.model_dump(mode="json")
+    )
 
+    default_assistant_config = AgentConfig(
+        name="default_assistant",
+        description="Assistant Agent",
+        human_input_mode="NEVER",
+        max_consecutive_auto_reply=25,
+        system_message=AssistantAgent.DEFAULT_SYSTEM_MESSAGE,
+        code_execution_config=CodeExecutionConfigTypes.none,
+        llm_config={},
+    )
+    default_assistant = Agent(
+        user_id="guestuser@gmail.com", type=AgentType.assistant, config=default_assistant_config.model_dump(mode="json")
+    )
+
+    # workflows
     travel_workflow = Workflow(
-        name="Travel Planning Workflow", description="Travel workflow", user_id="guestuser@gmail.com"
+        name="Travel Planning Workflow",
+        description="Travel workflow",
+        user_id="guestuser@gmail.com",
+        sample_tasks=["Plan a 3 day trip to Hawaii Islands.", "Plan an eventful and exciting trip to  Uzbeksitan."],
+    )
+    default_workflow = Workflow(
+        name="Default Workflow",
+        description="Default workflow",
+        user_id="guestuser@gmail.com",
+        sample_tasks=[
+            "paint a picture of a glass of ethiopian coffee, freshly brewed in a tall glass cup, on a table right in front of a lush green forest scenery",
+            "Plot the stock price of NVIDIA YTD.",
+        ],
     )
 
     with Session(dbmanager.engine) as session:
@@ -276,25 +291,25 @@ def init_db_samples(dbmanager: Any):
         session.add(gpt_4_model)
         session.add(generate_image_skill)
         session.add(user_proxy)
-        session.add(painter_assistant)
+        session.add(default_assistant)
         session.add(travel_groupchat_agent)
         session.add(planner_assistant)
         session.add(local_assistant)
         session.add(language_assistant)
 
-        session.add(default_workflow)
         session.add(travel_workflow)
+        session.add(default_workflow)
         session.commit()
 
-        dbmanager.link(link_type="agent_model", primary_id=painter_assistant.id, secondary_id=gpt_4_model.id)
-        dbmanager.link(link_type="agent_skill", primary_id=painter_assistant.id, secondary_id=generate_image_skill.id)
+        dbmanager.link(link_type="agent_model", primary_id=default_assistant.id, secondary_id=gpt_4_model.id)
+        dbmanager.link(link_type="agent_skill", primary_id=default_assistant.id, secondary_id=generate_image_skill.id)
         dbmanager.link(
             link_type="workflow_agent", primary_id=default_workflow.id, secondary_id=user_proxy.id, agent_type="sender"
         )
         dbmanager.link(
             link_type="workflow_agent",
             primary_id=default_workflow.id,
-            secondary_id=painter_assistant.id,
+            secondary_id=default_assistant.id,
             agent_type="receiver",
         )
 

@@ -1,4 +1,6 @@
+import json
 import os
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
@@ -9,18 +11,27 @@ from .datamodel import (
     AgentType,
     Message,
     SocketMessage,
+    WorkFlowSummaryMethod,
+    WorkFlowType,
 )
-from .utils import clear_folder, get_skills_from_prompt, load_code_execution_config, sanitize_model
+from .utils import (
+    clear_folder,
+    get_modified_files,
+    get_skills_from_prompt,
+    load_code_execution_config,
+    sanitize_model,
+    summarize_chat_history,
+)
 
 
 class WorkflowManager:
     """
-    AutoGenWorkFlowManager class to load agents from a provided configuration and run a chat between them
+    WorkflowManager class to load agents from a provided configuration and run a chat between them.
     """
 
     def __init__(
         self,
-        workflow: Dict,
+        workflow: Union[Dict, str],
         history: Optional[List[Message]] = None,
         work_dir: str = None,
         clear_work_dir: bool = True,
@@ -28,27 +39,59 @@ class WorkflowManager:
         connection_id: Optional[str] = None,
     ) -> None:
         """
-        Initializes the AutoGenFlow with agents specified in the config and optional
-        message history.
+        Initializes the WorkflowManager with agents specified in the config and optional message history.
 
         Args:
-            config: The configuration settings for the sender and receiver agents.
-            history: An optional list of previous messages to populate the agents' history.
-
+            workflow (Union[Dict, str]): The workflow configuration. This can be a dictionary or a string which is a path to a JSON file.
+            history (Optional[List[Message]]): The message history.
+            work_dir (str): The working directory.
+            clear_work_dir (bool): If set to True, clears the working directory.
+            send_message_function (Optional[callable]): The function to send messages.
+            connection_id (Optional[str]): The connection identifier.
         """
+        if isinstance(workflow, str):
+            if os.path.isfile(workflow):
+                with open(workflow, "r") as file:
+                    self.workflow = json.load(file)
+            else:
+                raise FileNotFoundError(f"The file {workflow} does not exist.")
+        elif isinstance(workflow, dict):
+            self.workflow = workflow
+        else:
+            raise ValueError("The 'workflow' parameter should be either a dictionary or a valid JSON file path")
+
         # TODO - improved typing for workflow
         self.send_message_function = send_message_function
         self.connection_id = connection_id
         self.work_dir = work_dir or "work_dir"
         if clear_work_dir:
             clear_folder(self.work_dir)
-        self.workflow = workflow
-        self.sender = self.load(workflow.get("sender"))
-        self.receiver = self.load(workflow.get("receiver"))
         self.agent_history = []
+        self.history = history or []
+        self.sender = None
+        self.receiver = None
 
-        if history:
-            self._populate_history(history)
+    def _run_workflow(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> None:
+        """
+        Runs the workflow based on the provided configuration.
+
+        Args:
+            message: The initial message to start the chat.
+            history: A list of messages to populate the agents' history.
+            clear_history: If set to True, clears the chat history before initiating.
+
+        """
+
+        if self.workflow.get("type", None) == WorkFlowType.autonomous.value:
+            self.sender = self.load(self.workflow.get("sender"))
+            self.receiver = self.load(self.workflow.get("receiver"))
+            if history:
+                self._populate_history(history)
+            self.sender.initiate_chat(
+                self.receiver,
+                message=message,
+                clear_history=clear_history,
+            )
 
     def _serialize_agent(
         self,
@@ -241,7 +284,7 @@ class WorkflowManager:
                 raise ValueError(f"Unknown agent type: {agent.type}")
             return agent
 
-    def run(self, message: str, clear_history: bool = False) -> None:
+    def run(self, message: str, history: Optional[List[Message]] = None, clear_history: bool = False) -> Message:
         """
         Initiates a chat between the sender and receiver agents with an initial message
         and an option to clear the history.
@@ -250,11 +293,64 @@ class WorkflowManager:
             message: The initial message to start the chat.
             clear_history: If set to True, clears the chat history before initiating.
         """
-        self.sender.initiate_chat(
-            self.receiver,
-            message=message,
-            clear_history=clear_history,
+
+        start_time = time.time()
+        self._run_workflow(message=message, history=history, clear_history=clear_history)
+        end_time = time.time()
+
+        output = self._generate_output(message, self.workflow.get("summary_method", "last"))
+
+        result_message = Message(
+            content=output,
+            role="assistant",
+            meta={
+                "messages": self.agent_history,
+                "summary_method": self.workflow.get("summary_method", "last"),
+                "time": end_time - start_time,
+                "files": get_modified_files(start_time, end_time, source_dir=self.work_dir),
+            },
         )
+        return result_message
+
+    def _generate_output(
+        self,
+        message_text: str,
+        summary_method: str,
+    ) -> str:
+        """
+        Generates the output response based on the workflow configuration and agent history.
+
+        :param message_text: The text of the incoming message.
+        :param flow: An instance of `WorkflowManager`.
+        :param flow_config: An instance of `AgentWorkFlowConfig`.
+        :return: The output response as a string.
+        """
+
+        output = ""
+        if summary_method == WorkFlowSummaryMethod.last:
+            (self.agent_history)
+            last_message = self.agent_history[-1]["message"]["content"] if self.agent_history else ""
+            output = last_message
+        elif summary_method == WorkFlowSummaryMethod.llm:
+            client = self.receiver.client
+            status_message = SocketMessage(
+                type="agent_status",
+                data={
+                    "status": "summarizing",
+                    "message": "Summarizing agent dialogue",
+                },
+                connection_id=self.connection_id,
+            )
+            self.send_message_function(status_message.model_dump(mode="json"))
+            output = summarize_chat_history(
+                task=message_text,
+                messages=self.agent_history,
+                client=client,
+            )
+
+        elif summary_method == "none":
+            output = ""
+        return output
 
 
 class ExtendedConversableAgent(autogen.ConversableAgent):
