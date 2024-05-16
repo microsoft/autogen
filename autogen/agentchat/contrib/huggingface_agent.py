@@ -1,9 +1,7 @@
 import copy
-import json
 from enum import Flag, auto
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from huggingface_hub import ImageToTextOutput, InferenceClient
 from typing_extensions import Annotated
 
 from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
@@ -92,7 +90,7 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
             if not hf_capability & _hf_cap:
                 continue
 
-            _hf_cap_config = hf_capability_config.get(_hf_cap.name, {})
+            _hf_cap_config = hf_capability_config.get(_hf_cap, {})
             _hf_cap_config_list = _hf_cap_config.get("config_list", [])
             if len(_hf_cap_config_list) > 0:
                 model = _hf_cap_config_list[0].get("model", None)
