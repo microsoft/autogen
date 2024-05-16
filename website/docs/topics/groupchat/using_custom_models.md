@@ -2,7 +2,7 @@
 
 When using `GroupChatManager` we need to pass a `GroupChat` object in the constructor, a dataclass responsible for 
 gathering agents, preparing messages from prompt templates and selecting speakers 
-(eventually using `speaker_selection_method` as described [here](customized_speaker_selection.mdx)).
+(eventually using `speaker_selection_method` as described [here](customized_speaker_selection)).
 
 To do so GroupChat internally initializes two instances of ConversableAgent.
 In order to control the model clients used by the agents instantiated within the GroupChat, which already receives the 
