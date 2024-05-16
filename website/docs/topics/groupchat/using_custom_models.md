@@ -72,7 +72,7 @@ user_proxy.initiate_chat(chat_manager, initial_message="Suggest me the most tren
 ```
 
 This attribute can either be a class or a list of classes which adheres to the `ModelClient` protocol (see 
-[this link](../non-openai-models/about-using-nonopenai-models.md) for more info about defining a custom model client 
+[this link](../non-openai-models/about-using-nonopenai-models) for more info about defining a custom model client 
 class).
 
 Note that it is not necessary to define a `model_client_cls` when working with Azure OpenAI, OpenAI or other non-custom 
