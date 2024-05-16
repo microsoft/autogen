@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from asyncio import Future
 from typing import List, Sequence, Type, TypeVar
 
-from agnext.core.message_router import MessageRouter
+from agnext.core.agent_runtime import AgentRuntime
 
 from .agent import Agent
 from .message import Message
@@ -11,7 +11,7 @@ T = TypeVar("T", bound=Message)
 
 
 class BaseAgent(ABC, Agent[T]):
-    def __init__(self, name: str, router: MessageRouter[T]) -> None:
+    def __init__(self, name: str, router: AgentRuntime[T]) -> None:
         self._name = name
         self._router = router
 

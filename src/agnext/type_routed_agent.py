@@ -1,8 +1,8 @@
 from typing import Any, Awaitable, Callable, Dict, Sequence, Type, TypeVar
 
+from agnext.core.agent_runtime import AgentRuntime
 from agnext.core.base_agent import BaseAgent
 from agnext.core.exceptions import CantHandleException
-from agnext.core.message_router import MessageRouter
 
 from .core.message import Message
 
@@ -19,7 +19,7 @@ def event_handler(target_type: Type[T]) -> Callable[[Callable[..., Awaitable[T]]
 
 
 class TypeRoutedAgent(BaseAgent[T]):
-    def __init__(self, name: str, router: MessageRouter[T]) -> None:
+    def __init__(self, name: str, router: AgentRuntime[T]) -> None:
         super().__init__(name, router)
 
         self._handlers: Dict[Type[Any], Callable[[T], Awaitable[T]]] = {}

@@ -5,8 +5,8 @@ from typing import Dict, Generic, List, Set, Type, TypeVar
 
 from agnext.core.agent import Agent
 
+from .core.agent_runtime import AgentRuntime
 from .core.message import Message
-from .core.message_router import MessageRouter
 
 T = TypeVar("T", bound=Message)
 
@@ -28,7 +28,7 @@ class SendMessage(Generic[T]):
 class ResponseMessage(Generic[T]): ...
 
 
-class QueueMessageRouter(MessageRouter[T]):
+class SingleThreadedAgentRuntime(AgentRuntime[T]):
     def __init__(self) -> None:
         self._event_queue: List[BroadcastMessage[T] | SendMessage[T]] = []
         self._per_type_subscribers: Dict[Type[T], List[Agent[T]]] = {}

@@ -10,7 +10,7 @@ T = TypeVar("T", bound=Message)
 # Undeliverable - error
 
 
-class MessageRouter(Protocol[T]):
+class AgentRuntime(Protocol[T]):
     def add_agent(self, agent: Agent[T]) -> None: ...
 
     # Returns the response of the message

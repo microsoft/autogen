@@ -2,9 +2,9 @@ import asyncio
 from dataclasses import dataclass
 
 from agnext.core.agent import Agent
+from agnext.core.agent_runtime import AgentRuntime
 from agnext.core.message import Message
-from agnext.core.message_router import MessageRouter
-from agnext.queue_message_router import QueueMessageRouter
+from agnext.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.type_routed_agent import TypeRoutedAgent, event_handler
 
 
@@ -15,7 +15,7 @@ class MessageType(Message):
 
 
 class Inner(TypeRoutedAgent[MessageType]):
-    def __init__(self, name: str, router: MessageRouter[MessageType]) -> None:
+    def __init__(self, name: str, router: AgentRuntime[MessageType]) -> None:
         super().__init__(name, router)
 
     @event_handler(MessageType)
@@ -24,7 +24,7 @@ class Inner(TypeRoutedAgent[MessageType]):
 
 
 class Outer(TypeRoutedAgent[MessageType]):
-    def __init__(self, name: str, router: MessageRouter[MessageType], inner: Agent[MessageType]) -> None:
+    def __init__(self, name: str, router: AgentRuntime[MessageType], inner: Agent[MessageType]) -> None:
         super().__init__(name, router)
         self._inner = inner
 
@@ -36,7 +36,7 @@ class Outer(TypeRoutedAgent[MessageType]):
 
 
 async def main() -> None:
-    router = QueueMessageRouter[MessageType]()
+    router = SingleThreadedAgentRuntime[MessageType]()
 
     inner = Inner("inner", router)
     outer = Outer("outer", router, inner)
