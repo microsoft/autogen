@@ -112,24 +112,24 @@ builder.Host.UseOrleans(siloBuilder =>
             options.ResponseTimeout = TimeSpan.FromMinutes(3);
             options.SystemResponseTimeout = TimeSpan.FromMinutes(3);
         });
-         siloBuilder.Configure<ClientMessagingOptions>(options =>
-        {
-            options.ResponseTimeout = TimeSpan.FromMinutes(3);
-        });
-        siloBuilder.UseCosmosClustering( o =>
+        siloBuilder.Configure<ClientMessagingOptions>(options =>
+       {
+           options.ResponseTimeout = TimeSpan.FromMinutes(3);
+       });
+        siloBuilder.UseCosmosClustering(o =>
             {
                 o.ConfigureCosmosClient(cosmosDbconnectionString);
                 o.ContainerName = "devteam";
                 o.DatabaseName = "clustering";
                 o.IsResourceCreationEnabled = true;
             });
-        
-        siloBuilder.UseCosmosReminderService( o => 
+
+        siloBuilder.UseCosmosReminderService(o =>
         {
-                o.ConfigureCosmosClient(cosmosDbconnectionString);
-                o.ContainerName = "devteam";
-                o.DatabaseName = "reminders";
-                o.IsResourceCreationEnabled = true;
+            o.ConfigureCosmosClient(cosmosDbconnectionString);
+            o.ContainerName = "devteam";
+            o.DatabaseName = "reminders";
+            o.IsResourceCreationEnabled = true;
         });
         siloBuilder.AddCosmosGrainStorage(
             name: "messages",

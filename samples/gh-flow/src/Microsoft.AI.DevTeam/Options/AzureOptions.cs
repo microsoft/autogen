@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace Microsoft.AI.DevTeam;
+
 public class AzureOptions
 {
     [Required]

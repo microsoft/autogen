@@ -12,51 +12,64 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger;
     private readonly IClusterClient _client;
-    private readonly IManageGithub _ghService;
-    private readonly IManageAzure _azService;
 
     public GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger,
     IClusterClient client, IManageGithub ghService, IManageAzure azService)
     {
-        _logger = logger;
-        _client = client;
-        _ghService = ghService;
-        _azService = azService;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _client = client ?? throw new ArgumentNullException(nameof(client));
     }
+
     protected override async Task ProcessIssuesWebhookAsync(WebhookHeaders headers, IssuesEvent issuesEvent, IssuesAction action)
     {
         try
         {
+            ArgumentNullException.ThrowIfNull(headers, nameof(headers));
+            ArgumentNullException.ThrowIfNull(issuesEvent, nameof(issuesEvent));
+            ArgumentNullException.ThrowIfNull(action, nameof(action));
+
             _logger.LogInformation("Processing issue event");
-            var org = issuesEvent.Repository.Owner.Login;
-            var repo = issuesEvent.Repository.Name;
-            var issueNumber = issuesEvent.Issue.Number;
-            var input = issuesEvent.Issue.Body;
+            var org = issuesEvent.Repository?.Owner.Login ?? throw new InvalidOperationException("Repository owner login is null");
+            var repo = issuesEvent.Repository?.Name ?? throw new InvalidOperationException("Repository name is null");
+            var issueNumber = issuesEvent.Issue?.Number ?? throw new InvalidOperationException("Issue number is null");
+            var input = issuesEvent.Issue?.Body ?? string.Empty;
             // Assumes the label follows the following convention: Skill.Function example: PM.Readme
             // Also, we've introduced the Parent label, that ties the sub-issue with the parent issue
-            var labels = issuesEvent.Issue.Labels
+            var labels = issuesEvent.Issue?.Labels
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
-            long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
+            if (labels == null || labels.Count == 0)
+            {
+                _logger.LogWarning("No labels found in issue. Skipping processing.");
+                return;
+            }
+
+            long? parentNumber = labels.TryGetValue("Parent", out string? value) ? long.Parse(value) : null;
+            var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
+
+            if (skillName == null)
+            {
+                _logger.LogWarning("No skill name found in issue. Skipping processing.");
+                return;
+            }
 
             var suffix = $"{org}-{repo}";
             if (issuesEvent.Action == IssuesAction.Opened)
             {
                 _logger.LogInformation("Processing HandleNewAsk");
-                await HandleNewAsk(issueNumber,parentNumber, skillName, labels[skillName], suffix, input, org, repo);
+                await HandleNewAsk(issueNumber, parentNumber, skillName, labels[skillName], suffix, input, org, repo);
             }
-            else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue.User.Type.Value == UserType.Bot)
+            else if (issuesEvent.Action == IssuesAction.Closed && issuesEvent.Issue?.User.Type.Value == UserType.Bot)
             {
                 _logger.LogInformation("Processing HandleClosingIssue");
-                await HandleClosingIssue(issueNumber, parentNumber,skillName, labels[skillName], suffix, org, repo);
+                await HandleClosingIssue(issueNumber, parentNumber, skillName, labels[skillName], suffix, org, repo);
             }
         }
         catch (Exception ex)
         {
-             _logger.LogError(ex, "Processing issue event");
-             throw;
+            _logger.LogError(ex, "Processing issue event");
+            throw;
         }
     }
 
@@ -77,7 +90,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
                                     .Select(l => l.Name.Split('.'))
                                     .Where(parts => parts.Length == 2)
                                     .ToDictionary(parts => parts[0], parts => parts[1]);
-            var skillName = labels.Keys.Where(k=>k != "Parent").FirstOrDefault();
+            var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
             long? parentNumber = labels.ContainsKey("Parent") ? long.Parse(labels["Parent"]) : null;
             var suffix = $"{org}-{repo}";
             // we only respond to non-bot comments
@@ -91,7 +104,7 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             _logger.LogError(ex, "Processing issue comment event");
             throw;
         }
-       
+
     }
 
     private async Task HandleClosingIssue(long issueNumber, long? parentNumber, string skillName, string functionName, string suffix, string org, string repo)
@@ -101,12 +114,12 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         var streamId = StreamId.Create(Consts.MainNamespace, subject);
         var stream = streamProvider.GetStream<Event>(streamId);
         var eventType = (skillName, functionName) switch
-            {
-                ("PM","Readme") => nameof(GithubFlowEventType.ReadmeChainClosed),
-                ("DevLead","Plan") => nameof(GithubFlowEventType.DevPlanChainClosed),
-                ("Developer","Implement") => nameof(GithubFlowEventType.CodeChainClosed),
-                _ => nameof(GithubFlowEventType.NewAsk)
-            };
+        {
+            ("PM", "Readme") => nameof(GithubFlowEventType.ReadmeChainClosed),
+            ("DevLead", "Plan") => nameof(GithubFlowEventType.DevPlanChainClosed),
+            ("Developer", "Implement") => nameof(GithubFlowEventType.CodeChainClosed),
+            _ => nameof(GithubFlowEventType.NewAsk)
+        };
         var data = new Dictionary<string, string>
         {
             { "org", org },
@@ -136,12 +149,12 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
             var eventType = (skillName, functionName) switch
             {
                 ("Do", "It") => nameof(GithubFlowEventType.NewAsk),
-                ("PM","Readme") => nameof(GithubFlowEventType.ReadmeRequested),
-                ("DevLead","Plan") => nameof(GithubFlowEventType.DevPlanRequested),
-                 ("Developer","Implement")  => nameof(GithubFlowEventType.CodeGenerationRequested),
+                ("PM", "Readme") => nameof(GithubFlowEventType.ReadmeRequested),
+                ("DevLead", "Plan") => nameof(GithubFlowEventType.DevPlanRequested),
+                ("Developer", "Implement") => nameof(GithubFlowEventType.CodeGenerationRequested),
                 _ => nameof(GithubFlowEventType.NewAsk)
             };
-             var data = new Dictionary<string, string>
+            var data = new Dictionary<string, string>
             {
                 { "org", org },
                 { "repo", repo },
@@ -159,8 +172,8 @@ public sealed class GithubWebHookProcessor : WebhookEventProcessor
         }
         catch (Exception ex)
         {
-             _logger.LogError(ex, "Handling new ask");
-             throw;
+            _logger.LogError(ex, "Handling new ask");
+            throw;
         }
     }
 }

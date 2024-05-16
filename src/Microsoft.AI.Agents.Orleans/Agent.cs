@@ -8,10 +8,12 @@ public abstract class Agent : Grain, IGrainWithStringKey, IAgent
 {
     protected virtual string Namespace { get;set;}
      public abstract Task HandleEvent(Event item);
+
     private async Task HandleEvent(Event item, StreamSequenceToken? token)
     {
         await HandleEvent(item);
     }
+    
     public async Task PublishEvent(string ns, string id, Event item)
     {
         var streamProvider = this.GetStreamProvider("StreamProvider");
