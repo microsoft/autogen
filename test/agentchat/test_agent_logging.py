@@ -6,13 +6,15 @@ import uuid
 
 import pytest
 
-import autogen
-import autogen.runtime_logging
-
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+
+
 from conftest import skip_openai  # noqa: E402
 from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST  # noqa: E402
+
+import autogen
+import autogen.runtime_logging
 
 TEACHER_MESSAGE = """
     You are roleplaying a math teacher, and your job is to help your students with linear algebra.

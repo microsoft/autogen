@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 import sqlite3
 import uuid
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Union
 
 from openai import AzureOpenAI, OpenAI
 from openai.types.chat import ChatCompletion
 
-from autogen.logger.base_logger import LLMConfig
+from autogen.logger.base_logger import BaseLogger, LLMConfig
 from autogen.logger.logger_factory import LoggerFactory
 
 if TYPE_CHECKING:
@@ -20,11 +20,27 @@ autogen_logger = None
 is_logging = False
 
 
-def start(logger_type: str = "sqlite", config: Optional[Dict[str, Any]] = None) -> str:
+def start(
+    logger: Optional[BaseLogger] = None,
+    logger_type: Literal["sqlite", "file"] = "sqlite",
+    config: Optional[Dict[str, Any]] = None,
+) -> str:
+    """
+    Start logging for the runtime.
+    Args:
+        logger (BaseLogger):    A logger instance
+        logger_type (str):      The type of logger to use (default: sqlite)
+        config (dict):          Configuration for the logger
+    Returns:
+        session_id (str(uuid.uuid4)):       a unique id for the logging session
+    """
     global autogen_logger
     global is_logging
 
-    autogen_logger = LoggerFactory.get_logger(logger_type=logger_type, config=config)
+    if logger:
+        autogen_logger = logger
+    else:
+        autogen_logger = LoggerFactory.get_logger(logger_type=logger_type, config=config)
 
     try:
         session_id = autogen_logger.start()
