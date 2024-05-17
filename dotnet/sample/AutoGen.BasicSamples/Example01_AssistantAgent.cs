@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Example01_AssistantAgent.cs
 
-using AutoGen.Core;
 using AutoGen;
 using AutoGen.BasicSample;
+using AutoGen.Core;
 using FluentAssertions;
 
 /// <summary>

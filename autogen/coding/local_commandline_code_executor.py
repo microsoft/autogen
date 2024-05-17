@@ -1,4 +1,5 @@
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -6,6 +7,7 @@ import warnings
 from hashlib import md5
 from pathlib import Path
 from string import Template
+from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, Dict, List, Optional, Union
 
 from typing_extensions import ParamSpec
@@ -64,6 +66,7 @@ $functions"""
     def __init__(
         self,
         timeout: int = 60,
+        virtual_env_context: Optional[SimpleNamespace] = None,
         work_dir: Union[Path, str] = Path("."),
         functions: List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]] = [],
         functions_module: str = "functions",
@@ -82,8 +85,22 @@ $functions"""
         PowerShell (pwsh, powershell, ps1), HTML, CSS, and JavaScript.
         Execution policies determine whether each language's code blocks are executed or saved only.
 
+        ## Execution with a Python virtual environment
+        A python virtual env can be used to execute code and install dependencies. This has the added benefit of not polluting the
+        base environment with unwanted modules.
+        ```python
+        from autogen.code_utils import create_virtual_env
+        from autogen.coding import LocalCommandLineCodeExecutor
+
+        venv_dir = ".venv"
+        venv_context = create_virtual_env(venv_dir)
+
+        executor = LocalCommandLineCodeExecutor(virtual_env_context=venv_context)
+        ```
+
         Args:
             timeout (int): The timeout for code execution, default is 60 seconds.
+            virtual_env_context (Optional[SimpleNamespace]): The virtual environment context to use.
             work_dir (Union[Path, str]): The working directory for code execution, defaults to the current directory.
             functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any], FunctionWithRequirementsStr]]): A list of callable functions available to the executor.
             functions_module (str): The module name under which functions are accessible.
@@ -105,6 +122,7 @@ $functions"""
 
         self._timeout = timeout
         self._work_dir: Path = work_dir
+        self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
         self._functions = functions
         # Setup could take some time so we intentionally wait for the first code block to do it.
@@ -196,7 +214,11 @@ $functions"""
         required_packages = list(set(flattened_packages))
         if len(required_packages) > 0:
             logging.info("Ensuring packages are installed in executor.")
-            cmd = [sys.executable, "-m", "pip", "install"] + required_packages
+            if self._virtual_env_context:
+                py_executable = self._virtual_env_context.env_exe
+            else:
+                py_executable = sys.executable
+            cmd = [py_executable, "-m", "pip", "install"] + required_packages
             try:
                 result = subprocess.run(
                     cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
@@ -269,9 +291,18 @@ $functions"""
 
             program = _cmd(lang)
             cmd = [program, str(written_file.absolute())]
+            env = os.environ.copy()
+
+            if self._virtual_env_context:
+                path_with_virtualenv = rf"{self._virtual_env_context.bin_path}{os.pathsep}{env['PATH']}"
+                env["PATH"] = path_with_virtualenv
+                if WIN32:
+                    activation_script = os.path.join(self._virtual_env_context.bin_path, "activate.bat")
+                    cmd = [activation_script, "&&", *cmd]
+
             try:
                 result = subprocess.run(
-                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout)
+                    cmd, cwd=self._work_dir, capture_output=True, text=True, timeout=float(self._timeout), env=env
                 )
             except subprocess.TimeoutExpired:
                 logs_all += "\n" + TIMEOUT_MSG
