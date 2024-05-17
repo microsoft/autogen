@@ -21,7 +21,7 @@ install_requires = [
     # numpy is installed by flaml, but we want to pin the version to below 2.x (see https://github.com/microsoft/autogen/issues/1960)
     "numpy>=1.17.0,<2",
     "python-dotenv",
-    "agentops"
+    "agentops",
 ]
 
 jupyter_executor = [

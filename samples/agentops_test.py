@@ -1,4 +1,5 @@
 from typing import Annotated, Literal
+
 import agentops
 
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json, register_function
