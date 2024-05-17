@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
-
+  
 
 	<PropertyGroup>
 		<Title>AutoGen.SourceGenerator</Title>
@@ -49,6 +49,10 @@
 	<ItemGroup>
 	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
 	</ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoGen.SourceGenerator.Tests"/>
+  </ItemGroup>
 
 	<ItemGroup>
 	  <Compile Update="Template\FunctionCallTemplate.cs">
