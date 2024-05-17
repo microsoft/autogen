@@ -1,7 +1,9 @@
-import threading
 import datetime
-import autogencap.Config as Config
+import threading
+
 from termcolor import colored
+
+import autogencap.Config as Config
 
 # Define log levels as constants
 DEBUG = 0
@@ -12,6 +14,7 @@ ERROR = 3
 # Map log levels to their names
 LEVEL_NAMES = ["DBG", "INF", "WRN", "ERR"]
 LEVEL_COLOR = ["dark_grey", "green", "yellow", "red"]
+
 
 class BaseLogger:
     def __init__(self):
@@ -46,7 +49,9 @@ class ConsoleLogger(BaseLogger):
         msg = colored(msg, LEVEL_COLOR[level])
         print(f"{thread_id} {timestamp} {level_name}: [{context}] {msg}")
 
+
 LOGGER = ConsoleLogger()
+
 
 def Debug(context, message):
     LOGGER.Log(DEBUG, context, message)
