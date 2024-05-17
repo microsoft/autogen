@@ -1,11 +1,11 @@
 import asyncio
 from dataclasses import dataclass
 
+from agnext.agent_components.type_routed_agent import TypeRoutedAgent, event_handler
+from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.core.agent import Agent
 from agnext.core.agent_runtime import AgentRuntime
 from agnext.core.message import Message
-from agnext.single_threaded_agent_runtime import SingleThreadedAgentRuntime
-from agnext.type_routed_agent import TypeRoutedAgent, event_handler
 
 
 @dataclass

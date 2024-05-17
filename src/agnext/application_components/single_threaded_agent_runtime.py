@@ -3,10 +3,9 @@ from asyncio import Future
 from dataclasses import dataclass
 from typing import Dict, Generic, List, Set, Type, TypeVar
 
-from agnext.core.agent import Agent
-
-from .core.agent_runtime import AgentRuntime
-from .core.message import Message
+from ..core.agent import Agent
+from ..core.agent_runtime import AgentRuntime
+from ..core.message import Message
 
 T = TypeVar("T", bound=Message)
 

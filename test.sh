@@ -15,7 +15,7 @@ echo "--- Running ruff format ---"
 ruff format
 echo "--- Running ruff check ---"
 ruff check
-echo "--- Running ruff lint ---"
+echo "--- Running pyright ---"
 pyright
-echo "--- Running ruff test ---"
+echo "--- Running mypy ---"
 mypy
