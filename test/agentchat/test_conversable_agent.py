@@ -1474,4 +1474,3 @@ if __name__ == "__main__":
     test_summary()
     test_adding_duplicate_function_warning()
     # test_function_registration_e2e_sync()
-
