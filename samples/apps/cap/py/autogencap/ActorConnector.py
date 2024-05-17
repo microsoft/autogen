@@ -134,7 +134,8 @@ class ActorConnector:
                     return topic, resp_msg_type, resp
                 except zmq.Again:
                     Debug(
-                        "ActorConnector", f"{self._topic}: No response received. retry_count={num_attempts}, max_retry={num_attempts}"
+                        "ActorConnector",
+                        f"{self._topic}: No response received. retry_count={num_attempts}, max_retry={num_attempts}",
                     )
                     time.sleep(0.01)
                     if num_attempts != -1:

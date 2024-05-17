@@ -10,12 +10,13 @@ from autogen import UserProxyAgent
 # Filter out some Log message contexts
 IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 
+
 def main():
     # Standard AutoGen
     user_proxy = UserProxyAgent(
         "user_proxy",
         code_execution_config={"work_dir": "coding"},
-        is_termination_msg=lambda x: "TERMINATE" in x.get("content")
+        is_termination_msg=lambda x: "TERMINATE" in x.get("content"),
     )
 
     # Wrap AutoGen Agent in CAP
@@ -31,6 +32,7 @@ def main():
     interact_with_user(network, cap_user_proxy)
     # Cleanup
     network.disconnect()
+
 
 # Starts the Broker and the Assistant. The UserProxy is started separately.
 def interact_with_user(network, cap_assistant):
