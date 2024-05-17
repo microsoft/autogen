@@ -1,11 +1,10 @@
 from typing import Annotated, Literal
-
 import agentops
 
 from autogen import ConversableAgent, UserProxyAgent, config_list_from_json, register_function
 
 Operator = Literal["+", "-", "*", "/"]
-agentops.init(api_key="6b7a1469-bdcb-4d47-85ba-c4824bc8486e", endpoint="http://localhost:8000", tags=["autogen-tool"])
+agentops.init(tags=["autogen-tool"])
 
 
 def calculator(a: int, b: int, operator: Annotated[Operator, "operator"]) -> int:
