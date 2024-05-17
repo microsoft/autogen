@@ -1404,16 +1404,15 @@ def test_http_client():
 
 
 def test_adding_duplicate_function_warning():
-    config_list = autogen.config_list_from_json(
-        OAI_CONFIG_LIST,
-        file_location=KEY_LOC,
-    )
+    config_base = [{
+        "base_url": "http://0.0.0.0:8000",
+        "api_key": "NULL"
+    }]  
 
     agent = autogen.ConversableAgent(
         "jtoy",
         llm_config={
-            "config_list": config_list,
-            "model": "gpt-3.5-turbo-0613",
+            "config_list": config_base
         },
     )
 
