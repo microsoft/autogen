@@ -1,14 +1,17 @@
 #!/usr/bin/env python3 -m pytest
 
 import builtins
+import io
 import json
+import logging
 from typing import Any, Dict, List, Optional
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
+from test_assistant_agent import KEY_LOC, OAI_CONFIG_LIST
 
 import autogen
-from autogen import Agent, GroupChat
+from autogen import Agent, AssistantAgent, GroupChat, GroupChatManager
 from autogen.exception_utils import AgentNameConflict, UndefinedNextAgent
 
 
@@ -1444,6 +1447,46 @@ def test_speaker_selection_agent_name_match():
     assert result == {}
 
 
+def test_role_for_reflection_summary():
+    llm_config = {"config_list": [{"model": "mock", "api_key": "mock"}]}
+    agent1 = autogen.ConversableAgent(
+        "alice",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is alice speaking.",
+    )
+    agent2 = autogen.ConversableAgent(
+        "bob",
+        max_consecutive_auto_reply=10,
+        human_input_mode="NEVER",
+        llm_config=False,
+        default_auto_reply="This is bob speaking.",
+    )
+    groupchat = autogen.GroupChat(
+        agents=[agent1, agent2], messages=[], max_round=3, speaker_selection_method="round_robin"
+    )
+    group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config=llm_config)
+
+    role_name = "user"
+    with mock.patch.object(
+        autogen.ConversableAgent, "_generate_oai_reply_from_client"
+    ) as mock_generate_oai_reply_from_client:
+        mock_generate_oai_reply_from_client.return_value = "Mocked summary"
+
+        agent1.initiate_chat(
+            group_chat_manager,
+            max_turns=2,
+            message="hello",
+            summary_method="reflection_with_llm",
+            summary_args={"summary_role": role_name},
+        )
+
+        mock_generate_oai_reply_from_client.assert_called_once()
+        args, kwargs = mock_generate_oai_reply_from_client.call_args
+        assert kwargs["messages"][-1]["role"] == role_name
+
+
 def test_speaker_selection_auto_process_result():
     """
     Tests the return result of the 2-agent chat used for speaker selection for the auto method.
@@ -1766,6 +1809,204 @@ def test_select_speaker_auto_messages():
         )
 
 
+def test_manager_messages_to_string():
+    """In this test we test the conversion of messages to a JSON string"""
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Chairperson",
+            "role": "assistant",
+        },
+    ]
+
+    groupchat = GroupChat(messages=messages, agents=[])
+    manager = GroupChatManager(groupchat)
+
+    # Convert the messages List[Dict] to a JSON string
+    converted_string = manager.messages_to_string(messages)
+
+    # The conversion should match the original messages
+    assert json.loads(converted_string) == messages
+
+
+def test_manager_messages_from_string():
+    """In this test we test the conversion of a JSON string of messages to a messages List[Dict]"""
+    messages_str = r"""[{"content": "You are an expert at finding the next speaker.", "role": "system"}, {"content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.", "name": "Chairperson", "role": "assistant"}]"""
+
+    groupchat = GroupChat(messages=[], agents=[])
+    manager = GroupChatManager(groupchat)
+
+    # Convert the messages List[Dict] to a JSON string
+    messages = manager.messages_from_string(messages_str)
+
+    # The conversion should match the original messages
+    assert messages_str == json.dumps(messages)
+
+
+def test_manager_resume_functions():
+    """Tests functions within the resume chat functionality"""
+
+    # Setup
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+
+    # Tests that messages are indeed passed in
+    with pytest.raises(Exception):
+        manager._valid_resume_messages(messages=[])
+
+    # Tests that the messages passed in match the agents of the group chat
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Chairperson",
+            "role": "assistant",
+        },
+    ]
+
+    # Chairperson does not exist as an agent
+    with pytest.raises(Exception):
+        manager._valid_resume_messages(messages)
+
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get this meeting started. First the Product_Manager will create 3 new product ideas.",
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    # Coder does exist as an agent, no error
+    manager._valid_resume_messages(messages)
+
+    # Tests termination message replacement
+    final_msg = (
+        "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
+    )
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string="TERMINATE", messages=messages)
+
+    # TERMINATE should be removed
+    assert messages[-1]["content"] == final_msg.replace("TERMINATE", "")
+
+    # Check if the termination string doesn't exist there's no replacing of content
+    final_msg = (
+        "Let's get this meeting started. First the Product_Manager will create 3 new product ideas. TERMINATE this."
+    )
+    messages = [
+        {
+            "content": "You are an expert at finding the next speaker.",
+            "role": "system",
+        },
+        {
+            "content": final_msg,
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    manager._process_resume_termination(remove_termination_string="THE-END", messages=messages)
+
+    # It should not be changed
+    assert messages[-1]["content"] == final_msg
+
+    # Test that it warns that the termination condition would match
+    manager._is_termination_msg = lambda x: x.get("content", "").find("TERMINATE") >= 0
+
+    # Attach a handler to the logger so we can check the log output
+    log_stream = io.StringIO()
+    handler = logging.StreamHandler(log_stream)
+    logger = logging.getLogger()  # Get the root logger
+    logger.addHandler(handler)
+
+    # We should get a warning that TERMINATE is still in the messages
+    manager._process_resume_termination(remove_termination_string="THE-END", messages=messages)
+
+    # Get the logged output and check that the warning was provided.
+    log_output = log_stream.getvalue()
+
+    assert "WARNING: Last message meets termination criteria and this may terminate the chat." in log_output
+
+
+def test_manager_resume_returns():
+    """Tests the return resume chat functionality"""
+
+    # Test the return agent and message is correct
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = [
+        {
+            "content": "You are an expert at coding.",
+            "role": "system",
+        },
+        {
+            "content": "Let's get coding, should I use Python?",
+            "name": "Coder",
+            "role": "assistant",
+        },
+    ]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == coder
+    assert return_message == messages[-1]
+
+    # Test when no agent provided, the manager will be returned
+    messages = [{"content": "You are an expert at coding.", "role": "system", "name": "chat_manager"}]
+
+    return_agent, return_message = manager.resume(messages=messages)
+
+    assert return_agent == manager
+    assert return_message == messages[-1]
+
+
+def test_manager_resume_messages():
+    """Tests that the messages passed into resume are the correct format"""
+
+    coder = AssistantAgent(name="Coder", llm_config=None)
+    groupchat = GroupChat(messages=[], agents=[coder])
+    manager = GroupChatManager(groupchat)
+    messages = 1
+
+    # Only acceptable messages types are JSON str and List[Dict]
+
+    # Try a number
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages=messages)
+
+    # Try an empty string
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="")
+
+    # Try a message starter string, which isn't valid
+    with pytest.raises(Exception):
+        return_agent, return_message = manager.resume(messages="Let's get this conversation started.")
+
+
 if __name__ == "__main__":
     # test_func_call_groupchat()
     # test_broadcast()
@@ -1784,7 +2025,16 @@ if __name__ == "__main__":
     # test_role_for_select_speaker_messages()
     # test_select_speaker_message_and_prompt_templates()
     # test_speaker_selection_agent_name_match()
-    test_speaker_selection_auto_process_result()
-    test_speaker_selection_validate_speaker_name()
-    test_select_speaker_auto_messages()
-    # pass
+    # test_role_for_reflection_summary()
+    # test_speaker_selection_auto_process_result()
+    # test_speaker_selection_validate_speaker_name()
+    # test_select_speaker_auto_messages()
+    # test_speaker_selection_auto_process_result()
+    # test_speaker_selection_validate_speaker_name()
+    # test_select_speaker_auto_messages()
+    # test_manager_messages_to_string()
+    # test_manager_messages_from_string()
+    # test_manager_resume_functions()
+    # test_manager_resume_returns()
+    # test_manager_resume_messages()
+    pass

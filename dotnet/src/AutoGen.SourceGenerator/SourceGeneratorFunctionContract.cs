@@ -3,7 +3,7 @@
 
 namespace AutoGen.SourceGenerator
 {
-    internal class FunctionContract
+    internal class SourceGeneratorFunctionContract
     {
         public string? Namespace { get; set; }
 
@@ -15,12 +15,12 @@ namespace AutoGen.SourceGenerator
 
         public string? ReturnDescription { get; set; }
 
-        public ParameterContract[]? Parameters { get; set; }
+        public SourceGeneratorParameterContract[]? Parameters { get; set; }
 
         public string? ReturnType { get; set; }
     }
 
-    internal class ParameterContract
+    internal class SourceGeneratorParameterContract
     {
         public string? Name { get; set; }
 
