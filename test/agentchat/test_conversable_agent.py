@@ -1404,16 +1404,12 @@ def test_http_client():
 
 
 def test_adding_duplicate_function_warning():
-    config_base = [{
-        "base_url": "http://0.0.0.0:8000",
-        "api_key": "NULL"
-    }]  
+
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
 
     agent = autogen.ConversableAgent(
         "jtoy",
-        llm_config={
-            "config_list": config_base
-        },
+        llm_config={"config_list": config_base},
     )
 
     def sample_function():
