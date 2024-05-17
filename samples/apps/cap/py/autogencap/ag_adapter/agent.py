@@ -1,7 +1,10 @@
 import time
+
 from autogen import ConversableAgent
+
 from ..DebugLog import Info, Warn
 from .CAP2AG import CAP2AG
+
 
 class Agent:
     def __init__(self, agent: ConversableAgent, counter_party_name="user_proxy", init_chat=False):

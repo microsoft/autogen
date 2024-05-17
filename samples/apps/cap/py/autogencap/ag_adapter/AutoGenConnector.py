@@ -6,6 +6,7 @@ from autogen import Agent
 from ..ActorConnector import ActorConnector
 from ..proto.Autogen_pb2 import GenReplyReq, GenReplyResp, PrepChat, ReceiveReq, Terminate
 
+
 class AutoGenConnector:
     """
     A specialized ActorConnector class for sending and receiving Autogen messages

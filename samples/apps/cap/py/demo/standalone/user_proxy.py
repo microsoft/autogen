@@ -1,9 +1,11 @@
 import time
+
 import _paths
-from autogen import UserProxyAgent
-from autogencap.LocalActorNetwork import LocalActorNetwork
-from autogencap.Config import IGNORED_LOG_CONTEXTS
 from autogencap.ag_adapter.agent import Agent
+from autogencap.Config import IGNORED_LOG_CONTEXTS
+from autogencap.LocalActorNetwork import LocalActorNetwork
+
+from autogen import UserProxyAgent
 
 # Filter out some Log message contexts
 IGNORED_LOG_CONTEXTS.extend(["BROKER"])
@@ -11,11 +13,11 @@ IGNORED_LOG_CONTEXTS.extend(["BROKER"])
 def main():
     # Standard AutoGen
     user_proxy = UserProxyAgent(
-        "user_proxy", 
+        "user_proxy",
         code_execution_config={"work_dir": "coding"},
         is_termination_msg=lambda x: "TERMINATE" in x.get("content")
     )
-    
+
     # Wrap AutoGen Agent in CAP
     cap_user_proxy = Agent(user_proxy, counter_party_name="assistant", init_chat=True)
     # Create the message bus
@@ -24,7 +26,7 @@ def main():
     cap_user_proxy.register(network)
     # Start message processing
     network.connect()
-    
+
     # Wait for the user_proxy to finish
     interact_with_user(network, cap_user_proxy)
     # Cleanup
