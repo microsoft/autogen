@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 
-from agnext.agent_components.type_routed_agent import TypeRoutedAgent, event_handler
+from agnext.agent_components.type_routed_agent import TypeRoutedAgent, message_handler
 from agnext.application_components.single_threaded_agent_runtime import SingleThreadedAgentRuntime
 from agnext.core.agent import Agent
 from agnext.core.agent_runtime import AgentRuntime
@@ -10,7 +10,7 @@ from agnext.core.message import Message
 
 @dataclass
 class MessageType(Message):
-    message: str
+    body: str
     sender: str
 
 
@@ -18,9 +18,9 @@ class Inner(TypeRoutedAgent[MessageType]):
     def __init__(self, name: str, router: AgentRuntime[MessageType]) -> None:
         super().__init__(name, router)
 
-    @event_handler(MessageType)
-    async def on_new_event(self, event: MessageType) -> MessageType:
-        return MessageType(message=f"Inner: {event.message}", sender=self.name)
+    @message_handler(MessageType)
+    async def on_new_message(self, message: MessageType) -> MessageType:
+        return MessageType(body=f"Inner: {message.body}", sender=self.name)
 
 
 class Outer(TypeRoutedAgent[MessageType]):
@@ -28,11 +28,11 @@ class Outer(TypeRoutedAgent[MessageType]):
         super().__init__(name, router)
         self._inner = inner
 
-    @event_handler(MessageType)
-    async def on_new_event(self, event: MessageType) -> MessageType:
-        inner_response = self._send_message(event, self._inner)
+    @message_handler(MessageType)
+    async def on_new_message(self, message: MessageType) -> MessageType:
+        inner_response = self._send_message(message, self._inner)
         inner_message = await inner_response
-        return MessageType(message=f"Outer: {inner_message.message}", sender=self.name)
+        return MessageType(body=f"Outer: {inner_message.body}", sender=self.name)
 
 
 async def main() -> None:
@@ -40,7 +40,7 @@ async def main() -> None:
 
     inner = Inner("inner", router)
     outer = Outer("outer", router, inner)
-    response = router.send_message(MessageType(message="Hello", sender="external"), outer)
+    response = router.send_message(MessageType(body="Hello", sender="external"), outer)
 
     while not response.done():
         await router.process_next()

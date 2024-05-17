@@ -25,7 +25,7 @@ class BaseAgent(ABC, Agent[T]):
         return []
 
     @abstractmethod
-    async def on_event(self, event: T) -> T: ...
+    async def on_message(self, message: T) -> T: ...
 
     def _send_message(self, message: T, destination: Agent[T]) -> Future[T]:
         return self._router.send_message(message, destination)

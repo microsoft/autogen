@@ -10,7 +10,7 @@ T = TypeVar("T", bound=Message)
 
 
 # NOTE: this works on concrete types and not inheritance
-def event_handler(target_type: Type[T]) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
+def message_handler(target_type: Type[T]) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         func._target_type = target_type  # type: ignore
         return func
@@ -37,12 +37,12 @@ class TypeRoutedAgent(BaseAgent[T]):
     def subscriptions(self) -> Sequence[Type[T]]:
         return list(self._handlers.keys())
 
-    async def on_event(self, event: T) -> T:
-        handler = self._handlers.get(type(event))
+    async def on_message(self, message: T) -> T:
+        handler = self._handlers.get(type(message))
         if handler is not None:
-            return await handler(event)
+            return await handler(message)
         else:
-            return await self.on_unhandled_event(event)
+            return await self.on_unhandled_message(message)
 
-    async def on_unhandled_event(self, event: T) -> T:
+    async def on_unhandled_message(self, message: T) -> T:
         raise CantHandleException()
