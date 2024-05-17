@@ -649,14 +649,7 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent(
-            "checking_agent",
-            default_auto_reply=max_attempts,
-            llm_config=selector.llm_config
-        )
-
-        # Register any custom model passed in llm_config with the checking_agent
-        self._register_custom_model_clients(checking_agent, selector)
+        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
 
         # Register the speaker validation function with the checking agent
         checking_agent.register_reply(
@@ -746,14 +739,7 @@ class GroupChat:
         # Two-agent chat for speaker selection
 
         # Agent for checking the response from the speaker_select_agent
-        checking_agent = ConversableAgent(
-            "checking_agent",
-            default_auto_reply=max_attempts,
-            llm_config=selector.llm_config
-        )
-
-        # Register any custom model passed in llm_config with the checking_agent
-        self._register_custom_model_clients(checking_agent, selector)
+        checking_agent = ConversableAgent("checking_agent", default_auto_reply=max_attempts)
 
         # Register the speaker validation function with the checking agent
         checking_agent.register_reply(
