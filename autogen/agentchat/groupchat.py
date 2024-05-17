@@ -995,6 +995,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1049,7 +1050,7 @@ class GroupChatManager(ConversableAgent):
                 reply["content"] = self.clear_agents_history(reply, groupchat)
 
             # The speaker sends the message without requesting a reply
-            speaker.send(reply, self, request_reply=False, silent=self._silent)
+            speaker.send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
@@ -1070,6 +1071,7 @@ class GroupChatManager(ConversableAgent):
         speaker = sender
         groupchat = config
         send_introductions = getattr(groupchat, "send_introductions", False)
+        silent = getattr(self, "_silent", False)
 
         if send_introductions:
             # Broadcast the intro
@@ -1114,7 +1116,7 @@ class GroupChatManager(ConversableAgent):
             if reply is None:
                 break
             # The speaker sends the message without requesting a reply
-            await speaker.a_send(reply, self, request_reply=False, silent=self._silent)
+            await speaker.a_send(reply, self, request_reply=False, silent=silent)
             message = self.last_message(speaker)
         if self.client_cache is not None:
             for a in groupchat.agents:
