@@ -147,5 +147,5 @@ class ActorConnector:
         return None, None, None
 
     def close(self):
-        self._sender.close()
+        self._pub_socket.close()
         self._resp_socket.close()
