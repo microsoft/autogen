@@ -12,9 +12,16 @@ public class Graph
 {
     private readonly List<Transition> transitions = new List<Transition>();
 
+    public Graph()
+    {
+    }
+
     public Graph(IEnumerable<Transition> transitions)
     {
-        this.transitions.AddRange(transitions);
+        if (transitions != null)
+        {
+            this.transitions.AddRange(transitions);
+        }
     }
 
     public void AddTransition(Transition transition)
