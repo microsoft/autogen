@@ -2,12 +2,12 @@ from tempfile import TemporaryDirectory
 from typing import Dict
 
 import pytest
-from autogen.io.base import IOStream
 from conftest import skip_openai
 
 import autogen
 from autogen.cache.cache import Cache
 from autogen.io import IOWebsockets
+from autogen.io.base import IOStream
 
 KEY_LOC = "notebook"
 OAI_CONFIG_LIST = "OAI_CONFIG_LIST"

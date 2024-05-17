@@ -73,7 +73,7 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
     return get_typed_annotation(annotation, globalns)
 
 
-def get_param_annotations(typed_signature: inspect.Signature) -> Dict[int, Union[Annotated[Type[Any], str], Type[Any]]]:
+def get_param_annotations(typed_signature: inspect.Signature) -> Dict[str, Union[Annotated[Type[Any], str], Type[Any]]]:
     """Get the type annotations of the parameters of a function
 
     Args:
@@ -110,9 +110,7 @@ class ToolFunction(BaseModel):
     function: Annotated[Function, Field(description="Function under tool")]
 
 
-def get_parameter_json_schema(
-    k: str, v: Union[Annotated[Type[Any], str], Type[Any]], default_values: Dict[str, Any]
-) -> JsonSchemaValue:
+def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) -> JsonSchemaValue:
     """Get a JSON schema for a parameter as defined by the OpenAI API
 
     Args:
@@ -285,7 +283,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
     return model_dump(function)
 
 
-def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[T, Type[Any]], BaseModel]]:
+def get_load_param_if_needed_function(t: Any) -> Optional[Callable[[Dict[str, Any], Type[BaseModel]], BaseModel]]:
     """Get a function to load a parameter if it is a Pydantic model
 
     Args:
@@ -319,10 +317,10 @@ def load_basemodels_if_needed(func: Callable[..., Any]) -> Callable[..., Any]:
     param_annotations = get_param_annotations(typed_signature)
 
     # get functions for loading BaseModels when needed based on the type annotations
-    kwargs_mapping = {k: get_load_param_if_needed_function(t) for k, t in param_annotations.items()}
+    kwargs_mapping_with_nones = {k: get_load_param_if_needed_function(t) for k, t in param_annotations.items()}
 
     # remove the None values
-    kwargs_mapping = {k: f for k, f in kwargs_mapping.items() if f is not None}
+    kwargs_mapping = {k: f for k, f in kwargs_mapping_with_nones.items() if f is not None}
 
     # a function that loads the parameters before calling the original function
     @functools.wraps(func)

@@ -38,30 +38,38 @@ pip install pyautogen
 ```
 
 <Tabs>
+    <TabItem value="nocode" label="No code execution" default>
+
+```python
+from autogen import AssistantAgent, UserProxyAgent
+
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
+assistant = AssistantAgent("assistant", llm_config=llm_config)
+user_proxy = UserProxyAgent("user_proxy", code_execution_config=False)
+
+# Start the chat
+user_proxy.initiate_chat(
+    assistant,
+    message="Tell me a joke about NVDA and TESLA stock prices.",
+)
+```
+
+    </TabItem>
     <TabItem value="local" label="Local execution" default>
+
 :::warning
 When asked, be sure to check the generated code before continuing to ensure it is safe to run.
 :::
 
 ```python
+import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from autogen.coding import LocalCommandLineCodeExecutor
 
-import os
-from pathlib import Path
-
-llm_config = {
-    "config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}],
-}
-
-work_dir = Path("coding")
-work_dir.mkdir(exist_ok=True)
-
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
 assistant = AssistantAgent("assistant", llm_config=llm_config)
 
-code_executor = LocalCommandLineCodeExecutor(work_dir=work_dir)
 user_proxy = UserProxyAgent(
-    "user_proxy", code_execution_config={"executor": code_executor}
+    "user_proxy", code_execution_config={"executor": autogen.coding.LocalCommandLineCodeExecutor(work_dir="coding")}
 )
 
 # Start the chat
@@ -75,20 +83,12 @@ user_proxy.initiate_chat(
     <TabItem value="docker" label="Docker execution" default>
 
 ```python
+import autogen
 from autogen import AssistantAgent, UserProxyAgent
-from autogen.coding import DockerCommandLineCodeExecutor
 
-import os
-from pathlib import Path
+llm_config = {"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}
 
-llm_config = {
-    "config_list": [{"model": "gpt-4", "api_key": os.environ["OPENAI_API_KEY"]}],
-}
-
-work_dir = Path("coding")
-work_dir.mkdir(exist_ok=True)
-
-with DockerCommandLineCodeExecutor(work_dir=work_dir) as code_executor:
+with autogen.coding.DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
     assistant = AssistantAgent("assistant", llm_config=llm_config)
     user_proxy = UserProxyAgent(
         "user_proxy", code_execution_config={"executor": code_executor}
@@ -103,7 +103,8 @@ with DockerCommandLineCodeExecutor(work_dir=work_dir) as code_executor:
 
 Open `coding/plot.png` to see the generated plot.
 
-  </TabItem>
+    </TabItem>
+
 </Tabs>
 
 :::tip
@@ -126,11 +127,11 @@ The figure below shows an example conversation flow with AutoGen.
 - Understand the use cases for [multi-agent conversation](/docs/Use-Cases/agent_chat) and [enhanced LLM inference](/docs/Use-Cases/enhanced_inference)
 - Read the [API](/docs/reference/agentchat/conversable_agent/) docs
 - Learn about [research](/docs/Research) around AutoGen
-- Chat on [Discord](https://discord.gg/pAbnFJrkgZ)
+- Chat on [Discord](https://aka.ms/autogen-dc)
 - Follow on [Twitter](https://twitter.com/pyautogen)
-- See our [roadmaps](https://github.com/microsoft/autogen/issues?q=is%3Aopen+is%3Aissue+label%3Aroadmap)
+- See our [roadmaps](https://aka.ms/autogen-roadmap)
 
-If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/Contribute).
+If you like our project, please give it a [star](https://github.com/microsoft/autogen/stargazers) on GitHub. If you are interested in contributing, please read [Contributor's Guide](/docs/contributor-guide/contributing).
 
 <iframe
   src="https://ghbtns.com/github-btn.html?user=microsoft&amp;repo=autogen&amp;type=star&amp;count=true&amp;size=large"

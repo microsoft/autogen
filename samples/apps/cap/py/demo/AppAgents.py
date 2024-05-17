@@ -4,10 +4,10 @@ Each agent represents a different role and knows how to connect to external syst
 to retrieve information.
 """
 
+from autogencap.Actor import Actor
+from autogencap.ActorConnector import ActorConnector
 from autogencap.DebugLog import Debug, Info, shorten
 from autogencap.LocalActorNetwork import LocalActorNetwork
-from autogencap.ActorConnector import ActorConnector
-from autogencap.Actor import Actor
 
 
 class GreeterAgent(Actor):

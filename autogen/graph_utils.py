@@ -1,7 +1,7 @@
-from typing import Dict, List
 import logging
+from typing import Dict, List, Optional
 
-from autogen.agentchat.groupchat import Agent
+from autogen.agentchat import Agent
 
 
 def has_self_loops(allowed_speaker_transitions: Dict) -> bool:
@@ -110,13 +110,15 @@ def invert_disallowed_to_allowed(disallowed_speaker_transitions_dict: dict, agen
     return allowed_speaker_transitions_dict
 
 
-def visualize_speaker_transitions_dict(speaker_transitions_dict: dict, agents: List[Agent]):
+def visualize_speaker_transitions_dict(
+    speaker_transitions_dict: dict, agents: List[Agent], export_path: Optional[str] = None
+):
     """
     Visualize the speaker_transitions_dict using networkx.
     """
     try:
-        import networkx as nx
         import matplotlib.pyplot as plt
+        import networkx as nx
     except ImportError as e:
         logging.fatal("Failed to import networkx or matplotlib. Try running 'pip install autogen[graphs]'")
         raise e
@@ -133,4 +135,8 @@ def visualize_speaker_transitions_dict(speaker_transitions_dict: dict, agents: L
 
     # Visualize
     nx.draw(G, with_labels=True, font_weight="bold")
-    plt.show()
+
+    if export_path is not None:
+        plt.savefig(export_path)
+    else:
+        plt.show()
