@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // MessageExtension.cs
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,7 +16,9 @@ public static class MessageExtension
     {
         return message switch
         {
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.FormatMessage(),
+#pragma warning restore CS0618 // deprecated
             TextMessage textMessage => textMessage.FormatMessage(),
             ImageMessage imageMessage => imageMessage.FormatMessage(),
             ToolCallMessage toolCallMessage => toolCallMessage.FormatMessage(),
@@ -110,6 +113,8 @@ public static class MessageExtension
 
         return sb.ToString();
     }
+
+    [Obsolete("This method is deprecated, please use the extension method FormatMessage(this IMessage message) instead.")]
     public static string FormatMessage(this Message message)
     {
         var sb = new StringBuilder();
@@ -149,7 +154,9 @@ public static class MessageExtension
         return message switch
         {
             TextMessage textMessage => textMessage.Role == Role.System,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Role == Role.System,
+#pragma warning restore CS0618 // deprecated
             _ => false,
         };
     }
@@ -167,7 +174,9 @@ public static class MessageExtension
         return message switch
         {
             TextMessage textMessage => textMessage.Content,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Content,
+#pragma warning restore CS0618 // deprecated
             ToolCallResultMessage toolCallResultMessage => toolCallResultMessage.ToolCalls.Count == 1 ? toolCallResultMessage.ToolCalls.First().Result : null,
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message2.ToolCalls.Count == 1 ? aggregateMessage.Message2.ToolCalls.First().Result : null,
             _ => null,
@@ -182,7 +191,9 @@ public static class MessageExtension
         return message switch
         {
             TextMessage textMessage => textMessage.Role,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.Role,
+#pragma warning restore CS0618 // deprecated
             ImageMessage img => img.Role,
             MultiModalMessage multiModal => multiModal.Role,
             _ => null,
@@ -202,10 +213,12 @@ public static class MessageExtension
         return message switch
         {
             ToolCallMessage toolCallMessage => toolCallMessage.ToolCalls,
+#pragma warning disable CS0618 // deprecated
             Message msg => msg.FunctionName is not null && msg.FunctionArguments is not null
                 ? msg.Content is not null ? new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments, result: msg.Content) }
                 : new List<ToolCall> { new ToolCall(msg.FunctionName, msg.FunctionArguments) }
                 : null,
+#pragma warning restore CS0618 // deprecated
             AggregateMessage<ToolCallMessage, ToolCallResultMessage> aggregateMessage => aggregateMessage.Message1.ToolCalls,
             _ => null,
         };
