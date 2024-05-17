@@ -5,11 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoGen.OpenAI;
+using AutoGen.OpenAI.Extension;
+using AutoGen.Tests;
+using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit.Abstractions;
 
-namespace AutoGen.Tests
+namespace AutoGen.OpenAI.Tests
 {
     public partial class MathClassTest
     {
@@ -22,7 +24,7 @@ namespace AutoGen.Tests
         [FunctionAttribute]
         public async Task<string> CreateMathQuestion(string question, int question_index)
         {
-            return $@"// ignore this line [MATH_QUESTION]
+            return $@"[MATH_QUESTION]
 Question #{question_index}:
 {question}";
         }
@@ -30,14 +32,14 @@ Question #{question_index}:
         [FunctionAttribute]
         public async Task<string> AnswerQuestion(string answer)
         {
-            return $@"// ignore this line [MATH_ANSWER]
+            return $@"[MATH_ANSWER]
 The answer is {answer}, teacher please check answer";
         }
 
         [FunctionAttribute]
         public async Task<string> AnswerIsCorrect(string message)
         {
-            return $@"// ignore this line [ANSWER_IS_CORRECT]
+            return $@"[ANSWER_IS_CORRECT]
 {message}";
         }
 
@@ -46,12 +48,12 @@ The answer is {answer}, teacher please check answer";
         {
             if (correctAnswerCount >= 5)
             {
-                return $@"// ignore this line [UPDATE_PROGRESS]
+                return $@"[UPDATE_PROGRESS]
 {GroupChatExtension.TERMINATE}";
             }
             else
             {
-                return $@"// ignore this line [UPDATE_PROGRESS]
+                return $@"[UPDATE_PROGRESS]
 the number of resolved question is {correctAnswerCount}
 teacher, please create the next math question";
             }
@@ -59,25 +61,30 @@ teacher, please create the next math question";
 
 
         [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT")]
-        public async Task AssistantAgentMathChatTestAsync()
+        public async Task OpenAIAgentMathChatTestAsync()
         {
-            var teacher = await CreateTeacherAssistantAgentAsync();
-            var student = await CreateStudentAssistantAgentAsync();
             var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
             var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-            var model = "gpt-35-turbo-16k";
-            var admin = new GPTAgent(
-                name: "Admin",
-                systemMessage: $@"You are admin. You ask teacher to create 5 math questions. You update progress after each question is answered.",
-                config: new AzureOpenAIConfig(endPoint, model, key),
-                functions: new[]
-                {
-                    this.UpdateProgressFunction,
-                },
+
+            var openaiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            var openaiClient = new OpenAIClient(openaiKey);
+            var model = "gpt-3.5-turbo";
+            var teacher = await CreateTeacherAgentAsync(openaiClient, model);
+            var student = await CreateStudentAssistantAgentAsync(openaiClient, model);
+
+            var adminFunctionMiddleware = new FunctionCallMiddleware(
+                functions: [this.UpdateProgressFunctionContract],
                 functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
-                    { this.UpdateProgressFunction.Name, this.UpdateProgressWrapper },
-                })
+                    { this.UpdateProgressFunction.Name!, this.UpdateProgressWrapper },
+                });
+            var admin = new OpenAIChatAgent(
+                openAIClient: openaiClient,
+                modelName: model,
+                name: "Admin",
+                systemMessage: $@"You are admin. You ask teacher to create 5 math questions. You update progress after each question is answered.")
+                .RegisterMessageConnector()
+                .RegisterStreamingMiddleware(adminFunctionMiddleware)
                 .RegisterMiddleware(async (messages, options, agent, ct) =>
                 {
                     // check admin reply to make sure it calls UpdateProgress function
@@ -107,66 +114,53 @@ teacher, please create the next math question";
                     throw new Exception("Admin does not call UpdateProgress function");
                 });
 
-            await RunMathChatAsync(teacher, student, admin);
+            var groupAdmin = new OpenAIChatAgent(
+                openAIClient: openaiClient,
+                modelName: model,
+                name: "GroupAdmin",
+                systemMessage: "You are group admin. You manage the group chat.")
+                .RegisterMessageConnector();
+            await RunMathChatAsync(teacher, student, admin, groupAdmin);
         }
 
-        private async Task<IAgent> CreateTeacherAssistantAgentAsync()
+        private async Task<IAgent> CreateTeacherAgentAsync(OpenAIClient client, string model)
         {
-            var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
-            var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-            var model = "gpt-35-turbo-16k";
-            var config = new AzureOpenAIConfig(endPoint, model, key);
-            var llmConfig = new ConversableAgentConfig
-            {
-                ConfigList = new[]
+            var functionCallMiddleware = new FunctionCallMiddleware(
+                functions: [this.CreateMathQuestionFunctionContract, this.AnswerIsCorrectFunctionContract],
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
-                    config,
-                },
-                FunctionContracts = new[]
-                {
-                    this.CreateMathQuestionFunctionContract,
-                    this.AnswerIsCorrectFunctionContract,
-                },
-            };
+                    { this.CreateMathQuestionFunctionContract.Name!, this.CreateMathQuestionWrapper },
+                    { this.AnswerIsCorrectFunctionContract.Name!, this.AnswerIsCorrectWrapper },
+                });
 
-            var teacher = new AssistantAgent(
-                            name: "Teacher",
-                            systemMessage: $@"You are a preschool math teacher.
+            var teacher = new OpenAIChatAgent(
+                openAIClient: client,
+                name: "Teacher",
+                systemMessage: $@"You are a preschool math teacher.
 You create math question and ask student to answer it.
 Then you check if the answer is correct.
 If the answer is wrong, you ask student to fix it.
-If the answer is correct, you create another math question.
-",
-                            llmConfig: llmConfig,
-                            functionMap: new Dictionary<string, Func<string, Task<string>>>
-                            {
-                                { this.CreateMathQuestionFunction.Name, this.CreateMathQuestionWrapper },
-                                { this.AnswerIsCorrectFunction.Name, this.AnswerIsCorrectWrapper },
-                            });
+If the answer is correct, you create another math question.",
+                modelName: model)
+                .RegisterMessageConnector()
+                .RegisterStreamingMiddleware(functionCallMiddleware);
 
             return teacher;
         }
 
-        private async Task<IAgent> CreateStudentAssistantAgentAsync()
+        private async Task<IAgent> CreateStudentAssistantAgentAsync(OpenAIClient client, string model)
         {
-            var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new ArgumentException("AZURE_OPENAI_API_KEY is not set");
-            var endPoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new ArgumentException("AZURE_OPENAI_ENDPOINT is not set");
-            var model = "gpt-35-turbo-16k";
-            var config = new AzureOpenAIConfig(endPoint, model, key);
-            var llmConfig = new ConversableAgentConfig
-            {
-                FunctionContracts = new[]
+            var functionCallMiddleware = new FunctionCallMiddleware(
+                functions: [this.AnswerQuestionFunctionContract],
+                functionMap: new Dictionary<string, Func<string, Task<string>>>
                 {
-                    this.AnswerQuestionFunctionContract,
-                },
-                ConfigList = new[]
-                {
-                    config,
-                },
-            };
-            var student = new AssistantAgent(
-                            name: "Student",
-                            systemMessage: $@"You are a student. Here's your workflow in pseudo code:
+                    { this.AnswerQuestionFunctionContract.Name!, this.AnswerQuestionWrapper },
+                });
+            var student = new OpenAIChatAgent(
+                openAIClient: client,
+                name: "Student",
+                modelName: model,
+                systemMessage: $@"You are a student. Here's your workflow in pseudo code:
 -workflow-
 answer_question
 if answer is wrong
@@ -180,17 +174,14 @@ Here are a few examples of answer_question:
 Here are a few examples of fix_answer:
 -example 1-
 sorry, the answer should be 2, not 3
-",
-                            llmConfig: llmConfig,
-                            functionMap: new Dictionary<string, Func<string, Task<string>>>
-                            {
-                                { this.AnswerQuestionFunction.Name, this.AnswerQuestionWrapper }
-                            });
+")
+                .RegisterMessageConnector()
+                .RegisterStreamingMiddleware(functionCallMiddleware);
 
             return student;
         }
 
-        private async Task RunMathChatAsync(IAgent teacher, IAgent student, IAgent admin)
+        private async Task RunMathChatAsync(IAgent teacher, IAgent student, IAgent admin, IAgent groupAdmin)
         {
             var group = new GroupChat(
                 [
@@ -198,7 +189,7 @@ sorry, the answer should be 2, not 3
                     teacher,
                     student,
                 ],
-                admin);
+                groupAdmin);
 
             admin.SendIntroduction($@"Welcome to the group chat! I'm admin", group);
             teacher.SendIntroduction($@"Hey I'm Teacher", group);

@@ -34,7 +34,7 @@ public class ToolCall
     }
 }
 
-public class ToolCallMessage : IMessage
+public class ToolCallMessage : IMessage, ICanGetToolCalls
 {
     public ToolCallMessage(IEnumerable<ToolCall> toolCalls, string? from = null)
     {
@@ -88,6 +88,11 @@ public class ToolCallMessage : IMessage
         }
 
         return sb.ToString();
+    }
+
+    public IEnumerable<ToolCall> GetToolCalls()
+    {
+        return this.ToolCalls;
     }
 }
 

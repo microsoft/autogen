@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 using ApprovalTests;
 using ApprovalTests.Namers;
 using ApprovalTests.Reporters;
-using AutoGen.OpenAI;
+using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit;
 
-namespace AutoGen.Tests;
+namespace AutoGen.OpenAI.Tests;
 
 public class OpenAIMessageTests
 {
