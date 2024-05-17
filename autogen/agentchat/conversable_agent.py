@@ -150,7 +150,7 @@ class ConversableAgent(LLMAgent):
         self._name = name
         if agentops:
             self.agent_ops_agent_name = name
-            agentops.add_tags('autogen')
+            agentops.add_tags("autogen")
         # a dictionary of conversations, default value is list
         if chat_messages is None:
             self._oai_messages = defaultdict(list)
