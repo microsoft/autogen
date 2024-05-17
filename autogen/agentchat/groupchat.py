@@ -101,15 +101,15 @@ class GroupChat:
 
     agents: List[Agent]
     messages: List[Dict]
-    max_round: Optional[int] = 10
-    admin_name: Optional[str] = "Admin"
-    func_call_filter: Optional[bool] = True
+    max_round: int = 10
+    admin_name: str = "Admin"
+    func_call_filter: bool = True
     speaker_selection_method: Union[Literal["auto", "manual", "random", "round_robin"], Callable] = "auto"
-    max_retries_for_selecting_speaker: Optional[int] = 2
+    max_retries_for_selecting_speaker: int = 2
     allow_repeat_speaker: Optional[Union[bool, List[Agent]]] = None
     allowed_or_disallowed_speaker_transitions: Optional[Dict] = None
     speaker_transitions_type: Literal["allowed", "disallowed", None] = None
-    enable_clear_history: Optional[bool] = False
+    enable_clear_history: bool = False
     send_introductions: bool = False
     select_speaker_message_template: str = """You are in a role play game. The following roles are available:
                 {roles}.
