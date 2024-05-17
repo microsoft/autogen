@@ -137,7 +137,7 @@ def parse_tags_from_content(tag: str, content: Union[str, List[Dict[str, Any]]])
 
 
 def _parse_tags_from_text(tag: str, text: str) -> List[Dict[str, str]]:
-    pattern = re.compile(f"<{tag} (.*?)>")
+    pattern = re.compile(f"<{tag} (.*?)/?>")
 
     results = []
     for match in re.finditer(pattern, text):

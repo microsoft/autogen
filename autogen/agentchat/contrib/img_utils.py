@@ -292,7 +292,7 @@ def message_formatter_pil_to_b64(messages: List[Dict]) -> List[Dict]:
         if isinstance(message, dict) and "content" in message and isinstance(message["content"], list):
             message = copy.deepcopy(message)
             for item in message["content"]:
-                if isinstance(item, dict) and "image_url" in item:
+                if isinstance(item, dict) and "image_url" in item and isinstance(item["image_url"]["url"], Image.Image):
                     item["image_url"]["url"] = pil_to_data_uri(item["image_url"]["url"])
 
         new_messages.append(message)

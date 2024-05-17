@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 from typing_extensions import Annotated
 
+from autogen import code_utils
 from autogen.agentchat import Agent, AssistantAgent, ConversableAgent, UserProxyAgent
 from autogen.agentchat.contrib import img_utils
 from autogen.agentchat.contrib.huggingface_utils import HuggingFaceClient
@@ -207,7 +208,9 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
         self._assistant.chat_messages[self._user_proxy] = list()
         history = messages[0 : len(messages) - 1]
         for message in history:
-            self._assistant.chat_messages[self._user_proxy].append(message)
+            new_message = copy.deepcopy(message)
+            new_message["content"] = code_utils.content_str(new_message["content"])
+            self._assistant.chat_messages[self._user_proxy].append(new_message)
 
         proxy_reply = messages[-1]
         while True:
@@ -218,8 +221,6 @@ If your response contains an image path, wrap it in an HTML image tag as: <img "
             )
             if proxy_reply == "":
                 break
-            elif self._is_gpt4v_format:
-                proxy_reply["content"] = img_utils.gpt4v_formatter(proxy_reply["content"], img_format="pil")
 
         if assistant_reply is not None and self._is_gpt4v_format:
             assistant_reply["content"] = img_utils.gpt4v_formatter(assistant_reply["content"], img_format="pil")
