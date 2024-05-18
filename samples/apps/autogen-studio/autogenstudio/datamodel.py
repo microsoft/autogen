@@ -82,6 +82,7 @@ class Skill(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     name: str
     content: str
     description: Optional[str] = None
@@ -97,7 +98,7 @@ class LLMConfig(SQLModel, table=False):
     temperature: float = 0
     cache_seed: Optional[Union[int, None]] = None
     timeout: Optional[int] = None
-    max_tokens: Optional[int] = 1000
+    max_tokens: Optional[int] = 2048
     extra_body: Optional[dict] = None
 
 
@@ -119,6 +120,7 @@ class Model(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     model: str
     api_key: Optional[str] = None
     base_url: Optional[str] = None
@@ -175,7 +177,7 @@ class WorkflowAgentLink(SQLModel, table=True):
         default=WorkflowAgentType.sender,
         sa_column=Column(SqlEnum(WorkflowAgentType), primary_key=True),
     )
-    sequence_id: Optional[int] = None
+    sequence_id: Optional[int] = Field(default=0, primary_key=True)
 
 
 class AgentLink(SQLModel, table=True):
@@ -196,8 +198,9 @@ class Agent(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     type: AgentType = Field(default=AgentType.assistant, sa_column=Column(SqlEnum(AgentType)))
-    config: AgentConfig = Field(default_factory=AgentConfig, sa_column=Column(JSON))
+    config: Union[AgentConfig, dict] = Field(default_factory=AgentConfig, sa_column=Column(JSON))
     skills: List[Skill] = Relationship(back_populates="agents", link_model=AgentSkillLink)
     models: List[Model] = Relationship(back_populates="agents", link_model=AgentModelLink)
     workflows: List["Workflow"] = Relationship(link_model=WorkflowAgentLink, back_populates="agents")
@@ -217,6 +220,7 @@ class Agent(SQLModel, table=True):
             secondaryjoin="Agent.id==AgentLink.agent_id",
         ),
     )
+    task_instruction: Optional[str] = None
 
 
 class WorkFlowType(str, Enum):
@@ -242,6 +246,7 @@ class Workflow(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True), onupdate=func.now()),
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
+    version: Optional[str] = "0.0.1"
     name: str
     description: str
     agents: List[Agent] = Relationship(back_populates="workflows", link_model=WorkflowAgentLink)

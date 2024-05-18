@@ -4,7 +4,7 @@ import queue
 import threading
 import traceback
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Union
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -337,6 +337,19 @@ async def link_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
     )
 
 
+@api.post("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}/{sequence_id}")
+async def link_workflow_agent_sequence(workflow_id: int, agent_id: int, agent_type: str, sequence_id: int):
+    """Link an agent to a workflow"""
+    print("Sequence ID: ", sequence_id)
+    return dbmanager.link(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+        sequence_id=sequence_id,
+    )
+
+
 @api.delete("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}")
 async def unlink_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
     """Unlink an agent from a workflow"""
@@ -348,13 +361,24 @@ async def unlink_workflow_agent(workflow_id: int, agent_id: int, agent_type: str
     )
 
 
-@api.get("/workflows/link/agent/{workflow_id}/{agent_type}")
-async def get_linked_workflow_agents(workflow_id: int, agent_type: str):
+@api.delete("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}/{sequence_id}")
+async def unlink_workflow_agent_sequence(workflow_id: int, agent_id: int, agent_type: str, sequence_id: int):
+    """Unlink an agent from a workflow sequence"""
+    return dbmanager.unlink(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+        sequence_id=sequence_id,
+    )
+
+
+@api.get("/workflows/link/agent/{workflow_id}")
+async def get_linked_workflow_agents(workflow_id: int):
     """Get all agents linked to a workflow"""
     return dbmanager.get_linked_entities(
         link_type="workflow_agent",
         primary_id=workflow_id,
-        agent_type=agent_type,
         return_json=True,
     )
 

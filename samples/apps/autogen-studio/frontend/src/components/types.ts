@@ -63,9 +63,9 @@ export interface IAgent {
 export interface IWorkflow {
   name: string;
   description: string;
-  sender: IAgent;
-  receiver: IAgent;
-  type: "autonomous" | "sequential";
+  sender?: IAgent;
+  receiver?: IAgent;
+  type?: "autonomous" | "sequential";
   created_at?: string;
   updated_at?: string;
   summary_method?: "none" | "last" | "llm";

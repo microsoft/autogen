@@ -16,7 +16,6 @@ import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
   getServerUrl,
-  sampleWorkflowConfig,
   sanitizeConfig,
   timeAgo,
   truncateText,
@@ -42,9 +41,12 @@ const WorkflowView = ({}: any) => {
   const [selectedExportWorkflow, setSelectedExportWorkflow] =
     React.useState<IWorkflow | null>(null);
 
-  const defaultConfig = sampleWorkflowConfig();
+  const sampleWorkflow: IWorkflow = {
+    name: "Sample Agent Workflow",
+    description: "Sample Agent Workflow",
+  };
   const [newWorkflow, setNewWorkflow] = React.useState<IWorkflow | null>(
-    defaultConfig
+    sampleWorkflow
   );
 
   const [showWorkflowModal, setShowWorkflowModal] = React.useState(false);
@@ -201,7 +203,7 @@ const WorkflowView = ({}: any) => {
               className="break-words  my-2"
               aria-hidden="true"
             >
-              {" "}
+              <div className="text-xs mb-2">{workflow.type}</div>{" "}
               {truncateText(workflow.description, 70)}
             </div>
             <div
@@ -344,7 +346,7 @@ const WorkflowView = ({}: any) => {
       uploadWorkflow();
       return;
     }
-    showWorkflow(sampleWorkflowConfig(key));
+    showWorkflow(sampleWorkflow);
   };
 
   return (
@@ -388,7 +390,7 @@ const WorkflowView = ({}: any) => {
                 placement="bottomRight"
                 trigger={["click"]}
                 onClick={() => {
-                  showWorkflow(sampleWorkflowConfig());
+                  showWorkflow(sampleWorkflow);
                 }}
               >
                 <PlusIcon className="w-5 h-5 inline-block mr-1" />

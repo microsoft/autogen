@@ -289,7 +289,8 @@ iiz__zoom-img {
 .ant-modal-footer {
   @apply border-secondary !important;
 }
-.ant-btn {
+.ant-btn,
+.ant-btn:hover {
   @apply text-primary !important;
 }
 :where(.ant-btn).ant-btn-compact-item.ant-btn-primary:not([disabled])

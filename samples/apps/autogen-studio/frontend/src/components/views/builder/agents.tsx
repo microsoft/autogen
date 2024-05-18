@@ -187,7 +187,7 @@ const AgentsView = ({}: any) => {
             aria-hidden="true"
             className="my-2   break-words"
           >
-            {" "}
+            <div className="text-xs mb-2">{agent.type}</div>{" "}
             {truncateText(agent.config.description || "", 70)}
           </div>
           <div

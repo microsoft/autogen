@@ -16,10 +16,16 @@ from ..datamodel import (
     Skill,
     Workflow,
     WorkflowAgentLink,
+    WorkflowAgentType,
 )
 from .utils import init_db_samples
 
 valid_link_types = ["agent_model", "agent_skill", "agent_agent", "workflow_agent"]
+
+
+class WorkflowAgentMap(SQLModel):
+    agent: Agent
+    link: WorkflowAgentLink
 
 
 class DBManager:
@@ -222,20 +228,21 @@ class DBManager:
                     linked_entities = agent.agents
                 elif link_type == "workflow_agent":
                     linked_entities = session.exec(
-                        select(Agent)
-                        .join(WorkflowAgentLink)
+                        select(WorkflowAgentLink, Agent)
+                        .join(Agent, WorkflowAgentLink.agent_id == Agent.id)
                         .where(
                             WorkflowAgentLink.workflow_id == primary_id,
-                            WorkflowAgentLink.agent_type == agent_type,
-                            WorkflowAgentLink.sequence_id == sequence_id,
                         )
                     ).all()
+
+                    linked_entities = [WorkflowAgentMap(agent=agent, link=link) for link, agent in linked_entities]
+                    linked_entities = sorted(linked_entities, key=lambda x: x.link.sequence_id)  # type: ignore
             except Exception as e:
                 logger.error("Error while getting linked entities: " + str(e))
                 status_message = f"Error while getting linked entities: {e}"
                 status = False
             if return_json:
-                linked_entities = [self._model_to_dict(row) for row in linked_entities]
+                linked_entities = [row.model_dump() for row in linked_entities]
 
         response = Response(
             message=status_message,
