@@ -20,6 +20,14 @@ SQLModel.model_config["protected_namespaces"] = ()
 # pylint: disable=protected-access
 
 
+class MessageMeta(SQLModel, table=False):
+    task: Optional[str] = None
+    messages: Optional[List[Dict[str, Any]]] = None
+    summary_method: Optional[str] = "last"
+    files: Optional[List[dict]] = None
+    time: Optional[datetime] = None
+
+
 class Message(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -38,7 +46,7 @@ class Message(SQLModel, table=True):
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
     connection_id: Optional[str] = None
-    meta: Optional[Dict] = Field(default={}, sa_column=Column(JSON))
+    meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
 
 class Session(SQLModel, table=True):

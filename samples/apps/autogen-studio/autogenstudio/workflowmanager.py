@@ -523,6 +523,7 @@ class SequentialWorkflowManager:
                 "summary_method": self.workflow.get("summary_method", "last"),
                 "time": end_time - start_time,
                 "files": get_modified_files(start_time, end_time, source_dir=self.work_dir),
+                "task": message,
             },
         )
         return result_message
